@@ -5164,14 +5164,18 @@
 
 <h2 id="secrets-manager">Secrets Manager</h2>
 <p>External Secrets Operator integrates with <a href="https://www.ovhcloud.com/en/identity-security-operations/key-management-service/">OVHcloud KMS</a>.  </p>
-<p>This guide demonstrates:
-- how to set up a <code>ClusterSecretStore</code>/<code>SecretStore</code> with the OVH provider.
-- <code>ExternalSecret</code> use cases with examples.
-- <code>PushSecret</code> use cases with examples.</p>
-<p>This guide assumes:
-- External Secrets Operator is already installed
-- You have access to OVHcloud Secret Manager
-- Required credentials are already created</p>
+<p>This guide demonstrates:</p>
+<ul>
+<li>how to set up a <code>ClusterSecretStore</code>/<code>SecretStore</code> with the OVH provider.</li>
+<li><code>ExternalSecret</code> use cases with examples.</li>
+<li><code>PushSecret</code> use cases with examples.</li>
+</ul>
+<p>This guide assumes:</p>
+<ul>
+<li>External Secrets Operator is already installed</li>
+<li>You have access to OVHcloud Secret Manager</li>
+<li>Required credentials are already created</li>
+</ul>
 <h3 id="secretstore"><u>SecretStore</u></h3>
 <p><strong>OVH provider supports both <code>token</code> and <code>mTLS</code> authentication.</strong></p>
 <p>Token authentication:

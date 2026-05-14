@@ -5216,10 +5216,12 @@
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">doppler-oidc-sa</span>
 <span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
 </code></pre></div>
-<p>Next, create a Doppler Service Account Identity with:
-- <strong>Issuer</strong>: Your cluster's OIDC discovery URL
-- <strong>Audience</strong>: The resource-specific audience for the SecretStore (<code>secretStore:&lt;namespace&gt;:&lt;storeName&gt;</code> or <code>clusterSecretStore:&lt;storeName&gt;</code>), e.g. <code>secretStore:external-secrets:doppler-oidc-sa</code> or <code>clusterSecretStore:doppler-auth-api</code>
-- <strong>Subject</strong>: The Kubernetes ServiceAccount (<code>system:serviceaccount:&lt;serviceAccountNamespace&gt;:&lt;serviceAccountName&gt;</code>), e.g. <code>system:serviceaccount:external-secrets:doppler-oidc-sa</code></p>
+<p>Next, create a Doppler Service Account Identity with:</p>
+<ul>
+<li><strong>Issuer</strong>: Your cluster's OIDC discovery URL</li>
+<li><strong>Audience</strong>: The resource-specific audience for the SecretStore (<code>secretStore:&lt;namespace&gt;:&lt;storeName&gt;</code> or <code>clusterSecretStore:&lt;storeName&gt;</code>), e.g. <code>secretStore:external-secrets:doppler-oidc-sa</code> or <code>clusterSecretStore:doppler-auth-api</code></li>
+<li><strong>Subject</strong>: The Kubernetes ServiceAccount (<code>system:serviceaccount:&lt;serviceAccountNamespace&gt;:&lt;serviceAccountName&gt;</code>), e.g. <code>system:serviceaccount:external-secrets:doppler-oidc-sa</code></li>
+</ul>
 <p>Then configure the SecretStore:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>

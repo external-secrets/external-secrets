@@ -5721,9 +5721,11 @@ secret (for push, delete, and existence checks). The <code>folderId</code> and <
 <code>folderId:&lt;id&gt;/&lt;name&gt;</code> format, a path-based key, or a numeric ID to ensure the correct secret is
 updated. Using a plain name will update the <strong>first match</strong> returned by the API.</p>
 <h4 id="deletion-behavior">Deletion Behavior</h4>
-<p>The <code>PushSecret</code> resource allows you to configure what happens to the remote secret in Secret Server when the <code>PushSecret</code> itself is deleted, via the <code>PushSecret.spec.deletionPolicy</code> field. Supported values are:
-- <code>Retain</code>: (Default) The remote secret is left intact in Secret Server when the <code>PushSecret</code> is deleted.
-- <code>Delete</code>: The provider will attempt to delete the remote secret from Secret Server when the <code>PushSecret</code> is removed.</p>
+<p>The <code>PushSecret</code> resource allows you to configure what happens to the remote secret in Secret Server when the <code>PushSecret</code> itself is deleted, via the <code>PushSecret.spec.deletionPolicy</code> field. Supported values are:</p>
+<ul>
+<li><code>Retain</code>: (Default) The remote secret is left intact in Secret Server when the <code>PushSecret</code> is deleted.</li>
+<li><code>Delete</code>: The provider will attempt to delete the remote secret from Secret Server when the <code>PushSecret</code> is removed.</li>
+</ul>
 <p>When <code>Delete</code> is specified, the deletion operation is idempotent; if the secret has already been removed or cannot be found, the provider will safely ignore the error and proceed.</p>
 <p><strong>Important:</strong> The deletion operation does <strong>not</strong> have access to <code>metadata</code>. If your Secret Server
 has multiple secrets with the same name in different folders and you use <code>deletionPolicy: Delete</code>,

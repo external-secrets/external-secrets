@@ -4977,12 +4977,14 @@
 <p>ESO and the ESO Helm Chart have two distinct lifecycles and can be released independently. Helm Chart releases are named <code>external-secrets-x.y.z</code>.</p>
 <p>The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release.</p>
 <h2 id="multi-module-versioning">Multi-Module Versioning</h2>
-<p>External Secrets Operator uses a multi-module structure with the following modules:
-- <code>/apis</code> - CRD types and interfaces
-- <code>/runtime</code> - Shared utilities
-- <code>/providers/v1/*</code> - Individual provider modules
-- <code>/generators/v1/*</code> - Individual generator modules
-- <code>/</code> (root) - Main module with controllers and binary</p>
+<p>External Secrets Operator uses a multi-module structure with the following modules:</p>
+<ul>
+<li><code>/apis</code> - CRD types and interfaces</li>
+<li><code>/runtime</code> - Shared utilities</li>
+<li><code>/providers/v1/*</code> - Individual provider modules</li>
+<li><code>/generators/v1/*</code> - Individual generator modules</li>
+<li><code>/</code> (root) - Main module with controllers and binary</li>
+</ul>
 <p><strong>All modules share the same version tag.</strong> When releasing version <code>v0.x.y</code>, a single git tag is created that applies to all modules in the repository. Go's module system automatically handles this, and consumers can reference any module using the same version tag.</p>
 <p>For example:
 <div class="highlight"><pre><span></span><code><span class="nx">require</span><span class="w"> </span><span class="p">(</span>
@@ -5015,12 +5017,14 @@ Otherwise the <code>latest</code> documentation will point to the older version.
 <li>merge PR if everything is green</li>
 <li>CI picks up the new chart version and creates a new GitHub Release for it</li>
 </ol>
-<p>The following things are updated with those commands:
-1. Update helm docs
-2. Update the apiVersion in the snapshots for the helm tests
-3. Update all the helm tests with potential added values
-4. Update the stability docs with the latest minor version if exists
-5. Update the CRD conformance tests</p>
+<p>The following things are updated with those commands:</p>
+<ol>
+<li>Update helm docs</li>
+<li>Update the apiVersion in the snapshots for the helm tests</li>
+<li>Update all the helm tests with potential added values</li>
+<li>Update the stability docs with the latest minor version if exists</li>
+<li>Update the CRD conformance tests</li>
+</ol>
 <p>The branch to create this release should be <code>release-chart-x.y.z</code>. Though be aware that release branches are <em>immutable</em>.
 This means that if there is anything that needs to be fixed, a new branch will need to be created.</p>
 <p>Also, keep an eye on <code>main</code> so nothing is merged while the chart branch is running the e2e tests. If that happens,

@@ -5601,11 +5601,13 @@ Below example creates a kubernetes secret based on ID of the secret in Secrets M
 <h3 id="populating-the-kubernetes-secret-with-metadata-from-ibm-secrets-manager-provider">Populating the Kubernetes secret with metadata from IBM Secrets Manager Provider</h3>
 <p>ESO can add metadata while creating or updating a Kubernetes secret to be reflected in its labels or annotations. The metadata could be any of the fields that are supported and returned in the response by IBM Secrets Manager.</p>
 <p>In order for the user to opt in to adding metadata to secret, an existing optional field <code>spec.dataFrom.extract.metadataPolicy</code> can be set to <code>Fetch</code>, its default value being <code>None</code>. In addition to this, templating provided be ESO can be leveraged to specify the key-value pairs of the resultant secrets' labels and annotation.</p>
-<p>In order for the required metadata to be populated in the Kubernetes secret, combination of below should be provided in the External Secrets resource:
-1. The required metadata should be specified under <code>template.metadata.labels</code> or <code>template.metadata.annotations</code>.
-2. The required secret data should be specified under <code>template.data</code>.
-3. The spec.dataFrom.extract should be specified with details of the Secrets Manager secret with <code>spec.dataFrom.extract.metadataPolicy</code> set to <code>Fetch</code>.
-Below is an example, where <code>secret_id</code> and <code>updated_at</code> are the metadata of a secret in IBM Secrets Manager:</p>
+<p>In order for the required metadata to be populated in the Kubernetes secret, combination of below should be provided in the External Secrets resource:</p>
+<ol>
+<li>The required metadata should be specified under <code>template.metadata.labels</code> or <code>template.metadata.annotations</code>.</li>
+<li>The required secret data should be specified under <code>template.data</code>.</li>
+<li>The spec.dataFrom.extract should be specified with details of the Secrets Manager secret with <code>spec.dataFrom.extract.metadataPolicy</code> set to <code>Fetch</code>.
+Below is an example, where <code>secret_id</code> and <code>updated_at</code> are the metadata of a secret in IBM Secrets Manager:</li>
+</ol>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>

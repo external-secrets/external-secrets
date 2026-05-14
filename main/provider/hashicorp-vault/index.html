@@ -6478,14 +6478,18 @@ and pick the best fit for your environment and Vault configuration.</p>
 <li><strong>Token Revocation</strong>: When tokens are evicted from the cache, they are properly revoked from Vault</li>
 </ul>
 <h4 id="when-to-use-token-caching">When to Use Token Caching</h4>
-<p>Token caching is beneficial when:
-- Using authentication methods that generate short-lived tokens (e.g., AppRole, Kubernetes auth)
-- Running multiple ExternalSecrets that use the same SecretStore
-- Experiencing high token generation overhead</p>
-<p>Token caching should <strong>not</strong> be used when:
-- Using static tokens (no performance benefit)
-- Security requirements mandate fresh tokens for each request
-- Memory usage is a concern</p>
+<p>Token caching is beneficial when:</p>
+<ul>
+<li>Using authentication methods that generate short-lived tokens (e.g., AppRole, Kubernetes auth)</li>
+<li>Running multiple ExternalSecrets that use the same SecretStore</li>
+<li>Experiencing high token generation overhead</li>
+</ul>
+<p>Token caching should <strong>not</strong> be used when:</p>
+<ul>
+<li>Using static tokens (no performance benefit)</li>
+<li>Security requirements mandate fresh tokens for each request</li>
+<li>Memory usage is a concern</li>
+</ul>
 <h4 id="read-your-writes">Read Your Writes</h4>
 <p>Vault 1.10.0 and later encodes information in the token to detect the case
 when a server is behind. If a Vault server does not have information about

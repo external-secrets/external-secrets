@@ -5097,13 +5097,15 @@
 <span class="w">            </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;^db-&quot;</span>
 <span class="w">            </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;myapp/production/database/&quot;</span>
 </code></pre></div></p>
-<p><strong>Result in AWS Secrets Manager:</strong>
-- <code>myapp/production/database/host</code>
-- <code>myapp/production/database/port</code>
-- <code>myapp/production/database/username</code>
-- <code>myapp/production/database/password</code>
-- <code>myapp/production/database/database</code>
-- <code>myapp/production/database/ssl-mode</code></p>
+<p><strong>Result in AWS Secrets Manager:</strong></p>
+<ul>
+<li><code>myapp/production/database/host</code></li>
+<li><code>myapp/production/database/port</code></li>
+<li><code>myapp/production/database/username</code></li>
+<li><code>myapp/production/database/password</code></li>
+<li><code>myapp/production/database/database</code></li>
+<li><code>myapp/production/database/ssl-mode</code></li>
+</ul>
 <h2 id="example-2-multi-environment-configuration">Example 2: Multi-Environment Configuration</h2>
 <p>Push the same secrets to different environments with different prefixes.</p>
 <p><strong>Source Secret:</strong>
@@ -5219,13 +5221,15 @@
 <span class="w">            </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;^tls-&quot;</span>
 <span class="w">            </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;config/tls/&quot;</span>
 </code></pre></div></p>
-<p><strong>Result:</strong>
-- <code>config/database/host</code>
-- <code>config/database/password</code>
-- <code>config/api/github-token</code>
-- <code>config/api/stripe-key</code>
-- <code>config/tls/cert</code>
-- <code>config/tls/key</code></p>
+<p><strong>Result:</strong></p>
+<ul>
+<li><code>config/database/host</code></li>
+<li><code>config/database/password</code></li>
+<li><code>config/api/github-token</code></li>
+<li><code>config/api/stripe-key</code></li>
+<li><code>config/tls/cert</code></li>
+<li><code>config/tls/key</code></li>
+</ul>
 <h2 id="example-4-template-transformation">Example 4: Template Transformation</h2>
 <p>Use Go templates to transform key names with advanced logic.</p>
 <p><strong>Source Secret:</strong>
@@ -5259,10 +5263,12 @@
 <span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">transform</span><span class="p">:</span>
 <span class="w">            </span><span class="nt">template</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;services/{{</span><span class="nv"> </span><span class="s">.value</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">upper</span><span class="nv"> </span><span class="s">|</span><span class="nv"> </span><span class="s">replace</span><span class="nv"> </span><span class="s">\&quot;-\&quot;</span><span class="nv"> </span><span class="s">\&quot;_\&quot;</span><span class="nv"> </span><span class="s">}}&quot;</span>
 </code></pre></div>
-<p><strong>Result:</strong>
-- <code>services/PAYMENT_GATEWAY_KEY</code>
-- <code>services/EMAIL_SERVICE_KEY</code>
-- <code>services/STORAGE_SERVICE_KEY</code></p>
+<p><strong>Result:</strong></p>
+<ul>
+<li><code>services/PAYMENT_GATEWAY_KEY</code></li>
+<li><code>services/EMAIL_SERVICE_KEY</code></li>
+<li><code>services/STORAGE_SERVICE_KEY</code></li>
+</ul>
 <h2 id="example-5-chained-transformations">Example 5: Chained Transformations</h2>
 <p>Apply multiple transformations sequentially for complex key restructuring.</p>
 <p><strong>Source Secret:</strong>
@@ -5306,10 +5312,12 @@
 <span class="w">            </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;-&quot;</span>
 <span class="w">            </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/&quot;</span>
 </code></pre></div></p>
-<p><strong>Result:</strong>
-- <code>migrated/db/primary/host</code>
-- <code>migrated/db/replica/host</code>
-- <code>migrated/cache/redis/url</code></p>
+<p><strong>Result:</strong></p>
+<ul>
+<li><code>migrated/db/primary/host</code></li>
+<li><code>migrated/db/replica/host</code></li>
+<li><code>migrated/cache/redis/url</code></li>
+</ul>
 <h2 id="example-6-override-specific-keys">Example 6: Override Specific Keys</h2>
 <p>Use both dataTo and explicit data to handle exceptions.</p>
 <p><strong>Source Secret:</strong>
@@ -5356,12 +5364,14 @@
 <span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">admin/database/password</span>
 </code></pre></div></p>
-<p><strong>Result:</strong>
-- <code>app/database/host</code> (from dataTo)
-- <code>app/database/port</code> (from dataTo)
-- <code>app/database/user</code> (from dataTo)
-- <code>app/database/password</code> (from dataTo)
-- <code>admin/database/password</code> (from explicit data override)</p>
+<p><strong>Result:</strong></p>
+<ul>
+<li><code>app/database/host</code> (from dataTo)</li>
+<li><code>app/database/port</code> (from dataTo)</li>
+<li><code>app/database/user</code> (from dataTo)</li>
+<li><code>app/database/password</code> (from dataTo)</li>
+<li><code>admin/database/password</code> (from explicit data override)</li>
+</ul>
 <h2 id="example-7-aws-secrets-manager-with-metadata">Example 7: AWS Secrets Manager with Metadata</h2>
 <p>Push secrets with AWS-specific metadata tags.</p>
 <p><strong>PushSecret with Metadata:</strong>
@@ -5441,10 +5451,12 @@
 <span class="w">            </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;^shared-&quot;</span>
 <span class="w">            </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;shared/&quot;</span>
 </code></pre></div></p>
-<p><strong>Result:</strong>
-- <code>services/a/api-key</code>
-- <code>services/b/api-key</code>
-- <code>shared/secret</code></p>
+<p><strong>Result:</strong></p>
+<ul>
+<li><code>services/a/api-key</code></li>
+<li><code>services/b/api-key</code></li>
+<li><code>shared/secret</code></li>
+</ul>
 <h2 id="example-9-azure-key-vault">Example 9: Azure Key Vault</h2>
 <p>Push secrets to Azure Key Vault with naming constraints (alphanumeric and hyphens only).</p>
 <p><strong>PushSecret for Azure:</strong>
@@ -5522,15 +5534,21 @@
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>pushsecret<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>&lt;namespace&gt;<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.status.syncedPushSecrets}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>jq
 </code></pre></div>
 <h3 id="common-issues">Common Issues</h3>
-<p><strong>1. No keys matched:</strong>
-- Verify the source Secret has keys matching your pattern
-- Check regexp syntax: <code>kubectl get secret &lt;name&gt; -o jsonpath='{.data}' | jq 'keys'</code></p>
-<p><strong>2. Invalid regexp error:</strong>
-- Validate your regexp using an online regexp tester
-- Ensure special characters are properly escaped</p>
-<p><strong>3. Duplicate remote keys:</strong>
-- Check if your rewrites produce unique keys
-- Adjust patterns or use explicit data overrides</p>
+<p><strong>1. No keys matched:</strong></p>
+<ul>
+<li>Verify the source Secret has keys matching your pattern</li>
+<li>Check regexp syntax: <code>kubectl get secret &lt;name&gt; -o jsonpath='{.data}' | jq 'keys'</code></li>
+</ul>
+<p><strong>2. Invalid regexp error:</strong></p>
+<ul>
+<li>Validate your regexp using an online regexp tester</li>
+<li>Ensure special characters are properly escaped</li>
+</ul>
+<p><strong>3. Duplicate remote keys:</strong></p>
+<ul>
+<li>Check if your rewrites produce unique keys</li>
+<li>Adjust patterns or use explicit data overrides</li>
+</ul>
 <h2 id="best-practices">Best Practices</h2>
 <ol>
 <li><strong>Start with match-all to verify</strong>: Test with <code>dataTo: [{storeRef: {name: your-store}}]</code> first</li>

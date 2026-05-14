@@ -5255,12 +5255,14 @@ a <code>path</code> prefix or use <code>Tags</code> filter.</p>
 <span class="w">        </span><span class="c1"># recoveryWindowInDays: 9 (conflicts with forceDeleteWithoutRecovery)</span>
 </code></pre></div>
 <h4 id="additional-metadata-for-pushsecret">Additional Metadata for PushSecret</h4>
-<p>Optionally, it is possible to configure additional options for the parameter. These are as follows:
-- kmsKeyID
-- secretPushFormat
-- description
-- tags
-- resourcePolicy</p>
+<p>Optionally, it is possible to configure additional options for the parameter. These are as follows:</p>
+<ul>
+<li>kmsKeyID</li>
+<li>secretPushFormat</li>
+<li>description</li>
+<li>tags</li>
+<li>resourcePolicy</li>
+</ul>
 <p>To control this behavior set the following provider metadata:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>

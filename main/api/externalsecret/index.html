@@ -5108,11 +5108,13 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <h2 id="update-behavior-with-3-different-refresh-policies">Update behavior with 3 different refresh policies</h2>
 <p>You can control how and when the <code>ExternalSecret</code> is refreshed by setting the <code>spec.refreshPolicy</code> field. If not specified, the default behavior is <code>Periodic</code>.</p>
 <h3 id="createdonce">CreatedOnce</h3>
-<p>With <code>refreshPolicy: CreatedOnce</code>, the controller will:
-- Create the <code>Kind=Secret</code> only if it does not exist yet
-- Never update the <code>Kind=Secret</code> afterwards if the source data changes
-- Update/ Recreate the <code>Kind=Secret</code> if it gets changed/Deleted
-- Useful for immutable credentials or when you want to manage updates manually</p>
+<p>With <code>refreshPolicy: CreatedOnce</code>, the controller will:</p>
+<ul>
+<li>Create the <code>Kind=Secret</code> only if it does not exist yet</li>
+<li>Never update the <code>Kind=Secret</code> afterwards if the source data changes</li>
+<li>Update/ Recreate the <code>Kind=Secret</code> if it gets changed/Deleted</li>
+<li>Useful for immutable credentials or when you want to manage updates manually</li>
+</ul>
 <p>Example:
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5123,11 +5125,13 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">  </span><span class="c1"># other fields...</span>
 </code></pre></div></p>
 <h3 id="periodic">Periodic</h3>
-<p>With <code>refreshPolicy: Periodic</code> (the default behavior), the controller will:
-- Create the <code>Kind=Secret</code> if it doesn't exist
-- Update the <code>Kind=Secret</code> regularly based on the <code>spec.refreshInterval</code> duration
-- When <code>spec.refreshInterval</code> is set to zero, it will only create the secret once and not update it afterward
-- When <code>spec.refreshInterval</code> is set to a value greater than zero, the controller will update the <code>Kind=Secret</code> at the specified interval or when the <code>ExternalSecret</code> specification changes</p>
+<p>With <code>refreshPolicy: Periodic</code> (the default behavior), the controller will:</p>
+<ul>
+<li>Create the <code>Kind=Secret</code> if it doesn't exist</li>
+<li>Update the <code>Kind=Secret</code> regularly based on the <code>spec.refreshInterval</code> duration</li>
+<li>When <code>spec.refreshInterval</code> is set to zero, it will only create the secret once and not update it afterward</li>
+<li>When <code>spec.refreshInterval</code> is set to a value greater than zero, the controller will update the <code>Kind=Secret</code> at the specified interval or when the <code>ExternalSecret</code> specification changes</li>
+</ul>
 <p>Example:
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5139,11 +5143,13 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">  </span><span class="c1"># other fields...</span>
 </code></pre></div></p>
 <h3 id="onchange">OnChange</h3>
-<p>With <code>refreshPolicy: OnChange</code>, the controller will:
-- Create the <code>Kind=Secret</code> if it doesn't exist
-- Update the <code>Kind=Secret</code> only when the <code>ExternalSecret</code>'s metadata or specification changes
-- This policy is independent of the <code>refreshInterval</code> value
-- Useful when you want to manually control when the secret is updated, by modifying the <code>ExternalSecret</code> resource</p>
+<p>With <code>refreshPolicy: OnChange</code>, the controller will:</p>
+<ul>
+<li>Create the <code>Kind=Secret</code> if it doesn't exist</li>
+<li>Update the <code>Kind=Secret</code> only when the <code>ExternalSecret</code>'s metadata or specification changes</li>
+<li>This policy is independent of the <code>refreshInterval</code> value</li>
+<li>Useful when you want to manually control when the secret is updated, by modifying the <code>ExternalSecret</code> resource</li>
+</ul>
 <p>Example:
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
