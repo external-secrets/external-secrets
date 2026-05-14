@@ -69,7 +69,7 @@ spec:
           {{- end }}
           image: {{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.image "context" .) | trim }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.processClusterStore) (.Values.processClusterExternalSecret) (.Values.processClusterPushSecret) (.Values.concurrent) (.Values.extraArgs) }}
+          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.scopedRBAC) (.Values.processClusterStore) (.Values.processClusterExternalSecret) (.Values.processClusterPushSecret) (.Values.concurrent) (.Values.extraArgs) }}
           args:
           {{- if .Values.leaderElect }}
           - --enable-leader-election=true
@@ -77,10 +77,10 @@ spec:
           {{- if .Values.leaderElectionID }}
           - --leader-election-id={{ .Values.leaderElectionID }}
           {{- end }}
-          {{- if .Values.scopedNamespace }}
-          - --namespace={{ .Values.scopedNamespace }}
+          {{- if or .Values.scopedNamespace .Values.scopedRBAC }}
+          - --namespace={{ .Values.scopedNamespace | default .Release.Namespace }}
           {{- end }}
-          {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+          {{- if .Values.scopedRBAC }}
           - --enable-cluster-store-reconciler=false
           - --enable-cluster-external-secret-reconciler=false
           - --enable-cluster-push-secret-reconciler=false

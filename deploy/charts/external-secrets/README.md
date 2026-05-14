@@ -213,7 +213,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | resources | object | `{}` |  |
 | revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
 | scopedNamespace | string | `""` | If set external secrets are only reconciled in the provided namespace |
-| scopedRBAC | bool | `false` | Must be used with scopedNamespace. If true, create scoped RBAC roles under the scoped namespace and implicitly disable cluster stores and cluster external secrets |
+| scopedRBAC | bool | `false` | If true, create scoped RBAC roles and implicitly disable cluster-scoped controllers. Scoped to scopedNamespace if set, otherwise to .Release.Namespace. |
 | securityContext.allowPrivilegeEscalation | bool | `false` |  |
 | securityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | securityContext.enabled | bool | `true` |  |
