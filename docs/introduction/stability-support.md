@@ -10,6 +10,7 @@ This page lists the status, timeline and policy for currently supported ESO rele
 external-secrets only supports the most-up-to date, current minor version. Any other minor version releases are automatically deprecated as soon as a new minor version comes.
 
 During a minor version support time, we cover:
+
 - regular image rebuilds to update OS dependencies
 - regular go dependency updates
 

@@ -259,6 +259,7 @@ ESO can add metadata while creating or updating a Kubernetes secret to be reflec
 In order for the user to opt in to adding metadata to secret, an existing optional field `spec.dataFrom.extract.metadataPolicy` can be set to `Fetch`, its default value being `None`. In addition to this, templating provided be ESO can be leveraged to specify the key-value pairs of the resultant secrets' labels and annotation.
 
 In order for the required metadata to be populated in the Kubernetes secret, combination of below should be provided in the External Secrets resource:
+
 1. The required metadata should be specified under `template.metadata.labels` or `template.metadata.annotations`.
 2. The required secret data should be specified under `template.data`.
 3. The spec.dataFrom.extract should be specified with details of the Secrets Manager secret with `spec.dataFrom.extract.metadataPolicy` set to `Fetch`.

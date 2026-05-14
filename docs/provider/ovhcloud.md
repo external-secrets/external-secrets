@@ -3,11 +3,13 @@
 External Secrets Operator integrates with [OVHcloud KMS](https://www.ovhcloud.com/en/identity-security-operations/key-management-service/).  
 
 This guide demonstrates:
+
 - how to set up a `ClusterSecretStore`/`SecretStore` with the OVH provider.
 - `ExternalSecret` use cases with examples.
 - `PushSecret` use cases with examples.
 
 This guide assumes:
+
 - External Secrets Operator is already installed
 - You have access to OVHcloud Secret Manager
 - Required credentials are already created

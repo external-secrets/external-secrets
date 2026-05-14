@@ -53,6 +53,7 @@ If you need to check license headers locally, you can use the SkyWalking Eyes to
 the running binary in the container using a process manager of its own.
 
 To run tilt, download the utility for your operating system and run `make tilt-up`. This will do two things:
+
 - downloads tilt for the current OS and ARCH under `bin/tilt`
 - make manifest files of your current changes and place them under `./bin/deploy/manifests/external-secrets.yaml`
 - run tilt with `tilt run`
