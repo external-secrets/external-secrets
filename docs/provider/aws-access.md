@@ -257,7 +257,7 @@ spec:
 
 Session tags will include the three automatically added tags, plus `env=production` and `team=platform`.
 
-**NOTE:** Custom tags with empty keys or empty values are silently ignored. Built-in tags (`esoNamespace`, `esoStoreName`, `esoStoreKind`) always take precedence and cannot be overridden via `customSessionTags`.
+**NOTE:** Custom tags with empty keys or empty values are silently ignored. Built-in tags (`esoNamespace`, `esoStoreName`, `esoStoreKind`) will always be included even when the sessionTagsPolicy is `Custom`. They cannot be overridden via `customSessionTags`.
 
 ### Required IAM Permissions
 
