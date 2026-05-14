@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/apis
 
-go 1.26.2
+go 1.26.3
 
 require (
 	github.com/google/go-cmp v0.7.0
