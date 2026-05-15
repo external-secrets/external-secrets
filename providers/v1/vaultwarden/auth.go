@@ -299,6 +299,20 @@ func (c *Client) getSymKey(ctx context.Context) (accessToken string, symEncKey, 
 	return tok, enc, mac, nil
 }
 
+// getToken ensures authentication has completed and returns (accessToken,
+// *cachedToken, error). Callers that need per-cipher key routing (keysFor)
+// should use this instead of getSymKey.
+func (c *Client) getToken(ctx context.Context) (string, *cachedToken, error) {
+	accessToken, _, _, err := c.getSymKey(ctx)
+	if err != nil {
+		return "", nil, err
+	}
+	c.mu.Lock()
+	t := c.cache
+	c.mu.Unlock()
+	return accessToken, t, nil
+}
+
 // getProvider extracts the VaultwardenProvider config from a generic store.
 func getProvider(store esv1.GenericStore) (*esv1.VaultwardenProvider, error) {
 	spc := store.GetSpec()
