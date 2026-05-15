@@ -99,6 +99,15 @@ spec:
           - --{{ $key }}
             {{- end }}
           {{- end }}
+          {{- if .Values.certController.metrics.listen.secure.enabled }}
+          - --metrics-secure=true
+          - --metrics-cert-dir={{ .Values.certController.metrics.listen.secure.certDir }}
+          - --metrics-cert-name={{ .Values.certController.metrics.listen.secure.certFile }}
+          - --metrics-key-name={{ .Values.certController.metrics.listen.secure.keyFile }}
+          {{- end }}
+          {{- if .Values.certController.metrics.listen.auth.enabled }}
+          - --metrics-auth=true
+          {{- end }}
           ports:
             - containerPort: {{ .Values.certController.metrics.listen.port }}
               protocol: TCP
