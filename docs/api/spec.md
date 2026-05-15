@@ -10153,6 +10153,20 @@ NebiusMysteryboxProvider
 <p>NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>truefoundry</code></br>
+<em>
+<a href="#external-secrets.io/v1.TrueFoundryProvider">
+TrueFoundryProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TrueFoundry configures this store to sync secrets using the TrueFoundry provider</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.SecretStoreRef">SecretStoreRef
@@ -11076,6 +11090,134 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.TrueFoundryAuth">TrueFoundryAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.TrueFoundryProvider">TrueFoundryProvider</a>)
+</p>
+<p>
+<p>TrueFoundryAuth configures authentication against the TrueFoundry API.
+Only Bearer-token authentication (via a Kubernetes Secret) is supported today.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.TrueFoundryAuthSecretRef">
+TrueFoundryAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef authenticates using a TrueFoundry Personal Access Token stored in
+a Kubernetes Secret. The token is sent as <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.TrueFoundryAuthSecretRef">TrueFoundryAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.TrueFoundryAuth">TrueFoundryAuth</a>)
+</p>
+<p>
+<p>TrueFoundryAuthSecretRef contains the SecretKeySelector that points to the
+Kubernetes Secret holding the TrueFoundry API key.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>apiKey</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>APIKey references a key inside a Kubernetes Secret that contains a
+TrueFoundry Personal Access Token.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.TrueFoundryProvider">TrueFoundryProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>TrueFoundryProvider configures a store to sync secrets using the TrueFoundry provider.
+Secrets are fetched from TrueFoundry secret groups via its REST API.
+The TrueFoundry API requires a two-step lookup: a secret group is located by its
+fully-qualified name (FQN, &ldquo;<tenant>:<group>&rdquo;) and the value for each associated
+secret is then fetched by its ID. See docs/provider/truefoundry.md for details.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>baseURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>BaseURL is the TrueFoundry control-plane URL, e.g. <a href="https://app.truefoundry.com">https://app.truefoundry.com</a>.
+The client appends /api/svc to this when calling the secrets API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenant</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Tenant is the TrueFoundry tenant name. It is used together with the secret group
+name to build the FQN passed to the search endpoint (&rdquo;<tenant>:<group>&rdquo;).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.TrueFoundryAuth">
+TrueFoundryAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the Operator authenticates with the TrueFoundry API.</p>
 </td>
 </tr>
 </tbody>
