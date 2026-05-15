@@ -3038,6 +3038,56 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#sts-session-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        STS Session Tags
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="STS Session Tags">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simple-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simple Policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#required-iam-permissions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required IAM Permissions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -5028,6 +5078,56 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#sts-session-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        STS Session Tags
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="STS Session Tags">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#simple-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Simple Policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom Policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#required-iam-permissions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required IAM Permissions
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -5217,6 +5317,102 @@ service accounts which have iam roles bound using pod identity. Doing so will re
 </tr>
 </tbody>
 </table>
+<h2 id="sts-session-tags">STS Session Tags</h2>
+<p>You can have ESO automatically include Kubernetes context data into <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_session-tags.html">STS session tags</a> when assuming an IAM role. These tags can be used in IAM policy conditions to implement attribute-based access control (ABAC).</p>
+<p>The behavior is controlled by setting the optional <code>spec.provider.aws.sessionTagsPolicy</code> field on a SecretStore, which can be set to one of the following values:</p>
+<table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>None</code></td>
+<td>Default. No session tags are added.</td>
+</tr>
+<tr>
+<td><code>Simple</code></td>
+<td>Automatically adds <code>esoNamespace</code>, <code>esoStoreName</code>, and <code>esoStoreKind</code> tags.</td>
+</tr>
+<tr>
+<td><code>Custom</code></td>
+<td>Adds the same three built-in tags plus any additional tags defined in <code>customSessionTags</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>The automatically added tags are derived from the store configuration and the namespace of the ExternalSecret:</p>
+<table>
+<thead>
+<tr>
+<th>Tag</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>esoNamespace</code></td>
+<td>The namespace of the <code>ExternalSecret</code> making the request.</td>
+</tr>
+<tr>
+<td><code>esoStoreName</code></td>
+<td>The name of the <code>SecretStore</code> or <code>ClusterSecretStore</code>.</td>
+</tr>
+<tr>
+<td><code>esoStoreKind</code></td>
+<td>The kind of the store (<code>SecretStore</code> or <code>ClusterSecretStore</code>).</td>
+</tr>
+</tbody>
+</table>
+<p>Session tags are configured per secret store. If using <code>spec.dataFrom[].sourceRef.storeRef</code> to reference secrets from multiple different stores, each store must be configured with the desired <code>sessionTagsPolicy</code> independently. Although the session tags for each secret will have the name and kind of the specified secret store, they'll all share the same namespace which comes from the ExternalSecret.</p>
+<h3 id="simple-policy">Simple Policy</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-b-store</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-b</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">aws</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
+<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eu-central-1</span>
+<span class="w">      </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-b</span>
+<span class="w">      </span><span class="nt">sessionTagsPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Simple</span>
+</code></pre></div>
+<p>Session tags will include <code>esoNamespace=team-b</code>, <code>esoStoreName=team-b-store</code>, and <code>esoStoreKind=SecretStore</code>.</p>
+<h3 id="custom-policy">Custom Policy</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-b-store</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-b</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">aws</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
+<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eu-central-1</span>
+<span class="w">      </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-b</span>
+<span class="w">      </span><span class="nt">sessionTagsPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Custom</span>
+<span class="w">      </span><span class="nt">customSessionTags</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span>
+<span class="w">        </span><span class="nt">team</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">platform</span>
+</code></pre></div>
+<p>Session tags will include the three automatically added tags, plus <code>env=production</code> and <code>team=platform</code>.</p>
+<p><strong>NOTE:</strong> Custom tags with empty keys or empty values are silently ignored. Built-in tags (<code>esoNamespace</code>, <code>esoStoreName</code>, <code>esoStoreKind</code>) will always be included even when the sessionTagsPolicy is <code>Custom</code>. They cannot be overridden via <code>customSessionTags</code>.</p>
+<h3 id="required-iam-permissions">Required IAM Permissions</h3>
+<p>When session tags are enabled, the role trust policy must allow <code>sts:TagSession</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;Version&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2012-10-17&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;Statement&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">&quot;Effect&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Allow&quot;</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">&quot;Principal&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="nt">&quot;AWS&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;arn:aws:iam::111122223333:role/eso-controller&quot;</span><span class="w"> </span><span class="p">},</span>
+<span class="w">      </span><span class="nt">&quot;Action&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="s2">&quot;sts:AssumeRole&quot;</span><span class="p">,</span><span class="w"> </span><span class="s2">&quot;sts:TagSession&quot;</span><span class="p">]</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</code></pre></div>
 
 
 
