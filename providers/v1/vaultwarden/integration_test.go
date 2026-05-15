@@ -218,7 +218,10 @@ func TestMain(m *testing.M) {
 			},
 		}
 		scheme := runtime.NewScheme()
-		_ = corev1.AddToScheme(scheme)
+		if err := corev1.AddToScheme(scheme); err != nil {
+			fmt.Fprintf(os.Stderr, "vaultwarden integration TestMain: corev1.AddToScheme: %v\n", err)
+			os.Exit(1)
+		}
 		kubeClient := clientfake.NewClientBuilder().WithScheme(scheme).WithObjects(k8sSecret).Build()
 		store := &esv1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{Name: "vaultwarden-test-store", Namespace: integrationNamespace},

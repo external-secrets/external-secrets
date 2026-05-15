@@ -31,6 +31,7 @@ type VaultwardenProvider struct {
 	// When both OrganizationID and OrganizationName are empty, the store
 	// operates on the user's personal vault only.
 	// +optional
+	// +kubebuilder:validation:Format:=uuid
 	OrganizationID string `json:"organizationId,omitempty"`
 	// OrganizationName, if set, scopes this store to a single Vaultwarden
 	// organization by human-readable name. The provider resolves the name

@@ -20,7 +20,6 @@ package vaultwarden
 
 import (
 	"context"
-	"crypto/x509"
 	"encoding/pem"
 	"net/http/httptest"
 	"strings"
@@ -92,9 +91,6 @@ func TestTLSAcceptsSelfSignedWithCABundle(t *testing.T) {
 		t.Fatalf("expected TLS to succeed with caBundle, got TLS error: %v", err)
 	}
 }
-
-// Ensure the x509 import is used even if the helpers above are refactored.
-var _ = x509.NewCertPool
 
 // TestLogLeakResistance verifies that secret values (clientSecret, masterPassword)
 // do not appear in error strings returned from the auth path. We use a fake K8s
