@@ -24,7 +24,6 @@ import (
 	"crypto/rsa"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"regexp"
 	"strings"
@@ -515,8 +514,7 @@ func (c *Client) upsertCipher(ctx context.Context, accessToken string, existing 
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("vaultwarden: cipher request returned HTTP %d: %s", resp.StatusCode, body)
+		return fmt.Errorf("vaultwarden: cipher request returned HTTP %d", resp.StatusCode)
 	}
 	return nil
 }
@@ -553,8 +551,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("vaultwarden: delete cipher returned HTTP %d: %s", resp.StatusCode, body)
+		return fmt.Errorf("vaultwarden: delete cipher returned HTTP %d", resp.StatusCode)
 	}
 	return nil
 }

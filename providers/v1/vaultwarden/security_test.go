@@ -26,7 +26,13 @@ import (
 	"strings"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 // TestTLSRejectsSelfSignedWithoutCABundle verifies that the HTTP client built
@@ -89,3 +95,93 @@ func TestTLSAcceptsSelfSignedWithCABundle(t *testing.T) {
 
 // Ensure the x509 import is used even if the helpers above are refactored.
 var _ = x509.NewCertPool
+
+// TestLogLeakResistance verifies that secret values (clientSecret, masterPassword)
+// do not appear in error strings returned from the auth path. We use a fake K8s
+// client so no real cluster is needed, and an unreachable URL so fetchToken fails.
+func TestLogLeakResistance(t *testing.T) {
+	const (
+		knownClientSecret  = "super-secret-client-secret"
+		knownMasterPassword = "super-secret-master-pw"
+		secretName         = "vw-creds"
+		namespace          = "default"
+	)
+
+	// Build a fake K8s secret containing the credential values we want to
+	// ensure never appear in error output.
+	k8sSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: namespace,
+		},
+		Data: map[string][]byte{
+			"clientID":       []byte("user.fake"),
+			"clientSecret":   []byte(knownClientSecret),
+			"masterPassword": []byte(knownMasterPassword),
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	if err := corev1.AddToScheme(scheme); err != nil {
+		t.Fatalf("AddToScheme: %v", err)
+	}
+
+	kubeClient := clientfake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(k8sSecret).
+		Build()
+
+	store := &esv1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "vw-test-store",
+			Namespace: namespace,
+		},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Vaultwarden: &esv1.VaultwardenProvider{
+					URL: "https://nonexistent.invalid.tld",
+					Auth: esv1.VaultwardenAuth{
+						SecretRef: esv1.VaultwardenSecretRef{
+							ClientID: esmeta.SecretKeySelector{
+								Name: secretName,
+								Key:  "clientID",
+							},
+							ClientSecret: esmeta.SecretKeySelector{
+								Name: secretName,
+								Key:  "clientSecret",
+							},
+							MasterPassword: esmeta.SecretKeySelector{
+								Name: secretName,
+								Key:  "masterPassword",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	c := &Client{
+		provider:  store.Spec.Provider.Vaultwarden,
+		crClient:  kubeClient,
+		namespace: namespace,
+		store:     store,
+	}
+	if err := c.initHTTPClient(); err != nil {
+		t.Fatalf("initHTTPClient: %v", err)
+	}
+
+	// Trigger the full auth path — fetchToken will fail at DNS/TLS for the
+	// unreachable host. We expect an error; we just need to check it for leaks.
+	_, _, err := c.getToken(context.Background())
+	if err == nil {
+		t.Fatalf("expected auth failure against unreachable host, got nil error")
+	}
+
+	errStr := err.Error()
+	for _, secret := range []string{knownClientSecret, knownMasterPassword} {
+		if strings.Contains(errStr, secret) {
+			t.Fatalf("secret value leaked in error string: %q found in: %s", secret, errStr)
+		}
+	}
+}
