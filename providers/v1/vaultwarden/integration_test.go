@@ -372,3 +372,44 @@ func TestIntegration_Validate(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, esv1.ValidationResultReady, result)
 }
+
+// TestIntegration_OrgSecretStore configures the client with an organization UUID and verifies
+// that GetSecret returns the org-scoped cipher (not the personal one with the same name).
+func TestIntegration_OrgSecretStore(t *testing.T) {
+	orgID := os.Getenv("VAULTWARDEN_ORG_ID")
+	if orgID == "" {
+		t.Skip("VAULTWARDEN_ORG_ID not set")
+	}
+	c := buildIntegrationClient(t)
+	c.provider.OrganizationID = orgID
+
+	val, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "eso-int-test"})
+	require.NoError(t, err)
+	assert.Equal(t, "org-value", string(val))
+}
+
+// TestIntegration_OrgByName configures the client with an organization name, which the provider
+// resolves to a UUID, and verifies that GetSecret returns the org-scoped cipher.
+func TestIntegration_OrgByName(t *testing.T) {
+	orgName := os.Getenv("VAULTWARDEN_ORG_NAME")
+	if orgName == "" {
+		t.Skip("VAULTWARDEN_ORG_NAME not set")
+	}
+	c := buildIntegrationClient(t)
+	c.provider.OrganizationName = orgName
+
+	val, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "eso-int-test"})
+	require.NoError(t, err)
+	assert.Equal(t, "org-value", string(val))
+}
+
+// TestIntegration_PersonalScopeIgnoresOrg verifies that a personal-scope client (no org configured)
+// returns the personal cipher and does not surface the org cipher with the same name.
+func TestIntegration_PersonalScopeIgnoresOrg(t *testing.T) {
+	c := buildIntegrationClient(t)
+	// No OrganizationID or OrganizationName set — personal scope only.
+
+	val, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "eso-int-test"})
+	require.NoError(t, err)
+	assert.Equal(t, "personal-value", string(val))
+}
