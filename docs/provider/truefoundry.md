@@ -5,11 +5,11 @@ Sync secrets from a TrueFoundry control plane into Kubernetes using the External
 The provider authenticates with a TrueFoundry **cluster service token** and fetches each secret by its fully-qualified name (FQN) through a single HTTP GET against the control-plane API:
 
 ```
-GET <baseURL>/v1/control-plane/secret?secretFqn=<tenant>:<group>:<secret-name>
+GET <baseURL>/v1/control-plane/secret?secret_ref=tfy-secret://<tenant>:<group>:<secret-name>
 Authorization: Bearer <cluster-token>
 ```
 
-The response is `{"value":"<secret>"}`.
+The response is `{"value":"<secret>"}`. The `tfy-secret://` URI scheme is added by the provider; users supply only the bare FQN as `remoteRef.key`.
 
 ## Authentication
 
@@ -21,15 +21,13 @@ Reference that Secret directly from the `SecretStore`:
 spec:
   provider:
     truefoundry:
-      auth:
-        secretRef:
-          clusterToken:
-            name: tfy-agent-internal-devtest-token
-            namespace: tfy-agent
-            key: CLUSTER_TOKEN
+      secretRef:
+        name: tfy-agent-internal-devtest-token
+        namespace: tfy-agent
+        key: CLUSTER_TOKEN
 ```
 
-> **NOTE:** When using a `ClusterSecretStore`, set `namespace` in `auth.secretRef.clusterToken` so ESO can locate the Secret across namespaces.
+> **NOTE:** When using a `ClusterSecretStore`, set `namespace` in `secretRef` so ESO can locate the Secret across namespaces.
 
 ## SecretStore
 
@@ -44,17 +42,15 @@ spec:
       # Control-plane URL for your TrueFoundry installation. The provider
       # appends /v1/control-plane/secret to this.
       baseURL: https://your-cluster.tfy-usea1-ctl.example.com
-      auth:
-        secretRef:
-          clusterToken:
-            name: tfy-agent-internal-devtest-token
-            namespace: tfy-agent
-            key: CLUSTER_TOKEN
+      secretRef:
+        name: tfy-agent-internal-devtest-token
+        namespace: tfy-agent
+        key: CLUSTER_TOKEN
 ```
 
 ## Referencing secrets
 
-`remoteRef.key` is the full TrueFoundry secret FQN, used **verbatim** as the value of the `?secretFqn=` query parameter (the provider URL-encodes it for you). FQN format is `<tenant>:<group>:<secret-name>`.
+`remoteRef.key` is the TrueFoundry secret FQN. FQN format is `<tenant>:<group>:<secret-name>`. The provider wraps it in `tfy-secret://` and URL-encodes the result before sending it as the `secret_ref` query parameter.
 
 ```yaml
 apiVersion: external-secrets.io/v1

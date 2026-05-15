@@ -172,7 +172,7 @@ func TestParseRetryAfter(t *testing.T) {
 func TestFetchSecret_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		require.Equal(t, apiPath, r.URL.Path)
-		require.Equal(t, tFQN, r.URL.Query().Get("secretFqn"))
+		require.Equal(t, secretRefScheme+tFQN, r.URL.Query().Get("secret_ref"))
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{"value":"hunter2"}`))
 	}))
@@ -184,7 +184,7 @@ func TestFetchSecret_Success(t *testing.T) {
 	require.Equal(t, []byte("hunter2"), val)
 }
 
-func TestFetchSecret_FQNIsURLEncoded(t *testing.T) {
+func TestFetchSecret_RefIsURLEncoded(t *testing.T) {
 	var capturedQuery string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		capturedQuery = r.URL.RawQuery
@@ -196,7 +196,8 @@ func TestFetchSecret_FQNIsURLEncoded(t *testing.T) {
 	c := newTestClient(srv.URL)
 	_, err := c.fetchSecret(context.Background(), "truefoundry:test-eso:test")
 	require.NoError(t, err)
-	require.Contains(t, capturedQuery, "secretFqn=truefoundry%3Atest-eso%3Atest")
+	// tfy-secret://truefoundry:test-eso:test → URL-encoded
+	require.Contains(t, capturedQuery, "secret_ref=tfy-secret%3A%2F%2Ftruefoundry%3Atest-eso%3Atest")
 }
 
 func TestFetchSecret_404IsNotFound(t *testing.T) {
@@ -241,14 +242,14 @@ func TestFetchSecret_EmptyFQNRejected(t *testing.T) {
 	c := newTestClient("http://unused")
 	_, err := c.fetchSecret(context.Background(), "")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "empty secretFqn")
+	require.Contains(t, err.Error(), "empty secret reference")
 }
 
 // --- GetSecret / GetSecretMap (SecretsClient interface) ---------------------
 
 func TestGetSecret_PassesKeyVerbatim(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		require.Equal(t, tFQN, r.URL.Query().Get("secretFqn"))
+		require.Equal(t, secretRefScheme+tFQN, r.URL.Query().Get("secret_ref"))
 		_, _ = w.Write([]byte(`{"value":"v"}`))
 	}))
 	defer srv.Close()

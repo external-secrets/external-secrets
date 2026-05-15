@@ -23,34 +23,19 @@ import (
 // TrueFoundryProvider configures a store to sync secrets from TrueFoundry's
 // control-plane secrets endpoint. Each secret is fetched by its fully-qualified
 // name (FQN, "<tenant>:<group>:<secret>") through a single HTTP GET protected
-// by a cluster service token. See docs/provider/truefoundry.md.
+// by a cluster service token. The provider wraps the FQN in a tfy-secret://
+// URI before sending it as the secret_ref query parameter — users supply only
+// the bare FQN. See docs/provider/truefoundry.md.
 type TrueFoundryProvider struct {
 	// BaseURL is the TrueFoundry control-plane URL, e.g.
 	// https://your-cluster.tfy-usea1-ctl.example.com. The provider appends
-	// /api/svc/v1/control-plane/secret to this when fetching a secret.
+	// /v1/control-plane/secret to this when fetching a secret.
 	// +kubebuilder:validation:MinLength=1
 	BaseURL string `json:"baseURL"`
 
-	// Auth configures how the Operator authenticates with the TrueFoundry
-	// control-plane API. Only cluster-token Bearer authentication is
-	// supported today.
-	Auth TrueFoundryAuth `json:"auth"`
-}
-
-// TrueFoundryAuth configures authentication against the TrueFoundry
-// control-plane API.
-type TrueFoundryAuth struct {
-	// SecretRef authenticates using a TrueFoundry cluster service token
-	// stored in a Kubernetes Secret. The token is sent verbatim as the
+	// SecretRef points to a Kubernetes Secret entry holding the cluster
+	// service token used to authenticate against the TrueFoundry control
+	// plane. The value is sent verbatim as the
 	// `Authorization: Bearer <token>` header on every request.
-	SecretRef TrueFoundryAuthSecretRef `json:"secretRef"`
-}
-
-// TrueFoundryAuthSecretRef contains the SecretKeySelector that points to the
-// Kubernetes Secret holding the TrueFoundry cluster service token.
-type TrueFoundryAuthSecretRef struct {
-	// ClusterToken references a key inside a Kubernetes Secret that holds
-	// the cluster service token (e.g. the `CLUSTER_TOKEN` key inside the
-	// `tfy-agent-internal-*-token` Secret provisioned by the TFY agent).
-	ClusterToken esmeta.SecretKeySelector `json:"clusterToken"`
+	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
 }

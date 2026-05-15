@@ -44,6 +44,10 @@ const (
 
 	apiPath = "/v1/control-plane/secret"
 
+	// secretRefScheme is the URI scheme TrueFoundry expects in front of an FQN
+	// when passed via the secret_ref query parameter.
+	secretRefScheme = "tfy-secret://"
+
 	opFetchSecret = "FetchSecret"
 )
 
@@ -79,12 +83,16 @@ type secretResponse struct {
 
 // fetchSecret performs a single GET against the control-plane endpoint and
 // returns the secret's raw value bytes. 404 maps to esv1.NoSecretErr.
+//
+// The fqn argument is the bare TrueFoundry FQN ("<tenant>:<group>:<name>"); the
+// provider wraps it in the tfy-secret:// URI scheme before sending it as the
+// secret_ref query parameter (e.g. secret_ref=tfy-secret://t:g:n).
 func (c *Client) fetchSecret(ctx context.Context, fqn string) ([]byte, error) {
 	if strings.TrimSpace(fqn) == "" {
-		return nil, errors.New("truefoundry: empty secretFqn")
+		return nil, errors.New("truefoundry: empty secret reference")
 	}
 	q := url.Values{}
-	q.Set("secretFqn", fqn)
+	q.Set("secret_ref", secretRefScheme+fqn)
 	endpoint := c.baseURL + apiPath + "?" + q.Encode()
 
 	body, status, err := c.doRequest(ctx, opFetchSecret, endpoint)

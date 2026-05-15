@@ -44,10 +44,8 @@ func makeSecretStore(baseURL string, ref esmeta.SecretKeySelector) *esv1.SecretS
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				TrueFoundry: &esv1.TrueFoundryProvider{
-					BaseURL: baseURL,
-					Auth: esv1.TrueFoundryAuth{
-						SecretRef: esv1.TrueFoundryAuthSecretRef{ClusterToken: ref},
-					},
+					BaseURL:   baseURL,
+					SecretRef: ref,
 				},
 			},
 		},
@@ -61,10 +59,8 @@ func makeClusterSecretStore(baseURL string, ref esmeta.SecretKeySelector) *esv1.
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				TrueFoundry: &esv1.TrueFoundryProvider{
-					BaseURL: baseURL,
-					Auth: esv1.TrueFoundryAuth{
-						SecretRef: esv1.TrueFoundryAuthSecretRef{ClusterToken: ref},
-					},
+					BaseURL:   baseURL,
+					SecretRef: ref,
 				},
 			},
 		},
@@ -112,14 +108,14 @@ func TestValidateStore(t *testing.T) {
 			wantError: "must be a valid http(s) URL",
 		},
 		{
-			name:      "missing clusterToken.name",
+			name:      "missing secretRef.name",
 			store:     makeSecretStore(testBaseURL, esmeta.SecretKeySelector{Key: testTokenKey}),
-			wantError: "clusterToken.name is required",
+			wantError: "secretRef.name is required",
 		},
 		{
-			name:      "missing clusterToken.key",
+			name:      "missing secretRef.key",
 			store:     makeSecretStore(testBaseURL, esmeta.SecretKeySelector{Name: testSecretName}),
-			wantError: "clusterToken.key is required",
+			wantError: "secretRef.key is required",
 		},
 		{
 			name: "SecretStore with cross-namespace SecretRef",
