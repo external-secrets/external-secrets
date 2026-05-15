@@ -63,30 +63,26 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 //     ("/a/b/foo" + defaultPath="/scope")       -> ("/a/b", "foo")
 //   - Otherwise (slash present, no leading `/`): treat key as a folder path relative to defaultPath.
 //     ("sub/foo" + defaultPath="/scope")        -> ("/scope/sub", "foo")
-func getSecretAddress(defaultPath, key string) (string, string, error) {
+func getSecretAddress(defaultPath, key string) (string, string) {
 	if !strings.Contains(key, "/") {
-		return defaultPath, key, nil
+		return defaultPath, key
 	}
 
 	lastIndex := strings.LastIndex(key, "/")
 	folder, name := key[:lastIndex], key[lastIndex+1:]
 
 	if strings.HasPrefix(key, "/") {
-		return folder, name, nil
+		return folder, name
 	}
 
-	return path.Join(defaultPath, folder), name, nil
+	return path.Join(defaultPath, folder), name
 }
 
 // GetSecret retrieves a secret value from Infisical.
 // If this returns an error with type NoSecretError then the secret entry will be deleted depending on the
 // deletionPolicy.
 func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	path, key, err := getSecretAddress(p.apiScope.SecretPath, ref.Key)
-	if err != nil {
-		return nil, err
-	}
-
+	path, key := getSecretAddress(p.apiScope.SecretPath, ref.Key)
 	secret, err := p.sdkClient.Secrets().Retrieve(infisical.RetrieveSecretOptions{
 		Environment:            p.apiScope.EnvironmentSlug,
 		ProjectSlug:            p.apiScope.ProjectSlug,
