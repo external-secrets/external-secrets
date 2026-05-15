@@ -15,7 +15,7 @@ limitations under the License.
 */
 
 // Package truefoundry implements an External Secrets provider that reads
-// secrets from the TrueFoundry secret-management API.
+// secrets from the TrueFoundry control-plane API.
 package truefoundry
 
 import (
@@ -76,25 +76,21 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, fmt.Errorf("truefoundry.baseURL must be a valid http(s) URL: %q", cfg.BaseURL)
 	}
 
-	if strings.TrimSpace(cfg.Tenant) == "" {
-		return nil, errors.New("truefoundry.tenant is required")
+	token := cfg.Auth.SecretRef.ClusterToken
+	if token.Name == "" {
+		return nil, errors.New("truefoundry.auth.secretRef.clusterToken.name is required")
 	}
-
-	apiKey := cfg.Auth.SecretRef.APIKey
-	if apiKey.Name == "" {
-		return nil, errors.New("truefoundry.auth.secretRef.apiKey.name is required")
+	if token.Key == "" {
+		return nil, errors.New("truefoundry.auth.secretRef.clusterToken.key is required")
 	}
-	if apiKey.Key == "" {
-		return nil, errors.New("truefoundry.auth.secretRef.apiKey.key is required")
-	}
-	if err := esutils.ValidateReferentSecretSelector(store, apiKey); err != nil {
-		return nil, fmt.Errorf("truefoundry.auth.secretRef.apiKey: %w", err)
+	if err := esutils.ValidateReferentSecretSelector(store, token); err != nil {
+		return nil, fmt.Errorf("truefoundry.auth.secretRef.clusterToken: %w", err)
 	}
 	return nil, nil
 }
 
-// NewClient builds a SecretsClient for the given SecretStore. The TrueFoundry
-// API key is resolved from the referenced Kubernetes Secret.
+// NewClient builds a SecretsClient for the given SecretStore. The cluster
+// service token is resolved from the referenced Kubernetes Secret.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	if store == nil || store.GetSpec() == nil || store.GetSpec().Provider == nil || store.GetSpec().Provider.TrueFoundry == nil {
 		return nil, errors.New("invalid truefoundry store: missing provider config")
@@ -102,9 +98,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	cfg := store.GetSpec().Provider.TrueFoundry
 	storeKind := store.GetObjectKind().GroupVersionKind().Kind
 
-	apiKey, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &cfg.Auth.SecretRef.APIKey)
+	token, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &cfg.Auth.SecretRef.ClusterToken)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve truefoundry api key: %w", err)
+		return nil, fmt.Errorf("failed to resolve truefoundry cluster token: %w", err)
 	}
-	return newClient(cfg.BaseURL, cfg.Tenant, apiKey, http.DefaultClient), nil
+	return newClient(cfg.BaseURL, token, http.DefaultClient), nil
 }

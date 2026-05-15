@@ -26,56 +26,30 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-// TestSmoke_RealAPI exercises Validate, GetSecret, and GetSecretMap against a
-// real TrueFoundry control plane. It is skipped by default. Run it manually
-// from this submodule directory (it has its own go.mod):
+// TestSmoke_RealAPI exercises GetSecret against a real TrueFoundry
+// control-plane endpoint. It is skipped by default. Run it manually from
+// this submodule directory (it has its own go.mod):
 //
 //	cd providers/v1/truefoundry
-//	TFY_BASE_URL=https://app.truefoundry.com \
-//	TFY_TENANT=my-tenant \
-//	TFY_API_KEY=tfy-pat-xxxx \
-//	TFY_GROUP=my-secret-group \
-//	TFY_KEY=SOME_KEY \                 # optional; if set, exercises the group/key path
+//	TFY_BASE_URL=https://<cluster>.tfy-usea1-ctl.example.com \
+//	TFY_CLUSTER_TOKEN=<bearer-token> \
+//	TFY_FQN=truefoundry:test-eso:test \
 //	go test -v -run TestSmoke_RealAPI ./...
 func TestSmoke_RealAPI(t *testing.T) {
 	baseURL := os.Getenv("TFY_BASE_URL")
-	tenant := os.Getenv("TFY_TENANT")
-	apiKey := os.Getenv("TFY_API_KEY")
-	group := os.Getenv("TFY_GROUP")
-	if baseURL == "" || tenant == "" || apiKey == "" || group == "" {
-		t.Skip("set TFY_BASE_URL, TFY_TENANT, TFY_API_KEY, TFY_GROUP to run this smoke test")
+	token := os.Getenv("TFY_CLUSTER_TOKEN")
+	fqn := os.Getenv("TFY_FQN")
+	if baseURL == "" || token == "" || fqn == "" {
+		t.Skip("set TFY_BASE_URL, TFY_CLUSTER_TOKEN, TFY_FQN to run this smoke test")
 	}
-	key := os.Getenv("TFY_KEY") // optional
 
-	c := newClient(baseURL, tenant, apiKey, &http.Client{Timeout: 15 * time.Second})
+	c := newClient(baseURL, token, &http.Client{Timeout: 15 * time.Second})
 
-	t.Run("Validate", func(t *testing.T) {
-		res, err := c.Validate()
-		t.Logf("Validate → %v err=%v", res, err)
+	t.Run("GetSecret", func(t *testing.T) {
+		val, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: fqn})
 		if err != nil {
-			t.Fatalf("Validate failed: %v", err)
+			t.Fatalf("GetSecret %q: %v", fqn, err)
 		}
-	})
-
-	t.Run("GetSecretMap(whole group)", func(t *testing.T) {
-		m, err := c.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: group})
-		if err != nil {
-			t.Fatalf("GetSecretMap %q: %v", group, err)
-		}
-		t.Logf("GetSecretMap %s → %d keys", group, len(m))
-		for k, v := range m {
-			t.Logf("  %s = %q", k, string(v))
-		}
-	})
-
-	if key == "" {
-		return
-	}
-	t.Run("GetSecret(group/key)", func(t *testing.T) {
-		v, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: group + "/" + key})
-		if err != nil {
-			t.Fatalf("GetSecret %s/%s: %v", group, key, err)
-		}
-		t.Logf("GetSecret %s/%s → %q", group, key, string(v))
+		t.Logf("GetSecret %s → %q (%d bytes)", fqn, string(val), len(val))
 	})
 }

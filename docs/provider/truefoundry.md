@@ -1,75 +1,60 @@
 ## TrueFoundry
 
-Sync secrets from [TrueFoundry's secret management](https://www.truefoundry.com/docs/apply-api-secret-management) into Kubernetes using the External Secrets Operator.
+Sync secrets from a TrueFoundry control plane into Kubernetes using the External Secrets Operator.
 
-The provider talks to the TrueFoundry secret-management REST API (`<control-plane-url>/api/svc/v1/...`) using a TrueFoundry API key sent as `Authorization: Bearer <token>`.
+The provider authenticates with a TrueFoundry **cluster service token** and fetches each secret by its fully-qualified name (FQN) through a single HTTP GET against the control-plane API:
+
+```
+GET <baseURL>/v1/control-plane/secret?secretFqn=<tenant>:<group>:<secret-name>
+Authorization: Bearer <cluster-token>
+```
+
+The response is `{"value":"<secret>"}`.
 
 ## Authentication
 
-The provider authenticates with a TrueFoundry API key — this can be a [Personal Access Token (PAT)](https://docs.truefoundry.com/docs/personal-access-token-rbac), a Virtual Access Token (VAT), or a service-account token. Any token TrueFoundry accepts as a Bearer credential will work.
+The provider uses a cluster service token — typically the token provisioned by the TrueFoundry agent on each cluster and stored in a Kubernetes Secret like `tfy-agent-internal-<env>-token` in the `tfy-agent` namespace under the key `CLUSTER_TOKEN`.
 
-Store the token in a Kubernetes `Secret` in the namespace where you will create the `SecretStore`:
+Reference that Secret directly from the `SecretStore`:
 
-```sh
-HISTIGNORE='*kubectl*' kubectl create secret generic \
-    tfy-creds \
-    --from-literal=api-key="tfy-xxxxxxxxxxxx"
+```yaml
+spec:
+  provider:
+    truefoundry:
+      auth:
+        secretRef:
+          clusterToken:
+            name: tfy-agent-internal-devtest-token
+            namespace: tfy-agent
+            key: CLUSTER_TOKEN
 ```
 
-> **NOTE:** When using a `ClusterSecretStore`, set `namespace` in `auth.secretRef.apiKey` so ESO can locate the secret across namespaces.
+> **NOTE:** When using a `ClusterSecretStore`, set `namespace` in `auth.secretRef.clusterToken` so ESO can locate the Secret across namespaces.
 
 ## SecretStore
 
 ```yaml
 apiVersion: external-secrets.io/v1
-kind: SecretStore
+kind: SecretStore                # or ClusterSecretStore
 metadata:
   name: tfy-store
 spec:
   provider:
     truefoundry:
-      # Control plane URL for your TrueFoundry installation. SaaS users
-      # typically use https://app.truefoundry.com; self-hosted / dedicated
-      # tenants use their own URL (e.g. https://your-org.truefoundry.cloud).
-      baseURL: https://app.truefoundry.com
-      tenant: my-tenant            # used to build the FQN: <tenant>:<group>
+      # Control-plane URL for your TrueFoundry installation. The provider
+      # appends /v1/control-plane/secret to this.
+      baseURL: https://your-cluster.tfy-usea1-ctl.example.com
       auth:
         secretRef:
-          apiKey:
-            name: tfy-creds
-            key: api-key
+          clusterToken:
+            name: tfy-agent-internal-devtest-token
+            namespace: tfy-agent
+            key: CLUSTER_TOKEN
 ```
-
-The `tenant` field is required: TrueFoundry's search API identifies a secret group by its fully-qualified name `<tenant>:<group>`. The provider builds this FQN at request time from `tenant` plus the group name parsed out of the `ExternalSecret` reference.
-
-## How TrueFoundry secrets are fetched
-
-The TrueFoundry API does not return secret values from the group-lookup endpoint, so every read is a two-step flow:
-
-1. `GET /api/svc/v1/secret-groups?fqn=<tenant>:<group>` returns the group's metadata, including an `associatedSecrets[]` array of `{ id, name }` for every secret inside.
-2. `GET /api/svc/v1/secrets/{id}` returns one secret's plaintext value.
-
-| What you request | HTTP calls per reconcile |
-|---|---|
-| Single key (`remoteRef.key: group/key`) | 1 search + 1 value fetch |
-| Whole group (`dataFrom.extract` with bare group, or `remoteRef.key: group`) | 1 search + **N parallel** value fetches (N = secrets in the group, concurrency capped at 10) |
-
-If any per-secret fetch fails, the whole call is aborted — partial results are never written to the target `Secret`.
-
-> **Efficiency tip:** when you want many keys from one group, prefer `dataFrom.extract` over enumerating each key in `data[]`. Each `data[]` entry triggers its own search, so 5 entries from the same group cost 5 searches + 5 fetches, while `dataFrom.extract` costs 1 search + 5 parallel fetches.
 
 ## Referencing secrets
 
-`remoteRef.key` accepts two forms:
-
-| Form | What it returns |
-|---|---|
-| `<group>` | The entire group as a JSON object (sorted keys). Use with `GetSecret` for templating, or with `GetSecretMap`/`dataFrom` to materialise every key as its own field in the target `Secret`. |
-| `<group>/<secret-name>` | A single secret value as raw bytes. |
-
-`remoteRef.property` (gjson syntax) selects a sub-field from a JSON-encoded value.
-
-### Single key from a group
+`remoteRef.key` is the full TrueFoundry secret FQN, used **verbatim** as the value of the `?secretFqn=` query parameter (the provider URL-encodes it for you). FQN format is `<tenant>:<group>:<secret-name>`.
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -86,58 +71,55 @@ spec:
   data:
     - secretKey: DB_PASSWORD
       remoteRef:
-        key: prod-app/DB_PASSWORD
+        key: truefoundry:prod-app:DB_PASSWORD
     - secretKey: API_TOKEN
       remoteRef:
-        key: prod-app/API_TOKEN
+        key: truefoundry:prod-app:API_TOKEN
 ```
 
-### Whole group fanned out into the target Secret
-
-Use `dataFrom` with a bare group name to mount every secret in the group as its own key:
-
-```yaml
-apiVersion: external-secrets.io/v1
-kind: ExternalSecret
-metadata:
-  name: app-credentials-all
-spec:
-  secretStoreRef:
-    kind: SecretStore
-    name: tfy-store
-  target:
-    name: app-credentials-all
-  dataFrom:
-    - extract:
-        key: prod-app           # whole group
-```
+Each `data[]` entry produces exactly one HTTP request to the control plane.
 
 ### Selecting a nested field from a JSON-encoded value
+
+If a single TrueFoundry secret stores JSON, use `remoteRef.property` with gjson syntax to pick out a sub-field:
 
 ```yaml
 data:
   - secretKey: DB_HOST
     remoteRef:
-      key: prod-app/DB_CONNECTION
-      property: host           # gjson path applied to the secret's JSON value
+      key: truefoundry:prod-app:DB_CONNECTION
+      property: host        # gjson path applied to the secret's JSON value
 ```
+
+### Treating a JSON secret as a key/value map
+
+If a secret's value is a JSON object, you can mount each field as its own key in the target Secret via `dataFrom.extract`:
+
+```yaml
+dataFrom:
+  - extract:
+      key: truefoundry:prod-app:CONFIG_BLOB     # value must be a JSON object
+```
+
+This still costs **one** API call — the JSON object is split into map entries locally.
 
 ## Behavior
 
-- **Missing group or key.** When the FQN search returns an empty result (TrueFoundry's response on a non-existent group is `200` with `data: []`, not 404), or when the named key isn't in the group's `associatedSecrets`, the provider returns `Secret does not exist`. ESO surfaces this as an event on the `ExternalSecret`, and the target k8s `Secret` is not modified.
-- **Auth failures.** A `401` / `403` from TrueFoundry flips the `SecretStore` to `Invalid` and the `ExternalSecret` to `SecretSyncedError`.
+- **Missing secret.** A 404 from the control-plane endpoint maps to `Secret does not exist` and surfaces as an event on the `ExternalSecret`. The target Kubernetes Secret is not modified.
+- **Auth failures.** A 401/403 fails the reconcile with a wrapped error containing `status 401`/`status 403`. Re-check the `CLUSTER_TOKEN` value and that the Secret it lives in is reachable from the SecretStore's namespace.
+- **Retries.** Transport errors and 5xx responses are retried (3 attempts, exponential backoff with jitter). `Retry-After` is honored on 429.
 - **Refreshes.** Values are re-fetched every `refreshInterval`. To force an immediate refresh, annotate the `ExternalSecret`: `kubectl annotate es <name> force-sync=$(date +%s) --overwrite`.
 
 ## Limitations
 
-The provider is **read-only** in v1. The following operations are not supported:
+The provider is **read-only**. The following operations are not supported:
 
 | Capability | Status | Reason |
 |---|---|---|
-| `PushSecret` / `DeleteSecret` / `SecretExists` | not implemented | v1 is read-only. |
-| `find.tags` | not supported | TrueFoundry's documented API has no tag concept. |
-| `find.name` / `find.path` (`GetAllSecrets`) | not supported | The search endpoint requires an FQN; the documented API offers no enumerate-all-groups mode. Use one `SecretStore` per group, or a `dataFrom.extract` on a known group. |
-| Custom CA / `caBundle` / `caProvider` | not supported | Use a `baseURL` reachable via the cluster's default trust roots. |
+| `PushSecret` / `DeleteSecret` / `SecretExists` | not implemented | read-only provider |
+| `find.tags` / `find.name` / `find.path` (`GetAllSecrets`) | not supported | the control-plane endpoint fetches one secret by FQN — no enumeration mode. Enumerate each key explicitly in `spec.data[]`. |
+| `Validate` probe | returns `Unknown` | the control-plane endpoint has no health probe; auth and connectivity errors surface naturally on the first reconcile |
+| Custom CA / `caBundle` / `caProvider` | not supported | use a `baseURL` reachable via the cluster's default trust roots |
 
 ## Status
 

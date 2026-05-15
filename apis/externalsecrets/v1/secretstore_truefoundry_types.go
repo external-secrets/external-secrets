@@ -20,38 +20,37 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// TrueFoundryProvider configures a store to sync secrets using the TrueFoundry provider.
-// Secrets are fetched from TrueFoundry secret groups via its REST API.
-// The TrueFoundry API requires a two-step lookup: a secret group is located by its
-// fully-qualified name (FQN, "<tenant>:<group>") and the value for each associated
-// secret is then fetched by its ID. See docs/provider/truefoundry.md for details.
+// TrueFoundryProvider configures a store to sync secrets from TrueFoundry's
+// control-plane secrets endpoint. Each secret is fetched by its fully-qualified
+// name (FQN, "<tenant>:<group>:<secret>") through a single HTTP GET protected
+// by a cluster service token. See docs/provider/truefoundry.md.
 type TrueFoundryProvider struct {
-	// BaseURL is the TrueFoundry control-plane URL, e.g. https://app.truefoundry.com.
-	// The client appends /api/svc to this when calling the secrets API.
+	// BaseURL is the TrueFoundry control-plane URL, e.g.
+	// https://your-cluster.tfy-usea1-ctl.example.com. The provider appends
+	// /api/svc/v1/control-plane/secret to this when fetching a secret.
 	// +kubebuilder:validation:MinLength=1
 	BaseURL string `json:"baseURL"`
 
-	// Tenant is the TrueFoundry tenant name. It is used together with the secret group
-	// name to build the FQN passed to the search endpoint ("<tenant>:<group>").
-	// +kubebuilder:validation:MinLength=1
-	Tenant string `json:"tenant"`
-
-	// Auth configures how the Operator authenticates with the TrueFoundry API.
+	// Auth configures how the Operator authenticates with the TrueFoundry
+	// control-plane API. Only cluster-token Bearer authentication is
+	// supported today.
 	Auth TrueFoundryAuth `json:"auth"`
 }
 
-// TrueFoundryAuth configures authentication against the TrueFoundry API.
-// Only Bearer-token authentication (via a Kubernetes Secret) is supported today.
+// TrueFoundryAuth configures authentication against the TrueFoundry
+// control-plane API.
 type TrueFoundryAuth struct {
-	// SecretRef authenticates using a TrueFoundry Personal Access Token stored in
-	// a Kubernetes Secret. The token is sent as `Authorization: Bearer <token>`.
+	// SecretRef authenticates using a TrueFoundry cluster service token
+	// stored in a Kubernetes Secret. The token is sent verbatim as the
+	// `Authorization: Bearer <token>` header on every request.
 	SecretRef TrueFoundryAuthSecretRef `json:"secretRef"`
 }
 
 // TrueFoundryAuthSecretRef contains the SecretKeySelector that points to the
-// Kubernetes Secret holding the TrueFoundry API key.
+// Kubernetes Secret holding the TrueFoundry cluster service token.
 type TrueFoundryAuthSecretRef struct {
-	// APIKey references a key inside a Kubernetes Secret that contains a
-	// TrueFoundry Personal Access Token.
-	APIKey esmeta.SecretKeySelector `json:"apiKey"`
+	// ClusterToken references a key inside a Kubernetes Secret that holds
+	// the cluster service token (e.g. the `CLUSTER_TOKEN` key inside the
+	// `tfy-agent-internal-*-token` Secret provisioned by the TFY agent).
+	ClusterToken esmeta.SecretKeySelector `json:"clusterToken"`
 }

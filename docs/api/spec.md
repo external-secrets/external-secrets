@@ -11101,8 +11101,8 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1.TrueFoundryProvider">TrueFoundryProvider</a>)
 </p>
 <p>
-<p>TrueFoundryAuth configures authentication against the TrueFoundry API.
-Only Bearer-token authentication (via a Kubernetes Secret) is supported today.</p>
+<p>TrueFoundryAuth configures authentication against the TrueFoundry
+control-plane API.</p>
 </p>
 <table>
 <thead>
@@ -11122,8 +11122,9 @@ TrueFoundryAuthSecretRef
 </em>
 </td>
 <td>
-<p>SecretRef authenticates using a TrueFoundry Personal Access Token stored in
-a Kubernetes Secret. The token is sent as <code>Authorization: Bearer &lt;token&gt;</code>.</p>
+<p>SecretRef authenticates using a TrueFoundry cluster service token
+stored in a Kubernetes Secret. The token is sent verbatim as the
+<code>Authorization: Bearer &lt;token&gt;</code> header on every request.</p>
 </td>
 </tr>
 </tbody>
@@ -11136,7 +11137,7 @@ a Kubernetes Secret. The token is sent as <code>Authorization: Bearer &lt;token&
 </p>
 <p>
 <p>TrueFoundryAuthSecretRef contains the SecretKeySelector that points to the
-Kubernetes Secret holding the TrueFoundry API key.</p>
+Kubernetes Secret holding the TrueFoundry cluster service token.</p>
 </p>
 <table>
 <thead>
@@ -11148,7 +11149,7 @@ Kubernetes Secret holding the TrueFoundry API key.</p>
 <tbody>
 <tr>
 <td>
-<code>apiKey</code></br>
+<code>clusterToken</code></br>
 <em>
 <a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
 External Secrets meta/v1.SecretKeySelector
@@ -11156,8 +11157,9 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
-<p>APIKey references a key inside a Kubernetes Secret that contains a
-TrueFoundry Personal Access Token.</p>
+<p>ClusterToken references a key inside a Kubernetes Secret that holds
+the cluster service token (e.g. the <code>CLUSTER_TOKEN</code> key inside the
+<code>tfy-agent-internal-*-token</code> Secret provisioned by the TFY agent).</p>
 </td>
 </tr>
 </tbody>
@@ -11169,11 +11171,10 @@ TrueFoundry Personal Access Token.</p>
 <a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>TrueFoundryProvider configures a store to sync secrets using the TrueFoundry provider.
-Secrets are fetched from TrueFoundry secret groups via its REST API.
-The TrueFoundry API requires a two-step lookup: a secret group is located by its
-fully-qualified name (FQN, &ldquo;<tenant>:<group>&rdquo;) and the value for each associated
-secret is then fetched by its ID. See docs/provider/truefoundry.md for details.</p>
+<p>TrueFoundryProvider configures a store to sync secrets from TrueFoundry&rsquo;s
+control-plane secrets endpoint. Each secret is fetched by its fully-qualified
+name (FQN, &ldquo;<tenant>:<group>:<secret>&rdquo;) through a single HTTP GET protected
+by a cluster service token. See docs/provider/truefoundry.md.</p>
 </p>
 <table>
 <thead>
@@ -11191,20 +11192,9 @@ string
 </em>
 </td>
 <td>
-<p>BaseURL is the TrueFoundry control-plane URL, e.g. <a href="https://app.truefoundry.com">https://app.truefoundry.com</a>.
-The client appends /api/svc to this when calling the secrets API.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>tenant</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Tenant is the TrueFoundry tenant name. It is used together with the secret group
-name to build the FQN passed to the search endpoint (&rdquo;<tenant>:<group>&rdquo;).</p>
+<p>BaseURL is the TrueFoundry control-plane URL, e.g.
+<a href="https://your-cluster.tfy-usea1-ctl.example.com">https://your-cluster.tfy-usea1-ctl.example.com</a>. The provider appends
+/api/svc/v1/control-plane/secret to this when fetching a secret.</p>
 </td>
 </tr>
 <tr>
@@ -11217,7 +11207,9 @@ TrueFoundryAuth
 </em>
 </td>
 <td>
-<p>Auth configures how the Operator authenticates with the TrueFoundry API.</p>
+<p>Auth configures how the Operator authenticates with the TrueFoundry
+control-plane API. Only cluster-token Bearer authentication is
+supported today.</p>
 </td>
 </tr>
 </tbody>
