@@ -265,9 +265,10 @@ func (c *Client) getSymKey(ctx context.Context) (accessToken string, symEncKey, 
 	var orgEnc, orgMac []byte
 	var rsaPriv *rsa.PrivateKey
 	if orgID != "" {
-		// Decrypt the user's RSA private key (profile.PrivateKey is "2."
-		// encrypted with the stretched master key).
-		privDER, derr := crypto.DecryptStringBytes(profile.PrivateKey, stretchedEnc, stretchedMac)
+		// Decrypt the user's RSA private key. profile.privateKey is encrypted
+		// with the user symkey (not the stretched master key) per Bitwarden's
+		// key hierarchy.
+		privDER, derr := crypto.DecryptStringBytes(profile.PrivateKey, symKeyBytes[:32], symKeyBytes[32:64])
 		if derr != nil {
 			return "", nil, nil, fmt.Errorf("vaultwarden: decrypt user private key: %w", derr)
 		}
