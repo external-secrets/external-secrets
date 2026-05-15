@@ -575,11 +575,13 @@ external-secrets --enable-vault-token-cache --vault-token-cache-size=262144
 #### When to Use Token Caching
 
 Token caching is beneficial when:
+
 - Using authentication methods that generate short-lived tokens (e.g., AppRole, Kubernetes auth)
 - Running multiple ExternalSecrets that use the same SecretStore
 - Experiencing high token generation overhead
 
 Token caching should **not** be used when:
+
 - Using static tokens (no performance benefit)
 - Security requirements mandate fresh tokens for each request
 - Memory usage is a concern

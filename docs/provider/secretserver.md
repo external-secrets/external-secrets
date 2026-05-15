@@ -369,6 +369,7 @@ updated. Using a plain name will update the **first match** returned by the API.
 #### Deletion Behavior
 
 The `PushSecret` resource allows you to configure what happens to the remote secret in Secret Server when the `PushSecret` itself is deleted, via the `PushSecret.spec.deletionPolicy` field. Supported values are:
+
 - `Retain`: (Default) The remote secret is left intact in Secret Server when the `PushSecret` is deleted.
 - `Delete`: The provider will attempt to delete the remote secret from Secret Server when the `PushSecret` is removed.
 
