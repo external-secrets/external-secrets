@@ -87,6 +87,10 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if spc == nil || spc.Provider == nil || spc.Provider.Vaultwarden == nil {
 		return nil, errors.New(errUnexpectedStoreSpec)
 	}
+	vw := spc.Provider.Vaultwarden
+	if vw.OrganizationID != "" && vw.OrganizationName != "" {
+		return admission.Warnings{}, errors.New("vaultwarden: organizationId and organizationName are mutually exclusive; set at most one")
+	}
 	return nil, nil
 }
 
