@@ -23,7 +23,10 @@ import (
 	"crypto/cipher"
 	"crypto/hmac"
 	"crypto/rand"
+	"crypto/rsa"
+	"crypto/sha1" //nolint:gosec // OAEP key-wrap with SHA-1 matches the Bitwarden wire format; not used for signatures
 	"crypto/sha256"
+	"crypto/x509"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -40,6 +43,12 @@ const (
 	KdfTypeArgon2id = 1
 )
 
+// errInvalidCiphertext is the SAME error returned for every decrypt-side
+// failure (MAC mismatch, PKCS#7 padding failure, base64 decode error,
+// malformed EncString, AES error, etc.) — distinguishable errors would
+// allow a padding-oracle attack against the AES-CBC channel.
+var errInvalidCiphertext = errors.New("vaultwarden: invalid ciphertext")
+
 // EncString is a parsed Bitwarden encrypted string.
 type EncString struct {
 	Type byte
@@ -53,26 +62,26 @@ type EncString struct {
 func ParseEncString(s string) (EncString, error) {
 	typeStr, rest, ok := strings.Cut(s, ".")
 	if !ok {
-		return EncString{}, errors.New("invalid EncString: missing type prefix")
+		return EncString{}, errInvalidCiphertext
 	}
 	if typeStr != "2" {
-		return EncString{}, fmt.Errorf("unsupported EncString type %q (only type 2 supported)", typeStr)
+		return EncString{}, errInvalidCiphertext
 	}
 	parts := strings.Split(rest, "|")
 	if len(parts) != 3 {
-		return EncString{}, fmt.Errorf("invalid EncString: expected 3 parts, got %d", len(parts))
+		return EncString{}, errInvalidCiphertext
 	}
 	iv, err := base64.StdEncoding.DecodeString(parts[0])
 	if err != nil {
-		return EncString{}, fmt.Errorf("invalid EncString IV: %w", err)
+		return EncString{}, errInvalidCiphertext
 	}
 	ct, err := base64.StdEncoding.DecodeString(parts[1])
 	if err != nil {
-		return EncString{}, fmt.Errorf("invalid EncString CT: %w", err)
+		return EncString{}, errInvalidCiphertext
 	}
 	mac, err := base64.StdEncoding.DecodeString(parts[2])
 	if err != nil {
-		return EncString{}, fmt.Errorf("invalid EncString MAC: %w", err)
+		return EncString{}, errInvalidCiphertext
 	}
 	return EncString{Type: 2, IV: iv, CT: ct, MAC: mac}, nil
 }
@@ -122,19 +131,19 @@ func Decrypt(es EncString, encKey, macKey []byte) ([]byte, error) {
 	h.Write(es.CT)
 	expected := h.Sum(nil)
 	if !hmac.Equal(expected, es.MAC) {
-		return nil, errors.New("EncString MAC validation failed")
+		return nil, errInvalidCiphertext
 	}
 
 	// Decrypt AES-256-CBC
 	block, err := aes.NewCipher(encKey)
 	if err != nil {
-		return nil, fmt.Errorf("aes.NewCipher: %w", err)
+		return nil, errInvalidCiphertext
 	}
 	if len(es.IV) != aes.BlockSize {
-		return nil, fmt.Errorf("invalid IV length %d (expected %d)", len(es.IV), aes.BlockSize)
+		return nil, errInvalidCiphertext
 	}
 	if len(es.CT)%aes.BlockSize != 0 {
-		return nil, errors.New("ciphertext is not a multiple of AES block size")
+		return nil, errInvalidCiphertext
 	}
 	plaintext := make([]byte, len(es.CT))
 	cipher.NewCBCDecrypter(block, es.IV).CryptBlocks(plaintext, es.CT) // NOSONAR — AES-256-CBC is mandated by the Bitwarden wire protocol; MAC is verified before decryption (Encrypt-then-MAC)
@@ -208,19 +217,54 @@ func pkcs7Pad(data []byte, blockSize int) []byte {
 
 func pkcs7Unpad(data []byte) ([]byte, error) {
 	if len(data) == 0 {
-		return nil, errors.New("pkcs7Unpad: empty input")
+		return nil, errInvalidCiphertext
 	}
 	padding := int(data[len(data)-1])
 	if padding == 0 || padding > aes.BlockSize {
-		return nil, fmt.Errorf("pkcs7Unpad: invalid padding %d", padding)
+		return nil, errInvalidCiphertext
 	}
 	if padding > len(data) {
-		return nil, errors.New("pkcs7Unpad: padding larger than data")
+		return nil, errInvalidCiphertext
 	}
 	for _, b := range data[len(data)-padding:] {
 		if b != byte(padding) {
-			return nil, errors.New("pkcs7Unpad: inconsistent padding bytes")
+			return nil, errInvalidCiphertext
 		}
 	}
 	return data[:len(data)-padding], nil
+}
+
+// RSAPrivateKeyFromPKCS8DER parses a PKCS#8 DER-encoded private key
+// (Vaultwarden's profile.privateKey decrypted payload) into an
+// *rsa.PrivateKey. Returns error if the key is not RSA.
+func RSAPrivateKeyFromPKCS8DER(der []byte) (*rsa.PrivateKey, error) {
+	key, err := x509.ParsePKCS8PrivateKey(der)
+	if err != nil {
+		return nil, fmt.Errorf("vaultwarden: parse PKCS#8: %w", err)
+	}
+	rsaKey, ok := key.(*rsa.PrivateKey)
+	if !ok {
+		return nil, fmt.Errorf("vaultwarden: PKCS#8 key is not RSA")
+	}
+	return rsaKey, nil
+}
+
+// DecryptRSAOAEP decrypts a Bitwarden EncString of type 4
+// ("4.<base64-RSA-ciphertext>"). Bitwarden uses RSA-OAEP with SHA-1.
+// Returns the plaintext bytes (typically a 64-byte org symkey:
+// first 32 are AES enc key, last 32 are HMAC mac key).
+func DecryptRSAOAEP(encString string, priv *rsa.PrivateKey) ([]byte, error) {
+	const prefix = "4."
+	if !strings.HasPrefix(encString, prefix) {
+		return nil, errInvalidCiphertext
+	}
+	ct, err := base64.StdEncoding.DecodeString(encString[len(prefix):])
+	if err != nil {
+		return nil, errInvalidCiphertext
+	}
+	pt, err := rsa.DecryptOAEP(sha1.New(), nil, priv, ct, nil) //nolint:gosec // OAEP-SHA1 matches Bitwarden wire format
+	if err != nil {
+		return nil, errInvalidCiphertext
+	}
+	return pt, nil
 }

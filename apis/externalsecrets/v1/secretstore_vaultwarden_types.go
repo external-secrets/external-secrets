@@ -26,6 +26,19 @@ type VaultwardenProvider struct {
 	URL string `json:"url"`
 	// Auth configures how ESO authenticates with Vaultwarden using a personal API key.
 	Auth VaultwardenAuth `json:"auth"`
+	// OrganizationID, if set, scopes this store to a single Vaultwarden
+	// organization by UUID. Mutually exclusive with OrganizationName.
+	// When both OrganizationID and OrganizationName are empty, the store
+	// operates on the user's personal vault only.
+	// +optional
+	OrganizationID string `json:"organizationId,omitempty"`
+	// OrganizationName, if set, scopes this store to a single Vaultwarden
+	// organization by human-readable name. The provider resolves the name
+	// to a UUID at SecretStore validation time. Mutually exclusive with
+	// OrganizationID. Errors if zero or >1 organizations the authenticated
+	// user belongs to match the name.
+	// +optional
+	OrganizationName string `json:"organizationName,omitempty"`
 	// CABundle is a PEM-encoded CA certificate bundle used to validate the Vaultwarden server certificate.
 	// If omitted, the system CA pool is used.
 	// +optional
