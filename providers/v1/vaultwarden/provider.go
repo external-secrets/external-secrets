@@ -52,15 +52,37 @@ func (p *Provider) NewClient(_ context.Context, store esv1.GenericStore, kube cl
 	if err != nil {
 		return nil, err
 	}
-	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
-	if len(prov.CABundle) > 0 {
-		pool := x509.NewCertPool()
-		if !pool.AppendCertsFromPEM(prov.CABundle) {
-			return nil, fmt.Errorf("vaultwarden: failed to parse CABundle")
-		}
-		tlsConfig.RootCAs = pool
+	c := &Client{
+		provider:  prov,
+		crClient:  kube,
+		namespace: namespace,
+		store:     store,
 	}
-	httpClient := &http.Client{
+	if err := c.initHTTPClient(); err != nil {
+		return nil, err
+	}
+	return c, nil
+}
+
+// initHTTPClient builds Client.httpClient using strict TLS verification:
+// the system cert pool augmented with the provider's optional caBundle.
+// MinVersion is TLS 1.2. There is no InsecureSkipVerify escape hatch —
+// self-signed certs must be trusted via caBundle.
+func (c *Client) initHTTPClient() error {
+	pool, err := x509.SystemCertPool()
+	if err != nil || pool == nil {
+		pool = x509.NewCertPool()
+	}
+	if len(c.provider.CABundle) > 0 {
+		if !pool.AppendCertsFromPEM(c.provider.CABundle) {
+			return fmt.Errorf("vaultwarden: failed to parse CABundle")
+		}
+	}
+	tlsConfig := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		RootCAs:    pool,
+	}
+	c.httpClient = &http.Client{
 		Timeout: 30 * time.Second,
 		Transport: &http.Transport{
 			TLSClientConfig:       tlsConfig,
@@ -69,13 +91,7 @@ func (p *Provider) NewClient(_ context.Context, store esv1.GenericStore, kube cl
 			IdleConnTimeout:       90 * time.Second,
 		},
 	}
-	return &Client{
-		httpClient: httpClient,
-		provider:   prov,
-		crClient:   kube,
-		namespace:  namespace,
-		store:      store,
-	}, nil
+	return nil
 }
 
 // ValidateStore validates the configuration of a Vaultwarden secret store.
