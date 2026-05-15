@@ -126,6 +126,7 @@ The SetSecret method for the Parameter Store allows the user to set the value st
 #### Additional Metadata for PushSecret
 
 Optionally, it is possible to configure additional options for the parameter. These are as follows:
+
 - type
 - keyID
 - tier & policies

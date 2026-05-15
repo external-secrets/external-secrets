@@ -61,7 +61,12 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.livenessProbe.successThreshold | int | `1` |  |
 | certController.livenessProbe.timeoutSeconds | int | `5` |  |
 | certController.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Certificate Controller |
+| certController.metrics.listen.auth.enabled | bool | `false` | Enable Kubernetes RBAC-based authentication for certController's metrics endpoint. Requires certController.metrics.listen.secure to be true. Default value is false. |
 | certController.metrics.listen.port | int | `8080` |  |
+| certController.metrics.listen.secure.certDir | string | `"/etc/tls"` | TLS cert directory path |
+| certController.metrics.listen.secure.certFile | string | `"/etc/tls/tls.crt"` | TLS cert file path |
+| certController.metrics.listen.secure.enabled | bool | `false` |  |
+| certController.metrics.listen.secure.keyFile | string | `"/etc/tls/tls.key"` | TLS key file path |
 | certController.metrics.service.annotations | object | `{}` | Additional service annotations |
 | certController.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
 | certController.metrics.service.port | int | `8080` | Metrics service port to scrape |
@@ -170,6 +175,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | livenessProbe.spec.successThreshold | int | `1` | Number of successful probes to mark probe successful. |
 | livenessProbe.spec.timeoutSeconds | int | `5` | Specify the maximum amount of time to wait for a probe to respond before considering it fails. |
 | log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the External Secrets Operator |
+| metrics.listen.auth.enabled | bool | `false` | Enable Kubernetes RBAC-based authentication for metrics endpoint. Requires metrics.listen.secure to be true. Default value is false. |
 | metrics.listen.port | int | `8080` |  |
 | metrics.listen.secure.certDir | string | `"/etc/tls"` | TLS cert directory path |
 | metrics.listen.secure.certFile | string | `"/etc/tls/tls.crt"` | TLS cert file path |
@@ -213,7 +219,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | resources | object | `{}` |  |
 | revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
 | scopedNamespace | string | `""` | If set external secrets are only reconciled in the provided namespace |
-| scopedRBAC | bool | `false` | Must be used with scopedNamespace. If true, create scoped RBAC roles under the scoped namespace and implicitly disable cluster stores and cluster external secrets |
+| scopedRBAC | bool | `false` | If true, create scoped RBAC roles and implicitly disable cluster-scoped controllers. Scoped to scopedNamespace if set, otherwise to .Release.Namespace. |
 | securityContext.allowPrivilegeEscalation | bool | `false` |  |
 | securityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | securityContext.enabled | bool | `true` |  |
@@ -283,7 +289,12 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.livenessProbe.timeoutSeconds | int | `5` |  |
 | webhook.log | object | `{"level":"info","timeEncoding":"epoch"}` | Specifies Log Params to the Webhook |
 | webhook.lookaheadInterval | string | `""` | Specifies the lookaheadInterval for certificate validity |
+| webhook.metrics.listen.auth.enabled | bool | `false` | Enable Kubernetes RBAC-based authentication for webhook's metrics endpoint. Requires webhook.metrics.listen.secure to be true. Default value is false. |
 | webhook.metrics.listen.port | int | `8080` |  |
+| webhook.metrics.listen.secure.certDir | string | `"/etc/tls"` | TLS cert directory path |
+| webhook.metrics.listen.secure.certFile | string | `"/etc/tls/tls.crt"` | TLS cert file path |
+| webhook.metrics.listen.secure.enabled | bool | `false` |  |
+| webhook.metrics.listen.secure.keyFile | string | `"/etc/tls/tls.key"` | TLS key file path |
 | webhook.metrics.service.annotations | object | `{}` | Additional service annotations |
 | webhook.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
 | webhook.metrics.service.port | int | `8080` | Metrics service port to scrape |

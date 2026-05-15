@@ -70,7 +70,6 @@ tests:
   - it: should configure custom lease name when leaderElectionID is set
     set:
       leaderElectionID: "custom-eso-lease"
-      scopedRBAC: true
     asserts:
       - matchSnapshot: {}
 
@@ -169,3 +168,147 @@ tests:
             - "create"
             - "update"
             - "delete"
+
+  - it: should render controller Role with explicit scopedNamespace when scopedRBAC is true
+    set:
+      scopedRBAC: true
+      scopedNamespace: "my-ns"
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: Role
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-controller
+      - equal:
+          path: metadata.namespace
+          value: "my-ns"
+
+  - it: should render controller Role with release namespace when scopedRBAC is true and scopedNamespace is empty
+    set:
+      scopedRBAC: true
+      scopedNamespace: ""
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: Role
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-controller
+      - equal:
+          path: metadata.namespace
+          value: NAMESPACE
+
+  - it: should render controller ClusterRole when scopedRBAC is false
+    set:
+      scopedRBAC: false
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: ClusterRole
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-controller
+      - notExists:
+          path: metadata.namespace
+
+  - it: should render view Role with release namespace when scopedRBAC is true
+    set:
+      scopedRBAC: true
+    documentSelector:
+      path: metadata.name
+      value: RELEASE-NAME-external-secrets-view
+    asserts:
+      - isKind:
+          of: Role
+      - equal:
+          path: metadata.namespace
+          value: NAMESPACE
+
+  - it: should render edit Role with release namespace when scopedRBAC is true
+    set:
+      scopedRBAC: true
+    documentSelector:
+      path: metadata.name
+      value: RELEASE-NAME-external-secrets-edit
+    asserts:
+      - isKind:
+          of: Role
+      - equal:
+          path: metadata.namespace
+          value: NAMESPACE
+
+  - it: should render ClusterRole when scopedNamespace is set without scopedRBAC
+    set:
+      scopedRBAC: false
+      scopedNamespace: "my-ns"
+    documentIndex: 0
+    asserts:
+      - isKind:
+          of: ClusterRole
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-controller
+      - notExists:
+          path: metadata.namespace
+
+  - it: should render controller RoleBinding when scopedRBAC is true and scopedNamespace is empty
+    set:
+      scopedRBAC: true
+      scopedNamespace: ""
+    documentIndex: 3
+    asserts:
+      - isKind:
+          of: RoleBinding
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-controller
+      - equal:
+          path: metadata.namespace
+          value: NAMESPACE
+      - equal:
+          path: roleRef.kind
+          value: Role
+      - equal:
+          path: roleRef.name
+          value: RELEASE-NAME-external-secrets-controller
+
+  - it: should render controller RoleBinding with explicit scopedNamespace when scopedRBAC is true
+    set:
+      scopedRBAC: true
+      scopedNamespace: "my-ns"
+    documentIndex: 3
+    asserts:
+      - isKind:
+          of: RoleBinding
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-controller
+      - equal:
+          path: metadata.namespace
+          value: "my-ns"
+      - equal:
+          path: roleRef.kind
+          value: Role
+      - equal:
+          path: roleRef.name
+          value: RELEASE-NAME-external-secrets-controller
+
+  - it: should render controller ClusterRoleBinding when scopedRBAC is false
+    set:
+      scopedRBAC: false
+    documentIndex: 3
+    asserts:
+      - isKind:
+          of: ClusterRoleBinding
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-controller
+      - notExists:
+          path: metadata.namespace
+      - equal:
+          path: roleRef.kind
+          value: ClusterRole
+      - equal:
+          path: roleRef.name
+          value: RELEASE-NAME-external-secrets-controller
