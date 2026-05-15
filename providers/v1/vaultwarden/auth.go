@@ -20,6 +20,7 @@ package vaultwarden
 
 import (
 	"context"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -45,6 +46,16 @@ type vaultwardenTokenResponse struct {
 	KdfParallelism *int   `json:"KdfParallelism"`
 }
 
+// orgEntry is one organization the user belongs to, as returned by
+// /api/accounts/profile (or as part of /api/sync's profile field).
+type orgEntry struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	// Key is the org's symmetric key (64 bytes after decryption),
+	// encrypted with the user's RSA public key. EncString format "4."
+	Key string `json:"key"`
+}
+
 // vaultwardenProfile is the JSON response from /api/accounts/profile.
 type vaultwardenProfile struct {
 	Email          string `json:"email"`          // lowercase in profile response
@@ -53,6 +64,37 @@ type vaultwardenProfile struct {
 	KdfIterations  int    `json:"kdfIterations"`
 	KdfMemory      *int   `json:"kdfMemory"`
 	KdfParallelism *int   `json:"kdfParallelism"`
+
+	// Organizations the user belongs to. Each entry includes the org's
+	// UUID, display name, and an RSA-OAEP-encrypted org symkey.
+	Organizations []orgEntry `json:"organizations"`
+
+	// PrivateKey is the user's RSA private key, encrypted with the user's
+	// stretched master key (EncString format "2."). Decrypts to PKCS#8 DER.
+	// Needed only for org-scope SecretStores.
+	PrivateKey string `json:"privateKey"`
+}
+
+// resolveOrgByName scans profile.Organizations for an exact-match name.
+// Returns the org's UUID and its encrypted key blob. Errors if zero
+// or >1 organizations match.
+func resolveOrgByName(profile *vaultwardenProfile, name string) (orgID, encKey string, err error) {
+	matches := 0
+	for _, o := range profile.Organizations {
+		if o.Name == name {
+			orgID = o.ID
+			encKey = o.Key
+			matches++
+		}
+	}
+	switch matches {
+	case 0:
+		return "", "", fmt.Errorf("vaultwarden: no organization named %q", name)
+	case 1:
+		return orgID, encKey, nil
+	default:
+		return "", "", fmt.Errorf("vaultwarden: multiple organizations match name %q (found %d); use organizationId instead", name, matches)
+	}
 }
 
 // resolveSecretKeyRef is a helper that reads a K8s secret value using a SecretKeySelector.
@@ -195,12 +237,61 @@ func (c *Client) getSymKey(ctx context.Context) (accessToken string, symEncKey, 
 		return "", nil, nil, fmt.Errorf("vaultwarden: symmetric key too short (%d bytes)", len(symKeyBytes))
 	}
 
+	// Org scope: if the provider configures OrganizationID, unlock that
+	// org's symkey. If OrganizationName is configured, resolve to UUID
+	// first. Personal scope (both empty) leaves orgID/orgEncKey/orgMacKey
+	// nil on the cached token.
+	orgID := c.provider.OrganizationID
+	var orgEncKeyBlob string
+	switch {
+	case orgID != "":
+		for _, o := range profile.Organizations {
+			if o.ID == orgID {
+				orgEncKeyBlob = o.Key
+				break
+			}
+		}
+		if orgEncKeyBlob == "" {
+			return "", nil, nil, fmt.Errorf("vaultwarden: organizationId %q not found in user profile", orgID)
+		}
+	case c.provider.OrganizationName != "":
+		var err error
+		orgID, orgEncKeyBlob, err = resolveOrgByName(profile, c.provider.OrganizationName)
+		if err != nil {
+			return "", nil, nil, err
+		}
+	}
+
+	var orgEnc, orgMac []byte
+	var rsaPriv *rsa.PrivateKey
+	if orgID != "" {
+		// Decrypt the user's RSA private key (profile.PrivateKey is "2."
+		// encrypted with the stretched master key).
+		privDER, derr := crypto.DecryptStringBytes(profile.PrivateKey, stretchedEnc, stretchedMac)
+		if derr != nil {
+			return "", nil, nil, fmt.Errorf("vaultwarden: decrypt user private key: %w", derr)
+		}
+		rsaPriv, derr = crypto.RSAPrivateKeyFromPKCS8DER(privDER)
+		zeroBytes(privDER)
+		if derr != nil {
+			return "", nil, nil, derr
+		}
+		orgEnc, orgMac, derr = unlockOrgKey(orgEncKeyBlob, rsaPriv)
+		if derr != nil {
+			return "", nil, nil, derr
+		}
+	}
+
 	c.mu.Lock()
 	c.cache = &cachedToken{
 		accessToken: tokenResp.AccessToken,
 		symEncKey:   symKeyBytes[0:32],
 		symMacKey:   symKeyBytes[32:64],
 		expiresAt:   time.Now().Add(5 * time.Minute),
+		orgID:       orgID,
+		orgEncKey:   orgEnc,
+		orgMacKey:   orgMac,
+		rsaPriv:     rsaPriv,
 	}
 	tok, enc, mac := c.cache.accessToken, c.cache.symEncKey, c.cache.symMacKey
 	c.mu.Unlock()
@@ -215,5 +306,29 @@ func getProvider(store esv1.GenericStore) (*esv1.VaultwardenProvider, error) {
 		return nil, fmt.Errorf(errUnexpectedStoreSpec)
 	}
 	return spc.Provider.Vaultwarden, nil
+}
+
+// unlockOrgKey decrypts a Bitwarden org key blob (format "4.<RSA-blob>")
+// using the user's RSA private key. Bitwarden's wire format yields a
+// 64-byte plaintext: first 32 bytes are the AES enc key, last 32 are
+// the HMAC mac key. Returns these as two separate slices so callers
+// can hold them independently. The intermediate plaintext is zeroed
+// before return.
+func unlockOrgKey(encKeyBlob string, priv *rsa.PrivateKey) (orgEnc, orgMac []byte, err error) {
+	plain, err := crypto.DecryptRSAOAEP(encKeyBlob, priv)
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(plain) != 64 {
+		// Zero the partial plaintext before erroring.
+		zeroBytes(plain)
+		return nil, nil, fmt.Errorf("vaultwarden: org key has unexpected length %d", len(plain))
+	}
+	orgEnc = make([]byte, 32)
+	orgMac = make([]byte, 32)
+	copy(orgEnc, plain[:32])
+	copy(orgMac, plain[32:])
+	zeroBytes(plain)
+	return orgEnc, orgMac, nil
 }
 

@@ -21,6 +21,7 @@ package vaultwarden
 import (
 	"bytes"
 	"context"
+	"crypto/rsa"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -85,6 +86,36 @@ type cachedToken struct {
 	symEncKey   []byte
 	symMacKey   []byte
 	expiresAt   time.Time
+	// Org keys, populated only when the SecretStore configures an
+	// organizationId or organizationName. orgID is the resolved UUID.
+	orgID     string
+	orgEncKey []byte
+	orgMacKey []byte
+	// rsaPriv is held briefly while decrypting org keys. nil for
+	// personal-vault scope.
+	rsaPriv *rsa.PrivateKey
+}
+
+// invalidate zeros all key material in place and clears the cached
+// strings. Called on TTL expiry, on auth errors (401/403), and on Close.
+func (t *cachedToken) invalidate() {
+	t.accessToken = ""
+	zeroBytes(t.symEncKey)
+	zeroBytes(t.symMacKey)
+	zeroBytes(t.orgEncKey)
+	zeroBytes(t.orgMacKey)
+	t.symEncKey = nil
+	t.symMacKey = nil
+	t.orgEncKey = nil
+	t.orgMacKey = nil
+	t.orgID = ""
+	t.rsaPriv = nil
+}
+
+func zeroBytes(b []byte) {
+	for i := range b {
+		b[i] = 0
+	}
 }
 
 // Client implements esv1.SecretsClient for Vaultwarden.

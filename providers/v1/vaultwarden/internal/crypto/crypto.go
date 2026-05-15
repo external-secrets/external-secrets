@@ -155,20 +155,28 @@ func Decrypt(es EncString, encKey, macKey []byte) ([]byte, error) {
 	return plaintext, nil
 }
 
-// DecryptString parses and decrypts a Bitwarden EncString value, returning the plaintext string.
+// DecryptString parses and decrypts a Bitwarden EncString value, returning the
+// plaintext as a string. Use DecryptStringBytes for binary data (e.g., a PKCS#8
+// DER) so the plaintext never lives in an immutable string.
 func DecryptString(s string, encKey, macKey []byte) (string, error) {
-	if s == "" {
-		return "", nil
-	}
-	es, err := ParseEncString(s)
-	if err != nil {
-		return "", err
-	}
-	b, err := Decrypt(es, encKey, macKey)
+	b, err := DecryptStringBytes(s, encKey, macKey)
 	if err != nil {
 		return "", err
 	}
 	return string(b), nil
+}
+
+// DecryptStringBytes is the []byte-returning version of DecryptString.
+// Prefer this when the decrypted payload is binary (e.g., PKCS#8 DER).
+func DecryptStringBytes(s string, encKey, macKey []byte) ([]byte, error) {
+	if s == "" {
+		return nil, nil
+	}
+	es, err := ParseEncString(s)
+	if err != nil {
+		return nil, err
+	}
+	return Decrypt(es, encKey, macKey)
 }
 
 // Encrypt encrypts plaintext using AES-256-CBC + HMAC-SHA256 and returns a Bitwarden EncString.
