@@ -837,6 +837,19 @@ func TestExecuteInvalidTemplateScope(t *testing.T) {
 	assert.ErrorContains(t, err, "expected 'Values' or 'KeysAndValues'")
 }
 
+// Target dispatch is case-insensitive; validators rely on this.
+func TestExecuteTargetCaseInsensitive(t *testing.T) {
+	for _, target := range []string{"Annotations", "annotations", "ANNOTATIONS", "AnNoTaTiOnS"} {
+		t.Run(target, func(t *testing.T) {
+			sec := &corev1.Secret{}
+			require.NoError(t, Execute(map[string][]byte{"foo": []byte("bar")}, nil, esapi.TemplateScopeValues, target, sec))
+			assert.Equal(t, "bar", sec.Annotations["foo"])
+			assert.Empty(t, sec.Labels)
+			assert.Empty(t, sec.Data)
+		})
+	}
+}
+
 func TestScopeKeysAndValues(t *testing.T) {
 	tbl := []struct {
 		name               string

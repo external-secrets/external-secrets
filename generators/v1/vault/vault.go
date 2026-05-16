@@ -116,7 +116,7 @@ func (g *Generator) fetchVaultSecret(ctx context.Context, res *genv1alpha1.Vault
 	)
 
 	if res.Spec.Method == "" || res.Spec.Method == "GET" {
-		result, err = cl.Logical().ReadWithDataWithContext(ctx, res.Spec.Path, nil)
+		result, err = cl.Logical().ReadWithDataWithContext(ctx, res.Spec.Path, res.Spec.GetParameters)
 	} else if res.Spec.Method == "LIST" {
 		result, err = cl.Logical().ListWithContext(ctx, res.Spec.Path)
 	} else if res.Spec.Method == "DELETE" {

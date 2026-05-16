@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"path"
 	"strings"
 
 	infisical "github.com/infisical/go-sdk"
@@ -53,38 +54,35 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 	return []byte(result.Str), nil
 }
 
-// getSecretAddress returns the path and key from the given key.
+// getSecretAddress returns the (folder, name) pair to look up in Infisical for the given key.
 //
-// Users can configure a root path, and when a SecretKey is provided with a slash we assume that it is
-// within a path appended to the root path.
-//
-// If the key is not addressing a path at all (i.e. has no `/`), simply return the original
-// path and key.
-func getSecretAddress(defaultPath, key string) (string, string, error) {
+// Resolution rules:
+//   - No slash in key: treat key as a bare secret name in defaultPath.
+//     ("foo" + defaultPath="/scope")            -> ("/scope", "foo")
+//   - Key starts with `/`: treat key as an absolute path; defaultPath is ignored.
+//     ("/a/b/foo" + defaultPath="/scope")       -> ("/a/b", "foo")
+//   - Otherwise (slash present, no leading `/`): treat key as a folder path relative to defaultPath.
+//     ("sub/foo" + defaultPath="/scope")        -> ("/scope/sub", "foo")
+func getSecretAddress(defaultPath, key string) (string, string) {
 	if !strings.Contains(key, "/") {
-		return defaultPath, key, nil
+		return defaultPath, key
 	}
 
-	// Check if `key` starts with a `/`, and throw and error if it does not.
-	if !strings.HasPrefix(key, "/") {
-		return "", "", fmt.Errorf("a secret key referencing a folder must start with a '/' as it is an absolute path, key: %s", key)
-	}
-
-	// Otherwise, take the prefix from `key` and use that as the path. We intentionally discard
-	// `defaultPath`.
 	lastIndex := strings.LastIndex(key, "/")
-	return key[:lastIndex], key[lastIndex+1:], nil
+	folder, name := key[:lastIndex], key[lastIndex+1:]
+
+	if strings.HasPrefix(key, "/") {
+		return folder, name
+	}
+
+	return path.Join(defaultPath, folder), name
 }
 
 // GetSecret retrieves a secret value from Infisical.
 // If this returns an error with type NoSecretError then the secret entry will be deleted depending on the
 // deletionPolicy.
 func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	path, key, err := getSecretAddress(p.apiScope.SecretPath, ref.Key)
-	if err != nil {
-		return nil, err
-	}
-
+	path, key := getSecretAddress(p.apiScope.SecretPath, ref.Key)
 	secret, err := p.sdkClient.Secrets().Retrieve(infisical.RetrieveSecretOptions{
 		Environment:            p.apiScope.EnvironmentSlug,
 		ProjectSlug:            p.apiScope.ProjectSlug,

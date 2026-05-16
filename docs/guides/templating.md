@@ -154,10 +154,12 @@ When a provider returns RSA-encrypted values, you can decrypt them directly in t
 `rsaDecrypt` performs decryption with the private key passed through the pipeline: `<privateKeyPEM | rsaDecrypt "<SCHEME>" "<HASH>" <ciphertext> >`. `SCHEME` and `HASH` are strings (for example, `"RSA-OAEP"` and `"SHA1"`). The third argument must be the ciphertext in binary form.
 
 Base64 handling: providers often return ciphertext as Base64. You can either:
+
 - decode in the template with `b64dec` (for example: `(.password_encrypted_base64 | b64dec)`), or
 - set `decodingStrategy: Base64` on the corresponding `spec.data.remoteRef` so the template receives binary data.
 
 Prerequisites
+
 - `spec.target.template.engineVersion: v2`.
 - A valid RSA private key in PEM format without passphrase (from another reference in the same ExternalSecret).
 - Ciphertext must match the key pair and the chosen algorithm/hash.
@@ -169,10 +171,12 @@ Full example:
 ```
 
 Useful variations (included as comments in the example):
+
 - Base64 decode in the template with `b64dec` or via `decodingStrategy: Base64` on `spec.data`.
 - Use a private key available in the same ExternalSecret (for example: `( .private_key | rsaDecrypt ... )`).
 
 Error notes
+
 - Referencing a missing key in the template will fail rendering.
 - If key/algorithm/hash do not match the ciphertext, decryption will fail and reconciliation will retry.
 

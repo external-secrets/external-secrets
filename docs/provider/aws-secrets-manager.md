@@ -126,6 +126,7 @@ Additional settings can be set at the `SecretStore` level to control the behavio
 #### Additional Metadata for PushSecret
 
 Optionally, it is possible to configure additional options for the parameter. These are as follows:
+
 - kmsKeyID
 - secretPushFormat
 - description

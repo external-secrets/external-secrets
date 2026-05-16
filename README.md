@@ -26,11 +26,11 @@ Multiple people and organizations are joining efforts to create a single Externa
 
 ## Documentation
 
-External Secrets Operator guides and reference documentation is available at [external-secrets.io](https://external-secrets.io). Also see our [stability and support](https://external-secrets.io/main/introduction/stability-support/) policy.
+External Secrets Operator guides and reference documentation is available at [external-secrets.io](https://external-secrets.io). Also see our [stability and support](https://external-secrets.io/latest/introduction/stability-support/) policy.
 
 ## Contributing
 
-We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/main/contributing/devguide/) and [Contribution process](https://www.external-secrets.io/main/contributing/process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/main/contributing/coc/) and adhere to its guidelines.
+We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/latest/contributing/devguide/) and [Contribution process](https://www.external-secrets.io/latest/contributing/process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/latest/contributing/coc/) and adhere to its guidelines.
 
 Also, please take a look our [Contribution Ladder](CONTRIBUTOR_LADDER.md) for a _very_ detailed explanation of what roles and tracks are available for people to try and help this project.
 
@@ -58,7 +58,7 @@ Please create a PR and add your company or project to our [ADOPTERS.md file](ADO
 
 ## Roadmap
 
-You can find the roadmap in our documentation: https://external-secrets.io/main/contributing/roadmap/
+You can find the roadmap in our documentation: https://external-secrets.io/latest/contributing/roadmap/
 
 ## Kicked off by
 
