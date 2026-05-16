@@ -291,7 +291,7 @@ func credsFromServiceAccount(
 	// this is used as input to assumeRoleWithWebIdentity
 	roleArn := sa.Annotations[roleARNAnnotation]
 	if roleArn == "" {
-		log.V(1).Info("no IRSA annotation found on service account, falling back to default credential chain", "name", name, "namespace", namespace)
+		log.V(1).Info("no IRSA annotation found on service account, continuing credential fallback", "name", name, "namespace", namespace)
 		return nil, nil
 	}
 
