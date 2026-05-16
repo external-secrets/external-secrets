@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 
 	authv1 "k8s.io/api/authorization/v1"
@@ -213,6 +212,9 @@ type Client struct {
 	namespaced bool
 	// storeKind is SecretStore or ClusterSecretStore (controls remoteRef.key parsing).
 	storeKind string
+	// whitelistRules is the pre-compiled form of store.Whitelist.Rules, built once
+	// at construction time so per-read calls do not recompile regexes.
+	whitelistRules []compiledWhitelistRule
 }
 
 var _ esv1.SecretsClient = &Client{}
@@ -245,13 +247,18 @@ func (p *Provider) newClientWithRESTConfig(ctx context.Context, store esv1.Gener
 	if err != nil {
 		return nil, fmt.Errorf("crd: failed to create dynamic client: %w", err)
 	}
+	whitelistRules, err := compileWhitelistRules(provSpec.Whitelist)
+	if err != nil {
+		return nil, err
+	}
 	return &Client{
-		store:      provSpec,
-		dynClient:  dynClient,
-		namespace:  targetNamespace,
-		plural:     plural,
-		namespaced: resourceNamespaced,
-		storeKind:  store.GetKind(),
+		store:          provSpec,
+		dynClient:      dynClient,
+		namespace:      targetNamespace,
+		plural:         plural,
+		namespaced:     resourceNamespaced,
+		storeKind:      store.GetKind(),
+		whitelistRules: whitelistRules,
 	}, nil
 }
 
@@ -410,27 +417,8 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if strings.EqualFold(prov.Resource.Kind, "Secret") {
 		return nil, errKindIsSecret
 	}
-	if prov.Whitelist != nil {
-		for i, rule := range prov.Whitelist.Rules {
-			if rule.Name == "" && rule.Namespace == "" && len(rule.Properties) == 0 {
-				return nil, fmt.Errorf("crd: whitelist.rules[%d]: %w", i, errEmptyWhitelistRule)
-			}
-			if rule.Name != "" {
-				if _, err := regexp.Compile(rule.Name); err != nil {
-					return nil, fmt.Errorf("crd: invalid whitelist.rules[%d].name regex %q: %w", i, rule.Name, err)
-				}
-			}
-			if rule.Namespace != "" {
-				if _, err := regexp.Compile(rule.Namespace); err != nil {
-					return nil, fmt.Errorf("crd: invalid whitelist.rules[%d].namespace regex %q: %w", i, rule.Namespace, err)
-				}
-			}
-			for j, prop := range rule.Properties {
-				if _, err := regexp.Compile(prop); err != nil {
-					return nil, fmt.Errorf("crd: invalid whitelist.rules[%d].properties[%d] regex %q: %w", i, j, prop, err)
-				}
-			}
-		}
+	if _, err := compileWhitelistRules(prov.Whitelist); err != nil {
+		return warnings, err
 	}
 	return warnings, nil
 }

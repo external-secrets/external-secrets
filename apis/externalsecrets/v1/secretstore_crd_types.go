@@ -93,6 +93,9 @@ type CRDProviderWhitelist struct {
 //     a key without '/' addresses a cluster-scoped CR by object name. For
 //     dataFrom Find with a namespaced kind, listing uses all namespaces unless
 //     remoteNamespace is set, and result keys are "namespace/objectName".
+//
+// +kubebuilder:validation:XValidation:rule="!(has(self.auth) && has(self.authRef))",message="auth and authRef are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="has(self.serviceAccountRef) || has(self.auth) || has(self.authRef)",message="one of serviceAccountRef, auth, or authRef is required"
 type CRDProvider struct {
 	// ServiceAccountRef references the ServiceAccount used for authentication.
 	//

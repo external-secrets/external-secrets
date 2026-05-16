@@ -89,14 +89,21 @@ func widget(name, namespace string, spec map[string]any) *unstructured.Unstructu
 
 // newTestClient builds a Client for use in unit tests.
 // storeKind must be esv1.SecretStoreKind or esv1.ClusterSecretStoreKind.
+// Whitelist regexes must be valid: invalid patterns are caught at admission
+// (ValidateStore) and are not reachable via the Client constructor in production.
 func newTestClient(store *esv1.CRDProvider, storeKind, namespace string, namespaced bool, objs ...runtime.Object) *Client {
+	rules, err := compileWhitelistRules(store.Whitelist)
+	if err != nil {
+		panic("newTestClient: invalid whitelist in test fixture: " + err.Error())
+	}
 	return &Client{
-		store:      store,
-		namespace:  namespace,
-		plural:     "widgets",
-		namespaced: namespaced,
-		storeKind:  storeKind,
-		dynClient:  dynfake.NewSimpleDynamicClient(runtime.NewScheme(), objs...),
+		store:          store,
+		namespace:      namespace,
+		plural:         "widgets",
+		namespaced:     namespaced,
+		storeKind:      storeKind,
+		dynClient:      dynfake.NewSimpleDynamicClient(runtime.NewScheme(), objs...),
+		whitelistRules: rules,
 	}
 }
 
@@ -593,11 +600,6 @@ func TestWhitelistMatching(t *testing.T) {
 			name: "SecretStore ignores namespace rule", wantVal: "pw1",
 			client: func() *Client { return ssClient(makeStore(wlRuleNS("^prod$", "")), "ns1", obj) },
 			ref:    ref("item-a", "spec.password"),
-		},
-		{
-			name: "invalid namespace regex", wantErrMsg: "invalid whitelist namespace regex",
-			client: func() *Client { return cssClient(makeStore(wlRuleNS("(invalid", "")), obj) },
-			ref:    ref("ns1/item-a", "spec.password"),
 		},
 		{
 			// Regression: namespace rule must not match cluster-scoped objects.

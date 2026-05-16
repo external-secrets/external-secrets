@@ -4051,6 +4051,11 @@ spec:
                       required:
                         - resource
                       type: object
+                      x-kubernetes-validations:
+                        - message: auth and authRef are mutually exclusive
+                          rule: '!(has(self.auth) && has(self.authRef))'
+                        - message: one of serviceAccountRef, auth, or authRef is required
+                          rule: has(self.serviceAccountRef) || has(self.auth) || has(self.authRef)
                     delinea:
                       description: |-
                         Delinea DevOps Secrets Vault
@@ -16471,6 +16476,11 @@ spec:
                       required:
                         - resource
                       type: object
+                      x-kubernetes-validations:
+                        - message: auth and authRef are mutually exclusive
+                          rule: '!(has(self.auth) && has(self.authRef))'
+                        - message: one of serviceAccountRef, auth, or authRef is required
+                          rule: has(self.serviceAccountRef) || has(self.auth) || has(self.authRef)
                     delinea:
                       description: |-
                         Delinea DevOps Secrets Vault

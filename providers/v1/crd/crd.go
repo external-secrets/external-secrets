@@ -75,11 +75,7 @@ func (c *Client) fetchObject(ctx context.Context, ref esv1.ExternalSecretDataRem
 	if ref.Property != "" {
 		requestedKeys = []string{ref.Property}
 	}
-	allowed, err := c.matchesWhitelistRule(objectName, ns, requestedKeys)
-	if err != nil {
-		return nil, err
-	}
-	if !allowed {
+	if !c.matchesWhitelistRule(objectName, ns, requestedKeys) {
 		return nil, fmt.Errorf("crd: request for %q denied by whitelist rules", ref.Key)
 	}
 	return c.getObject(ctx, ref.Key)
@@ -134,11 +130,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 		if re != nil && !re.MatchString(logicalKey) {
 			continue
 		}
-		allowed, err := c.matchesWhitelistRule(objName, objNS, nil)
-		if err != nil {
-			return nil, err
-		}
-		if !allowed {
+		if !c.matchesWhitelistRule(objName, objNS, nil) {
 			continue
 		}
 
@@ -301,61 +293,90 @@ func jsonBytesToMap(raw []byte) (map[string][]byte, error) {
 	return out, nil
 }
 
+// compiledWhitelistRule is a pre-validated, pre-compiled form of
+// CRDProviderWhitelistRule. Patterns are compiled once at Client construction
+// and reused on every read instead of recompiling on the hot path.
+type compiledWhitelistRule struct {
+	name       *regexp.Regexp   // nil when the rule does not constrain the object name
+	namespace  *regexp.Regexp   // nil when the rule does not constrain the namespace
+	properties []*regexp.Regexp // empty when the rule does not constrain properties
+}
+
+// compileWhitelistRules validates and compiles every regex in the whitelist.
+// Returns nil with no error when the whitelist is unset or has no rules.
+// Empty rules (no name, no namespace, no properties) are rejected because they
+// would match anything and silently widen access.
+func compileWhitelistRules(wl *esv1.CRDProviderWhitelist) ([]compiledWhitelistRule, error) {
+	if wl == nil || len(wl.Rules) == 0 {
+		return nil, nil
+	}
+	rules := make([]compiledWhitelistRule, 0, len(wl.Rules))
+	for i, r := range wl.Rules {
+		if r.Name == "" && r.Namespace == "" && len(r.Properties) == 0 {
+			return nil, fmt.Errorf("crd: whitelist.rules[%d]: %w", i, errEmptyWhitelistRule)
+		}
+		var cr compiledWhitelistRule
+		if r.Name != "" {
+			re, err := regexp.Compile(r.Name)
+			if err != nil {
+				return nil, fmt.Errorf("crd: invalid whitelist.rules[%d].name regex %q: %w", i, r.Name, err)
+			}
+			cr.name = re
+		}
+		if r.Namespace != "" {
+			re, err := regexp.Compile(r.Namespace)
+			if err != nil {
+				return nil, fmt.Errorf("crd: invalid whitelist.rules[%d].namespace regex %q: %w", i, r.Namespace, err)
+			}
+			cr.namespace = re
+		}
+		if len(r.Properties) > 0 {
+			cr.properties = make([]*regexp.Regexp, 0, len(r.Properties))
+			for j, p := range r.Properties {
+				re, err := regexp.Compile(p)
+				if err != nil {
+					return nil, fmt.Errorf("crd: invalid whitelist.rules[%d].properties[%d] regex %q: %w", i, j, p, err)
+				}
+				cr.properties = append(cr.properties, re)
+			}
+		}
+		rules = append(rules, cr)
+	}
+	return rules, nil
+}
+
 // matchesWhitelistRule checks whether the given object (identified by its bare
 // name and namespace) is permitted by the store's whitelist rules.
 // objectName is always the bare name without any namespace prefix.
 // namespace is the object's namespace; it is only considered when the store is
-// a ClusterSecretStore and rule.Namespace is set – for SecretStore the field
+// a ClusterSecretStore and rule.namespace is set – for SecretStore the field
 // is ignored because the namespace is implicitly fixed to the store namespace.
-func (c *Client) matchesWhitelistRule(objectName, namespace string, requestedKeys []string) (bool, error) {
-	if c.store.Whitelist == nil || len(c.store.Whitelist.Rules) == 0 {
-		return true, nil
+func (c *Client) matchesWhitelistRule(objectName, namespace string, requestedKeys []string) bool {
+	if len(c.whitelistRules) == 0 {
+		return true
 	}
-
-	for _, rule := range c.store.Whitelist.Rules {
-		// Name check
-		if rule.Name != "" {
-			re, err := regexp.Compile(rule.Name)
-			if err != nil {
-				return false, fmt.Errorf("crd: invalid whitelist name regex %q: %w", rule.Name, err)
-			}
-			if !re.MatchString(objectName) {
+	for _, rule := range c.whitelistRules {
+		if rule.name != nil && !rule.name.MatchString(objectName) {
+			continue
+		}
+		// Namespace check: only evaluated for ClusterSecretStore. Cluster-scoped
+		// objects (namespace=="") never match a namespace rule — the rule
+		// explicitly targets namespaced objects.
+		if rule.namespace != nil && c.storeKind == esv1.ClusterSecretStoreKind {
+			if namespace == "" || !rule.namespace.MatchString(namespace) {
 				continue
 			}
 		}
-
-		// Namespace check: only evaluated for ClusterSecretStore when the rule
-		// specifies a namespace pattern. Cluster-scoped objects (namespace=="")
-		// never match a namespace rule — the rule explicitly targets namespaced
-		// objects.
-		if rule.Namespace != "" && c.storeKind == esv1.ClusterSecretStoreKind {
-			if namespace == "" {
-				continue
-			}
-			re, err := regexp.Compile(rule.Namespace)
-			if err != nil {
-				return false, fmt.Errorf("crd: invalid whitelist namespace regex %q: %w", rule.Namespace, err)
-			}
-			if !re.MatchString(namespace) {
-				continue
-			}
-		}
-
-		if len(rule.Properties) == 0 {
-			return true, nil
+		if len(rule.properties) == 0 {
+			return true
 		}
 		if len(requestedKeys) == 0 {
 			continue
 		}
-
 		allMatched := true
 		for _, key := range requestedKeys {
 			matched := false
-			for _, pattern := range rule.Properties {
-				re, err := regexp.Compile(pattern)
-				if err != nil {
-					return false, fmt.Errorf("crd: invalid whitelist property regex %q: %w", pattern, err)
-				}
+			for _, re := range rule.properties {
 				if re.MatchString(key) {
 					matched = true
 					break
@@ -367,9 +388,8 @@ func (c *Client) matchesWhitelistRule(objectName, namespace string, requestedKey
 			}
 		}
 		if allMatched {
-			return true, nil
+			return true
 		}
 	}
-
-	return false, nil
+	return false
 }
