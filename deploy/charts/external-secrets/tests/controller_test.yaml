@@ -450,3 +450,25 @@ tests:
             httpGet:
               port: live
               path: /readyz
+  - it: should always render args with unconditional entries
+    set:
+      leaderElect: false
+      scopedNamespace: ""
+      scopedRBAC: false
+      processClusterStore: false
+      processClusterExternalSecret: false
+      processClusterPushSecret: false
+      concurrent: 0
+      extraArgs: {}
+    asserts:
+      - exists:
+          path: spec.template.spec.containers[0].args
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--metrics-addr=:8080"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--loglevel=info"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--zap-time-encoding=epoch"
