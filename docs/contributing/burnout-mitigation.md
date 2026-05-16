@@ -78,6 +78,7 @@ None of these things will guaranteed solutions, however, they might help.
 CI/CD pipelines can help a lot in taking away some of the menial tasks while working on the project.
 Immediate bot responses for triage issues could be configured using copilot, or other means like claude code github action.
 These responses would use the repository as a context and could give immediate valuable info to the submitter such as:
+
 - Duplicate issues
 - Possible solutions looking at the documentation
 - Link to existing documentation based on context
@@ -143,6 +144,7 @@ Thanks for being part of this community! 🚀
 
 This document sums up various procedures and things that we can do and we can start on. The important part is publication,
 visibility and outreach. There are many channel on which ESO can communicate but the most important ones are:
+
 - Slack ( [external-secrets](https://kubernetes.slack.com/archives/C017BF84G2Y), [external-secrets-dev](https://kubernetes.slack.com/archives/C047LA9MUPJ) channels )
 - Reddit [Kubernetes Subreddit](https://www.reddit.com/r/kubernetes/) ( this was particulalry helpful in the past )
 - HackerNews pos
@@ -162,6 +164,7 @@ When events occur and response do not go as planned, the maintainers team will t
 Here is our DNA: Contributor's healths come first. We will never compromise humans for software.
 
 The team will try (best effort) to:
+
 - minimize impact on community
 - be transparent over any potential impact
 

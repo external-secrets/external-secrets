@@ -5,6 +5,7 @@ The external-secrets project is released on a as-needed basis. Feel free to open
 ## Multi-Module Versioning
 
 External Secrets Operator uses a multi-module structure with the following modules:
+
 - `/apis` - CRD types and interfaces
 - `/runtime` - Shared utilities
 - `/providers/v1/*` - Individual provider modules
@@ -31,7 +32,7 @@ When doing a release it's best to start with  with the ["Create Release" issue t
 ⚠️ Note: when releasing multiple versions, make sure to first release the "old" version, then the newer version.
 Otherwise the `latest` documentation will point to the older version. Also avoid to release both versions at the same time to avoid race conditions in the CI pipeline (updating docs, GitHub Release, helm chart release).
 
-1. Make sure the [stability & support page](https://external-secrets.io/main/introduction/stability-support/) is up to date. The new version should be listed in the version table before proceeding with the release.
+1. Make sure the [stability & support page](https://external-secrets.io/latest/introduction/stability-support/) is up to date. The new version should be listed in the version table before proceeding with the release.
 1. Make sure there is no pending CI jobs running. This is to avoid promoting a stale image to a new version (we need to rely on _existing_ pushed images for release).
 1. Run `Create Release` Action to create a new release, pass in the desired version number to release.
     1. choose the right `branch` to execute the action: use `main` when creating a new release.
@@ -48,6 +49,7 @@ Otherwise the `latest` documentation will point to the older version. Also avoid
 5. CI picks up the new chart version and creates a new GitHub Release for it
 
 The following things are updated with those commands:
+
 1. Update helm docs
 2. Update the apiVersion in the snapshots for the helm tests
 3. Update all the helm tests with potential added values

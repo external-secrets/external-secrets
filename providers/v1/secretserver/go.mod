@@ -1,9 +1,9 @@
 module github.com/external-secrets/external-secrets/providers/v1/secretserver
 
-go 1.26.2
+go 1.26.3
 
 require (
-	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.1
+	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.2
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/stretchr/testify v1.11.1
