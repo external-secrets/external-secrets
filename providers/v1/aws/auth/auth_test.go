@@ -829,3 +829,64 @@ func TestNewGeneratorSession_DefaultCredentialChainFallback(t *testing.T) {
 	assert.NotEmpty(t, creds.AccessKeyID)
 	assert.NotEmpty(t, creds.SecretAccessKey)
 }
+
+func TestNewGeneratorSession_PodIdentityFallback(t *testing.T) {
+	t.Setenv("AWS_ACCESS_KEY_ID", "BASE_ACCESS_KEY")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "BASE_SECRET_KEY")
+    sa := &v1.ServiceAccount{
+        ObjectMeta: metav1.ObjectMeta{
+            Name:      "my-pod-identity-sa",
+            Namespace: "test-ns",
+            Annotations: map[string]string{},
+        },
+    }
+	stsProviderCalled := false
+	cfg, err := NewGeneratorSession(
+		context.Background(),
+		esv1.AWSAuth{
+			JWTAuth: &esv1.AWSJWTAuth{
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{
+					Name: "my-pod-identity-sa",
+				},
+			},
+		},
+		"arn:aws:iam::123456789012:role/assumed-role",
+		"us-east-1",
+		clientfake.NewClientBuilder().WithObjects(sa).Build(),
+		"test-ns",
+		func(cfg *aws.Config) STSprovider {
+			stsProviderCalled = true
+			creds, err := cfg.Credentials.Retrieve(context.Background())
+			assert.NoError(t, err)
+			assert.Equal(t, "BASE_ACCESS_KEY", creds.AccessKeyID)
+			return &fakesess.AssumeRoler{
+				AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
+					assert.Equal(t, "arn:aws:iam::123456789012:role/assumed-role", *input.RoleArn)
+					return &sts.AssumeRoleOutput{
+						AssumedRoleUser: &ststypes.AssumedRoleUser{
+							Arn:           aws.String("arn:aws:sts::123456789012:assumed-role/assumed-role/session"),
+							AssumedRoleId: aws.String("AROA123456"),
+						},
+						Credentials: &ststypes.Credentials{
+							AccessKeyId:     aws.String("ASSUMED_ACCESS_KEY"),
+							SecretAccessKey: aws.String("ASSUMED_SECRET_KEY"),
+							SessionToken:    aws.String("ASSUMED_SESSION_TOKEN"),
+							Expiration:      aws.Time(time.Now().Add(time.Hour)),
+						},
+					}, nil
+				},
+			}
+		},
+		DefaultJWTProvider,
+	)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, cfg)
+	assert.True(t, stsProviderCalled)
+
+	creds, err := cfg.Credentials.Retrieve(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, "ASSUMED_ACCESS_KEY", creds.AccessKeyID)
+	assert.Equal(t, "ASSUMED_SECRET_KEY", creds.SecretAccessKey)
+	assert.Equal(t, "ASSUMED_SESSION_TOKEN", creds.SessionToken)
+}

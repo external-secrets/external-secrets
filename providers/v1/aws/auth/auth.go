@@ -57,9 +57,10 @@ const (
 	audienceAnnotation   = "eks.amazonaws.com/audience"
 	defaultTokenAudience = "sts.amazonaws.com"
 
-	errFetchAKIDSecret = "could not fetch accessKeyID secret: %w"
-	errFetchSAKSecret  = "could not fetch SecretAccessKey secret: %w"
-	errFetchSTSecret   = "could not fetch SessionToken secret: %w"
+	errFetchAKIDSecret      = "could not fetch accessKeyID secret: %w"
+	errFetchSAKSecret       = "could not fetch SecretAccessKey secret: %w"
+	errFetchSTSecret        = "could not fetch SessionToken secret: %w"
+	logCredentialsSecretRef = "using credentials from secretRef"
 )
 
 // Opts define options for New function.
@@ -151,9 +152,21 @@ func setAssumeRoleOptionFn(sessExtID string, sessTags []stsTypes.Tag, sessTransi
 func constructCredsProvider(ctx context.Context, prov *esv1.AWSProvider, isClusterKind bool, opts Opts) (aws.CredentialsProvider, error) {
 	switch {
 	case prov.Auth.JWTAuth != nil:
-		return credsFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, opts.Kube, opts.Namespace, opts.JWTProvider)
+		cp, err := credsFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, opts.Kube, opts.Namespace, opts.JWTProvider)
+		if err != nil {
+			return nil, err
+		}
+		if cp != nil {
+			return cp, nil
+		}
+		// No IRSA annotation on the SA: fall through to SecretRef if configured, then default chain.
+		if prov.Auth.SecretRef != nil {
+			log.V(1).Info(logCredentialsSecretRef)
+			return credsFromSecretRef(ctx, prov.Auth, opts.Store.GetKind(), opts.Kube, opts.Namespace)
+		}
+		return nil, nil
 	case prov.Auth.SecretRef != nil:
-		log.V(1).Info("using credentials from secretRef")
+		log.V(1).Info(logCredentialsSecretRef)
 		return credsFromSecretRef(ctx, prov.Auth, opts.Store.GetKind(), opts.Kube, opts.Namespace)
 	default:
 		return nil, nil
@@ -191,7 +204,7 @@ func NewGeneratorSession(
 	// use credentials from secretRef
 	secretRef := auth.SecretRef
 	if secretRef != nil {
-		log.V(1).Info("using credentials from secretRef")
+		log.V(1).Info(logCredentialsSecretRef)
 		credsProvider, err = credsFromSecretRef(ctx, auth, "", kube, namespace)
 		if err != nil {
 			return nil, err
@@ -278,7 +291,8 @@ func credsFromServiceAccount(
 	// this is used as input to assumeRoleWithWebIdentity
 	roleArn := sa.Annotations[roleARNAnnotation]
 	if roleArn == "" {
-		return nil, fmt.Errorf("an IAM role must be associated with service account %s (namespace: %s)", name, namespace)
+		log.V(1).Info("no IRSA annotation found on service account, falling back to default credential chain", "name", name, "namespace", namespace)
+		return nil, nil
 	}
 
 	tokenAud := sa.Annotations[audienceAnnotation]
