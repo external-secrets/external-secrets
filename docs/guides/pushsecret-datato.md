@@ -199,7 +199,7 @@ spec:
             team: platform
 ```
 
-Result in ACM: a certificate tagged with `managed-by=external-secrets`, `external-secrets-remote-key=my-app-cert`, plus any custom tags from `metadata.spec.tags`. The reserved tags `managed-by`, `external-secrets-remote-key`, and `external-secrets-content-hash` cannot be overridden via `metadata`.
+Result in ACM: a certificate tagged with `managed-by=external-secrets`, `external-secrets-remote-key=my-app-cert`, plus any custom tags from `metadata.spec.tags`. The reserved tags `managed-by` and `external-secrets-remote-key` cannot be overridden via `metadata`.
 
 **With a store prefix:**
 

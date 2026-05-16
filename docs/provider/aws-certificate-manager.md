@@ -101,7 +101,7 @@ Requesting a public certificate with the export option enabled is a **paid** fea
 
 #### Export Caching
 
-To minimize calls to the paid `ExportCertificate` API, the provider caches exported PEM bundles in memory, keyed by certificate ARN. On each access the provider calls the free `DescribeCertificate` and compares the certificate's serial number against the cached entry, which prevents serving stale data; `ExportCertificate` is only called on the first access, when the serial changes (certificate renewal), or when the cached entry has been evicted. The cache is bounded to 128 entries with a 24-hour TTL per entry (LRU eviction above that). It is held on the long-lived AWS provider instance and survives across reconciles, but is in-memory only and is reset when the operator pod restarts or when the underlying `SecretStore` is updated.
+To minimize calls to the paid `ExportCertificate` API, the provider caches exported PEM bundles in memory, keyed by certificate ARN. On each access the provider calls the free `GetCertificate` and compares the certificate's fingerprint against the cached entry, which prevents serving stale data; `ExportCertificate` is only called on the first access, when the fingerprint changes (certificate renewal), or when the cached entry has been evicted. The cache is bounded to 128 entries with a 24-hour TTL per entry (LRU eviction above that). It is held on the long-lived AWS provider instance and survives across reconciles, but is in-memory only and is reset when the operator pod restarts or when the underlying `SecretStore` is updated.
 
 #### Usage
 
@@ -149,7 +149,7 @@ You can apply custom AWS resource tags to the imported certificate using PushSec
 {% include 'aws-acm-push-secret-with-metadata.yaml' %}
 ```
 
-The tags `managed-by`, `external-secrets-remote-key`, and `external-secrets-content-hash` are reserved for ESO internal tracking and cannot be overridden via metadata. The content hash tag stores a SHA-256 digest of the certificate and private key, allowing the provider to skip redundant re-imports when the secret content has not changed.
+The tags `managed-by` and `external-secrets-remote-key` are reserved for ESO internal tracking and cannot be overridden via metadata.
 
 ### Usage with cert-manager
 
