@@ -232,6 +232,54 @@ data:
 
 ```
 
+### Finding secrets with `dataFrom.find`
+
+The provider supports listing secrets via `dataFrom.find` for **every** IBM Secrets Manager secret type (arbitrary, username_password, iam_credentials, service_credentials, imported_cert, public_cert, private_cert, kv, custom_credentials).
+
+At least one of `name`, `tags`, or `path` must be supplied — an empty `find: {}` is rejected. Filters combine: server-side filters narrow the listing, and `name.regexp` filters the result client-side.
+
+#### Filters
+
+| Filter | How it is applied |
+| --- | --- |
+| `name.regexp` | Compiled once, matched **client-side** against each secret's bare name after the server returns the page. |
+| `path` | Forwarded **server-side** as the `search` parameter — a substring match across `id`, `name`, `description`, `labels`, and `secret_type`. |
+| `tags` | Forwarded **server-side** as the `match_all_labels` filter. The map is encoded as IBM SM label strings: an entry with a non-empty value becomes `"key=value"`, an entry with an empty value passes the bare `"key"`. The secret must carry **all** listed labels to match. |
+
+Tag encoding consequence: if your IBM secrets are labelled with bare strings (e.g. `prod`, `platform`), you must pass `tags: {prod: "", platform: ""}` — `tags: {env: prod}` looks for the label literal `env=prod`, which is a different label.
+
+#### Result shape
+
+Each entry in the returned map is the **full secret** marshalled as JSON, not the bare payload. Keys are the bare IBM secret names (sanitised per `conversionStrategy`). Use a `target.template` or rewrite to project the field you care about — typically `.payload` for arbitrary secrets:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: app-passwords
+spec:
+  refreshInterval: 1h
+  secretStoreRef: { name: ibm-sm, kind: SecretStore }
+  target:
+    name: app-passwords
+    template:
+      data:
+        # Extract just .payload from the JSON-marshalled secret value.
+        "{{ .key }}": "{{ ( index .value | fromJson ).payload }}"
+  dataFrom:
+    - find:
+        tags: { env: prod, team: platform }
+        name:
+          regexp: "^app-"
+```
+
+#### Error cases
+
+- `find: {}` (no filter) — store reconcile fails with `at least one of find.name, find.tags or find.path must be set`.
+- Invalid regex in `name.regexp` — `could not compile find.name.regexp`.
+- Two secrets with the same bare name across groups — `secret name "<name>" is not unique in result; narrow find.path or find.tags`. Tighten filters or move the duplicate to a distinct group with a unique name.
+- A list page contains a metadata entry with empty `id` or `name` — `secret metadata missing id or name`. This indicates a malformed upstream response and is surfaced rather than silently skipped.
+
 ### Creating external secret
 
 To create a kubernetes secret from the IBM Secrets Manager, a `Kind=ExternalSecret` is needed.
