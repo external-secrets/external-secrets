@@ -186,9 +186,9 @@ func (ibm *providerIBM) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecr
 		}
 
 		for _, meta := range page.Secrets {
-			name, id := secretMetaIdentifiers(meta)
-			if name == "" || id == "" {
-				continue
+			name, id, err := secretMetaIdentifiers(meta)
+			if err != nil {
+				return nil, err
 			}
 			if matcher != nil && !matcher.MatchName(name) {
 				continue
@@ -235,19 +235,27 @@ func buildLabelFilter(tags map[string]string) []string {
 // secretMetaIdentifiers extracts the bare name and UUID id from a SecretMetadataIntf.
 // The interface itself exposes no field accessors, so we round-trip through JSON to
 // avoid type-switching every concrete subtype.
-func secretMetaIdentifiers(meta sm.SecretMetadataIntf) (string, string) {
+//
+// Errors are surfaced rather than swallowed: a parse failure or a missing id/name in
+// the response is treated as a malformed listing rather than something to skip past
+// silently, because GetAllSecrets' result is written into a Kubernetes Secret and
+// silent gaps would be invisible to the user.
+func secretMetaIdentifiers(meta sm.SecretMetadataIntf) (string, string, error) {
 	b, err := json.Marshal(meta)
 	if err != nil {
-		return "", ""
+		return "", "", fmt.Errorf("ibm: failed to marshal secret metadata: %w", err)
 	}
 	var raw struct {
 		ID   string `json:"id"`
 		Name string `json:"name"`
 	}
 	if err := json.Unmarshal(b, &raw); err != nil {
-		return "", ""
+		return "", "", fmt.Errorf("ibm: failed to decode secret metadata: %w", err)
 	}
-	return raw.Name, raw.ID
+	if raw.ID == "" || raw.Name == "" {
+		return "", "", fmt.Errorf("ibm: secret metadata missing id or name (id=%q name=%q)", raw.ID, raw.Name)
+	}
+	return raw.Name, raw.ID, nil
 }
 
 // fetchSecretJSON retrieves a secret by ID and serialises the full payload to JSON.

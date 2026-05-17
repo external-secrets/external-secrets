@@ -1633,6 +1633,33 @@ func TestGetAllSecrets(t *testing.T) {
 		}
 	})
 
+	t.Run("missing id or name in metadata fails fast", func(t *testing.T) {
+		// A metadata entry with id="" simulates a malformed IBM SM response.
+		// Silent skip would write a partial Kubernetes Secret to the user; we
+		// surface it as an error instead.
+		mock := &fakesm.IBMMockClient{}
+		mock.WithListSecrets(func(_ context.Context, _ *sm.ListSecretsOptions) (*sm.SecretMetadataPaginatedCollection, *core.DetailedResponse, error) {
+			emptyID := ""
+			validName := "broken-secret"
+			return &sm.SecretMetadataPaginatedCollection{
+				Secrets: []sm.SecretMetadataIntf{
+					&sm.ArbitrarySecretMetadata{
+						SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
+						ID:         &emptyID,
+						Name:       &validName,
+					},
+				},
+			}, nil, nil
+		})
+		p := &providerIBM{IBMClient: mock}
+		_, err := p.GetAllSecrets(ctx, esv1.ExternalSecretFind{
+			Name: &esv1.FindName{RegExp: ".*"},
+		})
+		if err == nil || !strings.Contains(err.Error(), "missing id or name") {
+			t.Fatalf("expected metadata error, got %v", err)
+		}
+	})
+
 	t.Run("list error propagates", func(t *testing.T) {
 		mock := &fakesm.IBMMockClient{}
 		mock.WithListSecrets(func(_ context.Context, _ *sm.ListSecretsOptions) (*sm.SecretMetadataPaginatedCollection, *core.DetailedResponse, error) {
