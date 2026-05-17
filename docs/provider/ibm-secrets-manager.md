@@ -265,7 +265,7 @@ spec:
     template:
       data:
         # Extract just .payload from the JSON-marshalled secret value.
-        "{{ .key }}": "{{ ( index .value | fromJson ).payload }}"
+        "{{ .key }}": "{{ (fromJson .value).payload }}"
   dataFrom:
     - find:
         tags: { env: prod, team: platform }
