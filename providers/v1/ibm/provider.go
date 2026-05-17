@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -39,6 +40,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -78,7 +80,12 @@ var (
 type SecretManagerClient interface {
 	GetSecretWithContext(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
 	GetSecretByNameTypeWithContext(ctx context.Context, getSecretByNameTypeOptions *sm.GetSecretByNameTypeOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
+	ListSecretsWithContext(ctx context.Context, listSecretsOptions *sm.ListSecretsOptions) (result *sm.SecretMetadataPaginatedCollection, response *core.DetailedResponse, err error)
 }
+
+// listSecretsPageSize is the page size used when iterating IBM Cloud Secrets Manager.
+// The SDK default is 200 and the maximum is 1000.
+const listSecretsPageSize int64 = 200
 
 type providerIBM struct {
 	IBMClient SecretManagerClient
@@ -114,10 +121,151 @@ func (ibm *providerIBM) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.P
 	return errors.New(errNotImplemented)
 }
 
-// GetAllSecrets empty.
-func (ibm *providerIBM) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
-	// TO be implemented
-	return nil, errors.New(errNotImplemented)
+// GetAllSecrets lists secrets from IBM Cloud Secrets Manager and returns a map of secret
+// name to the full secret payload (JSON-marshalled).
+//
+// Filter mapping from ExternalSecretFind to the IBM ListSecrets API:
+//   - ref.Name.RegExp — applied client-side as a regex against each secret's bare name.
+//   - ref.Path        — passed to the server as the `search` parameter, a substring
+//     match against id, name, description, labels, and secret_type.
+//   - ref.Tags        — joined into IBM "match all labels" filter; an entry with an
+//     empty value passes the bare key, otherwise "key=value".
+//
+// At least one of Name, Path, or Tags must be supplied so listing is bounded.
+// Secret names are not unique across groups in IBM SM; a collision in the result map
+// surfaces as an error so the caller can narrow the filter.
+func (ibm *providerIBM) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	if esutils.IsNil(ibm.IBMClient) {
+		return nil, errors.New(errUninitializedIBMProvider)
+	}
+	if ref.Name == nil && len(ref.Tags) == 0 && (ref.Path == nil || *ref.Path == "") {
+		return nil, errors.New("ibm: at least one of find.name, find.tags or find.path must be set")
+	}
+
+	var matcher *find.Matcher
+	if ref.Name != nil {
+		m, err := find.New(*ref.Name)
+		if err != nil {
+			return nil, err
+		}
+		matcher = m
+	}
+
+	labels := buildLabelFilter(ref.Tags)
+	var search *string
+	if ref.Path != nil && *ref.Path != "" {
+		s := *ref.Path
+		search = &s
+	}
+
+	result := make(map[string][]byte)
+	limit := listSecretsPageSize
+	var offset int64
+
+	for {
+		opts := &sm.ListSecretsOptions{
+			Offset: &offset,
+			Limit:  &limit,
+		}
+		if search != nil {
+			opts.Search = search
+		}
+		if len(labels) > 0 {
+			opts.MatchAllLabels = labels
+		}
+
+		listCtx, cancel := context.WithTimeout(ctx, contextTimeout)
+		page, _, err := ibm.IBMClient.ListSecretsWithContext(listCtx, opts)
+		cancel()
+		metrics.ObserveAPICall(constants.ProviderIBMSM, constants.CallIBMSMListSecrets, err)
+		if err != nil {
+			return nil, fmt.Errorf("ibm: failed to list secrets: %w", err)
+		}
+		if page == nil || len(page.Secrets) == 0 {
+			break
+		}
+
+		for _, meta := range page.Secrets {
+			name, id := secretMetaIdentifiers(meta)
+			if name == "" || id == "" {
+				continue
+			}
+			if matcher != nil && !matcher.MatchName(name) {
+				continue
+			}
+			if _, dupe := result[name]; dupe {
+				return nil, fmt.Errorf("ibm: secret name %q is not unique in result; narrow find.path or find.tags", name)
+			}
+			value, err := ibm.fetchSecretJSON(ctx, id)
+			if err != nil {
+				return nil, err
+			}
+			result[name] = value
+		}
+
+		if int64(len(page.Secrets)) < limit {
+			break
+		}
+		offset += limit
+	}
+
+	return esutils.ConvertKeys(ref.ConversionStrategy, result)
+}
+
+// buildLabelFilter converts an ExternalSecretFind.Tags map into IBM Secrets Manager's
+// MatchAllLabels filter. IBM labels are flat strings (2-64 chars). A non-empty value is
+// encoded as "key=value"; an empty value passes the bare key. The result is sorted so
+// the API call is deterministic for tests.
+func buildLabelFilter(tags map[string]string) []string {
+	if len(tags) == 0 {
+		return nil
+	}
+	out := make([]string, 0, len(tags))
+	for k, v := range tags {
+		if v == "" {
+			out = append(out, k)
+		} else {
+			out = append(out, k+"="+v)
+		}
+	}
+	sort.Strings(out)
+	return out
+}
+
+// secretMetaIdentifiers extracts the bare name and UUID id from a SecretMetadataIntf.
+// The interface itself exposes no field accessors, so we round-trip through JSON to
+// avoid type-switching every concrete subtype.
+func secretMetaIdentifiers(meta sm.SecretMetadataIntf) (string, string) {
+	b, err := json.Marshal(meta)
+	if err != nil {
+		return "", ""
+	}
+	var raw struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return "", ""
+	}
+	return raw.Name, raw.ID
+}
+
+// fetchSecretJSON retrieves a secret by ID and serialises the full payload to JSON.
+// The result includes every field the SDK returned (per-type values like Payload,
+// ApiKey, Data, etc.) so downstream consumers can pick keys via rewrite rules.
+func (ibm *providerIBM) fetchSecretJSON(ctx context.Context, id string) ([]byte, error) {
+	getCtx, cancel := context.WithTimeout(ctx, contextTimeout)
+	defer cancel()
+	secret, _, err := ibm.IBMClient.GetSecretWithContext(getCtx, &sm.GetSecretOptions{ID: &id})
+	metrics.ObserveAPICall(constants.ProviderIBMSM, constants.CallIBMSMGetSecret, err)
+	if err != nil {
+		return nil, fmt.Errorf("ibm: failed to fetch secret %s: %w", id, err)
+	}
+	b, err := json.Marshal(secret)
+	if err != nil {
+		return nil, fmt.Errorf("ibm: %w", fmt.Errorf(errJSONSecretMarshal, err))
+	}
+	return b, nil
 }
 
 func (ibm *providerIBM) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
