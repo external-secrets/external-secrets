@@ -91,6 +91,15 @@ spec:
           - --{{ $key }}
             {{- end }}
           {{- end }}
+          {{- if .Values.webhook.metrics.listen.secure.enabled }}
+          - --metrics-secure=true
+          - --metrics-cert-dir={{ .Values.webhook.metrics.listen.secure.certDir }}
+          - --metrics-cert-name={{ .Values.webhook.metrics.listen.secure.certFile }}
+          - --metrics-key-name={{ .Values.webhook.metrics.listen.secure.keyFile }}
+          {{- end }}
+          {{- if .Values.webhook.metrics.listen.auth.enabled }}
+          - --metrics-auth=true
+          {{- end }}
           ports:
             - containerPort: {{ .Values.webhook.metrics.listen.port }}
               protocol: TCP
