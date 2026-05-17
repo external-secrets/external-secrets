@@ -75,11 +75,13 @@ var (
 	// workloadIdentityRequestedTokenType is the requested type for OAuth 2.0 access token.
 	workloadIdentityRequestedTokenType = "urn:ietf:params:oauth:token-type:access_token"
 
-	// workloadIdentityTokenURL is the token service endpoint.
-	workloadIdentityTokenURL = "https://sts.googleapis.com/v1/token"
+	// workloadIdentityTokenURLFormat is the token service endpoint format. When the UniverseDomain is not set
+	// in the GCP credentials config, defaultUniverseDomain will be substituted.
+	workloadIdentityTokenURLFormat = "https://sts.%s/v1/token"
 
-	// workloadIdentityTokenInfoURL is the STS introspection service endpoint.
-	workloadIdentityTokenInfoURL = "https://sts.googleapis.com/v1/introspect"
+	// workloadIdentityTokenInfoURLFormat is the STS introspection service endpoint format. When the UniverseDomain is not set
+	// in the GCP credentials config, defaultUniverseDomain will be substituted.
+	workloadIdentityTokenInfoURLFormat = "https://sts.%s/v1/introspect"
 )
 
 // workloadIdentity holds all clients and generators needed
