@@ -45,10 +45,25 @@ var (
 	errMissingVersion     = errors.New("resource.version is required")
 	errMissingSA          = errors.New("serviceAccountRef is required in simple mode (set server/auth or authRef for explicit connection)")
 	errKindIsSecret       = errors.New("kind \"Secret\" is not allowed: use the Kubernetes provider to read Kubernetes Secrets")
-	errEmptyWhitelistRule = errors.New("whitelist rule must define name or properties")
+	errEmptyWhitelistRule = errors.New("whitelist rule must define name, namespace, or properties")
 )
 
 const warnNoCAConfigured = "No caBundle or caProvider specified; TLS connections will use system certificate roots."
+
+// isCoreV1Secret reports whether the configured resource is the core
+// Kubernetes Secret (group "" or "core", version "v1", kind "Secret"). The
+// case-insensitive Kind match guards against the lowercase / mixed-case
+// variants the CRD discovery API will canonicalise. CRDs in custom groups
+// that happen to be named "Secret" are not affected.
+func isCoreV1Secret(res esv1.CRDProviderResource) bool {
+	if !strings.EqualFold(res.Kind, "Secret") {
+		return false
+	}
+	if res.Version != "v1" {
+		return false
+	}
+	return res.Group == "" || res.Group == "core"
+}
 
 // usesExplicitCRDConnection is true when the store uses the same connection
 // model as the Kubernetes provider (server URL, auth, or kubeconfig secret).
@@ -102,8 +117,10 @@ type Provider struct {
 	// namespaced (vs cluster-scoped) via the cluster discovery API.
 	// Overridable in tests without a live cluster.
 	discoverFn func(cfg *rest.Config, res esv1.CRDProviderResource) (plural string, namespaced bool, err error)
-	// accessCheckFn verifies that the caller can read/list the resolved resource.
-	accessCheckFn func(ctx context.Context, cfg *rest.Config, res esv1.CRDProviderResource, plural, namespace string) error
+	// accessCheckFn verifies that the caller can perform the requested verbs
+	// on the resolved resource (used for SSAR-based preflight + per-call list
+	// checks).
+	accessCheckFn func(ctx context.Context, cfg *rest.Config, res esv1.CRDProviderResource, plural, namespace string, verbs []string) error
 }
 
 var _ esv1.Provider = &Provider{}
@@ -169,6 +186,16 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube 
 			}
 			cfg.Impersonate = rest.ImpersonationConfig{
 				UserName: fmt.Sprintf("system:serviceaccount:%s:%s", impersonateNS, provSpec.ServiceAccountRef.Name),
+				// Populate the standard ServiceAccount groups so RBAC checks
+				// against the remote cluster behave the same as a real SA token
+				// would: bindings to "system:serviceaccounts" or
+				// "system:serviceaccounts:<ns>" apply, and the request is
+				// considered authenticated.
+				Groups: []string{
+					"system:serviceaccounts",
+					fmt.Sprintf("system:serviceaccounts:%s", impersonateNS),
+					"system:authenticated",
+				},
 			}
 		}
 		return p.newClientWithRESTConfig(ctx, store, cfg, targetNS)
@@ -215,6 +242,11 @@ type Client struct {
 	// whitelistRules is the pre-compiled form of store.Whitelist.Rules, built once
 	// at construction time so per-read calls do not recompile regexes.
 	whitelistRules []compiledWhitelistRule
+	// listAccessCheck performs a SelfSubjectAccessReview for "list" against
+	// the same scope used for actual listing. Called by GetAllSecrets so the
+	// "list" permission is only required when listing is actually used.
+	// nil when no access check is configured (test/no-op).
+	listAccessCheck func(ctx context.Context) error
 }
 
 var _ esv1.SecretsClient = &Client{}
@@ -233,12 +265,22 @@ func (p *Provider) newClientWithRESTConfig(ctx context.Context, store esv1.Gener
 	if err != nil {
 		return nil, err
 	}
+	// accessNS is the namespace passed to SelfSubjectAccessReview. For a
+	// ClusterSecretStore listing a namespaced resource with no remoteNamespace,
+	// the controller operates across all namespaces; falsely scoping the SSAR
+	// to the controller's own namespace would let a SA with only-local access
+	// pass preflight and then fail at request time. Use "" (cluster-wide).
 	accessNS := targetNamespace
 	if !resourceNamespaced {
 		accessNS = ""
+	} else if store.GetKind() == esv1.ClusterSecretStoreKind && provSpec.RemoteNamespace == "" {
+		accessNS = ""
 	}
 	if p.accessCheckFn != nil {
-		if err := p.accessCheckFn(ctx, authedCfg, provSpec.Resource, plural, accessNS); err != nil {
+		// Preflight checks only "get". The "list" permission is checked lazily
+		// in GetAllSecrets so a SA that only ever does GetSecret does not need
+		// list rights at store bootstrap time.
+		if err := p.accessCheckFn(ctx, authedCfg, provSpec.Resource, plural, accessNS, []string{"get"}); err != nil {
 			return nil, err
 		}
 	}
@@ -251,14 +293,27 @@ func (p *Provider) newClientWithRESTConfig(ctx context.Context, store esv1.Gener
 	if err != nil {
 		return nil, err
 	}
+
+	// Bind the list-permission preflight as a closure on the Client so
+	// GetAllSecrets can invoke it without holding onto cfg/plural directly.
+	var listAccessCheck func(ctx context.Context) error
+	if p.accessCheckFn != nil {
+		fn := p.accessCheckFn
+		res := provSpec.Resource
+		listAccessCheck = func(ctx context.Context) error {
+			return fn(ctx, authedCfg, res, plural, accessNS, []string{"list"})
+		}
+	}
+
 	return &Client{
-		store:          provSpec,
-		dynClient:      dynClient,
-		namespace:      targetNamespace,
-		plural:         plural,
-		namespaced:     resourceNamespaced,
-		storeKind:      store.GetKind(),
-		whitelistRules: whitelistRules,
+		store:           provSpec,
+		dynClient:       dynClient,
+		namespace:       targetNamespace,
+		plural:          plural,
+		namespaced:      resourceNamespaced,
+		storeKind:       store.GetKind(),
+		whitelistRules:  whitelistRules,
+		listAccessCheck: listAccessCheck,
 	}, nil
 }
 
@@ -306,15 +361,17 @@ func discoverResourceFromCluster(cfg *rest.Config, res esv1.CRDProviderResource)
 	return "", false, fmt.Errorf("crd: kind %q not found in group/version %q", res.Kind, groupVersion)
 }
 
-// ensureResourceAccess performs a SelfSubjectAccessReview for "get" and "list"
-// verbs on the target resource, returning an error if either is denied.
-func ensureResourceAccess(ctx context.Context, cfg *rest.Config, res esv1.CRDProviderResource, plural, namespace string) error {
+// ensureResourceAccess performs a SelfSubjectAccessReview for each of the
+// supplied verbs against the target resource, returning the first denial as an
+// error. Callers pass {"get"} at preflight and {"list"} from GetAllSecrets so
+// "list" permission is only required for callers that actually list.
+func ensureResourceAccess(ctx context.Context, cfg *rest.Config, res esv1.CRDProviderResource, plural, namespace string, verbs []string) error {
 	cs, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
 		return fmt.Errorf("crd: failed to create kubernetes client for access review: %w", err)
 	}
 
-	for _, verb := range []string{"get", "list"} {
+	for _, verb := range verbs {
 		review := &authv1.SelfSubjectAccessReview{
 			Spec: authv1.SelfSubjectAccessReviewSpec{
 				ResourceAttributes: &authv1.ResourceAttributes{
@@ -349,6 +406,12 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	var warnings admission.Warnings
 
 	if usesExplicitCRDConnection(prov) {
+		// Reject the misconfiguration of setting Server.URL without any
+		// credentials (CEL XValidation catches this at admission, but admission
+		// can be bypassed for cluster-side validation; defend in depth here).
+		if prov.Server.URL != "" && prov.Auth == nil && prov.AuthRef == nil {
+			return warnings, errors.New("server.url requires auth or authRef when set")
+		}
 		if prov.AuthRef == nil && prov.Server.CABundle == nil && prov.Server.CAProvider == nil {
 			warnings = append(warnings, warnNoCAConfigured)
 		}
@@ -414,7 +477,9 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if prov.Resource.Kind == "" {
 		return nil, errMissingKind
 	}
-	if strings.EqualFold(prov.Resource.Kind, "Secret") {
+	// Only block reading the core v1 Kubernetes Secret resource; CRDs that
+	// happen to be named "Secret" in a different API group are legitimate.
+	if isCoreV1Secret(prov.Resource) {
 		return nil, errKindIsSecret
 	}
 	if _, err := compileWhitelistRules(prov.Whitelist); err != nil {

@@ -87,6 +87,16 @@ func (c *Client) fetchObject(ctx context.Context, ref esv1.ExternalSecretDataRem
 // For ClusterSecretStore with a namespaced kind, listing is all namespaces unless remoteNamespace is set;
 // keys are namespace/name. Cluster-scoped kinds use object names only.
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	// Verify the caller actually has "list" permission. The preflight at store
+	// bootstrap only checks "get" — moving "list" here means a SA that only
+	// ever uses GetSecret does not need list rights, but anything that calls
+	// dataFrom.find must.
+	if c.listAccessCheck != nil {
+		if err := c.listAccessCheck(ctx); err != nil {
+			return nil, err
+		}
+	}
+
 	gvr := c.buildGVR()
 
 	var (

@@ -132,34 +132,52 @@ func TestValidateStore(t *testing.T) {
 			}),
 		},
 		{
-			name: "kind Secret is denied (exact case)",
+			name: "core v1 Secret is denied (exact case)",
+			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
+				Resource:          esv1.CRDProviderResource{Group: "", Version: "v1", Kind: "Secret"},
+			}),
+			wantErr: errKindIsSecret,
+		},
+		{
+			name: "core v1 secret is denied (lowercase)",
+			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
+				Resource:          esv1.CRDProviderResource{Group: "", Version: "v1", Kind: "secret"},
+			}),
+			wantErr: errKindIsSecret,
+		},
+		{
+			name: "core v1 SECRET is denied (uppercase)",
+			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
+				Resource:          esv1.CRDProviderResource{Group: "", Version: "v1", Kind: "SECRET"},
+			}),
+			wantErr: errKindIsSecret,
+		},
+		{
+			// Same Kind name on a different API group is a legitimate CRD;
+			// only the core v1 Secret is blocked.
+			name: "Secret kind in a non-core group is allowed",
 			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
 				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
 				Resource:          esv1.CRDProviderResource{Group: "example.io", Version: "v1", Kind: "Secret"},
 			}),
-			wantErr: errKindIsSecret,
 		},
 		{
-			name: "kind secret is denied (lowercase)",
+			// Different version of core "Secret" — also legitimate (no such
+			// thing exists today, but the block is intentionally narrow).
+			name: "core v2 Secret is allowed",
 			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
 				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          esv1.CRDProviderResource{Group: "example.io", Version: "v1", Kind: "secret"},
+				Resource:          esv1.CRDProviderResource{Group: "", Version: "v2", Kind: "Secret"},
 			}),
-			wantErr: errKindIsSecret,
 		},
 		{
-			name: "kind SECRET is denied (uppercase)",
+			name: "core group alias \"core\" still denies v1 Secret",
 			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
 				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          esv1.CRDProviderResource{Group: "example.io", Version: "v1", Kind: "SECRET"},
-			}),
-			wantErr: errKindIsSecret,
-		},
-		{
-			name: "kind sEcReT is denied (mixed case)",
-			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          esv1.CRDProviderResource{Group: "example.io", Version: "v1", Kind: "sEcReT"},
+				Resource:          esv1.CRDProviderResource{Group: "core", Version: "v1", Kind: "Secret"},
 			}),
 			wantErr: errKindIsSecret,
 		},

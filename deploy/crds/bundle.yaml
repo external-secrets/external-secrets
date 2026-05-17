@@ -3760,8 +3760,11 @@ spec:
                       type: object
                     crd:
                       description: |-
-                        CRD configures this store to sync secrets from arbitrary Kubernetes custom resources
-                        using the CRD provider.
+                        CRD configures this store to sync secrets from arbitrary Kubernetes resources,
+                        including both custom resources (CRDs) and core API resources. Resources are
+                        selected by API group, version and kind, where group can be "" (empty string)
+                        for core resources such as ConfigMap. Reading the core v1 Secret is
+                        intentionally blocked — use the Kubernetes provider for that.
                       properties:
                         auth:
                           description: |-
@@ -3829,6 +3832,9 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                              required:
+                                - clientCert
+                                - clientKey
                               type: object
                             serviceAccount:
                               description: points to a service account that should be used for authentication
@@ -3889,6 +3895,8 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                              required:
+                                - bearerToken
                               type: object
                           type: object
                         authRef:
@@ -3935,8 +3943,11 @@ spec:
                           properties:
                             group:
                               description: |-
-                                Group is the API group of the resource (e.g. "config.example.io").
-                                Use an empty string for core Kubernetes resources such as ConfigMap.
+                                Group is the API group of the resource. Use "" (empty string) for core
+                                Kubernetes resources such as ConfigMap; use e.g. "config.example.io"
+                                for a CRD. The field is required to be present in the manifest — write
+                                `group: ""` explicitly for core resources so typos fail at admission
+                                time rather than later at discovery.
                               type: string
                             kind:
                               description: Kind is the Kubernetes resource kind (e.g. "MyCustomResource").
@@ -3947,6 +3958,7 @@ spec:
                               minLength: 1
                               type: string
                           required:
+                            - group
                             - kind
                             - version
                           type: object
@@ -3960,7 +3972,7 @@ spec:
                               format: byte
                               type: string
                             caProvider:
-                              description: 'see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider'
+                              description: 'see: https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider'
                               properties:
                                 key:
                                   description: The key where the CA certificate can be found in the Secret or ConfigMap.
@@ -4002,15 +4014,19 @@ spec:
                             ServiceAccountRef references the ServiceAccount used for authentication.
 
                             Legacy mode (no server/auth/authRef): the controller mints a short-lived
-                            token for this SA and uses it against the local cluster. For SecretStore
-                            the namespace field is ignored (the SA must be in the store's namespace).
-                            For ClusterSecretStore, namespace is required so the controller knows
-                            where the SA lives; when omitted it defaults to "default".
+                            token for this SA and uses it against the local cluster.
+                              - SecretStore: the SA must be in the store's own namespace; the
+                                serviceAccountRef.namespace field is ignored.
+                              - ClusterSecretStore: serviceAccountRef.namespace is optional and
+                                defaults to "default" when omitted.
 
-                            Explicit mode (server + auth or authRef): serviceAccountRef is optional.
-                            When set, the controller impersonates this SA on the remote cluster after
-                            connecting via auth/authRef. For SecretStore the SA namespace is the store
-                            namespace; for ClusterSecretStore, namespace must be set explicitly.
+                            Explicit mode (server + auth or authRef): serviceAccountRef itself is
+                            optional. When set, the controller impersonates this SA on the remote
+                            cluster after connecting via auth/authRef.
+                              - SecretStore: the SA namespace is the store's own namespace; the
+                                serviceAccountRef.namespace field is ignored.
+                              - ClusterSecretStore: serviceAccountRef.namespace is required; there
+                                is no default.
                           properties:
                             audiences:
                               description: |-
@@ -5801,6 +5817,9 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                              required:
+                                - clientCert
+                                - clientKey
                               type: object
                             serviceAccount:
                               description: points to a service account that should be used for authentication
@@ -5861,6 +5880,8 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                              required:
+                                - bearerToken
                               type: object
                           type: object
                         authRef:
@@ -5904,7 +5925,7 @@ spec:
                               format: byte
                               type: string
                             caProvider:
-                              description: 'see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider'
+                              description: 'see: https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider'
                               properties:
                                 key:
                                   description: The key where the CA certificate can be found in the Secret or ConfigMap.
@@ -16357,8 +16378,11 @@ spec:
                       type: object
                     crd:
                       description: |-
-                        CRD configures this store to sync secrets from arbitrary Kubernetes custom resources
-                        using the CRD provider.
+                        CRD configures this store to sync secrets from arbitrary Kubernetes resources,
+                        including both custom resources (CRDs) and core API resources. Resources are
+                        selected by API group, version and kind, where group can be "" (empty string)
+                        for core resources such as ConfigMap. Reading the core v1 Secret is
+                        intentionally blocked — use the Kubernetes provider for that.
                       properties:
                         auth:
                           description: |-
@@ -16426,6 +16450,9 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                              required:
+                                - clientCert
+                                - clientKey
                               type: object
                             serviceAccount:
                               description: points to a service account that should be used for authentication
@@ -16486,6 +16513,8 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                              required:
+                                - bearerToken
                               type: object
                           type: object
                         authRef:
@@ -16532,8 +16561,11 @@ spec:
                           properties:
                             group:
                               description: |-
-                                Group is the API group of the resource (e.g. "config.example.io").
-                                Use an empty string for core Kubernetes resources such as ConfigMap.
+                                Group is the API group of the resource. Use "" (empty string) for core
+                                Kubernetes resources such as ConfigMap; use e.g. "config.example.io"
+                                for a CRD. The field is required to be present in the manifest — write
+                                `group: ""` explicitly for core resources so typos fail at admission
+                                time rather than later at discovery.
                               type: string
                             kind:
                               description: Kind is the Kubernetes resource kind (e.g. "MyCustomResource").
@@ -16544,6 +16576,7 @@ spec:
                               minLength: 1
                               type: string
                           required:
+                            - group
                             - kind
                             - version
                           type: object
@@ -16557,7 +16590,7 @@ spec:
                               format: byte
                               type: string
                             caProvider:
-                              description: 'see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider'
+                              description: 'see: https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider'
                               properties:
                                 key:
                                   description: The key where the CA certificate can be found in the Secret or ConfigMap.
@@ -16599,15 +16632,19 @@ spec:
                             ServiceAccountRef references the ServiceAccount used for authentication.
 
                             Legacy mode (no server/auth/authRef): the controller mints a short-lived
-                            token for this SA and uses it against the local cluster. For SecretStore
-                            the namespace field is ignored (the SA must be in the store's namespace).
-                            For ClusterSecretStore, namespace is required so the controller knows
-                            where the SA lives; when omitted it defaults to "default".
+                            token for this SA and uses it against the local cluster.
+                              - SecretStore: the SA must be in the store's own namespace; the
+                                serviceAccountRef.namespace field is ignored.
+                              - ClusterSecretStore: serviceAccountRef.namespace is optional and
+                                defaults to "default" when omitted.
 
-                            Explicit mode (server + auth or authRef): serviceAccountRef is optional.
-                            When set, the controller impersonates this SA on the remote cluster after
-                            connecting via auth/authRef. For SecretStore the SA namespace is the store
-                            namespace; for ClusterSecretStore, namespace must be set explicitly.
+                            Explicit mode (server + auth or authRef): serviceAccountRef itself is
+                            optional. When set, the controller impersonates this SA on the remote
+                            cluster after connecting via auth/authRef.
+                              - SecretStore: the SA namespace is the store's own namespace; the
+                                serviceAccountRef.namespace field is ignored.
+                              - ClusterSecretStore: serviceAccountRef.namespace is required; there
+                                is no default.
                           properties:
                             audiences:
                               description: |-
@@ -18398,6 +18435,9 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                              required:
+                                - clientCert
+                                - clientKey
                               type: object
                             serviceAccount:
                               description: points to a service account that should be used for authentication
@@ -18458,6 +18498,8 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
+                              required:
+                                - bearerToken
                               type: object
                           type: object
                         authRef:
@@ -18501,7 +18543,7 @@ spec:
                               format: byte
                               type: string
                             caProvider:
-                              description: 'see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider'
+                              description: 'see: https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider'
                               properties:
                                 key:
                                   description: The key where the CA certificate can be found in the Secret or ConfigMap.

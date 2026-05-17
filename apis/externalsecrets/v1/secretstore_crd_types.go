@@ -20,13 +20,16 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// CRDProviderResource identifies a Kubernetes custom resource by its full
-// API coordinates: group, version and kind.
+// CRDProviderResource identifies a Kubernetes resource (CRD or core) by its
+// full API coordinates: group, version and kind.
 type CRDProviderResource struct {
-	// Group is the API group of the resource (e.g. "config.example.io").
-	// Use an empty string for core Kubernetes resources such as ConfigMap.
-	// +optional
-	Group string `json:"group,omitempty"`
+	// Group is the API group of the resource. Use "" (empty string) for core
+	// Kubernetes resources such as ConfigMap; use e.g. "config.example.io"
+	// for a CRD. The field is required to be present in the manifest — write
+	// `group: ""` explicitly for core resources so typos fail at admission
+	// time rather than later at discovery.
+	// +kubebuilder:validation:Required
+	Group string `json:"group"`
 
 	// Version is the API version of the resource (e.g. "v1alpha1").
 	// +kubebuilder:validation:Required
@@ -70,7 +73,9 @@ type CRDProviderWhitelist struct {
 }
 
 // CRDProvider configures a store to fetch data from arbitrary Kubernetes
-// custom resources.
+// resources, including both custom resources (CRDs) and core API resources
+// (e.g. ConfigMap, addressed by setting resource.group to ""). Kubernetes
+// Secrets are intentionally blocked — use the Kubernetes provider for those.
 //
 // # Authentication modes
 //
@@ -100,15 +105,19 @@ type CRDProvider struct {
 	// ServiceAccountRef references the ServiceAccount used for authentication.
 	//
 	// Legacy mode (no server/auth/authRef): the controller mints a short-lived
-	// token for this SA and uses it against the local cluster. For SecretStore
-	// the namespace field is ignored (the SA must be in the store's namespace).
-	// For ClusterSecretStore, namespace is required so the controller knows
-	// where the SA lives; when omitted it defaults to "default".
+	// token for this SA and uses it against the local cluster.
+	//   - SecretStore: the SA must be in the store's own namespace; the
+	//     serviceAccountRef.namespace field is ignored.
+	//   - ClusterSecretStore: serviceAccountRef.namespace is optional and
+	//     defaults to "default" when omitted.
 	//
-	// Explicit mode (server + auth or authRef): serviceAccountRef is optional.
-	// When set, the controller impersonates this SA on the remote cluster after
-	// connecting via auth/authRef. For SecretStore the SA namespace is the store
-	// namespace; for ClusterSecretStore, namespace must be set explicitly.
+	// Explicit mode (server + auth or authRef): serviceAccountRef itself is
+	// optional. When set, the controller impersonates this SA on the remote
+	// cluster after connecting via auth/authRef.
+	//   - SecretStore: the SA namespace is the store's own namespace; the
+	//     serviceAccountRef.namespace field is ignored.
+	//   - ClusterSecretStore: serviceAccountRef.namespace is required; there
+	//     is no default.
 	// +optional
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 

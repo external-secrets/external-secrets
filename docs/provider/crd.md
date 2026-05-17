@@ -247,9 +247,14 @@ Whitelist rules are applied in addition to this filter.
 ## RBAC
 
 The configured ServiceAccount must be allowed to read the target resource.
-At minimum, grant `get` and `list` on the selected resource (and namespace-scoped permissions where applicable).
+At minimum, grant `get` on the selected resource. The `list` verb is only required when an `ExternalSecret` uses `dataFrom.find` (which calls `GetAllSecrets()` internally) — store bootstrap only checks `get`.
 
-Example:
+The right scope depends on which kind of store you are using:
+
+- **`SecretStore` (namespaced)** — a namespace-scoped `Role` + `RoleBinding` is enough; the controller only reads from the store's own namespace.
+- **`ClusterSecretStore`** — the controller may read across namespaces. When `remoteRef.key` is in the `namespace/objectName` form, or when `dataFrom.find` is used without `remoteNamespace`, `GetAllSecrets()` lists the target resource cluster-wide. That requires a `ClusterRole` + `ClusterRoleBinding`.
+
+### SecretStore (namespace-scoped) example
 
 ```yaml
 apiVersion: v1
@@ -282,6 +287,40 @@ roleRef:
   kind: Role
   name: crd-reader
 ```
+
+### ClusterSecretStore example
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: crd-reader
+  namespace: external-secrets
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crd-reader
+rules:
+  - apiGroups: ["example.io"]
+    resources: ["widgets"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: crd-reader
+subjects:
+  - kind: ServiceAccount
+    name: crd-reader
+    namespace: external-secrets
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crd-reader
+```
+
+If a `ClusterSecretStore` only ever reads from a single fixed namespace (set `remoteNamespace` on the store), a namespace-scoped `Role` + `RoleBinding` in that namespace is sufficient and the `ClusterRole` is not required.
 
 ## ClusterSecretStore note
 
