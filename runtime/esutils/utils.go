@@ -229,6 +229,65 @@ func RewriteTransform(operation esv1.ExternalSecretRewriteTransform, in map[stri
 	return out, nil
 }
 
+// SelectMap filters keys from in by applying a chain of Include/Exclude operations.
+// Operations are sequential and additive,Include retains only the matched keys; Exclude removes matched keys.
+// If no operations are provided, all keys are returned unchanged.
+func SelectMap(operations []esv1.ExternalSecretSelect, in map[string][]byte) (map[string][]byte, error) {
+	if len(operations) == 0 {
+		return in, nil
+	}
+
+	current := maps.Clone(in)
+	for i, op := range operations {
+		if err := applySelectOperation(op, current); err != nil {
+			return nil, fmt.Errorf("failed select operation[%d]: %w", i, err)
+		}
+	}
+	return current, nil
+}
+
+func applySelectOperation(op esv1.ExternalSecretSelect, current map[string][]byte) error {
+	matched, err := matchKeys(op, current)
+	if err != nil {
+		return err
+	}
+	switch op.Operation {
+	case esv1.ExternalSecretSelectInclude:
+		for k := range current {
+			if !matched[k] {
+				delete(current, k)
+			}
+		}
+	case esv1.ExternalSecretSelectExclude:
+		for k := range matched {
+			delete(current, k)
+		}
+	default:
+		return fmt.Errorf("unknown operation %q", op.Operation)
+	}
+	return nil
+}
+
+func matchKeys(op esv1.ExternalSecretSelect, current map[string][]byte) (map[string]bool, error) {
+	matched := make(map[string]bool)
+	if op.Regexp != nil {
+		re, err := regexp.Compile(*op.Regexp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to compile regexp %q: %w", *op.Regexp, err)
+		}
+		for k := range current {
+			if re.MatchString(k) {
+				matched[k] = true
+			}
+		}
+	}
+	for _, name := range op.Names {
+		if _, exists := current[name]; exists {
+			matched[name] = true
+		}
+	}
+	return matched, nil
+}
 // ValidateKeys checks if the keys in the secret map are valid keys for a Kubernetes secret.
 func ValidateKeys(log logr.Logger, in map[string][]byte) error {
 	for key := range in {
