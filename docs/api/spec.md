@@ -7141,6 +7141,100 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.MWSAuth">MWSAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.MWSCertificateManagerProvider">MWSCertificateManagerProvider</a>, 
+<a href="#external-secrets.io/v1.MWSSecretManagerProvider">MWSSecretManagerProvider</a>)
+</p>
+<p>
+<p>MWSAuth defines the authentication method for the MWS provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>authorizedKeySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.MWSCertificateManagerProvider">MWSCertificateManagerProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>MWSCertificateManagerProvider configures a store to sync secrets using the MWS Certificate Manager provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.MWSAuth">
+MWSAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.MWSSecretManagerProvider">MWSSecretManagerProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>MWSSecretManagerProvider configures a store to sync secrets using the MWS Secret Manager provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.MWSAuth">
+MWSAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.MachineIdentityScopeInWorkspace">MachineIdentityScopeInWorkspace
 </h3>
 <p>
@@ -10182,6 +10276,34 @@ NebiusMysteryboxProvider
 <td>
 <em>(Optional)</em>
 <p>NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>mwssecretmanager</code></br>
+<em>
+<a href="#external-secrets.io/v1.MWSSecretManagerProvider">
+MWSSecretManagerProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MWSSecretManager configures this store to sync secrets using the MWS Secret Manager provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>mwscertificatemanager</code></br>
+<em>
+<a href="#external-secrets.io/v1.MWSCertificateManagerProvider">
+MWSCertificateManagerProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MWSCertificateManager configures this store to sync secrets using the MWS Certificate Manager provider.</p>
 </td>
 </tr>
 </tbody>
