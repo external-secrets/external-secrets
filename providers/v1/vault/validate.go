@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -49,6 +50,9 @@ const (
 	errInvalidClientTLSSecret = "invalid ClientTLS.SecretRef: %w"
 	errInvalidClientTLS       = "when provided, both ClientTLS.ClientCert and ClientTLS.SecretRef should be provided"
 	errCASNotSupportedInKVv1  = "checkAndSet is not supported with Vault KV version v1"
+	errVaultMountNotFound     = "vault mount path %q was not found"
+	errVaultMountNotKV        = "vault mount path %q is not a kv secret engine, got %q"
+	errVaultMountVersion      = "vault mount path %q uses kv version %s but store is configured for kv version %s"
 )
 
 // ValidateStore validates the Vault provider configuration in the SecretStore.
@@ -185,12 +189,98 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 	if c.storeKind == esv1.ClusterSecretStoreKind && isReferentSpec(c.store) {
 		return esv1.ValidationResultUnknown, nil
 	}
+	ctx := context.Background()
 	if c.tokenExpiryTime != nil && c.tokenExpiryTime.After(time.Now()) {
+		if err := c.validateKVMount(ctx); err != nil {
+			return esv1.ValidationResultError, err
+		}
 		return esv1.ValidationResultReady, nil
 	}
-	_, _, err := checkToken(context.Background(), c.token)
+	_, _, err := checkToken(ctx, c.token)
 	if err != nil {
 		return esv1.ValidationResultError, fmt.Errorf(errInvalidCredentials, err)
 	}
+	if err := c.validateKVMount(ctx); err != nil {
+		return esv1.ValidationResultError, err
+	}
 	return esv1.ValidationResultReady, nil
+}
+
+func (c *client) validateKVMount(ctx context.Context) error {
+	if c.store == nil || c.store.Path == nil {
+		return nil
+	}
+
+	mountPath := strings.Trim(*c.store.Path, "/")
+	if mountPath == "" {
+		return nil
+	}
+
+	secret, err := c.logical.ReadWithDataWithContext(ctx, "sys/internal/ui/mounts/"+mountPath, nil)
+	if err != nil {
+		return nil
+	}
+	if secret == nil {
+		return fmt.Errorf(errVaultMountNotFound, mountPath)
+	}
+
+	return validateVaultKVMountData(mountPath, c.store.Version, secret.Data)
+}
+
+func validateVaultKVMountData(mountPath string, configured esv1.VaultKVStoreVersion, data map[string]any) error {
+	mountType := vaultMountType(data)
+	if mountType != "kv" {
+		return fmt.Errorf(errVaultMountNotKV, mountPath, mountType)
+	}
+
+	wantV2, configuredVersion := configuredKVVersion(configured)
+	gotV2 := vaultMountIsKVv2(data)
+	if wantV2 != gotV2 {
+		return fmt.Errorf(errVaultMountVersion, mountPath, vaultKVVersion(gotV2), configuredVersion)
+	}
+
+	return nil
+}
+
+func vaultMountType(data map[string]any) string {
+	if data == nil {
+		return "<missing>"
+	}
+	mountType, ok := data["type"]
+	if !ok {
+		return "<missing>"
+	}
+	return fmt.Sprint(mountType)
+}
+
+func configuredKVVersion(version esv1.VaultKVStoreVersion) (bool, string) {
+	if version == esv1.VaultKVStoreV1 {
+		return false, string(esv1.VaultKVStoreV1)
+	}
+	return true, string(esv1.VaultKVStoreV2)
+}
+
+func vaultKVVersion(isV2 bool) string {
+	if isV2 {
+		return string(esv1.VaultKVStoreV2)
+	}
+	return string(esv1.VaultKVStoreV1)
+}
+
+func vaultMountIsKVv2(data map[string]any) bool {
+	if data == nil {
+		return false
+	}
+	options, ok := data["options"]
+	if !ok {
+		return false
+	}
+	switch opts := options.(type) {
+	case map[string]any:
+		return fmt.Sprint(opts["version"]) == "2"
+	case map[string]string:
+		return opts["version"] == "2"
+	default:
+		return false
+	}
 }

@@ -891,6 +891,14 @@ func TestValidateTokenExpiry(t *testing.T) {
 			store:           makeValidSecretStore().Spec.Provider.Vault,
 			storeKind:       esv1.SecretStoreKind,
 			tokenExpiryTime: &futureExpiry,
+			logical: fake.Logical{
+				ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+					"type": "kv",
+					"options": map[string]any{
+						"version": "2",
+					},
+				}, nil),
+			},
 		}
 		result, err := c.Validate()
 		if err != nil {
