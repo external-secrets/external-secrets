@@ -126,6 +126,13 @@ const (
 	CallNebiusMysteryboxGetSecretByKey = "GetSecretByKey"
 	CallNebiusMysteryboxAuth           = "Auth"
 
+	ProviderKeeperSecurity                       = "KeeperSecurity"
+	CallKeeperSecurityGetSecrets                 = "GetSecrets"
+	CallKeeperSecurityGetSecretsByTitle          = "GetSecretsByTitle"
+	CallKeeperSecurityCreateSecretWithRecordData = "CreateSecretWithRecordData"
+	CallKeeperSecuritySave                       = "Save"
+	CallKeeperSecurityDeleteSecrets              = "DeleteSecrets"
+
 	StatusError   = "error"
 	StatusSuccess = "success"
 
