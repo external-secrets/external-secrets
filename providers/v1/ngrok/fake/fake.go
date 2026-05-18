@@ -27,7 +27,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ngrok/ngrok-api-go/v7"
+	"github.com/ngrok/ngrok-api-go/v9"
 )
 
 func GenerateRandomString(length int) string {
@@ -485,7 +485,7 @@ func (m *VaultClient) WithListError(err error) *VaultClient {
 
 // List returns an iterator over the vaults.
 // If an error is set, it will return that error instead of the vaults.
-func (m *VaultClient) List(paging *ngrok.Paging) ngrok.Iter[*ngrok.Vault] {
+func (m *VaultClient) List(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
 	return NewIter(m.store.ListVaults(), m.listErr)
 }
 
@@ -563,7 +563,7 @@ func (m *SecretsClient) WithListError(err error) *SecretsClient {
 
 // List returns an iterator over the secrets.
 // If an error is set, it will return that error instead of the secrets.
-func (m *SecretsClient) List(paging *ngrok.Paging) ngrok.Iter[*ngrok.Secret] {
+func (m *SecretsClient) List(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
 	return NewIter(m.store.ListSecrets(), m.listErr)
 }
 

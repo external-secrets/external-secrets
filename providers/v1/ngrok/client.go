@@ -27,7 +27,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/ngrok/ngrok-api-go/v7"
+	"github.com/ngrok/ngrok-api-go/v9"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -60,7 +60,7 @@ type VaultClient interface {
 	Create(context.Context, *ngrok.VaultCreate) (*ngrok.Vault, error)
 	Get(context.Context, string) (*ngrok.Vault, error)
 	GetSecretsByVault(string, *ngrok.Paging) ngrok.Iter[*ngrok.Secret]
-	List(*ngrok.Paging) ngrok.Iter[*ngrok.Vault]
+	List(*ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault]
 }
 
 // SecretsClient defines interface for interactions with ngrok secrets API.
@@ -68,7 +68,7 @@ type SecretsClient interface {
 	Create(context.Context, *ngrok.SecretCreate) (*ngrok.Secret, error)
 	Delete(context.Context, string) error
 	Get(context.Context, string) (*ngrok.Secret, error)
-	List(*ngrok.Paging) ngrok.Iter[*ngrok.Secret]
+	List(*ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret]
 	Update(context.Context, *ngrok.SecretUpdate) (*ngrok.Secret, error)
 }
 

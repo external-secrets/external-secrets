@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/ngrok/ngrok-api-go/v7"
-	"github.com/ngrok/ngrok-api-go/v7/secrets"
-	"github.com/ngrok/ngrok-api-go/v7/vaults"
+	"github.com/ngrok/ngrok-api-go/v9"
+	"github.com/ngrok/ngrok-api-go/v9/secrets"
+	"github.com/ngrok/ngrok-api-go/v9/vaults"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 

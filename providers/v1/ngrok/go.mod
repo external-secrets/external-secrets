@@ -5,7 +5,7 @@ go 1.26.3
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
-	github.com/ngrok/ngrok-api-go/v7 v7.6.0
+	github.com/ngrok/ngrok-api-go/v9 v9.0.0
 	github.com/onsi/ginkgo/v2 v2.27.2
 	github.com/onsi/gomega v1.38.2
 	k8s.io/api v0.35.0
