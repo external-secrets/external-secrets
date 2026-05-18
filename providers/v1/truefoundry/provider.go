@@ -76,15 +76,18 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, fmt.Errorf("truefoundry.baseURL must be a valid http(s) URL: %q", cfg.BaseURL)
 	}
 
-	ref := cfg.SecretRef
+	if cfg.Auth.SecretRef == nil {
+		return nil, errors.New("truefoundry.auth.secretRef is required")
+	}
+	ref := cfg.Auth.SecretRef.ClusterToken
 	if ref.Name == "" {
-		return nil, errors.New("truefoundry.secretRef.name is required")
+		return nil, errors.New("truefoundry.auth.secretRef.clusterToken.name is required")
 	}
 	if ref.Key == "" {
-		return nil, errors.New("truefoundry.secretRef.key is required")
+		return nil, errors.New("truefoundry.auth.secretRef.clusterToken.key is required")
 	}
 	if err := esutils.ValidateReferentSecretSelector(store, ref); err != nil {
-		return nil, fmt.Errorf("truefoundry.secretRef: %w", err)
+		return nil, fmt.Errorf("truefoundry.auth.secretRef.clusterToken: %w", err)
 	}
 	return nil, nil
 }
@@ -96,9 +99,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, errors.New("invalid truefoundry store: missing provider config")
 	}
 	cfg := store.GetSpec().Provider.TrueFoundry
+	if cfg.Auth.SecretRef == nil {
+		return nil, errors.New("invalid truefoundry store: auth.secretRef is required")
+	}
 	storeKind := store.GetObjectKind().GroupVersionKind().Kind
 
-	token, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &cfg.SecretRef)
+	token, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &cfg.Auth.SecretRef.ClusterToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve truefoundry cluster token: %w", err)
 	}

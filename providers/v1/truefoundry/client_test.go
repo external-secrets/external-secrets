@@ -352,11 +352,71 @@ func TestClose(t *testing.T) {
 	require.NoError(t, c.Close(context.Background()))
 }
 
-func TestValidate_Unknown(t *testing.T) {
-	// Validate cannot be probed without a known-good FQN, so it returns
-	// Unknown unconditionally.
-	c := newTestClient("http://unused")
-	r, err := c.Validate()
-	require.NoError(t, err)
-	require.Equal(t, esv1.ValidationResultUnknown, r)
+func TestValidate(t *testing.T) {
+	t.Run("ready when token accepted (2xx)", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(`{"value":"x"}`))
+		}))
+		defer srv.Close()
+		c := newTestClient(srv.URL)
+		r, err := c.Validate()
+		require.NoError(t, err)
+		require.Equal(t, esv1.ValidationResultReady, r)
+	})
+
+	t.Run("ready on 404 (token good, sentinel absent)", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "not found", http.StatusNotFound)
+		}))
+		defer srv.Close()
+		c := newTestClient(srv.URL)
+		r, err := c.Validate()
+		require.NoError(t, err)
+		require.Equal(t, esv1.ValidationResultReady, r)
+	})
+
+	t.Run("error on 401", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "no", http.StatusUnauthorized)
+		}))
+		defer srv.Close()
+		c := newTestClient(srv.URL)
+		r, err := c.Validate()
+		require.Error(t, err)
+		require.Equal(t, esv1.ValidationResultError, r)
+		require.Contains(t, err.Error(), "rejected")
+	})
+
+	t.Run("error on 403", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "no", http.StatusForbidden)
+		}))
+		defer srv.Close()
+		c := newTestClient(srv.URL)
+		r, err := c.Validate()
+		require.Error(t, err)
+		require.Equal(t, esv1.ValidationResultError, r)
+	})
+
+	t.Run("unknown on transport error", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
+		srv.Close()
+		c := newTestClient(srv.URL)
+		r, err := c.Validate()
+		require.Error(t, err)
+		require.Equal(t, esv1.ValidationResultUnknown, r)
+	})
+
+	t.Run("sentinel FQN appears in the request", func(t *testing.T) {
+		var captured string
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			captured = r.URL.Query().Get("secret_ref")
+			w.WriteHeader(http.StatusNotFound)
+		}))
+		defer srv.Close()
+		c := newTestClient(srv.URL)
+		_, _ = c.Validate()
+		require.Equal(t, secretRefScheme+validateSentinelFQN, captured)
+	})
 }

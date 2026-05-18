@@ -44,8 +44,10 @@ func makeSecretStore(baseURL string, ref esmeta.SecretKeySelector) *esv1.SecretS
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				TrueFoundry: &esv1.TrueFoundryProvider{
-					BaseURL:   baseURL,
-					SecretRef: ref,
+					BaseURL: baseURL,
+					Auth: esv1.TrueFoundryAuth{
+						SecretRef: &esv1.TrueFoundryAuthSecretRef{ClusterToken: ref},
+					},
 				},
 			},
 		},
@@ -59,8 +61,10 @@ func makeClusterSecretStore(baseURL string, ref esmeta.SecretKeySelector) *esv1.
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				TrueFoundry: &esv1.TrueFoundryProvider{
-					BaseURL:   baseURL,
-					SecretRef: ref,
+					BaseURL: baseURL,
+					Auth: esv1.TrueFoundryAuth{
+						SecretRef: &esv1.TrueFoundryAuthSecretRef{ClusterToken: ref},
+					},
 				},
 			},
 		},
@@ -108,14 +112,29 @@ func TestValidateStore(t *testing.T) {
 			wantError: "must be a valid http(s) URL",
 		},
 		{
-			name:      "missing secretRef.name",
-			store:     makeSecretStore(testBaseURL, esmeta.SecretKeySelector{Key: testTokenKey}),
-			wantError: "secretRef.name is required",
+			name: "missing auth.secretRef",
+			store: &esv1.SecretStore{
+				TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						TrueFoundry: &esv1.TrueFoundryProvider{
+							BaseURL: testBaseURL,
+							Auth:    esv1.TrueFoundryAuth{},
+						},
+					},
+				},
+			},
+			wantError: "auth.secretRef is required",
 		},
 		{
-			name:      "missing secretRef.key",
+			name:      "missing clusterToken.name",
+			store:     makeSecretStore(testBaseURL, esmeta.SecretKeySelector{Key: testTokenKey}),
+			wantError: "clusterToken.name is required",
+		},
+		{
+			name:      "missing clusterToken.key",
 			store:     makeSecretStore(testBaseURL, esmeta.SecretKeySelector{Name: testSecretName}),
-			wantError: "secretRef.key is required",
+			wantError: "clusterToken.key is required",
 		},
 		{
 			name: "SecretStore with cross-namespace SecretRef",

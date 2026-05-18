@@ -33,9 +33,29 @@ type TrueFoundryProvider struct {
 	// +kubebuilder:validation:MinLength=1
 	BaseURL string `json:"baseURL"`
 
-	// SecretRef points to a Kubernetes Secret entry holding the cluster
-	// service token used to authenticate against the TrueFoundry control
-	// plane. The value is sent verbatim as the
-	// `Authorization: Bearer <token>` header on every request.
-	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
+	// Auth configures how the operator authenticates with the TrueFoundry
+	// control-plane API. Today only cluster-token Bearer authentication is
+	// supported; the wrapping struct leaves room to add additional methods
+	// (e.g. ServiceAccount/OIDC token exchange) without a breaking change.
+	Auth TrueFoundryAuth `json:"auth"`
+}
+
+// TrueFoundryAuth configures authentication against the TrueFoundry
+// control-plane API. Exactly one of the contained methods must be set.
+type TrueFoundryAuth struct {
+	// SecretRef authenticates using a TrueFoundry cluster service token
+	// stored in a Kubernetes Secret.
+	// +optional
+	SecretRef *TrueFoundryAuthSecretRef `json:"secretRef,omitempty"`
+}
+
+// TrueFoundryAuthSecretRef holds the per-credential SecretKeySelectors used
+// for SecretRef-based authentication.
+type TrueFoundryAuthSecretRef struct {
+	// ClusterToken references a key inside a Kubernetes Secret that contains
+	// the TrueFoundry cluster service token (e.g. the `CLUSTER_TOKEN` key
+	// inside the `tfy-agent-internal-*-token` Secret provisioned by the TFY
+	// agent). The value is sent verbatim as the `Authorization: Bearer <token>`
+	// header on every request.
+	ClusterToken esmeta.SecretKeySelector `json:"clusterToken"`
 }

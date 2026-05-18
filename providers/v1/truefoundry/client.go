@@ -48,7 +48,16 @@ const (
 	// when passed via the secret_ref query parameter.
 	secretRefScheme = "tfy-secret://"
 
+	// validateSentinelFQN is the bare FQN Validate sends to probe connectivity.
+	// It is deliberately a string no real secret could ever resolve to, so the
+	// API's auth-vs-not-found behavior can be distinguished.
+	validateSentinelFQN = "__eso_truefoundry_validate__:__eso_truefoundry_validate__:__eso_truefoundry_validate__"
+
+	// validateTimeout caps the per-Validate-call HTTP wait.
+	validateTimeout = 10 * time.Second
+
 	opFetchSecret = "FetchSecret"
+	opValidate    = "Validate"
 )
 
 var errNotImplemented = errors.New("not implemented")
@@ -74,7 +83,7 @@ func newClient(baseURL, clusterToken string, h *http.Client) *Client {
 	}
 }
 
-var _ esv1.SecretsClient = (*Client)(nil)
+var _ esv1.SecretsClient = &Client{}
 
 // secretResponse is the body shape returned by /api/svc/v1/control-plane/secret.
 type secretResponse struct {
@@ -187,7 +196,7 @@ func (c *Client) doRequest(ctx context.Context, op, rawURL string) ([]byte, int,
 // math/rand/v2 is intentional here: the jitter is for spreading retries, not
 // for security.
 func nextBackoff(current time.Duration) time.Duration {
-	jitter := time.Duration(rand.Int64N(int64(initialBackoff))) //nolint:gosec // non-cryptographic backoff jitter
+	jitter := time.Duration(rand.Int64N(int64(initialBackoff)))
 	return current*2 + jitter
 }
 
@@ -203,20 +212,15 @@ func snippet(b []byte) string {
 // doOnce performs a single HTTP attempt. Returns body, status, parsed
 // Retry-After, and a transport error. retryAfter is non-zero only for 429
 // responses.
-//
-// The target URL is built from the SecretStore-configured baseURL plus the
-// fixed /api/svc/v1/control-plane/secret path; it is not derived from
-// untrusted input at runtime. The gosec G704 SSRF taint warnings on the two
-// lines below are therefore false positives.
 func (c *Client) doOnce(ctx context.Context, rawURL string) ([]byte, int, time.Duration, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, http.NoBody) //nolint:gosec // URL is built from SecretStore-trusted baseURL
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, http.NoBody)
 	if err != nil {
 		return nil, 0, 0, fmt.Errorf("build request: %w", err)
 	}
 	req.Header.Set("Authorization", "Bearer "+c.clusterToken)
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := c.http.Do(req) //nolint:gosec // URL is built from SecretStore-trusted baseURL
+	resp, err := c.http.Do(req)
 	if err != nil {
 		return nil, 0, 0, fmt.Errorf("request: %w", err)
 	}
@@ -307,11 +311,36 @@ func (c *Client) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (ma
 	return nil, errors.New("GetAllSecrets is not supported by the TrueFoundry provider: the control-plane API fetches single secrets by FQN; enumerate keys explicitly in spec.data[]")
 }
 
-// Validate cannot be probed without a known-good secret FQN, so it returns
-// ValidationResultUnknown. Auth and connectivity errors surface on the first
-// real reconcile via the ExternalSecret status.
+// Validate probes the TrueFoundry control plane to verify that the configured
+// base URL is reachable and the cluster token is accepted. It issues a single
+// GET with a sentinel secret reference that is not expected to exist; the
+// status code alone tells us whether the credentials pass.
+//
+//   - 2xx                       → Ready (unlikely for a sentinel, but valid)
+//   - 4xx other than 401/403    → Ready (token accepted, secret just absent)
+//   - 401 / 403                 → Error (credentials rejected)
+//   - 5xx or transport failure  → Unknown (connectivity issue, retry next reconcile)
 func (c *Client) Validate() (esv1.ValidationResult, error) {
-	return esv1.ValidationResultUnknown, nil
+	ctx, cancel := context.WithTimeout(context.Background(), validateTimeout)
+	defer cancel()
+
+	q := url.Values{}
+	q.Set("secret_ref", secretRefScheme+validateSentinelFQN)
+	endpoint := c.baseURL + apiPath + "?" + q.Encode()
+
+	_, status, err := c.doRequest(ctx, opValidate, endpoint)
+	if err == nil {
+		return esv1.ValidationResultReady, nil
+	}
+	switch {
+	case status == http.StatusUnauthorized, status == http.StatusForbidden:
+		return esv1.ValidationResultError, fmt.Errorf("truefoundry credentials rejected: %w", err)
+	case status >= 400 && status < 500:
+		// Token was accepted; sentinel just doesn't exist (e.g. 404).
+		return esv1.ValidationResultReady, nil
+	default:
+		return esv1.ValidationResultUnknown, err
+	}
 }
 
 // PushSecret is not implemented for this read-only provider.

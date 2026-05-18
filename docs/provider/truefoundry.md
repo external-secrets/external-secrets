@@ -15,19 +15,21 @@ The response is `{"value":"<secret>"}`. The `tfy-secret://` URI scheme is added 
 
 The provider uses a cluster service token — typically the token provisioned by the TrueFoundry agent on each cluster and stored in a Kubernetes Secret like `tfy-agent-internal-<env>-token` in the `tfy-agent` namespace under the key `CLUSTER_TOKEN`.
 
-Reference that Secret directly from the `SecretStore`:
+Reference that Secret from the `SecretStore` under `auth.secretRef.clusterToken`:
 
 ```yaml
 spec:
   provider:
     truefoundry:
-      secretRef:
-        name: tfy-agent-internal-devtest-token
-        namespace: tfy-agent
-        key: CLUSTER_TOKEN
+      auth:
+        secretRef:
+          clusterToken:
+            name: tfy-agent-internal-devtest-token
+            namespace: tfy-agent
+            key: CLUSTER_TOKEN
 ```
 
-> **NOTE:** When using a `ClusterSecretStore`, set `namespace` in `secretRef` so ESO can locate the Secret across namespaces.
+> **NOTE:** When using a `ClusterSecretStore`, set `namespace` inside `clusterToken` so ESO can locate the Secret across namespaces.
 
 ## SecretStore
 
@@ -42,10 +44,12 @@ spec:
       # Control-plane URL for your TrueFoundry installation. The provider
       # appends /v1/control-plane/secret to this.
       baseURL: https://your-cluster.tfy-usea1-ctl.example.com
-      secretRef:
-        name: tfy-agent-internal-devtest-token
-        namespace: tfy-agent
-        key: CLUSTER_TOKEN
+      auth:
+        secretRef:
+          clusterToken:
+            name: tfy-agent-internal-devtest-token
+            namespace: tfy-agent
+            key: CLUSTER_TOKEN
 ```
 
 ## Referencing secrets
@@ -114,7 +118,6 @@ The provider is **read-only**. The following operations are not supported:
 |---|---|---|
 | `PushSecret` / `DeleteSecret` / `SecretExists` | not implemented | read-only provider |
 | `find.tags` / `find.name` / `find.path` (`GetAllSecrets`) | not supported | the control-plane endpoint fetches one secret by FQN — no enumeration mode. Enumerate each key explicitly in `spec.data[]`. |
-| `Validate` probe | returns `Unknown` | the control-plane endpoint has no health probe; auth and connectivity errors surface naturally on the first reconcile |
 | Custom CA / `caBundle` / `caProvider` | not supported | use a `baseURL` reachable via the cluster's default trust roots |
 
 ## Status

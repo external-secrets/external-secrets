@@ -11154,6 +11154,78 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.TrueFoundryAuth">TrueFoundryAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.TrueFoundryProvider">TrueFoundryProvider</a>)
+</p>
+<p>
+<p>TrueFoundryAuth configures authentication against the TrueFoundry
+control-plane API. Exactly one of the contained methods must be set.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.TrueFoundryAuthSecretRef">
+TrueFoundryAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef authenticates using a TrueFoundry cluster service token
+stored in a Kubernetes Secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.TrueFoundryAuthSecretRef">TrueFoundryAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.TrueFoundryAuth">TrueFoundryAuth</a>)
+</p>
+<p>
+<p>TrueFoundryAuthSecretRef holds the per-credential SecretKeySelectors used
+for SecretRef-based authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clusterToken</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>ClusterToken references a key inside a Kubernetes Secret that contains
+the TrueFoundry cluster service token (e.g. the <code>CLUSTER_TOKEN</code> key
+inside the <code>tfy-agent-internal-*-token</code> Secret provisioned by the TFY
+agent). The value is sent verbatim as the <code>Authorization: Bearer &lt;token&gt;</code>
+header on every request.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.TrueFoundryProvider">TrueFoundryProvider
 </h3>
 <p>
@@ -11191,18 +11263,18 @@ string
 </tr>
 <tr>
 <td>
-<code>secretRef</code></br>
+<code>auth</code></br>
 <em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
+<a href="#external-secrets.io/v1.TrueFoundryAuth">
+TrueFoundryAuth
 </a>
 </em>
 </td>
 <td>
-<p>SecretRef points to a Kubernetes Secret entry holding the cluster
-service token used to authenticate against the TrueFoundry control
-plane. The value is sent verbatim as the
-<code>Authorization: Bearer &lt;token&gt;</code> header on every request.</p>
+<p>Auth configures how the operator authenticates with the TrueFoundry
+control-plane API. Today only cluster-token Bearer authentication is
+supported; the wrapping struct leaves room to add additional methods
+(e.g. ServiceAccount/OIDC token exchange) without a breaking change.</p>
 </td>
 </tr>
 </tbody>
