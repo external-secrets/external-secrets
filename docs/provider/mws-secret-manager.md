@@ -8,7 +8,7 @@ The operator supports authentication using an authorized key for a service accou
 
 The service account must have the following role to download the secret content:
 
-```
+```text
 secretmanager.secret.user
 ```
 

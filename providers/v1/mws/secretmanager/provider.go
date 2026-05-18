@@ -91,6 +91,8 @@ func (p *Provider) NewClient(
 
 	secretVersion, err := secretmanagersdk.NewSecretVersion(ctx, sdk)
 	if err != nil {
+		_ = sdk.Close(ctx)
+
 		return nil, fmt.Errorf("failed to create mws secret manager sdk: %w", err)
 	}
 

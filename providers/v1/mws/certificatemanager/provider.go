@@ -91,6 +91,8 @@ func (p *Provider) NewClient(
 
 	certificate, err := certmanagersdk.NewCertificate(ctx, sdk)
 	if err != nil {
+		_ = sdk.Close(ctx)
+
 		return nil, fmt.Errorf("failed to create mws certificate manager sdk: %w", err)
 	}
 
