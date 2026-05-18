@@ -163,6 +163,8 @@ nav:
       - ngrok: provider/ngrok.md
       - Devolutions Server: provider/devolutions-server.md
       - Nebius MysteryBox: provider/nebius-mysterybox.md
+      - MWS Secret Manager: provider/mws-secret-manager.md
+      - MWS Certificate Manager: provider/mws-certificate-manager.md
   - Examples:
       - FluxCD: examples/gitops-using-fluxcd.md
       - Anchore Engine: examples/anchore-engine-credentials.md

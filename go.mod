@@ -43,6 +43,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/keepersecurity => ./providers/v1/keepersecurity
 	github.com/external-secrets/external-secrets/providers/v1/kubernetes => ./providers/v1/kubernetes
 	github.com/external-secrets/external-secrets/providers/v1/nebius => ./providers/v1/nebius
+	github.com/external-secrets/external-secrets/providers/v1/mws => ./providers/v1/mws
 	github.com/external-secrets/external-secrets/providers/v1/ngrok => ./providers/v1/ngrok
 	github.com/external-secrets/external-secrets/providers/v1/onboardbase => ./providers/v1/onboardbase
 	github.com/external-secrets/external-secrets/providers/v1/onepassword => ./providers/v1/onepassword
@@ -159,6 +160,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/keepersecurity v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/kubernetes v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/nebius v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/mws v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/ngrok v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/onboardbase v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/onepassword v0.0.0-00010101000000-000000000000
