@@ -24,6 +24,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -273,7 +274,7 @@ func (c *client) getVaultByName(ctx context.Context, name string) (*ngrok.Vault,
 	listCtx, cancel := context.WithTimeout(ctx, defaultListTimeout)
 	defer cancel()
 
-	iter := c.vaultClient.List(nil)
+	iter := c.vaultClient.List(newObjectNameFilteredPaging(name))
 	for iter.Next(listCtx) {
 		vault := iter.Item()
 		if vault.Name == name {
@@ -290,10 +291,10 @@ func (c *client) getVaultByName(ctx context.Context, name string) (*ngrok.Vault,
 
 // getSecretByVaultIDAndName retrieves a secret by its vault ID and secret name.
 func (c *client) getSecretByVaultIDAndName(ctx context.Context, vaultID, name string) (*ngrok.Secret, error) {
-	iter := c.vaultClient.GetSecretsByVault(vaultID, nil)
+	iter := c.secretsClient.List(newObjectNameFilteredPaging(name))
 	for iter.Next(ctx) {
 		secret := iter.Item()
-		if secret.Name == name {
+		if secret.Name == name && secret.Vault.ID == vaultID {
 			return secret, nil
 		}
 	}
@@ -329,4 +330,11 @@ func parseAndDefaultMetadata(data *v1.JSON) (PushSecretMetadataSpec, error) {
 	}
 
 	return def, nil
+}
+
+func newObjectNameFilteredPaging(name string) *ngrok.FilteredPaging {
+	filter := fmt.Sprintf("obj.name == %s", strconv.Quote(name))
+	return &ngrok.FilteredPaging{
+		Filter: &filter,
+	}
 }

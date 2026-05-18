@@ -80,9 +80,11 @@ func WithVaultName(vaultName string) testClientOpt {
 
 var _ = Describe("client", func() {
 	var (
-		s         *fake.Store
-		c         *client
-		vaultName string
+		s          *fake.Store
+		c          *client
+		vaultsAPI  *fake.VaultClient
+		secretsAPI *fake.SecretsClient
+		vaultName  string
 
 		listVaultsErr  error
 		listSecretsErr error
@@ -96,9 +98,11 @@ var _ = Describe("client", func() {
 	})
 
 	JustBeforeEach(func() {
+		vaultsAPI = s.VaultClient().WithListError(listVaultsErr)
+		secretsAPI = s.SecretsClient().WithListError(listSecretsErr)
 		c = &client{
-			vaultClient:   s.VaultClient().WithListError(listVaultsErr),
-			secretsClient: s.SecretsClient().WithListError(listSecretsErr),
+			vaultClient:   vaultsAPI,
+			secretsClient: secretsAPI,
 			vaultName:     vaultName,
 		}
 	})
@@ -352,6 +356,119 @@ spec:
 			It("should return the listing error", func() {
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(ContainSubstring("failed to list vaults"))
+			})
+		})
+	})
+
+	Describe("getVaultByName", func() {
+		var (
+			vault   *ngrok.Vault
+			fetched *ngrok.Vault
+			err     error
+		)
+
+		BeforeEach(func(ctx SpecContext) {
+			var createErr error
+			vault, createErr = s.CreateVault(&ngrok.VaultCreate{
+				Name: vaultName,
+			})
+			Expect(createErr).ToNot(HaveOccurred())
+
+			_, createErr = s.CreateVault(&ngrok.VaultCreate{
+				Name: "other-vault",
+			})
+			Expect(createErr).ToNot(HaveOccurred())
+		})
+
+		JustBeforeEach(func(ctx SpecContext) {
+			fetched, err = c.getVaultByName(ctx, vaultName)
+		})
+
+		It("should return the matching vault", func() {
+			Expect(err).ToNot(HaveOccurred())
+			Expect(fetched).ToNot(BeNil())
+			Expect(fetched.ID).To(Equal(vault.ID))
+		})
+
+		It("should filter vaults by name", func() {
+			Expect(vaultsAPI.LastListPaging()).ToNot(BeNil())
+			Expect(vaultsAPI.LastListPaging().Filter).ToNot(BeNil())
+			Expect(*vaultsAPI.LastListPaging().Filter).To(Equal(`obj.name == "test-vault"`))
+		})
+	})
+
+	Describe("getSecretByVaultIDAndName", func() {
+		var (
+			targetVault *ngrok.Vault
+			otherVault  *ngrok.Vault
+			found       *ngrok.Secret
+			err         error
+			secretName  string
+		)
+
+		BeforeEach(func(ctx SpecContext) {
+			secretName = "shared-name"
+
+			var createErr error
+			targetVault, createErr = s.CreateVault(&ngrok.VaultCreate{Name: vaultName})
+			Expect(createErr).ToNot(HaveOccurred())
+
+			otherVault, createErr = s.CreateVault(&ngrok.VaultCreate{Name: "other-vault"})
+			Expect(createErr).ToNot(HaveOccurred())
+		})
+
+		JustBeforeEach(func(ctx SpecContext) {
+			found, err = c.getSecretByVaultIDAndName(ctx, targetVault.ID, secretName)
+		})
+
+		When("a secret with the same name exists in multiple vaults", func() {
+			var targetSecret *ngrok.Secret
+
+			BeforeEach(func(ctx SpecContext) {
+				_, createErr := s.CreateSecret(&ngrok.SecretCreate{
+					VaultID: otherVault.ID,
+					Name:    secretName,
+					Value:   "other-value",
+				})
+				Expect(createErr).ToNot(HaveOccurred())
+
+				targetSecret, createErr = s.CreateSecret(&ngrok.SecretCreate{
+					VaultID: targetVault.ID,
+					Name:    secretName,
+					Value:   "target-value",
+				})
+				Expect(createErr).ToNot(HaveOccurred())
+			})
+
+			It("should return the secret from the target vault", func() {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).ToNot(BeNil())
+				Expect(found.ID).To(Equal(targetSecret.ID))
+				Expect(found.Vault.ID).To(Equal(targetVault.ID))
+			})
+
+			It("should filter secrets by name before checking the vault", func() {
+				Expect(secretsAPI.LastListPaging()).ToNot(BeNil())
+				Expect(secretsAPI.LastListPaging().Filter).ToNot(BeNil())
+				Expect(*secretsAPI.LastListPaging().Filter).To(Equal(`obj.name == "shared-name"`))
+			})
+		})
+
+		When("only another vault has a secret with that name", func() {
+			BeforeEach(func(ctx SpecContext) {
+				_, createErr := s.CreateSecret(&ngrok.SecretCreate{
+					VaultID: otherVault.ID,
+					Name:    secretName,
+					Value:   "other-value",
+				})
+				Expect(createErr).ToNot(HaveOccurred())
+			})
+
+			It("should report the secret as missing from the target vault", func() {
+				Expect(found).To(BeNil())
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(MatchError(ContainSubstring("secret 'shared-name' does not exist")))
+				Expect(err).To(MatchError(ContainSubstring(errVaultSecretDoesNotExist.Error())))
 			})
 		})
 	})
