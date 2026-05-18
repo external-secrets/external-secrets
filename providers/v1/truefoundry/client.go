@@ -335,6 +335,11 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	switch {
 	case status == http.StatusUnauthorized, status == http.StatusForbidden:
 		return esv1.ValidationResultError, fmt.Errorf("truefoundry credentials rejected: %w", err)
+	case status == http.StatusTooManyRequests:
+		// Control plane is throttling; we cannot tell if the credentials are
+		// valid until the rate limit clears. Surface as Unknown so the store
+		// stays out of "Valid" until a future reconcile succeeds.
+		return esv1.ValidationResultUnknown, err
 	case status >= 400 && status < 500:
 		// Token was accepted; sentinel just doesn't exist (e.g. 404).
 		return esv1.ValidationResultReady, nil

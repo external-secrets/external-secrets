@@ -399,6 +399,17 @@ func TestValidate(t *testing.T) {
 		require.Equal(t, esv1.ValidationResultError, r)
 	})
 
+	t.Run("unknown on persistent 429 (rate limited)", func(t *testing.T) {
+		srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+			http.Error(w, "slow down", http.StatusTooManyRequests)
+		}))
+		defer srv.Close()
+		c := newTestClient(srv.URL)
+		r, err := c.Validate()
+		require.Error(t, err)
+		require.Equal(t, esv1.ValidationResultUnknown, r, "rate-limited response must not be reported as Ready")
+	})
+
 	t.Run("unknown on transport error", func(t *testing.T) {
 		srv := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {}))
 		srv.Close()
