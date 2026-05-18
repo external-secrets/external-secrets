@@ -452,7 +452,8 @@ type VaultClient struct {
 	createErr error
 	listErr   error
 
-	lastListPaging *ngrok.FilteredPaging
+	lastListPagingMu sync.Mutex
+	lastListPaging   *ngrok.FilteredPaging
 }
 
 // WithCreateError sets an error to be returned when Create is called.
@@ -487,12 +488,18 @@ func (m *VaultClient) WithListError(err error) *VaultClient {
 }
 
 func (m *VaultClient) LastListPaging() *ngrok.FilteredPaging {
+	m.lastListPagingMu.Lock()
+	defer m.lastListPagingMu.Unlock()
+
 	return cloneFilteredPaging(m.lastListPaging)
 }
 
 // List returns an iterator over the vaults.
 // If an error is set, it will return that error instead of the vaults.
 func (m *VaultClient) List(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+	m.lastListPagingMu.Lock()
+	defer m.lastListPagingMu.Unlock()
+
 	m.lastListPaging = cloneFilteredPaging(paging)
 	return NewIter(filterVaults(m.store.ListVaults(), paging), m.listErr)
 }
@@ -507,7 +514,8 @@ type SecretsClient struct {
 	deleteErr error
 	listErr   error
 
-	lastListPaging *ngrok.FilteredPaging
+	lastListPagingMu sync.Mutex
+	lastListPaging   *ngrok.FilteredPaging
 }
 
 // WithCreateError sets an error to be returned when Create is called.
@@ -572,12 +580,18 @@ func (m *SecretsClient) WithListError(err error) *SecretsClient {
 }
 
 func (m *SecretsClient) LastListPaging() *ngrok.FilteredPaging {
+	m.lastListPagingMu.Lock()
+	defer m.lastListPagingMu.Unlock()
+
 	return cloneFilteredPaging(m.lastListPaging)
 }
 
 // List returns an iterator over the secrets.
 // If an error is set, it will return that error instead of the secrets.
 func (m *SecretsClient) List(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+	m.lastListPagingMu.Lock()
+	defer m.lastListPagingMu.Unlock()
+
 	m.lastListPaging = cloneFilteredPaging(paging)
 	return NewIter(filterSecrets(m.store.ListSecrets(), paging), m.listErr)
 }
