@@ -3,124 +3,38 @@
 External Secrets Operator integrates with SSH PrivX for secret management.
 See [PrivX](https://www.ssh.com/products/privileged-access-management-privx)
 
-This provider uses the PrivX Vault API to read and write secrets. See [PrivX API](https://privx.docs.ssh.com/v42/api)
+This provider uses the PrivX Vault API to read and write secrets. See [PrivX API](https://privx.docs.ssh.com/api)
 
 Secrets are stored as objects within PrivX Vault.
 
-## Building and Deploying from Source
+## Authentication
 
-This section documents how to build the External Secrets Operator with the PrivX provider from source and deploy it to a Kubernetes cluster.
+The PrivX provider supports two authentication methods. Use only one per SecretStore.
 
-### Prerequisites
+### Method 1: API Client with OAuth2
 
-Install required tools:
+This method uses an API client registered in PrivX with OAuth2 credentials. It is the recommended approach for automated integrations.
 
-```bash
-sudo dnf install wget make docker
-```
+See [PrivX API-Client Integration](https://privx.docs.ssh.com/v43/docs/advanced-configuration/api-client-integration/) for setup details.
 
-Install Go:
+**How it works:**
 
-```bash
-wget https://go.dev/dl/go1.26.1.linux-amd64.tar.gz
-cd /usr/local; sudo tar -xzvf ~/go1.26.1.linux-amd64.tar.gz
-cd /usr/local/bin; sudo ln -s ../go/bin/go
-```
+1. Create a PrivX role with the required permissions in Administration → Roles.
+2. Create an API client in Administration → Deployment → Integrate with PrivX using API clients, and assign the role.
+3. Expand the API client's Credentials to obtain: `oauth_client_id`, `oauth_client_secret`, `api_client_id`, and `api_client_secret`.
+4. The provider authenticates by posting these credentials to the `/auth/api/v1/oauth/token` endpoint using the OAuth2 `grant_type=password` flow, receiving a bearer access token.
 
-Install yq:
-
-```bash
-VERSION=v4.52.4
-PLATFORM=linux_amd64
-sudo wget https://github.com/mikefarah/yq/releases/download/${VERSION}/yq_${PLATFORM} -O /usr/local/bin/yq && \
-  sudo chmod +x /usr/local/bin/yq
-```
-
-Install Helm:
-
-```bash
-curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-4
-chmod 700 get_helm.sh
-./get_helm.sh
-```
-
-### Build
-
-Generate CRDs and manifests:
-
-```bash
-make manifests
-```
-
-Set the build to include only the PrivX provider (optional, reduces binary size):
-
-```bash
-sed -i 's/PROVIDER ?= all_providers/PROVIDER ?= privx/' Makefile
-```
-
-Tidy Go modules:
-
-```bash
-go mod tidy
-```
-
-Build the binary and Docker image:
-
-```bash
-make build
-make docker.build IMAGE_NAME=external-secrets IMAGE_TAG=latest
-```
-
-Tag the image for your target version:
-
-```bash
-docker image tag localhost/external-secrets:latest ghcr.io/external-secrets/external-secrets:v2.1.0
-```
-
-### Deploy to Kubernetes
-
-If using containerd as the container runtime, load the image into containerd's store (podman and containerd use separate image stores):
-
-```bash
-podman save ghcr.io/external-secrets/external-secrets:v2.1.0 | sudo ctr -n k8s.io images import -
-```
-
-Apply the CRDs using server-side apply (required for large CRDs):
-
-```bash
-kubectl apply --server-side --force-conflicts -f config/crds/bases/
-```
-
-Ignore the `kustomization.yaml` error — it is not a Kubernetes resource.
-
-Install with Helm (skip CRD install since they were applied above):
-
-```bash
-cd deploy/charts/external-secrets
-helm dependency build
-helm install external-secrets . \
-  -n external-secrets \
-  --create-namespace \
-  --set installCRDs=false
-```
-
-### Create the connection credentials
-
-This example uses OAuth:
+**Create the Kubernetes secret:**
 
 ```bash
 kubectl create secret generic privx-secret \
---from-literal=privx_api_oauth_client_id='<SECRET-VALUE>' \
---from-literal=privx_api_oauth_client_secret='<SECRET-VALUE>' \
---from-literal=privx_api_client_id='<SECRET-VALUE>' \
---from-literal=privx_api_client_secret='<SECRET-VALUE>'
+  --from-literal=privx_api_oauth_client_id='<OAUTH_CLIENT_ID>' \
+  --from-literal=privx_api_oauth_client_secret='<OAUTH_CLIENT_SECRET>' \
+  --from-literal=privx_api_client_id='<API_CLIENT_ID>' \
+  --from-literal=privx_api_client_secret='<API_CLIENT_SECRET>'
 ```
 
-## Usage example
-
-### Create a SecretStore with a PrivX backend
-
-Enter the following with `kubectl apply -f`:
+**SecretStore configuration:**
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -131,10 +45,6 @@ spec:
   provider:
     privx:
       host: <privx host url>
-      # defaultReadRoles and defaultWriteRoles require PrivX role UUIDs, not role names.
-      # Example with role names (will NOT work):
-      #   defaultReadRoles: ["privx-admin", "terraform-provider"]
-      #   defaultWriteRoles: ["privx-admin", "terraform-provider"]
       defaultReadRoles:
         [
           "d0f6418b-728b-4ffc-8b9e-4f01ba1e659b",
@@ -161,6 +71,84 @@ spec:
             key: privx_api_client_secret
 ```
 
+| Field | Description |
+|---|---|
+| `clientIDRef` | Reference to the OAuth client ID credential |
+| `clientSecretRef` | Reference to the OAuth client secret credential |
+| `apiClientIDRef` | Reference to the API client ID (used as `username` in the token request) |
+| `apiClientSecretRef` | Reference to the API client secret (used as `password` in the token request) |
+
+> **Note:** The OAuth user must have a role in PrivX that is listed in the readers (or writers) of the target secret.
+
+---
+
+### Method 2: External JWT Authentication
+
+This method authenticates using an externally created JSON Web Token (JWT) signed with a private key. The provider generates a JWT locally and exchanges it for a PrivX access token via the `/auth/api/v1/token/login` endpoint.
+
+See [PrivX External JWT Authentication](https://privx.docs.ssh.com/v43/docs/users-and-permissions/additional-authentication-methods/external-jwt-authentication) for setup details.
+
+**Prerequisites in PrivX:**
+
+1. Configure an external JWT identity provider in Administration → Deployment → External Token Authentication.
+2. Set the **Public key method** to "Use Token Provider Public Key" and provide the public key corresponding to the private key used for signing.
+3. Set the **Issuer** to match the `iss` claim in the JWT.
+4. Configure a user directory from which PrivX resolves users by the JWT `sub` claim.
+
+**How it works:**
+
+1. The provider signs a JWT using the private key stored in the referenced Kubernetes secret.
+2. The JWT contains `iss` (issuer) and `sub` (subject/username) claims.
+3. The signed JWT is sent to PrivX's `/auth/api/v1/token/login` endpoint.
+4. PrivX validates the JWT signature against the configured public key, resolves the user from the `sub` claim, and returns a bearer access token.
+
+**Create the Kubernetes secret containing the private key:**
+
+```bash
+kubectl create secret generic privx-jwt-secret \
+  --from-file=jwt_private_key=./path/to/private-key.pem
+```
+
+**SecretStore configuration:**
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: secretstore-privx-jwt
+spec:
+  provider:
+    privx:
+      host: <privx host url>
+      defaultReadRoles:
+        [
+          "d0f6418b-728b-4ffc-8b9e-4f01ba1e659b",
+        ]
+      defaultWriteRoles:
+        [
+          "d0f6418b-728b-4ffc-8b9e-4f01ba1e659b",
+        ]
+      auth:
+        jwtAuth:
+          publicKeyRef:
+            name: privx-jwt-secret
+            key: jwt_private_key
+          iss: "issuer12345"
+          sub: "alice"
+```
+
+| Field | Description |
+|---|---|
+| `publicKeyRef` | Reference to the Kubernetes secret containing the PEM-encoded private key used for signing the JWT |
+| `iss` | Issuer claim — must match the issuer configured in PrivX's External Token Authentication settings |
+| `sub` | Subject claim — must match a user name resolvable in the PrivX user directory |
+
+> **Note:** Despite the field name `publicKeyRef`, this should reference the **private key** used for signing. The corresponding public key must be configured in PrivX for signature verification.
+
+---
+
+## Usage
+
 ### Create the external secret definition
 
 ```yaml
@@ -183,17 +171,13 @@ spec:
 ```
 
 The secret from PrivX is now available in Kubernetes secret `privx-test-secret`, with key `test_value`.
-Note that the *OAuth user* must have a *role* in PrivX that is listed in the *readers of the secret*.
 
 ### Verify
-
-Create the secret credentials, SecretStore, and ExternalSecret as described in the [Usage example](#usage-example) above, then verify:
 
 ```bash
 kubectl get externalsecret
 kubectl get secret privx-test-secret -o jsonpath='{.data.test_value}' | base64 -d
 ```
-
 
 ### Fetching Multiple Secrets
 
@@ -210,13 +194,14 @@ dataFrom:
 
 Returns all secrets whose name matches the regular expression.
 
+---
 
-# PushSecret
+## PushSecret
 
 PrivX supports PushSecret to write Kubernetes Secret values into PrivX.
 
 ```yaml
-apiVersion: external-secrets.io/v1
+apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
 metadata:
   name: push-to-privx
@@ -234,7 +219,7 @@ spec:
         property: password
 ```
 
-## Deletion Policy
+### Deletion Policy
 
 When a PushSecret resource is deleted from Kubernetes, the corresponding secret in PrivX Vault is **not** deleted by default. This means removing the PushSecret or the source Kubernetes Secret will leave the secret in PrivX, potentially resulting in orphaned secrets.
 
