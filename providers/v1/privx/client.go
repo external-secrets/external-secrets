@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"regexp"
 	"strconv"
 	"strings"
@@ -49,6 +50,9 @@ var (
 
 	// ErrPropertyNotFound is returned when the requested property is not found in the secret.
 	ErrPropertyNotFound = errors.New("property not found in secret")
+
+	// ErrNamespaceNotAllowed is returned when cross-namespace access is denied by ClusterSecretStore conditions.
+	ErrNamespaceNotAllowed = errors.New("cross-namespace access denied by ClusterSecretStore conditions")
 )
 
 // Check during compile that we implement the interface.
@@ -69,6 +73,9 @@ type SecretsClient struct {
 
 // GetSecret returns a single secret from the provider.
 func (c *SecretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	if err := c.validateNamespaceAccess(); err != nil {
+		return nil, err
+	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -270,6 +277,9 @@ func (c *SecretsClient) GetSecretMap(
 // for that secret (the whole secret.Data marshaled as JSON). This avoids key
 // collisions between secrets that may contain identical JSON keys internally.
 func (c *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	if err := c.validateNamespaceAccess(); err != nil {
+		return nil, err
+	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -349,6 +359,59 @@ func (c *SecretsClient) Close(ctx context.Context) error {
 }
 
 // Helper functions
+
+// namespaceMatchesCondition checks whether a namespace is permitted by a single
+// ClusterSecretStoreCondition. It returns true if the namespace appears in the
+// condition's Namespaces list (direct string match) or matches any of the
+// condition's NamespaceRegexes patterns.
+func namespaceMatchesCondition(namespace string, condition esv1.ClusterSecretStoreCondition) bool {
+	// Check direct namespace list
+	for _, ns := range condition.Namespaces {
+		if namespace == ns {
+			return true
+		}
+	}
+
+	// Check regex patterns
+	for _, pattern := range condition.NamespaceRegexes {
+		re, err := regexp.Compile(pattern)
+		if err != nil {
+			slog.Warn("failed to compile namespace regex, treating as non-match",
+				"pattern", pattern,
+				"error", err,
+			)
+			continue
+		}
+		if re.MatchString(namespace) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// validateNamespaceAccess checks whether the requesting namespace is permitted
+// by the store's conditions. Namespace-scoped stores and ClusterSecretStores
+// with no conditions are always allowed. For ClusterSecretStores with conditions,
+// the requesting namespace must match at least one condition.
+func (c *SecretsClient) validateNamespaceAccess() error {
+	if c.store == nil || c.store.GetKind() != esv1.ClusterSecretStoreKind {
+		return nil
+	}
+
+	conditions := c.store.GetSpec().Conditions
+	if len(conditions) == 0 {
+		return nil
+	}
+
+	for _, condition := range conditions {
+		if namespaceMatchesCondition(c.namespace, condition) {
+			return nil
+		}
+	}
+
+	return ErrNamespaceNotAllowed
+}
 
 // isNotFound return whether the error is a 404 - Not Found.
 func isNotFound(err error) bool {
