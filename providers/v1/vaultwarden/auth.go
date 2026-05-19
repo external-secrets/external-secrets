@@ -123,7 +123,11 @@ func (c *Client) fetchToken(ctx context.Context) (*vaultwardenTokenResponse, err
 	form.Set("client_id", clientID)
 	form.Set("client_secret", clientSecret)
 	form.Set("scope", "api")
-	form.Set("DeviceIdentifier", uuid.New().String())
+	// Derive a stable DeviceIdentifier from clientID so the same store presents
+	// the same device across pod restarts and reconciles. A fresh uuid.New() each
+	// call makes Vaultwarden treat every token fetch as a new device login and
+	// email the account owner.
+	form.Set("DeviceIdentifier", uuid.NewSHA1(uuid.NameSpaceOID, []byte(clientID)).String())
 	form.Set("DeviceType", "21")
 	form.Set("DeviceName", "eso-provider")
 
