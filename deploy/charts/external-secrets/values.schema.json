@@ -706,7 +706,8 @@
             "type": "string"
         },
         "enableExternalSecretFinalizer": {
-            "type": "boolean"
+            "type": "boolean",
+            "default": true
         },
         "processClusterExternalSecret": {
             "type": "boolean"

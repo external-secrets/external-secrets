@@ -118,7 +118,7 @@ openshiftFinalizers: true
 # -- If true the system:auth-delegator ClusterRole will be added to RBAC
 systemAuthDelegator: false
 
-# -- if true, add a finalizer to ExternalSecret resources to ensure managed secret cleanup on deletion.
+# -- If true, add a finalizer to ExternalSecret resources to ensure managed secret cleanup on deletion.
 # Disable to avoid blocking namespace deletion when the operator cannot reconcile.
 enableExternalSecretFinalizer: true
 
