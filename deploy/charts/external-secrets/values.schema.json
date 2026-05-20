@@ -705,7 +705,7 @@
         "priorityClassName": {
             "type": "string"
         },
-        "enableExternalSecretFinalizer": {
+        "enableExternalSecretCleanupFinalizer": {
             "type": "boolean",
             "default": true
         },
