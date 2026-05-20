@@ -705,6 +705,9 @@
         "priorityClassName": {
             "type": "string"
         },
+        "enableExternalSecretFinalizer": {
+            "type": "boolean"
+        },
         "processClusterExternalSecret": {
             "type": "boolean"
         },
