@@ -1904,7 +1904,9 @@ Can only be defined when used in a ClusterSecretStore.</p>
 </p>
 <p>
 <p>CRDProvider configures a store to fetch data from arbitrary Kubernetes
-custom resources.</p>
+resources, including both custom resources (CRDs) and core API resources
+(e.g. ConfigMap, addressed by setting resource.group to &ldquo;&rdquo;). Kubernetes
+Secrets are intentionally blocked — use the Kubernetes provider for those.</p>
 <h1>Authentication modes</h1>
 <p>Legacy (in-cluster): set serviceAccountRef only. The controller uses in-cluster
 config and mints a short-lived token for the referenced ServiceAccount, which is
@@ -1946,14 +1948,18 @@ External Secrets meta/v1.ServiceAccountSelector
 <em>(Optional)</em>
 <p>ServiceAccountRef references the ServiceAccount used for authentication.</p>
 <p>Legacy mode (no server/auth/authRef): the controller mints a short-lived
-token for this SA and uses it against the local cluster. For SecretStore
-the namespace field is ignored (the SA must be in the store&rsquo;s namespace).
-For ClusterSecretStore, namespace is required so the controller knows
-where the SA lives; when omitted it defaults to &ldquo;default&rdquo;.</p>
-<p>Explicit mode (server + auth or authRef): serviceAccountRef is optional.
-When set, the controller impersonates this SA on the remote cluster after
-connecting via auth/authRef. For SecretStore the SA namespace is the store
-namespace; for ClusterSecretStore, namespace must be set explicitly.</p>
+token for this SA and uses it against the local cluster.
+- SecretStore: the SA must be in the store&rsquo;s own namespace; the
+serviceAccountRef.namespace field is ignored.
+- ClusterSecretStore: serviceAccountRef.namespace is optional and
+defaults to &ldquo;default&rdquo; when omitted.</p>
+<p>Explicit mode (server + auth or authRef): serviceAccountRef itself is
+optional. When set, the controller impersonates this SA on the remote
+cluster after connecting via auth/authRef.
+- SecretStore: the SA namespace is the store&rsquo;s own namespace; the
+serviceAccountRef.namespace field is ignored.
+- ClusterSecretStore: serviceAccountRef.namespace is required; there
+is no default.</p>
 </td>
 </tr>
 <tr>
@@ -2054,8 +2060,8 @@ are allowed to be read.</p>
 <a href="#external-secrets.io/v1.CRDProvider">CRDProvider</a>)
 </p>
 <p>
-<p>CRDProviderResource identifies a Kubernetes custom resource by its full
-API coordinates: group, version and kind.</p>
+<p>CRDProviderResource identifies a Kubernetes resource (CRD or core) by its
+full API coordinates: group, version and kind.</p>
 </p>
 <table>
 <thead>
@@ -2073,9 +2079,11 @@ string
 </em>
 </td>
 <td>
-<em>(Optional)</em>
-<p>Group is the API group of the resource (e.g. &ldquo;config.example.io&rdquo;).
-Use an empty string for core Kubernetes resources such as ConfigMap.</p>
+<p>Group is the API group of the resource. Use &ldquo;&rdquo; (empty string) for core
+Kubernetes resources such as ConfigMap; use e.g. &ldquo;config.example.io&rdquo;
+for a CRD. The field is required to be present in the manifest — write
+<code>group: &quot;&quot;</code> explicitly for core resources so typos fail at admission
+time rather than later at discovery.</p>
 </td>
 </tr>
 <tr>
@@ -7385,7 +7393,7 @@ CAProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>see: <a href="https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider">https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider</a></p>
+<p>see: <a href="https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider">https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider</a></p>
 </td>
 </tr>
 </tbody>
@@ -10177,8 +10185,11 @@ CRDProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>CRD configures this store to sync secrets from arbitrary Kubernetes custom resources
-using the CRD provider.</p>
+<p>CRD configures this store to sync secrets from arbitrary Kubernetes resources,
+including both custom resources (CRDs) and core API resources. Resources are
+selected by API group, version and kind, where group can be &ldquo;&rdquo; (empty string)
+for core resources such as ConfigMap. Reading the core v1 Secret is
+intentionally blocked — use the Kubernetes provider for that.</p>
 </td>
 </tr>
 <tr>
