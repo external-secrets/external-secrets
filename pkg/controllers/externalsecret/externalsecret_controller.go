@@ -152,6 +152,8 @@ type Reconciler struct {
 	ClusterSecretStoreEnabled          bool
 	EnableFloodGate                    bool
 	EnableGeneratorState               bool
+	// EnableCleanupFinalizer gates adding the externalsecret-cleanup finalizer.
+	// When false, existing finalizers are still removed and cleanup still runs on deletion.
 	EnableCleanupFinalizer             bool
 	AllowGenericTargets                bool
 	recorder                           record.EventRecorder
