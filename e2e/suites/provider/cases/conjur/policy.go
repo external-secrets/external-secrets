@@ -37,6 +37,16 @@ const createVariablePolicyTemplate = `- !variable
 - !permit
   role: !host system:serviceaccount:{{ .Namespace }}:test-app-hostid-sa
   privilege: [ read, execute ]
+  resource: !variable {{ .Key }}
+
+- !permit
+  role: !host vm-01
+  privilege: [ read, execute ]
+  resource: !variable {{ .Key }}
+
+- !permit
+  role: !host vm-spiffe
+  privilege: [ read, execute ]
   resource: !variable {{ .Key }}`
 
 const deleteVariablePolicyTemplate = `- !delete
@@ -51,6 +61,26 @@ const jwtHostPolicyTemplate = `- !host
   role: !host {{ .HostID }}
   privilege: [ read, authenticate ]
   resource: !webservice conjur/authn-jwt/{{ .ServiceID }}`
+
+const certHostPolicyTemplate = `- !host
+  id: vm-01
+  annotations:
+    authn-cert/{{ .ServiceID }}/sub: "vm-01"
+
+- !permit
+  role: !host vm-01
+  privilege: [ read, authenticate ]
+  resource: !webservice conjur/authn-cert/{{ .ServiceID }}
+
+- !host
+  id: vm-spiffe
+  annotations:
+    authn-cert/{{ .ServiceID }}/sub: "vm-spiffe"
+
+- !permit
+  role: !host vm-spiffe
+  privilege: [ read, authenticate ]
+  resource: !webservice conjur/authn-cert/{{ .ServiceID }}`
 
 func createVariablePolicy(key, namespace string, tags map[string]string) string {
 	return renderTemplate(createVariablePolicyTemplate, map[string]interface{}{
@@ -69,6 +99,12 @@ func deleteVariablePolicy(key string) string {
 func createJwtHostPolicy(hostID, serviceID string) string {
 	return renderTemplate(jwtHostPolicyTemplate, map[string]interface{}{
 		"HostID":    hostID,
+		"ServiceID": serviceID,
+	})
+}
+
+func createCertHostPolicy(serviceID string) string {
+	return renderTemplate(certHostPolicyTemplate, map[string]interface{}{
 		"ServiceID": serviceID,
 	})
 }

@@ -44,6 +44,10 @@ const (
 	secretName               = "conjur-creds"
 	jwtK8sProviderName       = "jwt-k8s-provider"
 	jwtK8sHostIDProviderName = "jwt-k8s-hostid-provider"
+	certProviderName         = "cert-provider"
+	certHostIDProviderName   = "cert-hostid-provider"
+	certSecretName           = "conjur-client-cert"
+	certHostIDSecretName     = "conjur-client-cert-hostid"
 	hostidServiceAccountName = "test-app-hostid-sa"
 	appServiceAccountName    = "test-app-sa"
 )
@@ -88,7 +92,11 @@ func (s *conjurProvider) BeforeEach() {
 	// setup policy
 	saName = "system:serviceaccount:" + s.framework.Namespace.Name + ":" + hostidServiceAccountName
 	policy = createJwtHostPolicy(saName, "eso-tests-hostid")
+	_, err = s.addon.ConjurClient.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
+	Expect(err).ToNot(HaveOccurred())
 
+	// setup policy
+	policy = createCertHostPolicy("eso-tests")
 	_, err = s.addon.ConjurClient.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
 	Expect(err).ToNot(HaveOccurred())
 }
@@ -198,6 +206,77 @@ func (s conjurProvider) CreateJWTK8sHostIDStore() {
 				Audiences: []string{
 					s.addon.ConjurURL,
 				},
+			},
+		},
+	}
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func (s conjurProvider) CreateCertStore() {
+	By("creating a conjur client cert secret")
+	certSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      certSecretName,
+			Namespace: s.framework.Namespace.Name,
+		},
+		Data: map[string][]byte{
+			"clientCert": s.addon.ClientCert,
+			"clientKey":  s.addon.ClientKey,
+		},
+	}
+	err := s.framework.CRClient.Create(GinkgoT().Context(), certSecret)
+	Expect(err).ToNot(HaveOccurred())
+
+	By("creating a secret store for conjur with cert auth")
+	secretStore := makeStore(certProviderName, s.framework.Namespace.Name, s.addon)
+	secretStore.Spec.Provider.Conjur.Auth = esv1.ConjurAuth{
+		Cert: &esv1.ConjurCert{
+			Account:   "default",
+			ServiceID: "eso-tests",
+			ClientCertRef: &esmeta.SecretKeySelector{
+				Name: certSecretName,
+				Key:  "clientCert",
+			},
+			ClientKeyRef: &esmeta.SecretKeySelector{
+				Name: certSecretName,
+				Key:  "clientKey",
+			},
+		},
+	}
+	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+func (s conjurProvider) CreateCertHostIDStore() {
+	By("creating a conjur client cert secret for hostid")
+	certSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      certHostIDSecretName,
+			Namespace: s.framework.Namespace.Name,
+		},
+		Data: map[string][]byte{
+			"clientCert": s.addon.ClientCert,
+			"clientKey":  s.addon.ClientKey,
+		},
+	}
+	err := s.framework.CRClient.Create(GinkgoT().Context(), certSecret)
+	Expect(err).ToNot(HaveOccurred())
+
+	By("creating a secret store for conjur with cert auth and host ID")
+	secretStore := makeStore(certHostIDProviderName, s.framework.Namespace.Name, s.addon)
+	secretStore.Spec.Provider.Conjur.Auth = esv1.ConjurAuth{
+		Cert: &esv1.ConjurCert{
+			Account:   "default",
+			HostID:    "host/vm-01",
+			ServiceID: "eso-tests",
+			ClientCertRef: &esmeta.SecretKeySelector{
+				Name: certHostIDSecretName,
+				Key:  "clientCert",
+			},
+			ClientKeyRef: &esmeta.SecretKeySelector{
+				Name: certHostIDSecretName,
+				Key:  "clientKey",
 			},
 		},
 	}

@@ -307,8 +307,10 @@ github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6N
 github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/ctdk/goiardi v0.11.10 h1:IB/3Afl1pC2Q4KGwzmhHPAoJfe8VtU51wZ2V0QkvsL0=
 github.com/ctdk/goiardi v0.11.10/go.mod h1:Pr6Cj6Wsahw45myttaOEZeZ0LE7p1qzWmzgsBISkrNI=
-github.com/cyberark/conjur-api-go v0.13.8 h1:woBEg+lvcoghpFkoGcS2JfPy+kJR59Ir7LeZcNA9wWE=
-github.com/cyberark/conjur-api-go v0.13.8/go.mod h1:xGi4RCulvsc+x/jYRrxUoEShznhlKP/4hJC/4+lueFg=
+github.com/cyberark/conjur-api-go v0.13.19 h1:QPUmBJJ4ik2FwHlNHVdRND6t3sLL2bqmZDPdikfzSlc=
+github.com/cyberark/conjur-api-go v0.13.19/go.mod h1:POjKgJwnniONTnWySx6Yq87hYsdPD6Ohwm7x1UGio7E=
+github.com/cyberark/conjur-api-go v0.14.0 h1:5HyedATdYH/pgV9CzP4j5VJ2V02Wrdnm1JvUonQJDBs=
+github.com/cyberark/conjur-api-go v0.14.0/go.mod h1:POjKgJwnniONTnWySx6Yq87hYsdPD6Ohwm7x1UGio7E=
 github.com/cyphar/filepath-securejoin v0.6.1 h1:5CeZ1jPXEiYt3+Z6zqprSAgSWiggmpVyciv8syjIpVE=
 github.com/cyphar/filepath-securejoin v0.6.1/go.mod h1:A8hd4EnAeyujCJRrICiOWqjS1AX0a9kM5XL+NwKoYSc=
 github.com/danieljoos/wincred v1.2.3 h1:v7dZC2x32Ut3nEfRH+vhoZGvN72+dQ/snVXo/vMFLdQ=
