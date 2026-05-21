@@ -73,7 +73,7 @@ crds:
   createExternalSecret: true
   # -- If true, create CRDs for ACR Access Token
   createACRAccessToken: true
-  # -- If true, create CRDs for Clousmith Access Token
+  # -- If true, create CRDs for Cloudsmith Access Token
   createCloudsmithAccessToken: true
   # -- If true, create CRDs for ECR Authorization Token
   createECRAuthorizationToken: true

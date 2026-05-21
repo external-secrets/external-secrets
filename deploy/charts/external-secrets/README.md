@@ -95,7 +95,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | crds.annotations | object | `{}` |  |
 | crds.conversion.enabled | bool | `false` | Conversion is disabled by default as we stopped supporting v1alpha1. |
 | crds.createACRAccessToken | bool | `true` | If true, create CRDs for ACR Access Token |
-| crds.createCloudsmithAccessToken | bool | `true` | If true, create CRDs for Clousmith Access Token |
+| crds.createCloudsmithAccessToken | bool | `true` | If true, create CRDs for Cloudsmith Access Token |
 | crds.createClusterExternalSecret | bool | `true` | If true, create CRDs for Cluster External Secret. If set to false you must also set processClusterExternalSecret: false. |
 | crds.createClusterGenerator | bool | `true` | If true, create CRDs for Cluster Generator. If set to false you must also set processClusterGenerator: false. |
 | crds.createClusterPushSecret | bool | `true` | If true, create CRDs for Cluster Push Secret. If set to false you must also set processClusterPushSecret: false. |
