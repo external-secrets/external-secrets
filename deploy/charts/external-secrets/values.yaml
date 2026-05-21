@@ -71,33 +71,33 @@ crds:
   createPushSecret: true
   # -- If true, create CRDs for External Secret.
   createExternalSecret: true
-  # -- If true, create CRDs for Arc Access Token
+  # -- If true, create CRDs for ACR Access Token
   createACRAccessToken: true
-  # -- If true, create CRDs for Cloud Smith Access Token
+  # -- If true, create CRDs for Clousmith Access Token
   createCloudsmithAccessToken: true
-  # -- If true, create CRDs for Ecr Authorization Token
+  # -- If true, create CRDs for ECR Authorization Token
   createECRAuthorizationToken: true
   # -- If true, create CRDs for Fake
   createFake: true
-  # -- If true, create CRDs for Gcr Access Token
+  # -- If true, create CRDs for GCR Access Token
   createGCRAccessToken: true
   # -- If true, create CRDs for Generator State. If set to false you must also set processGeneratorState: false.
   createGeneratorState: true
-  # -- If true, create CRDs for Github Access Token
-  createGithubAccessToken: true
+  # -- If true, create CRDs for GitHub Access Token
+  createGitHubAccessToken: true
   # -- If true, create CRDs for Grafana
   createGrafana: true
-  # -- If true, create CRDs for Mfa
+  # -- If true, create CRDs for MFA
   createMFA: true
   # -- If true, create CRDs for Password
   createPassword: true
   # -- If true, create CRDs for Quay Access Token
   createQuayAccessToken: true
-  # -- If true, create CRDs for Ssh Key
+  # -- If true, create CRDs for SSH Key
   createSSHKey: true
-  # -- If true, create CRDs for Sts Session token
+  # -- If true, create CRDs for STS Session token
   createSTSSessionToken: true
-  # -- If true, create CRDs for Uuid
+  # -- If true, create CRDs for UUID
   createUUID: true
   # -- If true, create CRDs for Vault Dynamic Secret
   createVaultDynamicSecret: true

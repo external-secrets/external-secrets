@@ -321,7 +321,7 @@
                 "createGeneratorState": {
                     "type": "boolean"
                 },
-                "createGithubAccessToken": {
+                "createGitHubAccessToken": {
                     "type": "boolean"
                 },
                 "createGrafana": {
