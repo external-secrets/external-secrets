@@ -38,7 +38,8 @@ var (
 )
 
 type fakeAPI struct {
-	secrets []*server.Secret
+	secrets    []*server.Secret
+	secretsErr error
 }
 
 const (
@@ -56,6 +57,9 @@ func (f *fakeAPI) Secret(id int) (*server.Secret, error) {
 }
 
 func (f *fakeAPI) Secrets(searchText, _ string) ([]server.Secret, error) {
+	if f.secretsErr != nil {
+		return nil, f.secretsErr
+	}
 	// Match real SDK behavior: return ([]Secret{}, nil) for zero matches,
 	// NOT (nil, errNotFound). The real SDK's searchResources returns an empty
 	// SearchResult.Records slice and make([]Secret, 0).
@@ -844,13 +848,21 @@ func TestValidate(t *testing.T) {
 	assert.Equal(t, esv1.ValidationResultReady, result)
 }
 
+func TestValidateAPIError(t *testing.T) {
+	c := &client{api: &fakeAPI{secretsErr: errors.New("401 Unauthorized: invalid credentials")}}
+
+	result, err := c.Validate()
+	assert.Error(t, err)
+	assert.Equal(t, esv1.ValidationResultError, result)
+	assert.Contains(t, err.Error(), "failed to validate Secret Server credentials")
+}
+
 // TestValidateNilAPI tests the Validate functionality with nil API.
 func TestValidateNilAPI(t *testing.T) {
 	c := &client{api: nil}
 	result, err := c.Validate()
-	// Validate always succeeds and returns ValidationResultReady regardless of API state
-	assert.NoError(t, err)
-	assert.Equal(t, esv1.ValidationResultReady, result)
+	assert.Error(t, err)
+	assert.Equal(t, esv1.ValidationResultError, result)
 }
 
 // TestGetSecretMap tests the GetSecretMap functionality.
@@ -874,15 +886,14 @@ func TestGetSecretMap(t *testing.T) {
 			},
 			wantErr: false,
 		},
-		// The following test case expects an error because the secret with Key "9999"
-		// contains invalid JSON ("simulated error") which causes unmarshalling to fail
-		// in GetSecretMap, rather than because the secret is missing.
-		"error when secret not found": {
+		"successfully retrieve non-JSON data field map": {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "9999",
 			},
-			want:    nil,
-			wantErr: true,
+			want: map[string][]byte{
+				"data": []byte("simulated error"),
+			},
+			wantErr: false,
 		},
 		"error when secret has nil fields": {
 			ref: esv1.ExternalSecretDataRemoteRef{
@@ -909,6 +920,25 @@ func TestGetSecretMap(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		"successfully retrieve multi-field template secret map": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: "4000",
+			},
+			want: map[string][]byte{
+				"username": []byte("usernamevalue"),
+				"password": []byte("passwordvalue"),
+			},
+			wantErr: false,
+		},
+		"successfully retrieve plain text field map": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: "5000",
+			},
+			want: map[string][]byte{
+				"content": []byte("non-json-secret-value"),
+			},
+			wantErr: false,
+		},
 	}
 
 	for name, tc := range testCases {
@@ -924,6 +954,56 @@ func TestGetSecretMap(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetSecretMapWithProperty(t *testing.T) {
+	ctx := context.Background()
+	c := &client{api: &fakeAPI{secrets: []*server.Secret{
+		{
+			ID:   1000,
+			Name: "json-secret",
+			Fields: []server.SecretField{
+				{
+					FieldName: "Data",
+					Slug:      "data",
+					ItemValue: `{"credentials":{"username":"alice","password":"secret"},"server":"example.com"}`,
+				},
+			},
+		},
+		{
+			ID:   2000,
+			Name: "multi-field-secret",
+			Fields: []server.SecretField{
+				{FieldName: "Username", Slug: "username", ItemValue: "bob"},
+				{FieldName: "Password", Slug: "password", ItemValue: "secret"},
+			},
+		},
+	}}}
+
+	t.Run("extracts JSON object property with existing gjson behavior", func(t *testing.T) {
+		got, err := c.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{
+			Key:      "1000",
+			Property: "credentials",
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{
+			"username": []byte("alice"),
+			"password": []byte("secret"),
+		}, got)
+	})
+
+	t.Run("returns a single field map for scalar properties", func(t *testing.T) {
+		got, err := c.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{
+			Key:      "2000",
+			Property: "username",
+		})
+
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{
+			"username": []byte("bob"),
+		}, got)
+	})
 }
 
 // TestGetSecretMapInvalidJSON tests GetSecretMap with invalid JSON in secret.
