@@ -52,8 +52,15 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		}
 	}
 
+	if prov.Auth.Cert != nil {
+		err := validateCertStore(store, *prov.Auth.Cert)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// At least one auth must be configured
-	if prov.Auth.APIKey == nil && prov.Auth.Jwt == nil {
+	if prov.Auth.APIKey == nil && prov.Auth.Jwt == nil && prov.Auth.Cert == nil {
 		return nil, errors.New("missing Auth.* configuration")
 	}
 
@@ -99,5 +106,28 @@ func validateJWTStore(store esv1.GenericStore, auth esv1.ConjurJWT) error {
 			return fmt.Errorf("invalid Auth.Jwt.ServiceAccountRef: %w", err)
 		}
 	}
+	return nil
+}
+
+func validateCertStore(store esv1.GenericStore, auth esv1.ConjurCert) error {
+	if auth.Account == "" {
+		return errors.New("missing Auth.Cert.Account")
+	}
+	if auth.ServiceID == "" {
+		return errors.New("missing Auth.Cert.ServiceID")
+	}
+	if auth.ClientCertRef == nil {
+		return errors.New("missing Auth.Cert.ClientCertRef")
+	}
+	if err := esutils.ValidateReferentSecretSelector(store, *auth.ClientCertRef); err != nil {
+		return fmt.Errorf("invalid Auth.Cert.ClientCertRef: %w", err)
+	}
+	if auth.ClientKeyRef == nil {
+		return errors.New("missing Auth.Cert.ClientKeyRef")
+	}
+	if err := esutils.ValidateReferentSecretSelector(store, *auth.ClientKeyRef); err != nil {
+		return fmt.Errorf("invalid Auth.Cert.ClientKeyRef: %w", err)
+	}
+
 	return nil
 }
