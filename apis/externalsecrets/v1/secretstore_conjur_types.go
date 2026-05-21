@@ -46,6 +46,10 @@ type ConjurAuth struct {
 	// Jwt enables JWT authentication using Kubernetes service account tokens.
 	// +optional
 	Jwt *ConjurJWT `json:"jwt,omitempty"`
+
+	// Cert enables certificate-based authentication using a client certificate and key.
+	// +optional
+	Cert *ConjurCert `json:"cert,omitempty"`
 }
 
 // ConjurAPIKey contains references to a Secret resource that holds
@@ -85,4 +89,24 @@ type ConjurJWT struct {
 	// a token for with the `TokenRequest` API.
 	// +optional
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+}
+
+// ConjurCert defines the Cert authentication configuration for Conjur provider.
+type ConjurCert struct {
+	// Account is the Conjur organization account name.
+	Account string `json:"account"`
+
+	// The conjur authn cert webservice id
+	ServiceID string `json:"serviceID"`
+
+	// Optional HostID for cert authentication (can be omitted when using 'spiffe' mode).
+	HostID string `json:"hostId,omitempty"`
+
+	// ClientCertRef is a reference to a specific 'key' containing the client certificate
+	// within a Secret resource. The certificate must be PEM-encoded.
+	ClientCertRef *esmeta.SecretKeySelector `json:"clientCertRef"`
+
+	// ClientKeyRef is a reference to a specific 'key' containing the private RSA client key
+	// within a Secret resource. The key must be PEM-encoded.
+	ClientKeyRef *esmeta.SecretKeySelector `json:"clientKeyRef"`
 }

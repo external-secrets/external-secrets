@@ -80,6 +80,35 @@ func TestValidateStore(t *testing.T) {
 			store: makeNoAuthSecretStore(svcURL),
 			err:   errors.New("missing Auth.* configuration"),
 		},
+
+		{
+			store: makeCertSecretStore(svcURL, certServiceID, "", svcAccount),
+			err:   nil,
+		},
+		{
+			store: makeCertSecretStore(svcURL, certServiceID, "myhostid", svcAccount),
+			err:   nil,
+		},
+		{
+			store: makeCertSecretStore("", certServiceID, "", svcAccount),
+			err:   errors.New("conjur URL cannot be empty"),
+		},
+		{
+			store: makeCertSecretStore(svcURL, "", "", svcAccount),
+			err:   errors.New("missing Auth.Cert.ServiceID"),
+		},
+		{
+			store: makeCertSecretStore(svcURL, certServiceID, "", ""),
+			err:   errors.New("missing Auth.Cert.Account"),
+		},
+		{
+			store: makeCertSecretStoreWithMissingRefs(svcURL, certServiceID, svcAccount, true, false),
+			err:   errors.New("missing Auth.Cert.ClientKeyRef"),
+		},
+		{
+			store: makeCertSecretStoreWithMissingRefs(svcURL, certServiceID, svcAccount, false, true),
+			err:   errors.New("missing Auth.Cert.ClientCertRef"),
+		},
 	}
 	p := Provider{}
 	for _, tc := range testCases {
