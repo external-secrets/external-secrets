@@ -35,7 +35,7 @@ import (
 const (
 	// API version header for BeyondTrust Workload Credentials.
 	apiVersionHeader = "bt-secrets-api-version"
-	apiVersion       = "2026-02-16"
+	apiVersion       = "2026-04-28"
 
 	// Default timeout for HTTP requests.
 	defaultTimeout = 30 * time.Second
@@ -154,17 +154,7 @@ func (c *Client) CheckSession(ctx context.Context) error {
 	}
 
 	if resp.StatusCode == http.StatusOK {
-		var sessionResp struct {
-			Valid bool `json:"valid"`
-		}
-		if err := json.Unmarshal(body, &sessionResp); err != nil {
-			return fmt.Errorf("failed to unmarshal session check response: %w", err)
-		}
-
-		if !sessionResp.Valid {
-			return fmt.Errorf("session is not valid")
-		}
-
+		// HTTP 200 indicates a valid session
 		return nil
 	}
 
@@ -252,7 +242,7 @@ func (c *Client) GetSecrets(ctx context.Context, folderPath *string, recursive b
 	if resp.StatusCode == http.StatusOK {
 		var listResp struct {
 			Data  []btwcutil.KVListItem `json:"data"`
-			Error string               `json:"error,omitempty"`
+			Error string                `json:"error,omitempty"`
 		}
 		if err := json.Unmarshal(body, &listResp); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal list response: %w", err)
