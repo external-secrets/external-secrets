@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 // Package httpclient provides an HTTP client for interacting with BeyondTrust Workload Credentials API.
+// API Documentation: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
 package httpclient
 
 import (
@@ -33,6 +34,9 @@ import (
 )
 
 const (
+	// API documentation URL.
+	apiDocsURL = "https://docs.beyondtrust.com/bt-docs/docs/secrets-api"
+
 	// API version header for BeyondTrust Workload Credentials.
 	apiVersionHeader = "bt-secrets-api-version"
 	apiVersion       = "2026-04-28"
@@ -376,7 +380,7 @@ func parseError(body []byte, statusCode int, path string) error {
 		if msg.Len() > 0 {
 			return &APIError{
 				StatusCode: statusCode,
-				Message:    fmt.Sprintf("API error (HTTP %d): %s at path %q", statusCode, msg.String(), path),
+				Message:    fmt.Sprintf("API error (HTTP %d): %s at path %q (see %s)", statusCode, msg.String(), path, apiDocsURL),
 				Path:       path,
 			}
 		}
@@ -385,7 +389,7 @@ func parseError(body []byte, statusCode int, path string) error {
 	// Fallback error
 	return &APIError{
 		StatusCode: statusCode,
-		Message:    fmt.Sprintf("API error (HTTP %d): unexpected response at path %q", statusCode, path),
+		Message:    fmt.Sprintf("API error (HTTP %d): unexpected response at path %q (see %s)", statusCode, path, apiDocsURL),
 		Path:       path,
 	}
 }

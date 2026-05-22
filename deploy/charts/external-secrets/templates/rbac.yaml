@@ -274,6 +274,7 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    - "beyondtrustworkloadcredentialsdynamicsecrets"
     - "cloudsmithaccesstokens"
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
@@ -290,7 +291,6 @@ rules:
     - "grafanas"
     - "generatorstates"
     - "mfas"
-    - "beyondtrustworkloadcredentialsdynamicsecrets"
     - "uuids"
     verbs:
       - "get"

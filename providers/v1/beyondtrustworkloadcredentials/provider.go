@@ -313,9 +313,9 @@ func validateSiteID(siteID string) error {
 		return fmt.Errorf("siteId cannot be empty")
 	}
 
-	// UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-	// More lenient: accepts any UUID format
-	uuidPattern := `^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`
+	// Validate UUID v4 format: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+	// Where y is one of [8, 9, a, b] (RFC 4122 variant bits)
+	uuidPattern := `^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$`
 	matched, err := regexp.MatchString(uuidPattern, siteID)
 	if err != nil {
 		return fmt.Errorf("failed to validate siteId format: %w", err)

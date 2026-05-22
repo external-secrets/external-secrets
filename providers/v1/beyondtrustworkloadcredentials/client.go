@@ -35,8 +35,14 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
-// ErrMsgNotImplemented is the error message for unimplemented methods.
-const ErrMsgNotImplemented = "not implemented: %s"
+const (
+	// ErrMsgNotImplemented is the error message for unimplemented methods.
+	ErrMsgNotImplemented = "not implemented: %s"
+
+	// validationTimeout is the timeout for SecretStore validation operations (network check and session validation).
+	// Set to 15 seconds to balance between allowing sufficient time for API responses and failing fast on connectivity issues.
+	validationTimeout = 15 * time.Second
+)
 
 // Client implements the SecretsClient interface for BeyondTrust Secrets.
 type Client struct {
@@ -64,14 +70,13 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 		return esv1.ValidationResultError, fmt.Errorf("base URL is not configured")
 	}
 
-	timeout := 15 * time.Second
 	clientURL := baseURL.String()
-	if err := esutils.NetworkValidate(clientURL, timeout); err != nil {
+	if err := esutils.NetworkValidate(clientURL, validationTimeout); err != nil {
 		return esv1.ValidationResultError, err
 	}
 
 	// Validate authentication by checking session
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	ctx, cancel := context.WithTimeout(context.Background(), validationTimeout)
 	defer cancel()
 
 	if err := c.beyondtrustWorkloadCredentialsClient.CheckSession(ctx); err != nil {
