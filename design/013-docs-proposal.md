@@ -8,15 +8,10 @@ status: draft
 
 # Docs refactor proposal
 
-## Table of Contents
-
-<!-- toc -->
-// autogen please
-<!-- /toc -->
-
-
 ## Summary
-This proposal is recycling _all docs proposals_ into a coherent proposal to improve the state of the docs for External Secrets
+
+This proposal is creating a combined "master plan" to improve the state of External Secrets' documentation.
+It is a combination of my previous docs proposals into a coherent plan, with actionable steps.
 
 ## Motivation
 
@@ -29,82 +24,176 @@ I have noticed over time that a large amount of questions about external secrets
 
 This is all related to documentation in a broad sense, regardless of the media (website, slack).
 
-Next to this, the undocumented decisions and unclear documentation architecture prevent us to use tools (like LLMs) to automate some content writing.
+Next to this, the undocumented decisions and unclear structure prevent us to use tools to automate some content authoring.
 
 ### Goals
 
-This proposal aims to provide a clear path about the list of changes to introduce to improve our documentation state.
+This proposal aims to provide a clear path about what and how to change our documentation.
+This will make the core team more efficient and improve the quality of our project at each contribution.
+
+By the end of this proposal:
+
+- we will have a clear followable website that can differentiate between docs such as adopters, projects ( reloader, eso )
+- people will be able to find clear information on current state of the project and its maintained versions, including about the provider's features
+- a website that does not require tons of maintenance in the long run
+- people find the information they are looking for without relying on LLMs, with a persona based website (contribution guide, security best practices, manager guide, ... ) 
+- Marketing material to help us promote us to new maturity level from the CNCF perspective
 
 ### Non-Goals
 
-This does not go as far as refactoring our whole code base, while it impacts _ALL CODE WHICH COULD HAVE GENERATED DOCUMENTATION_.
+This is mostly focused on ESO and its website, and does not cover the documentation of other sub-projects, like the CLI and reloader.
 
 ## Proposal
 
-### Stage 1: New multi-project website
+### Step 1 (Optional): New multi-project website
 
 Create a simple, single-page landing site for external-secrets.io inspired by [kured.dev](https://kured.dev/) or cilium's.
 The landing page will provide a clear value proposition, key features, and direct users to the documentation.
-The existing documentation from each will be accessible as the top level docs.
+
+The documentation from each sub-project will be accessible as the top level docs.
 Releases needs to be listed directly as a top level docs.
+Community links common to all projects will also be a top level document.
 
-If possible, use kubernetes ecosystem tools, like hugo+docsy.
-No server side solution is to be added.
+#### Actual implementation
 
-This will improve our attractiveness and introduce the start of a new "multi-project" documentation architecture.
-It will introduce the first steps of documentation release management too.
+The current kubernetes ecosystem is focused on hugo + docsy.
+This website will make use of hugo+docsy to "feel" similar to other CNCF projects.
 
-Example iteration: https://github.com/evrardj-roche/external-secrets-website
+It is worth noting that docsy is really made for 1 project and its versions.
+In our case, we want a coherent documentation across projects (CLI/reloader/ESO), so it means we will need to customize docsy to our needs.
 
-### Stage 2: Introduce clear documentation architecture: Adapted diataxis
+Amongst the notable changes, we will need to adapt the build process, the JS and the templates to support our search cases.
+This was discussed on our slack channel: We want to be able to have a coherent search in the _current_ version of the sub-project's doc + _stable_ version of the other subproject's docs.
+No online search service can be used, and the local search has to be used.
+Due to our large history of versions, we need to efficiently build a local cache for search.
 
-Now that a website is created, we need to make sure the information is browsable, searchable, but also practical for the users.
-This is the biggest pain point to solve.
+You can find a demo on https://github.com/evrardj-roche/external-secrets-website
 
-However, as https://github.com/external-secrets/external-secrets/pull/5822 has listed, this effort is massive.
+#### Acceptance criteria
 
-Without this stage, we will not be able to decide _where_ and _how_ to write content.
-Diataxis is _one solution_ that we can easily adapt to fit our needs.
+The criteria for success of step 1 is to actually use this new website as front page of https://external-secrets.io.
+This will improve our attractiveness and introduce our "multi-project" documentation architecture, raising visibility to reloader or our CLI.
 
-ONE SOLUTION IS BETTER THAN NONE.
+#### Side-effects
 
-In this case, I want to adapt diataxis by relying on its 4 types of documentation as top level doc of each project.
-However, many people like the ESO's Provider documentation, so I suggest to have a 5th top level documentation: the how-to of each provider.
+We will need to adapt our release management process to this new website building pipeline.
+This has to be done before moving to the next step.
 
-### Stage 3: Add the ability to adapt docs using an LLM (optional)
+### Step 2: Agree on a documentation architecture in a community meeting
 
-While https://github.com/external-secrets/external-secrets/pull/5822 intended to do it manually, this proposal
-is adapting its opinion to rely on tools like LLM to generate content.
+The step 1 will make our website more visible but it will also highlight that our content architecture is difficult to browse or unnatural to follow.
+People currently know how to add a provider, but our overall architecture is hard to follow. The documentation in each provider starts to become unreadable, and the other sections abandonned.
+This results in a poorly designed and hard to follow documentation.
 
-With a good architecture described in our docs website, we can rely on _skills_ or similar tools to help us (re)write our documetation.
+The personas are not clear and therefore the content is hard to follow. If you felt "Am I supposed to read this?" while browsing ESO docs, this is what this step is intending to fix.
 
-This is totally optional.
+A long term effort to improve the documentation needs to be started on solid foundations. This step is defining the ground of the architecture of the documentation for the future.
 
-### Stage 4: Introduce governance around features stability and their documentation
+#### Actual implementation
+
+As there is no content architect available in our community, I am proposing to use an existing framework instead, allowing us to "stand on the shoulder of giants" to establish a systematic approach to our documentation.
+Diataxis (https://www.diataxis.fr) is what I propose.
+
+Diataxis brings a systematic approach to technical documentation authoring.
+It allows humans (or bots!) to write in a systematic and standardized fashion.
+This improves the documentation IN THE LONG term.
+
+The _structure_ of the documentation does NOT need to change on day 1.
+The _way we write_ our documentation needs adapting starting at that step 2.
+
+#### Acceptance criteria
+
+- We have a community meeting decision about the _personas_ that will be used in the architecture of our documentation (not the structure, but the readers!).
+- We have a CI tool that will help us guarantee that the documentation is written in a correct fashion by ensuring new documentation is always split by persona.
+- Have a series of LLM skills that can help our developers write the documentation according to our ways
+
+#### Side-effects
+
+At this point, each project's documentation will start to spread into multiple documents:
+
+- Introduction
+- API
+- Guides (contributor focused, operator focused)
+- Providers
+- Examples/How-tos (deployer focused?)
+- Reference (security focused)
+- Tutorials (deployer focused?)
+- Explanations
+
+This is fine and will eventually be cleaned up in the long term.
+
+### Step 3 (Optional): Accelerate the adaptation of our documentation based on these new foundations
+
+JP mentioned in https://github.com/external-secrets/external-secrets/pull/5822 that rewriting ALL the content in one go is a massive effort.
+In this step, we can decide to accelerate or not the effort to adapt our current documentation.
+
+#### Actual implementation
+
+One or multiple persons can become volunteers for docs rewrite.
+
+#### Acceptance criteria
+
+- All our existing pages have been rewritten for their audience;
+- The structure of the project's documentation is simplified to a minimum set of high level items (For example: Providers/Guides/How-tos/Reference/Tutorials).
+
+#### Side-effects
+
+We cannot know in advance the structure of the final documentation, it will only show up by doing the work.
+We cannot use that for the next steps.
+
+### Step 4: Clarify governance around features stability and their documentation
 
 We had conversations in our #external-secrets-dev slack channel, asking "When is X going out of beta" or "Is X supported?".
 The support matrix is not clearly well understood as there is no governance about it.
 
-This stage intends to clarify the governance around feature introduction, stability, and general lifecycle in our `policy.md`
+This step aims to have a documented and autoritative answer over what is alpha/beta/stable level for a feature/provider.
 
-### Stage 5: Automatically generate parts of the documentation from our codebase.
+#### Actual implementation
 
-Based on the stage 4 policy, we can now generate parts of documentation directly in each provider.
+JP proposes a PR clarifying the lifecycle of the features.
+We discuss this in the PR and we raise awareness in a community meeting.
+
+We can hold a meeting to clarify the lifecycle of the features.
+
+#### Acceptance criteria
+
+- We have documented and merged this policy change.
+
+#### Side-effects
+
+Some implementations might be promoted/demoted in terms of maturity. This might have a morale impact.
+
+### Step 5: Automatically generate lifecycle events in our documentation, from our codebase.
+
+Based on the stage 4 policy, we could now generate parts of documentation directly in each provider!
+
+The idea is the following: Each provider's code contain the data necessary to generate the documentation of their feature support/maturity status.
+We already have parts necessary for that (see below).
+
+#### Actual implementation
 
 You can find a PoC that was abandonned here: https://github.com/evrardj-roche/external-secrets/commits/feature-flags/ .
-This part also deprecates a previous design proposal: https://github.com/external-secrets/external-secrets/blob/81078c9ab6a7cf2ddbd0fe5856188a120e09e87a/design/014-feature-flag-consolidation.md
 
 The idea here is the following:
 
 - We move all providers to register into a central registry (containing features, flags, ...)
-- The central registry can be imported from the docs perspective to generate a markdown file with a support matrix.
-- The whole code needs to clean up to adapt to providers patterns we decided for "v2" and future plugin extraction.
+- The central registry can be imported from the docs perspective (I used a separate go client for that, which allows loading modules) to generate a markdown file with a support matrix.
+- Each call to generate the documentation would improve the latest unreleased documentation with an updated information based on policy.
+
+#### Acceptance criteria
+
+- No docs for feature support in manually generated;
+- We have updated CI to prevent manual edition of the feature matrix.
+
+#### Side-effects
+
+This part also deprecates a previous design proposal: https://github.com/external-secrets/external-secrets/blob/81078c9ab6a7cf2ddbd0fe5856188a120e09e87a/design/014-feature-flag-consolidation.md
 
 ### User Stories
 
 - As a user, I want to know to configure X, docs are not clear so far
-- As a new maintainer, I want to know how to triage X, I don't know where to find accurate information on the website.
-- As a developer, I want to know whether I can update the code and the support matrix without impacting other providers.
+- As an advocate, I want to know what ESO does (to share it with my org), without having to rely on an LLM to search the information I need.
+- As a new contributor, I want to know how to contribute in a "story" fashion: How to triage effectively, how to setup my environment... This is distributed or outdated in our website/contributing docs.
 
 ### API
 
@@ -112,7 +201,7 @@ No API change.
 
 ### Behavior
 
-No user behaviour change. Many changes of code are however introduced at step 1 and 5.
+No user behaviour change.
 
 ### Drawbacks
 
@@ -120,9 +209,8 @@ None.
 
 ### Acceptance Criteria
 
-You tell me :)
+Please read each step.
 
 ## Alternatives
 
 Do not do anything and suffer in our docs.
-
