@@ -30,10 +30,14 @@ type PrivxProvider struct {
 	Auth *PrivXAuth `json:"auth,omitempty"`
 
 	// DefaultReadRoles are used upon pushing new secrets to PrivX to set read access.
-	DefaultReadRoles []string `json:"defaultReadRoles"`
+	// Only required when using PushSecret.
+	// +optional
+	DefaultReadRoles []string `json:"defaultReadRoles,omitempty"`
 
 	// DefaultWriteRoles are used upon pushing new secrets to PrivX to set write access.
-	DefaultWriteRoles []string `json:"defaultWriteRoles"`
+	// Only required when using PushSecret.
+	// +optional
+	DefaultWriteRoles []string `json:"defaultWriteRoles,omitempty"`
 }
 
 // PrivXAuth contains the information needed for authentication towards PrivX.
@@ -43,7 +47,7 @@ type PrivXAuth struct {
 	// OAuth is the OAuth2 authentication option
 	OAuth *PrivXOAuth `json:"oauth,omitempty"`
 
-	// JWTPublicKey contains a public key in PEM format for signing the JWT
+	// JWTAuth configures JWT-based authentication using a signing key.
 	JWTAuth *PrivxJWTAuth `json:"jwtAuth,omitempty"`
 }
 
@@ -55,13 +59,17 @@ type PrivXOAuth struct {
 	ApiClientSecretRef esmeta.SecretKeySelector `json:"apiClientSecretRef"`
 }
 
-// PrivxJWTAuth contains the information needed for authentication with explicit public key.
+// PrivxJWTAuth contains the information needed for JWT-based authentication.
 type PrivxJWTAuth struct {
-	// PublicKeyRef contains a public key in PEM format for signing the JWT
+	// PublicKeyRef references a Kubernetes Secret containing the PEM-encoded private key
+	// used for signing the JWT. The corresponding public key must be configured in PrivX
+	// for signature verification.
+	// Note: Despite the field name, this must contain the private (signing) key.
 	PublicKeyRef esmeta.SecretKeySelector `json:"publicKeyRef"`
 
+	// Iss is the issuer claim — must match the issuer configured in PrivX's External Token Authentication.
 	Iss string `json:"iss"`
 
-	// Sub must match a user name in PrivX
+	// Sub must match a user name resolvable in the PrivX user directory.
 	Sub string `json:"sub"`
 }

@@ -133,96 +133,59 @@ func privxAuth(
 	namespace string,
 	privxSpec *esv1.PrivxProvider,
 ) (privxapi.Authorizer, error) {
+	if privxSpec.Auth != nil && privxSpec.Auth.OAuth != nil {
+		return privxAuthOAuth(ctx, kube, namespace, privxSpec)
+	}
+	return privxAuthJWT(ctx, kube, namespace, privxSpec)
+}
+
+// privxAuthOAuth authenticates using OAuth2 API client credentials.
+func privxAuthOAuth(
+	ctx context.Context,
+	kube kclient.Client,
+	namespace string,
+	privxSpec *esv1.PrivxProvider,
+) (privxapi.Authorizer, error) {
 	auth := privxapi.New(
 		privxapi.BaseURL(privxSpec.Host),
 	)
 
-	if privxSpec.Auth != nil &&
-		privxSpec.Auth.OAuth != nil {
-		// OAuth tokens given, use them
-
-		// apiClientIdRef:
-		// privx_api_client_id
-
-		clientID, err := readSecretValue(
-			ctx,
-			kube,
-			namespace,
-			privxSpec.Auth.OAuth.ApiClientIDRef,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		// apiClientSecretRef:
-		// privx_api_client_secret
-		clientSecret, err := readSecretValue(
-			ctx,
-			kube,
-			namespace,
-			privxSpec.Auth.OAuth.ApiClientSecretRef,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		// clientIdRef:
-		// privx_api_oauth_client_id
-		oAuthAccess, err := readSecretValue(
-			ctx,
-			kube,
-			namespace,
-			privxSpec.Auth.OAuth.ClientIDRef,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		// clientSecretRef:
-		// privx_api_oauth_client_secret
-		oAuthSecret, err := readSecretValue(
-			ctx,
-			kube,
-			namespace,
-			privxSpec.Auth.OAuth.ClientSecretRef,
-		)
-		if err != nil {
-			return nil, err
-		}
-
-		return oauth.With(
-			auth,
-			oauth.Access(clientID),
-			oauth.Secret(clientSecret),
-			oauth.Digest(oAuthAccess, oAuthSecret),
-		), nil
+	clientID, err := readSecretValue(ctx, kube, namespace, privxSpec.Auth.OAuth.ApiClientIDRef)
+	if err != nil {
+		return nil, err
 	}
 
-	var token string
-	var err error
-	if privxSpec.Auth != nil &&
-		privxSpec.Auth.JWTAuth != nil {
-		// JWT public key given, use it to sign a JWT
-		// This is needed for PrivX 43 and earlier.
-		token, err = createSignedJWT(
-			ctx,
-			kube,
-			namespace,
-			privxSpec.Auth.JWTAuth.PublicKeyRef,
-			privxSpec.Auth.JWTAuth.Iss,
-			privxSpec.Auth.JWTAuth.Sub,
-			privxSpec.Host,
-			15*time.Minute,
-			map[string]any{},
-			// PrivX seems to expect a domain claim
-			// map[string]any{"domain": "privx-service"},
-		)
-	} else {
-		// No OAuth tokens, no public key, use JWT with Kubernetes signature
-		// PrivX 44 or later
-		// "may not specify a duration less than 10 minutes"
-		token, err = getAudienceJWTFromPod(ctx, privxSpec.Host, 15*time.Minute)
+	clientSecret, err := readSecretValue(ctx, kube, namespace, privxSpec.Auth.OAuth.ApiClientSecretRef)
+	if err != nil {
+		return nil, err
 	}
+
+	oAuthAccess, err := readSecretValue(ctx, kube, namespace, privxSpec.Auth.OAuth.ClientIDRef)
+	if err != nil {
+		return nil, err
+	}
+
+	oAuthSecret, err := readSecretValue(ctx, kube, namespace, privxSpec.Auth.OAuth.ClientSecretRef)
+	if err != nil {
+		return nil, err
+	}
+
+	return oauth.With(
+		auth,
+		oauth.Access(clientID),
+		oauth.Secret(clientSecret),
+		oauth.Digest(oAuthAccess, oAuthSecret),
+	), nil
+}
+
+// privxAuthJWT authenticates using a signed JWT token exchanged for a PrivX access token.
+func privxAuthJWT(
+	ctx context.Context,
+	kube kclient.Client,
+	namespace string,
+	privxSpec *esv1.PrivxProvider,
+) (privxapi.Authorizer, error) {
+	token, err := obtainJWTToken(ctx, kube, namespace, privxSpec)
 	if err != nil {
 		return nil, err
 	}
@@ -233,7 +196,7 @@ func privxAuth(
 		return nil, fmt.Errorf("failed to decode JWT: %w", err)
 	}
 	logger := log.FromContext(ctx)
-	logger.Info("JWT token", "claims", decoded)
+	logger.V(1).Info("JWT token", "claims", decoded)
 
 	// Then exchange the token for a PrivX token
 	req := ExchangeTokenRequest{Token: token}
@@ -244,6 +207,31 @@ func privxAuth(
 
 	logTokenResponse(logger, tokenResponse)
 	return oauth.WithToken("Bearer " + tokenResponse.AccessToken), nil
+}
+
+// obtainJWTToken creates a signed JWT using either an explicit key or a Kubernetes service account token.
+func obtainJWTToken(
+	ctx context.Context,
+	kube kclient.Client,
+	namespace string,
+	privxSpec *esv1.PrivxProvider,
+) (string, error) {
+	if privxSpec.Auth != nil && privxSpec.Auth.JWTAuth != nil {
+		// JWT private key given, use it to sign a JWT (PrivX 43 and earlier)
+		return createSignedJWT(
+			ctx,
+			kube,
+			namespace,
+			privxSpec.Auth.JWTAuth.PublicKeyRef,
+			privxSpec.Auth.JWTAuth.Iss,
+			privxSpec.Auth.JWTAuth.Sub,
+			privxSpec.Host,
+			15*time.Minute,
+			map[string]any{},
+		)
+	}
+	// No OAuth tokens, no explicit key — use Kubernetes service account JWT (PrivX 44+)
+	return getAudienceJWTFromPod(ctx, privxSpec.Host, 15*time.Minute)
 }
 
 // privxAPI creates a working PrivX API connection from information in the Store specification.
@@ -284,8 +272,12 @@ func newRealClient(
 	kube kclient.Client,
 	namespace string,
 ) (esv1.SecretsClient, error) {
+	spec := store.GetSpec()
+	if spec == nil || spec.Provider == nil || spec.Provider.PrivX == nil {
+		return nil, ErrNoStoreAuth{Field: "spec.provider.privx"}
+	}
 
-	config := store.GetSpec().Provider.PrivX
+	config := spec.Provider.PrivX
 	conn, err := privxAPI(ctx, kube, namespace, config)
 	if err != nil {
 		return nil, err

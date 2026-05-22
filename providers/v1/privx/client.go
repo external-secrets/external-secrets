@@ -196,6 +196,11 @@ func (c *SecretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRem
 func (c *SecretsClient) Validate() (esv1.ValidationResult, error) {
 	_, err := c.GetSecret(context.TODO(), esv1.ExternalSecretDataRemoteRef{Key: "2F0vZqCe0Z3XU5"})
 
+	if err == nil {
+		// The probe secret unexpectedly exists, but connectivity is confirmed.
+		return esv1.ValidationResultReady, nil
+	}
+
 	if isNotFound(err) {
 		// We requested a non-existing secret and this is the proper response from PrivX -- all ok.
 		return esv1.ValidationResultReady, nil
@@ -213,6 +218,9 @@ func (c *SecretsClient) GetSecretMap(
 	ctx context.Context,
 	ref esv1.ExternalSecretDataRemoteRef,
 ) (map[string][]byte, error) {
+	if err := c.validateNamespaceAccess(); err != nil {
+		return nil, err
+	}
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -395,7 +403,12 @@ func namespaceMatchesCondition(namespace string, condition esv1.ClusterSecretSto
 // with no conditions are always allowed. For ClusterSecretStores with conditions,
 // the requesting namespace must match at least one condition.
 func (c *SecretsClient) validateNamespaceAccess() error {
-	if c.store == nil || c.store.GetKind() != esv1.ClusterSecretStoreKind {
+	if c.store == nil {
+		return nil
+	}
+
+	// Use type assertion to reliably detect ClusterSecretStore regardless of TypeMeta.Kind being set.
+	if _, isCluster := c.store.(*esv1.ClusterSecretStore); !isCluster {
 		return nil
 	}
 

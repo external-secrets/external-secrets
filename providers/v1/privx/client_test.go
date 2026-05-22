@@ -1050,6 +1050,96 @@ func TestNamespaceBypass_GetAllSecrets_NamespaceRegex(t *testing.T) {
 	assert.Nil(t, got, "no secrets should be returned when namespace does not match regex")
 }
 
+// TestNamespaceBypass_GetSecretMap_NamespaceList tests that GetSecretMap rejects
+// cross-namespace access when a ClusterSecretStore has namespace conditions
+// restricting access to "prod" only, but the requesting namespace is "dev".
+func TestNamespaceBypass_GetSecretMap_NamespaceList(t *testing.T) {
+	store := &esv1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ClusterSecretStore",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "privx-cluster-store",
+		},
+		Spec: esv1.SecretStoreSpec{
+			Conditions: []esv1.ClusterSecretStoreCondition{
+				{
+					Namespaces: []string{"prod"},
+				},
+			},
+		},
+	}
+
+	c := &SecretsClient{
+		vault: &fakeVaultClient{
+			getSecretFn: func(secretName string) (*vault.Secret, error) {
+				data := map[string]any{"password": "super-secret-value"}
+				return &vault.Secret{
+					SecretRequest: vault.SecretRequest{
+						Data: &data,
+					},
+				}, nil
+			},
+		},
+		store:     store,
+		namespace: "dev",
+	}
+
+	got, err := c.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{
+		Key: "db-password",
+	})
+
+	require.Error(t, err, "GetSecretMap should reject cross-namespace access from namespace 'dev' when only 'prod' is allowed")
+	assert.Contains(t, err.Error(), "cross-namespace access denied",
+		"error should indicate cross-namespace access is denied")
+	assert.Nil(t, got, "no secret data should be returned when namespace is not permitted")
+}
+
+// TestNamespaceBypass_GetSecretMap_NamespaceRegex tests that GetSecretMap rejects
+// cross-namespace access when a ClusterSecretStore has namespace regex conditions
+// restricting access to "^prod-.*" only, but the requesting namespace is "dev-team".
+func TestNamespaceBypass_GetSecretMap_NamespaceRegex(t *testing.T) {
+	store := &esv1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ClusterSecretStore",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "privx-cluster-store-regex",
+		},
+		Spec: esv1.SecretStoreSpec{
+			Conditions: []esv1.ClusterSecretStoreCondition{
+				{
+					NamespaceRegexes: []string{"^prod-.*"},
+				},
+			},
+		},
+	}
+
+	c := &SecretsClient{
+		vault: &fakeVaultClient{
+			getSecretFn: func(secretName string) (*vault.Secret, error) {
+				data := map[string]any{"api-key": "secret-api-key-123"}
+				return &vault.Secret{
+					SecretRequest: vault.SecretRequest{
+						Data: &data,
+					},
+				}, nil
+			},
+		},
+		store:     store,
+		namespace: "dev-team",
+	}
+
+	got, err := c.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{
+		Key: "api-credentials",
+	})
+
+	require.Error(t, err, "GetSecretMap should reject cross-namespace access from namespace 'dev-team' when only '^prod-.*' regex is allowed")
+	assert.Contains(t, err.Error(), "cross-namespace access denied",
+		"error should indicate cross-namespace access is denied")
+	assert.Nil(t, got, "no secret data should be returned when namespace does not match regex")
+}
+
 func TestAnyToBytes(t *testing.T) {
 	tests := map[string]struct {
 		input   any
