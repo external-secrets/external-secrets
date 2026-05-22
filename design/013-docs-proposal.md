@@ -64,7 +64,7 @@ The new site is live at https://external-secrets.io, replacing the current landi
 
 #### Side-effects
 
-The release management pipeline must be updated to build and publish the new site. This must be complete before starting Step 2.
+The release management pipeline must be updated to build and publish the new site. This must be complete before starting Step 2 (should we decide to go with Step 1).
 
 ### Step 2: Agree on a documentation architecture in a community meeting
 
@@ -73,13 +73,13 @@ The current content architecture has no defined personas, no enforced structure 
 We adopt Diataxis (https://www.diataxis.fr) as the basis for content framework. Diataxis defines four documentation modes (tutorials, how-tos, explanation, reference) and **maps each to a reader goal**. It does not require a dedicated content architect to enforce.
 
 The content/pages hierarchy does not change on day 1. The writing process changes immediately.
-Important note: The hierachy might not map (sensu stricto) to Diataxis, it will depend on reader goals/personas.
+Important note: The hierarchy might not map (sensu stricto) to Diataxis, it will depend on reader goals/personas.
 
 #### Actual implementation
 
 1. Run a community meeting to agree on the reader personas for ESO documentation.
 2. Add a CI check that enforces documentation updates are separated by persona (one file per persona-scoped section).
-3. Publish a set of LLM-based writing skills to help contributors write to **our** adapated Diataxis layout.
+3. Publish a set of LLM-based writing skills to help contributors write to **our** adapted Diataxis layout.
 
 #### Acceptance criteria
 
@@ -160,7 +160,7 @@ No API change.
 
 ### Behavior
 
-No user behavior change.
+No ESO API/runtime behavior change. Cosmetic and user experience changes only.
 
 ### Drawbacks
 
