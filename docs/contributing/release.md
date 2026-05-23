@@ -33,8 +33,8 @@ To reduce toil and ensure consistency across releases, the External Secrets proj
 We chose this hybrid approach of automation plus a "human touch" for three main reasons:
 
 1. **Less maintenance burden** — Contributors should not have to update multiple places (PR description and a CHANGELOG file). The release workflow gathers PRs into categories automatically, making the changelog a natural by-product.
-2. **GitHub is the source of truth** — Our `CHANGELOG.md` mirrors what GitHub generates. Keeping a single source of truth avoids drift.
-3. **Human Quality Control** — The automation generates a *baseline draft* based on PR labels and titles. Before any release is finalized, maintainers review this draft to rewrite confusing titles, highlight `⚠️ Breaking Changes`, and ensure the overall quality and readability of the release notes.
+2. **Automated Pull Requests** — Instead of forcing commits to the repository, our CI workflow fetches the generated release notes and automatically opens a Pull Request against `main`. This keeps our git history clean and respects branch protections.
+3. **Human Quality Control** — The automation generates a *baseline draft* based on PR labels and titles. Before the changelog PR is merged, maintainers review this draft to rewrite confusing titles, highlight `⚠️ Breaking Changes`, and ensure the overall quality and readability of the release notes.
 
 > **Note:** Breaking changes require manual writing. While we automate the gathering and categorization, the context of each release note comes from the PR body. Contributors must write clear upgrade notes for any breaking change.
 
@@ -88,12 +88,13 @@ When doing a release it's best to start with the ["Create Release" issue templat
 Otherwise the `latest` documentation will point to the older version. Also avoid to release both versions at the same time to avoid race conditions in the CI pipeline (updating docs, GitHub Release, helm chart release).
 
 1. Make sure the [stability & support page](https://external-secrets.io/latest/introduction/stability-support/) is up to date. The new version should be listed in the version table before proceeding with the release.
-1. Make sure there is no pending CI jobs running. This is to avoid promoting a stale image to a new version (we need to rely on _existing_ pushed images for release).
-1. Run `Create Release` Action to create a new release, pass in the desired version number to release.
+2. Make sure there is no pending CI jobs running. This is to avoid promoting a stale image to a new version (we need to rely on _existing_ pushed images for release).
+3. Run `Create Release` Action to create a new release, pass in the desired version number to release.
     1. choose the right `branch` to execute the action: use `main` when creating a new release.
     2. ⚠️ make sure that CI on the relevant branch has completed the docker build/push jobs. Otherwise an old image will be promoted.
-2. GitHub Release, Changelog will be created by the `release.yml` workflow which also promotes the container image.
-3. update Helm Chart, see below
+4. GitHub Release will be created by the `release.yml` workflow which also promotes the container image.
+5. ⚠️ **Changelog PR:** The workflow will automatically open a new Pull Request to update the `CHANGELOG.md` file. Maintainers must review, edit if necessary, and merge this PR to complete the changelog update.
+6. update Helm Chart, see below
 
 ## Release Helm Chart
 

@@ -90,19 +90,32 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: make docs.publish DOCS_ALIAS=latest
 
-      - name: Update CHANGELOG
+      - name: Create CHANGELOG PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ github.event.inputs.version }}
           GH_REPO: ${{ github.repository }}
         run: |
-          RELEASE_BODY=$(gh api repos/${GH_REPO}/releases/tags/${VERSION} --jq '.body')
+          # Get the release notes from the created release using GitHub CLI
+          gh api repos/${GH_REPO}/releases/tags/${VERSION} --jq '.body' > release_body.txt
+          
+          # Update CHANGELOG.md with the new release notes
           DATE=$(date +%Y-%m-%d)
-          NEW_ENTRY="## [${VERSION}] - ${DATE}\n\n${RELEASE_BODY}\n\n---\n\n"
-          echo -e "${NEW_ENTRY}$(cat CHANGELOG.md)" > CHANGELOG.md
+          echo -e "## [${VERSION}] - ${DATE}\n\n$(cat release_body.txt)\n\n---\n\n$(cat CHANGELOG.md)" > CHANGELOG.md
+          
+          # Create a new branch, commit the updated CHANGELOG.md, and push it to the repository
+          BRANCH_NAME="changelog-update-${VERSION}"
+          git checkout -b $BRANCH_NAME
           git add CHANGELOG.md
-          git diff --cached --quiet || git commit -m "chore(release): update CHANGELOG for ${VERSION} [skip ci]"
-          git push origin HEAD:main
+          git commit -m "docs(release): update CHANGELOG for ${VERSION}"
+          git push origin $BRANCH_NAME
+          
+          # Open a Pull Request using GitHub CLI
+          gh pr create \
+            --title "docs(release): update CHANGELOG for ${VERSION}" \
+            --body "Automated PR to update the \`CHANGELOG.md\` with the latest release notes from ${VERSION}." \
+            --base main \
+            --label "area/documentation"
 
   promote:
     name: Promote Container Image
