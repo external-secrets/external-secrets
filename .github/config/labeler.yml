@@ -25,7 +25,3 @@ security:
 - any:
   - changed-files:
     - any-glob-to-any-file: ['**/security/**', '.github/workflows/**']
-breaking-change:
-- any:
-  - changed-files:
-    - any-glob-to-any-file: ['apis/**/*.go']

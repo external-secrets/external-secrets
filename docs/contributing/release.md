@@ -48,7 +48,7 @@ The `.github/release.yml` file defines the mapping. The category a PR falls into
 
 | Label(s) | Category in release notes | When to use |
 |----------|---------------------------|-----|
-| `breaking-change` | **⚠️ Breaking Changes / Urgent Upgrade Notes** | API changes, removed fields, changed upgrade behavior. The labeler auto-suggests this for PRs touching `apis/` — always review. |
+| `breaking-change` | **⚠️ Breaking Changes / Urgent Upgrade Notes** | API changes, removed fields, changed upgrade behavior. This label must be added manually to PRs that introduce breaking changes. |
 | `kind/feature`, `kind/improvement` | 🚀 Features & Improvements | New functionality or improvements from the user's perspective. |
 | `kind/bug` | 🐛 Bug Fixes | Bug fixes, not just code bugs but also configs or infrastructure that were wrong. |
 | `area/documentation` | 📖 Documentation | Docs-only changes. |
