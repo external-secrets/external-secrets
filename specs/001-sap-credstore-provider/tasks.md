@@ -32,8 +32,8 @@ New module root: `providers/v1/sapcredentialstore/`
 
 **Purpose**: Create the Go module skeleton and directory structure before any code is written.
 
-- [ ] T001 Create `providers/v1/sapcredentialstore/` directory structure: top-level, `api/`, and `fake/` subdirectories
-- [ ] T002 Create `providers/v1/sapcredentialstore/go.mod` with module path `github.com/external-secrets/external-secrets/providers/v1/sapcredentialstore`, Go version `1.26.3`, and `replace` directives for `apis` and `runtime` pointing at `../../../apis` and `../../../runtime`
+- [x] T001 Create `providers/v1/sapcredentialstore/` directory structure: top-level, `api/`, and `fake/` subdirectories
+- [x] T002 Create `providers/v1/sapcredentialstore/go.mod` with module path `github.com/external-secrets/external-secrets/providers/v1/sapcredentialstore`, Go version `1.26.3`, and `replace` directives for `apis` and `runtime` pointing at `../../../apis` and `../../../runtime`
 
 ---
 
@@ -44,14 +44,14 @@ can be implemented. All user story phases depend on this phase.
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Create `apis/externalsecrets/v1/secretstore_sapcredentialstore_types.go` with `SAPCredentialStoreProvider`, `SAPCSAuth`, `SAPCSOAuth2Auth`, and `SAPCSMTLSAuth` structs exactly as defined in `specs/001-sap-credstore-provider/data-model.md`, including all `+kubebuilder` markers
-- [ ] T004 Add `SAPCredentialStore *SAPCredentialStoreProvider \`json:"sapCredentialStore,omitempty"\`` field to the `SecretStoreProvider` struct in `apis/externalsecrets/v1/secretstore_types.go`, following the alphabetical or existing ordering of provider fields
+- [x] T003 Create `apis/externalsecrets/v1/secretstore_sapcredentialstore_types.go` with `SAPCredentialStoreProvider`, `SAPCSAuth`, `SAPCSOAuth2Auth`, and `SAPCSMTLSAuth` structs exactly as defined in `specs/001-sap-credstore-provider/data-model.md`, including all `+kubebuilder` markers
+- [x] T004 Add `SAPCredentialStore *SAPCredentialStoreProvider \`json:"sapCredentialStore,omitempty"\`` field to the `SecretStoreProvider` struct in `apis/externalsecrets/v1/secretstore_types.go`, following the alphabetical or existing ordering of provider fields
 - [ ] T005 Run `make generate` from the repository root to regenerate `apis/externalsecrets/v1/zz_generated.deepcopy.go` and `config/crds/bases/external-secrets.io_secretstores.yaml`; confirm the new types appear in both files without errors
-- [ ] T006 [P] Create `providers/v1/sapcredentialstore/api/types.go` with `Credential`, `CredentialMeta`, and `CredentialBody` structs as defined in `specs/001-sap-credstore-provider/data-model.md`
-- [ ] T007 Create `providers/v1/sapcredentialstore/api/client.go` with the `SAPCSClientInterface` interface (`GetCredential`, `ListCredentials`, `PutCredential`, `DeleteCredential`, `CredentialExists`) and the `httpClient` struct implementing it — OAuth2 transport via `golang.org/x/oauth2/clientcredentials`; mTLS via `crypto/tls` `tls.Config` with `InsecureSkipVerify: false`
-- [ ] T008 [P] Create `providers/v1/sapcredentialstore/fake/fake.go` with `FakeClient` struct implementing `SAPCSClientInterface` with configurable per-method functions (matching the doppler fake pattern in `providers/v1/doppler/fake/fake.go`)
-- [ ] T009 [P] Capture consistency constraints, documentation touchpoints, and performance validation approach from `specs/001-sap-credstore-provider/plan.md`
-- [ ] T010 [P] Verify security and compliance gate from `specs/001-sap-credstore-provider/plan.md`: confirm no credential logging paths exist, TLS configurations are valid (`InsecureSkipVerify` absent), no new RBAC rules are introduced, and new dependencies in `providers/v1/sapcredentialstore/go.mod` are CVE-clean
+- [x] T006 [P] Create `providers/v1/sapcredentialstore/api/types.go` with `Credential`, `CredentialMeta`, and `CredentialBody` structs as defined in `specs/001-sap-credstore-provider/data-model.md`
+- [x] T007 Create `providers/v1/sapcredentialstore/api/client.go` with the `SAPCSClientInterface` interface (`GetCredential`, `ListCredentials`, `PutCredential`, `DeleteCredential`, `CredentialExists`) and the `httpClient` struct implementing it — OAuth2 transport via `golang.org/x/oauth2/clientcredentials`; mTLS via `crypto/tls` `tls.Config` with `InsecureSkipVerify: false`
+- [x] T008 [P] Create `providers/v1/sapcredentialstore/fake/fake.go` with `FakeClient` struct implementing `SAPCSClientInterface` with configurable per-method functions (matching the doppler fake pattern in `providers/v1/doppler/fake/fake.go`)
+- [x] T009 [P] Capture consistency constraints, documentation touchpoints, and performance validation approach from `specs/001-sap-credstore-provider/plan.md`
+- [x] T010 [P] Verify security and compliance gate from `specs/001-sap-credstore-provider/plan.md`: confirm no credential logging paths exist, TLS configurations are valid (`InsecureSkipVerify` absent), no new RBAC rules are introduced, and new dependencies in `providers/v1/sapcredentialstore/go.mod` are CVE-clean
 
 **Checkpoint**: Foundation ready — API types generated, HTTP client and fake implemented, security gate verified. User story phases can now begin.
 
@@ -71,17 +71,17 @@ either OAuth2 or mTLS authentication.
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation (T013–T017)**
 
-- [ ] T011 [P] [US1] Write integration tests in `providers/v1/sapcredentialstore/client_test.go` using `httptest.NewServer` to mock the SAP CS REST API: cover `GetSecret` for all three credential types (`password`, `key`, `certificate`), the `certificate/key` property sub-field, and OAuth2 path — confirm all tests FAIL before T014 is implemented
-- [ ] T012 [P] [US1] Write unit tests in `providers/v1/sapcredentialstore/provider_test.go` for `ValidateStore`: cover missing `serviceURL`, missing `namespace`, neither auth mode set, both auth modes set, missing `tokenURL` for OAuth2, missing ref fields for mTLS — confirm all tests FAIL before T013 is implemented
+- [x] T011 [P] [US1] Write integration tests in `providers/v1/sapcredentialstore/client_test.go` using `httptest.NewServer` to mock the SAP CS REST API: cover `GetSecret` for all three credential types (`password`, `key`, `certificate`), the `certificate/key` property sub-field, and OAuth2 path — confirm all tests FAIL before T014 is implemented
+- [x] T012 [P] [US1] Write unit tests in `providers/v1/sapcredentialstore/provider_test.go` for `ValidateStore`: cover missing `serviceURL`, missing `namespace`, neither auth mode set, both auth modes set, missing `tokenURL` for OAuth2, missing ref fields for mTLS — confirm all tests FAIL before T013 is implemented
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Implement `Provider` struct in `providers/v1/sapcredentialstore/provider.go`: `Capabilities()` returning `SecretStoreReadWrite`, `ValidateStore()` enforcing all rules from `data-model.md` validation table, `NewClient()` resolving auth secrets via `resolvers.SecretKeyRef`, building `*httpClient` with OAuth2 transport or mTLS `tls.Config`, and `Close()` stub — add compile-time assertion `var _ esv1.Provider = &Provider{}`
-- [ ] T014 [US1] Implement `Client.GetSecret()` in `providers/v1/sapcredentialstore/client.go`: parse `ref.Property` to determine credential type (default `password`), call `api.GetCredential`, route to correct field (`value` or `key` for `certificate/key`), wrap 404 response as `esv1.NoSecretError`, emit `metrics.ObserveAPICall("sapCredentialStore", "GetCredential", err)` — add compile-time assertion `var _ esv1.SecretsClient = &Client{}`
-- [ ] T015 [US1] Implement `Client.GetSecretMap()` in `providers/v1/sapcredentialstore/client.go`: call `api.GetCredential`, return all non-metadata fields as `map[string][]byte` (`name`, `value`, `username` if non-empty, `key` if non-empty)
-- [ ] T016 [US1] Implement `Client.Validate()` (call `api.GetCredential` on a known path or return `ValidationResultUnknown`) and `Client.Close()` (no-op) in `providers/v1/sapcredentialstore/client.go`
-- [ ] T017 [US1] Create `pkg/register/sapcredentialstore.go` with build tag `//go:build sapcredentialstore || all_providers` and `init()` calling `esv1.Register(sapcredstore.NewProvider(), sapcredstore.ProviderSpec(), sapcredstore.MaintenanceStatus())`
-- [ ] T018 [P] [US1] Create `docs/provider/sap-credential-store.md` with the provider guide: `SecretStore` setup (OAuth2 and mTLS variants), `ExternalSecret` examples for all three credential types and `certificate/key` sub-field, troubleshooting table from `specs/001-sap-credstore-provider/quickstart.md`
+- [x] T013 [US1] Implement `Provider` struct in `providers/v1/sapcredentialstore/provider.go`: `Capabilities()` returning `SecretStoreReadWrite`, `ValidateStore()` enforcing all rules from `data-model.md` validation table, `NewClient()` resolving auth secrets via `resolvers.SecretKeyRef`, building `*httpClient` with OAuth2 transport or mTLS `tls.Config`, and `Close()` stub — add compile-time assertion `var _ esv1.Provider = &Provider{}`
+- [x] T014 [US1] Implement `Client.GetSecret()` in `providers/v1/sapcredentialstore/client.go`: parse `ref.Property` to determine credential type (default `password`), call `api.GetCredential`, route to correct field (`value` or `key` for `certificate/key`), wrap 404 response as `esv1.NoSecretError`, emit `metrics.ObserveAPICall("sapCredentialStore", "GetCredential", err)` — add compile-time assertion `var _ esv1.SecretsClient = &Client{}`
+- [x] T015 [US1] Implement `Client.GetSecretMap()` in `providers/v1/sapcredentialstore/client.go`: call `api.GetCredential`, return all non-metadata fields as `map[string][]byte` (`name`, `value`, `username` if non-empty, `key` if non-empty)
+- [x] T016 [US1] Implement `Client.Validate()` (call `api.GetCredential` on a known path or return `ValidationResultUnknown`) and `Client.Close()` (no-op) in `providers/v1/sapcredentialstore/client.go`
+- [x] T017 [US1] Create `pkg/register/sapcredentialstore.go` with build tag `//go:build sapcredentialstore || all_providers` and `init()` calling `esv1.Register(sapcredstore.NewProvider(), sapcredstore.ProviderSpec(), sapcredstore.MaintenanceStatus())`
+- [x] T018 [P] [US1] Create `docs/provider/sap-credential-store.md` with the provider guide: `SecretStore` setup (OAuth2 and mTLS variants), `ExternalSecret` examples for all three credential types and `certificate/key` sub-field, troubleshooting table from `specs/001-sap-credstore-provider/quickstart.md`
 
 **Checkpoint**: US1 fully functional and independently testable. Apply `SecretStore` + `ExternalSecret` and verify `SecretSynced` status.
 
@@ -100,14 +100,14 @@ Credential Store with the correct type and value.
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation (T020–T022)**
 
-- [ ] T019 [P] [US2] Write integration tests in `providers/v1/sapcredentialstore/client_test.go` using `httptest.NewServer`: cover `PushSecret` creation, `PushSecret` update, `DeleteSecret`, `SecretExists` returning true and false, and credential type routing (property → credType) — confirm all tests FAIL before T020 is implemented
+- [x] T019 [P] [US2] Write integration tests in `providers/v1/sapcredentialstore/client_test.go` using `httptest.NewServer`: cover `PushSecret` creation, `PushSecret` update, `DeleteSecret`, `SecretExists` returning true and false, and credential type routing (property → credType) — confirm all tests FAIL before T020 is implemented
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Implement `Client.PushSecret()` in `providers/v1/sapcredentialstore/client.go`: extract credential name from `data.GetRemoteKey()`, type from `data.GetProperty()` (default `password`), value from the source Kubernetes Secret, call `api.PutCredential`, emit metrics
-- [ ] T021 [US2] Implement `Client.DeleteSecret()` in `providers/v1/sapcredentialstore/client.go`: call `api.DeleteCredential` with the type and name from `remoteRef`; respect ESO `deletionPolicy` convention (only delete when called by the controller)
-- [ ] T022 [US2] Implement `Client.SecretExists()` in `providers/v1/sapcredentialstore/client.go`: call `api.CredentialExists` (HEAD request); return `(false, nil)` on 404, `(true, nil)` on 200, and `(false, err)` on other errors
-- [ ] T023 [P] [US2] Update `docs/provider/sap-credential-store.md` to add `PushSecret` usage section, credential type mapping table, and deletion policy notes
+- [x] T020 [US2] Implement `Client.PushSecret()` in `providers/v1/sapcredentialstore/client.go`: extract credential name from `data.GetRemoteKey()`, type from `data.GetProperty()` (default `password`), value from the source Kubernetes Secret, call `api.PutCredential`, emit metrics
+- [x] T021 [US2] Implement `Client.DeleteSecret()` in `providers/v1/sapcredentialstore/client.go`: call `api.DeleteCredential` with the type and name from `remoteRef`; respect ESO `deletionPolicy` convention (only delete when called by the controller)
+- [x] T022 [US2] Implement `Client.SecretExists()` in `providers/v1/sapcredentialstore/client.go`: call `api.CredentialExists` (HEAD request); return `(false, nil)` on 404, `(true, nil)` on 200, and `(false, err)` on other errors
+- [x] T023 [P] [US2] Update `docs/provider/sap-credential-store.md` to add `PushSecret` usage section, credential type mapping table, and deletion policy notes
 
 **Checkpoint**: US1 and US2 both independently functional and testable.
 
@@ -127,12 +127,12 @@ all credentials keyed as `password/name`, `key/name`, `certificate/name`.
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation (T025)**
 
-- [ ] T024 [P] [US3] Write integration tests in `providers/v1/sapcredentialstore/client_test.go` using `httptest.NewServer`: cover `GetAllSecrets` with mixed credential types, empty namespace (expect empty map, no error), and correct `<type>/<name>` key formatting — confirm tests FAIL before T025 is implemented
+- [x] T024 [P] [US3] Write integration tests in `providers/v1/sapcredentialstore/client_test.go` using `httptest.NewServer`: cover `GetAllSecrets` with mixed credential types, empty namespace (expect empty map, no error), and correct `<type>/<name>` key formatting — confirm tests FAIL before T025 is implemented
 
 ### Implementation for User Story 3
 
-- [ ] T025 [US3] Implement `Client.GetAllSecrets()` in `providers/v1/sapcredentialstore/client.go`: iterate over `credTypePassword`, `credTypeKey`, `credTypeCertificate`; for each type call `api.ListCredentials` then `api.GetCredential` for each item; return combined `map[string][]byte` keyed as `"<type>/<name>"` with the credential's primary `value`; emit metrics per `ListCredentials` call
-- [ ] T026 [P] [US3] Update `docs/provider/sap-credential-store.md` to add `dataFrom` bulk-sync section with example manifest and explanation of `<type>/<name>` key format
+- [x] T025 [US3] Implement `Client.GetAllSecrets()` in `providers/v1/sapcredentialstore/client.go`: iterate over `credTypePassword`, `credTypeKey`, `credTypeCertificate`; for each type call `api.ListCredentials` then `api.GetCredential` for each item; return combined `map[string][]byte` keyed as `"<type>/<name>"` with the credential's primary `value`; emit metrics per `ListCredentials` call
+- [x] T026 [P] [US3] Update `docs/provider/sap-credential-store.md` to add `dataFrom` bulk-sync section with example manifest and explanation of `<type>/<name>` key format
 
 **Checkpoint**: All three user stories independently functional and testable.
 
@@ -143,8 +143,8 @@ all credentials keyed as `password/name`, `key/name`, `certificate/name`.
 **Purpose**: Validate correctness across all stories, consistency with repo conventions, and security compliance.
 
 - [ ] T027 [P] Run `go test ./...` from `providers/v1/sapcredentialstore/` and confirm zero test failures
-- [ ] T028 Cross-story consistency review in `providers/v1/sapcredentialstore/`: verify all `metrics.ObserveAPICall` calls use `"sapCredentialStore"` as provider name, all error messages follow `fmt.Errorf("context: %w", err)` format, and all status condition Reason strings match patterns used in `providers/v1/infisical/` and `providers/v1/doppler/`
-- [ ] T029 Security hardening and compliance audit: grep `providers/v1/sapcredentialstore/` for any logging of `Credential.Value` or auth secret values; confirm `InsecureSkipVerify` is absent from all `tls.Config` uses; confirm `pkg/register/sapcredentialstore.go` introduces no new RBAC rules
+- [x] T028 Cross-story consistency review in `providers/v1/sapcredentialstore/`: verify all `metrics.ObserveAPICall` calls use `"sapCredentialStore"` as provider name, all error messages follow `fmt.Errorf("context: %w", err)` format, and all status condition Reason strings match patterns used in `providers/v1/infisical/` and `providers/v1/doppler/`
+- [x] T029 Security hardening and compliance audit: grep `providers/v1/sapcredentialstore/` for any logging of `Credential.Value` or auth secret values; confirm `InsecureSkipVerify` is absent from all `tls.Config` uses; confirm `pkg/register/sapcredentialstore.go` introduces no new RBAC rules
 - [ ] T030 [P] Run `make generate` from repository root to confirm `apis/externalsecrets/v1/zz_generated.deepcopy.go` and CRD YAML reflect the final API types with no uncommitted diffs
 - [ ] T031 Run quickstart.md validation steps (`specs/001-sap-credstore-provider/quickstart.md`) against the implementation: apply all example manifests and verify each success criterion from spec.md SC-001 through SC-005 is met
 

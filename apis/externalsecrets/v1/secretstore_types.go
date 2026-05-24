@@ -227,6 +227,11 @@ type SecretStoreProvider struct {
 	// NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider
 	// +optional
 	NebiusMysterybox *NebiusMysteryboxProvider `json:"nebiusmysterybox,omitempty"`
+
+	// SAPCredentialStore configures this store to sync secrets using the
+	// SAP Credential Store provider on SAP Business Technology Platform.
+	// +optional
+	SAPCredentialStore *SAPCredentialStoreProvider `json:"sapCredentialStore,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.
