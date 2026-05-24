@@ -117,7 +117,7 @@ jobs:
           key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
-      - uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v3
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v3
 
       - name: Configure AWS Credentials
         uses: aws-actions/configure-aws-credentials@d979d5b3a71173a29b74b5b88418bfda9437d885
@@ -204,7 +204,7 @@ jobs:
           key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
-      - uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v3
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v3
 
       - name: Authenticate to Google Cloud
         uses: 'google-github-actions/auth@fc2174804b84f912b1f6d334e9463f484f1c552d' # v3
@@ -299,7 +299,7 @@ jobs:
           key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
-      - uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v3
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v3
 
       - name: Azure CLI login
         uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43
