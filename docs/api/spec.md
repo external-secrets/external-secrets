@@ -292,6 +292,37 @@ SecretsManager
 </tr>
 <tr>
 <td>
+<code>sessionTagsPolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.SessionTagsPolicy">
+SessionTagsPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SessionTagsPolicy controls whether and how STS session tags are added when assuming roles.
+None (default): no tags are added.
+Simple: automatically adds esoNamespace (from the ExternalSecret), esoStoreName, and esoStoreKind tags.
+Custom: adds esoNamespace, esoStoreName, and esoStoreKind plus any tags defined in CustomSessionTags.
+Note: the IAM role must have sts:TagSession permission when using Simple or Custom.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>customSessionTags</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CustomSessionTags defines additional STS session tags to include when SessionTagsPolicy is Custom.
+These are merged with the automatically injected esoNamespace, esoStoreName, and esoStoreKind tags.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>prefix</code></br>
 <em>
 string
@@ -5772,6 +5803,22 @@ credential_source.url in the provided credConfig. This field is merely to double
 URL is having the expected value.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>gcpServiceAccountEmail</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>GCPServiceAccountEmail is the email of the Google Cloud service account to impersonate
+after Workload Identity Federation. Use this to grant access through the service account&rsquo;s
+IAM bindings (for example roles/secretmanager.secretAccessor). When set, it overrides
+service_account_impersonation_url in the external account JSON from credConfig;
+when serviceAccountRef is set, it also overrides the &ldquo;iam.gke.io/gcp-service-account&rdquo; annotation
+on that ServiceAccount.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.GcpIDTokenAuthCredentials">GcpIDTokenAuthCredentials
@@ -8835,6 +8882,110 @@ string
 <p>
 <p>Provider is a common interface for interacting with secret backends.</p>
 </p>
+<h3 id="external-secrets.io/v1.PulumiAuth">PulumiAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.PulumiProvider">PulumiProvider</a>)
+</p>
+<p>
+<p>PulumiAuth configures authentication with the Pulumi API.
+Exactly one of accessToken or oidcConfig must be specified.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessToken</code></br>
+<em>
+<a href="#external-secrets.io/v1.PulumiProviderSecretRef">
+PulumiProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AccessToken authenticates using a Pulumi access token stored in a Kubernetes Secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidcConfig</code></br>
+<em>
+<a href="#external-secrets.io/v1.PulumiOIDCAuth">
+PulumiOIDCAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDCConfig authenticates using Kubernetes ServiceAccount tokens via OIDC.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.PulumiOIDCAuth">PulumiOIDCAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.PulumiAuth">PulumiAuth</a>)
+</p>
+<p>
+<p>PulumiOIDCAuth configures OIDC authentication with Pulumi using Kubernetes ServiceAccount tokens.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>organization</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Organization is the name of the Pulumi organization configured for OIDC authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountRef specifies the Kubernetes ServiceAccount to use for authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expirationSeconds</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExpirationSeconds sets the token validity duration for service account and OIDC token.
+Defaults to 10 minutes.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.PulumiProvider">PulumiProvider
 </h3>
 <p>
@@ -8865,15 +9016,17 @@ string
 </tr>
 <tr>
 <td>
-<code>accessToken</code></br>
+<code>auth</code></br>
 <em>
-<a href="#external-secrets.io/v1.PulumiProviderSecretRef">
-PulumiProviderSecretRef
+<a href="#external-secrets.io/v1.PulumiAuth">
+PulumiAuth
 </a>
 </em>
 </td>
 <td>
-<p>AccessToken is the access tokens to sign in to the Pulumi Cloud Console.</p>
+<em>(Optional)</em>
+<p>Auth configures how the Operator authenticates with the Pulumi API.
+Either auth or the deprecated accessToken field must be specified.</p>
 </td>
 </tr>
 <tr>
@@ -8913,12 +9066,28 @@ and other Pulumi ESC environments.
 To create a new environment, visit <a href="https://www.pulumi.com/docs/esc/environments/">https://www.pulumi.com/docs/esc/environments/</a> for more information.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>accessToken</code></br>
+<em>
+<a href="#external-secrets.io/v1.PulumiProviderSecretRef">
+PulumiProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AccessToken is the access tokens to sign in to the Pulumi Cloud Console.</p>
+<p>Deprecated: Use auth.accessToken instead.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.PulumiProviderSecretRef">PulumiProviderSecretRef
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1.PulumiAuth">PulumiAuth</a>, 
 <a href="#external-secrets.io/v1.PulumiProvider">PulumiProvider</a>)
 </p>
 <p>
@@ -10525,6 +10694,35 @@ bool
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.SessionTagsPolicy">SessionTagsPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.AWSProvider">AWSProvider</a>)
+</p>
+<p>
+<p>SessionTagsPolicy defines how STS session tags are handled.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Custom&#34;</p></td>
+<td><p>SessionTagsPolicyCustom adds the tags defined in CustomSessionTags in addition to
+the esoNamespace, esoStoreName, and esoStoreKind tags.</p>
+</td>
+</tr><tr><td><p>&#34;None&#34;</p></td>
+<td><p>SessionTagsPolicyNone is the default behavior - no session tags are added.</p>
+</td>
+</tr><tr><td><p>&#34;Simple&#34;</p></td>
+<td><p>SessionTagsPolicySimple automatically adds esoNamespace, esoStoreName, and esoStoreKind
+session tags.</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.StoreGeneratorSourceRef">StoreGeneratorSourceRef
 </h3>

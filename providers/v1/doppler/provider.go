@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"sync"
 
 	"github.com/spf13/pflag"
 	"k8s.io/client-go/kubernetes"
@@ -54,6 +55,7 @@ var (
 	oidcClientCache      *cache.Cache[esv1.SecretsClient]
 	defaultOIDCCacheSize = 2 << 17
 	defaultETagCacheSize = 1 << 14
+	oidcCacheOnce        sync.Once
 )
 
 func init() {
@@ -88,9 +90,11 @@ func init() {
 
 // Gating on enableCache to not enable cache out of the blue for new releases.
 func initOIDCCache(cacheSize int) {
-	if oidcClientCache == nil && cacheSize > 0 && enableCache {
-		oidcClientCache = cache.Must(cacheSize, func(_ esv1.SecretsClient) {
-			// No cleanup is needed when evicting OIDC clients from cache
+	if cacheSize > 0 && enableCache {
+		oidcCacheOnce.Do(func() {
+			oidcClientCache = cache.Must(cacheSize, func(_ esv1.SecretsClient) {
+				// No cleanup is needed when evicting OIDC clients from cache
+			})
 		})
 	}
 }
@@ -184,7 +188,7 @@ func (p *Provider) setupOIDCAuth(client *Client, dopplerStoreSpec *esv1.DopplerP
 		dopplerStoreSpec,
 		namespace,
 		store.GetObjectKind().GroupVersionKind().Kind,
-		store.GetObjectMeta().Name,
+		store.GetName(),
 	)
 
 	return nil
