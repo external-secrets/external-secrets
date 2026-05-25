@@ -51,10 +51,10 @@ The `.github/release.yml` file defines the mapping. The category a PR falls into
 | `breaking-change` | **⚠️ Breaking Changes / Urgent Upgrade Notes** | API changes, removed fields, changed upgrade behavior. This label must be added manually to PRs that introduce breaking changes. |
 | `kind/feature`, `kind/improvement` | 🚀 Features & Improvements | New functionality or improvements from the user's perspective. |
 | `kind/bug` | 🐛 Bug Fixes | Bug fixes, not just code bugs but also configs or infrastructure that were wrong. |
-| `area/documentation` | 📖 Documentation | Docs-only changes. |
+| `area/documentation`, `kind/documentation` | 📖 Documentation | Docs-only changes. |
 | `security` | 🔒 Security | Security-related fixes or advisories. |
 | `kind/chore`, `kind/refactor`, `kind/maintenance` | 🧹 Maintenance & Refactoring | Internal cleanup, refactoring, or maintenance tasks. |
-| `area/dependencies`, `dependencies` | Dependencies | Dependency updates. |
+| `area/dependencies`, `kind/dependencies`, `kind/dependency` | Dependencies | Dependency updates. |
 
 *Note: If a PR should not be included in the public changelog (e.g., a minor CI tweak), apply the `skip-changelog` label.*
 

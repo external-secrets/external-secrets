@@ -19,6 +19,7 @@ changelog:
         - kind/bug
     - title: "📖 Documentation"
       labels:
+        - kind/documentation
         - area/documentation
     - title: "🔒 Security"
       labels:
@@ -30,6 +31,8 @@ changelog:
         - kind/maintenance
     - title: Dependencies
       labels:
+        - kind/dependency
+        - kind/dependencies
         - area/dependencies
         - dependencies
     - title: General
@@ -41,10 +44,13 @@ changelog:
           - kind/feature
           - kind/improvement
           - kind/bug
+          - kind/documentation
           - area/documentation
           - security
           - kind/chore
           - kind/refactor
           - kind/maintenance
+          - kind/dependency
+          - kind/dependencies
           - area/dependencies
           - dependencies
