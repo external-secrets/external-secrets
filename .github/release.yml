@@ -13,7 +13,7 @@ changelog:
     - title: "🚀 Features & Improvements"
       labels:
         - kind/feature
-        - kind/improvement
+        - kind/performance
     - title: "🐛 Bug Fixes"
       labels:
         - kind/bug
@@ -21,6 +21,7 @@ changelog:
       labels:
         - kind/documentation
         - area/documentation
+        - kind/design
     - title: "🔒 Security"
       labels:
         - area/security
@@ -29,6 +30,8 @@ changelog:
         - kind/chore
         - kind/refactor
         - kind/maintenance
+        - kind/cleanup
+        - kind/testing
     - title: Dependencies
       labels:
         - kind/dependency
@@ -54,3 +57,7 @@ changelog:
           - kind/dependencies
           - area/dependencies
           - dependencies
+          - kind/performance
+          - kind/design
+          - kind/cleanup
+          - kind/testing
