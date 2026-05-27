@@ -16,7 +16,8 @@ env:
   IMAGE_NAME: ghcr.io/${{ github.repository }}
 
 permissions:
-  contents: read
+  contents: write
+  pull-requests: write
 
 jobs:
   release:
