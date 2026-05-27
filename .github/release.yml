@@ -23,7 +23,7 @@ changelog:
         - area/documentation
     - title: "🔒 Security"
       labels:
-        - security
+        - area/security
     - title: "🧹 Maintenance & Refactoring"
       labels:
         - kind/chore
@@ -46,7 +46,7 @@ changelog:
           - kind/bug
           - kind/documentation
           - area/documentation
-          - security
+          - area/security
           - kind/chore
           - kind/refactor
           - kind/maintenance

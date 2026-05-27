@@ -13,15 +13,7 @@ kind/documentation:
 - any:
   - changed-files:
     - any-glob-to-any-file: ['docs/**', 'examples/**']
-kind/feature:
-- any:
-  - head-branch: 'feat/*'
-  - head-branch: 'feature/*'
-kind/bug:
-- any:
-  - head-branch: 'fix/*'
-  - head-branch: 'bug/*'
-security:
+area/security:
 - any:
   - changed-files:
     - any-glob-to-any-file: ['**/security/**', '.github/workflows/**']
