@@ -18,7 +18,6 @@ package conjur
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -96,7 +95,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1
 	} else {
 		value, ok := secret.Data[key]
 		if !ok {
-			return errors.New("key not found")
+			return fmt.Errorf("key %q not found in source secret", key)
 		}
 		values[key] = string(value)
 		vars = append(vars, key)
@@ -107,7 +106,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1
 	property := ref.GetProperty()
 	i := strings.LastIndex(fqSecretName, "/")
 	if i == -1 {
-		return errors.New("Expected RemoteKey to contain a '/'")
+		return fmt.Errorf("expected RemoteKey (%q) to contain a '/'", fqSecretName)
 	}
 	if property != "" {
 		vars = []string{property}
@@ -119,7 +118,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1
 	// Also, any value that hasn't changed should be removed to avoid spurious updates
 	updateVars, err := checkSecrets(conjurClient, fqSecretName, vars, values, property, key)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check remote secrets: %w", err)
 	}
 
 	// Nothing to update
@@ -128,19 +127,19 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1
 	}
 	policy, err := conjurPolicy(policyName, updateVars)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to generate policy: %w", err)
 	}
 
 	_, err = conjurClient.LoadPolicy(conjurapi.PolicyModePost, parentPolicy, strings.NewReader(policy))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to load policy: %w", err)
 	}
 	// if we're not given a property, store all the secrets under the k8s secret key
 	if property == "" {
 		for _, k := range updateVars {
 			err = conjurClient.AddSecret(fmt.Sprintf("%s/%s", fqSecretName, k), values[k])
 			if err != nil {
-				return err
+				return fmt.Errorf("failed to store secret: %w", err)
 			}
 		}
 	}
@@ -148,17 +147,17 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1
 	if property != "" && key != "" {
 		err = conjurClient.AddSecret(fmt.Sprintf("%s/%s", fqSecretName, property), values[key])
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to store secret: %w", err)
 		}
 	} else if property != "" && key == "" {
 		// if we have a property, and all the k8s secret fields, store it as a json obj.
 		value, err := esutils.JSONMarshal(values)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to json encode secret: %w", err)
 		}
 		err = conjurClient.AddSecret(fmt.Sprintf("%s/%s", fqSecretName, property), string(value))
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to store secret: %w", err)
 		}
 	}
 	return nil
