@@ -317,6 +317,21 @@ serviceMonitor:
   #   replacement: $1
   #   action: replace
 
+  # -- Whether to scrape a classic histogram that is also exposed as a native histogram ("-" = do not set). Requires Prometheus Operator >= v0.65.0.
+  # @schema type: [boolean, string]
+  scrapeClassicHistograms: "-"
+
+  # -- Upper limit on the number of buckets for a single native histogram ("-" = do not set). Requires Prometheus Operator >= v0.65.0.
+  # @schema type: [integer, string]
+  nativeHistogramBucketLimit: "-"
+
+  # -- Minimum bucket factor for native histograms, e.g. "1.1" ("-" = do not set). Requires Prometheus Operator >= v0.71.0.
+  nativeHistogramMinBucketFactor: "-"
+
+  # -- Ordered list of accepted scrape protocols ("-" = do not set). Requires Prometheus Operator >= v0.68.0.
+  # @schema type: [array, string]
+  scrapeProtocols: "-"
+
 metrics:
 
   listen:
@@ -582,6 +597,18 @@ webhook:
       # -- Additional service annotations
       annotations: {}
 
+  serviceMonitor:
+    # -- Override .Values.serviceMonitor.scrapeClassicHistograms for the webhook ("-" = inherit)
+    # @schema type: [boolean, string]
+    scrapeClassicHistograms: "-"
+    # -- Override .Values.serviceMonitor.nativeHistogramBucketLimit for the webhook ("-" = inherit)
+    # @schema type: [integer, string]
+    nativeHistogramBucketLimit: "-"
+    # -- Override .Values.serviceMonitor.nativeHistogramMinBucketFactor for the webhook ("-" = inherit)
+    nativeHistogramMinBucketFactor: "-"
+    # -- Override .Values.serviceMonitor.scrapeProtocols for the webhook ("-" = inherit)
+    # @schema type: [array, string]
+    scrapeProtocols: "-"
 
   livenessProbe:
     enabled: false
@@ -757,6 +784,19 @@ certController:
 
       # -- Additional service annotations
       annotations: {}
+
+  serviceMonitor:
+    # -- Override .Values.serviceMonitor.scrapeClassicHistograms for the cert-controller ("-" = inherit)
+    # @schema type: [boolean, string]
+    scrapeClassicHistograms: "-"
+    # -- Override .Values.serviceMonitor.nativeHistogramBucketLimit for the cert-controller ("-" = inherit)
+    # @schema type: [integer, string]
+    nativeHistogramBucketLimit: "-"
+    # -- Override .Values.serviceMonitor.nativeHistogramMinBucketFactor for the cert-controller ("-" = inherit)
+    nativeHistogramMinBucketFactor: "-"
+    # -- Override .Values.serviceMonitor.scrapeProtocols for the cert-controller ("-" = inherit)
+    # @schema type: [array, string]
+    scrapeProtocols: "-"
 
   livenessProbe:
     enabled: false

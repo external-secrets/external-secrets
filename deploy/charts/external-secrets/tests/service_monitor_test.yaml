@@ -1,4 +1,8 @@
 suite: test service monitor
+# Coverage:
+#   Fields: scrapeClassicHistograms, nativeHistogramBucketLimit, nativeHistogramMinBucketFactor, scrapeProtocols
+#   Contracts: absent by default (backward-compat), global propagation to all 3 ServiceMonitors,
+#              per-component override, explicit false rendered (not omitted), string quoting for Quantity fields
 templates:
   - servicemonitor.yaml
 tests:
@@ -52,3 +56,136 @@ tests:
     asserts:
       - hasDocuments:
           count: 0
+
+  # Histogram fields: backward compatibility — absent by default so old CRD versions are unaffected
+  - it: should not render histogram fields by default
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: alwaysRender
+    asserts:
+      - notExists:
+          path: spec.endpoints[0].scrapeClassicHistograms
+        documentIndex: 0
+      - notExists:
+          path: spec.endpoints[0].nativeHistogramBucketLimit
+        documentIndex: 0
+      - notExists:
+          path: spec.endpoints[0].nativeHistogramMinBucketFactor
+        documentIndex: 0
+      - notExists:
+          path: spec.endpoints[0].scrapeProtocols
+        documentIndex: 0
+      - notExists:
+          path: spec.endpoints[0].scrapeClassicHistograms
+        documentIndex: 1
+      - notExists:
+          path: spec.endpoints[0].scrapeClassicHistograms
+        documentIndex: 2
+
+  # Histogram fields: global settings apply to all three ServiceMonitors
+  - it: should render histogram fields in all three ServiceMonitors when set globally
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: alwaysRender
+      serviceMonitor.scrapeClassicHistograms: true
+      serviceMonitor.nativeHistogramBucketLimit: 160
+      serviceMonitor.nativeHistogramMinBucketFactor: "1.1"
+      serviceMonitor.scrapeProtocols:
+        - PrometheusProto
+        - OpenMetricsText1.0.0
+    asserts:
+      - equal:
+          path: spec.endpoints[0].scrapeClassicHistograms
+          value: true
+        documentIndex: 0
+      - equal:
+          path: spec.endpoints[0].nativeHistogramBucketLimit
+          value: 160
+        documentIndex: 0
+      - equal:
+          path: spec.endpoints[0].nativeHistogramMinBucketFactor
+          value: "1.1"
+        documentIndex: 0
+      - equal:
+          path: spec.endpoints[0].scrapeProtocols
+          value:
+            - PrometheusProto
+            - OpenMetricsText1.0.0
+        documentIndex: 0
+      - equal:
+          path: spec.endpoints[0].scrapeClassicHistograms
+          value: true
+        documentIndex: 1
+      - equal:
+          path: spec.endpoints[0].scrapeClassicHistograms
+          value: true
+        documentIndex: 2
+
+  # Histogram fields: per-component override for webhook — global off, webhook on
+  - it: should use webhook override while controller and cert-controller inherit global
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: alwaysRender
+      webhook.serviceMonitor.scrapeClassicHistograms: true
+    asserts:
+      - notExists:
+          path: spec.endpoints[0].scrapeClassicHistograms
+        documentIndex: 0
+      - equal:
+          path: spec.endpoints[0].scrapeClassicHistograms
+          value: true
+        documentIndex: 1
+      - notExists:
+          path: spec.endpoints[0].scrapeClassicHistograms
+        documentIndex: 2
+
+  # Histogram fields: per-component override for cert-controller — global off, cert-controller on
+  - it: should use cert-controller override while controller and webhook inherit global
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: alwaysRender
+      certController.serviceMonitor.scrapeClassicHistograms: true
+    asserts:
+      - notExists:
+          path: spec.endpoints[0].scrapeClassicHistograms
+        documentIndex: 0
+      - notExists:
+          path: spec.endpoints[0].scrapeClassicHistograms
+        documentIndex: 1
+      - equal:
+          path: spec.endpoints[0].scrapeClassicHistograms
+          value: true
+        documentIndex: 2
+
+  # Histogram fields: false override explicitly renders false (not the same as "-")
+  - it: should render scrapeClassicHistograms false when override is false
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: alwaysRender
+      serviceMonitor.scrapeClassicHistograms: true
+      webhook.serviceMonitor.scrapeClassicHistograms: false
+    asserts:
+      - equal:
+          path: spec.endpoints[0].scrapeClassicHistograms
+          value: true
+        documentIndex: 0
+      - equal:
+          path: spec.endpoints[0].scrapeClassicHistograms
+          value: false
+        documentIndex: 1
+      - equal:
+          path: spec.endpoints[0].scrapeClassicHistograms
+          value: true
+        documentIndex: 2
+
+  # Histogram fields: nativeHistogramMinBucketFactor must be a quoted string (not a float)
+  - it: should render nativeHistogramMinBucketFactor as a YAML string
+    set:
+      serviceMonitor.enabled: true
+      serviceMonitor.renderMode: alwaysRender
+      serviceMonitor.nativeHistogramMinBucketFactor: "1.1"
+    asserts:
+      - equal:
+          path: spec.endpoints[0].nativeHistogramMinBucketFactor
+          value: "1.1"
+        documentIndex: 0

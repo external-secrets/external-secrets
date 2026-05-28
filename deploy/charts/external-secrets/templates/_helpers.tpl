@@ -257,6 +257,38 @@ Fail the install if a cluster scoped reconciler is enabled while its namespace s
 {{- end -}}
 
 {{/*
+Render histogram scrape fields for a ServiceMonitor endpoint.
+"-" sentinel means "inherit from global" (or omit if global is also "-").
+*/}}
+{{- define "external-secrets.serviceMonitorHistogramConfig" -}}
+{{- $g := .global -}}
+{{- $o := .override | default dict -}}
+{{- $lines := list -}}
+{{- $scrapeClassic := index $o "scrapeClassicHistograms" -}}
+{{- if eq (toString $scrapeClassic) "-" -}}{{- $scrapeClassic = $g.scrapeClassicHistograms -}}{{- end -}}
+{{- if ne (toString $scrapeClassic) "-" -}}
+  {{- $lines = append $lines (printf "scrapeClassicHistograms: %v" $scrapeClassic) -}}
+{{- end -}}
+{{- $bucketLimit := index $o "nativeHistogramBucketLimit" -}}
+{{- if eq (toString $bucketLimit) "-" -}}{{- $bucketLimit = $g.nativeHistogramBucketLimit -}}{{- end -}}
+{{- if ne (toString $bucketLimit) "-" -}}
+  {{- $lines = append $lines (printf "nativeHistogramBucketLimit: %d" (int $bucketLimit)) -}}
+{{- end -}}
+{{- $minFactor := index $o "nativeHistogramMinBucketFactor" -}}
+{{- if eq $minFactor "-" -}}{{- $minFactor = $g.nativeHistogramMinBucketFactor -}}{{- end -}}
+{{- if ne $minFactor "-" -}}
+  {{- $lines = append $lines (printf "nativeHistogramMinBucketFactor: %q" $minFactor) -}}
+{{- end -}}
+{{- $protocols := index $o "scrapeProtocols" -}}
+{{- if eq (toString $protocols) "-" -}}{{- $protocols = $g.scrapeProtocols -}}{{- end -}}
+{{- if and (ne (toString $protocols) "-") $protocols -}}
+  {{- $protoYaml := toYaml $protocols | trimSuffix "\n" | replace "\n" "\n  " -}}
+  {{- $lines = append $lines (printf "scrapeProtocols:\n  %s" $protoYaml) -}}
+{{- end -}}
+{{- join "\n" $lines -}}
+{{- end -}}
+
+{{/*
 Decide whether to render the ServiceMonitor resource.
 */}}
 {{- define "external-secrets.shouldRenderServiceMonitor" -}}

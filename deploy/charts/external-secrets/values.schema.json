@@ -315,6 +315,32 @@
                         }
                     }
                 },
+                "serviceMonitor": {
+                    "type": "object",
+                    "properties": {
+                        "scrapeClassicHistograms": {
+                            "oneOf": [
+                                {"type": "boolean"},
+                                {"const": "-"}
+                            ]
+                        },
+                        "nativeHistogramBucketLimit": {
+                            "oneOf": [
+                                {"type": "integer", "minimum": 0},
+                                {"const": "-"}
+                            ]
+                        },
+                        "nativeHistogramMinBucketFactor": {
+                            "type": "string"
+                        },
+                        "scrapeProtocols": {
+                            "oneOf": [
+                                {"type": "array", "items": {"type": "string"}},
+                                {"const": "-"}
+                            ]
+                        }
+                    }
+                },
                 "startupProbe": {
                     "type": "object",
                     "properties": {
@@ -896,6 +922,15 @@
                 "namespace": {
                     "type": "string"
                 },
+                "nativeHistogramBucketLimit": {
+                    "oneOf": [
+                        {"type": "integer", "minimum": 0},
+                        {"const": "-"}
+                    ]
+                },
+                "nativeHistogramMinBucketFactor": {
+                    "type": "string"
+                },
                 "relabelings": {
                     "type": "array"
                 },
@@ -905,6 +940,18 @@
                         "skipIfMissing",
                         "failIfMissing",
                         "alwaysRender"
+                    ]
+                },
+                "scrapeClassicHistograms": {
+                    "oneOf": [
+                        {"type": "boolean"},
+                        {"const": "-"}
+                    ]
+                },
+                "scrapeProtocols": {
+                    "oneOf": [
+                        {"type": "array", "items": {"type": "string"}},
+                        {"const": "-"}
                     ]
                 },
                 "scrapeTimeout": {
@@ -1312,6 +1359,32 @@
                         },
                         "name": {
                             "type": "string"
+                        }
+                    }
+                },
+                "serviceMonitor": {
+                    "type": "object",
+                    "properties": {
+                        "scrapeClassicHistograms": {
+                            "oneOf": [
+                                {"type": "boolean"},
+                                {"const": "-"}
+                            ]
+                        },
+                        "nativeHistogramBucketLimit": {
+                            "oneOf": [
+                                {"type": "integer", "minimum": 0},
+                                {"const": "-"}
+                            ]
+                        },
+                        "nativeHistogramMinBucketFactor": {
+                            "type": "string"
+                        },
+                        "scrapeProtocols": {
+                            "oneOf": [
+                                {"type": "array", "items": {"type": "string"}},
+                                {"const": "-"}
+                            ]
                         }
                     }
                 },

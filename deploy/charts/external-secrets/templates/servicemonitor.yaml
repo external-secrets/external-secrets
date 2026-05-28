@@ -22,6 +22,9 @@ spec:
     interval: {{ .Values.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
     honorLabels: {{ .Values.serviceMonitor.honorLabels }}
+    {{- with include "external-secrets.serviceMonitorHistogramConfig" (dict "global" .Values.serviceMonitor "override" .Values.serviceMonitor) | trim }}
+    {{- . | nindent 4 }}
+    {{- end }}
     {{- with .Values.serviceMonitor.metricRelabelings }}
     metricRelabelings:
       {{- toYaml . | nindent 6 }}
@@ -61,6 +64,9 @@ spec:
     interval: {{ .Values.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
     honorLabels: {{ .Values.serviceMonitor.honorLabels }}
+    {{- with include "external-secrets.serviceMonitorHistogramConfig" (dict "global" .Values.serviceMonitor "override" .Values.webhook.serviceMonitor) | trim }}
+    {{- . | nindent 4 }}
+    {{- end }}
     {{- with .Values.serviceMonitor.metricRelabelings }}
     metricRelabelings:
       {{- toYaml . | nindent 6 }}
@@ -101,6 +107,9 @@ spec:
     interval: {{ .Values.serviceMonitor.interval }}
     scrapeTimeout: {{ .Values.serviceMonitor.scrapeTimeout }}
     honorLabels: {{ .Values.serviceMonitor.honorLabels }}
+    {{- with include "external-secrets.serviceMonitorHistogramConfig" (dict "global" .Values.serviceMonitor "override" .Values.certController.serviceMonitor) | trim }}
+    {{- . | nindent 4 }}
+    {{- end }}
     {{- with .Values.serviceMonitor.metricRelabelings }}
     metricRelabelings:
       {{- toYaml . | nindent 6 }}
