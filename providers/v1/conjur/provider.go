@@ -52,7 +52,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 }
 
 // Capabilities returns the provider's supported capabilities.
-// Conjur provider supports read-only access to secrets.
+// Conjur provider supports read-write access to secrets.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadWrite
 }
