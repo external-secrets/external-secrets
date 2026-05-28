@@ -61,7 +61,9 @@ func conjurPolicy(name string, vars []string) (string, error) {
 				Id: "delegation/consumers",
 				Annotations: map[string]any{
 					AnnotationManagedByKey: AnnotationManagedByValue,
-					"editable":             "true",
+					// Allow authorized users to manage the members of this group
+					// https://docs.cyberark.com/secrets-manager-sh/12.7/en/content/operations/policy/annotations-conjur.htm#Editableannotationongroupsandlayers
+					"editable": "true",
 				},
 			},
 		},
