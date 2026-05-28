@@ -110,7 +110,6 @@ func (s openBaoProvider) CreateTokenStore() {
 		},
 	}
 
-	secretStore.Spec.Provider.Vault.Auth.TokenSecretRef.Name = secret.Name
 	err := s.framework.CRClient.Create(GinkgoT().Context(), secret)
 	Expect(err).ToNot(HaveOccurred())
 	err = s.framework.CRClient.Create(GinkgoT().Context(), secretStore)
