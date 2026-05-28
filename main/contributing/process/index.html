@@ -4511,6 +4511,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#issues-and-pull-requests-labels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issues and pull requests labels
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#submitting-a-pull-request" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5042,6 +5053,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#issues-and-pull-requests-labels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Issues and pull requests labels
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#submitting-a-pull-request" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5182,21 +5204,83 @@ We have a <a href="../roadmap/">Roadmap</a> to track progress for our road towar
 <h2 id="issues">Issues</h2>
 <p>Features, bugs and any issues regarding the documentation should be filed as
 <a href="https://github.com/external-secrets/external-secrets/issues">GitHub Issue</a> in
-our repository. We use labels like <code>kind/feature</code>, <code>kind/bug</code>, <code>area/aws</code> to
-organize the issues. Issues labeled <code>good first issue</code> and <code>help wanted</code> are
-especially good for a first contribution. If you want to pick up an issue just
-leave a comment.</p>
+our repository.</p>
+<h2 id="issues-and-pull-requests-labels">Issues and pull requests labels</h2>
+<p>We have <a href="https://github.com/external-secrets/external-secrets/labels">our github labels</a> to help classify the issues and pull requests.</p>
+<p>They are categorized as this:</p>
+<table>
+<thead>
+<tr>
+<th>Label</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>kind/</code></td>
+<td>Kinds classification allows maintainer to easily spot what the issue is about (not where is the code touched). Bugs (kind/bug), features (kind/feature), maintenance items (kind/chore, kind/refactor, kind/cleanup, kind/dependency), initiatives (kind/design), performance changes (kind/performance), support-questions (kind/support).</td>
+</tr>
+<tr>
+<td><code>triage/</code></td>
+<td>Triage labels tracks the issue's lifecycle (or change's lifecycle). Suggested mappings: <code>triage/pending-triage</code> (not triaged yet), <code>triage/needs-information</code> (missing details from reporter), <code>triage/not-reproducible</code> (cannot reproduce with provided info), <code>triage/confirmed</code> (valid/reproducible report), <code>triage/invalid</code> (incorrect bug report/PR), <code>triage/duplicate</code> (duplicate bug report)</td>
+</tr>
+<tr>
+<td><code>priority/</code></td>
+<td>Priority shows an increasing urgency from "important-long-term", "important-soon" to "urgent"</td>
+</tr>
+<tr>
+<td><code>size/</code></td>
+<td>Allows maintainers to better guess the amount of work required to review the issue/PR</td>
+</tr>
+<tr>
+<td><code>area/</code></td>
+<td>Areas allow the routing of the work (issues/PR) based on our knowledge areas. It's intent is to target specific experts in their domain. Each provider has its own area. Examples: <code>area/aws</code>, <code>area/azure</code>, <code>area/charts</code>, <code>area/documentation</code>, <code>area/dependencies</code>.</td>
+</tr>
+<tr>
+<td><code>breaking-change</code></td>
+<td>Highlights the impact on future users on the issue/change</td>
+</tr>
+<tr>
+<td><code>cncf</code></td>
+<td>Highlights the impact on the CNCF (foundation work, support, maturity tracking)</td>
+</tr>
+<tr>
+<td><code>discuss-community-meeting</code></td>
+<td>Highlights the need to discuss this in a community meeting for consensus building</td>
+</tr>
+<tr>
+<td><code>release-blocker</code></td>
+<td>Issue/PR that block next release</td>
+</tr>
+<tr>
+<td><code>good-first-issue</code></td>
+<td>An issue/PR good for newcomers. Do not hesitate to comment on it to mark your interest and tackle the work!</td>
+</tr>
+<tr>
+<td><code>help-wanted</code></td>
+<td>Extra attention of the maintainers team is requested</td>
+</tr>
+<tr>
+<td><code>Stale</code></td>
+<td>Is used by a bot to highlight stale PRs/issues that will automatically close if no further activity happens</td>
+</tr>
+</tbody>
+</table>
+<p>With those labels, maintainers are able to efficiently see where they can help better.</p>
+<p>Note: Some labels  like <code>size</code> and <code>kind</code> are applied automatically to Pull Requests by semantic conventions. See also the section below about submitting a pull request.</p>
 <h2 id="submitting-a-pull-request">Submitting a Pull Request</h2>
 <p>This project uses the well-known pull request process from GitHub. To submit a
 pull request, fork the repository and push any changes to a branch on the copy,
-from there a pull request can be made in the main repo. Merging a pull request
-requires the following steps to be completed before the pull request will
-be merged:</p>
+from there you can create a pull request to our main repo.</p>
+<p>Please note we are following the <a href="https://www.conventionalcommits.org/en/v1.0.0/#summary">conventional commits</a> .
+The use of the right semantics helps the maintaining team to classify your PR effectively.
+<strong>We will only merge PRs matching those conventions.</strong></p>
+<p>Merging a pull request only happens when:</p>
 <ul>
-<li>ideally, there is an issue that documents the problem or feature in depth.</li>
-<li>code must have a reasonable amount of test coverage</li>
-<li>tests must pass</li>
-<li>PR needs be reviewed and approved</li>
+<li>there is ideally an issue that documents the problem or feature in depth.</li>
+<li>code has a reasonable amount of test coverage</li>
+<li>tests pass</li>
+<li>At least one review approves the change</li>
 </ul>
 <p>Once these steps are completed the PR will be merged by a code owner.
 We're using the pull request <code>assignee</code> feature to track who is responsible
@@ -5287,12 +5371,6 @@ We have three different channels through which support questions arise:</p>
 <li>Kubernetes Slack <a href="https://kubernetes.slack.com/archives/C017BF84G2Y">#external-secrets</a></li>
 <li><a href="https://github.com/external-secrets/external-secrets/issues/new/choose">GitHub Issues</a></li>
 </ol>
-<p>We use labels to identify GitHub Issues. Specifically for managing support cases we use the following labels to identify the state a support case is in:</p>
-<ul>
-<li><code>triage/needs-information</code>: Indicates an issue needs more information in order to work on it.</li>
-<li><code>triage/not-reproducible</code>: Indicates an issue can not be reproduced as described.</li>
-<li><code>triage/support</code>: Indicates an issue that is a support question.</li>
-</ul>
 <h2 id="cutting-releases">Cutting Releases</h2>
 <p>The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release. Details on how to cut a release can be found in the <a href="../release/">release</a> page.</p>
 
