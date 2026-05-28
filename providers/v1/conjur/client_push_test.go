@@ -18,7 +18,6 @@ package conjur
 
 import (
 	"context"
-	"strings"
 	"testing"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
@@ -40,35 +39,35 @@ func TestDefaultPolicy(t *testing.T) {
 - !policy
   id: secret1
   body:
-  - !group
-    id: delegation/consumers
-    annotations:
-      managed-by: "external-secrets"
-      editable: "true"
-  - !variable
-    id: foo
-    annotations:
-      managed-by: "external-secrets"
-  - !variable
-    id: bar
-    annotations:
-      managed-by: "external-secrets"
-  - !variable
-    id: baz
-    annotations:
-      managed-by: "external-secrets"
-  - !permit
-    resource: !variable foo
-    role: !group delegation/consumers
-    privileges: [ read, execute ]
-  - !permit
-    resource: !variable bar
-    role: !group delegation/consumers
-    privileges: [ read, execute ]
-  - !permit
-    resource: !variable baz
-    role: !group delegation/consumers
-    privileges: [ read, execute ]`
+    - !group
+      id: delegation/consumers
+      annotations:
+        managed-by: "external-secrets"
+        editable: "true"
+    - !variable
+      id: foo
+      annotations:
+        managed-by: "external-secrets"
+    - !variable
+      id: bar
+      annotations:
+        managed-by: "external-secrets"
+    - !variable
+      id: baz
+      annotations:
+        managed-by: "external-secrets"
+    - !permit
+      resource: !variable foo
+      role: !group delegation/consumers
+      privileges: [ read, execute ]
+    - !permit
+      resource: !variable bar
+      role: !group delegation/consumers
+      privileges: [ read, execute ]
+    - !permit
+      resource: !variable baz
+      role: !group delegation/consumers
+      privileges: [ read, execute ]`
 
 	// roundtrip the expected output through a unmarshal/marshal to remove any formatting related issues
 	p := conjurpolicy.PolicyStatements{}
@@ -108,7 +107,7 @@ func TestPushSecret(t *testing.T) {
 		name           string
 		secretValue    []byte
 		remoteRef      RemoteRef
-		expectedPolicy string // Partial match for the YAML policy
+		expectedPolicy string
 		expectedVar    string
 		expectedVal    string
 	}{
@@ -122,6 +121,23 @@ func TestPushSecret(t *testing.T) {
 			},
 			expectedVar: "data/vault/eso/db/password",
 			expectedVal: "password123",
+			expectedPolicy: `- !policy
+  id: db
+  body:
+    - !group
+      id: delegation/consumers
+      annotations:
+        editable: "true"
+        managed-by: external-secrets
+    - !variable
+      id: password
+      annotations:
+        managed-by: external-secrets
+    - !permit
+      role: !group delegation/consumers
+      privileges: [read, execute]
+      resource: !variable password
+`,
 		},
 		{
 			name:        "Push all values to a single property",
@@ -184,9 +200,7 @@ func TestPushSecret(t *testing.T) {
 					t.Error("expected a LoadPolicy call but none occurred")
 				} else {
 					policy := mockClient.LoadPolicyCalls[0].Policy
-					if !strings.Contains(policy, tt.expectedPolicy) {
-						t.Errorf("policy missing expected string. Got: %s", policy)
-					}
+					assert.Equal(t, tt.expectedPolicy, policy)
 				}
 			}
 		})
