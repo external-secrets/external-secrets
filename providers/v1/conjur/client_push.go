@@ -31,6 +31,13 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
+const (
+	// AnnotationManagedByKey is the key for the annotation used to denote that a conjur resource is managed by external-secrets.
+	AnnotationManagedByKey = "managed-by"
+	// AnnotationManagedByValue is the value for the annotation used to denote that a conjur resource is managed by external-secrets.
+	AnnotationManagedByValue = "external-secrets"
+)
+
 func conjurPolicy(name string, vars []string) (string, error) {
 	pvars := make([]conjurpolicy.Resource, len(vars))
 	permits := make([]conjurpolicy.Resource, len(vars))
@@ -39,7 +46,7 @@ func conjurPolicy(name string, vars []string) (string, error) {
 		pvars[i] = conjurpolicy.Variable{
 			Id: v,
 			Annotations: map[string]any{
-				"managed-by": "external-secrets",
+				AnnotationManagedByKey: AnnotationManagedByValue,
 			},
 		}
 		permits[i] = conjurpolicy.Permit{
@@ -54,8 +61,8 @@ func conjurPolicy(name string, vars []string) (string, error) {
 			conjurpolicy.Group{
 				Id: "delegation/consumers",
 				Annotations: map[string]any{
-					"managed-by": "external-secrets",
-					"editable":   "true",
+					AnnotationManagedByKey: AnnotationManagedByValue,
+					"editable":             "true",
 				},
 			},
 		},
@@ -172,7 +179,7 @@ func checkSecrets(conjurClient SecretsClient, conjurSecretName string, conjurVar
 		}
 		found := false
 		for ak, av := range resp.Annotations {
-			if ak == "managed-by" && av == "external-secrets" {
+			if ak == AnnotationManagedByKey && av == AnnotationManagedByValue {
 				found = true
 				break
 			}
