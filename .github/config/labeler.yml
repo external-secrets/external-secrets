@@ -12,4 +12,4 @@ component/github-actions:
 area/documentation:
 - any:
   - changed-files:
-    - any-glob-to-any-file: ['docs/**', 'examples/**']
+    - any-glob-to-any-file: ['docs/**', 'examples/**', '**/*.md']
