@@ -31,7 +31,7 @@ changelog:
         - kind/refactor
         - kind/maintenance
         - kind/cleanup
-        - kind/testing
+        - area/testing
     - title: Dependencies
       labels:
         - kind/dependency
@@ -60,4 +60,4 @@ changelog:
           - kind/performance
           - kind/design
           - kind/cleanup
-          - kind/testing
+          - area/testing
