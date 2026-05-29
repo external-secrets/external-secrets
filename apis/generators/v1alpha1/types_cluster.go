@@ -30,7 +30,7 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
+// +kubebuilder:validation:Enum=ACRAccessToken;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSAssumeRoleToken;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
 type GeneratorKind string
 
 const (
@@ -64,6 +64,8 @@ const (
 	GeneratorKindMFA GeneratorKind = "MFA"
 	// GeneratorKindCloudsmithAccessToken represents a Cloudsmith access token generator.
 	GeneratorKindCloudsmithAccessToken GeneratorKind = "CloudsmithAccessToken"
+	// GeneratorKindSTSAssumeRoleToken represents an AWS STS AssumeRole token generator.
+	GeneratorKindSTSAssumeRoleToken GeneratorKind = "STSAssumeRoleToken"
 )
 
 // GeneratorSpec defines the configuration for various supported generator types.
@@ -85,6 +87,7 @@ type GeneratorSpec struct {
 	WebhookSpec               *WebhookSpec               `json:"webhookSpec,omitempty"`
 	GrafanaSpec               *GrafanaSpec               `json:"grafanaSpec,omitempty"`
 	MFASpec                   *MFASpec                   `json:"mfaSpec,omitempty"`
+	STSAssumeRoleTokenSpec    *STSAssumeRoleTokenSpec    `json:"stsAssumeRoleTokenSpec,omitempty"`
 }
 
 // ClusterGenerator represents a cluster-wide generator which can be referenced as part of `generatorRef` fields.

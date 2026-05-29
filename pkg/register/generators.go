@@ -30,6 +30,7 @@ import (
 	quay "github.com/external-secrets/external-secrets/generators/v1/quay"
 	sshkey "github.com/external-secrets/external-secrets/generators/v1/sshkey"
 	sts "github.com/external-secrets/external-secrets/generators/v1/sts"
+	stsassumerole "github.com/external-secrets/external-secrets/generators/v1/stsassumerole"
 	uuid "github.com/external-secrets/external-secrets/generators/v1/uuid"
 	vaultgen "github.com/external-secrets/external-secrets/generators/v1/vault"
 	webhookgen "github.com/external-secrets/external-secrets/generators/v1/webhook"
@@ -49,6 +50,7 @@ func init() {
 	genv1alpha1.Register(quay.Kind(), quay.NewGenerator())
 	genv1alpha1.Register(sshkey.Kind(), sshkey.NewGenerator())
 	genv1alpha1.Register(sts.Kind(), sts.NewGenerator())
+	genv1alpha1.Register(stsassumerole.Kind(), stsassumerole.NewGenerator())
 	genv1alpha1.Register(uuid.Kind(), uuid.NewGenerator())
 	genv1alpha1.Register(vaultgen.Kind(), vaultgen.NewGenerator())
 	genv1alpha1.Register(webhookgen.Kind(), webhookgen.NewGenerator())

@@ -1,0 +1,14 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: "sts-assume-role-secret"
+spec:
+  refreshInterval: "1h0m0s"
+  target:
+    name: sts-assume-role-secret
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: STSAssumeRoleToken
+        name: "sts-assume-role-gen"

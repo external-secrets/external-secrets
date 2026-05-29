@@ -16,6 +16,7 @@ replace (
 	github.com/external-secrets/external-secrets/generators/v1/quay => ./generators/v1/quay
 	github.com/external-secrets/external-secrets/generators/v1/sshkey => ./generators/v1/sshkey
 	github.com/external-secrets/external-secrets/generators/v1/sts => ./generators/v1/sts
+	github.com/external-secrets/external-secrets/generators/v1/stsassumerole => ./generators/v1/stsassumerole
 	github.com/external-secrets/external-secrets/generators/v1/uuid => ./generators/v1/uuid
 	github.com/external-secrets/external-secrets/generators/v1/vault => ./generators/v1/vault
 	github.com/external-secrets/external-secrets/generators/v1/webhook => ./generators/v1/webhook
@@ -129,6 +130,7 @@ require (
 	github.com/external-secrets/external-secrets/generators/v1/quay v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/sshkey v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/sts v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/stsassumerole v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/uuid v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/vault v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/webhook v0.0.0-00010101000000-000000000000

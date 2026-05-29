@@ -25247,6 +25247,7 @@ AzureACRWorkloadIdentityAuth
 <p>
 (<em>Appears on:</em>
 <a href="#generators.external-secrets.io/v1alpha1.ECRAuthorizationTokenSpec">ECRAuthorizationTokenSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.STSAssumeRoleTokenSpec">STSAssumeRoleTokenSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.STSSessionTokenSpec">STSSessionTokenSpec</a>)
 </p>
 <p>
@@ -26475,6 +26476,9 @@ string
 </tr><tr><td><p>&#34;SSHKey&#34;</p></td>
 <td><p>GeneratorKindSSHKey represents an SSH key generator.</p>
 </td>
+</tr><tr><td><p>&#34;STSAssumeRoleToken&#34;</p></td>
+<td><p>GeneratorKindSTSAssumeRoleToken represents an AWS STS AssumeRole token generator.</p>
+</td>
 </tr><tr><td><p>&#34;STSSessionToken&#34;</p></td>
 <td><p>GeneratorKindSTSSessionToken represents an AWS STS session token generator.</p>
 </td>
@@ -26685,6 +26689,18 @@ GrafanaSpec
 <em>
 <a href="#generators.external-secrets.io/v1alpha1.MFASpec">
 MFASpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>stsAssumeRoleTokenSpec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.STSAssumeRoleTokenSpec">
+STSAssumeRoleTokenSpec
 </a>
 </em>
 </td>
@@ -28291,6 +28307,64 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="generators.external-secrets.io/v1alpha1.RoleAssumptionParameters">RoleAssumptionParameters
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.STSAssumeRoleTokenSpec">STSAssumeRoleTokenSpec</a>)
+</p>
+<p>
+<p>RoleAssumptionParameters contains optional parameters for the STS AssumeRole call.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>sessionDuration</code></br>
+<em>
+int32
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SessionDuration is the duration, in seconds, of the role session.
+Acceptable durations range from 900 seconds (15 minutes) to the maximum
+session duration configured for the role (default: 3600 seconds / 1 hour).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>externalId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExternalID is a unique identifier required by some roles for cross-account
+access. It is used to protect against the confused deputy problem.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleSessionName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RoleSessionName is an identifier for the assumed role session.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="generators.external-secrets.io/v1alpha1.SSHKey">SSHKey
 </h3>
 <p>
@@ -28424,6 +28498,196 @@ string
 </td>
 <td>
 <p>Comment specifies an optional comment for the SSH key</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.STSAssumeRoleToken">STSAssumeRoleToken
+</h3>
+<p>
+<p>STSAssumeRoleToken returns temporary AWS credentials obtained via the STS
+AssumeRole (or AssumeRoleWithWebIdentity) API.</p>
+<p>Unlike STSSessionToken, this generator does NOT call GetSessionToken.
+GetSessionToken requires long-term IAM user credentials and cannot be called
+with temporary credentials (e.g. from IRSA). Use this generator instead when
+your auth source already provides temporary credentials (service-account /
+IRSA tokens) or when you need to assume a role.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.STSAssumeRoleTokenSpec">
+STSAssumeRoleTokenSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Region specifies the AWS region to operate in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AWSAuth">
+AWSAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines how to authenticate with AWS.
+Supports both SecretRef (static IAM credentials) and JWTAuth (IRSA / service-account tokens).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Role is the ARN of the IAM role to assume.
+When set, AssumeRole is called and the resulting temporary credentials are
+returned. This is the primary use-case for IRSA: the service-account token
+obtains short-term credentials via AssumeRoleWithWebIdentity, and those
+credentials are then used to assume this role.
+When omitted, the credentials from the configured auth source are returned
+directly (e.g. the IRSA web-identity credentials themselves).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleAssumptionParameters</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.RoleAssumptionParameters">
+RoleAssumptionParameters
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RoleAssumptionParameters contains optional parameters passed to the
+AssumeRole API call. Only used when Role is set.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.STSAssumeRoleTokenSpec">STSAssumeRoleTokenSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.STSAssumeRoleToken">STSAssumeRoleToken</a>)
+</p>
+<p>
+<p>STSAssumeRoleTokenSpec defines the desired state to generate temporary AWS
+credentials via AssumeRole (or AssumeRoleWithWebIdentity for IRSA).</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>region</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Region specifies the AWS region to operate in.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AWSAuth">
+AWSAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth defines how to authenticate with AWS.
+Supports both SecretRef (static IAM credentials) and JWTAuth (IRSA / service-account tokens).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Role is the ARN of the IAM role to assume.
+When set, AssumeRole is called and the resulting temporary credentials are
+returned. This is the primary use-case for IRSA: the service-account token
+obtains short-term credentials via AssumeRoleWithWebIdentity, and those
+credentials are then used to assume this role.
+When omitted, the credentials from the configured auth source are returned
+directly (e.g. the IRSA web-identity credentials themselves).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleAssumptionParameters</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.RoleAssumptionParameters">
+RoleAssumptionParameters
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RoleAssumptionParameters contains optional parameters passed to the
+AssumeRole API call. Only used when Role is set.</p>
 </td>
 </tr>
 </tbody>

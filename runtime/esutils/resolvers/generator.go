@@ -247,6 +247,17 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			},
 			Spec: *gen.Spec.Generator.STSSessionTokenSpec,
 		}, nil
+	case genv1alpha1.GeneratorKindSTSAssumeRoleToken:
+		if gen.Spec.Generator.STSAssumeRoleTokenSpec == nil {
+			return nil, fmt.Errorf("when kind is %s, STSAssumeRoleTokenSpec must be set", gen.Spec.Kind)
+		}
+		return &genv1alpha1.STSAssumeRoleToken{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.STSAssumeRoleTokenKind,
+			},
+			Spec: *gen.Spec.Generator.STSAssumeRoleTokenSpec,
+		}, nil
 	case genv1alpha1.GeneratorKindUUID:
 		if gen.Spec.Generator.UUIDSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, UUIDSpec must be set", gen.Spec.Kind)

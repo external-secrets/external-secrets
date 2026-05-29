@@ -73,6 +73,8 @@ var (
 	ClusterGeneratorKind = reflect.TypeFor[ClusterGenerator]().Name()
 	// CloudsmithAccessTokenKind is the kind name for CloudsmithAccessToken resource.
 	CloudsmithAccessTokenKind = reflect.TypeFor[CloudsmithAccessToken]().Name()
+	// STSAssumeRoleTokenKind is the kind name for STSAssumeRoleToken resource.
+	STSAssumeRoleTokenKind = reflect.TypeFor[STSAssumeRoleToken]().Name()
 )
 
 func init() {
@@ -109,4 +111,5 @@ func init() {
 	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
 	SchemeBuilder.Register(&Grafana{}, &GrafanaList{})
 	SchemeBuilder.Register(&MFA{}, &MFAList{})
+	SchemeBuilder.Register(&STSAssumeRoleToken{}, &STSAssumeRoleTokenList{})
 }
