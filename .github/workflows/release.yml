@@ -91,6 +91,20 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: make docs.publish DOCS_ALIAS=latest
 
+  changelog-pr:
+    name: Create CHANGELOG PR
+    needs: [release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # to commit changelog
+      pull-requests: write # to open a PR with the updated changelog
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
       - name: Fetch Native Release Notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -106,18 +120,19 @@ jobs:
         with:
           script: |
             const fs = require('fs');
-            
+
             // Read the native GitHub release notes generated in the previous step
             const releaseBody = fs.readFileSync('release_body.txt', 'utf8');
             
-            // Extract all PR numbers from the text
-            const prRegex = /#(\d+)/g;
+            // Extract all PR numbers from the text (matching the /pull/1234 format at the end of the line)
+            const prRegex = /\/pull\/(\d+)/g;
             const prNumbers = [];
             let match;
             while ((match = prRegex.exec(releaseBody)) !== null) {
               prNumbers.push(parseInt(match[1]));
             }
             
+            // Remove duplicates just in case
             const uniquePRs = [...new Set(prNumbers)];
             console.log(`Found PRs in release: ${uniquePRs.join(', ')}`);
             
@@ -136,9 +151,9 @@ jobs:
                 
                 const body = pr.body || "";
                 const title = pr.title;
+                const prUrl = pr.html_url; 
                 
-                // Regex to capture content inside ```release-note ... ```
-                const noteRegex = /```release-note(?:s)?\s*\n([\s\S]*?)\n```/;
+                const noteRegex = /```release-note\s*([\s\S]*?)```/;
                 const noteMatch = body.match(noteRegex);
                 
                 let finalNote = "";
@@ -159,7 +174,7 @@ jobs:
                   finalNote = title; // No block found (e.g. old PRs), fallback to PR title
                 }
                 
-                changelogContent += `* ${finalNote} (#${prNumber})\n`;
+                changelogContent += `* ${finalNote} (${prUrl})\n`;
                 hasNotes = true;
                 
               } catch (error) {
@@ -179,28 +194,55 @@ jobs:
       - name: Create CHANGELOG PR
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
           VERSION: ${{ github.event.inputs.version }}
-        permissions:
-          contents: write
-          pull-requests: write
         run: |
-          # Safely prepend the parsed notes to the existing CHANGELOG.md
+          BRANCH_NAME="changelog-update-${VERSION}"
+          
+          # Check if an open PR already exists for this branch using GitHub CLI
+          # Returns a JSON with the PR number and the author's login
+          PR_INFO=$(gh pr list --head "$BRANCH_NAME" --state open --json number,author --jq '.[0]')
+          
+          # If the PR exists (not null and not empty)
+          if [ "$PR_INFO" != "null" ] && [ -n "$PR_INFO" ]; then
+            PR_AUTHOR=$(echo "$PR_INFO" | jq -r '.author.login')
+            
+            # Verify the PR author
+            if [[ "$PR_AUTHOR" == *"github-actions"* ]]; then
+              echo "✅ A PR for version ${VERSION} has already been created by the automation (Author: $PR_AUTHOR)."
+              echo "⏭️ Skipping creation to ensure job idempotency."
+              exit 0
+            else
+              echo "⚠️ A PR for version ${VERSION} has already been opened or modified manually by a human ($PR_AUTHOR)."
+              echo "⏭️ Skipping execution to avoid overwriting maintainer work."
+              exit 0
+            fi
+          fi
+          
+          # If no open PR is found, proceed with merging and creation
+          echo "No open PR found. Starting creation..."
+          
           cat PARSED_CHANGELOG.md CHANGELOG.md > temp_changelog.md
           mv temp_changelog.md CHANGELOG.md
-
-          BRANCH_NAME="changelog-update-${VERSION}"
+          
+          # Create the branch locally
           git checkout -b $BRANCH_NAME
+          
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git"
           git add CHANGELOG.md
           git commit -s -m "docs(release): update CHANGELOG for ${VERSION}"
-          git push origin $BRANCH_NAME
           
-          # Open a Pull Request using GitHub CLI
+          # Use push --force to ensure that if an orphaned remote branch exists without a PR, it gets updated
+          git push origin $BRANCH_NAME --force
+          
+          # Open the PR
           gh pr create \
             --title "docs(release): update CHANGELOG for ${VERSION}" \
             --body "Automated PR to update the \`CHANGELOG.md\` with the latest release notes from ${VERSION}." \
             --base main \
             --label "area/documentation"
-
   promote:
     name: Promote Container Image
     runs-on: ubuntu-latest
