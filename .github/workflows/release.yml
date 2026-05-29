@@ -24,7 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # to create a release, push new docs, and commit changelog
-      pull-requests: write # ESSENCIAL: Permite que o comando `gh pr create` funcione
+      pull-requests: write # to open a PR with the updated changelog
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
@@ -91,24 +91,107 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: make docs.publish DOCS_ALIAS=latest
 
-      - name: Create CHANGELOG PR
+      - name: Fetch Native Release Notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION: ${{ github.event.inputs.version }}
           GH_REPO: ${{ github.repository }}
         run: |
-          # Get the release notes from the created release using GitHub CLI
           gh api repos/${GH_REPO}/releases/tags/${VERSION} --jq '.body' > release_body.txt
-          
-          # Update CHANGELOG.md with the new release notes
-          DATE=$(date +%Y-%m-%d)
-          echo -e "## [${VERSION}] - ${DATE}\n\n$(cat release_body.txt)\n\n---\n\n$(cat CHANGELOG.md)" > CHANGELOG.md
-          
-          # Create a new branch, commit the updated CHANGELOG.md, and push it to the repository
+
+      - name: Parse Release Notes from PR Bodies
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v7
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Read the native GitHub release notes generated in the previous step
+            const releaseBody = fs.readFileSync('release_body.txt', 'utf8');
+            
+            // Extract all PR numbers from the text
+            const prRegex = /#(\d+)/g;
+            const prNumbers = [];
+            let match;
+            while ((match = prRegex.exec(releaseBody)) !== null) {
+              prNumbers.push(parseInt(match[1]));
+            }
+            
+            const uniquePRs = [...new Set(prNumbers)];
+            console.log(`Found PRs in release: ${uniquePRs.join(', ')}`);
+            
+            const date = new Date().toISOString().split('T')[0];
+            let changelogContent = `## [${process.env.VERSION}] - ${date}\n\n`;
+            let hasNotes = false;
+            
+            // Fetch the body of each PR and extract the release-note block or fallback to title
+            for (const prNumber of uniquePRs) {
+              try {
+                const { data: pr } = await github.rest.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: prNumber,
+                });
+                
+                const body = pr.body || "";
+                const title = pr.title;
+                
+                // Regex to capture content inside ```release-note ... ```
+                const noteRegex = /```release-note(?:s)?\s*\n([\s\S]*?)\n```/;
+                const noteMatch = body.match(noteRegex);
+                
+                let finalNote = "";
+                
+                if (noteMatch) {
+                  const noteText = noteMatch[1].trim();
+                  
+                  if (noteText.toUpperCase() === 'NONE') {
+                    // Explicitly ignored by the contributor
+                    console.log(`PR #${prNumber} explicitly ignored via NONE.`);
+                    continue; 
+                  } else if (noteText) {
+                    finalNote = noteText; // Uses the custom release note
+                  } else {
+                    finalNote = title; // Block exists but is empty, fallback to PR title
+                  }
+                } else {
+                  finalNote = title; // No block found (e.g. old PRs), fallback to PR title
+                }
+                
+                changelogContent += `* ${finalNote} (#${prNumber})\n`;
+                hasNotes = true;
+                
+              } catch (error) {
+                console.error(`Failed to fetch PR #${prNumber}: ${error.message}`);
+              }
+            }
+            
+            if (!hasNotes) {
+              changelogContent += "* No notable changes for this release.\n";
+            }
+            
+            changelogContent += "\n---\n\n";
+            
+            // Save the parsed notes to a new file
+            fs.writeFileSync('PARSED_CHANGELOG.md', changelogContent);
+
+      - name: Create CHANGELOG PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.event.inputs.version }}
+        permissions:
+          contents: write
+          pull-requests: write
+        run: |
+          # Safely prepend the parsed notes to the existing CHANGELOG.md
+          cat PARSED_CHANGELOG.md CHANGELOG.md > temp_changelog.md
+          mv temp_changelog.md CHANGELOG.md
+
           BRANCH_NAME="changelog-update-${VERSION}"
           git checkout -b $BRANCH_NAME
           git add CHANGELOG.md
-          git commit -m "docs(release): update CHANGELOG for ${VERSION}"
+          git commit -s -m "docs(release): update CHANGELOG for ${VERSION}"
           git push origin $BRANCH_NAME
           
           # Open a Pull Request using GitHub CLI

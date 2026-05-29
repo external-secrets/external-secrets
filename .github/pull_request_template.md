@@ -17,6 +17,18 @@ How do you like to solve the issue and why?
 
 N/A
 
+## Release Note
+<!--
+Write your release note for deployers:
+1. Enter your release note in the below block.
+2. If no CHANGELOG release note is required, just write "NONE" within the block.
+3. Focus on the impact and what the user/deployers needs to know.
+Com
+-->
+```release-note
+
+```
+
 ## Format
 
 Please ensure that your PR follows the following format for the title:
