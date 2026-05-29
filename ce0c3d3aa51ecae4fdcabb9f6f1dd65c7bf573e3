@@ -1,0 +1,44 @@
+## Design Decisions
+
+### Why not modify STSSessionToken in place?
+GetSessionToken and AssumeRole serve fundamentally different use-cases:
+- GetSessionToken: requires long-term IAM user credentials, adds MFA support
+- AssumeRole: works with any credential source including IRSA temporary tokens
+Changing the existing generator would be a breaking change for users relying on
+the current behaviour (IAM user + optional MFA). A new generator preserves
+backwards compatibility.
+
+### Why pass empty role to NewGeneratorSession?
+NewGeneratorSession wraps the credentials with stscreds.NewAssumeRoleProvider
+when role != "". The provider is lazy — AssumeRole only fires when Retrieve()
+is called. If we then called GetSessionToken (as the old generator does), the
+SDK uses those assumed-role temporary creds to make the GetSessionToken call,
+which AWS rejects. Passing role="" keeps the base credentials plain so we can
+call AssumeRole ourselves and return those credentials directly via Retrieve().
+
+### Testability via injectable stsFactoryFunc
+The factory function pattern (stsFactoryFunc injected into generate()) lets
+tests provide a fakeAssumeRole without any real AWS calls. Consistent with the
+pattern used by generators/v1/sts and generators/v1/ecr.
+
+### go.sum copied from generators/v1/sts
+The new module has the same transitive dependency graph as the STS generator
+(both depend on aws-sdk-go-v2 + auth provider). Copying go.sum avoids needing
+internet access for go mod tidy during implementation.
+
+### expiration key is conditional
+Static credentials (SecretRef with no role) have CanExpire=false; including a
+zero-value expiration would be misleading. The key is only emitted when
+creds.CanExpire is true, matching the semantics of the underlying credentials.
+
+## Learnings / Gotchas
+
+- go.work must have a go directive >= the minimum required by all modules.
+  After adding a new module run `go work use` to reconcile versions.
+- zz_generated.deepcopy.go: manual edits are safe as scaffolding; `make generate`
+  will overwrite them with equivalent generated code. Don't rely on the manual
+  edit surviving — just run `make generate` early.
+- Tests with empty spec + NewGeneratorSession fall through to the SDK default
+  credential chain (including IMDS), causing ~5s delay on the "invalid json"
+  test case. This is acceptable and matches the existing STS generator's test
+  behaviour. Consider using actually-invalid YAML in future tests to avoid this.
