@@ -70,7 +70,13 @@ func (c *BeyondtrustWorkloadCredentialsClient) GenerateDynamicSecret(ctx context
 }
 
 // WithValues sets up the fake client to return specific values or errors for GetSecret and GetSecrets calls.
-func (c *BeyondtrustWorkloadCredentialsClient) WithValues(ctx context.Context, name, folderPath *string, getResponse *btwcutil.KV, getAllResponse []btwcutil.KVListItem, getErrMsg, listErrMsg *string) {
+func (c *BeyondtrustWorkloadCredentialsClient) WithValues(
+	ctx context.Context,
+	name, folderPath *string,
+	getResponse *btwcutil.KV,
+	getAllResponse []btwcutil.KVListItem,
+	getErrMsg, listErrMsg *string,
+) {
 	if c == nil {
 		return
 	}

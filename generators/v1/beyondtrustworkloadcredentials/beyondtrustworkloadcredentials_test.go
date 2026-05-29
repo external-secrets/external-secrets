@@ -108,7 +108,9 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 				kube: clientfake.NewClientBuilder().Build(),
 			},
 			want: want{
-				err: errors.New("failed to create BeyondtrustWorkloadCredentials client: failed to load credentials: missing or invalid BeyondtrustWorkloadCredentials API Token in BeyondtrustWorkloadCredentials SecretStore"),
+				err: errors.New(
+					"failed to create BeyondtrustWorkloadCredentials client: failed to load credentials: missing or invalid BeyondtrustWorkloadCredentials API Token in BeyondtrustWorkloadCredentials SecretStore",
+				),
 			},
 		},
 		"SecretNotFound": {
@@ -317,7 +319,7 @@ func TestPathParsing(t *testing.T) {
 		{
 			name:           "Path with folder",
 			input:          "test/subfolder/secret-name",
-			wantFolder:     stringPtr("test/subfolder"),
+			wantFolder:     toPtr("test/subfolder"),
 			wantSecretName: "secret-name",
 		},
 		{
@@ -329,7 +331,7 @@ func TestPathParsing(t *testing.T) {
 		{
 			name:           "Path with single folder",
 			input:          "folder/secret",
-			wantFolder:     stringPtr("folder"),
+			wantFolder:     toPtr("folder"),
 			wantSecretName: "secret",
 		},
 	}
@@ -403,6 +405,8 @@ func TestConvertToByteMap(t *testing.T) {
 	}
 }
 
-func stringPtr(s string) *string {
-	return &s
+func toPtr[T any](v T) *T {
+	p := new(T)
+	*p = v
+	return p
 }

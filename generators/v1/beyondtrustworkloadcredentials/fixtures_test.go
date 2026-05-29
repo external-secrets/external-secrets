@@ -32,7 +32,7 @@ spec:
           key: "token"
     server:
       apiUrl: "https://example.com"
-      siteId: "00000000-0000-0000-0000-000000000000"`
+      siteId: "12345678-1234-4234-8234-123456789012"`
 
 	// validDynamicSecretSpecNoFolder is a spec with a secret at root level (no folder prefix).
 	validDynamicSecretSpecNoFolder = `apiVersion: generators.external-secrets.io/v1alpha1
@@ -47,7 +47,7 @@ spec:
           key: "token"
     server:
       apiUrl: "https://example.com"
-      siteId: "00000000-0000-0000-0000-000000000000"`
+      siteId: "12345678-1234-4234-8234-123456789012"`
 
 	// specMissingFolderPath has no folderPath field.
 	specMissingFolderPath = `apiVersion: generators.external-secrets.io/v1alpha1
@@ -61,7 +61,7 @@ spec:
           key: "token"
     server:
       apiUrl: "https://example.com"
-      siteId: "00000000-0000-0000-0000-000000000000"`
+      siteId: "12345678-1234-4234-8234-123456789012"`
 
 	// specMissingAuth has no auth field.
 	specMissingAuth = `apiVersion: generators.external-secrets.io/v1alpha1
@@ -71,7 +71,7 @@ spec:
     folderPath: "test/dynamic-secret"
     server:
       apiUrl: "https://example.com"
-      siteId: "00000000-0000-0000-0000-000000000000"`
+      siteId: "12345678-1234-4234-8234-123456789012"`
 
 	// specSecretNotFound references a non-existent secret.
 	specSecretNotFound = `apiVersion: generators.external-secrets.io/v1alpha1
@@ -86,7 +86,7 @@ spec:
           key: "token"
     server:
       apiUrl: "https://example.com"
-      siteId: "00000000-0000-0000-0000-000000000000"`
+      siteId: "12345678-1234-4234-8234-123456789012"`
 
 	// validDynamicSecretSpecWithFolder is used for error and non-string value tests.
 	validDynamicSecretSpecWithFolder = `apiVersion: generators.external-secrets.io/v1alpha1
@@ -101,7 +101,7 @@ spec:
           key: "token"
     server:
       apiUrl: "https://example.com"
-      siteId: "00000000-0000-0000-0000-000000000000"`
+      siteId: "12345678-1234-4234-8234-123456789012"`
 
 	// specEmptySecretName has a folderPath ending with "/" resulting in empty secret name.
 	specEmptySecretName = `apiVersion: generators.external-secrets.io/v1alpha1
@@ -116,5 +116,5 @@ spec:
           key: "token"
     server:
       apiUrl: "https://example.com"
-      siteId: "00000000-0000-0000-0000-000000000000"`
+      siteId: "12345678-1234-4234-8234-123456789012"`
 )

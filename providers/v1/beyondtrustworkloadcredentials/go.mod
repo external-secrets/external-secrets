@@ -3,7 +3,6 @@ module github.com/external-secrets/external-secrets/providers/v1/beyondtrustwork
 go 1.26.2
 
 require (
-	github.com/aws/smithy-go v1.24.0
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0-00010101000000-000000000000
 	github.com/google/go-cmp v0.7.0
@@ -15,6 +14,7 @@ require (
 	dario.cat/mergo v1.0.1 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/Masterminds/semver/v3 v3.4.0 // indirect
+	github.com/aws/smithy-go v1.24.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

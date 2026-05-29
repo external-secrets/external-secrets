@@ -47,7 +47,7 @@ const (
 // Client implements the SecretsClient interface for BeyondTrust Secrets.
 type Client struct {
 	beyondtrustWorkloadCredentialsClient btwcutil.Client
-	store                    *esv1.BeyondtrustWorkloadCredentialsProvider
+	store                                *esv1.BeyondtrustWorkloadCredentialsProvider
 }
 
 // Validate checks if the client is configured correctly
@@ -275,7 +275,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 
 // matchTags checks if all required tags (filter) are present in the secret's tags
 // with matching values. Returns true if all filter tags match, false otherwise.
-func matchTags(secretTags map[string]string, filterTags map[string]string) bool {
+func matchTags(secretTags, filterTags map[string]string) bool {
 	if len(filterTags) == 0 {
 		return true
 	}

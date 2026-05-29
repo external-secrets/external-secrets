@@ -41,11 +41,11 @@ type SecretMetadata struct {
 
 // KV represents a key-value secret with its metadata.
 type KV struct {
-	Secret   map[string]interface{} `json:"secret"`
-	Type     string                 `json:"type,omitempty"`
-	Path     string                 `json:"path,omitempty"`
-	Metadata *SecretMetadata        `json:"metadata,omitempty"`
-	Versions []VersionInfo          `json:"versions,omitempty"`
+	Secret   map[string]any  `json:"secret"`
+	Type     string          `json:"type,omitempty"`
+	Path     string          `json:"path,omitempty"`
+	Metadata *SecretMetadata `json:"metadata,omitempty"`
+	Versions []VersionInfo   `json:"versions,omitempty"`
 }
 
 // KVListItem represents a minimal secret list item.

@@ -86,14 +86,20 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 
 	client := &Client{
 		beyondtrustWorkloadCredentialsClient: BeyondtrustWorkloadCredentialsClient,
-		store:                    BeyondtrustWorkloadCredentialsStoreSpec,
+		store:                                BeyondtrustWorkloadCredentialsStoreSpec,
 	}
 
 	return client, nil
 }
 
 // newClient is a shared helper creates the appropriate BeyondtrustWorkloadCredentials client based on the provided spec.
-func (p *Provider) newClient(ctx context.Context, serverURL, apiKey string, btSpec *esv1.BeyondtrustWorkloadCredentialsProvider, kube kclient.Client, namespace, storeKind string) (btwcutil.Client, error) {
+func (p *Provider) newClient(
+	ctx context.Context,
+	serverURL, apiKey string,
+	btSpec *esv1.BeyondtrustWorkloadCredentialsProvider,
+	kube kclient.Client,
+	namespace, storeKind string,
+) (btwcutil.Client, error) {
 	// Fetch CA from CABundle/CAProvider using ESO helper
 	var caCert []byte
 	var err error

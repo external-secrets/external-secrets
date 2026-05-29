@@ -37,7 +37,7 @@ func (e *APIError) Error() string {
 
 // errorResponse represents the structure of an error response from the API.
 type errorResponse struct {
-	Error   string                 `json:"error"`
-	Message string                 `json:"message"`
-	Details map[string]interface{} `json:"details"`
+	Error   string         `json:"error"`
+	Message string         `json:"message"`
+	Details map[string]any `json:"details"`
 }
