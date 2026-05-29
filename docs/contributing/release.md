@@ -77,7 +77,7 @@ If your PR introduces a breaking change:
    - What changed and why.
    - What users need to do to upgrade.
    - Any migration steps or deprecation timeline.
-3. Write the PR title so the breaking change is clearly visible.
+3. Write the PR title to make the breaking change clear by adding a `!` after the type/scope (e.g., `feat(api)!: description`).
 
 PRs with the `breaking-change` label appear in a dedicated section at the very top of the release notes, making them easy to spot for anyone performing an upgrade.
 
