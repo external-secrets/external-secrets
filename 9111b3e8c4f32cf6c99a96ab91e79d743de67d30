@@ -1,0 +1,11 @@
+SessionDuration bounds (Minimum=900, Maximum=43200) come directly from AWS
+admission validation for AssumeRole and AssumeRoleWithWebIdentity:
+- 900s (15 min) is the AWS minimum for any role session
+- 43200s (12 h) is the AWS absolute ceiling regardless of role configuration
+These were added as kubebuilder markers so the CRD rejects out-of-range
+values at admission time instead of at STS API call time.
+
+MFA was already defined as GeneratorKindMFA and in GeneratorSpec but had
+been accidentally omitted from the kubebuilder:validation:Enum annotation,
+causing the CRD to reject ClusterGenerator.spec.kind: MFA. Fixed here since
+the enum line was already being touched to add STSAssumeRoleToken.
