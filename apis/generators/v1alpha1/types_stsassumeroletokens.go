@@ -26,6 +26,8 @@ type RoleAssumptionParameters struct {
 	// Acceptable durations range from 900 seconds (15 minutes) to the maximum
 	// session duration configured for the role (default: 3600 seconds / 1 hour).
 	// +optional
+	// +kubebuilder:validation:Minimum=900
+	// +kubebuilder:validation:Maximum=43200
 	SessionDuration *int32 `json:"sessionDuration,omitempty"`
 
 	// ExternalID is a unique identifier required by some roles for cross-account
