@@ -69,7 +69,6 @@ spec:
           {{- end }}
           image: {{ include "external-secrets.image" (dict "chartAppVersion" .Chart.AppVersion "image" .Values.image "context" .) | trim }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          {{- if or (.Values.leaderElect) (.Values.scopedNamespace) (.Values.scopedRBAC) (.Values.processClusterStore) (.Values.processClusterExternalSecret) (.Values.processClusterPushSecret) (.Values.concurrent) (.Values.extraArgs) }}
           args:
           {{- if .Values.leaderElect }}
           - --enable-leader-election=true
@@ -129,7 +128,6 @@ spec:
           - --{{ $key }}
             {{- end }}
           {{- end }}
-          {{- end }}
           - --metrics-addr=:{{ .Values.metrics.listen.port }}
           - --loglevel={{ .Values.log.level }}
           - --zap-time-encoding={{ .Values.log.timeEncoding }}
@@ -145,6 +143,9 @@ spec:
           - --metrics-cert-dir={{ .Values.metrics.listen.secure.certDir }}
           - --metrics-cert-name={{ .Values.metrics.listen.secure.certFile }}
           - --metrics-key-name={{ .Values.metrics.listen.secure.keyFile }}
+          {{- end }}
+          {{- if .Values.metrics.listen.auth.enabled }}
+          - --metrics-auth=true
           {{- end }}
           ports:
             - containerPort: {{ .Values.metrics.listen.port }}
