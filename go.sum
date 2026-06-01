@@ -149,8 +149,8 @@ github.com/PaesslerAG/jsonpath v0.1.1 h1:c1/AToHQMVsduPAa4Vh6xp2U0evy4t8SWp8imEs
 github.com/PaesslerAG/jsonpath v0.1.1/go.mod h1:lVboNxFGal/VwW6d9JzIy56bUsYAP6tH/x80vjnCseY=
 github.com/ProtonMail/go-crypto v1.4.1 h1:9RfcZHqEQUvP8RzecWEUafnZVtEvrBVL9BiF67IQOfM=
 github.com/ProtonMail/go-crypto v1.4.1/go.mod h1:e1OaTyu5SYVrO9gKOEhTc+5UcXtTUa+P3uLudwcgPqo=
-github.com/ProtonMail/gopenpgp/v3 v3.3.0 h1:N6rHCH5PWwB6zSRMgRj1EbAMQHUAAHxH3Oo4KibsPwY=
-github.com/ProtonMail/gopenpgp/v3 v3.3.0/go.mod h1:J+iNPt0/5EO9wRt7Eit9dRUlzyu3hiGX3zId6iuaKOk=
+github.com/ProtonMail/gopenpgp/v3 v3.4.1 h1:K7uUhSHSJxORZ+RuHpilTT6S4MA2whCRlXNwLqd0+ys=
+github.com/ProtonMail/gopenpgp/v3 v3.4.1/go.mod h1:bGdV9f6edhmd581wzXsQCTKdH8bXBbyhkgDKPjwPc6U=
 github.com/RaveNoX/go-jsoncommentstrip v1.0.0/go.mod h1:78ihd09MekBnJnxpICcwzCMzGrKSKYe4AqU6PDYYpjk=
 github.com/Shopify/sarama v1.19.0/go.mod h1:FVkBWblsNy7DGZRfXLU0O9RCGt5g3g3yEuWXgklEdEo=
 github.com/Shopify/sarama v1.30.1/go.mod h1:hGgx05L/DiW8XYBXeJdKIN6V2QUy2H6JqME5VT1NLRw=
@@ -911,8 +911,8 @@ github.com/ovh/okms-sdk-go v0.5.1 h1:oS8w/BXyGgnBzaGh3zFIyw73LwJ2B+UkNqeVBT2epUU
 github.com/ovh/okms-sdk-go v0.5.1/go.mod h1:dJpK0dmnRphZgttfsjg6c5yLgcZp6LXPR/6CFwxY124=
 github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
 github.com/pascaldekloe/goe v0.1.0/go.mod h1:lzWF7FIEvWOWxwDKqyGYQf6ZUaNfKdP144TG7ZOy1lc=
-github.com/passbolt/go-passbolt v0.8.0-beta.1 h1:61EHrzrK9vC7uKQcVgyo5AyTj1CcFUgcJuXEOiYrIK8=
-github.com/passbolt/go-passbolt v0.8.0-beta.1/go.mod h1:2xaQdmCPtiwzJwy/KL0NMjtnkTnGknCi/UlVd1NSx4I=
+github.com/passbolt/go-passbolt v0.8.0-beta.2 h1:fL5pQjY/gM2rWwr4iAl2XIo7H6FleMTd38haqKA3KCg=
+github.com/passbolt/go-passbolt v0.8.0-beta.2/go.mod h1:Pwo/d2ukIkOifarrWnb+13G5dhtqMfsaihRTFEeYKZE=
 github.com/performancecopilot/speed/v4 v4.0.0/go.mod h1:qxrSyuDGrTOWfV+uKRFhfxw6h/4HXRGUiZiufxo49BM=
 github.com/pgavlin/fx v0.1.6 h1:r9jEg69DhNoCd3Xh0+5mIbdbS3PqWrVWujkY76MFRTU=
 github.com/pgavlin/fx v0.1.6/go.mod h1:KWZJ6fqBBSh8GxHYqwYCf3rYE7Gp2p0N8tJp8xv9u9M=
