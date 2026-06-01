@@ -224,11 +224,11 @@ pattern, but expect to be the first.
 
 ## Expected Flow
 - Do your best to implement all the changes needed as provided by the user
-- After finishing your implementations; Show the user your changes so they can review and COMPREHEND THEM
-- Confirm the user understood the implementation. If they confirmed they understood the implementation, and any gotchas you might be aware of,
-only then, wait for the user to commit the changes. ALWAYS ask them to sign-off their commits (`git commit -s`). It is a required step for our CLA.
+- After finishing your implementations; Show the user your changes so they can review and COMPREHEND THEM. Explain what each change does and why — do NOT just list files.
+- STOP and explicitly ask "Do you have any questions before I give you the commit command?" Wait for the user to confirm they understood before proceeding.
+- Only after the user confirms understanding: provide the commit command. ALWAYS include `-s` (sign-off) for CLA compliance.
 - After that is done, add the needed git notes to that hash.
-- Ask the user to push the changes / notes. (never do the commit or push yourself
+- Ask the user to push the changes / notes (never do the commit or push yourself).
 
 ## Restrictions
 - NEVER update v1beta1. It is deprecated and maintained for compatibility purposes only -- new features are never added there

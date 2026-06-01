@@ -32,6 +32,17 @@ import (
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+// capturingFactory returns a credsProviderFactory that applies the received
+// optFns to a fresh AssumeRoleOptions and exposes the result for assertion.
+func capturingFactory(creds aws.Credentials, captured *stscreds.AssumeRoleOptions) credsProviderFactory {
+	return func(_ *aws.Config, _ string, optFns ...func(*stscreds.AssumeRoleOptions)) aws.CredentialsProvider {
+		for _, fn := range optFns {
+			fn(captured)
+		}
+		return &fakeCredsProvider{creds: creds}
+	}
+}
+
 type fakeCredsProvider struct {
 	creds aws.Credentials
 	err   error
@@ -218,5 +229,33 @@ spec:
 				t.Errorf("Generator.generate() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestRequestParametersApplied(t *testing.T) {
+	var captured stscreds.AssumeRoleOptions
+	g := &Generator{}
+	_, _, err := g.generate(
+		context.Background(),
+		&apiextensions.JSON{Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: STSAssumeRoleToken
+spec:
+  region: us-east-1
+  role: arn:aws:iam::123456789012:role/my-role
+  requestParameters:
+    sessionDuration: 7200
+    externalID: my-external-id`)},
+		clientfake.NewClientBuilder().Build(),
+		"testns",
+		capturingFactory(aws.Credentials{AccessKeyID: "K", SecretAccessKey: "S", SessionToken: "T"}, &captured),
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if want := 7200 * time.Second; captured.Duration != want {
+		t.Errorf("Duration = %v, want %v", captured.Duration, want)
+	}
+	if captured.ExternalID == nil || *captured.ExternalID != "my-external-id" {
+		t.Errorf("ExternalID = %v, want %q", captured.ExternalID, "my-external-id")
 	}
 }
