@@ -1,0 +1,20 @@
+Design: STSAssumeRoleToken generator (fixes #4752)
+
+Root cause: STSSessionToken calls sts:GetSessionToken after AssumeRole.
+AWS rejects GetSessionToken when caller holds temporary credentials
+(session credentials from AssumeRole, or IRSA pod identity tokens).
+
+Key design decisions:
+- New generator instead of fixing STSSessionToken to preserve backwards
+  compatibility and keep the two use-cases clearly separated.
+- NewGeneratorSession called with role="" so base credentials are
+  set up (secretRef or JWT/IRSA) without role assumption. AssumeRole
+  is then performed explicitly via stscreds.NewAssumeRoleProvider,
+  which allows passing Duration and ExternalID options.
+- cfg.Credentials.Retrieve(ctx) triggers the actual sts:AssumeRole call
+  and returns the temporary credentials directly — GetSessionToken is
+  never called.
+- Supports both static long-term credentials + role (the bug reporter's
+  case) and IRSA/JWT + role (chain assumption).
+- Role field is required (minLength=1); generator is named to make the
+  AssumeRole semantics explicit and avoid confusion with STSSessionToken.
