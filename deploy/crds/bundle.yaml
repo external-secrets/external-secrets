@@ -987,7 +987,6 @@ spec:
                                       - QuayAccessToken
                                       - Password
                                       - SSHKey
-                                      - STSAssumeRoleToken
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -1181,7 +1180,6 @@ spec:
                                       - QuayAccessToken
                                       - Password
                                       - SSHKey
-                                      - STSAssumeRoleToken
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -13413,7 +13411,6 @@ spec:
                                   - QuayAccessToken
                                   - Password
                                   - SSHKey
-                                  - STSAssumeRoleToken
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -13607,7 +13604,6 @@ spec:
                                   - QuayAccessToken
                                   - Password
                                   - SSHKey
-                                  - STSAssumeRoleToken
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
