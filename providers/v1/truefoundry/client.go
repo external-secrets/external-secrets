@@ -18,11 +18,12 @@ package truefoundry
 
 import (
 	"context"
+	cryptorand "crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
-	"math/rand/v2"
+	"math/big"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -193,10 +194,14 @@ func (c *Client) doRequest(ctx context.Context, op, rawURL string) ([]byte, int,
 }
 
 // nextBackoff returns the next exponential-backoff delay with light jitter.
-// math/rand/v2 is intentional here: the jitter is for spreading retries, not
-// for security.
+// crypto/rand is used so gosec (G404) is satisfied without a //nolint
+// suppression; the jitter only needs to spread retries, not be cryptographically
+// unpredictable, so a rand failure simply yields zero jitter.
 func nextBackoff(current time.Duration) time.Duration {
-	jitter := time.Duration(rand.Int64N(int64(initialBackoff)))
+	var jitter time.Duration
+	if n, err := cryptorand.Int(cryptorand.Reader, big.NewInt(int64(initialBackoff))); err == nil {
+		jitter = time.Duration(n.Int64())
+	}
 	return current*2 + jitter
 }
 
