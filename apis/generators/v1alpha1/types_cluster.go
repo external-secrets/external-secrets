@@ -30,7 +30,7 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
+// +kubebuilder:validation:Enum=ACRAccessToken;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSAssumeRoleToken;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
 type GeneratorKind string
 
 const (
@@ -50,6 +50,8 @@ const (
 	GeneratorKindPassword GeneratorKind = "Password"
 	// GeneratorKindSSHKey represents an SSH key generator.
 	GeneratorKindSSHKey GeneratorKind = "SSHKey"
+	// GeneratorKindSTSAssumeRoleToken represents an AWS STS AssumeRole token generator.
+	GeneratorKindSTSAssumeRoleToken GeneratorKind = "STSAssumeRoleToken"
 	// GeneratorKindSTSSessionToken represents an AWS STS session token generator.
 	GeneratorKindSTSSessionToken GeneratorKind = "STSSessionToken"
 	// GeneratorKindUUID represents a UUID generator.
@@ -79,6 +81,7 @@ type GeneratorSpec struct {
 	QuayAccessTokenSpec       *QuayAccessTokenSpec       `json:"quayAccessTokenSpec,omitempty"`
 	PasswordSpec              *PasswordSpec              `json:"passwordSpec,omitempty"`
 	SSHKeySpec                *SSHKeySpec                `json:"sshKeySpec,omitempty"`
+	STSAssumeRoleTokenSpec    *STSAssumeRoleTokenSpec    `json:"stsAssumeRoleTokenSpec,omitempty"`
 	STSSessionTokenSpec       *STSSessionTokenSpec       `json:"stsSessionTokenSpec,omitempty"`
 	UUIDSpec                  *UUIDSpec                  `json:"uuidSpec,omitempty"`
 	VaultDynamicSecretSpec    *VaultDynamicSecretSpec    `json:"vaultDynamicSecretSpec,omitempty"`

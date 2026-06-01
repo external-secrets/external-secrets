@@ -1,0 +1,39 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: STSAssumeRoleToken
+metadata:
+  name: sts-assumerole-gen
+spec:
+
+  # specify aws region (mandatory)
+  region: eu-west-1
+
+  # role ARN to assume (mandatory)
+  role: "arn:aws:iam::123456789012:role/my-role"
+
+  # choose an authentication strategy
+  # if no auth strategy is defined it falls back to using
+  # credentials from the environment of the controller (including IRSA).
+  auth:
+
+    # static credentials:
+    # point to a secret that contains long-term IAM credentials.
+    secretRef:
+      accessKeyIDSecretRef:
+        name: "my-aws-creds"
+        key: "access-key-id"
+      secretAccessKeySecretRef:
+        name: "my-aws-creds"
+        key: "secret-access-key"
+
+    # IRSA / service account token:
+    # uses the pod's projected service account token to call AssumeRoleWithWebIdentity.
+    # jwt:
+    #   serviceAccountRef:
+    #     name: "my-service-account"
+
+  # optional parameters for the AssumeRole call
+  requestParameters:
+    # duration in seconds (900–43200, default: 3600)
+    sessionDuration: 3600
+    # externalID required by the role trust policy, if any
+    # externalID: "my-external-id"

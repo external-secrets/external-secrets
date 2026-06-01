@@ -221,3 +221,16 @@ pattern, but expect to be the first.
 - Docs page + snippets.
 - mkdocs nav entry.
 - After adding the module to `go.work`, run `go work use` to reconcile the `go` directive version.
+
+## Expected Flow
+- Do your best to implement all the changes needed as provided by the user
+- After finishing your implementations; Show the user your changes so they can review and COMPREHEND THEM
+- Confirm the user understood the implementation. If they confirmed they understood the implementation, and any gotchas you might be aware of,
+only then, wait for the user to commit the changes.
+- After that is done, add the needed git notes to that hash.
+- Ask the user to push the changes / notes. (never do the commit or push yourself
+
+## Restrictions
+- NEVER update v1beta1. It is deprecated and maintained for compatibility purposes only -- new features are never added there
+- NEVER run `git commit`, `git push`, or any variation thereof. All commits and pushes are done manually by the user.
+- NEVER stage commits!

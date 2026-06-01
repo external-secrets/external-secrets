@@ -107,6 +107,7 @@ rules:
     - "quayaccesstokens"
     - "passwords"
     - "sshkeys"
+    - "stsassumeroletokens"
     - "stssessiontokens"
     - "uuids"
     - "vaultdynamicsecrets"

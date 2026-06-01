@@ -166,6 +166,7 @@ spec:
                                       - QuayAccessToken
                                       - Password
                                       - SSHKey
+                                      - STSAssumeRoleToken
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -415,6 +416,7 @@ spec:
                                       - QuayAccessToken
                                       - Password
                                       - SSHKey
+                                      - STSAssumeRoleToken
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -985,6 +987,7 @@ spec:
                                       - QuayAccessToken
                                       - Password
                                       - SSHKey
+                                      - STSAssumeRoleToken
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -1178,6 +1181,7 @@ spec:
                                       - QuayAccessToken
                                       - Password
                                       - SSHKey
+                                      - STSAssumeRoleToken
                                       - STSSessionToken
                                       - UUID
                                       - VaultDynamicSecret
@@ -1985,6 +1989,7 @@ spec:
                                 - QuayAccessToken
                                 - Password
                                 - SSHKey
+                                - STSAssumeRoleToken
                                 - STSSessionToken
                                 - UUID
                                 - VaultDynamicSecret
@@ -12701,6 +12706,7 @@ spec:
                                   - QuayAccessToken
                                   - Password
                                   - SSHKey
+                                  - STSAssumeRoleToken
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -12950,6 +12956,7 @@ spec:
                                   - QuayAccessToken
                                   - Password
                                   - SSHKey
+                                  - STSAssumeRoleToken
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -13406,6 +13413,7 @@ spec:
                                   - QuayAccessToken
                                   - Password
                                   - SSHKey
+                                  - STSAssumeRoleToken
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -13599,6 +13607,7 @@ spec:
                                   - QuayAccessToken
                                   - Password
                                   - SSHKey
+                                  - STSAssumeRoleToken
                                   - STSSessionToken
                                   - UUID
                                   - VaultDynamicSecret
@@ -14233,6 +14242,7 @@ spec:
                             - QuayAccessToken
                             - Password
                             - SSHKey
+                            - STSAssumeRoleToken
                             - STSSessionToken
                             - UUID
                             - VaultDynamicSecret
@@ -26064,6 +26074,163 @@ spec:
                             - ed25519
                           type: string
                       type: object
+                    stsAssumeRoleTokenSpec:
+                      description: |-
+                        STSAssumeRoleTokenSpec defines the desired state to generate temporary AWS credentials
+                        via sts:AssumeRole. Unlike STSSessionToken, this generator works with both long-term
+                        credentials and temporary credentials (e.g. IRSA / pod identity).
+                      properties:
+                        auth:
+                          description: Auth defines how to authenticate with AWS.
+                          properties:
+                            jwt:
+                              description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
+                              properties:
+                                serviceAccountRef:
+                                  description: ServiceAccountSelector is a reference to a ServiceAccount resource.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              type: object
+                            secretRef:
+                              description: |-
+                                AWSAuthSecretRef holds secret references for AWS credentials
+                                both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.
+                              properties:
+                                accessKeyIDSecretRef:
+                                  description: The AccessKeyID is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                secretAccessKeySecretRef:
+                                  description: The SecretAccessKey is used for authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                sessionTokenSecretRef:
+                                  description: |-
+                                    The SessionToken used for authentication
+                                    This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+                                    see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              type: object
+                          type: object
+                        region:
+                          description: Region specifies the AWS region to operate in.
+                          type: string
+                        requestParameters:
+                          description: RequestParameters contains optional parameters for the AssumeRole call.
+                          properties:
+                            externalID:
+                              description: |-
+                                ExternalID is a unique identifier that might be required when you assume a
+                                role in another account. If the administrator of the account to which the
+                                role belongs provided you with an external ID, then provide that value.
+                              type: string
+                            sessionDuration:
+                              description: |-
+                                SessionDuration The duration, in seconds, of the role session.
+                                The value can range from 900 seconds (15 minutes) to the maximum session
+                                duration setting for the role. If not specified, the default is 1 hour.
+                              format: int32
+                              type: integer
+                          type: object
+                        role:
+                          description: Role is the ARN of the IAM role to assume.
+                          minLength: 1
+                          type: string
+                      required:
+                        - region
+                        - role
+                      type: object
                     stsSessionTokenSpec:
                       description: STSSessionTokenSpec defines the desired state to generate an AWS STS session token.
                       properties:
@@ -27373,6 +27540,7 @@ spec:
                     - QuayAccessToken
                     - Password
                     - SSHKey
+                    - STSAssumeRoleToken
                     - STSSessionToken
                     - UUID
                     - VaultDynamicSecret
@@ -28627,6 +28795,215 @@ spec:
                     - ecdsa
                     - ed25519
                   type: string
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+    external-secrets.io/component: controller
+  name: stsassumeroletokens.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: STSAssumeRoleToken
+    listKind: STSAssumeRoleTokenList
+    plural: stsassumeroletokens
+    singular: stsassumeroletoken
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: |-
+            STSAssumeRoleToken uses sts:AssumeRole to obtain temporary AWS credentials.
+            Unlike STSSessionToken (which calls GetSessionToken), this generator works with
+            both long-term IAM credentials and temporary credentials such as IRSA pod identity,
+            making it suitable for any environment including on-premises clusters.
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: |-
+                STSAssumeRoleTokenSpec defines the desired state to generate temporary AWS credentials
+                via sts:AssumeRole. Unlike STSSessionToken, this generator works with both long-term
+                credentials and temporary credentials (e.g. IRSA / pod identity).
+              properties:
+                auth:
+                  description: Auth defines how to authenticate with AWS.
+                  properties:
+                    jwt:
+                      description: AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
+                      properties:
+                        serviceAccountRef:
+                          description: ServiceAccountSelector is a reference to a ServiceAccount resource.
+                          properties:
+                            audiences:
+                              description: |-
+                                Audience specifies the `aud` claim for the service account token
+                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      type: object
+                    secretRef:
+                      description: |-
+                        AWSAuthSecretRef holds secret references for AWS credentials
+                        both AccessKeyID and SecretAccessKey must be defined in order to properly authenticate.
+                      properties:
+                        accessKeyIDSecretRef:
+                          description: The AccessKeyID is used for authentication
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                        secretAccessKeySecretRef:
+                          description: The SecretAccessKey is used for authentication
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                        sessionTokenSecretRef:
+                          description: |-
+                            The SessionToken used for authentication
+                            This must be defined if AccessKeyID and SecretAccessKey are temporary credentials
+                            see: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_temp_use-resources.html
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                      type: object
+                  type: object
+                region:
+                  description: Region specifies the AWS region to operate in.
+                  type: string
+                requestParameters:
+                  description: RequestParameters contains optional parameters for the AssumeRole call.
+                  properties:
+                    externalID:
+                      description: |-
+                        ExternalID is a unique identifier that might be required when you assume a
+                        role in another account. If the administrator of the account to which the
+                        role belongs provided you with an external ID, then provide that value.
+                      type: string
+                    sessionDuration:
+                      description: |-
+                        SessionDuration The duration, in seconds, of the role session.
+                        The value can range from 900 seconds (15 minutes) to the maximum session
+                        duration setting for the role. If not specified, the default is 1 hour.
+                      format: int32
+                      type: integer
+                  type: object
+                role:
+                  description: Role is the ARN of the IAM role to assume.
+                  minLength: 1
+                  type: string
+              required:
+                - region
+                - role
               type: object
           type: object
       served: true
