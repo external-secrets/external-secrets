@@ -45,6 +45,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/onboardbase => ./providers/v1/onboardbase
 	github.com/external-secrets/external-secrets/providers/v1/onepassword => ./providers/v1/onepassword
 	github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk => ./providers/v1/onepasswordsdk
+	github.com/external-secrets/external-secrets/providers/v1/openbao => ./providers/v1/openbao
 	github.com/external-secrets/external-secrets/providers/v1/oracle => ./providers/v1/oracle
 	github.com/external-secrets/external-secrets/providers/v1/ovh => ./providers/v1/ovh
 	github.com/external-secrets/external-secrets/providers/v1/passbolt => ./providers/v1/passbolt
@@ -158,6 +159,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/onboardbase v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/onepassword v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/openbao v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/oracle v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/ovh v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/passbolt v0.0.0-00010101000000-000000000000
@@ -207,7 +209,7 @@ require (
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.39.6 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.41.6 // indirect
 	github.com/aws/aws-sdk-go-v2/config v1.31.19 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.23 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.13 // indirect
@@ -223,7 +225,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.35.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.40.1 // indirect
-	github.com/aws/smithy-go v1.23.2 // indirect
+	github.com/aws/smithy-go v1.25.1 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
@@ -325,6 +327,7 @@ require (
 	github.com/nebius/gosdk v0.0.0-20260204094009-511fd4d4f7a1 // indirect
 	github.com/ngrok/ngrok-api-go/v7 v7.6.0 // indirect
 	github.com/oapi-codegen/runtime v1.1.2 // indirect
+	github.com/openbao/openbao/api/v2 v2.5.1 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
 	github.com/ovh/okms-sdk-go v0.5.1 // indirect
 	github.com/passbolt/go-passbolt v0.8.0-beta.2 // indirect
