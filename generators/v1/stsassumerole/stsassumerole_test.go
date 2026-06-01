@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	ststypes "github.com/aws/aws-sdk-go-v2/service/sts/types"
 	v1 "k8s.io/api/core/v1"
@@ -218,7 +219,7 @@ spec:
 				tt.args.jsonSpec,
 				tt.args.kube,
 				tt.args.namespace,
-				func(cfg *aws.Config) stsAssumeRoleAPI {
+				func(cfg *aws.Config) stscreds.AssumeRoleAPIClient {
 					return &fakeAssumeRole{
 						assumeRole: tt.args.assumeRole,
 					}
@@ -242,3 +243,5 @@ type fakeAssumeRole struct {
 func (f *fakeAssumeRole) AssumeRole(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error) {
 	return f.assumeRole(ctx, params, optFns...)
 }
+
+var _ stscreds.AssumeRoleAPIClient = (*fakeAssumeRole)(nil)

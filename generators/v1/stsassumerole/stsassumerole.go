@@ -39,11 +39,6 @@ import (
 	awsauth "github.com/external-secrets/external-secrets/providers/v1/aws/auth"
 )
 
-// stsAssumeRoleAPI is the minimal STS interface needed to call AssumeRole.
-type stsAssumeRoleAPI interface {
-	AssumeRole(ctx context.Context, params *sts.AssumeRoleInput, optFns ...func(*sts.Options)) (*sts.AssumeRoleOutput, error)
-}
-
 // Generator implements a generator for AWS temporary credentials obtained via AssumeRole.
 type Generator struct{}
 
@@ -59,9 +54,9 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	return g.generate(ctx, jsonSpec, kube, namespace, stsFactory)
 }
 
-type stsFactoryFunc func(cfg *aws.Config) stsAssumeRoleAPI
+type stsFactoryFunc func(cfg *aws.Config) stscreds.AssumeRoleAPIClient
 
-func stsFactory(cfg *aws.Config) stsAssumeRoleAPI {
+func stsFactory(cfg *aws.Config) stscreds.AssumeRoleAPIClient {
 	return sts.NewFromConfig(*cfg)
 }
 
@@ -105,22 +100,11 @@ func (g *Generator) generate(
 	// AssumeRoleProvider. Calling Retrieve() will then invoke AssumeRole
 	// (not GetSessionToken) and return the resulting temporary credentials.
 	if res.Spec.Role != "" {
-		stsclient := stsFunc(cfg)
-		var opts []func(*stscreds.AssumeRoleOptions)
-		if p := res.Spec.RoleAssumptionParameters; p != nil {
-			opts = append(opts, func(o *stscreds.AssumeRoleOptions) {
-				if p.SessionDuration != nil {
-					o.Duration = time.Duration(*p.SessionDuration) * time.Second
-				}
-				if p.ExternalID != nil {
-					o.ExternalID = p.ExternalID
-				}
-				if p.RoleSessionName != nil {
-					o.RoleSessionName = *p.RoleSessionName
-				}
-			})
-		}
-		cfg.Credentials = stscreds.NewAssumeRoleProvider(stsclient, res.Spec.Role, opts...)
+		cfg.Credentials = stscreds.NewAssumeRoleProvider(
+			stsFunc(cfg),
+			res.Spec.Role,
+			assumeRoleOptions(res.Spec.RoleAssumptionParameters)...,
+		)
 	}
 
 	// Retrieve triggers the actual API call (AssumeRole / AssumeRoleWithWebIdentity
@@ -131,16 +115,40 @@ func (g *Generator) generate(
 		return nil, nil, fmt.Errorf(errGetCreds, err)
 	}
 
-	result := map[string][]byte{
+	return credentialsToMap(creds), nil, nil
+}
+
+// assumeRoleOptions converts RoleAssumptionParameters into AssumeRoleOptions funcs.
+func assumeRoleOptions(p *genv1alpha1.RoleAssumptionParameters) []func(*stscreds.AssumeRoleOptions) {
+	if p == nil {
+		return nil
+	}
+	return []func(*stscreds.AssumeRoleOptions){
+		func(o *stscreds.AssumeRoleOptions) {
+			if p.SessionDuration != nil {
+				o.Duration = time.Duration(*p.SessionDuration) * time.Second
+			}
+			if p.ExternalID != nil {
+				o.ExternalID = p.ExternalID
+			}
+			if p.RoleSessionName != nil {
+				o.RoleSessionName = *p.RoleSessionName
+			}
+		},
+	}
+}
+
+// credentialsToMap converts aws.Credentials into the generator output map.
+func credentialsToMap(creds aws.Credentials) map[string][]byte {
+	m := map[string][]byte{
 		"access_key_id":     []byte(creds.AccessKeyID),
 		"secret_access_key": []byte(creds.SecretAccessKey),
 		"session_token":     []byte(creds.SessionToken),
 	}
 	if creds.CanExpire {
-		result["expiration"] = []byte(strconv.FormatInt(creds.Expires.Unix(), 10))
+		m["expiration"] = []byte(strconv.FormatInt(creds.Expires.Unix(), 10))
 	}
-
-	return result, nil, nil
+	return m
 }
 
 // Cleanup is a no-op for this generator as it produces no external state.
