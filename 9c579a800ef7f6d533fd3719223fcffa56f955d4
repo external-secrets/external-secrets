@@ -1,0 +1,18 @@
+Fix: address code review comments on STSAssumeRoleToken PR
+
+Three changes:
+
+1. AGENTS.md parenthesis fix — cosmetic, no behavioral impact.
+
+2. AGENTS.md Expected Flow hardening — added explicit gate requiring
+   the agent to ask for user confirmation before giving the commit
+   command. Previous wording was easy to skip over; new wording has
+   a hard stop with a required question.
+
+3. TestRequestParametersApplied — fills a test gap flagged in review:
+   the requestParameters test previously only checked output credentials
+   (which are mocked and always correct regardless of options). New test
+   uses capturingFactory to apply optFns to a real AssumeRoleOptions
+   struct and asserts Duration==7200s and ExternalID=="my-external-id"
+   are actually forwarded. A regression in option-building logic would
+   now be caught.
