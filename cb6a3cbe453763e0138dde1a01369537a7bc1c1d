@@ -1,0 +1,11 @@
+Fix: revert unauthorized v1beta1 update from STSAssumeRoleToken PR
+
+v1beta1 is frozen for compatibility — new GeneratorRef.Kind enum values
+must never be added there. This was caught during post-commit AGENTS.md
+review.
+
+Also updated AGENTS.md with two new learnings:
+- All commits must include -s (sign-off) for CLA compliance.
+- git add instructions after make generate must include ALL generated
+  files (CRDs, zz_generated.deepcopy.go, helm templates, snapshots)
+  not just the edited source file, or the build breaks.
