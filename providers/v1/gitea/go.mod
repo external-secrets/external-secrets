@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/gitea
 
-go 1.26.2
+go 1.26.3
 
 require (
 	code.gitea.io/sdk/gitea v0.20.0
