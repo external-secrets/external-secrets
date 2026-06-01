@@ -6005,6 +6005,61 @@ spec:
                         - auth
                         - vault
                       type: object
+                    openBao:
+                      description: OpenBao configures this store to sync secrets using the OpenBao provider.
+                      properties:
+                        auth:
+                          description: Auth configures how secret-manager authenticates with the OpenBao server.
+                          properties:
+                            tokenSecretRef:
+                              description: TokenSecretRef authenticates with OpenBao by presenting a token.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          type: object
+                        path:
+                          description: |-
+                            Path is the mount path of the OpenBao KV backend endpoint, e.g:
+                            "secret". The v2 KV secret engine version specific "/data" path suffix
+                            for fetching secrets from OpenBao is optional and will be appended
+                            if not present in specified path.
+                          type: string
+                        server:
+                          description: 'Server is the connection address for the OpenBao server, e.g: "https://openbao.example.com:8200".'
+                          type: string
+                        version:
+                          default: v2
+                          description: |-
+                            Version is the OpenBao KV secret engine version. This can be either "v1" or
+                            "v2". Version defaults to "v2".
+                          enum:
+                            - v1
+                            - v2
+                          type: string
+                      required:
+                        - server
+                      type: object
                     oracle:
                       description: Oracle configures this store to sync secrets using Oracle Vault provider
                       properties:
@@ -18280,6 +18335,61 @@ spec:
                       required:
                         - auth
                         - vault
+                      type: object
+                    openBao:
+                      description: OpenBao configures this store to sync secrets using the OpenBao provider.
+                      properties:
+                        auth:
+                          description: Auth configures how secret-manager authenticates with the OpenBao server.
+                          properties:
+                            tokenSecretRef:
+                              description: TokenSecretRef authenticates with OpenBao by presenting a token.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          type: object
+                        path:
+                          description: |-
+                            Path is the mount path of the OpenBao KV backend endpoint, e.g:
+                            "secret". The v2 KV secret engine version specific "/data" path suffix
+                            for fetching secrets from OpenBao is optional and will be appended
+                            if not present in specified path.
+                          type: string
+                        server:
+                          description: 'Server is the connection address for the OpenBao server, e.g: "https://openbao.example.com:8200".'
+                          type: string
+                        version:
+                          default: v2
+                          description: |-
+                            Version is the OpenBao KV secret engine version. This can be either "v1" or
+                            "v2". Version defaults to "v2".
+                          enum:
+                            - v1
+                            - v2
+                          type: string
+                      required:
+                        - server
                       type: object
                     oracle:
                       description: Oracle configures this store to sync secrets using Oracle Vault provider
