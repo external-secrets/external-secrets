@@ -28,7 +28,7 @@ jobs:
     outputs:
       check_run_id: ${{ steps.create_check.outputs.check_run_id }}
     steps:
-      - uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
           egress-policy: audit
 
@@ -82,7 +82,7 @@ jobs:
       TF_VAR_AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
       TF_VAR_AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
     steps:
-      - uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
           egress-policy: audit
 
@@ -117,10 +117,10 @@ jobs:
           key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
-      - uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v3
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v3
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@d979d5b3a71173a29b74b5b88418bfda9437d885
+        uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b
         with:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
@@ -132,7 +132,7 @@ jobs:
         run: aws --region $AWS_REGION eks update-kubeconfig --name $AWS_CLUSTER_NAME
 
       - name: Login to Docker
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
         if: env.GHCR_USERNAME != ''
         with:
           registry: ghcr.io
@@ -169,7 +169,7 @@ jobs:
       GCP_FED_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_FED_SERVICE_ACCOUNT_EMAIL }}
       GCP_FED_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_FED_WORKLOAD_IDENTITY_PROVIDER }}
     steps:
-      - uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
           egress-policy: audit
 
@@ -204,7 +204,7 @@ jobs:
           key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
-      - uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v3
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v3
 
       - name: Authenticate to Google Cloud
         uses: 'google-github-actions/auth@fc2174804b84f912b1f6d334e9463f484f1c552d' # v3
@@ -230,7 +230,7 @@ jobs:
           project_id: '${{ env.GCP_FED_PROJECT_ID }}'
 
       - name: Login to Docker
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
         if: env.GHCR_USERNAME != ''
         with:
           registry: ghcr.io
@@ -264,7 +264,7 @@ jobs:
       TFC_AZURE_SUBSCRIPTION_ID: ${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}
       TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL }}
     steps:
-      - uses: step-security/harden-runner@a5ad31d6a139d249332a2605b85202e8c0b78450 # v2.19.1
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
           egress-policy: audit
 
@@ -299,7 +299,7 @@ jobs:
           key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
           restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
 
-      - uses: hashicorp/setup-terraform@5e8dbf3c6d9deaf4193ca7a8fb23f2ac83bb6c85 # v3
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v3
 
       - name: Azure CLI login
         uses: azure/login@532459ea530d8321f2fb9bb10d1e0bcf23869a43
@@ -319,7 +319,7 @@ jobs:
         run: az aks get-credentials --admin --name eso-cluster --resource-group external-secrets-e2e
 
       - name: Login to Docker
-        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee # v4.2.0
         if: env.GHCR_USERNAME != ''
         with:
           registry: ghcr.io
