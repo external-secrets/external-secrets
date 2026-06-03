@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/external-secrets/external-secrets/providers/v1/openbao"
+	"github.com/go-viper/mapstructure/v2"
 	. "github.com/onsi/gomega"
 	"gopkg.in/dnaeon/go-vcr.v4/pkg/cassette"
 	"gopkg.in/dnaeon/go-vcr.v4/pkg/recorder"
@@ -329,6 +330,15 @@ func TestProvider_Validate(t *testing.T) {
 	Expect(err).To(MatchError(`expected mount type "kv" found "system"`))
 	Expect(result).To(Equal(esv1.ValidationResultError))
 
+	// make it a cluster store
+	clusterStore := &esv1.ClusterSecretStore{}
+	Expect(mapstructure.Decode(store, clusterStore)).NotTo(HaveOccurred())
+	client, err = provider.NewClient(t.Context(), clusterStore, kube, "")
+	Expect(err).NotTo(HaveOccurred())
+	Expect(client).NotTo(BeNil())
+
+	result, err = client.Validate()
+	Expect(client.Validate()).To(Equal(esv1.ValidationResultUnknown))
 }
 
 func setupClient(t *testing.T, v esv1.OpenBaoKVStoreVersion) esv1.SecretsClient {

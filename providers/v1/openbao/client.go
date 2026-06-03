@@ -26,9 +26,11 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/openbao/openbao/api/v2"
 	v1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
@@ -36,9 +38,26 @@ var (
 )
 
 type Client struct {
-	path   string
-	useV1  bool
-	client *api.Client
+	client    *api.Client
+	store     *esv1.OpenBaoProvider
+	storeKind string
+}
+
+func (c *Client) setupAuth(ctx context.Context, kube client.Client, namespace string) error {
+	if c.store.Auth == nil {
+		return nil
+	}
+
+	if c.store.Auth.TokenSecretRef != nil {
+		token, err := resolvers.SecretKeyRef(ctx, kube, c.storeKind, namespace, c.store.Auth.TokenSecretRef)
+		if err != nil {
+			return err
+		}
+
+		c.client.SetToken(token)
+	}
+
+	return nil
 }
 
 func (c *Client) Close(ctx context.Context) error {
@@ -60,10 +79,10 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 		listPath = *ref.Path
 	}
 
-	if c.useV1 {
-		listPath = path.Join(c.path, listPath)
+	if c.useV1() {
+		listPath = path.Join(c.path(), listPath)
 	} else {
-		listPath = path.Join(c.path, "metadata", listPath)
+		listPath = path.Join(c.path(), "metadata", listPath)
 	}
 
 	meta, err := c.client.Logical().ListWithContext(ctx, listPath) // TODO(@phil9909): raise PR against OpenBao: client.KVv1/2() should have a list method
@@ -111,22 +130,33 @@ func (c *Client) findSecretsFromName(ctx context.Context, candidates []string, r
 	return secrets, nil
 }
 
+func (c *Client) useV1() bool {
+	return c.store.Version == esv1.OpenBaoKVStoreV1
+}
+
+func (c *Client) path() string {
+	if c.store.Path != nil {
+		return *c.store.Path
+	}
+	return "kv"
+}
+
 func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	var data *api.KVSecret
 	var err error
 
-	if c.useV1 {
+	if c.useV1() {
 		if ref.Version != "" {
 			return nil, errors.New("OpenBao KVv1 secrets do not support versioning (use KVv2)") // TODO: improve
 		}
 
-		kv := c.client.KVv1(c.path)
+		kv := c.client.KVv1(c.path())
 		data, err = kv.Get(ctx, ref.Key)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		kv := c.client.KVv2(c.path)
+		kv := c.client.KVv2(c.path())
 		if ref.Version != "" {
 			version, err := strconv.Atoi(ref.Version)
 			if err != nil {
@@ -193,7 +223,14 @@ func (c *Client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemo
 }
 
 func (c *Client) Validate() (esv1.ValidationResult, error) {
-	mount, err := c.client.Sys().MountInfo(c.path)
+	// when using referent namespace we can not validate the token
+	// because the namespace is not known yet when Validate() is called
+	// from the SecretStore controller.
+	if c.storeKind == esv1.ClusterSecretStoreKind && isReferentSpec(c.store) {
+		return esv1.ValidationResultUnknown, nil
+	}
+
+	mount, err := c.client.Sys().MountInfo(c.path())
 	if err != nil {
 		return esv1.ValidationResultError, err
 	}
@@ -203,10 +240,7 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	}
 
 	actualVersion := mount.Options["version"]
-	expectedVersion := "2"
-	if c.useV1 {
-		expectedVersion = "1"
-	}
+	expectedVersion := string(c.store.Version[1:]) // drop the "v" prefix
 	if expectedVersion != actualVersion {
 		return esv1.ValidationResultError, fmt.Errorf(`expected kv engine version %s found version %s`, expectedVersion, actualVersion)
 	}

@@ -24,7 +24,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/openbao/openbao/api/v2"
 )
 
@@ -46,34 +45,29 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	spec := store.GetSpec().Provider.OpenBao // if this is somehow nil, there is a bug in the framework
 
-	config := api.DefaultConfig()
-	config.HttpClient = p.HTTPClient
-	config.Address = spec.Server
+	baoConfig := api.DefaultConfig()
+	baoConfig.HttpClient = p.HTTPClient
+	baoConfig.Address = spec.Server
 
-	client, err := api.NewClient(config)
+	baoClient, err := api.NewClient(baoConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	if spec.Auth != nil && spec.Auth.TokenSecretRef != nil {
-		token, err := resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, spec.Auth.TokenSecretRef)
+	client := &Client{
+		client:    baoClient,
+		storeKind: store.GetKind(),
+		store:     spec,
+	}
+
+	if client.storeKind != esv1.ClusterSecretStoreKind || namespace != "" || !isReferentSpec(spec) {
+		err = client.setupAuth(ctx, kube, namespace)
 		if err != nil {
 			return nil, err
 		}
-
-		client.SetToken(token)
 	}
 
-	path := "kv"
-	if spec.Path != nil {
-		path = *spec.Path
-	}
-
-	return &Client{
-		path:   path,
-		client: client,
-		useV1:  spec.Version == esv1.OpenBaoKVStoreV1,
-	}, nil
+	return client, nil
 }
 
 func isReferentSpec(prov *esv1.OpenBaoProvider) bool {
