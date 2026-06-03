@@ -208,8 +208,8 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 		return nil, err
 	}
 	byteMap := make(map[string][]byte, len(secretData))
-	for k := range secretData {
-		byteMap[k], err = esutils.GetByteValueFromMap(secretData, k)
+	for k, v := range secretData {
+		byteMap[k], err = esutils.GetByteValue(v)
 		if err != nil {
 			return nil, err
 		}

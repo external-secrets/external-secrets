@@ -209,6 +209,20 @@ func TestProvider_KVv2(t *testing.T) {
 		}`))
 	})
 
+	t.Run("GetSecretMap", func(t *testing.T) {
+		RegisterTestingT(t)
+		client := setupClient(t, v)
+
+		data, err := client.GetSecretMap(t.Context(), esv1.ExternalSecretDataRemoteRef{
+			Key: "foo",
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(data).To(Equal(map[string][]byte{
+			"bar":   []byte("bazz"),
+			"lorem": []byte("ipsum"),
+		}))
+	})
+
 	t.Run("GetAllSecrets", func(t *testing.T) {
 		RegisterTestingT(t)
 		client := setupClient(t, v)
