@@ -4,7 +4,7 @@ go 1.26.2
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
-	github.com/external-secrets/external-secrets/runtime v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/google/go-cmp v0.7.0
 	k8s.io/api v0.35.0
 	sigs.k8s.io/controller-runtime v0.23.1

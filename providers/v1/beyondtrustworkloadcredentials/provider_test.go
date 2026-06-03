@@ -31,12 +31,6 @@ import (
 	btwcutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/util"
 )
 
-func toPtr[T any](v T) *T {
-	p := new(T)
-	*p = v
-	return p
-}
-
 const (
 	validSecretName   = "apikey"
 	validFolderPath   = "valid/folder/path"
@@ -87,8 +81,8 @@ func makeValidGetSecretTestCase() *beyondtrustworkloadcredentialsGetSecretTestCa
 	return &beyondtrustworkloadcredentialsGetSecretTestCase{
 		fakeBtsecretsClient: &fake.BeyondtrustWorkloadCredentialsClient{},
 		ctx:                 context.Background(),
-		name:                toPtr(validSecretName),
-		folderPath:          toPtr(validFolderPath),
+		name:                new(validSecretName),
+		folderPath:          new(validFolderPath),
 		remoteRef:           esv1.ExternalSecretDataRemoteRef{Key: validSecretName, Property: ""},
 	}
 }
@@ -98,8 +92,8 @@ func makeValidGetAllSecretsTestCase() *beyondtrustworkloadcredentialsGetAllSecre
 	return &beyondtrustworkloadcredentialsGetAllSecretsTestCase{
 		fakeBtsecretsClient: &fake.BeyondtrustWorkloadCredentialsClient{},
 		ctx:                 context.Background(),
-		name:                toPtr(validSecretName),
-		folderPath:          toPtr(validFolderPath),
+		name:                new(validSecretName),
+		folderPath:          new(validFolderPath),
 		remoteRef:           esv1.ExternalSecretFind{},
 	}
 }
@@ -181,11 +175,11 @@ func TestGetSecret(t *testing.T) {
 
 	clientError := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
 		tc.label = "GetSecret - Client Error"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
 		tc.remoteRef = esv1.ExternalSecretDataRemoteRef{Key: invalidSecretName}
-		tc.fakeBtsecretsError = toPtr("beyondtrustworkloadcredentials error")
-		tc.expectedError = toPtr("failed to get secret")
+		tc.fakeBtsecretsError = new("beyondtrustworkloadcredentials error")
+		tc.expectedError = new("failed to get secret")
 	}
 
 	nilSecret := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
@@ -194,11 +188,11 @@ func TestGetSecret(t *testing.T) {
 		}
 
 		tc.label = "GetSecret - Nil Secret"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
 		tc.remoteRef = esv1.ExternalSecretDataRemoteRef{Key: invalidSecretName}
 		tc.fakeBtsecretsResponse = fakeKV
-		tc.expectedError = toPtr("secret value is nil")
+		tc.expectedError = new("secret value is nil")
 	}
 
 	invalidSecretProperty := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
@@ -210,11 +204,11 @@ func TestGetSecret(t *testing.T) {
 		ref := esv1.ExternalSecretDataRemoteRef{Key: invalidSecretName, Property: "nonexistant"}
 
 		tc.label = "GetSecret - Invalid Property"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
 		tc.remoteRef = ref
 		tc.fakeBtsecretsResponse = fakeKV
-		tc.expectedError = toPtr(fmt.Sprintf("property %s not found in secret", ref.Property))
+		tc.expectedError = new(fmt.Sprintf("property %s not found in secret", ref.Property))
 	}
 
 	invalidSecret := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
@@ -224,11 +218,11 @@ func TestGetSecret(t *testing.T) {
 		}
 
 		tc.label = "GetSecret - Invalid"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
 		tc.remoteRef = esv1.ExternalSecretDataRemoteRef{Key: invalidSecretName}
 		tc.fakeBtsecretsResponse = fakeKV
-		tc.expectedError = toPtr("failed to marshal secret")
+		tc.expectedError = new("failed to marshal secret")
 	}
 
 	testCases := []*beyondtrustworkloadcredentialsGetSecretTestCase{
@@ -304,7 +298,7 @@ func TestGetAllSecrets(t *testing.T) {
 		}
 
 		tc.label = "GetAllSecrets - Secret KVs - Valid"
-		tc.remoteRef = esv1.ExternalSecretFind{Path: toPtr(validFolderPath)}
+		tc.remoteRef = esv1.ExternalSecretFind{Path: new(validFolderPath)}
 		tc.fakeBtsecretsListResponse = []btwcutil.KVListItem{fakeListItem}
 		tc.fakeBtsecretsGetResponse = fakeKV
 		tc.expectedResponse = fakeKVBytes
@@ -412,11 +406,11 @@ func TestGetAllSecrets(t *testing.T) {
 
 	clientGetError := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
 		tc.label = "GetAllSecrets - Secret KVs - Client Error"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
-		tc.remoteRef = esv1.ExternalSecretFind{Path: toPtr(invalidFolderPath)}
-		tc.fakeBtsecretsListError = toPtr("beyondtrustworkloadcredentials list error")
-		tc.expectedError = toPtr("failed to list secrets:")
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
+		tc.remoteRef = esv1.ExternalSecretFind{Path: new(invalidFolderPath)}
+		tc.fakeBtsecretsListError = new("beyondtrustworkloadcredentials list error")
+		tc.expectedError = new("failed to list secrets:")
 	}
 
 	nilSecret := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
@@ -429,13 +423,13 @@ func TestGetAllSecrets(t *testing.T) {
 		}
 
 		tc.label = "GetAllSecrets - Secret KVs - Nil Secret"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
-		tc.remoteRef = esv1.ExternalSecretFind{Path: toPtr(invalidFolderPath)}
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
+		tc.remoteRef = esv1.ExternalSecretFind{Path: new(invalidFolderPath)}
 		tc.fakeBtsecretsListResponse = []btwcutil.KVListItem{fakeListItem}
 		tc.fakeBtsecretsGetResponse = fakeKV
 		// Provider now returns NoSecretError when no results are found
-		tc.expectedError = toPtr("Secret does not exist")
+		tc.expectedError = new("Secret does not exist")
 	}
 
 	invalidSecret := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
@@ -449,37 +443,37 @@ func TestGetAllSecrets(t *testing.T) {
 		}
 
 		tc.label = "GetAllSecrets - Secret KVs - Invalid Secret"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
-		tc.remoteRef = esv1.ExternalSecretFind{Path: toPtr(invalidFolderPath)}
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
+		tc.remoteRef = esv1.ExternalSecretFind{Path: new(invalidFolderPath)}
 		tc.fakeBtsecretsListResponse = []btwcutil.KVListItem{fakeListItem}
 		tc.fakeBtsecretsGetResponse = fakeKV
-		tc.expectedError = toPtr("failed to marshal secret value for key")
+		tc.expectedError = new("failed to marshal secret value for key")
 	}
 
 	clientListError := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
 		tc.label = "GetAllSecrets - List Secrets - Client Error"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
-		tc.fakeBtsecretsListError = toPtr("beyondtrustworkloadcredentials list error")
-		tc.expectedError = toPtr("failed to list secrets:")
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
+		tc.fakeBtsecretsListError = new("beyondtrustworkloadcredentials list error")
+		tc.expectedError = new("failed to list secrets:")
 	}
 
 	invalidFindRegex := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
 		tc.label = "GetAllSecrets - List Secrets - Invalid Find RegExp"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
 		tc.remoteRef = esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: "[invalid-regex"}}
-		tc.expectedError = toPtr("invalid name regexp")
+		tc.expectedError = new("invalid name regexp")
 	}
 
 	clientGetErrorInList := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
 		tc.label = "GetAllSecrets - List Secrets - Get KVs - Client Error"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
 		tc.fakeBtsecretsListResponse = []btwcutil.KVListItem{{}}
-		tc.fakeBtsecretsGetError = toPtr("beyondtrustworkloadcredentials get error in list")
-		tc.expectedError = toPtr("failed to get secret at path")
+		tc.fakeBtsecretsGetError = new("beyondtrustworkloadcredentials get error in list")
+		tc.expectedError = new("failed to get secret at path")
 	}
 
 	nilSecretInList := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
@@ -488,12 +482,12 @@ func TestGetAllSecrets(t *testing.T) {
 		}
 
 		tc.label = "GetAllSecrets - List Secrets - Get KVs - Nil Secret"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
 		tc.fakeBtsecretsGetResponse = fakeKV
 		tc.fakeBtsecretsListResponse = []btwcutil.KVListItem{{Path: fakeKV.Path}}
 		// In list mode, skip missing entries; when no results are found, return NoSecretError
-		tc.expectedError = toPtr("Secret does not exist")
+		tc.expectedError = new("Secret does not exist")
 	}
 
 	invalidSecretInList := func(tc *beyondtrustworkloadcredentialsGetAllSecretsTestCase) {
@@ -503,11 +497,11 @@ func TestGetAllSecrets(t *testing.T) {
 		}
 
 		tc.label = "GetAllSecrets - List Secrets - Get KVs - Invalid"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
 		tc.fakeBtsecretsGetResponse = fakeKV
 		tc.fakeBtsecretsListResponse = []btwcutil.KVListItem{{Path: fakeKV.Path}}
-		tc.expectedError = toPtr("failed to marshal secret value for key")
+		tc.expectedError = new("failed to marshal secret value for key")
 	}
 
 	testCases := []*beyondtrustworkloadcredentialsGetAllSecretsTestCase{
@@ -590,11 +584,11 @@ func TestGetSecretMap(t *testing.T) {
 
 	clientError := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
 		tc.label = "GetSecretMap - Client Error"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
 		tc.remoteRef = esv1.ExternalSecretDataRemoteRef{Key: invalidSecretName}
-		tc.fakeBtsecretsError = toPtr("beyondtrustworkloadcredentials error")
-		tc.expectedError = toPtr("failed to get secret")
+		tc.fakeBtsecretsError = new("beyondtrustworkloadcredentials error")
+		tc.expectedError = new("failed to get secret")
 	}
 
 	nilSecret := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
@@ -603,11 +597,11 @@ func TestGetSecretMap(t *testing.T) {
 		}
 
 		tc.label = "GetSecretMap - Nil Secret"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
 		tc.remoteRef = esv1.ExternalSecretDataRemoteRef{Key: invalidSecretName}
 		tc.fakeBtsecretsResponse = fakeKV
-		tc.expectedError = toPtr("secret value is nil")
+		tc.expectedError = new("secret value is nil")
 	}
 
 	invalidSecret := func(tc *beyondtrustworkloadcredentialsGetSecretTestCase) {
@@ -620,11 +614,11 @@ func TestGetSecretMap(t *testing.T) {
 		}
 
 		tc.label = "GetSecretMap - Invalid"
-		tc.name = toPtr(invalidSecretName)
-		tc.folderPath = toPtr(invalidFolderPath)
+		tc.name = new(invalidSecretName)
+		tc.folderPath = new(invalidFolderPath)
 		tc.remoteRef = esv1.ExternalSecretDataRemoteRef{Key: invalidSecretName}
 		tc.fakeBtsecretsResponse = fakeKV
-		tc.expectedError = toPtr("failed to marshal secret value for key")
+		tc.expectedError = new("failed to marshal secret value for key")
 	}
 
 	testCases := []*beyondtrustworkloadcredentialsGetSecretTestCase{

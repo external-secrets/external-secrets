@@ -319,7 +319,7 @@ func TestPathParsing(t *testing.T) {
 		{
 			name:           "Path with folder",
 			input:          "test/subfolder/secret-name",
-			wantFolder:     toPtr("test/subfolder"),
+			wantFolder:     new("test/subfolder"),
 			wantSecretName: "secret-name",
 		},
 		{
@@ -331,7 +331,7 @@ func TestPathParsing(t *testing.T) {
 		{
 			name:           "Path with single folder",
 			input:          "folder/secret",
-			wantFolder:     toPtr("folder"),
+			wantFolder:     new("folder"),
 			wantSecretName: "secret",
 		},
 	}
@@ -405,8 +405,3 @@ func TestConvertToByteMap(t *testing.T) {
 	}
 }
 
-func toPtr[T any](v T) *T {
-	p := new(T)
-	*p = v
-	return p
-}
