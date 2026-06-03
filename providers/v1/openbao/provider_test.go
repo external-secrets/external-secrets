@@ -164,6 +164,14 @@ func TestProvider_KVv2(t *testing.T) {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(data).To(BeEquivalentTo("bazz"))
+
+		data, err = client.GetSecret(t.Context(), esv1.ExternalSecretDataRemoteRef{
+			Key:      "foo",
+			Property: "does-not-exist",
+		})
+		Expect(err).To(MatchError(`cannot find secret data for key: "does-not-exist"`))
+		Expect(data).To(BeNil())
+
 	})
 
 	t.Run("GetSecret_Versioned", func(t *testing.T) {
@@ -177,6 +185,14 @@ func TestProvider_KVv2(t *testing.T) {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(data).To(BeEquivalentTo("old_bazz"))
+
+		data, err = client.GetSecret(t.Context(), esv1.ExternalSecretDataRemoteRef{
+			Key:      "foo",
+			Property: "bar",
+			Version:  "invalid",
+		})
+		Expect(err).To(MatchError(`invalid Ref.Version: strconv.Atoi: parsing "invalid": invalid syntax`))
+		Expect(data).To(BeNil())
 	})
 
 	t.Run("GetSecret_Full", func(t *testing.T) {

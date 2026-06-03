@@ -38,6 +38,14 @@ var (
 	_ esv1.SecretsClient = &Client{}
 )
 
+const (
+	errInvalidRevVersion      = "invalid Ref.Version: %w"
+	errSecretKeyNotFound      = "cannot find secret data for key: %q"
+	errInvalidMountType       = `expected mount type "kv" found %q`
+	errInvalidMountVersion    = "expected kv engine version %s found version %s"
+	errKVv1VersionUnsupported = "OpenBao KVv1 secrets do not support versioning (use KVv2)"
+)
+
 type Client struct {
 	client    *api.Client
 	store     *esv1.OpenBaoProvider
@@ -148,7 +156,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 
 	if c.useV1() {
 		if ref.Version != "" {
-			return nil, errors.New("OpenBao KVv1 secrets do not support versioning (use KVv2)") // TODO: improve
+			return nil, errors.New(errKVv1VersionUnsupported)
 		}
 
 		kv := c.client.KVv1(c.path())
@@ -161,7 +169,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		if ref.Version != "" {
 			version, err := strconv.Atoi(ref.Version)
 			if err != nil {
-				return nil, err // TODO: proper error
+				return nil, fmt.Errorf(errInvalidRevVersion, err)
 			}
 
 			data, err = kv.GetVersion(ctx, ref.Key, version)
@@ -182,15 +190,10 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 
 	property, ok := data.Data[ref.Property]
 	if !ok {
-		return nil, esv1.NoSecretErr // TODO: improve and test
+		return nil, fmt.Errorf(errSecretKeyNotFound, ref.Property)
 	}
 
-	if property, ok := property.(string); ok {
-		return []byte(property), nil
-	} else {
-		return nil, esv1.NoSecretErr // TODO: improve and test
-	}
-
+	return esutils.GetByteValue(property)
 }
 
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
@@ -240,13 +243,13 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	}
 
 	if mount.Type != "kv" {
-		return esv1.ValidationResultError, fmt.Errorf(`expected mount type "kv" found %q`, mount.Type)
+		return esv1.ValidationResultError, fmt.Errorf(errInvalidMountType, mount.Type)
 	}
 
 	actualVersion := mount.Options["version"]
 	expectedVersion := string(c.store.Version[1:]) // drop the "v" prefix
 	if expectedVersion != actualVersion {
-		return esv1.ValidationResultError, fmt.Errorf(`expected kv engine version %s found version %s`, expectedVersion, actualVersion)
+		return esv1.ValidationResultError, fmt.Errorf(errInvalidMountVersion, expectedVersion, actualVersion)
 	}
 
 	return esv1.ValidationResultReady, nil
