@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"path"
 	"strconv"
 	"time"
 
@@ -89,13 +88,14 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 		listPath = *ref.Path
 	}
 
+	var list func(ctx context.Context, secretPath string) (*api.KVList, error)
 	if c.useV1() {
-		listPath = path.Join(c.path(), listPath)
+		list = c.client.KVv1(c.path()).List
 	} else {
-		listPath = path.Join(c.path(), "metadata", listPath)
+		list = c.client.KVv2(c.path()).List
 	}
 
-	meta, err := c.client.Logical().ListWithContext(ctx, listPath) // TODO(@phil9909): raise PR against OpenBao: client.KVv1/2() should have a list method
+	meta, err := list(ctx, listPath)
 	if err != nil {
 		return nil, err
 	}
@@ -103,17 +103,8 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	if meta == nil {
 		return nil, nil
 	}
-	if _, ok := meta.Data["keys"]; !ok {
-		return nil, nil
-	}
 
-	keysUntyped := meta.Data["keys"].([]any)
-	keys := make([]string, 0, len(keysUntyped))
-	for _, key := range keysUntyped {
-		keys = append(keys, key.(string))
-	}
-
-	return c.findSecretsFromName(ctx, keys, *ref.Name)
+	return c.findSecretsFromName(ctx, meta.Keys, *ref.Name)
 }
 
 func (c *client) findSecretsFromName(ctx context.Context, candidates []string, ref esv1.FindName) (map[string][]byte, error) {
