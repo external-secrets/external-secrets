@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"path"
 	"strconv"
+	"time"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
@@ -230,7 +231,10 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 		return esv1.ValidationResultUnknown, nil
 	}
 
-	mount, err := c.client.Sys().MountInfo(c.path())
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	mount, err := c.client.Sys().MountInfoWithContext(ctx, c.path())
 	if err != nil {
 		return esv1.ValidationResultError, err
 	}
