@@ -1,3 +1,19 @@
+/*
+Copyright © The ESO Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package openbao_test
 
 import (
@@ -11,9 +27,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/external-secrets/external-secrets/providers/v1/openbao"
 	"github.com/go-viper/mapstructure/v2"
-	. "github.com/onsi/gomega"
 	"gopkg.in/dnaeon/go-vcr.v4/pkg/cassette"
 	"gopkg.in/dnaeon/go-vcr.v4/pkg/recorder"
 	corev1 "k8s.io/api/core/v1"
@@ -23,6 +37,9 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/providers/v1/openbao"
+
+	. "github.com/onsi/gomega"
 )
 
 const recordDir = "testdata/http"
@@ -171,7 +188,6 @@ func TestProvider_KVv2(t *testing.T) {
 		})
 		Expect(err).To(MatchError(`cannot find secret data for key: "does-not-exist"`))
 		Expect(data).To(BeNil())
-
 	})
 
 	t.Run("GetSecret_Versioned", func(t *testing.T) {
@@ -367,7 +383,6 @@ func TestProvider_Validate(t *testing.T) {
 	Expect(err).NotTo(HaveOccurred())
 	Expect(client).NotTo(BeNil())
 
-	result, err = client.Validate()
 	Expect(client.Validate()).To(Equal(esv1.ValidationResultUnknown))
 }
 

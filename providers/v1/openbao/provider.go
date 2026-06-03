@@ -14,22 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package openbao implement a Provider for [OpenBao]
+//
+// [OpenBao]: https://openbao.org/
 package openbao
 
 import (
 	"context"
 	"net/http"
 
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	"github.com/openbao/openbao/api/v2"
+	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/openbao/openbao/api/v2"
 )
 
 var (
-	_      esv1.Provider = &Provider{}
-	logger               = ctrl.Log.WithName("provider").WithName("openbao")
+	_ esv1.Provider = &Provider{}
 )
 
 // Provider implements the ESO Provider interface for OpenBao.
@@ -42,7 +43,8 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
-func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
+// NewClient implements the Provider interface.
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube k8sClient.Client, namespace string) (esv1.SecretsClient, error) {
 	spec := store.GetSpec().Provider.OpenBao // if this is somehow nil, there is a bug in the framework
 
 	baoConfig := api.DefaultConfig()
@@ -54,7 +56,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	client := &Client{
+	client := &client{
 		client:    baoClient,
 		storeKind: store.GetKind(),
 		store:     spec,

@@ -25,17 +25,18 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/openbao/openbao/api/v2"
+	v1 "k8s.io/api/core/v1"
+	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
+
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/find"
-	"github.com/openbao/openbao/api/v2"
-	v1 "k8s.io/api/core/v1"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var (
-	_ esv1.SecretsClient = &Client{}
+	_ esv1.SecretsClient = &client{}
 )
 
 const (
@@ -46,13 +47,13 @@ const (
 	errKVv1VersionUnsupported = "OpenBao KVv1 secrets do not support versioning (use KVv2)"
 )
 
-type Client struct {
+type client struct {
 	client    *api.Client
 	store     *esv1.OpenBaoProvider
 	storeKind string
 }
 
-func (c *Client) setupAuth(ctx context.Context, kube client.Client, namespace string) error {
+func (c *client) setupAuth(ctx context.Context, kube k8sClient.Client, namespace string) error {
 	if c.store.Auth == nil {
 		return nil
 	}
@@ -69,16 +70,16 @@ func (c *Client) setupAuth(ctx context.Context, kube client.Client, namespace st
 	return nil
 }
 
-func (c *Client) Close(ctx context.Context) error {
+func (c *client) Close(_ context.Context) error {
 	c.client = nil
 	return nil
 }
 
-func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
+func (c *client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
 	return errors.New("delete secret is not supported (the OpenBao provider is currently read only)")
 }
 
-func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+func (c *client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	if ref.Tags != nil {
 		return nil, errors.New("tag based search is not implemented")
 	}
@@ -115,7 +116,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	return c.findSecretsFromName(ctx, keys, *ref.Name)
 }
 
-func (c *Client) findSecretsFromName(ctx context.Context, candidates []string, ref esv1.FindName) (map[string][]byte, error) {
+func (c *client) findSecretsFromName(ctx context.Context, candidates []string, ref esv1.FindName) (map[string][]byte, error) {
 	secrets := make(map[string][]byte)
 	matcher, err := find.New(ref)
 	if err != nil {
@@ -139,18 +140,18 @@ func (c *Client) findSecretsFromName(ctx context.Context, candidates []string, r
 	return secrets, nil
 }
 
-func (c *Client) useV1() bool {
+func (c *client) useV1() bool {
 	return c.store.Version == esv1.OpenBaoKVStoreV1
 }
 
-func (c *Client) path() string {
+func (c *client) path() string {
 	if c.store.Path != nil {
 		return *c.store.Path
 	}
 	return "kv"
 }
 
-func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	var data *api.KVSecret
 	var err error
 
@@ -196,7 +197,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	return esutils.GetByteValue(property)
 }
 
-func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := c.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -218,15 +219,15 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 	return byteMap, nil
 }
 
-func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1.PushSecretData) error {
+func (c *client) PushSecret(_ context.Context, _ *v1.Secret, _ esv1.PushSecretData) error {
 	return errors.New("push secret is not supported (the OpenBao provider is currently read only)")
 }
 
-func (c *Client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
+func (c *client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
 	return false, errors.New("not implemented")
 }
 
-func (c *Client) Validate() (esv1.ValidationResult, error) {
+func (c *client) Validate() (esv1.ValidationResult, error) {
 	// when using referent namespace we can not validate the token
 	// because the namespace is not known yet when Validate() is called
 	// from the SecretStore controller.
