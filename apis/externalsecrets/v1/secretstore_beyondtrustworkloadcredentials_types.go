@@ -53,7 +53,7 @@ type BeyondtrustWorkloadCredentialsServer struct {
 	// SiteID is your BeyondTrust Workload Credentials site identifier (UUID format).
 	// This identifier is unique to your BeyondTrust Workload Credentials instance.
 	// You can find your Site ID in the BeyondTrust Workload Credentials admin console.
-	// Example: a1b2c3d4-e5f6-7890-abcd-ef1234567890
+	// Example: a1b2c3d4-e5f6-4890-abcd-ef1234567890
 	// For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
 	// +required
 	SiteID string `json:"siteId"`

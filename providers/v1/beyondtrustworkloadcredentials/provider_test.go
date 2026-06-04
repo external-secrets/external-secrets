@@ -292,9 +292,9 @@ func TestGetAllSecrets(t *testing.T) {
 		}
 
 		fakeKVBytes := map[string][]byte{
-			"key1": []byte("val1"),
-			"key2": []byte("val2"),
-			"key3": []byte("val3"),
+			fakeKV.Path + "/key1": []byte("val1"),
+			fakeKV.Path + "/key2": []byte("val2"),
+			fakeKV.Path + "/key3": []byte("val3"),
 		}
 
 		tc.label = "GetAllSecrets - Secret KVs - Valid"
@@ -313,8 +313,7 @@ func TestGetAllSecrets(t *testing.T) {
 		}
 
 		fakeKV2 := btwcutil.KV{
-			Path:   fmt.Sprintf("%s/%s", validFolderPath, validSecretName),
-			Secret: map[string]any{"key4": "val4", "key5": "val5"},
+			Path: fmt.Sprintf("%s/%s", validFolderPath, validSecretName),
 		}
 
 		fakeKV3 := btwcutil.KV{
@@ -335,10 +334,10 @@ func TestGetAllSecrets(t *testing.T) {
 		}
 
 		fakeResponseBytes := map[string][]byte{
-			"key1": []byte("val1"),
-			"key2": []byte("val2"),
-			"key3": []byte("val3"),
-			"key6": []byte("val6"),
+			fakeKV1.Path + "/key1": []byte("val1"),
+			fakeKV1.Path + "/key2": []byte("val2"),
+			fakeKV1.Path + "/key3": []byte("val3"),
+			fakeKV3.Path + "/key6": []byte("val6"),
 		}
 
 		_, name1 := path.Split(fakeListItem1.Path)
@@ -383,12 +382,12 @@ func TestGetAllSecrets(t *testing.T) {
 		}
 
 		fakeResponseBytes := map[string][]byte{
-			"key1": []byte("val1"),
-			"key2": []byte("val2"),
-			"key3": []byte("val3"),
-			"key4": []byte("val4"),
-			"key5": []byte("val5"),
-			"key6": []byte("val6"),
+			fakeKV1.Path + "/key1": []byte("val1"),
+			fakeKV1.Path + "/key2": []byte("val2"),
+			fakeKV1.Path + "/key3": []byte("val3"),
+			fakeKV2.Path + "/key4": []byte("val4"),
+			fakeKV2.Path + "/key5": []byte("val5"),
+			fakeKV3.Path + "/key6": []byte("val6"),
 		}
 
 		_, name1 := path.Split(fakeListItem1.Path)

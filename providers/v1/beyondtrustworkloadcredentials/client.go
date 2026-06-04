@@ -207,20 +207,22 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 			}
 		}
 
-		// Add each property in the secret as a separate entry
+		// Add each property in the secret namespaced by the secret path to avoid key collisions
+		// across secrets that share inner property names.
 		for k, v := range fullSecret.Secret {
+			key := item.Path + "/" + k
 			switch val := v.(type) {
 			case string:
-				result[k] = []byte(val)
+				result[key] = []byte(val)
 			case []byte:
-				result[k] = val
+				result[key] = val
 			default:
 				// non-string: marshal to JSON to preserve structure
 				b, err := json.Marshal(val)
 				if err != nil {
-					return nil, fmt.Errorf("failed to marshal secret value for key %q: %w", k, err)
+					return nil, fmt.Errorf("failed to marshal secret value for key %q: %w", key, err)
 				}
-				result[k] = b
+				result[key] = b
 			}
 		}
 	}
