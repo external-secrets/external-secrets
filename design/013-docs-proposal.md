@@ -80,7 +80,18 @@ Important note: The hierarchy might not map (sensu stricto) to Diataxis, it will
 
 #### Actual implementation
 
-1. Draft a proposed persona list (by doing a PR on this design document) and share it on the mailing list / Slack for async feedback before the community meeting. We already know a persona "ESO Developer" need to be present. In that draft, the content structure should appear.
+1. Draft a proposed persona list (by doing a PR on this design document) and share it on the mailing list / Slack for async feedback before the community meeting.
+   We already know the following persona must be present:
+
+   * A first time user of ESO learning ropes by doing its first deployment of ESO
+   * A person who wants to know how to configure feature X of ESO, regardless of the provider (exemple Configuring FluxCD for ESO, triggering secret refresh, share secrets between namespaces, ...).
+   * A security person who wants to know all the internal details about ESO (Threat model ...)
+   * An "ESO Developer/Contributor" who wants to know how to contribute
+   * A person who wants to know definitive information about how we work (Governance, Code of Conduct, LLM Policy, ...)
+
+   More personas can be added.
+   The next PR targetting this implementation should have an exhaustive persona list and the content structure. This is not necessary as of today, as the documentation structure should not prevent the plan to be acted upon.
+
 2. Run the idea in a community meeting to finalize and ratify the reader personas.
 3. Publish the agreed persona list and content structure in `CONTRIBUTING.md` and our contributing guide.
 4. Add a CI check that rejects PRs adding documentation files outside the agreed persona-scoped paths.
