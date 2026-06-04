@@ -6,16 +6,19 @@ Barbican is OpenStack's Key Manager service that provides secure storage, provis
 
 ## Authentication
 
-The Barbican provider uses OpenStack Keystone authentication. You need to provide:
+The Barbican provider supports two OpenStack Keystone authentication modes:
 
-- **AuthURL**: The OpenStack Keystone authentication endpoint
-- **TenantName**: The OpenStack tenant/project name
-- **DomainName**: The OpenStack domain name (optional)
-- **Region**: The OpenStack region (optional)
-- **Username**: OpenStack username (stored in a Kubernetes secret)
-- **Password**: OpenStack password (stored in a Kubernetes secret)
+- `password` (default): Username + password.
+- `applicationCredential`: OpenStack Application Credentials.
 
-## Example
+### Required provider fields
+
+- **authURL**: OpenStack Keystone authentication endpoint.
+- **region**: OpenStack region (optional).
+- **tenantName**: OpenStack project/tenant (optional, depending on your Keystone setup).
+- **domainName**: OpenStack domain (required for password auth in environments that require domain scoping).
+
+## Example User Name/Password Authentication
 
 First, create a secret containing your OpenStack credentials:
 
@@ -56,6 +59,47 @@ spec:
 ```
 
 **NOTE:** In case of a `ClusterSecretStore`, be sure to provide `namespace` for the `secretRef` with the namespace of the secret that contains the credentials.
+
+## Example Application Credential Authentication
+
+You can authenticate using OpenStack Application Credentials by setting `auth.authType: applicationCredential`.
+
+Create a secret with Application Credential ID and credential secret:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: barbican-appcred
+type: Opaque
+data:
+  appCredID: YXBwLWNyZWQtaWQ= # base64 encoded app credential ID
+  appCredSecret: YXBwLWNyZWQtc2VjcmV0 # base64 encoded app credential secret
+```
+
+Use it in a `SecretStore`:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: barbican-backend-appcred-id
+spec:
+  provider:
+    barbican:
+      authURL: "https://keystone.example.com:5000/v3"
+      region: "RegionOne"
+      auth:
+        authType: applicationCredential
+        applicationCredentialID:
+          secretRef:
+            name: "barbican-appcred"
+            key: "appCredID"
+        applicationCredentialSecret:
+          secretRef:
+            name: "barbican-appcred"
+            key: "appCredSecret"
+```
 
 ## Creating an ExternalSecret
 
@@ -139,13 +183,14 @@ spec:
             key: "password"
             namespace: "default"  # Required for ClusterSecretStore
 ```
+The same `namespace` rule applies to `applicationCredentialID.secretRef` and `applicationCredentialSecret.secretRef` when using `ClusterSecretStore`.
 
 ## Configuration Reference
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `authURL` | string | Yes | OpenStack Keystone authentication endpoint URL |
-| `tenantName` | string | Yes | OpenStack tenant/project name |
+| `tenantName` | string | No | OpenStack tenant/project name |
 | `domainName` | string | No | OpenStack domain name |
 | `region` | string | No | OpenStack region |
 | `auth` | BarbicanAuth | Yes | Authentication credentials |
@@ -156,8 +201,18 @@ The `BarbicanAuth` type contains the authentication information:
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `username` | BarbicanProviderUsernameRef | Yes | OpenStack username (from secret or literal value) |
-| `password` | BarbicanProviderPasswordRef | Yes | OpenStack password (from secret only) |
+| `authType` | BarbicanAuthType | No | Auth mode: `password` (default) or `applicationCredential` |
+| `username` | BarbicanProviderUsernameRef | Conditional | Required for `password` |
+| `password` | BarbicanProviderPasswordRef | Conditional | Required for `password` |
+| `applicationCredentialID` | BarbicanProviderAppCredIDRef | Conditional | Required for `applicationCredential` |
+| `applicationCredentialSecret` | BarbicanProviderAppCredSecretRef | Conditional | Required for `applicationCredential` |
+
+### BarbicanAuthType
+
+| Value | Description |
+|-------|-------------|
+| `password` | Keystone username/password authentication |
+| `applicationCredential` | Keystone Application Credential authentication |
 
 ### BarbicanProviderUsernameRef
 
@@ -175,6 +230,19 @@ The `BarbicanProviderPasswordRef` type requires a reference to a Kubernetes secr
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | `secretRef` | SecretKeySelector | Yes | Reference to a Kubernetes secret |
+
+### BarbicanProviderAppCredIDRef
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `value` | string | No | Literal Application Credential ID |
+| `secretRef` | SecretKeySelector | No | Reference to a Kubernetes secret containing the Application Credential ID |
+
+### BarbicanProviderAppCredSecretRef
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `secretRef` | SecretKeySelector | Yes | Reference to a Kubernetes secret containing the Application Credential secret |
 
 ## Limitations
 
