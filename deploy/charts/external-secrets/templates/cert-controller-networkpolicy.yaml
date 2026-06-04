@@ -1,0 +1,22 @@
+{{- if .Values.certController.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ template "external-secrets.fullname" . }}-cert-controller-network-policy
+  namespace: {{ include "external-secrets.namespace" . }}
+spec:
+  egress:
+    {{- with .Values.certController.networkPolicy.egress }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+  ingress:
+    {{- with .Values.certController.networkPolicy.ingress }}
+      {{- toYaml . | nindent 4 }}
+    {{- end }}
+  podSelector:
+    matchLabels:
+      {{- include "external-secrets-cert-controller.selectorLabels" . | nindent 6 }}
+  policyTypes:
+  - Egress
+  - Ingress
+{{- end }}
