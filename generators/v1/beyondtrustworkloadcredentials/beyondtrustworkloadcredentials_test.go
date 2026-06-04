@@ -404,4 +404,3 @@ func TestConvertToByteMap(t *testing.T) {
 		})
 	}
 }
-

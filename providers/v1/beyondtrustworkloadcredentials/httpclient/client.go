@@ -171,7 +171,7 @@ func (c *Client) GetSecret(ctx context.Context, name string, folderPath *string)
 
 	endpoint := fmt.Sprintf("%s/static/%s", c.baseURL.String(), url.PathEscape(name))
 
-	// Add folder query parameter if specified
+	// The single-secret endpoint uses "folder" while the list endpoint uses "path". These are intentionally different parameter names.
 	if folderPath != nil && *folderPath != "" {
 		endpoint += fmt.Sprintf("?folder=%s", url.QueryEscape(*folderPath))
 	}
@@ -211,7 +211,8 @@ func (c *Client) GetSecrets(ctx context.Context, folderPath *string, recursive b
 
 	endpoint := fmt.Sprintf("%s/static", c.baseURL.String())
 
-	// Build query parameters
+	// The list endpoint uses "path" (GET /static?path=...) per the API spec,
+	// while the single-secret endpoint uses "folder". These are intentionally different parameter names.
 	params := url.Values{}
 	if folderPath != nil && *folderPath != "" {
 		params.Set("path", *folderPath)
