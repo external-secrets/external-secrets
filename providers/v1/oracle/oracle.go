@@ -616,8 +616,11 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(
 		vms.authConfigurationsCache = make(map[string]auth.ConfigurationProviderWithClaimAccess)
 	}
 
-	// We are caching by resource version to ensure that updates to the SecretStore are reflected in the cached provider.
-	cachingKey := store.GetResourceVersion()
+	cachingKey := fmt.Sprintf("%s/%s/%s/%s",
+		store.GetObjectKind().GroupVersionKind().Kind,
+		store.GetObjectMeta().GetNamespace(),
+		store.GetObjectMeta().GetName(),
+		store.GetResourceVersion())
 
 	// Return early if we have cached the provider already
 	authProvider, ok := vms.authConfigurationsCache[cachingKey]
