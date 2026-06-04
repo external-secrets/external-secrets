@@ -40,8 +40,6 @@ func (n *noopExchanger) ExchangeToken(_ context.Context, _ string) (string, time
 	return "exchanged-token", time.Now().Add(time.Hour), nil
 }
 
-func saPtr(ns string) *string { return &ns }
-
 // namespaceMismatchReactor intercepts serviceaccounts/token create calls and
 // returns an error when the request body namespace differs from the URL namespace,
 // mimicking the kube-apiserver's enforcement. fake.NewSimpleClientset() does not
@@ -88,7 +86,7 @@ func TestCreateServiceAccountToken_NamespaceConsistency(t *testing.T) {
 			name:        "ClusterSecretStore cross-namespace regression",
 			storeKind:   esv1.ClusterSecretStoreKind,
 			esNamespace: "default",
-			saRef:       esmeta.ServiceAccountSelector{Name: "oidc-sa", Namespace: saPtr("external-secrets")},
+			saRef:       esmeta.ServiceAccountSelector{Name: "oidc-sa", Namespace: new("external-secrets")},
 			// Pre-fix: body namespace was "default", URL was "external-secrets"
 			// -> kube-apiserver rejected with "namespace of provided object does not match".
 			wantNamespace: "external-secrets",
@@ -97,7 +95,7 @@ func TestCreateServiceAccountToken_NamespaceConsistency(t *testing.T) {
 			name:          "ClusterSecretStore SA namespace equals ES namespace",
 			storeKind:     esv1.ClusterSecretStoreKind,
 			esNamespace:   "external-secrets",
-			saRef:         esmeta.ServiceAccountSelector{Name: "oidc-sa", Namespace: saPtr("external-secrets")},
+			saRef:         esmeta.ServiceAccountSelector{Name: "oidc-sa", Namespace: new("external-secrets")},
 			wantNamespace: "external-secrets",
 		},
 		{
