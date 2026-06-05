@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/conjur
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/cyberark/conjur-api-go v0.13.8
