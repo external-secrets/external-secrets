@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/generators/v1/cloudsmith
 
-go 1.26.3
+go 1.26.4
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
