@@ -9,7 +9,7 @@ metadata:
   {{- if or .Values.webhook.annotations (and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations) }}
   annotations:
     {{- if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}
-    cert-manager.io/inject-ca-from: {{ template "external-secrets.namespace" . }}/{{ include "external-secrets.fullname" . }}-webhook
+    cert-manager.io/inject-ca-from: {{ template "external-secrets.namespace" . }}/{{ include "external-secrets.componentName" (list . "-webhook") }}
     {{- end }}
     {{- if .Values.webhook.annotations }}
     {{- toYaml .Values.webhook.annotations | nindent 4 }}
@@ -26,7 +26,7 @@ webhooks:
   clientConfig:
     service:
       namespace: {{ template "external-secrets.namespace" . }}
-      name: {{ include "external-secrets.fullname" . }}-webhook
+      name: {{ include "external-secrets.componentName" (list . "-webhook") }}
       path: /validate-external-secrets-io-v1-secretstore
   admissionReviewVersions: ["v1", "v1beta1"]
   sideEffects: None
@@ -43,7 +43,7 @@ webhooks:
   clientConfig:
     service:
       namespace: {{ template "external-secrets.namespace" . }}
-      name: {{ include "external-secrets.fullname" . }}-webhook
+      name: {{ include "external-secrets.componentName" (list . "-webhook") }}
       path: /validate-external-secrets-io-v1-clustersecretstore
   admissionReviewVersions: ["v1", "v1beta1"]
   sideEffects: None
@@ -60,7 +60,7 @@ metadata:
   {{- if or .Values.webhook.annotations (and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations) }}
   annotations:
     {{- if and .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}
-    cert-manager.io/inject-ca-from: {{ template "external-secrets.namespace" . }}/{{ include "external-secrets.fullname" . }}-webhook
+    cert-manager.io/inject-ca-from: {{ template "external-secrets.namespace" . }}/{{ include "external-secrets.componentName" (list . "-webhook") }}
     {{- end }}
     {{- if .Values.webhook.annotations }}
     {{- toYaml .Values.webhook.annotations | nindent 4 }}
@@ -77,7 +77,7 @@ webhooks:
   clientConfig:
     service:
       namespace: {{ template "external-secrets.namespace" . }}
-      name: {{ include "external-secrets.fullname" . }}-webhook
+      name: {{ include "external-secrets.componentName" (list . "-webhook") }}
       path: /validate-external-secrets-io-v1-externalsecret
   admissionReviewVersions: ["v1", "v1beta1"]
   sideEffects: None

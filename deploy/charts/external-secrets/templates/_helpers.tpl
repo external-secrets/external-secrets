@@ -24,6 +24,19 @@ If release name contains chart name it will be used as a full name.
 {{- end }}
 
 {{/*
+Build a resource name with a suffix, ensuring the total length stays within the
+63-character DNS label limit. The fullname is truncated to (63 - len(suffix))
+chars so that appending the suffix never exceeds the limit.
+Usage: {{ include "external-secrets.componentName" (list . "-webhook") }}
+*/}}
+{{- define "external-secrets.componentName" -}}
+{{- $ctx    := index . 0 -}}
+{{- $suffix := index . 1 -}}
+{{- $maxLen := int (sub (len $suffix) 63) -}}
+{{- printf "%s%s" (include "external-secrets.fullname" $ctx | trunc $maxLen | trimSuffix "-") $suffix -}}
+{{- end -}}
+
+{{/*
 Define namespace of chart, useful for multi-namespace deployments
 */}}
 {{- define "external-secrets.namespace" -}}
@@ -232,21 +245,21 @@ Render the securityContext based on the provided securityContext
 Create the name of the pod disruption budget to use
 */}}
 {{- define "external-secrets.pdbName" -}}
-{{- .Values.podDisruptionBudget.nameOverride | default (printf "%s-pdb" (include "external-secrets.fullname" .)) }}
+{{- .Values.podDisruptionBudget.nameOverride | default (include "external-secrets.componentName" (list . "-pdb")) }}
 {{- end }}
 
 {{/*
 Create the name of the pod disruption budget to use in the cert controller
 */}}
 {{- define "external-secrets.certControllerPdbName" -}}
-{{- .Values.certController.podDisruptionBudget.nameOverride | default (printf "%s-cert-controller-pdb" (include "external-secrets.fullname" .)) }}
+{{- .Values.certController.podDisruptionBudget.nameOverride | default (include "external-secrets.componentName" (list . "-cert-controller-pdb")) }}
 {{- end }}
 
 {{/*
 Create the name of the pod disruption budget to use in the webhook
 */}}
 {{- define "external-secrets.webhookPdbName" -}}
-{{- .Values.webhook.podDisruptionBudget.nameOverride | default (printf "%s-webhook-pdb" (include "external-secrets.fullname" .)) }}
+{{- .Values.webhook.podDisruptionBudget.nameOverride | default (include "external-secrets.componentName" (list . "-webhook-pdb")) }}
 {{- end }}
 Fail the install if a cluster scoped reconciler is enabled while its namespace scoped counterpart is disabled
 */}}

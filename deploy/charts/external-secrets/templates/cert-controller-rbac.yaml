@@ -2,7 +2,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "external-secrets.fullname" . }}-cert-controller
+  name: {{ include "external-secrets.componentName" (list . "-cert-controller") }}
   labels:
     {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
 rules:
@@ -94,13 +94,13 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "external-secrets.fullname" . }}-cert-controller
+  name: {{ include "external-secrets.componentName" (list . "-cert-controller") }}
   labels:
     {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "external-secrets.fullname" . }}-cert-controller
+  name: {{ include "external-secrets.componentName" (list . "-cert-controller") }}
 subjects:
   - name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}
     namespace: {{ template "external-secrets.namespace" . }}

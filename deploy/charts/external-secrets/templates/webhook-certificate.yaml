@@ -3,7 +3,7 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ include "external-secrets.fullname" . }}-webhook
+  name: {{ include "external-secrets.componentName" (list . "-webhook") }}
   namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets-webhook.labels" . | nindent 4 }}
@@ -13,11 +13,11 @@ metadata:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  commonName: {{ include "external-secrets.fullname" . }}-webhook
+  commonName: {{ include "external-secrets.componentName" (list . "-webhook") }}
   dnsNames:
-    - {{ include "external-secrets.fullname" . }}-webhook
-    - {{ include "external-secrets.fullname" . }}-webhook.{{ template "external-secrets.namespace" . }}
-    - {{ include "external-secrets.fullname" . }}-webhook.{{ template "external-secrets.namespace" . }}.svc
+    - {{ include "external-secrets.componentName" (list . "-webhook") }}
+    - {{ include "external-secrets.componentName" (list . "-webhook") }}.{{ template "external-secrets.namespace" . }}
+    - {{ include "external-secrets.componentName" (list . "-webhook") }}.{{ template "external-secrets.namespace" . }}.svc
   issuerRef:
     {{- toYaml .Values.webhook.certManager.cert.issuerRef | nindent 4 }}
   {{- with .Values.webhook.certManager.cert.duration }}
@@ -36,5 +36,5 @@ spec:
   {{- if gt (.Values.webhook.certManager.cert.revisionHistoryLimit | int) 0 }}
   revisionHistoryLimit: {{ .Values.webhook.certManager.cert.revisionHistoryLimit }}
   {{- end }}
-  secretName: {{ include "external-secrets.fullname" . }}-webhook
+  secretName: {{ include "external-secrets.componentName" (list . "-webhook") }}
 {{- end }}
