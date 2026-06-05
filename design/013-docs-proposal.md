@@ -66,7 +66,7 @@ The new site is live at https://external-secrets.io, replacing the current landi
 
 #### Side-effects
 
-The release management pipeline must be updated to build and publish the new site. If Step 1 is implemented, this pipeline update must be complete before Step 2 begins.
+The release management pipeline must be updated to build and publish the new site. If Step 1 is implemented, this pipeline update must be completed before Step 2 begins.
 
 ### Step 2: Agree on a documentation architecture in a community meeting
 
@@ -92,14 +92,15 @@ Important note: The hierarchy might not map (sensu stricto) to Diataxis, it will
    More personas can be added.
    The next PR targetting this implementation should have an exhaustive persona list and the content structure. This is not necessary as of today, as the documentation structure should not prevent the plan to be acted upon.
 
-2. Run the idea in a community meeting to finalize and ratify the reader personas.
+2. Run the idea in a community meeting to get consensus (if no consensus reached on PR) to finalize and ratify the reader personas (we can still merge/reject the PR asynchronously based on the comments of the meeting).
 3. Publish the agreed persona list and content structure in `CONTRIBUTING.md` and our contributing guide.
 4. Add a CI check that rejects PRs adding documentation files outside the agreed persona-scoped paths.
 
 #### Acceptance criteria
 
-- Community meeting minutes record the agreed persona list
-- CI fails on PRs that add documentation outside a persona-scoped path
+- Community meeting minutes record the agreed persona list;
+- A persona-scoped path structure is documented in this design file, in a follow-up PR;
+- CI fails on PRs that add documentation outside a persona-scoped path listed in this document.
 
 #### Side-effects
 
@@ -118,9 +119,10 @@ Rewriting all existing content in one go is not feasible for a single contributo
 
 #### Acceptance criteria
 
-- All existing pages are rewritten for their target persona
-- Top-level structure is reduced to: Providers / Guides / How-tos / Reference / Tutorials
-- (Optional) At least one LLM writing skill is available in the contributor toolchain
+- Inventory of all unreleased pages done;
+- All existing unreleased pages are rewritten for their target persona;
+- Top-level structure is reduced to: Providers / Guides / How-tos / Reference / Tutorials (or the structure defined in step 2);
+- (Optional) At least one LLM writing skill is available in the contributor toolchain.
 
 #### Side-effects
 
@@ -141,7 +143,8 @@ We define and publish a lifecycle policy for features and providers.
 
 #### Acceptance criteria
 
-- The lifecycle policy is merged into the main branch
+- The lifecycle policy is merged into the main branch;
+- All providers are updated with their appropriate lifecycle labels.
 
 #### Side-effects
 
@@ -158,7 +161,7 @@ With the Step 4 policy in place, the feature support matrix for each provider ca
 `pkg/controllers/secretstore/common.go` can be adapted to get capabilities of each provider implementation, which will be useful for v2 anyway:
 
 ```
-capabilities, found := provider.GetCapabilities(ss.GetName())
+capabilities, found := provider.GetCapabilities(ss.GetName()) // Probably update this to use Provider type instead of name, but you get the gist.
 	if !found {
 		return ctrl.Result{}, fmt.Errorf("provider capabilities not found in registry")
 	}
@@ -291,7 +294,7 @@ func (m Metadata) APICapabilities() v1.SecretStoreCapabilities {
 	if canWrite {
 		return v1.SecretStoreWriteOnly
 	}
-	return v1.SecretStoreReadOnly
+	return v1.SecretStoreReadOnly // As currently done, but we should think about NoCapabilitiesReported constant
 }
 
 // MetadataReporter is a way to guarantee each provider will report their metadata.
@@ -355,7 +358,9 @@ As a side benefit, going through this code will standardize metadata handling ac
 
 3. Write a Go tool (`cmd/docgen` or similar) that reads the registry and emits support matrix markdown for each provider.
 
-Example from my previous PoC, could of course be improved:
+Example from my previous PoC, which can be improved over time, but gives an idea of how it could work:
+
+(Do not remove the backticks if you are trying this locally!)
 
 ```
 
