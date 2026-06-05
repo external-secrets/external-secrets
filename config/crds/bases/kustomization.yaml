@@ -11,6 +11,7 @@ resources:
   - generators.external-secrets.io_acraccesstokens.yaml
   - generators.external-secrets.io_cloudsmithaccesstokens.yaml
   - generators.external-secrets.io_clustergenerators.yaml
+  - generators.external-secrets.io_codeartifactauthorizationtokens.yaml
   - generators.external-secrets.io_ecrauthorizationtokens.yaml
   - generators.external-secrets.io_fakes.yaml
   - generators.external-secrets.io_gcraccesstokens.yaml

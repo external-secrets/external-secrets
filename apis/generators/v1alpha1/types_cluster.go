@@ -30,12 +30,14 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
+// +kubebuilder:validation:Enum=ACRAccessToken;CloudsmithAccessToken;CodeArtifactAuthorizationToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
 type GeneratorKind string
 
 const (
 	// GeneratorKindACRAccessToken represents an Azure Container Registry access token generator.
 	GeneratorKindACRAccessToken GeneratorKind = "ACRAccessToken"
+	// GeneratorKindCodeArtifactAuthorizationToken represents an AWS CodeArtifact authorization token generator.
+	GeneratorKindCodeArtifactAuthorizationToken GeneratorKind = "CodeArtifactAuthorizationToken"
 	// GeneratorKindECRAuthorizationToken represents an AWS ECR authorization token generator.
 	GeneratorKindECRAuthorizationToken GeneratorKind = "ECRAuthorizationToken"
 	// GeneratorKindFake represents a fake generator for testing purposes.
@@ -70,21 +72,22 @@ const (
 // +kubebuilder:validation:MaxProperties=1
 // +kubebuilder:validation:MinProperties=1
 type GeneratorSpec struct {
-	ACRAccessTokenSpec        *ACRAccessTokenSpec        `json:"acrAccessTokenSpec,omitempty"`
-	CloudsmithAccessTokenSpec *CloudsmithAccessTokenSpec `json:"cloudsmithAccessTokenSpec,omitempty"`
-	ECRAuthorizationTokenSpec *ECRAuthorizationTokenSpec `json:"ecrAuthorizationTokenSpec,omitempty"`
-	FakeSpec                  *FakeSpec                  `json:"fakeSpec,omitempty"`
-	GCRAccessTokenSpec        *GCRAccessTokenSpec        `json:"gcrAccessTokenSpec,omitempty"`
-	GithubAccessTokenSpec     *GithubAccessTokenSpec     `json:"githubAccessTokenSpec,omitempty"`
-	QuayAccessTokenSpec       *QuayAccessTokenSpec       `json:"quayAccessTokenSpec,omitempty"`
-	PasswordSpec              *PasswordSpec              `json:"passwordSpec,omitempty"`
-	SSHKeySpec                *SSHKeySpec                `json:"sshKeySpec,omitempty"`
-	STSSessionTokenSpec       *STSSessionTokenSpec       `json:"stsSessionTokenSpec,omitempty"`
-	UUIDSpec                  *UUIDSpec                  `json:"uuidSpec,omitempty"`
-	VaultDynamicSecretSpec    *VaultDynamicSecretSpec    `json:"vaultDynamicSecretSpec,omitempty"`
-	WebhookSpec               *WebhookSpec               `json:"webhookSpec,omitempty"`
-	GrafanaSpec               *GrafanaSpec               `json:"grafanaSpec,omitempty"`
-	MFASpec                   *MFASpec                   `json:"mfaSpec,omitempty"`
+	ACRAccessTokenSpec                 *ACRAccessTokenSpec                 `json:"acrAccessTokenSpec,omitempty"`
+	CloudsmithAccessTokenSpec          *CloudsmithAccessTokenSpec          `json:"cloudsmithAccessTokenSpec,omitempty"`
+	CodeArtifactAuthorizationTokenSpec *CodeArtifactAuthorizationTokenSpec `json:"codeArtifactAuthorizationTokenSpec,omitempty"`
+	ECRAuthorizationTokenSpec          *ECRAuthorizationTokenSpec          `json:"ecrAuthorizationTokenSpec,omitempty"`
+	FakeSpec                           *FakeSpec                           `json:"fakeSpec,omitempty"`
+	GCRAccessTokenSpec                 *GCRAccessTokenSpec                 `json:"gcrAccessTokenSpec,omitempty"`
+	GithubAccessTokenSpec              *GithubAccessTokenSpec              `json:"githubAccessTokenSpec,omitempty"`
+	QuayAccessTokenSpec                *QuayAccessTokenSpec                `json:"quayAccessTokenSpec,omitempty"`
+	PasswordSpec                       *PasswordSpec                       `json:"passwordSpec,omitempty"`
+	SSHKeySpec                         *SSHKeySpec                         `json:"sshKeySpec,omitempty"`
+	STSSessionTokenSpec                *STSSessionTokenSpec                `json:"stsSessionTokenSpec,omitempty"`
+	UUIDSpec                           *UUIDSpec                           `json:"uuidSpec,omitempty"`
+	VaultDynamicSecretSpec             *VaultDynamicSecretSpec             `json:"vaultDynamicSecretSpec,omitempty"`
+	WebhookSpec                        *WebhookSpec                        `json:"webhookSpec,omitempty"`
+	GrafanaSpec                        *GrafanaSpec                        `json:"grafanaSpec,omitempty"`
+	MFASpec                            *MFASpec                            `json:"mfaSpec,omitempty"`
 }
 
 // ClusterGenerator represents a cluster-wide generator which can be referenced as part of `generatorRef` fields.
