@@ -103,15 +103,14 @@ func (l *Infisical) Setup(cfg *Config) error {
 	return l.chart.Setup(cfg)
 }
 
-func (l *Infisical) Install() error {
+func (l *Infisical) Install() (err error) {
 	l.HostAPI = fmt.Sprintf("http://%s.%s.svc.cluster.local:%d", infisicalServiceName, l.Namespace, infisicalAPIPort)
 
 	// Arm rollback before the first mutating step so any failure (secret,
 	// namespace, chart install, or bootstrap) tears down what was created and a
 	// re-run does not trip over a half-installed instance.
-	success := false
 	defer func() {
-		if !success {
+		if err != nil {
 			l.cleanup()
 		}
 	}()
@@ -152,7 +151,6 @@ func (l *Infisical) Install() error {
 	}
 	l.SDKClient = client
 
-	success = true
 	return nil
 }
 
