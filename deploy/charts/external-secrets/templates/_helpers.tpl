@@ -32,7 +32,7 @@ Usage: {{ include "external-secrets.componentName" (list . "-webhook") }}
 {{- define "external-secrets.componentName" -}}
 {{- $ctx    := index . 0 -}}
 {{- $suffix := index . 1 -}}
-{{- $maxLen := int (sub (len $suffix) 63) -}}
+{{- $maxLen := int (sub 63 (len $suffix)) -}}
 {{- printf "%s%s" (include "external-secrets.fullname" $ctx | trunc $maxLen | trimSuffix "-") $suffix -}}
 {{- end -}}
 
