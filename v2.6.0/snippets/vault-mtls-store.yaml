@@ -1,0 +1,25 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: vault-backend
+  namespace: example
+spec:
+  provider:
+    vault:
+      server: "https://vault.acme.org"
+      path: "secret"
+      version: "v2"
+
+      # client TLS related configuration
+      caBundle: "..."
+      tls:
+        clientCert:
+          name: "my-cert-secret"
+          key: "tls.crt"
+        secretRef:
+          name: "my-cert-secret"
+          key: "tls.key"
+
+      # the authentication methods are not really related to the client TLS configuration
+      auth:
+        ...
