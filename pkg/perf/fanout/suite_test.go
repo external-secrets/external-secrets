@@ -143,7 +143,20 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	cancelSuite()
-	Expect(testEnv.Stop()).To(Succeed())
+	// Work around a controller-runtime race (https://github.com/kubernetes-sigs/controller-runtime/issues/1571)
+	// where the manager has not yet released its API server connections by the time Stop() is called,
+	// causing envtest to fail tearing down the control plane. Retrying with exponential backoff gives the
+	// manager enough time to drain its connections and exit cleanly.
+	sleepTime := time.Millisecond
+	var err error
+	for range 12 {
+		if err = testEnv.Stop(); err == nil {
+			break
+		}
+		sleepTime *= 2
+		time.Sleep(sleepTime)
+	}
+	Expect(err).ToNot(HaveOccurred())
 
 	if len(allResults) > 0 {
 		Expect(perf.WriteResultsJSON(allResults, ".")).To(Succeed())

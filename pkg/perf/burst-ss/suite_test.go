@@ -81,6 +81,10 @@ var _ = BeforeSuite(func() {
 	cfg, err := testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
 
+	// Raise client-side rate limits; defaults (5 QPS / burst 10) starve creation at scale.
+	cfg.QPS = float32(perf.EnvOrInt("PERF_QPS", 500))
+	cfg.Burst = perf.EnvOrInt("PERF_BURST", 1000)
+
 	Expect(esv1.AddToScheme(scheme.Scheme)).To(Succeed())
 	Expect(esv1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
 
@@ -90,7 +94,8 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	k8sClient = mgr.GetClient()
+	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
+	Expect(err).ToNot(HaveOccurred())
 
 	Expect((&secretstore.StoreReconciler{
 		Client:          mgr.GetClient(),
@@ -110,7 +115,20 @@ var _ = BeforeSuite(func() {
 
 var _ = AfterSuite(func() {
 	cancelSuite()
-	Expect(testEnv.Stop()).To(Succeed())
+	// Work around a controller-runtime race (https://github.com/kubernetes-sigs/controller-runtime/issues/1571)
+	// where the manager has not yet released its API server connections by the time Stop() is called,
+	// causing envtest to fail tearing down the control plane. Retrying with exponential backoff gives the
+	// manager enough time to drain its connections and exit cleanly.
+	sleepTime := time.Millisecond
+	var err error
+	for range 12 {
+		if err = testEnv.Stop(); err == nil {
+			break
+		}
+		sleepTime *= 2
+		time.Sleep(sleepTime)
+	}
+	Expect(err).ToNot(HaveOccurred())
 
 	if len(allResults) > 0 {
 		Expect(perf.WriteResultsJSON(allResults, ".")).To(Succeed())

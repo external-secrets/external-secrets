@@ -60,46 +60,58 @@ func Snapshot(controllerName string) MetricSnapshot {
 	for _, mf := range mfs {
 		switch mf.GetName() {
 		case "controller_runtime_reconcile_time_seconds":
-			// Pick the histogram series with the most samples (usually the dominant result label).
-			var best uint64
-			for _, m := range mf.GetMetric() {
-				if !hasLabel(m, "controller", controllerName) {
-					continue
-				}
-				if h := m.GetHistogram(); h.GetSampleCount() > best {
-					best = h.GetSampleCount()
-					snap.ReconcileTime = h
-				}
-			}
-
+			snap.ReconcileTime = pickReconcileTime(controllerName, mf)
 		case "workqueue_queue_duration_seconds":
-			for _, m := range mf.GetMetric() {
-				if hasLabel(m, "name", controllerName) {
-					snap.QueueDuration = m.GetHistogram()
-				}
-			}
-
+			snap.QueueDuration = pickWorkqueueHist(controllerName, mf)
 		case "workqueue_work_duration_seconds":
-			for _, m := range mf.GetMetric() {
-				if hasLabel(m, "name", controllerName) {
-					snap.WorkDuration = m.GetHistogram()
-				}
-			}
-
+			snap.WorkDuration = pickWorkqueueHist(controllerName, mf)
 		case "controller_runtime_reconcile_total":
-			for _, m := range mf.GetMetric() {
-				if !hasLabel(m, "controller", controllerName) {
-					continue
-				}
-				snap.ReconcileTotal += m.GetCounter().GetValue()
-				if hasLabel(m, "result", "error") {
-					snap.ReconcileErrors += m.GetCounter().GetValue()
-				}
-			}
+			snap.ReconcileTotal, snap.ReconcileErrors = sumReconcileTotals(controllerName, mf)
 		}
 	}
 
 	return snap
+}
+
+// pickReconcileTime returns the histogram series with the most samples for the given controller.
+// This picks the dominant result label when controller-runtime emits one series per result.
+func pickReconcileTime(controllerName string, mf *dto.MetricFamily) *dto.Histogram {
+	var best uint64
+	var h *dto.Histogram
+	for _, m := range mf.GetMetric() {
+		if !hasLabel(m, "controller", controllerName) {
+			continue
+		}
+		if hist := m.GetHistogram(); hist.GetSampleCount() > best {
+			best = hist.GetSampleCount()
+			h = hist
+		}
+	}
+	return h
+}
+
+// pickWorkqueueHist returns the histogram for the workqueue metric matching the controller name.
+func pickWorkqueueHist(controllerName string, mf *dto.MetricFamily) *dto.Histogram {
+	for _, m := range mf.GetMetric() {
+		if hasLabel(m, "name", controllerName) {
+			return m.GetHistogram()
+		}
+	}
+	return nil
+}
+
+// sumReconcileTotals returns the total and error reconcile counts for the given controller.
+func sumReconcileTotals(controllerName string, mf *dto.MetricFamily) (total, errors float64) {
+	for _, m := range mf.GetMetric() {
+		if !hasLabel(m, "controller", controllerName) {
+			continue
+		}
+		total += m.GetCounter().GetValue()
+		if hasLabel(m, "result", "error") {
+			errors += m.GetCounter().GetValue()
+		}
+	}
+	return
 }
 
 // HistogramPercentile returns the approximate p-th percentile value (p in [0,1]) from a dto.Histogram

@@ -30,4 +30,6 @@
 //	PERF_ES_CONCURRENCY        MaxConcurrentReconciles for the ES controller (default 4)
 //	PERF_REQUEUE_INTERVAL_SECS RefreshInterval set on each ES, and the controller fallback (default 30)
 //	PERF_OBSERVATION_CYCLES    Number of refreshInterval-lengths to observe (default 3)
+//	PERF_QPS                   Client-side QPS for the REST client (default 500)
+//	PERF_BURST                 Client-side burst for the REST client (default 1000)
 package steady_es

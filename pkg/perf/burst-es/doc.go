@@ -22,9 +22,11 @@
 //
 // Run with:
 //
-//	go test -v -tags=perf -timeout=15m ./pkg/perf/burst-es/...
+//	go test -v -tags=perf -timeout=30m ./pkg/perf/burst-es/...
 //
 // Environment variables:
 //
 //	PERF_ES_CONCURRENCY  MaxConcurrentReconciles for the ES controller (default 4)
+//	PERF_QPS             Client-side QPS for the REST client (default 500)
+//	PERF_BURST           Client-side burst for the REST client (default 1000)
 package burst_es

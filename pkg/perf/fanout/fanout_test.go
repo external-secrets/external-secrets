@@ -51,15 +51,15 @@ var _ = Describe("Fan-out: N stores * M ExternalSecrets", func() {
 		_, err = perf.WaitAllStoresReady(ctx, k8sClient, namespaces, 15*time.Minute)
 		Expect(err).ToNot(HaveOccurred())
 
+		By("measuring time for all ExternalSecrets to reach Ready")
+		before := perf.Snapshot("externalsecret")
+		start := time.Now()
+
 		By(fmt.Sprintf("creating %d ExternalSecrets (%d per store)", total, esPerStore))
 		storeRef := esv1.SecretStoreRef{Name: "perf-store"}
 		for _, ns := range namespaces {
 			Expect(perf.CreateExternalSecrets(ctx, k8sClient, ns, esPerStore, storeRef, 2*time.Hour)).To(Succeed())
 		}
-
-		By("measuring time for all ExternalSecrets to reach Ready")
-		before := perf.Snapshot("externalsecret")
-		start := time.Now()
 
 		_, err = perf.WaitAllReadyMultiNS(ctx, k8sClient, namespaces, esPerStore, 60*time.Minute)
 		Expect(err).ToNot(HaveOccurred())

@@ -83,3 +83,4 @@ tests/crds/*.yml
 .envrc
 
 pkg/perf/**/perf-results-*.json
+perf-*.log

@@ -174,7 +174,20 @@ var _ = BeforeEach(func() {
 })
 
 var _ = AfterEach(func() {
-	Expect(k8sClient.Delete(context.Background(), &v1.Namespace{
+	ctx := context.Background()
+	// envtest has no namespace or GC controller, so namespace deletion does not cascade.
+	// Explicitly remove all ExternalSecrets and SecretStores and wait for them to be gone
+	// so their reconciliations don't bleed into subsequent table entries.
+	Expect(k8sClient.DeleteAllOf(ctx, &esv1.ExternalSecret{}, client.InNamespace(testNamespace))).To(Succeed())
+	Expect(k8sClient.DeleteAllOf(ctx, &esv1.SecretStore{}, client.InNamespace(testNamespace))).To(Succeed())
+	Eventually(func() int {
+		esList := &esv1.ExternalSecretList{}
+		_ = k8sClient.List(ctx, esList, client.InNamespace(testNamespace))
+		ssList := &esv1.SecretStoreList{}
+		_ = k8sClient.List(ctx, ssList, client.InNamespace(testNamespace))
+		return len(esList.Items) + len(ssList.Items)
+	}, 60*time.Second, time.Second).Should(BeZero())
+	Expect(k8sClient.Delete(ctx, &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{Name: testNamespace},
 	})).To(Succeed())
 })
