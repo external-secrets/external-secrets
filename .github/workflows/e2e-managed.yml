@@ -120,7 +120,7 @@ jobs:
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v3
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@d979d5b3a71173a29b74b5b88418bfda9437d885
+        uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b
         with:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
