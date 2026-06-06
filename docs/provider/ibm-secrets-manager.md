@@ -219,7 +219,7 @@ data:
   keyB: ... #2nd key-value pair from JSON object
   keyC: ... #3rd key-value pair from JSON object
 
-  # secrets from dataFrom with find regex method
+  # secrets from dataFrom with find regexp method
   _comp_key1: ... #secret value for /comp/key1
   key2_trigger: ... #secret value for key2/trigger
   _comp_trigger_keygen: ... #secret value for comp/trigger/keygen
@@ -276,7 +276,7 @@ spec:
 #### Error cases
 
 - `find: {}` (no filter) — store reconcile fails with `at least one of find.name, find.tags or find.path must be set`.
-- Invalid regex in `name.regexp` — `could not compile find.name.regexp`.
+- Invalid regexp in `name.regexp` — `could not compile find.name.regexp`.
 - Two secrets with the same bare name across groups — `secret name "<name>" is not unique in result; narrow find.path or find.tags`. Tighten filters or move the duplicate to a distinct group with a unique name.
 - A list page contains a metadata entry with empty `id` or `name` — `secret metadata missing id or name`. This indicates a malformed upstream response and is surfaced rather than silently skipped.
 
