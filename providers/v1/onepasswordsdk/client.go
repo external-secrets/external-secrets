@@ -203,20 +203,40 @@ func (p *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecr
 		if err != nil {
 			return nil, fmt.Errorf("failed to get item %s: %w", overview.Title, err)
 		}
-
-		if ref.Tags != nil && !itemHasTags(ref.Tags, item.Tags) {
-			continue
-		}
-
-		if err := p.collectAllFields(item, matcher, secretData); err != nil {
-			return nil, err
-		}
-		if err := p.collectAllFiles(ctx, item, matcher, secretData); err != nil {
+		if err := p.collectItemSecrets(ctx, item, ref, matcher, secretData); err != nil {
 			return nil, err
 		}
 	}
 
 	return secretData, nil
+}
+
+func (p *SecretsClient) collectItemSecrets(ctx context.Context, item onepassword.Item, ref esv1.ExternalSecretFind, matcher *find.Matcher, secretData map[string][]byte) error {
+	if ref.Tags != nil && !itemHasTags(ref.Tags, item.Tags) {
+		return nil
+	}
+
+	fields, err := p.getFields(item, "", matcher)
+	if err != nil {
+		return err
+	}
+	for fieldName, data := range fields {
+		if _, ok := secretData[fieldName]; !ok {
+			secretData[fieldName] = data
+		}
+	}
+
+	files, err := p.getFiles(ctx, item, "", matcher)
+	if err != nil {
+		return err
+	}
+	for fileName, data := range files {
+		if _, ok := secretData[fileName]; !ok {
+			secretData[fileName] = data
+		}
+	}
+
+	return nil
 }
 
 // itemHasTags returns true if all keys in required are present in the item's tags slice.
@@ -227,52 +247,6 @@ func itemHasTags(required map[string]string, itemTags []string) bool {
 		}
 	}
 	return true
-}
-
-// collectAllFields appends fields from item into secretData, applying the name matcher if set.
-// Duplicate field titles within a single item are an error. Existing keys are not overwritten.
-func (p *SecretsClient) collectAllFields(item onepassword.Item, matcher *find.Matcher, secretData map[string][]byte) error {
-	for _, field := range item.Fields {
-		if length := countFieldsWithLabel(field.Title, item.Fields); length != 1 {
-			return fmt.Errorf(errExpectedOneFieldMsgF, field.Title, item.Title, length)
-		}
-		if matcher != nil && !matcher.MatchName(field.Title) {
-			continue
-		}
-		if _, ok := secretData[field.Title]; !ok {
-			secretData[field.Title] = []byte(field.Value)
-		}
-	}
-	return nil
-}
-
-// collectAllFiles reads files from item into secretData, applying the name matcher if set.
-// File contents are cached. Existing keys are not overwritten.
-func (p *SecretsClient) collectAllFiles(ctx context.Context, item onepassword.Item, matcher *find.Matcher, secretData map[string][]byte) error {
-	for _, file := range item.Files {
-		if matcher != nil && !matcher.MatchName(file.Attributes.Name) {
-			continue
-		}
-		if _, ok := secretData[file.Attributes.Name]; ok {
-			continue
-		}
-
-		cacheKey := fileCachePrefix + p.vaultID + ":" + item.ID + ":" + file.FieldID + ":" + file.Attributes.Name
-		if cached, ok := p.cacheGet(cacheKey); ok {
-			secretData[file.Attributes.Name] = cached
-			continue
-		}
-
-		contents, err := p.client.Items().Files().Read(ctx, p.vaultID, file.FieldID, file.Attributes)
-		metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKFilesRead, err)
-		if err != nil {
-			return fmt.Errorf("failed to read file: %w", err)
-		}
-
-		p.cacheAdd(cacheKey, contents)
-		secretData[file.Attributes.Name] = contents
-	}
-	return nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider, for dataFrom.extract.
@@ -298,9 +272,9 @@ func (p *SecretsClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecre
 	var result map[string][]byte
 	propertyType, property := getObjType(item.Category, ref.Property)
 	if propertyType == filePrefix {
-		result, err = p.getFiles(ctx, item, property)
+		result, err = p.getFiles(ctx, item, property, nil)
 	} else {
-		result, err = p.getFields(item, property)
+		result, err = p.getFields(item, property, nil)
 	}
 
 	if err != nil {
@@ -314,7 +288,7 @@ func (p *SecretsClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecre
 	return result, nil
 }
 
-func (p *SecretsClient) getFields(item onepassword.Item, property string) (map[string][]byte, error) {
+func (p *SecretsClient) getFields(item onepassword.Item, property string, matcher *find.Matcher) (map[string][]byte, error) {
 	secretData := make(map[string][]byte)
 	for _, field := range item.Fields {
 		if property != "" && field.Title != property {
@@ -322,6 +296,9 @@ func (p *SecretsClient) getFields(item onepassword.Item, property string) (map[s
 		}
 		if length := countFieldsWithLabel(field.Title, item.Fields); length != 1 {
 			return nil, fmt.Errorf(errExpectedOneFieldMsgF, field.Title, item.Title, length)
+		}
+		if matcher != nil && !matcher.MatchName(field.Title) {
+			continue
 		}
 
 		// caution: do not use client.GetValue here because it has undesirable behavior on keys with a dot in them
@@ -331,10 +308,13 @@ func (p *SecretsClient) getFields(item onepassword.Item, property string) (map[s
 	return secretData, nil
 }
 
-func (p *SecretsClient) getFiles(ctx context.Context, item onepassword.Item, property string) (map[string][]byte, error) {
+func (p *SecretsClient) getFiles(ctx context.Context, item onepassword.Item, property string, matcher *find.Matcher) (map[string][]byte, error) {
 	secretData := make(map[string][]byte)
 	for _, file := range item.Files {
 		if property != "" && file.Attributes.Name != property {
+			continue
+		}
+		if matcher != nil && !matcher.MatchName(file.Attributes.Name) {
 			continue
 		}
 
