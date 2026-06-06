@@ -208,10 +208,10 @@ func (p *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecr
 			continue
 		}
 
-		if err = p.collectAllFields(item, matcher, secretData); err != nil {
+		if err := p.collectAllFields(item, matcher, secretData); err != nil {
 			return nil, err
 		}
-		if err = p.collectAllFiles(ctx, item, matcher, secretData); err != nil {
+		if err := p.collectAllFiles(ctx, item, matcher, secretData); err != nil {
 			return nil, err
 		}
 	}

@@ -1498,7 +1498,7 @@ func TestGetAllSecrets(t *testing.T) {
 
 	newMultiLister := func(items ...onepassword.Item) *statefulFakeLister {
 		fl := &statefulFakeLister{
-			items:     make(map[string]onepassword.Item),
+			items:      make(map[string]onepassword.Item),
 			fileLister: &fakeFileLister{readContent: []byte("cert-contents")},
 		}
 		for _, it := range items {
