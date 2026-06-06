@@ -1673,6 +1673,28 @@ func TestGetAllSecrets(t *testing.T) {
 			t.Fatalf("expected list error, got %v", err)
 		}
 	})
+
+	t.Run("fetch error propagates", func(t *testing.T) {
+		// List succeeds and a secret matches the filter, but the per-secret
+		// fetch (GetSecretWithContext) fails. The error must surface rather
+		// than the entry being silently dropped.
+		mock := &fakesm.IBMMockClient{}
+		mock.WithListSecrets(func(_ context.Context, _ *sm.ListSecretsOptions) (*sm.SecretMetadataPaginatedCollection, *core.DetailedResponse, error) {
+			return metadataPage(listEntry{id: id1, name: "app-db"}), nil, nil
+		})
+		mock.WithValue(fakesm.IBMMockClientParams{
+			GetSecretOptions: &sm.GetSecretOptions{ID: &id1},
+			GetSecretErr:     errors.New("boom"),
+		})
+
+		p := &providerIBM{IBMClient: mock}
+		_, err := p.GetAllSecrets(ctx, esv1.ExternalSecretFind{
+			Name: &esv1.FindName{RegExp: "^app-"},
+		})
+		if err == nil || !strings.Contains(err.Error(), "failed to fetch secret") {
+			t.Fatalf("expected fetch error, got %v", err)
+		}
+	})
 }
 
 func mapKeys(m map[string][]byte) []string {
