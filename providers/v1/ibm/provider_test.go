@@ -1500,7 +1500,7 @@ func TestGetAllSecrets(t *testing.T) {
 			GetSecretOptions: &sm.GetSecretOptions{ID: &id1},
 			GetSecretOutput: &sm.ArbitrarySecret{
 				SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
-				Name:       utilpointer.To("app-db"),
+				Name:       new("app-db"),
 				ID:         &id1,
 				Payload:    &payload1,
 			},
@@ -1575,7 +1575,7 @@ func TestGetAllSecrets(t *testing.T) {
 			GetSecretOptions: &sm.GetSecretOptions{ID: &id2},
 			GetSecretOutput: &sm.ArbitrarySecret{
 				SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
-				Name:       utilpointer.To("page2-only"),
+				Name:       new("page2-only"),
 				ID:         &id2,
 				Payload:    &payload2,
 			},
@@ -1608,7 +1608,7 @@ func TestGetAllSecrets(t *testing.T) {
 			GetSecretOptions: &sm.GetSecretOptions{ID: &id1},
 			GetSecretOutput: &sm.ArbitrarySecret{
 				SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
-				Name:       utilpointer.To("dup"),
+				Name:       new("dup"),
 				ID:         &id1,
 				Payload:    &payload1,
 			},
@@ -1667,7 +1667,7 @@ func TestGetAllSecrets(t *testing.T) {
 		})
 		p := &providerIBM{IBMClient: mock}
 		_, err := p.GetAllSecrets(ctx, esv1.ExternalSecretFind{
-			Path: utilpointer.To("anything"),
+			Path: new("anything"),
 		})
 		if err == nil || !strings.Contains(err.Error(), "failed to list secrets") {
 			t.Fatalf("expected list error, got %v", err)

@@ -122,7 +122,7 @@ func (ibm *providerIBM) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.P
 }
 
 // GetAllSecrets lists secrets from IBM Cloud Secrets Manager and returns a map of secret
-// name to the full secret payload (JSON-marshalled).
+// name to the full secret payload (JSON-marshaled).
 //
 // Filter mapping from ExternalSecretFind to the IBM ListSecrets API:
 //   - ref.Name.RegExp — applied client-side as a regex against each secret's bare name.
@@ -258,7 +258,7 @@ func secretMetaIdentifiers(meta sm.SecretMetadataIntf) (string, string, error) {
 	return raw.Name, raw.ID, nil
 }
 
-// fetchSecretJSON retrieves a secret by ID and serialises the full payload to JSON.
+// fetchSecretJSON retrieves a secret by ID and serializes the full payload to JSON.
 // The result includes every field the SDK returned (per-type values like Payload,
 // ApiKey, Data, etc.) so downstream consumers can pick keys via rewrite rules.
 func (ibm *providerIBM) fetchSecretJSON(ctx context.Context, id string) ([]byte, error) {

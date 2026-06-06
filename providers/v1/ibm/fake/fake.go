@@ -54,7 +54,7 @@ func (mc *IBMMockClient) GetSecretByNameTypeWithContext(
 
 // ListSecretsWithContext delegates to the test-provided callback. Tests opt in by
 // calling WithListSecrets; the default is a nil callback which returns an empty page,
-// keeping existing tests that don't exercise list behaviour unchanged.
+// keeping existing tests that don't exercise list behavior unchanged.
 func (mc *IBMMockClient) ListSecretsWithContext(
 	ctx context.Context,
 	listSecretsOptions *sm.ListSecretsOptions,
