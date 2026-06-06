@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/1password/onepassword-sdk-go"
@@ -32,6 +33,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
+	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -173,9 +175,104 @@ func deleteField(fields []onepassword.ItemField, title string) ([]onepassword.It
 	return fieldsF, found, nil
 }
 
-// GetAllSecrets Not Implemented.
-func (p *SecretsClient) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
+// GetAllSecrets returns all secrets from the vault, for dataFrom.find.
+// Items are filtered by ref.Path (item title), ref.Tags (item tags), and ref.Name (field/file name regex).
+// First match wins for duplicate field/file names across items.
+func (p *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	items, err := p.client.Items().List(ctx, p.vaultID)
+	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsList, err)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list items: %w", err)
+	}
+
+	var matcher *find.Matcher
+	if ref.Name != nil {
+		matcher, err = find.New(*ref.Name)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	secretData := make(map[string][]byte)
+	for _, overview := range items {
+		if ref.Path != nil && *ref.Path != overview.Title {
+			continue
+		}
+
+		item, err := p.getItemByID(ctx, overview.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get item %s: %w", overview.Title, err)
+		}
+
+		if ref.Tags != nil && !itemHasTags(ref.Tags, item.Tags) {
+			continue
+		}
+
+		if err = p.collectAllFields(item, matcher, secretData); err != nil {
+			return nil, err
+		}
+		if err = p.collectAllFiles(ctx, item, matcher, secretData); err != nil {
+			return nil, err
+		}
+	}
+
+	return secretData, nil
+}
+
+// itemHasTags returns true if all keys in required are present in the item's tags slice.
+func itemHasTags(required map[string]string, itemTags []string) bool {
+	for tag := range required {
+		if !slices.Contains(itemTags, tag) {
+			return false
+		}
+	}
+	return true
+}
+
+// collectAllFields appends fields from item into secretData, applying the name matcher if set.
+// Duplicate field titles within a single item are an error. Existing keys are not overwritten.
+func (p *SecretsClient) collectAllFields(item onepassword.Item, matcher *find.Matcher, secretData map[string][]byte) error {
+	for _, field := range item.Fields {
+		if length := countFieldsWithLabel(field.Title, item.Fields); length != 1 {
+			return fmt.Errorf(errExpectedOneFieldMsgF, field.Title, item.Title, length)
+		}
+		if matcher != nil && !matcher.MatchName(field.Title) {
+			continue
+		}
+		if _, ok := secretData[field.Title]; !ok {
+			secretData[field.Title] = []byte(field.Value)
+		}
+	}
+	return nil
+}
+
+// collectAllFiles reads files from item into secretData, applying the name matcher if set.
+// File contents are cached. Existing keys are not overwritten.
+func (p *SecretsClient) collectAllFiles(ctx context.Context, item onepassword.Item, matcher *find.Matcher, secretData map[string][]byte) error {
+	for _, file := range item.Files {
+		if matcher != nil && !matcher.MatchName(file.Attributes.Name) {
+			continue
+		}
+		if _, ok := secretData[file.Attributes.Name]; ok {
+			continue
+		}
+
+		cacheKey := fileCachePrefix + p.vaultID + ":" + item.ID + ":" + file.FieldID + ":" + file.Attributes.Name
+		if cached, ok := p.cacheGet(cacheKey); ok {
+			secretData[file.Attributes.Name] = cached
+			continue
+		}
+
+		contents, err := p.client.Items().Files().Read(ctx, p.vaultID, file.FieldID, file.Attributes)
+		metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKFilesRead, err)
+		if err != nil {
+			return fmt.Errorf("failed to read file: %w", err)
+		}
+
+		p.cacheAdd(cacheKey, contents)
+		secretData[file.Attributes.Name] = contents
+	}
+	return nil
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider, for dataFrom.extract.
@@ -558,6 +655,29 @@ func (p *SecretsClient) GetVault(ctx context.Context, titleOrUUID string) (strin
 	return "", fmt.Errorf("vault %s not found", titleOrUUID)
 }
 
+// getItemByID fetches a full item by its native ID, using the item cache.
+func (p *SecretsClient) getItemByID(ctx context.Context, itemID string) (onepassword.Item, error) {
+	cacheKey := itemCachePrefix + p.vaultID + ":" + itemID
+	if cached, ok := p.cacheGet(cacheKey); ok {
+		var item onepassword.Item
+		if err := json.Unmarshal(cached, &item); err == nil {
+			return item, nil
+		}
+	}
+
+	item, err := p.client.Items().Get(ctx, p.vaultID, itemID)
+	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsGet, err)
+	if err != nil {
+		return onepassword.Item{}, err
+	}
+
+	if serialized, err := json.Marshal(item); err == nil {
+		p.cacheAdd(cacheKey, serialized)
+	}
+
+	return item, nil
+}
+
 func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.Item, error) {
 	cacheKey := itemCachePrefix + p.vaultID + ":" + name
 	if cached, ok := p.cacheGet(cacheKey); ok {
@@ -571,8 +691,7 @@ func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.
 	var err error
 
 	if isNativeItemID(name) {
-		item, err = p.client.Items().Get(ctx, p.vaultID, name)
-		metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsGet, err)
+		item, err = p.getItemByID(ctx, name)
 		if err != nil {
 			if isNotFoundError(err) {
 				return onepassword.Item{}, ErrKeyNotFound
@@ -600,8 +719,7 @@ func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.
 			return onepassword.Item{}, ErrKeyNotFound
 		}
 
-		item, err = p.client.Items().Get(ctx, p.vaultID, itemUUID)
-		metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsGet, err)
+		item, err = p.getItemByID(ctx, itemUUID)
 		if err != nil {
 			return onepassword.Item{}, err
 		}
