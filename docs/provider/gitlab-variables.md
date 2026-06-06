@@ -26,6 +26,8 @@ Be sure the `gitlab` provider is listed in the `Kind=SecretStore` and the Projec
 
 In order to sync group variables `inheritFromGroups` must be true or `groupIDs` have to be defined.
 
+> **Note**: `inheritFromGroups` and `groupIDs` are mutually exclusive. Setting both fields at the same time causes a validation error. Use `groupIDs` to sync from a fixed list of groups, or `inheritFromGroups: true` to automatically discover all parent groups of the project.
+
 In case you have defined multiple environments in Gitlab, the secret store should be constrained to a specific `environment_scope`.
 
 #### Environment Scope Fallback Behavior
@@ -38,7 +40,7 @@ The GitLab provider implements an intelligent fallback mechanism for environment
 
 **Example**: If your SecretStore has `environment: "production"` but your GitLab variable is set to "All environments", the variable will still be successfully retrieved through the fallback mechanism.
 
-> **Implementation Note**: This fallback behavior is implemented in the [`getVariables` function](https://github.com/external-secrets/external-secrets/blob/636ce0578dda4a623a681066def8998a68b051a6/pkg/provider/gitlab/provider.go#L134-L151) where the provider automatically retries with `EnvironmentScope: "*"` when the initial lookup with the specific environment scope returns a 404 Not Found response.
+> **Implementation Note**: This fallback behavior is implemented in the `getVariables` function in `providers/v1/gitlab/provider.go`, where the provider automatically retries with `EnvironmentScope: "*"` when the initial lookup with the specific environment scope returns a 404 Not Found response. The same fallback applies to group variable lookups in `getGroupVariables`.
 
 ```yaml
 {% include 'gitlab-secret-store.yaml' %}
@@ -56,6 +58,10 @@ To sync a GitLab variable to a secret on the Kubernetes cluster, a `Kind=Externa
 {% include 'gitlab-external-secret.yaml' %}
 ```
 
+#### Key normalisation
+
+When using `data:` to look up a single variable by name, hyphens in `remoteRef.key` are silently replaced with underscores before the GitLab API call. For example, `key: my-secret` will look up the GitLab variable named `my_secret`. This normalisation does not apply to `dataFrom`.
+
 #### Using DataFrom
 
 DataFrom can be used to get a variable as a JSON string and attempt to parse it.
@@ -63,6 +69,14 @@ DataFrom can be used to get a variable as a JSON string and attempt to parse it.
 ```yaml
 {% include 'gitlab-external-secret-json.yaml' %}
 ```
+
+#### DataFrom find limitations
+
+When using `dataFrom` with `find`, the following restrictions apply:
+
+- `find.name` is mandatory. The provider requires a name regexp to select which variables to sync.
+- `find.tags` only supports the `environment_scope` key. Any other tag key causes an error. Setting `find.tags.environment_scope` while the SecretStore already has an `environment` configured also causes an error, as the two would conflict.
+- `find.path` is not implemented in the GitLab provider and returns an error if set.
 
 ### Getting the Kubernetes secret
 The operator will fetch the project variable and inject it as a `Kind=Secret`.
