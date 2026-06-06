@@ -1,0 +1,52 @@
+suite: test componentName DNS-label name truncation
+templates:
+  - webhook-service.yaml
+  - cert-controller-service.yaml
+tests:
+  - it: should not alter names that are well under the 63-char DNS label limit
+    set:
+      fullnameOverride: my-release
+    template: webhook-service.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: my-release-webhook
+
+  - it: should truncate from the right and preserve the name prefix for a short suffix (-webhook 8 chars)
+    # fullnameOverride: 60 chars ("external-secrets-production-cluster-for-long-release-testing").
+    # componentName maxLen = 63 - 8 = 55; trunc(55) keeps the first 55 chars of the
+    # base name so appending the 8-char suffix produces exactly 63 chars total.
+    set:
+      fullnameOverride: "external-secrets-production-cluster-for-long-release-testing"
+    template: webhook-service.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: "external-secrets-production-cluster-for-long-release-te-webhook"
+
+  - it: should truncate from the right for the longest suffix in the chart (-cert-controller-metrics 24 chars)
+    # Same 60-char fullnameOverride.
+    # componentName maxLen = 63 - 24 = 39; trunc(39) keeps the first 39 chars,
+    # so the total is exactly 63.  This is the primary failure case from issue #1997.
+    set:
+      fullnameOverride: "external-secrets-production-cluster-for-long-release-testing"
+      certController.metrics.service.enabled: true
+    template: cert-controller-service.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: "external-secrets-production-cluster-for-cert-controller-metrics"
+
+  - it: should strip a trailing dash when the truncation point falls on a hyphen
+    # fullnameOverride: 60 chars with a hyphen at position 55
+    # ("external-secrets-for-production-release-cluster-naming-tests").
+    # trunc(55) yields the first 54 chars plus a trailing "-"; trimSuffix "-"
+    # removes it, leaving 54 chars, so the result is 54 + 8 = 62 chars with no
+    # double-dash at the suffix boundary.
+    set:
+      fullnameOverride: "external-secrets-for-production-release-cluster-naming-tests"
+    template: webhook-service.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: "external-secrets-for-production-release-cluster-naming-webhook"
