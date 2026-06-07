@@ -3443,6 +3443,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#custom-tls-certificates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom TLS certificates
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3459,6 +3470,28 @@
   
     <nav class="md-nav" aria-label="Creating external secret">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-normalisation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key normalisation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extracting-a-json-sub-key-with-remoterefproperty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extracting a JSON sub-key with remoteRef.property
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#using-datafrom" class="md-nav__link">
@@ -5047,6 +5080,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#custom-tls-certificates" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom TLS certificates
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -5063,6 +5107,28 @@
   
     <nav class="md-nav" aria-label="Creating external secret">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#key-normalisation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Key normalisation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extracting-a-json-sub-key-with-remoterefproperty" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extracting a JSON sub-key with remoteRef.property
+      
+    </span>
+  </a>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#using-datafrom" class="md-nav__link">
@@ -5120,12 +5186,18 @@
 
 <h2 id="gitlab-variables">GitLab Variables</h2>
 <p>External Secrets Operator integrates with GitLab to sync <a href="https://docs.gitlab.com/ee/api/project_level_variables.html">GitLab Project Variables API</a> and/or <a href="https://docs.gitlab.com/ee/api/group_level_variables.html">GitLab Group Variables API</a> to secrets held on the Kubernetes cluster.</p>
+<blockquote>
+<p><strong>Note</strong>: The GitLab provider is read-only. PushSecret is not supported.</p>
+</blockquote>
 <h3 id="configuring-gitlab">Configuring GitLab</h3>
 <p>The GitLab API requires an access token, project ID and/or groupIDs.</p>
 <p>To create a new access token, go to your user settings and select 'access tokens'. Give your token a name, expiration date, and select the permissions required (Note 'api' is required).</p>
 <p><img alt="token-details" src="../../pictures/screenshot_gitlab_token.png" /></p>
 <p>Click 'Create personal access token', and your token will be generated and displayed on screen. Copy or save this token since you can't access it again.
 <img alt="token-created" src="../../pictures/screenshot_gitlab_token_created.png" /></p>
+<blockquote>
+<p><strong>Note</strong>: Project access tokens and group access tokens are also accepted in place of a personal access token.</p>
+</blockquote>
 <h3 id="access-token-secret">Access Token secret</h3>
 <p>Create a secret containing your access token:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
@@ -5141,6 +5213,11 @@
 <h3 id="configuring-the-secret-store">Configuring the secret store</h3>
 <p>Be sure the <code>gitlab</code> provider is listed in the <code>Kind=SecretStore</code> and the ProjectID is set. If you are not using <code>https://gitlab.com</code>, you must set the <code>url</code> field as well.</p>
 <p>In order to sync group variables <code>inheritFromGroups</code> must be true or <code>groupIDs</code> have to be defined.</p>
+<blockquote>
+<p><strong>Note</strong>: <code>inheritFromGroups</code> and <code>groupIDs</code> are mutually exclusive. Setting both fields at the same time causes a validation error. Use <code>groupIDs</code> to sync from a fixed list of groups, or <code>inheritFromGroups: true</code> to automatically discover all parent groups of the project.</p>
+</blockquote>
+<p>The values in <code>groupIDs</code> must be the numeric group ID, not the group path or slug. You can find the numeric ID on the group's General Settings page.</p>
+<p>When <code>inheritFromGroups: true</code> is set, parent groups are discovered at secret-fetch time via the GitLab Projects API and sorted by full path length, shortest first. This gives the project's direct parent the highest priority among groups. Project variables always take precedence over group variables regardless of this order.</p>
 <p>In case you have defined multiple environments in Gitlab, the secret store should be constrained to a specific <code>environment_scope</code>.</p>
 <h4 id="environment-scope-fallback-behavior">Environment Scope Fallback Behavior</h4>
 <p>The GitLab provider implements an intelligent fallback mechanism for environment scopes:</p>
@@ -5151,7 +5228,7 @@
 </ol>
 <p><strong>Example</strong>: If your SecretStore has <code>environment: "production"</code> but your GitLab variable is set to "All environments", the variable will still be successfully retrieved through the fallback mechanism.</p>
 <blockquote>
-<p><strong>Implementation Note</strong>: This fallback behavior is implemented in the <a href="https://github.com/external-secrets/external-secrets/blob/636ce0578dda4a623a681066def8998a68b051a6/pkg/provider/gitlab/provider.go#L134-L151"><code>getVariables</code> function</a> where the provider automatically retries with <code>EnvironmentScope: "*"</code> when the initial lookup with the specific environment scope returns a 404 Not Found response.</p>
+<p><strong>Implementation Note</strong>: This fallback behavior is implemented in the <code>getVariables</code> function in <code>providers/v1/gitlab/provider.go</code>, where the provider automatically retries with <code>EnvironmentScope: "*"</code> when the initial lookup with the specific environment scope returns a 404 Not Found response. The same fallback applies to group variable lookups in <code>getGroupVariables</code>.</p>
 </blockquote>
 <p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
@@ -5168,13 +5245,57 @@
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-secret</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
 <span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;**project</span><span class="nv"> </span><span class="s">ID</span><span class="nv"> </span><span class="s">goes</span><span class="nv"> </span><span class="s">here**&quot;</span>
-<span class="w">      </span><span class="nt">groupIDs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;**groupID(s)</span><span class="nv"> </span><span class="s">go</span><span class="nv"> </span><span class="s">here**&quot;</span><span class="p p-Indicator">]</span>
-<span class="w">      </span><span class="nt">inheritFromGroups</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;**automatically</span><span class="nv"> </span><span class="s">looks</span><span class="nv"> </span><span class="s">for</span><span class="nv"> </span><span class="s">variables</span><span class="nv"> </span><span class="s">in</span><span class="nv"> </span><span class="s">parent</span><span class="nv"> </span><span class="s">groups**&quot;</span>
+<span class="w">      </span><span class="c1"># To sync variables from specific groups, provide their numeric IDs</span>
+<span class="w">      </span><span class="c1"># (visible on the group&#39;s General Settings page).</span>
+<span class="w">      </span><span class="c1"># groupIDs and inheritFromGroups are mutually exclusive: set only one.</span>
+<span class="w">      </span><span class="nt">groupIDs</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;12345&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;67890&quot;</span><span class="p p-Indicator">]</span>
+<span class="w">      </span><span class="c1"># Alternatively, automatically inherit variables from all parent groups:</span>
+<span class="w">      </span><span class="c1"># inheritFromGroups: true</span>
 <span class="w">      </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;**environment</span><span class="nv"> </span><span class="s">scope</span><span class="nv"> </span><span class="s">goes</span><span class="nv"> </span><span class="s">here**&quot;</span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>accessToken</code> with the namespace where the secret resides.</p>
 <p>Your project ID can be found on your project's page.
 <img alt="projectID" src="../../pictures/screenshot_gitlab_projectID.png" /></p>
+<h4 id="custom-tls-certificates">Custom TLS certificates</h4>
+<p>If your GitLab instance uses a self-signed or private CA certificate, configure the provider to trust it using one of two options.</p>
+<p><strong>Option 1 -- inline PEM via <code>caBundle</code></strong>: base64-encode your CA certificate and set it directly in the store spec.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-secret-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">gitlab</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://gitlab.example.com</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">SecretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">accessToken</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-secret</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
+<span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;12345&quot;</span>
+<span class="w">      </span><span class="nt">caBundle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">LS0tLS1CRUdJTi...</span><span class="w">  </span><span class="c1"># base64-encoded PEM certificate</span>
+</code></pre></div>
+<p><strong>Option 2 -- reference a Secret or ConfigMap via <code>caProvider</code></strong>: store the PEM certificate in a Kubernetes resource and point the store at it. This avoids embedding the certificate in the store spec and works well with cert-manager or manually provisioned CA bundles.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-secret-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">gitlab</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://gitlab.example.com</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">SecretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">accessToken</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-secret</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
+<span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;12345&quot;</span>
+<span class="w">      </span><span class="nt">caProvider</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w">       </span><span class="c1"># or ConfigMap</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-ca</span><span class="w">    </span><span class="c1"># name of the Secret or ConfigMap</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ca.crt</span><span class="w">        </span><span class="c1"># key inside the resource that holds the PEM certificate</span>
+<span class="w">        </span><span class="c1"># namespace: ...   # required only for ClusterSecretStore</span>
+</code></pre></div>
 <h3 id="creating-external-secret">Creating external secret</h3>
 <p>To sync a GitLab variable to a secret on the Kubernetes cluster, a <code>Kind=ExternalSecret</code> is needed.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
@@ -5197,8 +5318,31 @@
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span><span class="w"> </span>
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">myGitlabVariable</span><span class="w"> </span><span class="c1"># Key of the variable on Gitlab</span>
 </code></pre></div>
+<h4 id="key-normalisation">Key normalisation</h4>
+<p>When using <code>data:</code> to look up a single variable by name, hyphens in <code>remoteRef.key</code> are silently replaced with underscores before the GitLab API call. For example, <code>key: my-secret</code> will look up the GitLab variable named <code>my_secret</code>. This normalisation does not apply to <code>dataFrom</code>.</p>
+<h4 id="extracting-a-json-sub-key-with-remoterefproperty">Extracting a JSON sub-key with <code>remoteRef.property</code></h4>
+<p>If a GitLab variable holds a JSON string, you can extract a single nested value using <code>remoteRef.property</code>. The value is resolved using <a href="https://github.com/tidwall/gjson#path-syntax">GJSON path syntax</a>, so dot-separated paths and array indexing are both supported.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-json-property-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h0m0s</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-secret-store</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-secret-to-create</span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db-password</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MY_JSON_CONFIG</span><span class="w">          </span><span class="c1"># GitLab variable whose value is a JSON string</span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database.password</span><span class="w">   </span><span class="c1"># GJSON path into that JSON value</span>
+</code></pre></div>
 <h4 id="using-datafrom">Using DataFrom</h4>
-<p>DataFrom can be used to get a variable as a JSON string and attempt to parse it.</p>
+<p>DataFrom can be used to get a variable as a JSON string and attempt to parse it, or to match multiple variables by name.</p>
+<p><strong>Extracting all keys from a JSON variable</strong> (<code>dataFrom.extract</code>):</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5219,6 +5363,32 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;myJsonVariable&quot;</span><span class="w"> </span><span class="c1"># Key of the variable on Gitlab</span>
 </code></pre></div>
+<p><strong>Matching multiple variables by name regex</strong> (<code>dataFrom.find</code>):</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-find-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h0m0s</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-secret-store</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-secret-to-create</span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;^PROD_.*&quot;</span><span class="w">            </span><span class="c1"># required: regexp matched against variable names</span>
+<span class="w">        </span><span class="nt">tags</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">environment_scope</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span><span class="w">  </span><span class="c1"># optional: also filter by environment scope</span>
+</code></pre></div>
+<p>The following restrictions apply when using <code>find</code>:</p>
+<ul>
+<li><code>find.name</code> is mandatory. The provider requires a name regexp to select which variables to sync.</li>
+<li><code>find.tags</code> only supports the <code>environment_scope</code> key. Any other tag key causes an error. Setting <code>find.tags.environment_scope</code> while the SecretStore already has an <code>environment</code> configured also causes an error, as the two would conflict.</li>
+<li><code>find.path</code> is not implemented in the GitLab provider and returns an error if set.</li>
+</ul>
 <h3 id="getting-the-kubernetes-secret">Getting the Kubernetes secret</h3>
 <p>The operator will fetch the project variable and inject it as a <code>Kind=Secret</code>.
 <div class="highlight"><pre><span></span><code>kubectl get secret gitlab-secret-to-create -o jsonpath=&#39;{.data.secretKey}&#39; | base64 -d
