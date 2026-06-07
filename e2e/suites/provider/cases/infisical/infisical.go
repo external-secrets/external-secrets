@@ -97,6 +97,8 @@ func useUniversalAuthClusterStore(prov *infisicalProvider) func(*framework.TestC
 	}
 }
 
+// useUniversalAuthForPush creates the namespaced Universal Auth store and points
+// the test's PushSecret at it.
 func useUniversalAuthForPush(prov *infisicalProvider) func(*framework.TestCase) {
 	return func(tc *framework.TestCase) {
 		prov.CreateUniversalAuthStore()

@@ -241,6 +241,8 @@ func (p *Provider) fetchExisting(secretPath, name string) (string, bool, error) 
 	return secret.SecretValue, true, nil
 }
 
+// createSecret creates a new secret named name with the given value at
+// secretPath in the resolved project.
 func (p *Provider) createSecret(projectID, secretPath, name, value string) error {
 	_, err := p.sdkClient.Secrets().Create(infisical.CreateSecretOptions{
 		ProjectID:             projectID,
@@ -257,6 +259,8 @@ func (p *Provider) createSecret(projectID, secretPath, name, value string) error
 	return nil
 }
 
+// updateSecret overwrites the value of the existing secret named name at
+// secretPath in the resolved project.
 func (p *Provider) updateSecret(projectID, secretPath, name, value string) error {
 	_, err := p.sdkClient.Secrets().Update(infisical.UpdateSecretOptions{
 		ProjectID:                projectID,
@@ -291,6 +295,9 @@ func (p *Provider) resolveProjectID(ctx context.Context) (id string, cached bool
 	return id, false, nil
 }
 
+// projectCacheKey returns the key identifying this store's project in the
+// process-wide cache: host, slug, and auth identity together, so entries are
+// never shared across instances or tenants.
 func (p *Provider) projectCacheKey() projectIDCacheKey {
 	return projectIDCacheKey{
 		host:     p.hostAPI,
