@@ -148,6 +148,31 @@ spec:
       comment: string
       keySize: 256
       keyType: "rsa"
+    stsAssumeRoleTokenSpec:
+      auth:
+        jwt:
+          serviceAccountRef:
+            audiences: [] # minItems 0 of type string
+            name: string
+            namespace: string
+        secretRef:
+          accessKeyIDSecretRef:
+            key: string
+            name: string
+            namespace: string
+          secretAccessKeySecretRef:
+            key: string
+            name: string
+            namespace: string
+          sessionTokenSecretRef:
+            key: string
+            name: string
+            namespace: string
+      region: string
+      requestParameters:
+        externalID: string
+        sessionDuration: 1
+      role: string
     stsSessionTokenSpec:
       auth:
         jwt:
@@ -354,4 +379,4 @@ spec:
           name: string
       timeout: string
       url: string
-  kind: "ACRAccessToken" # "ACRAccessToken", "CloudsmithAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "SSHKey", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana"
+  kind: "ACRAccessToken" # "ACRAccessToken", "CloudsmithAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "SSHKey", "STSAssumeRoleToken", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana"

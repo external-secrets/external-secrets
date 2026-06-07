@@ -221,3 +221,18 @@ pattern, but expect to be the first.
 - Docs page + snippets.
 - mkdocs nav entry.
 - After adding the module to `go.work`, run `go work use` to reconcile the `go` directive version.
+
+## Expected Flow
+- Do your best to implement all the changes needed as provided by the user
+- After finishing your implementations; Show the user your changes so they can review and COMPREHEND THEM. Explain what each change does and why — do NOT just list files.
+- STOP and explicitly ask "Do you have any questions before I give you the commit command?" Wait for the user to confirm they understood before proceeding.
+- Only after the user confirms understanding: provide the commit command. ALWAYS include `-s` (sign-off) for CLA compliance.
+- After that is done, add the needed git notes to that hash.
+- Ask the user to push the changes / notes (never do the commit or push yourself).
+
+## Restrictions
+- NEVER update v1beta1. It is deprecated and maintained for compatibility purposes only -- new features are never added there
+- NEVER run `git commit`, `git push`, or any variation thereof. All commits and pushes are done manually by the user.
+- NEVER stage commits!
+- When providing commit instructions to the user, always include the `-s` flag (sign-off).
+- When providing `git add` instructions after any `make` target that generates code (e.g. `make generate`, `make manifests`, `make reviewable`), always include ALL modified tracked files — not just the source file you edited. Generated files (CRDs, `zz_generated.deepcopy.go`, helm templates, snapshots, etc.) must be staged together with the source change or the build will break.
