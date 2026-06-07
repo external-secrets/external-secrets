@@ -105,6 +105,13 @@ func GenerateCode(opts ...GeneratorOptionsFunc) (string, string, error) {
 
 	cleanUpToken(defaults)
 
+	// A length outside this range would make the final modulo meaningless: <1 makes
+	// 10^length collapse to a degenerate code (and a negative length panics on the
+	// integer modulo), while a very large length overflows int(math.Pow10()).
+	if defaults.length < 1 || defaults.length > 9 {
+		return "", "", fmt.Errorf("invalid OTP length %d: must be between 1 and 9", defaults.length)
+	}
+
 	timer := uint64(math.Floor(float64(defaults.when.Unix()) / float64(defaults.timePeriod)))
 	remainingTime := defaults.timePeriod - defaults.when.Unix()%defaults.timePeriod
 

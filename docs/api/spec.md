@@ -8877,6 +8877,89 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.ProtonPassAuth">ProtonPassAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ProtonPassProvider">ProtonPassProvider</a>)
+</p>
+<p>
+<p>ProtonPassAuth contains the authentication configuration for Proton Pass.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>personalAccessTokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>PersonalAccessTokenSecretRef references a Secret holding the full Proton Pass
+Personal Access Token string, in the form &ldquo;pst_<token>::<key>&rdquo;. A viewer-role
+token yields a read-only store; an editor/manager token enables PushSecret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProtonPassProvider">ProtonPassProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>ProtonPassProvider configures a store to sync secrets using Proton Pass via a
+Personal Access Token (PAT). The provider talks directly to the Proton Pass
+HTTP API; no CLI or sidecar is required.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProtonPassAuth">
+ProtonPassAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the operator authenticates with Proton Pass.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>vaults</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Vaults optionally restricts the Proton Pass vaults this store uses to the
+named vaults (an allow-list). An item title that is ambiguous across the
+in-scope vaults is always a hard error (never a silent pick) — address such
+items by id:<ItemID>. When empty, every vault the token can access is used.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.Provider">Provider
 </h3>
 <p>
@@ -10182,6 +10265,20 @@ NebiusMysteryboxProvider
 <td>
 <em>(Optional)</em>
 <p>NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>protonpass</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProtonPassProvider">
+ProtonPassProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProtonPass configures this store to sync secrets using the Proton Pass provider</p>
 </td>
 </tr>
 </tbody>

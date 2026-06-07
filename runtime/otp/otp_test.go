@@ -104,6 +104,17 @@ func TestNonPaddedHashes(t *testing.T) {
 	}
 }
 
+func TestInvalidLength(t *testing.T) {
+	input := base32.StdEncoding.EncodeToString([]byte("12345678912345678912"))
+	// A length <1 would panic on the integer modulo (negative) or yield a
+	// degenerate "0" (zero); >9 overflows int(math.Pow10()).
+	for _, length := range []int{0, -1, 10} {
+		code, _, err := GenerateCode(WithToken(input), WithLength(length))
+		require.Error(t, err, "length %d must be rejected", length)
+		require.Equal(t, "", code)
+	}
+}
+
 func TestInvalidPadding(t *testing.T) {
 	input := "a6mr*&^&*%*&ylj|'[lbufszudtjdt42nh5by"
 	table := map[time.Time]string{

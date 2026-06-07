@@ -6515,6 +6515,56 @@ spec:
                       required:
                         - auth
                       type: object
+                    protonpass:
+                      description: ProtonPass configures this store to sync secrets using the Proton Pass provider
+                      properties:
+                        auth:
+                          description: Auth configures how the operator authenticates with Proton Pass.
+                          properties:
+                            personalAccessTokenSecretRef:
+                              description: |-
+                                PersonalAccessTokenSecretRef references a Secret holding the full Proton Pass
+                                Personal Access Token string, in the form "pst_<token>::<key>". A viewer-role
+                                token yields a read-only store; an editor/manager token enables PushSecret.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - personalAccessTokenSecretRef
+                          type: object
+                        vaults:
+                          description: |-
+                            Vaults optionally restricts the Proton Pass vaults this store uses to the
+                            named vaults (an allow-list). An item title that is ambiguous across the
+                            in-scope vaults is always a hard error (never a silent pick) — address such
+                            items by id:<ItemID>. When empty, every vault the token can access is used.
+                          items:
+                            type: string
+                          type: array
+                      required:
+                        - auth
+                      type: object
                     pulumi:
                       description: Pulumi configures this store to sync secrets using the Pulumi provider
                       properties:
@@ -18788,6 +18838,56 @@ spec:
                           type: object
                         baseUri:
                           type: string
+                      required:
+                        - auth
+                      type: object
+                    protonpass:
+                      description: ProtonPass configures this store to sync secrets using the Proton Pass provider
+                      properties:
+                        auth:
+                          description: Auth configures how the operator authenticates with Proton Pass.
+                          properties:
+                            personalAccessTokenSecretRef:
+                              description: |-
+                                PersonalAccessTokenSecretRef references a Secret holding the full Proton Pass
+                                Personal Access Token string, in the form "pst_<token>::<key>". A viewer-role
+                                token yields a read-only store; an editor/manager token enables PushSecret.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - personalAccessTokenSecretRef
+                          type: object
+                        vaults:
+                          description: |-
+                            Vaults optionally restricts the Proton Pass vaults this store uses to the
+                            named vaults (an allow-list). An item title that is ambiguous across the
+                            in-scope vaults is always a hard error (never a silent pick) — address such
+                            items by id:<ItemID>. When empty, every vault the token can access is used.
+                          items:
+                            type: string
+                          type: array
                       required:
                         - auth
                       type: object

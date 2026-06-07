@@ -227,6 +227,10 @@ type SecretStoreProvider struct {
 	// NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider
 	// +optional
 	NebiusMysterybox *NebiusMysteryboxProvider `json:"nebiusmysterybox,omitempty"`
+
+	// ProtonPass configures this store to sync secrets using the Proton Pass provider
+	// +optional
+	ProtonPass *ProtonPassProvider `json:"protonpass,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.
