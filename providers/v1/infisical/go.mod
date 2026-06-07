@@ -8,6 +8,7 @@ require (
 	github.com/infisical/go-sdk v0.5.100
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
+	github.com/tidwall/sjson v1.2.5
 	k8s.io/api v0.35.0
 	k8s.io/apimachinery v0.35.0
 	sigs.k8s.io/controller-runtime v0.23.1

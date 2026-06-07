@@ -24,6 +24,8 @@ import (
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 
 const (
@@ -31,19 +33,17 @@ const (
 	withUniversalAuthCluster = "with universal auth and cluster store"
 )
 
-// The Infisical provider is read-only, so the suite seeds secrets through the
-// SDK and exercises the read paths only. PushSecret cases are out of scope.
+// The suite seeds read-path secrets through the SDK and exercises the push
+// path through the provider's PushSecret implementation.
 // FindByTag is excluded because the provider does not implement tag lookup
 // (it returns "find by tags not supported"), and FindByNameWithPath is
 // excluded because the provider matches ref.Path as a prefix of the absolute
 // Infisical secret path, which a bare namespace name never satisfies.
-// DeletionPolicyDelete is excluded because the provider returns the raw API
-// error on a missing secret rather than esv1.NoSecretErr, so ESO never
-// observes the upstream deletion that the policy keys off.
 var _ = Describe("[infisical]", Label("infisical"), Ordered, func() {
 	f := framework.New("infisical")
 	infisical := addon.NewInfisical()
 	prov := newInfisicalProvider(f, infisical)
+	fakeSecretClient := fake.New()
 
 	BeforeAll(func() {
 		addon.InstallGlobalAddon(infisical)
@@ -68,8 +68,17 @@ var _ = Describe("[infisical]", Label("infisical"), Ordered, func() {
 		framework.Compose(withUniversalAuth, f, common.SSHKeySyncDataProperty, useUniversalAuth(prov)),
 		framework.Compose(withUniversalAuth, f, common.DecodingPolicySync, useUniversalAuth(prov)),
 		framework.Compose(withUniversalAuth, f, common.StatusNotUpdatedAfterSuccessfulSync, useUniversalAuth(prov)),
+		// DeletionPolicyDelete depends on GetSecret returning NoSecretErr for a
+		// missing key, which the provider now does (see issue #6413).
+		framework.Compose(withUniversalAuth, f, common.DeletionPolicyDelete, useUniversalAuth(prov)),
 		// one case through a ClusterSecretStore to cover the cluster-scoped path
 		framework.Compose(withUniversalAuthCluster, f, common.JSONDataFromSync, useUniversalAuthClusterStore(prov)),
+	)
+
+	DescribeTable("push secrets",
+		framework.TableFuncWithPushSecret(f, prov, fakeSecretClient),
+		framework.Compose(withUniversalAuth, f, pushSecretValue(prov), useUniversalAuthForPush(prov)),
+		framework.Compose(withUniversalAuth, f, pushSecretDeletesOnPolicy(prov), useUniversalAuthForPush(prov)),
 	)
 })
 
@@ -85,5 +94,14 @@ func useUniversalAuthClusterStore(prov *infisicalProvider) func(*framework.TestC
 		prov.CreateUniversalAuthClusterStore()
 		tc.ExternalSecret.Spec.SecretStoreRef.Name = clusterStoreName(tc.Framework)
 		tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1.ClusterSecretStoreKind
+	}
+}
+
+func useUniversalAuthForPush(prov *infisicalProvider) func(*framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		prov.CreateUniversalAuthStore()
+		tc.PushSecret.Spec.SecretStoreRefs = []esv1alpha1.PushSecretStoreRef{
+			{Name: tc.Framework.Namespace.Name},
+		}
 	}
 }
