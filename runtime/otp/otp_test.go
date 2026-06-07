@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mfa
+package otp
 
 import (
 	"encoding/base32"
@@ -37,7 +37,7 @@ func TestDefault(t *testing.T) {
 	}
 
 	for when, expected := range table {
-		code, _, err := generateCode(WithToken(input), WithWhen(when))
+		code, _, err := GenerateCode(WithToken(input), WithWhen(when))
 
 		require.NoError(t, err)
 		require.Equal(t, expected, code, when.String())
@@ -57,7 +57,7 @@ func TestDifferentLength(t *testing.T) {
 	}
 
 	for when, expected := range table {
-		code, _, err := generateCode(WithToken(input), WithWhen(when), WithLength(8))
+		code, _, err := GenerateCode(WithToken(input), WithWhen(when), WithLength(8))
 
 		require.NoError(t, err)
 		require.Equal(t, expected, code, when.String())
@@ -77,7 +77,7 @@ func TestSpaceSeparatedToken(t *testing.T) {
 	}
 
 	for when, expected := range table {
-		code, _, err := generateCode(WithToken(input), WithWhen(when))
+		code, _, err := GenerateCode(WithToken(input), WithWhen(when))
 
 		require.NoError(t, err)
 		require.Equal(t, expected, code, when.String())
@@ -97,7 +97,7 @@ func TestNonPaddedHashes(t *testing.T) {
 	}
 
 	for when, expected := range table {
-		code, _, err := generateCode(WithToken(input), WithWhen(when))
+		code, _, err := GenerateCode(WithToken(input), WithWhen(when))
 
 		require.NoError(t, err)
 		require.Equal(t, expected, code, when.String())
@@ -112,7 +112,7 @@ func TestInvalidPadding(t *testing.T) {
 	}
 
 	for when, expected := range table {
-		code, _, err := generateCode(WithToken(input), WithWhen(when))
+		code, _, err := GenerateCode(WithToken(input), WithWhen(when))
 
 		require.Error(t, err)
 		require.Equal(t, expected, code, when.String())

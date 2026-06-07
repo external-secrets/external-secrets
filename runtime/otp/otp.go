@@ -14,16 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package mfa
+// Package otp generates RFC 6238 time-based one-time-password (TOTP) codes from a
+// base32 secret. It is shared by the MFA generator and providers that expose TOTP.
+package otp
 
 import (
 	"crypto/hmac"
-	"crypto/sha1" //nolint:gosec // not used for encryption purposes
+	"crypto/sha1" //nolint:gosec // TOTP per RFC 6238 uses SHA-1; not used for encryption.
 	"crypto/sha256"
 	"crypto/sha512"
 	"encoding/base32"
 	"encoding/binary"
-	"errors"
 	"fmt"
 	"hash"
 	"math"
@@ -88,8 +89,9 @@ func WithWhen(when time.Time) GeneratorOptionsFunc {
 	}
 }
 
-// generateCode generates an N digit TOTP code from the secret token.
-func generateCode(opts ...GeneratorOptionsFunc) (string, string, error) {
+// GenerateCode generates an N digit TOTP code from the secret token. It returns the
+// code and the number of seconds remaining in the current time window.
+func GenerateCode(opts ...GeneratorOptionsFunc) (string, string, error) {
 	defaults := &options{
 		algorithm:  defaultAlgorithm,
 		length:     defaultLength,
@@ -102,10 +104,6 @@ func generateCode(opts ...GeneratorOptionsFunc) (string, string, error) {
 	}
 
 	cleanUpToken(defaults)
-
-	if defaults.length > math.MaxInt {
-		return "", "", errors.New("length too big")
-	}
 
 	timer := uint64(math.Floor(float64(defaults.when.Unix()) / float64(defaults.timePeriod)))
 	remainingTime := defaults.timePeriod - defaults.when.Unix()%defaults.timePeriod

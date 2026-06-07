@@ -28,6 +28,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	"github.com/external-secrets/external-secrets/runtime/otp"
 )
 
 // Generator implements MFA token generation functionality.
@@ -49,15 +50,15 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
 
-	var opts []GeneratorOptionsFunc
+	var opts []otp.GeneratorOptionsFunc
 	if res.Spec.Length > 0 {
-		opts = append(opts, WithLength(res.Spec.Length))
+		opts = append(opts, otp.WithLength(res.Spec.Length))
 	}
 	if res.Spec.TimePeriod > 0 {
-		opts = append(opts, WithTimePeriod(int64(res.Spec.TimePeriod)))
+		opts = append(opts, otp.WithTimePeriod(int64(res.Spec.TimePeriod)))
 	}
 	if res.Spec.When != nil {
-		opts = append(opts, WithWhen(res.Spec.When.Time))
+		opts = append(opts, otp.WithWhen(res.Spec.When.Time))
 	}
 
 	secret := &corev1.Secret{}
@@ -70,9 +71,9 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 		return nil, nil, fmt.Errorf("secret key %s does not exist in secret data map", res.Spec.Secret.Key)
 	}
 
-	opts = append(opts, WithToken(string(seed)))
+	opts = append(opts, otp.WithToken(string(seed)))
 
-	token, timeLeft, err := generateCode(opts...)
+	token, timeLeft, err := otp.GenerateCode(opts...)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to generate code for token key: %w", err)
 	}
