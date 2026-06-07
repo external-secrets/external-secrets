@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -360,9 +361,11 @@ func (c *apiClient) listItems(ctx context.Context, shareID string) ([]apiItemRev
 	var all []apiItemRevision
 	since := ""
 	for {
-		path := fmt.Sprintf("/pass/v1/share/%s/item?PageSize=%d", shareID, itemPageSize)
+		path := fmt.Sprintf("/pass/v1/share/%s/item?PageSize=%d", url.PathEscape(shareID), itemPageSize)
 		if since != "" {
-			path += "&Since=" + since
+			// Since is an opaque server cursor; escape it so reserved characters
+			// (+, &, =, …) don't corrupt the query and truncate the item scan.
+			path += "&Since=" + url.QueryEscape(since)
 		}
 		var resp struct {
 			Items struct {

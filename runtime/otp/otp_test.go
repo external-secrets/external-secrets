@@ -115,6 +115,16 @@ func TestInvalidLength(t *testing.T) {
 	}
 }
 
+func TestInvalidTimePeriod(t *testing.T) {
+	input := base32.StdEncoding.EncodeToString([]byte("12345678912345678912"))
+	// A non-positive period divides by zero (panic on the integer modulo).
+	for _, period := range []int64{0, -1} {
+		code, _, err := GenerateCode(WithToken(input), WithTimePeriod(period))
+		require.Error(t, err, "period %d must be rejected", period)
+		require.Equal(t, "", code)
+	}
+}
+
 func TestInvalidPadding(t *testing.T) {
 	input := "a6mr*&^&*%*&ylj|'[lbufszudtjdt42nh5by"
 	table := map[time.Time]string{

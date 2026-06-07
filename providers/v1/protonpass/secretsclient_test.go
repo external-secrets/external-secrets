@@ -324,6 +324,19 @@ func TestPushEmptyValueRoundTrips(t *testing.T) {
 	}
 }
 
+func TestPushAmbiguousTitleIsHardError(t *testing.T) {
+	// Writes must never target an arbitrarily-chosen item, mirroring the read path.
+	f := newFakeAPI(t)
+	f.addLogin(t, "dup", "a", "")
+	f.addLogin(t, "dup", "b", "")
+	c := newTestClient(t, f)
+	err := c.PushSecret(context.Background(), &corev1.Secret{Data: map[string][]byte{"k": []byte("v")}},
+		fakePush{secretKey: "k", remoteKey: "dup", property: "password"})
+	if err == nil || !strings.Contains(err.Error(), "unambiguous") {
+		t.Fatalf("ambiguous title on write must be a hard error, got %v", err)
+	}
+}
+
 func TestPushRequiresWritableVault(t *testing.T) {
 	f := newFakeAPI(t)
 	f.roleID = "3" // viewer

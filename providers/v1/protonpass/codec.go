@@ -516,17 +516,22 @@ func setExtraField(plaintext []byte, label, value string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	i, err := findExtra(extra, label)
+	idxs, err := findExtra(extra, label)
 	if err != nil {
 		return nil, err
 	}
-	if i >= 0 {
-		extra[i] = buildExtraField(label, value, true)
-	} else {
+	if len(idxs) == 0 {
 		if err := refuseSectionField(plaintext, label); err != nil {
 			return nil, err
 		}
 		extra = append(extra, buildExtraField(label, value, true))
+		return reassemble(preserved, extra), nil
+	}
+	// Replace the first occurrence and drop any duplicates, so a pre-existing
+	// duplicate label can't leave a stale value that later wins on read.
+	extra[idxs[0]] = buildExtraField(label, value, true)
+	for i := len(idxs) - 1; i >= 1; i-- {
+		extra = slices.Delete(extra, idxs[i], idxs[i]+1)
 	}
 	return reassemble(preserved, extra), nil
 }
@@ -540,17 +545,21 @@ func removeExtraField(plaintext []byte, label string) ([]byte, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
-	i, err := findExtra(extra, label)
+	idxs, err := findExtra(extra, label)
 	if err != nil {
 		return nil, false, err
 	}
-	if i < 0 {
+	if len(idxs) == 0 {
 		if err := refuseSectionField(plaintext, label); err != nil {
 			return nil, false, err
 		}
 		return reassemble(preserved, extra), false, nil
 	}
-	return reassemble(preserved, slices.Delete(extra, i, i+1)), true, nil
+	// Remove every occurrence so a duplicate label cannot survive the delete.
+	for i := len(idxs) - 1; i >= 0; i-- {
+		extra = slices.Delete(extra, idxs[i], idxs[i]+1)
+	}
+	return reassemble(preserved, extra), true, nil
 }
 
 // refuseSectionField returns an error when label names a field that lives inside
@@ -603,18 +612,19 @@ func labelInSection(plaintext []byte, label string) (bool, error) {
 	return false, nil
 }
 
-// findExtra returns the index of the first extra field named label, or -1.
-func findExtra(extra [][]byte, label string) (int, error) {
+// findExtra returns the indices of every extra field named label, in order.
+func findExtra(extra [][]byte, label string) ([]int, error) {
+	var idxs []int
 	for i, ef := range extra {
 		f, err := bytesFields(ef)
 		if err != nil {
-			return -1, err
+			return nil, err
 		}
 		if lastString(f, fExtraName) == label {
-			return i, nil
+			idxs = append(idxs, i)
 		}
 	}
-	return -1, nil
+	return idxs, nil
 }
 
 // splitExtraFields returns the raw bytes of all top-level fields except

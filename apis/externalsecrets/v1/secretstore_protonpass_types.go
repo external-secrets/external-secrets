@@ -38,7 +38,8 @@ type ProtonPassProvider struct {
 // ProtonPassAuth contains the authentication configuration for Proton Pass.
 type ProtonPassAuth struct {
 	// PersonalAccessTokenSecretRef references a Secret holding the full Proton Pass
-	// Personal Access Token string, in the form "pst_<token>::<key>". A viewer-role
-	// token yields a read-only store; an editor/manager token enables PushSecret.
+	// Personal Access Token string, in the form "pst_<token>::<key>". The token's
+	// role governs writes: a viewer-role token cannot PushSecret, while an
+	// editor- or manager-role token can.
 	PersonalAccessTokenSecretRef esmeta.SecretKeySelector `json:"personalAccessTokenSecretRef"`
 }

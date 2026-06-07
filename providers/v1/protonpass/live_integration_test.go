@@ -19,6 +19,7 @@ package protonpass
 import (
 	"context"
 	"encoding/base32"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -83,7 +84,7 @@ func TestLiveRead(t *testing.T) {
 func TestLiveWriteRoundTrip(t *testing.T) {
 	c := liveClientFromEnv(t, "PROTONPASS_TEST_EDITOR_PAT_FILE")
 	ctx := context.Background()
-	const title = "eso-it-roundtrip"
+	title := fmt.Sprintf("eso-it-roundtrip-%d", time.Now().UnixNano())
 
 	secret := &corev1.Secret{Data: map[string][]byte{"k": []byte("eso-val-1")}}
 	if err := c.PushSecret(ctx, secret, fakePush{secretKey: "k", remoteKey: title, property: "password"}); err != nil {
@@ -126,7 +127,7 @@ func TestLiveWriteRoundTrip(t *testing.T) {
 func TestLiveTOTP(t *testing.T) {
 	c := liveClientFromEnv(t, "PROTONPASS_TEST_EDITOR_PAT_FILE")
 	ctx := context.Background()
-	const title = "eso-it-totp"
+	title := fmt.Sprintf("eso-it-totp-%d", time.Now().UnixNano())
 	secret := base32.StdEncoding.EncodeToString([]byte("12345678912345678912"))
 	uri := "otpauth://totp/eso?secret=" + secret + "&algorithm=SHA1&digits=6&period=30"
 

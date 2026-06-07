@@ -156,6 +156,39 @@ func TestEmptyExtraFieldRoundTrips(t *testing.T) {
 	}
 }
 
+func TestUpdateDeleteHandleDuplicateLabels(t *testing.T) {
+	// An item that already carries two top-level fields with the same label:
+	// update must not leave a stale duplicate that wins on read, and delete must
+	// remove every occurrence.
+	login := putMessage(nil, fContentLogin, putString(nil, fLoginPassword, "pw"))
+	dup := func(v string) []byte { return buildExtraField("dup", v, true) }
+	blob := assembleItem("dupitem", "", login, [][]byte{dup("old1"), dup("old2")})
+
+	updated, err := setExtraField(blob, "dup", "new")
+	if err != nil {
+		t.Fatal(err)
+	}
+	m, err := projectItem(updated)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(m["dup"]) != "new" {
+		t.Errorf("update with duplicate labels read back %q, want %q (stale duplicate won)", m["dup"], "new")
+	}
+
+	removed, ok, err := removeExtraField(blob, "dup")
+	if err != nil || !ok {
+		t.Fatalf("remove: ok=%v err=%v", ok, err)
+	}
+	m2, err := projectItem(removed)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, present := m2["dup"]; present {
+		t.Error("duplicate label survived delete")
+	}
+}
+
 func TestMarshalProducesNonEmptyWire(t *testing.T) {
 	if len(marshalLoginItem("n", "", "u", "p", nil)) == 0 {
 		t.Fatal("empty marshal")

@@ -111,6 +111,12 @@ func GenerateCode(opts ...GeneratorOptionsFunc) (string, string, error) {
 	if defaults.length < 1 || defaults.length > 9 {
 		return "", "", fmt.Errorf("invalid OTP length %d: must be between 1 and 9", defaults.length)
 	}
+	// timePeriod is the divisor for the time counter and the modulus for the
+	// remaining-time calc; a non-positive value divides by zero (a panic on the
+	// integer modulo below).
+	if defaults.timePeriod <= 0 {
+		return "", "", fmt.Errorf("invalid OTP time period %d: must be greater than 0", defaults.timePeriod)
+	}
 
 	timer := uint64(math.Floor(float64(defaults.when.Unix()) / float64(defaults.timePeriod)))
 	remainingTime := defaults.timePeriod - defaults.when.Unix()%defaults.timePeriod

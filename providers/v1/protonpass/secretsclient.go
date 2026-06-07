@@ -390,10 +390,15 @@ func (c *client) findInVault(ctx context.Context, v vaultCtx, title string) (mat
 	if err != nil {
 		return match{}, err
 	}
-	if len(matches) == 0 {
+	switch len(matches) {
+	case 0:
 		return match{}, errNotFound
+	case 1:
+		return matches[0], nil
+	default:
+		// Mirror the read path: never write to an arbitrarily-chosen item.
+		return match{}, fmt.Errorf("protonpass: %q matches %d items in vault %q; writes require an unambiguous title", title, len(matches), v.name)
 	}
-	return matches[0], nil
 }
 
 // pushValue extracts the byte value to push from the source Secret.

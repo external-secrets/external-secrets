@@ -8905,8 +8905,9 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <p>PersonalAccessTokenSecretRef references a Secret holding the full Proton Pass
-Personal Access Token string, in the form &ldquo;pst_<token>::<key>&rdquo;. A viewer-role
-token yields a read-only store; an editor/manager token enables PushSecret.</p>
+Personal Access Token string, in the form &ldquo;pst_<token>::<key>&rdquo;. The token&rsquo;s
+role governs writes: a viewer-role token cannot PushSecret, while an
+editor- or manager-role token can.</p>
 </td>
 </tr>
 </tbody>
