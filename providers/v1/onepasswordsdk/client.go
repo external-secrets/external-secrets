@@ -203,19 +203,26 @@ func (p *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecr
 			continue
 		}
 
-		item, err := p.findItem(ctx, overview.Title)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get item %s: %w", overview.Title, err)
-		}
-		if err := p.getAllFields(item, ref, secretData); err != nil {
-			return nil, fmt.Errorf("failed to get fields for item %s: %w", overview.Title, err)
-		}
-		if err := p.getAllFiles(ctx, item, ref, secretData); err != nil {
-			return nil, fmt.Errorf("failed to get files for item %s: %w", overview.Title, err)
+		if err := p.collectAllSecrets(ctx, overview.Title, ref, secretData); err != nil {
+			return nil, err
 		}
 	}
 
 	return secretData, nil
+}
+
+func (p *SecretsClient) collectAllSecrets(ctx context.Context, itemName string, ref esv1.ExternalSecretFind, secretData map[string][]byte) error {
+	item, err := p.findItem(ctx, itemName)
+	if err != nil {
+		return fmt.Errorf("failed to get item %s: %w", itemName, err)
+	}
+	if err := p.getAllFields(item, ref, secretData); err != nil {
+		return fmt.Errorf("failed to get fields for item %s: %w", itemName, err)
+	}
+	if err := p.getAllFiles(ctx, item, ref, secretData); err != nil {
+		return fmt.Errorf("failed to get files for item %s: %w", itemName, err)
+	}
+	return nil
 }
 
 // itemHasTags returns true if all required keys are present in the item's tags.
@@ -768,8 +775,7 @@ func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.
 		}
 	} else {
 		// If name is not a native item ID, we have to list items and find the matching title.
-		items, err := p.client.Items().List(ctx, p.vaultID)
-		metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsList, err)
+		items, err := p.listItems(ctx)
 		if err != nil {
 			return onepassword.Item{}, fmt.Errorf("failed to list items: %w", err)
 		}
