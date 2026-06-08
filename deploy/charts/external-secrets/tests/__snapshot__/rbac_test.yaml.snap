@@ -66,6 +66,7 @@ should configure custom lease name when leaderElectionID is set:
           - generators.external-secrets.io
         resources:
           - acraccesstokens
+          - artifactoryaccesstokens
           - cloudsmithaccesstokens
           - clustergenerators
           - ecrauthorizationtokens
@@ -181,6 +182,7 @@ should configure custom lease name when leaderElectionID is set:
           - generators.external-secrets.io
         resources:
           - acraccesstokens
+          - artifactoryaccesstokens
           - cloudsmithaccesstokens
           - clustergenerators
           - ecrauthorizationtokens
@@ -232,6 +234,7 @@ should configure custom lease name when leaderElectionID is set:
           - generators.external-secrets.io
         resources:
           - acraccesstokens
+          - artifactoryaccesstokens
           - cloudsmithaccesstokens
           - clustergenerators
           - ecrauthorizationtokens

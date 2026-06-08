@@ -1,0 +1,15 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ArtifactoryAccessToken
+metadata:
+  name: artifactory-oidc
+  namespace: default
+spec:
+  url: https://acme.jfrog.io
+  auth:
+    oidc:
+      providerName: k8s-oidc
+      serviceAccountRef:
+        name: default
+        audiences:
+          - https://kubernetes.default.svc
+      includeReferenceToken: true

@@ -30,12 +30,14 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
+// +kubebuilder:validation:Enum=ACRAccessToken;ArtifactoryAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
 type GeneratorKind string
 
 const (
 	// GeneratorKindACRAccessToken represents an Azure Container Registry access token generator.
 	GeneratorKindACRAccessToken GeneratorKind = "ACRAccessToken"
+	// GeneratorKindArtifactoryAccessToken represents a JFrog Artifactory access token generator.
+	GeneratorKindArtifactoryAccessToken GeneratorKind = "ArtifactoryAccessToken"
 	// GeneratorKindECRAuthorizationToken represents an AWS ECR authorization token generator.
 	GeneratorKindECRAuthorizationToken GeneratorKind = "ECRAuthorizationToken"
 	// GeneratorKindFake represents a fake generator for testing purposes.
@@ -73,6 +75,7 @@ const (
 // +kubebuilder:validation:MinProperties=1
 type GeneratorSpec struct {
 	ACRAccessTokenSpec                              *ACRAccessTokenSpec                              `json:"acrAccessTokenSpec,omitempty"`
+	ArtifactoryAccessTokenSpec                      *ArtifactoryAccessTokenSpec                      `json:"artifactoryAccessTokenSpec,omitempty"`
 	BeyondtrustWorkloadCredentialsDynamicSecretSpec *BeyondtrustWorkloadCredentialsDynamicSecretSpec `json:"beyondtrustWorkloadCredentialsDynamicSecretSpec,omitempty"`
 	CloudsmithAccessTokenSpec                       *CloudsmithAccessTokenSpec                       `json:"cloudsmithAccessTokenSpec,omitempty"`
 	ECRAuthorizationTokenSpec                       *ECRAuthorizationTokenSpec                       `json:"ecrAuthorizationTokenSpec,omitempty"`
@@ -86,7 +89,7 @@ type GeneratorSpec struct {
 	UUIDSpec                                        *UUIDSpec                                        `json:"uuidSpec,omitempty"`
 	VaultDynamicSecretSpec                          *VaultDynamicSecretSpec                          `json:"vaultDynamicSecretSpec,omitempty"`
 	WebhookSpec                                     *WebhookSpec                                     `json:"webhookSpec,omitempty"`
-	GrafanaSpec                                     *GrafanaSpec                                     `json:"grafanaSpec,omitempty"`
+	GrafanaSpec                                     *GrafanaSpec                                     `json:"grrafanaSpec,omitempty"`
 	MFASpec                                         *MFASpec                                         `json:"mfaSpec,omitempty"`
 }
 

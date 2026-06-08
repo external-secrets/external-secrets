@@ -1,0 +1,16 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ArtifactoryAccessToken
+metadata:
+  name: artifactory-reference
+  namespace: default
+spec:
+  url: https://acme.jfrog.io
+  auth:
+    referenceToken:
+      token:
+        name: artifactory-bootstrap
+        key: token
+      scope: applied-permissions/user
+      expiresIn: 3600
+      includeReferenceToken: true
+      description: eso-generated

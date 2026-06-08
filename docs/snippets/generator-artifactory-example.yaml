@@ -1,0 +1,29 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: artifactory-credentials
+  namespace: default
+spec:
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: ArtifactoryAccessToken
+          name: artifactory-oidc
+  refreshInterval: 55m0s
+  target:
+    name: artifactory-credentials
+    template:
+      type: kubernetes.io/dockerconfigjson
+      data:
+        .dockerconfigjson: |
+          {
+            "auths": {
+              "{{ .registry }}": {
+                "auth": "{{ .auth }}"
+              }
+            }
+          }
+
+{% endraw %}

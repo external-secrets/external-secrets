@@ -152,6 +152,17 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			},
 			Spec: *gen.Spec.Generator.ACRAccessTokenSpec,
 		}, nil
+	case genv1alpha1.GeneratorKindArtifactoryAccessToken:
+		if gen.Spec.Generator.ArtifactoryAccessTokenSpec == nil {
+			return nil, fmt.Errorf("when kind is %s, ArtifactoryAccessTokenSpec must be set", gen.Spec.Kind)
+		}
+		return &genv1alpha1.ArtifactoryAccessToken{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.ArtifactoryAccessTokenKind,
+			},
+			Spec: *gen.Spec.Generator.ArtifactoryAccessTokenSpec,
+		}, nil
 	case genv1alpha1.GeneratorKindBeyondtrustWorkloadCredentialsDynamicSecret:
 		if gen.Spec.Generator.BeyondtrustWorkloadCredentialsDynamicSecretSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, BeyondtrustWorkloadCredentialsDynamicSecretSpec must be set", gen.Spec.Kind)
