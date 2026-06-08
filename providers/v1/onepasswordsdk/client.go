@@ -313,6 +313,15 @@ func (p *SecretsClient) getFields(item onepassword.Item, property string) (map[s
 
 // getAllFields retrieves all fields matching the given ref in an item, and adds them to the given secretData map.
 func (p *SecretsClient) getAllFields(item onepassword.Item, ref esv1.ExternalSecretFind, secretData map[string][]byte) error {
+	var matcher *find.Matcher
+	if ref.Name != nil {
+		var err error
+		matcher, err = find.New(*ref.Name)
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, field := range item.Fields {
 		// Throw error if there are multiple fields in this item with the same label.
 		if length := countFieldsWithLabel(field.Title, item.Fields); length != 1 {
@@ -320,14 +329,8 @@ func (p *SecretsClient) getAllFields(item onepassword.Item, ref esv1.ExternalSec
 		}
 
 		// If ref.Name is set, only add fields that match the regex pattern.
-		if ref.Name != nil {
-			matcher, err := find.New(*ref.Name)
-			if err != nil {
-				return err
-			}
-			if !matcher.MatchName(field.Title) {
-				continue
-			}
+		if matcher != nil && !matcher.MatchName(field.Title) {
+			continue
 		}
 
 		// Throw error if there are multiple fields with the same label.
@@ -367,7 +370,7 @@ func (p *SecretsClient) getFiles(ctx context.Context, item onepassword.Item, pro
 
 		// Throw error if there are multiple files with the same label.
 		if length := countFilesWithLabel(file.Attributes.Name, item.Files); length != 1 {
-			return nil, fmt.Errorf(errMsgExpectedOneFile, property, item.Title, length)
+			return nil, fmt.Errorf(errMsgExpectedOneFile, file.Attributes.Name, item.Title, length)
 		}
 
 		contents, err := p.fetchFile(ctx, item.ID, file.FieldID, file.Attributes)
@@ -382,15 +385,18 @@ func (p *SecretsClient) getFiles(ctx context.Context, item onepassword.Item, pro
 
 // getAllFiles retrieves all files matching the given ref in an item, and adds them to the given secretData map.
 func (p *SecretsClient) getAllFiles(ctx context.Context, item onepassword.Item, ref esv1.ExternalSecretFind, secretData map[string][]byte) error {
+	var matcher *find.Matcher
+	if ref.Name != nil {
+		var err error
+		matcher, err = find.New(*ref.Name)
+		if err != nil {
+			return err
+		}
+	}
+
 	for _, file := range item.Files {
-		if ref.Name != nil {
-			matcher, err := find.New(*ref.Name)
-			if err != nil {
-				return err
-			}
-			if !matcher.MatchName(file.Attributes.Name) {
-				continue
-			}
+		if matcher != nil && !matcher.MatchName(file.Attributes.Name) {
+			continue
 		}
 
 		// Throw error if there are multiple files with the same label.
