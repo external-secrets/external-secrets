@@ -10184,6 +10184,20 @@ NebiusMysteryboxProvider
 <p>NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>truefoundry</code></br>
+<em>
+<a href="#external-secrets.io/v1.TrueFoundryProvider">
+TrueFoundryProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TrueFoundry configures this store to sync secrets using the TrueFoundry provider</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.SecretStoreRef">SecretStoreRef
@@ -11136,6 +11150,131 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.TrueFoundryAuth">TrueFoundryAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.TrueFoundryProvider">TrueFoundryProvider</a>)
+</p>
+<p>
+<p>TrueFoundryAuth configures authentication against the TrueFoundry
+control-plane API. Exactly one of the contained methods must be set.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.TrueFoundryAuthSecretRef">
+TrueFoundryAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef authenticates using a TrueFoundry cluster service token
+stored in a Kubernetes Secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.TrueFoundryAuthSecretRef">TrueFoundryAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.TrueFoundryAuth">TrueFoundryAuth</a>)
+</p>
+<p>
+<p>TrueFoundryAuthSecretRef holds the per-credential SecretKeySelectors used
+for SecretRef-based authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clusterToken</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>ClusterToken references a key inside a Kubernetes Secret that contains
+the TrueFoundry cluster service token (e.g. the <code>CLUSTER_TOKEN</code> key
+inside the <code>tfy-agent-internal-*-token</code> Secret provisioned by the TFY
+agent). The value is sent verbatim as the <code>Authorization: Bearer &lt;token&gt;</code>
+header on every request.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.TrueFoundryProvider">TrueFoundryProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>TrueFoundryProvider configures a store to sync secrets from TrueFoundry&rsquo;s
+control-plane secrets endpoint. Each secret is fetched by its fully-qualified
+name (FQN, &ldquo;<tenant>:<group>:<secret>&rdquo;) through a single HTTP GET protected
+by a cluster service token. The provider wraps the FQN in a tfy-secret://
+URI before sending it as the secret_ref query parameter — users supply only
+the bare FQN. See docs/provider/truefoundry.md.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>baseURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>BaseURL is the TrueFoundry control-plane URL, e.g.
+<a href="https://your-cluster.tfy-usea1-ctl.example.com">https://your-cluster.tfy-usea1-ctl.example.com</a>. The provider appends
+/v1/control-plane/secret to this when fetching a secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.TrueFoundryAuth">
+TrueFoundryAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how the operator authenticates with the TrueFoundry
+control-plane API. Today only cluster-token Bearer authentication is
+supported; the wrapping struct leaves room to add additional methods
+(e.g. ServiceAccount/OIDC token exchange) without a breaking change.</p>
 </td>
 </tr>
 </tbody>
