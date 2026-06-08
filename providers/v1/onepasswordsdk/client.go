@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/1password/onepassword-sdk-go"
@@ -32,34 +33,38 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
+	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
 const (
-	fieldPrefix             = "field"
-	filePrefix              = "file"
-	prefixSplitter          = "/"
-	errExpectedOneFieldMsgF = "found more than 1 fields with title '%s' in '%s', got %d"
-	itemCachePrefix         = "item:"
-	fileCachePrefix         = "file:"
-	defaultFieldLabel       = "password"
+	fieldPrefix       = "field"
+	filePrefix        = "file"
+	prefixSplitter    = "/"
+	itemCachePrefix   = "item:"
+	fileCachePrefix   = "file:"
+	defaultFieldLabel = "password"
 
-	errMsgUpdateItem    = "failed to update item: %w"
-	errMsgCreateItem    = "failed to create item: %w"
-	errMsgParsePushMeta = "failed to parse push secret metadata: %w"
+	errMsgUpdateItem       = "failed to update item: %w"
+	errMsgCreateItem       = "failed to create item: %w"
+	errMsgParsePushMeta    = "failed to parse push secret metadata: %w"
+	errMsgExpectedOneField = "found more than 1 fields with title '%s' in '%s', got %d"
+	errMsgExpectedOneFile  = "found more than 1 files with title '%s' in '%s', got %d"
+	errMsgFieldNotFound    = "field with label '%s' not found in item '%s'"
+	errMsgFileNotFound     = "file with title '%s' not found in item '%s'"
 )
 
 // ErrKeyNotFound is returned when a key is not found in the 1Password Vaults.
 var ErrKeyNotFound = errors.New("key not found")
 
-// nativeItemIDPattern matches a 1Password item ID per the Connect
-// server OpenAPI spec (^[\da-z]{26}$). Despite being called "UUIDs"
-// in 1Password's SDK and docs, they are not RFC 4122 UUIDs.
-// https://github.com/1Password/connect/blob/7485a59/docs/openapi/spec.yaml#L73-L75
-var nativeItemIDPattern = regexp.MustCompile(`^[\da-z]{26}$`)
+// nativeIDPattern matches a 1Password unique identifier per the SDK
+// docs (^[\da-z]{26}$). Despite being called "UUIDs" in 1Password's SDK and docs,
+// they are not RFC 4122 UUIDs.
+// https://www.1password.dev/cli/reference#unique-identifiers-ids
+var nativeIDPattern = regexp.MustCompile(`^[\da-z]{26}$`)
 
-func isNativeItemID(s string) bool {
-	return nativeItemIDPattern.MatchString(s)
+func isNativeID(s string) bool {
+	return nativeIDPattern.MatchString(s)
 }
 
 // PushSecretMetadataSpec defines the metadata configuration for pushing secrets to 1Password.
@@ -173,9 +178,54 @@ func deleteField(fields []onepassword.ItemField, title string) ([]onepassword.It
 	return fieldsF, found, nil
 }
 
-// GetAllSecrets Not Implemented.
-func (p *SecretsClient) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, fmt.Errorf(errOnePasswordSdkStore, errors.New(errNotImplemented))
+// GetAllSecrets syncs multiple 1Password Items into a single Kubernetes Secret, for dataFrom.find.
+func (p *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	items, err := p.client.Items().List(ctx, p.vaultID)
+	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsList, err)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list items: %w", err)
+	}
+
+	// If ref.Tags is set, filter to only items that match the given tags
+	if ref.Tags != nil {
+		var filteredItems []onepassword.ItemOverview
+		for _, item := range items {
+			if itemHasTags(ref.Tags, item.Tags) {
+				filteredItems = append(filteredItems, item)
+			}
+		}
+		items = filteredItems
+	}
+
+	secretData := make(map[string][]byte)
+	for _, overview := range items {
+		if ref.Path != nil && *ref.Path != overview.Title {
+			continue
+		}
+
+		item, err := p.findItem(ctx, overview.Title)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get item %s: %w", overview.Title, err)
+		}
+		if err := p.getAllFields(item, ref, secretData); err != nil {
+			return nil, fmt.Errorf("failed to get fields for item %s: %w", overview.Title, err)
+		}
+		if err := p.getAllFiles(ctx, item, ref, secretData); err != nil {
+			return nil, fmt.Errorf("failed to get files for item %s: %w", overview.Title, err)
+		}
+	}
+
+	return secretData, nil
+}
+
+// itemHasTags returns true if all required keys are present in the item's tags.
+func itemHasTags(required map[string]string, itemTags []string) bool {
+	for tag := range required {
+		if !slices.Contains(itemTags, tag) {
+			return false
+		}
+	}
+	return true
 }
 
 // GetSecretMap returns multiple k/v pairs from the provider, for dataFrom.extract.
@@ -217,14 +267,16 @@ func (p *SecretsClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecre
 	return result, nil
 }
 
+// getFields gets the field matching the given property label in an item, or all fields in the item if `property` is not set.
 func (p *SecretsClient) getFields(item onepassword.Item, property string) (map[string][]byte, error) {
 	secretData := make(map[string][]byte)
 	for _, field := range item.Fields {
 		if property != "" && field.Title != property {
 			continue
 		}
+		// Throw error if there are multiple fields with the same label.
 		if length := countFieldsWithLabel(field.Title, item.Fields); length != 1 {
-			return nil, fmt.Errorf(errExpectedOneFieldMsgF, field.Title, item.Title, length)
+			return nil, fmt.Errorf(errMsgExpectedOneField, field.Title, item.Title, length)
 		}
 
 		// caution: do not use client.GetValue here because it has undesirable behavior on keys with a dot in them
@@ -234,6 +286,53 @@ func (p *SecretsClient) getFields(item onepassword.Item, property string) (map[s
 	return secretData, nil
 }
 
+// getAllFields retrieves all fields matching the given ref in an item, and adds them to the given secretData map.
+func (p *SecretsClient) getAllFields(item onepassword.Item, ref esv1.ExternalSecretFind, secretData map[string][]byte) error {
+	for _, field := range item.Fields {
+		// Throw error if there are multiple fields in this item with the same label.
+		if length := countFieldsWithLabel(field.Title, item.Fields); length != 1 {
+			return fmt.Errorf(errMsgExpectedOneField, field.Title, item.Title, length)
+		}
+
+		// If ref.Name is set, only add fields that match the regex pattern.
+		if ref.Name != nil {
+			matcher, err := find.New(*ref.Name)
+			if err != nil {
+				return err
+			}
+			if !matcher.MatchName(field.Title) {
+				continue
+			}
+		}
+
+		// Throw error if there are multiple fields with the same label.
+		if _, found := secretData[field.Title]; found {
+			return fmt.Errorf("found multiple labels with the same key '%s'", field.Title)
+		}
+
+		secretData[field.Title] = []byte(field.Value)
+	}
+
+	return nil
+}
+
+// fetchFile retrieves the content of a file, using the cache if possible.
+func (p *SecretsClient) fetchFile(ctx context.Context, itemID, fieldID string, attributes onepassword.FileAttributes) ([]byte, error) {
+	cacheKey := fileCachePrefix + p.vaultID + ":" + itemID + ":" + fieldID + ":" + attributes.Name
+	if cached, ok := p.cacheGet(cacheKey); ok {
+		return cached, nil
+	}
+	contents, err := p.client.Items().Files().Read(ctx, p.vaultID, fieldID, attributes)
+	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKFilesRead, err)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read file: %w", err)
+	}
+
+	p.cacheAdd(cacheKey, contents)
+	return contents, nil
+}
+
+// getFiles gets the file matching the given property label in an item, or all files in the item if `property` is not set.
 func (p *SecretsClient) getFiles(ctx context.Context, item onepassword.Item, property string) (map[string][]byte, error) {
 	secretData := make(map[string][]byte)
 	for _, file := range item.Files {
@@ -241,29 +340,64 @@ func (p *SecretsClient) getFiles(ctx context.Context, item onepassword.Item, pro
 			continue
 		}
 
-		cacheKey := fileCachePrefix + p.vaultID + ":" + item.ID + ":" + file.FieldID + ":" + file.Attributes.Name
-		if cached, ok := p.cacheGet(cacheKey); ok {
-			secretData[file.Attributes.Name] = cached
-			continue
+		// Throw error if there are multiple files with the same label.
+		if length := countFilesWithLabel(file.Attributes.Name, item.Files); length != 1 {
+			return nil, fmt.Errorf(errMsgExpectedOneFile, property, item.Title, length)
 		}
 
-		contents, err := p.client.Items().Files().Read(ctx, p.vaultID, file.FieldID, file.Attributes)
-		metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKFilesRead, err)
+		contents, err := p.fetchFile(ctx, item.ID, file.FieldID, file.Attributes)
 		if err != nil {
-			return nil, fmt.Errorf("failed to read file: %w", err)
+			return nil, err
 		}
-
-		p.cacheAdd(cacheKey, contents)
 		secretData[file.Attributes.Name] = contents
 	}
 
 	return secretData, nil
 }
 
+// getAllFiles retrieves all files matching the given ref in an item, and adds them to the given secretData map.
+func (p *SecretsClient) getAllFiles(ctx context.Context, item onepassword.Item, ref esv1.ExternalSecretFind, secretData map[string][]byte) error {
+	for _, file := range item.Files {
+		if ref.Name != nil {
+			matcher, err := find.New(*ref.Name)
+			if err != nil {
+				return err
+			}
+			if !matcher.MatchName(file.Attributes.Name) {
+				continue
+			}
+		}
+
+		// Throw error if there are multiple files with the same label.
+		if _, found := secretData[file.Attributes.Name]; found {
+			return fmt.Errorf("found multiple labels with the same key '%s'", file.Attributes.Name)
+		}
+
+		contents, err := p.fetchFile(ctx, item.ID, file.FieldID, file.Attributes)
+		if err != nil {
+			return err
+		}
+		secretData[file.Attributes.Name] = contents
+	}
+
+	return nil
+}
+
 func countFieldsWithLabel(fieldLabel string, fields []onepassword.ItemField) int {
 	count := 0
 	for _, field := range fields {
 		if field.Title == fieldLabel {
+			count++
+		}
+	}
+
+	return count
+}
+
+func countFilesWithLabel(fileLabel string, files []onepassword.ItemFile) int {
+	count := 0
+	for _, file := range files {
+		if file.Attributes.Name == fileLabel {
 			count++
 		}
 	}
@@ -558,6 +692,29 @@ func (p *SecretsClient) GetVault(ctx context.Context, titleOrUUID string) (strin
 	return "", fmt.Errorf("vault %s not found", titleOrUUID)
 }
 
+// fetchItemByID retrieves an item by its ID, using the cache if possible.
+func (p *SecretsClient) fetchItemByID(ctx context.Context, id string) (onepassword.Item, error) {
+	cacheKey := itemCachePrefix + p.vaultID + ":" + id
+	if cached, ok := p.cacheGet(cacheKey); ok {
+		var item onepassword.Item
+		if err := json.Unmarshal(cached, &item); err == nil {
+			return item, nil
+		}
+	}
+
+	item, err := p.client.Items().Get(ctx, p.vaultID, id)
+	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsGet, err)
+	if err != nil {
+		return onepassword.Item{}, err
+	}
+
+	if serialized, err := json.Marshal(item); err == nil {
+		p.cacheAdd(cacheKey, serialized)
+	}
+	return item, nil
+}
+
+// findItem retrieves an item by its title or ID, using the cache if possible.
 func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.Item, error) {
 	cacheKey := itemCachePrefix + p.vaultID + ":" + name
 	if cached, ok := p.cacheGet(cacheKey); ok {
@@ -570,9 +727,8 @@ func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.
 	var item onepassword.Item
 	var err error
 
-	if isNativeItemID(name) {
-		item, err = p.client.Items().Get(ctx, p.vaultID, name)
-		metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsGet, err)
+	if isNativeID(name) {
+		item, err = p.fetchItemByID(ctx, name)
 		if err != nil {
 			if isNotFoundError(err) {
 				return onepassword.Item{}, ErrKeyNotFound
@@ -580,12 +736,14 @@ func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.
 			return onepassword.Item{}, err
 		}
 	} else {
+		// If name is not a native item ID, we have to list items and find the matching title.
 		items, err := p.client.Items().List(ctx, p.vaultID)
 		metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsList, err)
 		if err != nil {
 			return onepassword.Item{}, fmt.Errorf("failed to list items: %w", err)
 		}
 
+		// Find the ID of the item matching the given name. Throw an error if there are multiple items with the same name, or if no items are found.
 		var itemUUID string
 		for _, v := range items {
 			if v.Title == name {
@@ -595,20 +753,20 @@ func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.
 				itemUUID = v.ID
 			}
 		}
-
 		if itemUUID == "" {
 			return onepassword.Item{}, ErrKeyNotFound
 		}
 
-		item, err = p.client.Items().Get(ctx, p.vaultID, itemUUID)
-		metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsGet, err)
+		// Fetch the item by ID to get all its details.
+		item, err = p.fetchItemByID(ctx, itemUUID)
 		if err != nil {
 			return onepassword.Item{}, err
 		}
-	}
 
-	if serialized, err := json.Marshal(item); err == nil {
-		p.cacheAdd(cacheKey, serialized)
+		// While fetchItemByID will cache the item by its ID, we also want to cache it by its name.
+		if serialized, err := json.Marshal(item); err == nil {
+			p.cacheAdd(cacheKey, serialized)
+		}
 	}
 
 	return item, nil
