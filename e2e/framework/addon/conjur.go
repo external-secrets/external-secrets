@@ -48,6 +48,8 @@ type Conjur struct {
 
 	AdminApiKey    string
 	ConjurServerCA []byte
+	ClientCert     []byte
+	ClientKey      []byte
 	portForwarder  *PortForward
 }
 
@@ -59,6 +61,27 @@ func NewConjur() *Conjur {
 	if err != nil {
 		Fail(err.Error())
 	}
+
+	// Generate client certificates for cert-based authentication.
+	// The CN "vm-01" matches the host identity in the cert host policy.
+	rootBlock, _ := pem.Decode(rootPem)
+	rootCert, err := x509.ParseCertificate(rootBlock.Bytes)
+	if err != nil {
+		Fail(fmt.Sprintf("unable to parse root cert: %v", err))
+	}
+	rootKeyBlock, _ := pem.Decode(rootKeyPEM)
+	rootKey, err := x509.ParsePKCS1PrivateKey(rootKeyBlock.Bytes)
+	if err != nil {
+		Fail(fmt.Sprintf("unable to parse root key: %v", err))
+	}
+	clientCertPem, clientKeyRSA, err := genPeerCert(rootCert, rootKey, "vm-01", nil)
+	if err != nil {
+		Fail(fmt.Sprintf("unable to generate client cert: %v", err))
+	}
+	clientKeyPem := pem.EncodeToMemory(&pem.Block{
+		Type:  privatePemType,
+		Bytes: x509.MarshalPKCS1PrivateKey(clientKeyRSA),
+	})
 
 	return &Conjur{
 		dataKey: dataKey,
@@ -87,7 +110,9 @@ func NewConjur() *Conjur {
 				},
 			},
 		},
-		Namespace: "conjur",
+		Namespace:  "conjur",
+		ClientCert: clientCertPem,
+		ClientKey:  clientKeyPem,
 	}
 }
 
@@ -213,6 +238,25 @@ func (l *Conjur) configureConjur() error {
 	_, err = l.ConjurClient.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
 	if err != nil {
 		return fmt.Errorf("unable to load authn-jwt policy: %w", err)
+	}
+
+	// Construct Conjur policy for authn-cert. This uses the CN of the client certificate
+	// to authenticate the host.
+	policy = `- !policy
+  id: conjur/authn-cert/eso-tests
+  body:
+    - !webservice
+    - !variable ca/cert`
+
+	_, err = l.ConjurClient.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
+	if err != nil {
+		return fmt.Errorf("unable to load authn-cert policy: %w", err)
+	}
+
+	// Set the CA certificate for the authn-cert authenticator
+	err = l.ConjurClient.AddSecret("conjur/authn-cert/eso-tests/ca/cert", string(l.ConjurServerCA))
+	if err != nil {
+		return fmt.Errorf("unable to set authn-cert ca cert: %w", err)
 	}
 
 	// Fetch the jwks info from the k8s cluster

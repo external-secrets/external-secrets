@@ -41,13 +41,16 @@ import (
 )
 
 var (
-	svcURL           = "https://example.com"
-	svcUser          = "user"
-	svcApikey        = "apikey"
-	svcAccount       = "account1"
-	jwtAuthenticator = "jwt-authenticator"
-	jwtAuthnService  = "jwt-auth-service"
-	jwtSecretName    = "jwt-secret"
+	svcURL             = "https://example.com"
+	svcUser            = "user"
+	svcApikey          = "apikey"
+	svcAccount         = "account1"
+	jwtAuthenticator   = "jwt-authenticator"
+	jwtAuthnService    = "jwt-auth-service"
+	jwtSecretName      = "jwt-secret"
+	certServiceID      = "cert-auth-service"
+	certClientCertName = "conjur-client-cert"
+	certClientKeyName  = "conjur-client-key"
 )
 
 func makeValidRef(k string) *esv1.ExternalSecretDataRemoteRef {
@@ -184,6 +187,92 @@ func TestGetSecret(t *testing.T) {
 			want: want{
 				err:   nil,
 				value: "secret",
+			},
+		},
+		"CertReadSecretSuccess": {
+			reason: "Should read a secret successfully using a Cert auth secret store (spiffe).",
+			args: args{
+				store: makeCertSecretStore(svcURL, certServiceID, "", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeCertSecrets()...).Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"CertWithHostIdReadSecretSuccess": {
+			reason: "Should read a secret successfully using a Cert auth secret store with a host ID.",
+			args: args{
+				store: makeCertSecretStore(svcURL, certServiceID, "myhostid", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeCertSecrets()...).Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"CertReadSecretFailure": {
+			reason: "Should fail to read secret using Cert auth secret store.",
+			args: args{
+				store: makeCertSecretStore(svcURL, certServiceID, "", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeCertSecrets()...).Build(),
+				namespace:  "default",
+				secretPath: "error",
+			},
+			want: want{
+				err:   errors.New("error"),
+				value: "",
+			},
+		},
+		"CertMissingClientCertSecret": {
+			reason: "Should fail when the client certificate secret does not exist.",
+			args: args{
+				store: makeCertSecretStore(svcURL, certServiceID, "", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      certClientKeyName,
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"tls.key": []byte("-----BEGIN RSA PRIVATE KEY-----\nfakekey\n-----END RSA PRIVATE KEY-----"),
+						},
+					}).Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   fmt.Errorf(errBadClientCert, fmt.Errorf("cannot get Kubernetes secret \"%s\" from namespace \"default\": secrets \"%s\" not found", certClientCertName, certClientCertName)),
+				value: "",
+			},
+		},
+		"CertMissingClientKeySecret": {
+			reason: "Should fail when the client key secret does not exist.",
+			args: args{
+				store: makeCertSecretStore(svcURL, certServiceID, "", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      certClientCertName,
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"tls.crt": []byte("-----BEGIN CERTIFICATE-----\nfakecert\n-----END CERTIFICATE-----"),
+						},
+					}).Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   fmt.Errorf(errBadClientKey, fmt.Errorf("cannot get Kubernetes secret \"%s\" from namespace \"default\": secrets \"%s\" not found", certClientKeyName, certClientKeyName)),
+				value: "",
 			},
 		},
 	}
@@ -630,6 +719,69 @@ func makeStoreWithCA(caSource, caData string) *esv1.SecretStore {
 	return store
 }
 
+func makeCertSecretStore(svcURL, certServiceID, hostID, conjurAccount string) *esv1.SecretStore {
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Conjur: &esv1.ConjurProvider{
+					URL: svcURL,
+					Auth: esv1.ConjurAuth{
+						Cert: &esv1.ConjurCert{
+							Account:   conjurAccount,
+							ServiceID: certServiceID,
+							HostID:    hostID,
+							ClientCertRef: &esmeta.SecretKeySelector{
+								Name: certClientCertName,
+								Key:  "tls.crt",
+							},
+							ClientKeyRef: &esmeta.SecretKeySelector{
+								Name: certClientKeyName,
+								Key:  "tls.key",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return store
+}
+
+func makeCertSecretStoreWithMissingRefs(svcURL, certServiceID, conjurAccount string, hasCert, hasKey bool) *esv1.SecretStore {
+	var certRef *esmeta.SecretKeySelector
+	var keyRef *esmeta.SecretKeySelector
+	if hasCert {
+		certRef = &esmeta.SecretKeySelector{
+			Name: certClientCertName,
+			Key:  "tls.crt",
+		}
+	}
+	if hasKey {
+		keyRef = &esmeta.SecretKeySelector{
+			Name: certClientKeyName,
+			Key:  "tls.key",
+		}
+	}
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Conjur: &esv1.ConjurProvider{
+					URL: svcURL,
+					Auth: esv1.ConjurAuth{
+						Cert: &esv1.ConjurCert{
+							Account:       conjurAccount,
+							ServiceID:     certServiceID,
+							ClientCertRef: certRef,
+							ClientKeyRef:  keyRef,
+						},
+					},
+				},
+			},
+		},
+	}
+	return store
+}
+
 func makeNoAuthSecretStore(svcURL string) *esv1.SecretStore {
 	store := &esv1.SecretStore{
 		Spec: esv1.SecretStoreSpec{
@@ -661,6 +813,29 @@ func makeFakeAPIKeySecrets() []kclient.Object {
 			},
 			Data: map[string][]byte{
 				"conjur-apikey": []byte("apikey"),
+			},
+		},
+	}
+}
+
+func makeFakeCertSecrets() []kclient.Object {
+	return []kclient.Object{
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      certClientCertName,
+				Namespace: "default",
+			},
+			Data: map[string][]byte{
+				"tls.crt": []byte("-----BEGIN CERTIFICATE-----\nfakecert\n-----END CERTIFICATE-----"),
+			},
+		},
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      certClientKeyName,
+				Namespace: "default",
+			},
+			Data: map[string][]byte{
+				"tls.key": []byte("-----BEGIN RSA PRIVATE KEY-----\nfakekey\n-----END RSA PRIVATE KEY-----"),
 			},
 		},
 	}
@@ -705,6 +880,10 @@ func createFakeJwtToken(expires bool) string {
 
 // ConjurMockAPIClient is a mock implementation of the ApiClient interface.
 type ConjurMockAPIClient struct {
+}
+
+func (c *ConjurMockAPIClient) NewClientFromCert(_ conjurapi.Config) (SecretsClient, error) {
+	return &fake.ConjurMockClient{}, nil
 }
 
 func (c *ConjurMockAPIClient) NewClientFromKey(_ conjurapi.Config, _ authn.LoginPair) (SecretsClient, error) {
