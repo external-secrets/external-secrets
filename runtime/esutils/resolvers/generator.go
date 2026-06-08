@@ -138,7 +138,10 @@ func getGenerator(ctx context.Context, cl client.Client, scheme *runtime.Scheme,
 	return generator, &apiextensions.JSON{Raw: jsonObj}, nil
 }
 
-// clusterGeneratorToVirtual converts a ClusterGenerator to a "virtual" namespaced generator that doesn't actually exist in the API.
+// clusterGeneratorToVirtual converts a ClusterGenerator into a namespaced (virtual) generator object
+// populated from the cluster generator's embedded spec.
+// It returns a typed client.Object with appropriate TypeMeta and Spec for the selected kind, or an error
+// if the kind is unknown or the required embedded spec field is not set.
 func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object, error) {
 	switch gen.Spec.Kind {
 	case genv1alpha1.GeneratorKindACRAccessToken:

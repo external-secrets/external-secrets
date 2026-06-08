@@ -245,6 +245,11 @@ func (g *Generator) createScopedToken(
 	)
 }
 
+// postJSON sends a JSON POST request to the specified endpoint using the provided HTTP client
+// (or a default client with a timeout if nil), optionally sets a Bearer authorization header,
+// and unmarshals a successful (2xx) response body into a value of type T.
+// It returns a pointer to the unmarshaled value or an error if request creation, execution,
+// a non-2xx response status, reading the response body, or JSON unmarshaling fails.
 func postJSON[T any](
 	ctx context.Context,
 	hc *http.Client,
@@ -298,6 +303,16 @@ type tokenResult struct {
 	expiresIn      int64
 }
 
+// buildOutput assembles the generator output map for an Artifactory access token request.
+//
+// The returned map always contains the `registry` entry. It will include `access_token`,
+// `reference_token`, and `username` when those values are present in the provided tokenResult.
+// If `username` is present, `auth` is added as the base64 encoding of `username:password`,
+// where `password` prefers the reference token and falls back to the access token.
+// The `expiry` entry is computed from the tokenResult (either from expires_in or the token's JWT).
+//
+// Returns an error if neither access nor reference tokens are present or if registry resolution
+// or expiry computation fails. The generator provider state is always nil.
 func buildOutput(
 	spec *genv1alpha1.ArtifactoryAccessToken,
 	result tokenResult,
@@ -342,6 +357,10 @@ func buildOutput(
 	return out, nil, nil
 }
 
+// registryHost returns the registry host for the given ArtifactoryAccessToken spec.
+// If Spec.Registry is set, it strips a leading "https://" and returns that value.
+// Otherwise it parses Spec.URL and returns the URL's host. An error is returned
+// if Spec.URL is invalid or does not contain a hostname.
 func registryHost(spec *genv1alpha1.ArtifactoryAccessToken) (string, error) {
 	if spec.Spec.Registry != "" {
 		return strings.TrimPrefix(spec.Spec.Registry, "https://"), nil
@@ -357,6 +376,10 @@ func registryHost(spec *genv1alpha1.ArtifactoryAccessToken) (string, error) {
 	return parsed.Host, nil
 }
 
+// computeExpiry computes the expiration timestamp (Unix seconds) as a base-10 string for the provided tokenResult.
+// If ExpiresIn is greater than zero, it returns the current Unix time plus ExpiresIn.
+// Otherwise it attempts to extract the `exp` claim from the access token, falling back to the reference token.
+// Returns an error if neither expiry source is available or extraction fails.
 func computeExpiry(result tokenResult) (string, error) {
 	if result.expiresIn > 0 {
 		return strconv.FormatInt(time.Now().Unix()+result.expiresIn, 10), nil
@@ -373,6 +396,8 @@ func computeExpiry(result tokenResult) (string, error) {
 	return esutils.ExtractJWTExpiration(token)
 }
 
+// usernameFromToken extracts the `sub` claim from a JWT and returns it as the username.
+// If the token cannot be parsed or the `sub` claim is missing or not a string, an empty string is returned.
 func usernameFromToken(token string) string {
 	claims, err := esutils.ParseJWTClaims(token)
 	if err != nil {
@@ -385,13 +410,14 @@ func usernameFromToken(token string) string {
 	return sub
 }
 
+// parseSpec parses the provided YAML or JSON bytes into an ArtifactoryAccessToken and returns the populated struct and any unmarshalling error.
 func parseSpec(data []byte) (*genv1alpha1.ArtifactoryAccessToken, error) {
 	var spec genv1alpha1.ArtifactoryAccessToken
 	err := yaml.Unmarshal(data, &spec)
 	return &spec, err
 }
 
-// NewGenerator creates a new Generator instance.
+// NewGenerator creates a new Generator with an uninitialized HTTP client (nil), suitable for callers to use as-is or configure before use.
 func NewGenerator() genv1alpha1.Generator {
 	return &Generator{}
 }

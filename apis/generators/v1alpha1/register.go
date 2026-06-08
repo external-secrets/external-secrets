@@ -79,6 +79,8 @@ var (
 	BeyondtrustWorkloadCredentialsDynamicSecretKind = reflect.TypeFor[BeyondtrustWorkloadCredentialsDynamicSecret]().Name()
 )
 
+// init registers the v1alpha1 generator API types into the controller-runtime scheme.
+// It registers GeneratorState and all generator resource types and their list variants so they are discoverable by the runtime; the function also contains an inline developer note describing required steps when adding support for new generator kinds.
 func init() {
 	SchemeBuilder.Register(&GeneratorState{}, &GeneratorStateList{})
 

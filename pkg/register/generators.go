@@ -37,6 +37,7 @@ import (
 	webhookgen "github.com/external-secrets/external-secrets/generators/v1/webhook"
 )
 
+// init registers all generator constructors with genv1alpha1 for each supported generator kind.
 func init() {
 	// Register all generators
 	genv1alpha1.Register(acr.Kind(), acr.NewGenerator())
