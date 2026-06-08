@@ -41,6 +41,7 @@ const (
 	fieldPrefix       = "field"
 	filePrefix        = "file"
 	prefixSplitter    = "/"
+	vaultCachePrefix  = "vault:"
 	itemCachePrefix   = "item:"
 	fileCachePrefix   = "file:"
 	defaultFieldLabel = "password"
@@ -180,10 +181,9 @@ func deleteField(fields []onepassword.ItemField, title string) ([]onepassword.It
 
 // GetAllSecrets syncs multiple 1Password Items into a single Kubernetes Secret, for dataFrom.find.
 func (p *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	items, err := p.client.Items().List(ctx, p.vaultID)
-	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsList, err)
+	items, err := p.listItems(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list items: %w", err)
+		return nil, err
 	}
 
 	// If ref.Tags is set, filter to only items that match the given tags
@@ -265,6 +265,31 @@ func (p *SecretsClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecre
 	}
 
 	return result, nil
+}
+
+func (p *SecretsClient) listItems(ctx context.Context) ([]onepassword.ItemOverview, error) {
+	var items []onepassword.ItemOverview
+
+	cacheKey := vaultCachePrefix + p.vaultID
+	if cached, ok := p.cacheGet(cacheKey); ok {
+		if err := json.Unmarshal(cached, &items); err == nil {
+			return items, nil
+		}
+	}
+
+	// Vault item list not found in cache - fetch from the API
+	items, err := p.client.Items().List(ctx, p.vaultID)
+	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsList, err)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list items: %w", err)
+	}
+
+	// Add the vault list to the cache
+	if serialized, err := json.Marshal(items); err == nil {
+		p.cacheAdd(cacheKey, serialized)
+	}
+
+	return items, nil
 }
 
 // getFields gets the field matching the given property label in an item, or all fields in the item if `property` is not set.

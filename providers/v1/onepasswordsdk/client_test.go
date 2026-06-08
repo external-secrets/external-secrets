@@ -1904,6 +1904,23 @@ func TestCachingGetAllSecrets(t *testing.T) {
 		}
 	}
 
+	t.Run("second GetAllSecrets call does not re-fetch item list from API", func(t *testing.T) {
+		fl := createLister(item1, item2)
+		p := newCachedClient(fl)
+		find := v1.ExternalSecretFind{}
+
+		_, err := p.GetAllSecrets(t.Context(), find)
+		require.NoError(t, err)
+		// There can be quite a few list calls depending on the items, so we'll just make sure
+		// at least one was made, and that the count doesn't increase on the second call.
+		assert.NotZero(t, fl.listCallCount, "first call should list from API")
+
+		previousCallCount := fl.listCallCount
+		_, err = p.GetAllSecrets(t.Context(), find)
+		require.NoError(t, err)
+		assert.Equal(t, previousCallCount, fl.listCallCount, "second call should use item cache, not re-fetch list from API")
+	})
+
 	t.Run("second GetAllSecrets call does not re-fetch items from API", func(t *testing.T) {
 		fl := createLister(item1)
 		p := newCachedClient(fl)
