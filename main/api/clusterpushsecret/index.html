@@ -4947,8 +4947,14 @@ If there is a conflict with an existing resource the controller will error out.<
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;hello-world&quot;</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="c1"># The name to be used on the PushSecrets</span>
+<span class="w">  </span><span class="c1"># The name to be used on the PushSecrets.</span>
+<span class="w">  </span><span class="c1"># Defaults to the name of the ClusterPushSecret when omitted.</span>
 <span class="w">  </span><span class="nt">pushSecretName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;hello-world-ps&quot;</span>
+
+<span class="w">  </span><span class="c1"># Optional labels and annotations to set on every created PushSecret.</span>
+<span class="w">  </span><span class="nt">pushSecretMetadata</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="w">    </span><span class="nt">annotations</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
 
 <span class="w">  </span><span class="c1"># This is a list of basic label selector to select the namespaces to deploy PushSecrets to.</span>
 <span class="w">  </span><span class="c1"># you can read more about them here https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#resources-that-support-set-based-requirements</span>
@@ -4960,6 +4966,7 @@ If there is a conflict with an existing resource the controller will error out.<
 
 <span class="w">  </span><span class="c1"># How often the ClusterPushSecret should reconcile itself</span>
 <span class="w">  </span><span class="c1"># This will decide how often to check and make sure that the PushSecrets exist in the matching namespaces</span>
+<span class="w">  </span><span class="c1"># If omitted, the controller&#39;s default requeue interval is used.</span>
 <span class="w">  </span><span class="nt">refreshTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1m&quot;</span>
 
 <span class="w">  </span><span class="c1"># This is the spec of the PushSecrets to be created</span>
@@ -5010,19 +5017,20 @@ If there is a conflict with an existing resource the controller will error out.<
 <span class="w">  </span><span class="nt">failedNamespaces</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;matching-ns-1&quot;</span>
 <span class="w">      </span><span class="c1"># This is one of the possible messages, and likely the most common</span>
-<span class="w">      </span><span class="nt">reason</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;external</span><span class="nv"> </span><span class="s">secret</span><span class="nv"> </span><span class="s">already</span><span class="nv"> </span><span class="s">exists</span><span class="nv"> </span><span class="s">in</span><span class="nv"> </span><span class="s">namespace&quot;</span>
+<span class="w">      </span><span class="nt">reason</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;push</span><span class="nv"> </span><span class="s">secret</span><span class="nv"> </span><span class="s">already</span><span class="nv"> </span><span class="s">exists</span><span class="nv"> </span><span class="s">in</span><span class="nv"> </span><span class="s">namespace&quot;</span>
 
 <span class="w">  </span><span class="c1"># You can find all matching and successfully deployed namespaces here</span>
 <span class="w">  </span><span class="nt">provisionedNamespaces</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;matching-ns-3&quot;</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;matching-ns-2&quot;</span>
 
-<span class="w">  </span><span class="c1"># The condition can be Ready, PartiallyReady, or NotReady</span>
-<span class="w">  </span><span class="c1"># PartiallyReady would indicate an error in 1 or more namespaces</span>
-<span class="w">  </span><span class="c1"># NotReady would indicate errors in all namespaces meaning all ExternalSecrets resulted in errors</span>
+<span class="w">  </span><span class="c1"># The only condition type is Ready. status is &quot;True&quot; when all matching</span>
+<span class="w">  </span><span class="c1"># namespaces synced, and &quot;False&quot; if one or more namespaces failed (the failed</span>
+<span class="w">  </span><span class="c1"># ones are listed under failedNamespaces above).</span>
 <span class="w">  </span><span class="nt">conditions</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PartiallyReady</span>
-<span class="w">    </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;True&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Ready</span>
+<span class="w">    </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;False&quot;</span>
+<span class="w">    </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;one</span><span class="nv"> </span><span class="s">or</span><span class="nv"> </span><span class="s">more</span><span class="nv"> </span><span class="s">namespaces</span><span class="nv"> </span><span class="s">failed&quot;</span>
 <span class="w">    </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2022-01-12T12:33:02Z&quot;</span>
 </code></pre></div>
 <p>The result of the created Secret object will look like:</p>

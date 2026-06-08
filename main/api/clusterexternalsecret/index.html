@@ -5039,8 +5039,14 @@ If there is a conflict with an existing resource the controller will error out.<
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;hello-world&quot;</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="c1"># The name to be used on the ExternalSecrets</span>
+<span class="w">  </span><span class="c1"># The name to be used on the ExternalSecrets.</span>
+<span class="w">  </span><span class="c1"># Defaults to the name of the ClusterExternalSecret when omitted.</span>
 <span class="w">  </span><span class="nt">externalSecretName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;hello-world-es&quot;</span>
+
+<span class="w">  </span><span class="c1"># Optional labels and annotations to set on every created ExternalSecret.</span>
+<span class="w">  </span><span class="nt">externalSecretMetadata</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">labels</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
+<span class="w">    </span><span class="nt">annotations</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{}</span>
 
 <span class="w">  </span><span class="c1"># This is a basic label selector to select the namespaces to deploy ExternalSecrets to.</span>
 <span class="w">  </span><span class="c1"># you can read more about them here https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#resources-that-support-set-based-requirements</span>
@@ -5057,8 +5063,14 @@ If there is a conflict with an existing resource the controller will error out.<
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">matchLabels</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">cool</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">label</span>
 
+<span class="w">  </span><span class="c1"># Choose namespaces by name. This is OR&#39;d with anything namespaceSelectors matches.</span>
+<span class="w">  </span><span class="c1"># Deprecated: Use namespaceSelectors instead.</span>
+<span class="w">  </span><span class="c1"># namespaces:</span>
+<span class="w">  </span><span class="c1">#   - my-namespace</span>
+
 <span class="w">  </span><span class="c1"># How often the ClusterExternalSecret should reconcile itself</span>
 <span class="w">  </span><span class="c1"># This will decide how often to check and make sure that the ExternalSecrets exist in the matching namespaces</span>
+<span class="w">  </span><span class="c1"># If omitted, the controller&#39;s default requeue interval is used.</span>
 <span class="w">  </span><span class="nt">refreshTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1m&quot;</span>
 
 <span class="w">  </span><span class="c1"># This is the spec of the ExternalSecrets to be created</span>
@@ -5118,12 +5130,13 @@ If there is a conflict with an existing resource the controller will error out.<
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;matching-ns-3&quot;</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;matching-ns-2&quot;</span>
 
-<span class="w">  </span><span class="c1"># The condition can be Ready, PartiallyReady, or NotReady</span>
-<span class="w">  </span><span class="c1"># PartiallyReady would indicate an error in 1 or more namespaces</span>
-<span class="w">  </span><span class="c1"># NotReady would indicate errors in all namespaces meaning all ExternalSecrets resulted in errors</span>
+<span class="w">  </span><span class="c1"># The only condition type is Ready. status is &quot;True&quot; when all matching</span>
+<span class="w">  </span><span class="c1"># namespaces synced, and &quot;False&quot; if one or more namespaces failed (the failed</span>
+<span class="w">  </span><span class="c1"># ones are listed under failedNamespaces above).</span>
 <span class="w">  </span><span class="nt">conditions</span><span class="p">:</span>
-<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PartiallyReady</span>
-<span class="w">    </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;True&quot;</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Ready</span>
+<span class="w">    </span><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;False&quot;</span>
+<span class="w">    </span><span class="nt">message</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;one</span><span class="nv"> </span><span class="s">or</span><span class="nv"> </span><span class="s">more</span><span class="nv"> </span><span class="s">namespaces</span><span class="nv"> </span><span class="s">failed&quot;</span>
 <span class="w">    </span><span class="nt">lastTransitionTime</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2022-01-12T12:33:02Z&quot;</span>
 </code></pre></div>
 <h2 id="reducing-provider-calls-for-large-namespace-sets">Reducing provider calls for large namespace sets</h2>

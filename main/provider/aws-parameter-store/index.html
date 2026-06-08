@@ -5323,19 +5323,21 @@ Please estimate your costs before using ESO. Cost depends on the RefreshInterval
 <span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">default</span><span class="w"> </span><span class="c1"># Same of the SecretStores</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">updatePolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Replace</span><span class="w"> </span><span class="c1"># Policy to overwrite existing secrets in the provider on sync</span>
-<span class="w">  </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Delete</span><span class="w"> </span><span class="c1"># the provider&#39; secret will be deleted if the PushSecret is deleted</span>
+<span class="w">  </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Delete</span><span class="w"> </span><span class="c1"># delete the provider secret when the PushSecret is deleted (default: None, which keeps it)</span>
 <span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h0m0s</span><span class="w"> </span><span class="c1"># Refresh interval for which push secret will reconcile</span>
 <span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span><span class="w"> </span><span class="c1"># A list of secret stores to push secrets to</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-parameterstore</span>
 <span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="c1"># Exactly one of selector.secret or selector.generatorRef may be set.</span>
 <span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pokedex-credentials</span><span class="w"> </span><span class="c1"># Source Kubernetes secret to be pushed</span>
-<span class="w">    </span><span class="c1"># Alternatively, you can point to a generator that produces values to be pushed</span>
-<span class="w">    </span><span class="nt">generatorRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
-<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ECRAuthorizationToken</span>
-<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prod-registry-credentials</span>
+<span class="w">    </span><span class="c1"># Alternatively (mutually exclusive with secret), point to a generator</span>
+<span class="w">    </span><span class="c1"># that produces the values to be pushed:</span>
+<span class="w">    </span><span class="c1"># generatorRef:</span>
+<span class="w">    </span><span class="c1">#   apiVersion: generators.external-secrets.io/v1alpha1</span>
+<span class="w">    </span><span class="c1">#   kind: ECRAuthorizationToken</span>
+<span class="w">    </span><span class="c1">#   name: prod-registry-credentials</span>
 <span class="w">  </span><span class="nt">template</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">metadata</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">annotations</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">{</span><span class="w"> </span><span class="p p-Indicator">}</span>
