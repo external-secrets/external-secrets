@@ -1972,30 +1972,28 @@ func TestCachingGetAllSecrets(t *testing.T) {
 		assert.Equal(t, want, got, "GetSecretMap with Property should return expected secrets")
 	})
 
-	// TODO - GetSecret and GetSecretMap/GetAllSecrets use different caching formats. We should rework the cache
-	// so items can be shared between the two.
-	// See GitHub issue: https://github.com/external-secrets/external-secrets/issues/6444
-	if false {
-		t.Run("item fetched by GetAllSecrets is reused by GetSecret", func(t *testing.T) {
-			fl := createLister(item1)
-			p := newCachedClient(fl)
-			fc := p.client.SecretsAPI.(*fakeClientWithCounter)
+	t.Run("item fetched by GetAllSecrets is reused by GetSecret", func(t *testing.T) {
+		t.Skip("TODO: GetSecret and GetSecretMap/GetAllSecrets use different caching formats. " +
+			"See https://github.com/external-secrets/external-secrets/issues/6444")
 
-			wantAllSecrets := map[string][]byte{"username": []byte("testuser"), "password": []byte("testpass")}
-			gotAllSecrets, err := p.GetAllSecrets(t.Context(), v1.ExternalSecretFind{})
-			require.NoError(t, err)
-			assert.Equal(t, 1, fl.getCallCount, "GetAllSecrets fetches item once")
-			assert.Equal(t, 0, fc.resolveCallCount, "GetAllSecrets should not call Resolve")
-			assert.Equal(t, wantAllSecrets, gotAllSecrets, "GetAllSecrets should return expected secrets")
+		fl := createLister(item1)
+		p := newCachedClient(fl)
+		fc := p.client.SecretsAPI.(*fakeClientWithCounter)
 
-			wantSecret := []byte("testpass")
-			gotSecret, err := p.GetSecret(t.Context(), v1.ExternalSecretDataRemoteRef{Key: fmt.Sprintf("%s/password", item1.Title)})
-			require.NoError(t, err)
-			assert.Equal(t, 1, fl.getCallCount, "GetSecret should use cached item from GetAllSecrets")
-			assert.Equal(t, 0, fc.resolveCallCount, "GetSecret should not call Resolve due to cached value")
-			assert.Equal(t, wantSecret, gotSecret, "GetSecret should return expected secrets")
-		})
-	}
+		wantAllSecrets := map[string][]byte{"username": []byte("testuser"), "password": []byte("testpass")}
+		gotAllSecrets, err := p.GetAllSecrets(t.Context(), v1.ExternalSecretFind{})
+		require.NoError(t, err)
+		assert.Equal(t, 1, fl.getCallCount, "GetAllSecrets fetches item once")
+		assert.Equal(t, 0, fc.resolveCallCount, "GetAllSecrets should not call Resolve")
+		assert.Equal(t, wantAllSecrets, gotAllSecrets, "GetAllSecrets should return expected secrets")
+
+		wantSecret := []byte("testpass")
+		gotSecret, err := p.GetSecret(t.Context(), v1.ExternalSecretDataRemoteRef{Key: fmt.Sprintf("%s/password", item1.Title)})
+		require.NoError(t, err)
+		assert.Equal(t, 1, fl.getCallCount, "GetSecret should use cached item from GetAllSecrets")
+		assert.Equal(t, 0, fc.resolveCallCount, "GetSecret should not call Resolve due to cached value")
+		assert.Equal(t, wantSecret, gotSecret, "GetSecret should return expected secrets")
+	})
 }
 
 func TestPushAllKeys(t *testing.T) {
