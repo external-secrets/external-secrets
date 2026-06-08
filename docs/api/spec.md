@@ -8085,8 +8085,8 @@ cache: {} is a valid option to set.</p>
 </p>
 <p>
 <p>OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
-Only one of <code>tokenSecretRef</code>, <code>appRole</code>,  <code>kubernetes</code>, <code>ldap</code>, <code>userPass</code>, <code>jwt</code>, <code>cert</code>, <code>iam</code> or <code>gcp</code>
-can be specified. A namespace to authenticate against can optionally be specified.</p>
+Currently only token-based authentication is supported via <code>tokenSecretRef</code>.
+Additional authentication methods are planned for future releases.</p>
 </p>
 <table>
 <thead>

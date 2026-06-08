@@ -51,8 +51,8 @@ type OpenBaoProvider struct {
 }
 
 // OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
-// Only one of `tokenSecretRef`, `appRole`,  `kubernetes`, `ldap`, `userPass`, `jwt`, `cert`, `iam` or `gcp`
-// can be specified. A namespace to authenticate against can optionally be specified.
+// Currently only token-based authentication is supported via `tokenSecretRef`.
+// Additional authentication methods are planned for future releases.
 type OpenBaoAuth struct {
 	// TokenSecretRef authenticates with OpenBao by presenting a token.
 	// +optional
