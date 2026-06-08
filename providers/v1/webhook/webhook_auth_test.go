@@ -32,17 +32,23 @@ package webhook
 import (
 	"context"
 	b64 "encoding/base64"
+	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
+	neturl "net/url"
+	"os"
+	"strings"
 	"testing"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	krb5test "github.com/jcmturner/krb5test"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 type mockAuthTestPackage struct {
@@ -67,33 +73,172 @@ type mockAuthRequest func(
 	t *testing.T) string
 
 func TestWebhookAuth(t *testing.T) {
-	// define test cases
 	creds := mockCreds{"correctuser123", "correctpassword123"}
+
+	// The expects represent the expected Authorization header content.
+	// The request function creates an appropriate client and uses that to make a request.
+	// The mock server handles the request appropriately, and echoes the Auth header.
+	// If the auth header is as expected, the client works as expected.
+
 	basicAuthExpect := "Basic " + b64.StdEncoding.EncodeToString([]byte(creds.UserName+":"+creds.Password))
 	ntlmExpect := "NTLM TlRMTVNTUAABAAAAAQCIoAAAAAAoAAAAAAAAACgAAAAGAbEdAAAADw=="
 	negotiateExpect := "Negotiate TlRMTVNTUAABAAAAAQCIoAAAAAAoAAAAAAAAACgAAAAGAbEdAAAADw=="
+	krbExpect := "Negotiate "
 
-	// due to integrated nature of GetSecret(), we use a mock server
-	// to return relevant parts of a request, in this case, the auth header.
-	testAuthHeaders := map[string]mockAuthTestPackage{
-		"BasicAuth": {creds, basicAuthRequestEcho, basicAuthRequest, basicAuthExpect},
-		"NTLM":      {creds, ntlmRequestEcho, ntlmRequest, ntlmExpect},
-		"Negotiate": {creds, negotiateRequestEcho, ntlmRequest, negotiateExpect},
+	// Define test cases.
+	testAuthHeadersExact := map[string]mockAuthTestPackage{
+		"BasicAuth":      {creds, basicAuthEchoServer, basicAuthRequest, basicAuthExpect},
+		"NTLM":           {creds, ntlmEchoServer, ntlmRequest, ntlmExpect},
+		"NTLM Negotiate": {creds, negotiateEchoServer, ntlmRequest, negotiateExpect},
 	}
 
-	// execute test cases
-	for _, p := range testAuthHeaders {
-		server := p.MockServer(p.Creds, t)
-		result := p.Request(server.URL, creds, t)
-		server.Close()
-		expect := p.Expect
-		if result != expect {
-			t.Errorf("Test failed. Result: '%s' / Expected:  '%s'", result, expect)
-		}
+	testAuthHeadersPrefix := map[string]mockAuthTestPackage{
+		"Kerberos": {creds, negotiateEchoServer, krbRequest, krbExpect},
 	}
+
+	// Execute test cases
+	for name, p := range testAuthHeadersExact {
+		t.Run(name, func(t *testing.T) {
+			server := p.MockServer(p.Creds, t)
+			result := p.Request(server.URL, creds, t)
+			server.Close()
+
+			expect := p.Expect
+			if result != expect {
+				t.Errorf("Test failed. Result: '%s' / Expected:  '%s'", result, expect)
+			}
+		})
+	}
+
+	for name, p := range testAuthHeadersPrefix {
+		t.Run(name, func(t *testing.T) {
+			server := p.MockServer(p.Creds, t)
+			result := p.Request(server.URL, creds, t)
+			server.Close()
+
+			// Prefix matching: Check if the result starts with the expected prefix instead of exact matching.
+			expect := p.Expect
+			if !strings.HasPrefix(result, expect) {
+				t.Errorf("Test failed. Result: '%s' / Expected prefix: '%s'", result, expect)
+			}
+		})
+	}
+
 }
 
-func ntlmRequestEcho(mockCreds, *testing.T) *httptest.Server {
+func krbRequest(url string, creds mockCreds, t *testing.T) string {
+	secretName := "krbTestAuthSecret"
+	secretNamespace := "default"
+
+	// Create map of principals
+	userPrincipal := creds.UserName + "@" + "TEST.REALM.COM"
+
+	u, err := neturl.Parse(url)
+	if err != nil {
+		t.Fatalf("failed to parse server URL: %v", err)
+	}
+	host := u.Hostname() // Service principal needs the hostname of the mock server.
+
+	principals := map[string][]string{
+		userPrincipal:  {"testgroup1"},
+		"HTTP/" + host: {},
+	}
+
+	// Create mock KDC logger with optional verbose output.
+	kdcLogWriter := func() io.Writer {
+		if testing.Verbose() {
+			return os.Stdout
+		}
+		return io.Discard
+	}()
+	logger := log.New(kdcLogWriter, "", 0)
+
+	// Create mock KDC.
+	kdc, err := krb5test.NewKDC(principals, logger)
+	if err != nil {
+		t.Fatalf("Failed to create mock KDC: %v", err)
+	}
+
+	kdc.Start()
+	defer kdc.Close()
+
+	// KDC has KDC.KRB5Conf, but we can't use it because the clusterSecretStore expects a string.
+	// So  we create our own.
+	krb5Conf := fmt.Sprintf(`[libdefaults]
+	  default_realm = %s
+	  dns_lookup_kdc = false
+	  dns_lookup_realm = false
+	  default_tgs_enctypes = aes256-cts-hmac-sha1-96
+	  default_tkt_enctypes = aes256-cts-hmac-sha1-96
+	  permitted_enctypes = aes256-cts-hmac-sha1-96
+
+	  [realms]
+ 	   %s = {
+	    kdc = %s
+ 	    default_domain = test.realm.com
+	   }
+
+	  [domain_realm]
+ 	   test.realm.com = %s
+	  `, kdc.Realm, kdc.Realm, kdc.TCPListener.Addr().String(), kdc.Realm)
+
+	// Use KDC generated user password instead of creds.Password.
+	kdcUserPassword := kdc.Principals[userPrincipal].Password
+
+	// Krb clustersecretstore takes credentials from a secret,
+	// so we need to mock k8s-client retrieval of secret.
+	mockClient := fake.NewClientBuilder().WithObjects(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: secretNamespace,
+			Name:      secretName,
+			Labels: map[string]string{
+				"external-secrets.io/type": "webhook",
+			},
+		},
+		Data: map[string][]byte{
+			"userName": []byte(userPrincipal),
+			"password": []byte(kdcUserPassword),
+		},
+	}).Build()
+
+	// Create mock ClusterSecretStore
+	krbAuthStore := &esv1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ClusterSecretStore",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "webhook-store",
+			Namespace: "default",
+		},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Webhook: &esv1.WebhookProvider{
+					URL: url,
+					Auth: &esv1.AuthorizationProtocol{
+						Kerberos: &esv1.KerberosProtocol{
+							UserName: esmeta.SecretKeySelector{
+								Name:      secretName,
+								Namespace: &secretNamespace,
+								Key:       "userName",
+							},
+							Password: esmeta.SecretKeySelector{
+								Name:      secretName,
+								Namespace: &secretNamespace,
+								Key:       "password",
+							},
+							Krb5Conf: krb5Conf,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	result := exerciseGetSecret(krbAuthStore, mockClient, t)
+	return result
+}
+
+func ntlmEchoServer(mockCreds, *testing.T) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqAuthString := r.Header.Get("Authorization")
 		if reqAuthString == "" {
@@ -107,13 +252,12 @@ func ntlmRequestEcho(mockCreds, *testing.T) *httptest.Server {
 	return server
 }
 
-func negotiateRequestEcho(mockCreds, *testing.T) *httptest.Server {
+func negotiateEchoServer(mockCreds, *testing.T) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqAuthString := r.Header.Get("Authorization")
 		if reqAuthString == "" {
-			// go-ntlmssp first sends anonymous request, respond with 401
 			w.Header().Add("WWW-Authenticate", "Negotiate")
-			w.WriteHeader(401)
+			w.WriteHeader(401) // First respond with 401 to trigger client authentication flow.
 		} else {
 			w.Write([]byte(reqAuthString))
 		}
@@ -141,7 +285,7 @@ func ntlmRequest(url string, creds mockCreds, t *testing.T) string {
 		},
 	}).Build()
 
-	// create clusteSecretStore
+	// create clusterSecretStore
 	ntlmAuthStore := &esv1.ClusterSecretStore{
 		TypeMeta: metav1.TypeMeta{
 			Kind: "ClusterSecretStore",
@@ -177,7 +321,7 @@ func ntlmRequest(url string, creds mockCreds, t *testing.T) string {
 	return result
 }
 
-func basicAuthRequestEcho(mockCreds, *testing.T) *httptest.Server {
+func basicAuthEchoServer(mockCreds, *testing.T) *httptest.Server {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		reqAuthString := r.Header.Get("Authorization")
 		if reqAuthString == "" {

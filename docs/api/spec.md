@@ -646,6 +646,20 @@ NTLMProtocol
 <p>NTLMProtocol configures the store to use NTLM for auth</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>kerberos</code></br>
+<em>
+<a href="#external-secrets.io/v1.KerberosProtocol">
+KerberosProtocol
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>KerberosProtocol configures the store to use Kerberos for auth</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.AwsAuthCredentials">AwsAuthCredentials
@@ -6847,6 +6861,60 @@ bool
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.KerberosProtocol">KerberosProtocol
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.AuthorizationProtocol">AuthorizationProtocol</a>)
+</p>
+<p>
+<p>KerberosProtocol contains the Kerberos-specific configuration.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>usernameSecret</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>passwordSecret</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>krb5Conf</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
