@@ -1974,7 +1974,7 @@ func TestCachingGetAllSecrets(t *testing.T) {
 
 	// TODO - GetSecret and GetSecretMap/GetAllSecrets use different caching formats. We should rework the cache
 	// so items can be shared between the two.
-	// See GitHub issue:
+	// See GitHub issue: https://github.com/external-secrets/external-secrets/issues/6444
 	if false {
 		t.Run("item fetched by GetAllSecrets is reused by GetSecret", func(t *testing.T) {
 			fl := createLister(item1)
