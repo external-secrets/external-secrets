@@ -32,7 +32,7 @@ type OpenBaoProvider struct {
 	// Auth configures how secret-manager authenticates with the OpenBao server.
 	Auth *OpenBaoAuth `json:"auth,omitempty"`
 
-	// Server is the connection address for the OpenBao server, e.g: "https://openbao.example.com:8200".
+	// Server is the connection address for the OpenBao server, e.g: `https://openbao.example.com:8200`.
 	Server string `json:"server"`
 
 	// Path is the mount path of the OpenBao KV backend endpoint, e.g:

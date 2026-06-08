@@ -6046,7 +6046,7 @@ spec:
                             if not present in specified path.
                           type: string
                         server:
-                          description: 'Server is the connection address for the OpenBao server, e.g: "https://openbao.example.com:8200".'
+                          description: 'Server is the connection address for the OpenBao server, e.g: `https://openbao.example.com:8200`.'
                           type: string
                         version:
                           default: v2
@@ -18377,7 +18377,7 @@ spec:
                             if not present in specified path.
                           type: string
                         server:
-                          description: 'Server is the connection address for the OpenBao server, e.g: "https://openbao.example.com:8200".'
+                          description: 'Server is the connection address for the OpenBao server, e.g: `https://openbao.example.com:8200`.'
                           type: string
                         version:
                           default: v2

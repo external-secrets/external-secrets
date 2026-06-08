@@ -8172,7 +8172,7 @@ string
 </em>
 </td>
 <td>
-<p>Server is the connection address for the OpenBao server, e.g: &ldquo;<a href="https://openbao.example.com:8200&quot;">https://openbao.example.com:8200&rdquo;</a>.</p>
+<p>Server is the connection address for the OpenBao server, e.g: <code>https://openbao.example.com:8200</code>.</p>
 </td>
 </tr>
 <tr>
