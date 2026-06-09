@@ -422,8 +422,12 @@ func (p *Provider) lookupProjectID(ctx context.Context, client *http.Client, tok
 // lookupHTTPClient builds an HTTP client for the project lookup, honoring the
 // store's CA bundle when one is configured.
 func (p *Provider) lookupHTTPClient() *http.Client {
-	transport, _ := http.DefaultTransport.(*http.Transport)
-	transport = transport.Clone()
+	var transport *http.Transport
+	if t, ok := http.DefaultTransport.(*http.Transport); ok && t != nil {
+		transport = t.Clone()
+	} else {
+		transport = &http.Transport{}
+	}
 	if p.caCertificate != "" {
 		pool := x509.NewCertPool()
 		if pool.AppendCertsFromPEM([]byte(p.caCertificate)) {
