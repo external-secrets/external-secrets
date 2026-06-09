@@ -98,9 +98,8 @@ const (
 	logErrorSecretCacheNotSynced = "controller caches for Secret are not in sync"
 	logErrorUnmanagedStore       = "unable to determine if store is managed"
 
-	// log messages for mutating / destructive secret operations. These are
-	// emitted at the default verbosity so users can build alerting rules on
-	// them. They only ever carry key names, never secret values.
+	// log messages for mutating / destructive secret operations, emitted at
+	// V(1) so they are opt-in. They only ever carry key names, never values.
 	logSecretDeleted         = "deleted secret"
 	logManagedSecretDeleted  = "deleted managed secret"
 	logSecretDeletedOrphaned = "deleted orphaned secret"
@@ -442,7 +441,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 					r.markAsFailed(msgErrorDeleteSecret, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 					return ctrl.Result{}, err
 				}
-				log.Info(logSecretDeleted, "secret", secretName, "namespace", externalSecret.Namespace, "reason", "DeletionPolicy=Delete and provider returned no data")
+				log.V(1).Info(logSecretDeleted, "secret", secretName, "namespace", externalSecret.Namespace, "reason", "DeletionPolicy=Delete and provider returned no data")
 				r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1.ReasonDeleted, eventDeleted)
 			}
 
@@ -869,7 +868,7 @@ func (r *Reconciler) cleanupManagedSecrets(ctx context.Context, log logr.Logger,
 		if err := r.Delete(ctx, &secret); err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
-		log.Info(logManagedSecretDeleted, "secret", secretName, "namespace", externalSecret.Namespace, "reason", "ExternalSecret deleted")
+		log.V(1).Info(logManagedSecretDeleted, "secret", secretName, "namespace", externalSecret.Namespace, "reason", "ExternalSecret deleted")
 	}
 
 	return nil
@@ -899,7 +898,7 @@ func (r *Reconciler) deleteOrphanedSecrets(ctx context.Context, log logr.Logger,
 			if err != nil && !apierrors.IsNotFound(err) {
 				return err
 			}
-			log.Info(logSecretDeletedOrphaned, "secret", secretPartial.GetName(), "namespace", externalSecret.Namespace)
+			log.V(1).Info(logSecretDeletedOrphaned, "secret", secretPartial.GetName(), "namespace", externalSecret.Namespace)
 			r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1.ReasonDeleted, eventDeletedOrphaned)
 		}
 	}
@@ -1000,10 +999,6 @@ func (r *Reconciler) updateSecret(ctx context.Context, log logr.Logger, existing
 		}
 	}
 
-	// compute which data keys changed before the update so we can log it.
-	// we only ever log key names, never the secret values themselves.
-	added, updated, removed, emptied := diffSecretDataKeys(existingSecret.Data, updatedSecret.Data)
-
 	// update the secret
 	if err := r.Update(ctx, updatedSecret, client.FieldOwner(fqdn)); err != nil {
 		// if we get a conflict, we should return early to requeue immediately
@@ -1014,17 +1009,21 @@ func (r *Reconciler) updateSecret(ctx context.Context, log logr.Logger, existing
 		return fmt.Errorf(errUpdate, updatedSecret.Name, err)
 	}
 
-	// only log when data keys actually changed, so a metadata-only update
-	// (labels / annotations) does not emit a misleading "data changed" line.
-	if len(added) > 0 || len(updated) > 0 || len(removed) > 0 {
-		log.Info(logSecretDataChanged,
-			"secret", secretName,
-			"namespace", es.Namespace,
-			"added", added,
-			"updated", updated,
-			"removed", removed,
-			"emptied", emptied,
-		)
+	// only compute the key diff when debug verbosity is active (--loglevel=debug /
+	// log.level=debug in Helm). skipping it by default avoids per-reconcile
+	// allocation on every managed secret. we only ever log key names, never values.
+	if log.V(1).Enabled() {
+		added, updated, removed, emptied := diffSecretDataKeys(existingSecret.Data, updatedSecret.Data)
+		if len(added) > 0 || len(updated) > 0 || len(removed) > 0 {
+			log.V(1).Info(logSecretDataChanged,
+				"secret", secretName,
+				"namespace", es.Namespace,
+				"added", added,
+				"updated", updated,
+				"removed", removed,
+				"emptied", emptied,
+			)
+		}
 	}
 
 	r.recorder.Event(es, v1.EventTypeNormal, esv1.ReasonUpdated, eventUpdated)
