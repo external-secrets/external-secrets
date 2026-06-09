@@ -1767,6 +1767,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Core Controller Flags">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#debug-level-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debug-level logging
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -4936,6 +4953,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Core Controller Flags">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#debug-level-logging" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Debug-level logging
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -5160,6 +5194,15 @@
 </tr>
 </tbody>
 </table>
+<h3 id="debug-level-logging">Debug-level logging</h3>
+<p>Setting <code>--loglevel=debug</code> (Helm: <code>log.level: debug</code>) enables additional log lines that are suppressed at the default <code>info</code> level. These include:</p>
+<ul>
+<li><strong>Secret deletion</strong> -- logged when the controller deletes a managed Secret because the provider returned no data and <code>DeletionPolicy=Delete</code> is set. Fields: <code>secret</code>, <code>namespace</code>, <code>reason</code>.</li>
+<li><strong>Managed secret cleanup</strong> -- logged when a managed Secret is deleted because its owning ExternalSecret was deleted. Fields: <code>secret</code>, <code>namespace</code>, <code>reason</code>.</li>
+<li><strong>Orphaned secret cleanup</strong> -- logged when an orphaned Secret is deleted. Fields: <code>secret</code>, <code>namespace</code>.</li>
+<li><strong>Secret data key diff</strong> -- logged after every update where data keys actually changed (keys added, updated, removed, or emptied). Only key names are logged, never their values. Fields: <code>secret</code>, <code>namespace</code>, <code>added</code>, <code>updated</code>, <code>removed</code>, <code>emptied</code>.</li>
+</ul>
+<p>These messages can be used to build alerting rules on destructive operations. The diff computation is skipped entirely when debug logging is not enabled, so there is no performance impact at the default log level.</p>
 <h2 id="cert-controller-flags">Cert Controller Flags</h2>
 <table>
 <thead>
