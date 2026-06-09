@@ -169,6 +169,7 @@ func TestCreateScopedToken(t *testing.T) {
 			AccessToken:    mockJWTToken,
 			ReferenceToken: "short-ref",
 			ExpiresIn:      1800,
+			Username:       "fresh.art9060@286k.co",
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(resp)
@@ -190,6 +191,9 @@ func TestCreateScopedToken(t *testing.T) {
 	}
 	if resp.ReferenceToken != "short-ref" {
 		t.Errorf("expected reference token, got %q", resp.ReferenceToken)
+	}
+	if resp.Username != "fresh.art9060@286k.co" {
+		t.Errorf("expected API username, got %q", resp.Username)
 	}
 }
 

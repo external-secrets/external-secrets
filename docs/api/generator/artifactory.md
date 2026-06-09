@@ -7,7 +7,7 @@
 | registry         | Docker registry hostname (from `spec.registry` or parsed from `spec.url`). |
 | access_token     | Full Artifactory access token from the API response.                        |
 | reference_token  | Shortened reference token when requested and returned by the API.           |
-| username         | Username from the OIDC response, or `sub` claim from a JWT access token.    |
+| username         | Username from the API or OIDC response; falls back to the JWT `sub` claim.  |
 | auth             | Base64-encoded `username:token` for dockerconfigjson templates.             |
 | expiry           | Token expiry as UNIX timestamp (seconds).                                   |
 
@@ -47,6 +47,8 @@ When OIDC is not available, provide a bootstrap identity or access token in a Ku
 | `auth.referenceToken.token` | Secret reference to bootstrap token. | Yes (reference) |
 | `auth.referenceToken.scope` | Token scope (e.g. `applied-permissions/user`). | Yes (reference) |
 | `auth.referenceToken.expiresIn` | Token lifetime in seconds. | No |
+
+The table above lists the main fields. Optional reference-token parameters include `applicationKey`, `projectKey`, `identityMappingName`, `includeReferenceToken`, `refreshable`, and `description`.
 
 ## Example Manifests
 

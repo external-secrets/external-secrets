@@ -95,6 +95,7 @@ type createTokenResponse struct {
 	ExpiresIn      int64  `json:"expires_in"`
 	Scope          string `json:"scope"`
 	TokenType      string `json:"token_type"`
+	Username       string `json:"username"`
 }
 
 // Generate creates an Artifactory access token from the provided spec.
@@ -178,7 +179,10 @@ func (g *Generator) generateReferenceToken(
 		return nil, nil, fmt.Errorf("unable to create scoped token: %w", err)
 	}
 
-	username := usernameFromToken(resp.AccessToken)
+	username := resp.Username
+	if username == "" {
+		username = usernameFromToken(resp.AccessToken)
+	}
 	return buildOutput(spec, tokenResult{
 		accessToken:    resp.AccessToken,
 		referenceToken: resp.ReferenceToken,
@@ -285,7 +289,7 @@ func postJSON[T any](
 	}
 
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
-		return nil, fmt.Errorf("request failed due to unexpected status: %s", resp.Status)
+		return nil, fmt.Errorf("request failed with status %s: %s", resp.Status, string(respBody))
 	}
 
 	var result T
