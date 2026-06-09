@@ -2,6 +2,9 @@ suite: test componentName DNS-label name truncation
 templates:
   - webhook-service.yaml
   - cert-controller-service.yaml
+  - service.yaml
+  - validatingwebhook.yaml
+  - webhook-certificate.yaml
 tests:
   - it: should not alter names that are well under the 63-char DNS label limit
     set:
@@ -68,4 +71,62 @@ tests:
           value: "external-secrets-for-production-release-cluster-naming-webhook"
       - matchRegex:
           path: metadata.name
+          pattern: ^.{1,63}$
+
+  - it: service.yaml - should truncate -metrics suffix (8 chars) when fullname is long
+    # service.yaml uses componentName with suffix "-metrics" (8 chars), same
+    # maxLen=55 as -webhook. Confirms the main controller metrics Service is
+    # covered by the helper, not just webhook/cert-controller Services.
+    set:
+      fullnameOverride: "external-secrets-production-cluster-for-long-release-testing"
+      metrics.service.enabled: true
+    template: service.yaml
+    asserts:
+      - equal:
+          path: metadata.name
+          value: "external-secrets-production-cluster-for-long-release-te-metrics"
+      - matchRegex:
+          path: metadata.name
+          pattern: ^.{1,63}$
+
+  - it: validatingwebhook.yaml - clientConfig.service.name must match the truncated webhook Service name
+    # The ValidatingWebhook routes admission requests to the webhook Service.
+    # If service.name here diverges from the Service metadata.name, TLS
+    # routing breaks. Both must use the same componentName helper output.
+    set:
+      fullnameOverride: "external-secrets-production-cluster-for-long-release-testing"
+      webhook.create: true
+    template: validatingwebhook.yaml
+    documentIndex: 0
+    asserts:
+      - equal:
+          path: webhooks[0].clientConfig.service.name
+          value: "external-secrets-production-cluster-for-long-release-te-webhook"
+      - matchRegex:
+          path: webhooks[0].clientConfig.service.name
+          pattern: ^.{1,63}$
+
+  - it: webhook-certificate.yaml - dnsNames must match the truncated webhook Service hostname
+    # cert-manager issues TLS certs for the webhook Service. The SAN must
+    # match the Service name exactly or the TLS handshake fails. Both
+    # commonName and the first dnsName entry use componentName so they stay
+    # in sync with the Service even when the release name is long.
+    set:
+      fullnameOverride: "external-secrets-production-cluster-for-long-release-testing"
+      webhook.create: true
+      webhook.certManager.enabled: true
+      webhook.certManager.cert.create: true
+      webhook.certManager.cert.issuerRef:
+        name: selfsigned
+        kind: ClusterIssuer
+    template: webhook-certificate.yaml
+    asserts:
+      - equal:
+          path: spec.commonName
+          value: "external-secrets-production-cluster-for-long-release-te-webhook"
+      - equal:
+          path: spec.dnsNames[0]
+          value: "external-secrets-production-cluster-for-long-release-te-webhook"
+      - matchRegex:
+          path: spec.commonName
           pattern: ^.{1,63}$
