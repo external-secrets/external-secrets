@@ -143,7 +143,7 @@ func applyToTarget(k string, val []byte, target string, obj client.Object) error
 		var ok bool
 		unstructured, ok = updated.(map[string]any)
 		if !ok {
-			return fmt.Errorf("update was not of type map[string]any but was %T", target)
+			return fmt.Errorf("update was not of type map[string]any but was %T", updated)
 		}
 
 		// Convert back to the original object type
