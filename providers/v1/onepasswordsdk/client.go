@@ -24,7 +24,6 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/1password/onepassword-sdk-go"
@@ -227,10 +226,24 @@ func (p *SecretsClient) collectAllSecrets(ctx context.Context, itemName string, 
 
 // itemHasTags returns true if all required keys are present in the item's tags.
 func itemHasTags(required map[string]string, itemTags []string) bool {
-	for tag := range required {
-		if !slices.Contains(itemTags, tag) {
-			return false
+	// Quickly return false if this item has fewer tags than required, since it can't possibly match.
+	if len(itemTags) < len(required) {
+		return false
+	}
+
+	// Use a map to track which required tags we've found in the item's tags.
+	matchingTags := make(map[string]string)
+
+	// Loop through item's tags and add any matching tags to the matchingTags map.
+	for _, itemTag := range itemTags {
+		if _, ok := required[itemTag]; ok {
+			matchingTags[itemTag] = required[itemTag]
 		}
+	}
+
+	// Check if we found all required tags in the item's tags.
+	if len(matchingTags) < len(required) {
+		return false
 	}
 	return true
 }
@@ -294,6 +307,9 @@ func (p *SecretsClient) listItems(ctx context.Context) ([]onepassword.ItemOvervi
 	// Add the vault list to the cache
 	if serialized, err := json.Marshal(items); err == nil {
 		p.cacheAdd(cacheKey, serialized)
+	} else {
+		// If we fail to serialize the items for caching, we can still return the items, so we just log the error and continue.
+		fmt.Printf("failed to serialize items for caching: %v\n", err)
 	}
 
 	return items, nil
@@ -352,6 +368,8 @@ func (p *SecretsClient) getAllFields(item onepassword.Item, ref esv1.ExternalSec
 }
 
 // fetchFile retrieves the content of a file, using the cache if possible.
+// TODO - Currently, cached files are not invalidated on updates. This should be done as part of the cache refactor.
+// See GitHub issue: https://github.com/external-secrets/external-secrets/issues/6444
 func (p *SecretsClient) fetchFile(ctx context.Context, itemID, fieldID string, attributes onepassword.FileAttributes) ([]byte, error) {
 	cacheKey := fileCachePrefix + p.vaultID + ":" + itemID + ":" + fieldID + ":" + attributes.Name
 	if cached, ok := p.cacheGet(cacheKey); ok {
