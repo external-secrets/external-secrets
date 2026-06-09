@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"maps"
+	"strconv"
 	"strings"
 	tpl "text/template"
 
@@ -121,9 +122,9 @@ func applyToTarget(k string, val []byte, target string, obj client.Object) error
 			return fmt.Errorf("failed to set data field on object: %w", err)
 		}
 	default:
-		parts := strings.Split(target, ".")
-		if len(parts) == 0 {
-			return fmt.Errorf("invalid path: %s", target)
+		tokens, err := parseTargetPath(target)
+		if err != nil {
+			return err
 		}
 
 		unstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
@@ -131,24 +132,14 @@ func applyToTarget(k string, val []byte, target string, obj client.Object) error
 			return fmt.Errorf(errConvertingToUnstructured, err)
 		}
 
-		// Navigate to the parent of the target field
-		current := unstructured
-		for i := range len(parts) - 1 {
-			part := parts[i]
-			if current[part] == nil {
-				current[part] = make(map[string]any)
-			}
-			next, ok := current[part].(map[string]any)
-			if !ok {
-				return fmt.Errorf("path %s is not a map at segment %s", target, part)
-			}
-			current = next
+		// Set the value at the target path, converting []byte to string to avoid
+		// base64 encoding when serializing.
+		leaf := func(any) any { return tryParseYAML(string(val)) }
+		updated, err := setAtPath(unstructured, tokens, leaf)
+		if err != nil {
+			return fmt.Errorf("failed to set path %s: %w", target, err)
 		}
-
-		// Set the value at the final key
-		// Convert []byte to string to avoid base64 encoding when serializing
-		lastPart := parts[len(parts)-1]
-		current[lastPart] = tryParseYAML(string(val))
+		unstructured = updated.(map[string]any)
 
 		// Convert back to the original object type
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, obj); err != nil {
@@ -319,56 +310,37 @@ func applyParsedToPath(parsed any, target string, obj client.Object) error {
 		return fmt.Errorf(errConvertingToUnstructured, err)
 	}
 
-	parts := strings.Split(target, ".")
-	if len(parts) == 0 {
-		return fmt.Errorf("invalid path: %s", target)
+	tokens, err := parseTargetPath(target)
+	if err != nil {
+		return err
 	}
 
-	// single value, aka "spec"
-	if len(parts) == 1 {
-		unstructured[parts[0]] = parsed
+	// single value, aka "spec": replace entirely to preserve historical behavior.
+	if len(tokens) == 1 && tokens[0].kind == tokenKey {
+		unstructured[tokens[0].name] = parsed
 	} else {
 		// navigate to the last element of the path and apply the entire struct at that location.
-		// build up the entire map structure that we are eventually going to apply.
-		current := unstructured
-		// this STOPS at the last part! That is important. for _, part := range parts does _include_ the last part
-		for i := 0; i < len(parts)-1; i++ {
-			part := parts[i]
-			if current[part] == nil {
-				current[part] = make(map[string]any)
-			}
-			next, ok := current[part].(map[string]any)
-			if !ok {
-				return fmt.Errorf("path %s is not a map at segment %s", target, part)
-			}
-			current = next
-		}
-
-		// once we constructed the entire segment, we finally apply our parsed object
-		// MERGE the parsed content into existing content instead of replacing it
-		lastPart := parts[len(parts)-1]
-		if existing, exists := current[lastPart]; exists {
-			// if both existing and new values are maps, merge them
+		// MERGE the parsed content into existing map content instead of replacing it.
+		leaf := func(existing any) any {
 			existingMap, existingOk := existing.(map[string]any)
 			parsedMap, parsedOk := parsed.(map[string]any)
-
 			if existingOk && parsedOk {
 				maps.Copy(existingMap, parsedMap)
-
-				current[lastPart] = existingMap
-			} else {
-				// existing or parsed value is not a map, replace entirely.
-				// this might break if people are trying to overwrite
-				// fields that aren't supposed to do that. but that's
-				// on the user to keep in mind. If they are trying to
-				// update a number field with a complex value, that's
-				// going to error on update anyway.
-				current[lastPart] = parsed
+				return existingMap
 			}
-		} else {
-			// field doesn't exist yet, create it
-			current[lastPart] = parsed
+			// existing or parsed value is not a map, replace entirely.
+			// this might break if people are trying to overwrite
+			// fields that aren't supposed to do that. but that's
+			// on the user to keep in mind. If they are trying to
+			// update a number field with a complex value, that's
+			// going to error on update anyway.
+			return parsed
 		}
+		updated, err := setAtPath(unstructured, tokens, leaf)
+		if err != nil {
+			return fmt.Errorf("failed to set path %s: %w", target, err)
+		}
+		unstructured = updated.(map[string]any)
 	}
 
 	// convert back to original object
@@ -377,4 +349,114 @@ func applyParsedToPath(parsed any, target string, obj client.Object) error {
 	}
 
 	return nil
+}
+
+// pathTokenKind distinguishes a map-key access from a slice-index access in a target path.
+type pathTokenKind int
+
+const (
+	tokenKey pathTokenKind = iota
+	tokenIndex
+)
+
+// pathToken is a single step in a parsed target path.
+type pathToken struct {
+	kind pathTokenKind
+	name string
+	idx  int
+}
+
+// parseTargetPath parses a dotted target path with optional slice notation into tokens.
+// e.g. "spec.rules[0].from[0].source.notRemoteIpBlocks" yields key/index steps where
+// "rules[0]" becomes a key "rules" followed by index 0.
+func parseTargetPath(target string) ([]pathToken, error) {
+	var tokens []pathToken
+	for _, seg := range strings.Split(target, ".") {
+		if seg == "" {
+			return nil, fmt.Errorf("invalid path %q: empty segment", target)
+		}
+
+		name, rest := seg, ""
+		if i := strings.IndexByte(seg, '['); i >= 0 {
+			name, rest = seg[:i], seg[i:]
+		}
+		if name != "" {
+			tokens = append(tokens, pathToken{kind: tokenKey, name: name})
+		} else if rest == "" {
+			return nil, fmt.Errorf("invalid path %q: empty segment", target)
+		}
+
+		for rest != "" {
+			if rest[0] != '[' {
+				return nil, fmt.Errorf("invalid path %q: expected '[' near %q", target, rest)
+			}
+			end := strings.IndexByte(rest, ']')
+			if end < 0 {
+				return nil, fmt.Errorf("invalid path %q: unterminated '['", target)
+			}
+			idx, err := strconv.Atoi(rest[1:end])
+			if err != nil {
+				return nil, fmt.Errorf("invalid path %q: bad index %q", target, rest[1:end])
+			}
+			if idx < 0 {
+				return nil, fmt.Errorf("invalid path %q: negative index %d", target, idx)
+			}
+			tokens = append(tokens, pathToken{kind: tokenIndex, idx: idx})
+			rest = rest[end+1:]
+		}
+	}
+	if len(tokens) == 0 {
+		return nil, fmt.Errorf("invalid path: %s", target)
+	}
+	return tokens, nil
+}
+
+// setAtPath walks node following tokens, creating intermediate maps and slices as needed,
+// and applies leaf to the value at the final location. It returns the possibly-reallocated
+// node, since growing a slice replaces its header.
+func setAtPath(node any, tokens []pathToken, leaf func(existing any) any) (any, error) {
+	tok := tokens[0]
+	switch tok.kind {
+	case tokenKey:
+		m, ok := node.(map[string]any)
+		if !ok {
+			if node != nil {
+				return nil, fmt.Errorf("expected map at key %q but found %T", tok.name, node)
+			}
+			m = make(map[string]any)
+		}
+		if len(tokens) == 1 {
+			m[tok.name] = leaf(m[tok.name])
+			return m, nil
+		}
+		child, err := setAtPath(m[tok.name], tokens[1:], leaf)
+		if err != nil {
+			return nil, err
+		}
+		m[tok.name] = child
+		return m, nil
+	case tokenIndex:
+		s, ok := node.([]any)
+		if !ok {
+			if node != nil {
+				return nil, fmt.Errorf("expected array at index %d but found %T", tok.idx, node)
+			}
+			s = make([]any, 0, tok.idx+1)
+		}
+		for len(s) <= tok.idx {
+			s = append(s, nil)
+		}
+		if len(tokens) == 1 {
+			s[tok.idx] = leaf(s[tok.idx])
+			return s, nil
+		}
+		child, err := setAtPath(s[tok.idx], tokens[1:], leaf)
+		if err != nil {
+			return nil, err
+		}
+		s[tok.idx] = child
+		return s, nil
+	default:
+		return nil, fmt.Errorf("unknown path token kind %d", tok.kind)
+	}
 }
