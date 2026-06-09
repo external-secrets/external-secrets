@@ -12937,6 +12937,135 @@ cache: {} is a valid option to set.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider</a>)
+</p>
+<p>
+<p>OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
+Currently only token-based authentication is supported via <code>tokenSecretRef</code>.
+Additional authentication methods are planned for future releases.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>tokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TokenSecretRef authenticates with OpenBao by presenting a token.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoKVStoreVersion">OpenBaoKVStoreVersion
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider</a>)
+</p>
+<p>
+<p>OpenBaoKVStoreVersion represents the version of the OpenBao KV secret engine.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;v1&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;v2&#34;</p></td>
+<td></td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>OpenBaoProvider configures a store to sync secrets using an OpenBao KV backend.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoAuth">
+OpenBaoAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how secret-manager authenticates with the OpenBao server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>server</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Server is the connection address for the OpenBao server, e.g: <code>https://openbao.example.com:8200</code>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Path is the mount path of the OpenBao KV backend endpoint, e.g:
+&ldquo;secret&rdquo;. The v2 KV secret engine version specific &ldquo;/data&rdquo; path suffix
+for fetching secrets from OpenBao is optional and will be appended
+if not present in specified path.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoKVStoreVersion">
+OpenBaoKVStoreVersion
+</a>
+</em>
+</td>
+<td>
+<p>Version is the OpenBao KV secret engine version. This can be either &ldquo;v1&rdquo; or
+&ldquo;v2&rdquo;. Version defaults to &ldquo;v2&rdquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.OracleAuth">OracleAuth
 </h3>
 <p>
@@ -15042,6 +15171,20 @@ NebiusMysteryboxProvider
 <td>
 <em>(Optional)</em>
 <p>NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>openBao</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoProvider">
+OpenBaoProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OpenBao configures this store to sync secrets using the OpenBao provider.</p>
 </td>
 </tr>
 </tbody>
