@@ -1253,6 +1253,37 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"SetSecretWithRegionReplication": {
+			reason: "create a new secret with replication to extra regions",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					DescribeSecretFn:    fakesm.NewDescribeSecretFn(blankDescribeSecretOutput, &getSecretCorrectErr),
+					CreateSecretFn:      fakesm.NewCreateSecretFn(secretOutput, nil),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"replicationLocations": [
+									"eu-north-1",
+									"eu-central-1"
+								]
+							}
+						}`),
+					},
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
 	}
 
 	for name, tc := range tests {
