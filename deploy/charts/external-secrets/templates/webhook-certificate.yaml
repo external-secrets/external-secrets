@@ -3,7 +3,7 @@
 apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
-  name: {{ include "external-secrets.componentName" (list . "-webhook") }}
+  name: {{ include "external-secrets.fullname" . }}-webhook
   namespace: {{ template "external-secrets.namespace" . }}
   labels:
     {{- include "external-secrets-webhook.labels" . | nindent 4 }}
@@ -36,5 +36,5 @@ spec:
   {{- if gt (.Values.webhook.certManager.cert.revisionHistoryLimit | int) 0 }}
   revisionHistoryLimit: {{ .Values.webhook.certManager.cert.revisionHistoryLimit }}
   {{- end }}
-  secretName: {{ include "external-secrets.componentName" (list . "-webhook") }}
+  secretName: {{ include "external-secrets.fullname" . }}-webhook
 {{- end }}

@@ -8,7 +8,7 @@ metadata:
 {{- if .Values.serviceMonitor.additionalLabels }}
 {{ toYaml .Values.serviceMonitor.additionalLabels | indent 4 }}
 {{- end }}
-  name: {{ include "external-secrets.componentName" (list . "-metrics") }}
+  name: {{ include "external-secrets.fullname" . }}-metrics
   namespace: {{ .Values.serviceMonitor.namespace | default (include "external-secrets.namespace" .) | quote }}
 spec:
   selector:
@@ -47,7 +47,7 @@ metadata:
 {{- if .Values.serviceMonitor.additionalLabels }}
 {{ toYaml .Values.serviceMonitor.additionalLabels | indent 4 }}
 {{- end }}
-  name: {{ include "external-secrets.componentName" (list . "-webhook-metrics") }}
+  name: {{ include "external-secrets.fullname" . }}-webhook-metrics
   namespace: {{ .Values.serviceMonitor.namespace | default (include "external-secrets.namespace" .) | quote }}
 spec:
   selector:
@@ -87,7 +87,7 @@ metadata:
 {{- if .Values.serviceMonitor.additionalLabels }}
 {{ toYaml .Values.serviceMonitor.additionalLabels | indent 4 }}
 {{- end }}
-  name: {{ include "external-secrets.componentName" (list . "-cert-controller-metrics") }}
+  name: {{ include "external-secrets.fullname" . }}-cert-controller-metrics
   namespace: {{ .Values.serviceMonitor.namespace | default (include "external-secrets.namespace" .) | quote }}
 spec:
   selector:
