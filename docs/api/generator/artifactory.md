@@ -48,7 +48,7 @@ When OIDC is not available, provide a bootstrap identity or access token in a Ku
 | `auth.referenceToken.scope` | Token scope (e.g. `applied-permissions/user`). | Yes (reference) |
 | `auth.referenceToken.expiresIn` | Token lifetime in seconds. | No |
 
-The table above lists the main fields. Optional reference-token parameters include `applicationKey`, `projectKey`, `identityMappingName`, `includeReferenceToken`, `refreshable`, and `description`.
+The table above lists the main fields in `ArtifactoryAccessTokenSpec`. Optional reference-token parameters include `projectKey`, `includeReferenceToken`, `refreshable`, and `description`. Optional OIDC exchange parameters include `applicationKey` and `identityMappingName`.
 
 ## Example Manifests
 
