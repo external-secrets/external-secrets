@@ -5095,7 +5095,7 @@ that has the same title as another label we won't know which one to update and a
 <span class="w">        </span><span class="nt">ttl</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5m</span><span class="w">      </span><span class="c1"># Optional, default: 5m</span>
 <span class="w">        </span><span class="nt">maxSize</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">100</span><span class="w"> </span><span class="c1"># Optional, default: 100</span>
 </code></pre></div>
-<p>Caching applies to read operations (<code>GetSecret</code>, <code>GetSecretMap</code>). Write operations (<code>PushSecret</code>, <code>DeleteSecret</code>) automatically invalidate relevant cache entries.</p>
+<p>Caching applies to read operations (<code>GetSecret</code>, <code>GetSecretMap</code>, <code>GetAllSecrets</code>). Write operations (<code>PushSecret</code>, <code>DeleteSecret</code>) automatically invalidate relevant cache entries.</p>
 <div class="admonition warning">
 <p class="admonition-title">Experimental</p>
 <p>This is an experimental feature and if too long of a TTL is set, secret information might be out of date.</p>
@@ -5119,6 +5119,20 @@ that has the same title as another label we won't know which one to update and a
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test-login-1</span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test-login-1/username</span>
+<span class="w">  </span><span class="c1"># OR</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">test-login-1</span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span><span class="w"> </span><span class="c1"># optional field Label to match exactly</span>
+<span class="w">    </span><span class="c1"># OR</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-env-config</span><span class="w"> </span><span class="c1"># optional Item Title to match exactly</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;^username$&quot;</span>
+<span class="w">    </span><span class="c1"># OR</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">tags</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">tag1</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"> </span><span class="c1"># optional tags to match - value is unused, just needs to be present</span>
 </code></pre></div>
 <h3 id="pushsecret">PushSecret</h3>
 <p>Pushing a secret is also supported. For example a push operation with the following secret:</p>
