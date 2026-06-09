@@ -54,6 +54,10 @@ type PushSecretMetadataSpec struct {
 	SecretPushFormat string              `json:"secretPushFormat,omitempty"`
 	KMSKeyID         string              `json:"kmsKeyId,omitempty"`
 	ResourcePolicy   *ResourcePolicySpec `json:"resourcePolicy,omitempty"`
+	// ReplicationLocations defines one or more user-managed replication
+	// locations for the secret. This is useful for High Availability across
+	// regions.
+	ReplicationLocations []string `json:"replicationLocations,omitempty"`
 }
 
 // ResourcePolicySpec defines the resource policy configuration using PolicySourceRef for AWS Secrets Manager.
@@ -570,13 +574,15 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		})
 	}
 
+	kmsKeyID := aws.String(mdata.Spec.KMSKeyID)
 	input := &awssm.CreateSecretInput{
 		Name:               &secretName,
 		SecretBinary:       value,
 		Tags:               tags,
 		Description:        new(mdata.Spec.Description),
 		ClientRequestToken: new(initialVersion),
-		KmsKeyId:           new(mdata.Spec.KMSKeyID),
+		KmsKeyId:           kmsKeyID,
+		AddReplicaRegions:  buildReplicationRegionType(mdata.Spec.ReplicationLocations, kmsKeyID),
 	}
 	if mdata.Spec.SecretPushFormat == SecretPushFormatString {
 		input.SecretBinary = nil
@@ -986,4 +992,15 @@ func computeTagsToUpdate(tags, metaTags map[string]string) ([]types.Tag, bool) {
 		})
 	}
 	return result, modified
+}
+func buildReplicationRegionType(regions []string, kmsKeyID *string) []types.ReplicaRegionType {
+	replicationRegionsType := make([]types.ReplicaRegionType, 0, len(regions))
+	for _, region := range regions {
+		replicationRegionType := types.ReplicaRegionType{
+			Region:   aws.String(region),
+			KmsKeyId: kmsKeyID,
+		}
+		replicationRegionsType = append(replicationRegionsType, replicationRegionType)
+	}
+	return replicationRegionsType
 }
