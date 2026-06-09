@@ -139,7 +139,12 @@ func applyToTarget(k string, val []byte, target string, obj client.Object) error
 		if err != nil {
 			return fmt.Errorf("failed to set path %s: %w", target, err)
 		}
-		unstructured = updated.(map[string]any)
+
+		var ok bool
+		unstructured, ok = updated.(map[string]any)
+		if !ok {
+			return fmt.Errorf("update was not of type map[string]any but was %T", target)
+		}
 
 		// Convert back to the original object type
 		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, obj); err != nil {
@@ -371,7 +376,7 @@ type pathToken struct {
 // "rules[0]" becomes a key "rules" followed by index 0.
 func parseTargetPath(target string) ([]pathToken, error) {
 	var tokens []pathToken
-	for _, seg := range strings.Split(target, ".") {
+	for seg := range strings.SplitSeq(target, ".") {
 		if seg == "" {
 			return nil, fmt.Errorf("invalid path %q: empty segment", target)
 		}
