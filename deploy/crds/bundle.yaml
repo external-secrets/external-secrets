@@ -114,7 +114,6 @@ spec:
                                   - Fetch
                                 type: string
                               nullBytePolicy:
-                                default: Ignore
                                 description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
                                 enum:
                                   - Ignore
@@ -248,7 +247,6 @@ spec:
                                   - Fetch
                                 type: string
                               nullBytePolicy:
-                                default: Ignore
                                 description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
                                 enum:
                                   - Ignore
@@ -292,7 +290,6 @@ spec:
                                     type: string
                                 type: object
                               nullBytePolicy:
-                                default: Ignore
                                 description: Controls how ESO handles fetched secret data containing NUL bytes for this find source.
                                 enum:
                                   - Ignore
@@ -12704,7 +12701,6 @@ spec:
                               - Fetch
                             type: string
                           nullBytePolicy:
-                            default: Ignore
                             description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
                             enum:
                               - Ignore
@@ -12838,7 +12834,6 @@ spec:
                               - Fetch
                             type: string
                           nullBytePolicy:
-                            default: Ignore
                             description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
                             enum:
                               - Ignore
@@ -12882,7 +12877,6 @@ spec:
                                 type: string
                             type: object
                           nullBytePolicy:
-                            default: Ignore
                             description: Controls how ESO handles fetched secret data containing NUL bytes for this find source.
                             enum:
                               - Ignore
