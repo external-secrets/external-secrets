@@ -98,6 +98,13 @@ const (
 	logErrorSecretCacheNotSynced = "controller caches for Secret are not in sync"
 	logErrorUnmanagedStore       = "unable to determine if store is managed"
 
+	// log messages for mutating / destructive secret operations, emitted at
+	// V(1) so they are opt-in. They only ever carry key names, never values.
+	logSecretDeleted         = "deleted secret"
+	logManagedSecretDeleted  = "deleted managed secret"
+	logSecretDeletedOrphaned = "deleted orphaned secret"
+	logSecretDataChanged     = "secret data keys changed"
+
 	// error formats.
 	errConvert               = "error applying conversion strategy %s to keys: %w"
 	errRewrite               = "error applying rewrite to keys: %w"
@@ -434,6 +441,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 					r.markAsFailed(msgErrorDeleteSecret, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 					return ctrl.Result{}, err
 				}
+				log.V(1).Info(logSecretDeleted, "secret", secretName, "namespace", externalSecret.Namespace, "reason", "DeletionPolicy=Delete and provider returned no data")
 				r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1.ReasonDeleted, eventDeleted)
 			}
 
@@ -507,7 +515,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	case esv1.CreatePolicyMerge:
 		// update the secret, if it exists
 		if existingSecret.UID != "" {
-			err = r.updateSecret(ctx, existingSecret, mutationFunc, externalSecret, secretName)
+			err = r.updateSecret(ctx, log, existingSecret, mutationFunc, externalSecret, secretName)
 		} else {
 			// if the secret does not exist, we wait until the next refresh interval
 			// rather than returning an error which would requeue immediately
@@ -520,12 +528,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			err = r.createSecret(ctx, mutationFunc, externalSecret, secretName)
 		} else {
 			// if the secret exists, we should update it
-			err = r.updateSecret(ctx, existingSecret, mutationFunc, externalSecret, secretName)
+			err = r.updateSecret(ctx, log, existingSecret, mutationFunc, externalSecret, secretName)
 		}
 	case esv1.CreatePolicyOwner:
 		// we may have orphaned secrets to clean up,
 		// for example, if the target secret name was changed
-		err = r.deleteOrphanedSecrets(ctx, externalSecret, secretName)
+		err = r.deleteOrphanedSecrets(ctx, log, externalSecret, secretName)
 		if err != nil {
 			r.markAsFailed(msgErrorDeleteOrphaned, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 			return ctrl.Result{}, err
@@ -536,7 +544,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			err = r.createSecret(ctx, mutationFunc, externalSecret, secretName)
 		} else {
 			// if the secret exists, we should update it
-			err = r.updateSecret(ctx, existingSecret, mutationFunc, externalSecret, secretName)
+			err = r.updateSecret(ctx, log, existingSecret, mutationFunc, externalSecret, secretName)
 		}
 	}
 	if err != nil {
@@ -860,13 +868,13 @@ func (r *Reconciler) cleanupManagedSecrets(ctx context.Context, log logr.Logger,
 		if err := r.Delete(ctx, &secret); err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
-		log.V(1).Info("deleted managed secret", "secret", secretName)
+		log.V(1).Info(logManagedSecretDeleted, "secret", secretName, "namespace", externalSecret.Namespace, "reason", "ExternalSecret deleted")
 	}
 
 	return nil
 }
 
-func (r *Reconciler) deleteOrphanedSecrets(ctx context.Context, externalSecret *esv1.ExternalSecret, secretName string) error {
+func (r *Reconciler) deleteOrphanedSecrets(ctx context.Context, log logr.Logger, externalSecret *esv1.ExternalSecret, secretName string) error {
 	ownerLabel := esutils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
 
 	// we use a PartialObjectMetadataList to avoid loading the full secret objects
@@ -890,6 +898,7 @@ func (r *Reconciler) deleteOrphanedSecrets(ctx context.Context, externalSecret *
 			if err != nil && !apierrors.IsNotFound(err) {
 				return err
 			}
+			log.V(1).Info(logSecretDeletedOrphaned, "secret", secretPartial.GetName(), "namespace", externalSecret.Namespace)
 			r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1.ReasonDeleted, eventDeletedOrphaned)
 		}
 	}
@@ -928,7 +937,7 @@ func (r *Reconciler) createSecret(ctx context.Context, mutationFunc func(secret 
 	return nil
 }
 
-func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret, mutationFunc func(secret *v1.Secret) error, es *esv1.ExternalSecret, secretName string) error {
+func (r *Reconciler) updateSecret(ctx context.Context, log logr.Logger, existingSecret *v1.Secret, mutationFunc func(secret *v1.Secret) error, es *esv1.ExternalSecret, secretName string) error {
 	fqdn := fqdnFor(es.Name)
 
 	// fail if the secret does not exist
@@ -998,6 +1007,23 @@ func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret
 			return err
 		}
 		return fmt.Errorf(errUpdate, updatedSecret.Name, err)
+	}
+
+	// only compute the key diff when debug verbosity is active (--loglevel=debug /
+	// log.level=debug in Helm). skipping it by default avoids per-reconcile
+	// allocation on every managed secret. we only ever log key names, never values.
+	if log.V(1).Enabled() {
+		added, updated, removed, emptied := diffSecretDataKeys(existingSecret.Data, updatedSecret.Data)
+		if len(added) > 0 || len(updated) > 0 || len(removed) > 0 {
+			log.V(1).Info(logSecretDataChanged,
+				"secret", secretName,
+				"namespace", es.Namespace,
+				"added", added,
+				"updated", updated,
+				"removed", removed,
+				"emptied", emptied,
+			)
+		}
 	}
 
 	r.recorder.Event(es, v1.EventTypeNormal, esv1.ReasonUpdated, eventUpdated)
