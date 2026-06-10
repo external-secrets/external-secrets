@@ -61,6 +61,10 @@ var (
 // A project's ID is effectively immutable for a given slug, so entries never
 // expire. The key is scoped by host + auth identity so a slug reused across
 // tenants on shared SaaS never returns another tenant's project ID.
+//
+// TODO: replace sync.Map with a size-capped LRU (or runtime/cache.Must) to
+// bound memory when many token-auth stores rotate their credentials frequently;
+// each rotation hashes to a distinct key and the stale entry is never evicted.
 var projectIDCache sync.Map // map[projectIDCacheKey]string
 
 type projectIDCacheKey struct {
@@ -141,6 +145,9 @@ func (p *Provider) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRe
 	}
 
 	if property := remoteRef.GetProperty(); property != "" {
+		if !gjson.Valid(existing) {
+			return fmt.Errorf("secret %q value is not a JSON object; cannot delete property %q", name, property)
+		}
 		if !gjson.Get(existing, property).Exists() {
 			return nil
 		}
@@ -194,6 +201,9 @@ func (p *Provider) SecretExists(_ context.Context, remoteRef esv1.PushSecretRemo
 		return false, nil
 	}
 	if property := remoteRef.GetProperty(); property != "" {
+		if !gjson.Valid(existing) {
+			return false, fmt.Errorf("secret %q value is not a JSON object; cannot check property %q", name, property)
+		}
 		return gjson.Get(existing, property).Exists(), nil
 	}
 	return true, nil

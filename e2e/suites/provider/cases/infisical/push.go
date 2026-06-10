@@ -18,10 +18,13 @@ package infisical
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	infisicalSdk "github.com/infisical/go-sdk"
+	sdkErrors "github.com/infisical/go-sdk/packages/errors"
 	//nolint
 	. "github.com/onsi/ginkgo/v2"
 	//nolint
@@ -167,13 +170,30 @@ func pushSecretDeletesOnPolicy(prov *infisicalProvider) func(*framework.Framewor
 				// (deletionPolicy: Delete), removing the secret from Infisical.
 				Expect(f.CRClient.Delete(GinkgoT().Context(), ps)).To(Succeed())
 
+				// Wait until the secret is confirmed absent. Using
+				// Should(Succeed()) on a helper that returns nil only on
+				// "not found" avoids a false pass on transient API errors
+				// (which ShouldNot(Succeed()) would also accept).
 				Eventually(func() error {
 					_, err := prov.remoteSecretValue(remoteKey)
+					if err == nil {
+						return fmt.Errorf("secret %q still exists in Infisical", remoteKey)
+					}
+					if isInfisicalNotFound(err) {
+						return nil
+					}
 					return err
-				}, time.Minute*2, time.Second*5).ShouldNot(Succeed())
+				}, time.Minute*2, time.Second*5).Should(Succeed())
 			}
 		}
 	}
+}
+
+// isInfisicalNotFound reports whether err is a 404 from the Infisical API,
+// meaning the secret is definitively absent rather than transiently unavailable.
+func isInfisicalNotFound(err error) bool {
+	var apiErr *sdkErrors.APIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound
 }
 
 // remoteSecretValue reads a secret from the e2e project by slug via the addon

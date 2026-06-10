@@ -325,6 +325,16 @@ func TestDeleteSecret(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, 1, mock.deletes)
 	})
+
+	t.Run("errors when the existing value is not JSON and a property is set", func(t *testing.T) {
+		p, mock := newPushTestProvider(t)
+		mock.secrets["remote"] = "plain-string-not-json"
+
+		err := p.DeleteSecret(ctx, fake.PushSecretData{RemoteKey: "remote", Property: "key"})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "not a JSON object")
+		assert.Equal(t, 0, mock.deletes)
+	})
 }
 
 func TestSecretExists(t *testing.T) {
