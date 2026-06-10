@@ -15,7 +15,7 @@ The PrivX provider supports two authentication methods. Use only one per SecretS
 
 This method uses an API client registered in PrivX with OAuth2 credentials. It is the recommended approach for automated integrations.
 
-See [PrivX API-Client Integration](https://privx.docs.ssh.com/v43/docs/advanced-configuration/api-client-integration/) for setup details.
+See [PrivX API-Client Integration](https://privx.docs.ssh.com/docs/advanced-configuration/api-client-integration/) for setup details.
 
 **How it works:**
 
@@ -47,13 +47,13 @@ spec:
       host: <privx host url>
       defaultReadRoles:
         [
-          "d0f6418b-728b-4ffc-8b9e-4f01ba1e659b",
-          "bcd9dd57-abce-5e6c-6e12-1c988e1d7bc9",
+          "<role-uuid-1>",  # Replace with your PrivX role UUID
+          "<role-uuid-2>",
         ]
       defaultWriteRoles:
         [
-          "d0f6418b-728b-4ffc-8b9e-4f01ba1e659b",
-          "bcd9dd57-abce-5e6c-6e12-1c988e1d7bc9",
+          "<role-uuid-1>",
+          "<role-uuid-2>",
         ]
       auth:
         oauth:
@@ -86,7 +86,7 @@ spec:
 
 This method authenticates using an externally created JSON Web Token (JWT) signed with a private key. The provider generates a JWT locally and exchanges it for a PrivX access token via the `/auth/api/v1/token/login` endpoint.
 
-See [PrivX External JWT Authentication](https://privx.docs.ssh.com/v43/docs/users-and-permissions/additional-authentication-methods/external-jwt-authentication) for setup details.
+See [PrivX External JWT Authentication](https://privx.docs.ssh.com/docs/users-and-permissions/additional-authentication-methods/external-jwt-authentication) for setup details.
 
 **Prerequisites in PrivX:**
 

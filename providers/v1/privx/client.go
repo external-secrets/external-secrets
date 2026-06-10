@@ -131,7 +131,10 @@ func (c *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, d
 	}
 
 	secretKey := data.GetSecretKey()
-	secretValue := secret.Data[secretKey]
+	secretValue, ok := secret.Data[secretKey]
+	if !ok {
+		return fmt.Errorf("secret key %q not found in source secret %q", secretKey, secret.Name)
+	}
 	m := &map[string]interface{}{secretKey: string(secretValue)}
 
 	request := vault.SecretRequest{
@@ -177,7 +180,7 @@ func (c *SecretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRem
 		return false, err
 	}
 	remoteRef := esv1.ExternalSecretDataRemoteRef{Key: ref.GetRemoteKey()}
-	_, err := c.GetSecret(context.TODO(), remoteRef)
+	_, err := c.GetSecret(ctx, remoteRef)
 	if err == nil {
 		return true, nil
 	}
