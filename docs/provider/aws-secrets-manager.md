@@ -196,7 +196,7 @@ spec:
         description: "Cross-account accessible secret"
         tags:
           team: platform-engineering
-``
+```
 
 The ConfigMap should contain the policy JSON:
 
