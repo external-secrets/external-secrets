@@ -82,8 +82,8 @@ func makeStore(name, ns string, v *addon.OpenBao) *esv1.SecretStore {
 		},
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
-				Vault: &esv1.VaultProvider{
-					Version: esv1.VaultKVStoreV2,
+				OpenBao: &esv1.OpenBaoProvider{
+					Version: esv1.OpenBaoKVStoreV2,
 					Path:    new(secretStorePath),
 					Server:  v.InClusterURL,
 				},
@@ -103,7 +103,7 @@ func (s openBaoProvider) CreateTokenStore() {
 		},
 	}
 	secretStore := makeStore(s.framework.Namespace.Name, s.framework.Namespace.Name, s.addon)
-	secretStore.Spec.Provider.Vault.Auth = &esv1.VaultAuth{
+	secretStore.Spec.Provider.OpenBao.Auth = &esv1.OpenBaoAuth{
 		TokenSecretRef: &esmeta.SecretKeySelector{
 			Name: secret.Name,
 			Key:  "token",
