@@ -145,7 +145,7 @@ func (p *Provider) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRe
 	}
 
 	if property := remoteRef.GetProperty(); property != "" {
-		if !gjson.Valid(existing) {
+		if !gjson.Parse(existing).IsObject() {
 			return fmt.Errorf("secret %q value is not a JSON object; cannot delete property %q", name, property)
 		}
 		if !gjson.Get(existing, property).Exists() {
@@ -201,7 +201,7 @@ func (p *Provider) SecretExists(_ context.Context, remoteRef esv1.PushSecretRemo
 		return false, nil
 	}
 	if property := remoteRef.GetProperty(); property != "" {
-		if !gjson.Valid(existing) {
+		if !gjson.Parse(existing).IsObject() {
 			return false, fmt.Errorf("secret %q value is not a JSON object; cannot check property %q", name, property)
 		}
 		return gjson.Get(existing, property).Exists(), nil
