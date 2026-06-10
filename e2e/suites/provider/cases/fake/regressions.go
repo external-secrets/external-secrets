@@ -19,12 +19,20 @@ package fake
 import (
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
+
 	. "github.com/onsi/ginkgo/v2"
 )
 
 var _ = Describe("[fake] ", Label("fake"), func() {
 	f := framework.New("eso-fake")
 	prov := NewProvider(f)
+
+	DescribeTable("namespaced provider",
+		framework.TableFuncWithExternalSecret(f, prov),
+		Entry(common.FakeProviderSync(f)),
+		Entry(common.FakeProviderRefresh(f)),
+		Entry(common.FakeProviderFind(f)),
+	)
 
 	// we use the fake provider to test regressions
 	DescribeTable("controller regressions",

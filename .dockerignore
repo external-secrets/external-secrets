@@ -1,6 +1,10 @@
 .git
 .github
 .gitignore
+.cache
+**/.cache
+.tmp
+**/.tmp
 .golangci.yaml
 ADOPTERS.md
 CNAME

@@ -336,7 +336,7 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{
 		secretKeyResolver: DefaultSecretKeyResolver{},
 	}

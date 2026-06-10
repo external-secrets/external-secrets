@@ -29,7 +29,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
-var _ esv1.Provider = &Client{}
+var _ esv1.ProviderInterface = &Client{}
 
 type SetSecretCallArgs struct {
 	Value     []byte

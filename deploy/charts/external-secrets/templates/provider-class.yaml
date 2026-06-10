@@ -1,0 +1,18 @@
+{{- if .Values.providers.enabled }}
+{{- range .Values.providers.list }}
+{{- if .enabled }}
+{{- $root := $ }}
+{{- $provider := include "external-secrets.provider.mergeDefaults" (dict "provider" . "root" $root) | fromYaml }}
+{{- $providerName := $provider.name | default $provider.type }}
+---
+apiVersion: external-secrets.io/v1alpha1
+kind: ClusterProviderClass
+metadata:
+  name: {{ $providerName }}
+  labels:
+    {{- include "external-secrets.provider.labels" (dict "provider" $provider "root" $root) | nindent 4 }}
+spec:
+  address: {{ include "external-secrets.provider.servicename" (dict "provider" $provider "root" $root) }}.{{ include "external-secrets.namespace" $root }}.svc:{{ $provider.service.port | default 8080 }}
+{{- end }}
+{{- end }}
+{{- end }}

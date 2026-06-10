@@ -14,6 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package secretstore implements controllers for SecretStore and ClusterSecretStore resources.
 package secretstore
 
 import (

@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://external-secrets.io/schemas/provider-config.schema.json",
+  "title": "Provider Configuration",
+  "description": "Configuration schema for External Secrets Operator v2 provider code generation",
+  "type": "object",
+  "required": ["provider"],
+  "properties": {
+    "provider": {
+      "type": "object",
+      "required": ["name", "displayName"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Provider name (lowercase, alphanumeric with hyphens)"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Human-readable provider name"
+        },
+        "v2Package": {
+          "type": "string",
+          "description": "Go import path for the v2alpha1 API package (optional if no stores)"
+        }
+      }
+    },
+    "stores": {
+      "type": ["array", "null"],
+      "description": "List of secret store implementations provided by this provider",
+      "items": {
+        "type": "object",
+        "required": ["gvk", "v1Provider", "v1ProviderFunc"],
+        "properties": {
+          "gvk": {
+            "type": "object",
+            "required": ["group", "version", "kind"],
+            "properties": {
+              "group": {
+                "type": "string",
+                "description": "API group"
+              },
+              "version": {
+                "type": "string",
+                "description": "API version"
+              },
+              "kind": {
+                "type": "string",
+                "description": "Resource kind"
+              }
+            }
+          },
+          "v1Provider": {
+            "type": "string",
+            "description": "Go import path for the v1 provider package"
+          },
+          "v1ProviderFunc": {
+            "type": "string",
+            "description": "Function name that returns the v1 provider instance"
+          }
+        }
+      }
+    },
+    "generators": {
+      "type": ["array", "null"],
+      "description": "List of generator implementations provided by this provider",
+      "items": {
+        "type": "object",
+        "required": ["gvk", "v1Generator", "v1GeneratorFunc"],
+        "properties": {
+          "gvk": {
+            "type": "object",
+            "required": ["group", "version", "kind"],
+            "properties": {
+              "group": {
+                "type": "string",
+                "description": "API group"
+              },
+              "version": {
+                "type": "string",
+                "description": "API version"
+              },
+              "kind": {
+                "type": "string",
+                "description": "Generator kind"
+              }
+            }
+          },
+          "v1Generator": {
+            "type": "string",
+            "description": "Go import path for the v1 generator package"
+          },
+          "v1GeneratorFunc": {
+            "type": "string",
+            "description": "Function name that returns the v1 generator instance"
+          }
+        }
+      }
+    },
+    "configPackage": {
+      "type": "string",
+      "description": "Relative import path for the config.go file containing GetSpecMapper function",
+      "default": "./config"
+    }
+  },
+  "anyOf": [
+    {
+      "required": ["stores"]
+    },
+    {
+      "required": ["generators"]
+    }
+  ]
+}
+

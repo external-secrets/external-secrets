@@ -27,3 +27,7 @@ jobs:
           persist-credentials: false
       - name: 'Dependency Review'
         uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v4
+        with:
+          allow-ghsas: |
+            GHSA-7f33-f4f5-xwgw
+            GHSA-f5pg-7wfw-84q9

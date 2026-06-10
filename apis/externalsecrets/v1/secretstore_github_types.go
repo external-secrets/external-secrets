@@ -32,9 +32,11 @@ type GithubProvider struct {
 	Auth GithubAppAuth `json:"auth"`
 
 	// appID specifies the Github APP that will be used to authenticate the client
+	// +kubebuilder:validation:Format=""
 	AppID int64 `json:"appID"`
 
 	// installationID specifies the Github APP installation that will be used to authenticate the client
+	// +kubebuilder:validation:Format=""
 	InstallationID int64 `json:"installationID"`
 
 	// organization will be used to fetch secrets from the Github organization
