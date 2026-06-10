@@ -1,0 +1,7 @@
+suite: test RDSIAMAuthToken generator
+template: tests/crds/rdsiamauthtoken.yml
+tests:
+  - it: matches RDSIAMAuthToken generator correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__
