@@ -538,10 +538,12 @@ const (
 // ExternalSecretSyncWindowEntry defines a single cron-schedule + duration pair
 // within a SyncWindows block.
 type ExternalSecretSyncWindowEntry struct {
-	// Schedule is a standard 5-field cron expression evaluated in UTC.
-	// It marks the start time of each window occurrence.
+	// Schedule is a standard 5-field cron expression evaluated in UTC, or a
+	// named shorthand such as @daily or @every 1h. It marks the start time of
+	// each window occurrence.
 	// Example: "0 22 * * 1-5" opens a window every weekday at 22:00 UTC.
 	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Pattern:=`^(@(annually|yearly|monthly|weekly|daily|midnight|hourly)|@every [^\s]+.*|[^\s]+( [^\s]+){4})$`
 	Schedule string `json:"schedule"`
 
 	// Duration specifies how long the window stays open after each Schedule
@@ -557,7 +559,6 @@ type ExternalSecretSyncWindows struct {
 	//            all other times are blocked.
 	// "deny"  -- syncs are blocked while any window is active;
 	//            all other times are permitted.
-	// +kubebuilder:validation:Enum=allow;deny
 	Kind ExternalSecretSyncWindowKind `json:"kind"`
 
 	// Windows is the list of schedule+duration pairs.

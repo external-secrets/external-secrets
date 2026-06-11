@@ -341,7 +341,7 @@ require (
 	github.com/pulumi/esc-sdk/sdk v0.12.3 // indirect
 	github.com/pulumi/pulumi/sdk/v3 v3.205.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/robfig/cron/v3 v3.0.1 // indirect
+	github.com/robfig/cron/v3 v3.0.1
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect

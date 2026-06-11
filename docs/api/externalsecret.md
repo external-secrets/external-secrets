@@ -131,6 +131,10 @@ spec:
 
 You can list several entries under `windows`. For `kind: allow`, the sync is permitted when **any** window is active. For `kind: deny`, the sync is blocked when **any** window is active.
 
+### Interaction with refreshInterval
+
+`syncWindows` only suppresses sync operations -- it does not change how often the controller checks. The controller still requeues at `refreshInterval` regardless of whether a sync was blocked. This means that if `refreshInterval` is longer than `window.duration`, a window could open and close entirely between two consecutive checks and the sync would be missed for that occurrence. This is by design: `refreshInterval` is the primary driver; `syncWindows` is a gate on top of it. To ensure no window occurrence is missed, set `refreshInterval` to a value shorter than the smallest `window.duration`.
+
 ## Features
 
 Individual features are described in the [Guides section](../guides/introduction.md):

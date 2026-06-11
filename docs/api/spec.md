@@ -5033,8 +5033,9 @@ string
 </em>
 </td>
 <td>
-<p>Schedule is a standard 5-field cron expression evaluated in UTC.
-It marks the start time of each window occurrence.
+<p>Schedule is a standard 5-field cron expression evaluated in UTC, or a
+named shorthand such as @daily or @every 1h. It marks the start time of
+each window occurrence.
 Example: &ldquo;0 22 * * 1-5&rdquo; opens a window every weekday at 22:00 UTC.</p>
 </td>
 </tr>

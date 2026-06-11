@@ -1194,14 +1194,19 @@ func isPeriodicRefreshAllowedByWindows(es *esv1.ExternalSecret, at time.Time) bo
 			break
 		}
 	}
+	allowed := true
 	switch sw.Kind {
 	case esv1.SyncWindowDeny:
-		return !anyActive
+		allowed = !anyActive
 	case esv1.SyncWindowAllow:
-		return anyActive
-	default:
-		return true
+		allowed = anyActive
 	}
+	if !allowed {
+		ctrl.Log.V(1).Info("periodic refresh blocked by SyncWindow",
+			"ExternalSecret", es.Namespace+"/"+es.Name,
+			"kind", sw.Kind)
+	}
+	return allowed
 }
 
 func shouldRefresh(es *esv1.ExternalSecret) bool {
@@ -1243,18 +1248,20 @@ func shouldRefreshPeriodic(es *esv1.ExternalSecret) bool {
 		return true
 	}
 
+	now := time.Now()
+
 	// if the last refresh time is in the future, we should refresh
-	if es.Status.RefreshTime.Time.After(time.Now()) {
+	if es.Status.RefreshTime.Time.After(now) {
 		return true
 	}
 
 	// if the last refresh time + refresh interval is before now, we should refresh
-	if !es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(time.Now()) {
+	if !es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(now) {
 		return false
 	}
 
 	// check sync windows before triggering a refresh
-	return isPeriodicRefreshAllowedByWindows(es, time.Now())
+	return isPeriodicRefreshAllowedByWindows(es, now)
 }
 
 // isSecretValid checks if the secret exists, and it's data is consistent with the calculated hash.
