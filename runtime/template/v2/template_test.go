@@ -426,6 +426,18 @@ func TestExecute(t *testing.T) {
 			expErr: "", // silent error
 		},
 		{
+			name: "hexdec",
+			tpl: map[string][]byte{
+				"key": []byte(`{{ .example | sha256sum | hexdec | b64enc }}`),
+			},
+			data: map[string][]byte{
+				"example": []byte("example"),
+			},
+			expectedData: map[string][]byte{
+				"key": []byte("UNhY4JhezH9gQYqvDMWrWH9CwlcKiECVqejMrND2VFw="),
+			},
+		},
+		{
 			name: "pkcs12 key wrong password",
 			tpl: map[string][]byte{
 				"key": []byte(`{{ .secret | b64dec | pkcs12keyPass "wrong" }}`),

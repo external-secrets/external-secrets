@@ -204,6 +204,7 @@ var genericMap = map[string]interface{}{
 	"b64dec": base64decode,
 	"b32enc": base32encode,
 	"b32dec": base32decode,
+	"hexdec": hexdecode,
 
 	// Data Structures:
 	"tuple":              list,
