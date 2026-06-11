@@ -3472,7 +3472,7 @@ spec:
                     - auth
                     - installID
                     type: object
-                  grrafanaSpec:
+                  grafanaSpec:
                     description: GrafanaSpec controls the behavior of the grafana
                       generator.
                     properties:

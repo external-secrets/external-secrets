@@ -89,7 +89,7 @@ type GeneratorSpec struct {
 	UUIDSpec                                        *UUIDSpec                                        `json:"uuidSpec,omitempty"`
 	VaultDynamicSecretSpec                          *VaultDynamicSecretSpec                          `json:"vaultDynamicSecretSpec,omitempty"`
 	WebhookSpec                                     *WebhookSpec                                     `json:"webhookSpec,omitempty"`
-	GrafanaSpec                                     *GrafanaSpec                                     `json:"grrafanaSpec,omitempty"`
+	GrafanaSpec                                     *GrafanaSpec                                     `json:"grafanaSpec,omitempty"`
 	MFASpec                                         *MFASpec                                         `json:"mfaSpec,omitempty"`
 }
 

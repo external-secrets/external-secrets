@@ -153,7 +153,7 @@ spec:
       permissions: {}
       repositories: [] # minItems 0 of type string
       url: string
-    grrafanaSpec:
+    grafanaSpec:
       auth:
         basic:
           password:
@@ -228,7 +228,7 @@ spec:
       controller: string
       getParameters: {}
       method: string
-      parameters: 
+      parameters:
       path: string
       provider:
         auth:
