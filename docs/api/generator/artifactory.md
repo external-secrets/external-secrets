@@ -48,7 +48,18 @@ When OIDC is not available, provide a bootstrap identity or access token in a Ku
 | `auth.referenceToken.scope` | Token scope (e.g. `applied-permissions/user`). | Yes (reference) |
 | `auth.referenceToken.expiresIn` | Token lifetime in seconds. | No |
 
-The table above lists the main fields in `ArtifactoryAccessTokenSpec`. Optional reference-token parameters include `projectKey`, `includeReferenceToken`, `refreshable`, and `description`. Optional OIDC exchange parameters include `applicationKey` and `identityMappingName`.
+The table above lists the main fields in `ArtifactoryAccessTokenSpec`.
+
+Shared optional parameters apply to both auth modes under `auth.oidc` and `auth.referenceToken`:
+
+| Parameter | Description |
+| --------- | ----------- |
+| `projectKey` | Scopes the token to a JFrog project. |
+| `includeReferenceToken` | Requests a shortened reference token in the response. |
+
+Reference-token-only optional parameters: `refreshable`, `description`.
+
+OIDC-only optional parameters: `applicationKey`, `identityMappingName`.
 
 ## Example Manifests
 
