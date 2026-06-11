@@ -69,6 +69,40 @@ crds:
   createClusterPushSecret: true
   # -- If true, create CRDs for Push Secret. If set to false you must also set processPushSecret: false.
   createPushSecret: true
+  # -- If true, create CRDs for External Secret.
+  createExternalSecret: true
+  # -- If true, create CRDs for ACR Access Token generator.
+  createACRAccessToken: true
+  # -- If true, create CRDs for Cloudsmith Access Token generator.
+  createCloudsmithAccessToken: true
+  # -- If true, create CRDs for ECR Authorization Token generator.
+  createECRAuthorizationToken: true
+  # -- If true, create CRDs for Fake generator.
+  createFake: true
+  # -- If true, create CRDs for GCR Access Token generator.
+  createGCRAccessToken: true
+  # -- If true, create CRDs for Generator State. If set to false you must also set processGeneratorState: false.
+  createGeneratorState: true
+  # -- If true, create CRDs for GitHub Access Token generator.
+  createGitHubAccessToken: true
+  # -- If true, create CRDs for Grafana generator.
+  createGrafana: true
+  # -- If true, create CRDs for MFA generator.
+  createMFA: true
+  # -- If true, create CRDs for Password generator.
+  createPassword: true
+  # -- If true, create CRDs for Quay Access Token generator.
+  createQuayAccessToken: true
+  # -- If true, create CRDs for SSH Key generator.
+  createSSHKey: true
+  # -- If true, create CRDs for STS Session token generator.
+  createSTSSessionToken: true
+  # -- If true, create CRDs for UUID generator.
+  createUUID: true
+  # -- If true, create CRDs for Vault Dynamic Secret generator.
+  createVaultDynamicSecret: true
+  # -- If true, create CRDs for Webhook generator.
+  createWebhook: true
   annotations: {}
   conversion:
     # -- Conversion is disabled by default as we stopped supporting v1alpha1.
@@ -137,6 +171,9 @@ processClusterGenerator: true
 
 # -- if true, the operator will process push secret. Else, it will ignore them.
 processPushSecret: true
+
+# -- if true, the operator will process generator state. Else, it will ignore them.
+processGeneratorState: true
 
 # -- Enable support for generic targets (ConfigMaps, Custom Resources).
 # Warning: Using generic target. Make sure access policies and encryption are properly configured.
