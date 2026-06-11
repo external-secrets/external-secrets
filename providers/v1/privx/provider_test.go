@@ -28,7 +28,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-var ErrFakeNewClient = errors.New("fake new client error")
+var errFakeNewClient = errors.New("fake new client error")
 
 func TestProviderNewClient(t *testing.T) {
 	tests := map[string]struct {
@@ -60,7 +60,7 @@ func TestProviderNewClient(t *testing.T) {
 					},
 				},
 			},
-			wantErr: ErrFakeNewClient,
+			wantErr: errFakeNewClient,
 		},
 	}
 
@@ -69,7 +69,7 @@ func TestProviderNewClient(t *testing.T) {
 			var gotNamespace string
 			var gotStore esv1.GenericStore
 
-			p := &Provider{
+			p := &provider{
 				newClient: func(
 					ctx context.Context,
 					store esv1.GenericStore,
@@ -80,7 +80,7 @@ func TestProviderNewClient(t *testing.T) {
 					gotStore = store
 
 					if name == "factory returns error" {
-						return nil, ErrFakeNewClient
+						return nil, errFakeNewClient
 					}
 
 					return &fakeSecretsClient{}, nil
@@ -116,7 +116,7 @@ func TestMaintenanceStatus(t *testing.T) {
 }
 
 func TestProviderCapabilities(t *testing.T) {
-	p := &Provider{}
+	p := &provider{}
 
 	got := p.Capabilities()
 
@@ -134,7 +134,7 @@ func TestProviderValidateStore(t *testing.T) {
 					Provider: nil,
 				},
 			},
-			wantErr: ErrNoStoreAuth{Field: "spec.provider"},
+			wantErr: errNoStoreAuth{Field: "spec.provider"},
 		},
 		"missing privx provider": {
 			store: esv1.SecretStore{
@@ -142,7 +142,7 @@ func TestProviderValidateStore(t *testing.T) {
 					Provider: &esv1.SecretStoreProvider{},
 				},
 			},
-			wantErr: ErrNoStoreAuth{Field: "spec.provider.privx"},
+			wantErr: errNoStoreAuth{Field: "spec.provider.privx"},
 		},
 		"missing host": {
 			store: esv1.SecretStore{
@@ -152,7 +152,7 @@ func TestProviderValidateStore(t *testing.T) {
 					},
 				},
 			},
-			wantErr: ErrNoStoreAuth{Field: "spec.provider.privx.host"},
+			wantErr: errNoStoreAuth{Field: "spec.provider.privx.host"},
 		},
 		"valid store": {
 			store: esv1.SecretStore{
@@ -168,7 +168,7 @@ func TestProviderValidateStore(t *testing.T) {
 		},
 	}
 
-	p := &Provider{}
+	p := &provider{}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {

@@ -66,11 +66,11 @@ func TestGetServiceAccountNameFromJWT(t *testing.T) {
 		},
 		"invalid format": {
 			token:   "invalid-token",
-			wantErr: ErrInvalidJWTFormat,
+			wantErr: errInvalidJWTFormat,
 		},
 		"invalid base64 payload": {
 			token:   "a.b!.c",
-			wantErr: ErrDecodeJWTPayload,
+			wantErr: errDecodeJWTPayload,
 		},
 		"invalid json payload": {
 			token: func() string {
@@ -78,19 +78,19 @@ func TestGetServiceAccountNameFromJWT(t *testing.T) {
 				payload := base64.RawURLEncoding.EncodeToString([]byte(`{invalid json`))
 				return header + "." + payload + "."
 			}(),
-			wantErr: ErrParseJWTPayload,
+			wantErr: errParseJWTPayload,
 		},
 		"missing service account": {
 			token: makeJWT(map[string]any{
 				"iss": "something",
 			}),
-			wantErr: ErrServiceAccountNameNotFound,
+			wantErr: errServiceAccountNameNotFound,
 		},
 		"sub malformed": {
 			token: makeJWT(map[string]any{
 				"sub": "system:serviceaccount:default",
 			}),
-			wantErr: ErrServiceAccountNameNotFound,
+			wantErr: errServiceAccountNameNotFound,
 		},
 	}
 
@@ -239,14 +239,14 @@ func TestDetectJWTSigningKey(t *testing.T) {
 	}{
 		"invalid pem block": {
 			pemBytes: []byte("not a pem"),
-			wantErr:  ErrInvalidPEMBlock,
+			wantErr:  errInvalidPEMBlock,
 		},
 		"unsupported pem block type": {
 			pemBytes: pem.EncodeToMemory(&pem.Block{
 				Type:  "CERTIFICATE",
 				Bytes: []byte("dummy"),
 			}),
-			wantErr: ErrUnsupportedPEMBlockType,
+			wantErr: errUnsupportedPEMBlockType,
 		},
 		"rsa pkcs1": {
 			pemBytes:   makeRSAPKCS1PEM(t),
@@ -268,7 +268,7 @@ func TestDetectJWTSigningKey(t *testing.T) {
 		},
 		"ed25519 pkcs8": {
 			pemBytes:   makeEd25519PKCS8PEM(t),
-			wantMethod: jwt.SigningMethodEdDSA,
+			wantMethod: SigningMethodEd25519(),
 			assertKeyTypeFn: func(t *testing.T, key any) {
 				t.Helper()
 				_, ok := key.(ed25519.PrivateKey)
@@ -302,19 +302,19 @@ func TestDetectJWTSigningKey(t *testing.T) {
 
 func TestExchangeToken(t *testing.T) {
 	tests := map[string]struct {
-		reqBody   ExchangeTokenRequest
+		reqBody   exchangeTokenRequest
 		server    func(t *testing.T) *httptest.Server
 		client    *http.Client
-		want      TokenResponse
+		want      tokenResponse
 		wantErr   error
 		errSubstr string
 	}{
 		"empty token": {
-			reqBody: ExchangeTokenRequest{},
-			wantErr: ErrTokenEmpty,
+			reqBody: exchangeTokenRequest{},
+			wantErr: errTokenEmpty,
 		},
 		"successful response": {
-			reqBody: ExchangeTokenRequest{
+			reqBody: exchangeTokenRequest{
 				Token: "jwt-token",
 			},
 			server: func(t *testing.T) *httptest.Server {
@@ -330,14 +330,14 @@ func TestExchangeToken(t *testing.T) {
 					}`))
 				}))
 			},
-			want: TokenResponse{
+			want: tokenResponse{
 				AccessToken: "abc123",
 				TokenType:   "Bearer",
 				ExpiresIn:   3600,
 			},
 		},
 		"bad status code": {
-			reqBody: ExchangeTokenRequest{
+			reqBody: exchangeTokenRequest{
 				Token: "jwt-token",
 			},
 			server: func(t *testing.T) *httptest.Server {
@@ -346,10 +346,10 @@ func TestExchangeToken(t *testing.T) {
 					_, _ = w.Write([]byte("bad request"))
 				}))
 			},
-			wantErr: ErrPrivXTokenExchangeBadStatus,
+			wantErr: errPrivXTokenExchangeBadStatus,
 		},
 		"invalid json response": {
-			reqBody: ExchangeTokenRequest{
+			reqBody: exchangeTokenRequest{
 				Token: "jwt-token",
 			},
 			server: func(t *testing.T) *httptest.Server {
@@ -361,7 +361,7 @@ func TestExchangeToken(t *testing.T) {
 			errSubstr: "decode json",
 		},
 		"http client error": {
-			reqBody: ExchangeTokenRequest{
+			reqBody: exchangeTokenRequest{
 				Token: "jwt-token",
 			},
 			client: &http.Client{
@@ -389,7 +389,7 @@ func TestExchangeToken(t *testing.T) {
 				client = &http.Client{}
 			}
 
-			got, err := ExchangeToken(context.Background(), client, baseURL, tc.reqBody)
+			got, err := exchangeToken(context.Background(), client, baseURL, tc.reqBody)
 
 			if tc.wantErr != nil {
 				require.Error(t, err)

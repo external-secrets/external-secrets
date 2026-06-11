@@ -25,8 +25,8 @@ import (
 )
 
 var (
-	// ErrEd25519KeyType is returned when the Ed25519 key type does not match the expected type.
-	ErrEd25519KeyType = errors.New("Ed25519 key type mismatch")
+	// errEd25519KeyType is returned when the Ed25519 key type does not match the expected type.
+	errEd25519KeyType = errors.New("Ed25519 key type mismatch")
 )
 
 // signingMethodEd25519 is to circumvent alg:ed25519 expectation of PrivX.
@@ -39,7 +39,7 @@ func (m signingMethodEd25519) Alg() string { return "Ed25519" }
 func (m signingMethodEd25519) Sign(signingString string, key any) ([]byte, error) {
 	priv, ok := key.(ed25519.PrivateKey)
 	if !ok {
-		return nil, fmt.Errorf("%w: got %T", ErrEd25519KeyType, key)
+		return nil, fmt.Errorf("%w: got %T", errEd25519KeyType, key)
 	}
 	sig := ed25519.Sign(priv, []byte(signingString))
 	return sig, nil
@@ -48,7 +48,7 @@ func (m signingMethodEd25519) Sign(signingString string, key any) ([]byte, error
 func (m signingMethodEd25519) Verify(signingString string, signature []byte, key any) error {
 	pub, ok := key.(ed25519.PublicKey)
 	if !ok {
-		return fmt.Errorf("%w: got %T", ErrEd25519KeyType, key)
+		return fmt.Errorf("%w: got %T", errEd25519KeyType, key)
 	}
 	if !ed25519.Verify(pub, []byte(signingString), signature) {
 		return jwt.ErrSignatureInvalid

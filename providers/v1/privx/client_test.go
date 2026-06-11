@@ -81,13 +81,13 @@ func TestSecretsClientGetSecret(t *testing.T) {
 				},
 			},
 			want:    nil,
-			wantErr: ErrPropertyNotFound,
+			wantErr: errPropertyNotFound,
 		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			c := &SecretsClient{
+			c := &secretsClient{
 				vault: tc.fake,
 			}
 
@@ -107,7 +107,7 @@ func TestSecretsClientGetSecret(t *testing.T) {
 }
 
 func TestSecretsClientGetSecret_ReturnsWholeObject(t *testing.T) {
-	c := &SecretsClient{
+	c := &secretsClient{
 		vault: &fakeVaultClient{
 			getSecretFn: func(secretName string) (*vault.Secret, error) {
 				data := map[string]any{
@@ -132,7 +132,7 @@ func TestSecretsClientGetSecret_ReturnsWholeObject(t *testing.T) {
 }
 
 func TestSecretsClientGetSecret_DataMissing(t *testing.T) {
-	c := &SecretsClient{
+	c := &secretsClient{
 		vault: &fakeVaultClient{
 			getSecretFn: func(secretName string) (*vault.Secret, error) {
 				return &vault.Secret{}, nil
@@ -145,7 +145,7 @@ func TestSecretsClientGetSecret_DataMissing(t *testing.T) {
 	})
 
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrSecretDataMissing)
+	assert.ErrorIs(t, err, errSecretDataMissing)
 	assert.Nil(t, got)
 }
 
@@ -187,7 +187,7 @@ func TestSecretsClientPushSecret(t *testing.T) {
 				secretKey: "key",
 				remoteKey: "",
 			},
-			wantErr: ErrNoName,
+			wantErr: errNoName,
 		},
 		"success with remote key": {
 			secret: &corev1.Secret{
@@ -215,10 +215,10 @@ func TestSecretsClientPushSecret(t *testing.T) {
 			},
 			fake: &fakeVaultClient{
 				createSecretFn: func(req *vault.SecretRequest) (vault.SecretCreate, error) {
-					return vault.SecretCreate{}, ErrNotImplemented
+					return vault.SecretCreate{}, errNotImplemented
 				},
 			},
-			wantErr: ErrNotImplemented,
+			wantErr: errNotImplemented,
 		},
 		// Validates: Requirements 1.1, 1.2, 1.3, 2.1, 2.2, 2.3, 2.4
 		"value is plaintext not base64": {
@@ -257,7 +257,7 @@ func TestSecretsClientPushSecret(t *testing.T) {
 				tc.fake = &fakeVaultClient{}
 			}
 
-			c := &SecretsClient{
+			c := &secretsClient{
 				vault: tc.fake,
 			}
 
@@ -326,16 +326,16 @@ func TestSecretsClientDeleteSecret(t *testing.T) {
 			},
 			fake: &fakeVaultClient{
 				deleteSecretFn: func(secretName string) error {
-					return ErrNotImplemented
+					return errNotImplemented
 				},
 			},
-			wantErr: ErrNotImplemented,
+			wantErr: errNotImplemented,
 		},
 	}
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			c := &SecretsClient{
+			c := &secretsClient{
 				vault: tc.fake,
 			}
 
@@ -384,7 +384,7 @@ func TestSecretsClientGetAllSecrets(t *testing.T) {
 			},
 			fake:    &fakeVaultClient{},
 			want:    map[string][]byte{},
-			wantErr: ErrNotImplemented,
+			wantErr: errNotImplemented,
 		},
 		"tags not implemented": {
 			ctx: context.Background(),
@@ -393,7 +393,7 @@ func TestSecretsClientGetAllSecrets(t *testing.T) {
 			},
 			fake:    &fakeVaultClient{},
 			want:    map[string][]byte{},
-			wantErr: ErrNotImplemented,
+			wantErr: errNotImplemented,
 		},
 		"conversion strategy not implemented": {
 			ctx: context.Background(),
@@ -402,7 +402,7 @@ func TestSecretsClientGetAllSecrets(t *testing.T) {
 			},
 			fake:    &fakeVaultClient{},
 			want:    map[string][]byte{},
-			wantErr: ErrNotImplemented,
+			wantErr: errNotImplemented,
 		},
 		"invalid regexp": {
 			ctx: context.Background(),
@@ -425,11 +425,11 @@ func TestSecretsClientGetAllSecrets(t *testing.T) {
 			ref: esv1.ExternalSecretFind{},
 			fake: &fakeVaultClient{
 				getSecretsFn: func(opts ...filters.Option) (*response.ResultSet[vault.Secret], error) {
-					return nil, ErrNotImplemented
+					return nil, errNotImplemented
 				},
 			},
 			want:    map[string][]byte{},
-			wantErr: ErrNotImplemented,
+			wantErr: errNotImplemented,
 		},
 		"get secret returns error": {
 			ctx: context.Background(),
@@ -448,11 +448,11 @@ func TestSecretsClientGetAllSecrets(t *testing.T) {
 					}, nil
 				},
 				getSecretFn: func(secretName string) (*vault.Secret, error) {
-					return nil, ErrNotImplemented
+					return nil, errNotImplemented
 				},
 			},
 			want:    map[string][]byte{},
-			wantErr: ErrNotImplemented,
+			wantErr: errNotImplemented,
 		},
 		"secret data missing": {
 			ctx: context.Background(),
@@ -475,7 +475,7 @@ func TestSecretsClientGetAllSecrets(t *testing.T) {
 				},
 			},
 			want:    map[string][]byte{},
-			wantErr: ErrSecretDataMissing,
+			wantErr: errSecretDataMissing,
 		},
 		"returns matching secrets as json": {
 			ctx: context.Background(),
@@ -561,7 +561,7 @@ func TestSecretsClientGetAllSecrets(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			c := &SecretsClient{
+			c := &secretsClient{
 				vault: tc.fake,
 			}
 
@@ -626,10 +626,10 @@ func TestSecretsClientGetSecretMap(t *testing.T) {
 			},
 			fake: &fakeVaultClient{
 				getSecretFn: func(secretName string) (*vault.Secret, error) {
-					return nil, ErrNotImplemented
+					return nil, errNotImplemented
 				},
 			},
-			wantErr: ErrNotImplemented,
+			wantErr: errNotImplemented,
 		},
 		"secret data missing": {
 			ctx: context.Background(),
@@ -641,7 +641,7 @@ func TestSecretsClientGetSecretMap(t *testing.T) {
 					return &vault.Secret{}, nil
 				},
 			},
-			wantErr: ErrSecretDataMissing,
+			wantErr: errSecretDataMissing,
 		},
 		"returns all top-level keys when property is empty": {
 			ctx: context.Background(),
@@ -735,7 +735,7 @@ func TestSecretsClientGetSecretMap(t *testing.T) {
 					}, nil
 				},
 			},
-			wantErr: ErrPropertyNotFound,
+			wantErr: errPropertyNotFound,
 		},
 		"property is nil": {
 			ctx: context.Background(),
@@ -755,7 +755,7 @@ func TestSecretsClientGetSecretMap(t *testing.T) {
 					}, nil
 				},
 			},
-			wantErr: ErrPropertyNotFound,
+			wantErr: errPropertyNotFound,
 		},
 		"top-level value conversion error": {
 			ctx: context.Background(),
@@ -808,7 +808,7 @@ func TestSecretsClientGetSecretMap(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			c := &SecretsClient{
+			c := &secretsClient{
 				vault: tc.fake,
 			}
 
@@ -861,7 +861,7 @@ func TestNamespaceBypass_GetSecret_NamespaceList(t *testing.T) {
 	}
 
 	// Client requesting from namespace "dev" (NOT in the allowed list)
-	c := &SecretsClient{
+	c := &secretsClient{
 		vault: &fakeVaultClient{
 			getSecretFn: func(secretName string) (*vault.Secret, error) {
 				data := map[string]any{"password": "super-secret-value"}
@@ -911,7 +911,7 @@ func TestNamespaceBypass_GetSecret_NamespaceRegex(t *testing.T) {
 	}
 
 	// Client requesting from namespace "dev-team" (does NOT match "^prod-.*")
-	c := &SecretsClient{
+	c := &secretsClient{
 		vault: &fakeVaultClient{
 			getSecretFn: func(secretName string) (*vault.Secret, error) {
 				data := map[string]any{"api-key": "secret-api-key-123"}
@@ -961,7 +961,7 @@ func TestNamespaceBypass_GetAllSecrets_NamespaceList(t *testing.T) {
 	}
 
 	// Client requesting from namespace "dev" (NOT in the allowed list)
-	c := &SecretsClient{
+	c := &secretsClient{
 		vault: &fakeVaultClient{
 			getSecretsFn: func(opts ...filters.Option) (*response.ResultSet[vault.Secret], error) {
 				return &response.ResultSet[vault.Secret]{
@@ -1017,7 +1017,7 @@ func TestNamespaceBypass_GetAllSecrets_NamespaceRegex(t *testing.T) {
 	}
 
 	// Client requesting from namespace "dev-team" (does NOT match "^prod-.*")
-	c := &SecretsClient{
+	c := &secretsClient{
 		vault: &fakeVaultClient{
 			getSecretsFn: func(opts ...filters.Option) (*response.ResultSet[vault.Secret], error) {
 				return &response.ResultSet[vault.Secret]{
@@ -1070,7 +1070,7 @@ func TestNamespaceBypass_GetSecretMap_NamespaceList(t *testing.T) {
 		},
 	}
 
-	c := &SecretsClient{
+	c := &secretsClient{
 		vault: &fakeVaultClient{
 			getSecretFn: func(secretName string) (*vault.Secret, error) {
 				data := map[string]any{"password": "super-secret-value"}
@@ -1115,7 +1115,7 @@ func TestNamespaceBypass_GetSecretMap_NamespaceRegex(t *testing.T) {
 		},
 	}
 
-	c := &SecretsClient{
+	c := &secretsClient{
 		vault: &fakeVaultClient{
 			getSecretFn: func(secretName string) (*vault.Secret, error) {
 				data := map[string]any{"api-key": "secret-api-key-123"}

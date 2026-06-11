@@ -31,7 +31,10 @@ import (
 	"github.com/SSHcom/privx-sdk-go/v2/api/rolestore"
 	"github.com/SSHcom/privx-sdk-go/v2/api/vault"
 	privxapi "github.com/SSHcom/privx-sdk-go/v2/restapi"
+	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/log"
 
@@ -39,27 +42,19 @@ import (
 )
 
 var (
-	// ErrNoName is returned when no name is provided for the secret.
-	ErrNoName = errors.New("No name provided for secret")
-
-	// ErrUnsupportedDecodingStrategy is returned when the decoding strategy is not supported.
-	ErrUnsupportedDecodingStrategy = errors.New("unsupported decoding strategy")
-
-	// ErrSecretDataMissing is returned when secret data is missing.
-	ErrSecretDataMissing = errors.New("secret data missing")
-
-	// ErrPropertyNotFound is returned when the requested property is not found in the secret.
-	ErrPropertyNotFound = errors.New("property not found in secret")
-
-	// ErrNamespaceNotAllowed is returned when cross-namespace access is denied by ClusterSecretStore conditions.
-	ErrNamespaceNotAllowed = errors.New("cross-namespace access denied by ClusterSecretStore conditions")
+	errNoName                      = errors.New("no name provided for secret")
+	errUnsupportedDecodingStrategy = errors.New("unsupported decoding strategy")
+	errSecretDataMissing           = errors.New("secret data missing")
+	errPropertyNotFound            = errors.New("property not found in secret")
+	errNamespaceNotAllowed         = errors.New("cross-namespace access denied by ClusterSecretStore conditions")
+	errNotImplemented              = errors.New("not implemented")
 )
 
 // Check during compile that we implement the interface.
-var _ esv1.SecretsClient = (*SecretsClient)(nil)
+var _ esv1.SecretsClient = (*secretsClient)(nil)
 
-// SecretsClient provides access to PrivX secrets.
-type SecretsClient struct {
+// secretsClient provides access to PrivX secrets.
+type secretsClient struct {
 	conn      privxapi.Connector
 	vault     VaultClient // PrivX Vault instance, or a fake test client
 	store     esv1.GenericStore
@@ -72,8 +67,8 @@ type SecretsClient struct {
 }
 
 // GetSecret returns a single secret from the provider.
-func (c *SecretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	if err := c.validateNamespaceAccess(); err != nil {
+func (c *secretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+	if err := c.validateNamespaceAccess(ctx); err != nil {
 		return nil, err
 	}
 	if err := ctx.Err(); err != nil {
@@ -81,10 +76,13 @@ func (c *SecretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDa
 	}
 	secret, err := c.vault.GetSecret(ref.Key)
 	if err != nil {
+		if isNotFound(err) {
+			return nil, esv1.NoSecretErr
+		}
 		return nil, err
 	}
 	if secret.Data == nil {
-		return nil, fmt.Errorf("%w: %s", ErrSecretDataMissing, ref.Key)
+		return nil, fmt.Errorf("%w: %s", errSecretDataMissing, ref.Key)
 	}
 
 	// If no property requested, return whole JSON object
@@ -92,17 +90,17 @@ func (c *SecretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDa
 		return json.Marshal(*secret.Data)
 	}
 
-	v, ok := (*secret.Data)[ref.Property]
-	if !ok || v == nil {
-		return nil, fmt.Errorf("%w: %s/%s", ErrPropertyNotFound, ref.Key, ref.Property)
-	}
-
-	// Convert the selected value to []byte
-	b, err := anyToBytes(v)
+	// Use gjson for property path extraction (supports nested paths like "db.user")
+	jsonBytes, err := json.Marshal(*secret.Data)
 	if err != nil {
 		return nil, err
 	}
-	return b, nil
+	result := gjson.GetBytes(jsonBytes, ref.Property)
+	if !result.Exists() {
+		return nil, fmt.Errorf("%w: %s/%s", errPropertyNotFound, ref.Key, ref.Property)
+	}
+
+	return []byte(result.String()), nil
 }
 
 // packRoles forms RoleHandles from a list of role ID
@@ -120,14 +118,17 @@ func packRoles(roleIDs []string) []rolestore.RoleHandle {
 // PushSecret will write a single secret into PrivX.
 //
 // Access for the new secret in PrivX is defined by variables default*Roles set for the store.
-func (c *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+func (c *secretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+	if err := c.validateNamespaceAccess(ctx); err != nil {
+		return err
+	}
 	remoteKey := data.GetRemoteKey()
 	name := remoteKey
 	if name == "" {
 		name = secret.Name
 	}
 	if name == "" {
-		return ErrNoName
+		return errNoName
 	}
 
 	secretKey := data.GetSecretKey()
@@ -135,7 +136,15 @@ func (c *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, d
 	if !ok {
 		return fmt.Errorf("secret key %q not found in source secret %q", secretKey, secret.Name)
 	}
-	m := &map[string]interface{}{secretKey: string(secretValue)}
+
+	// Use remoteRef.property as the field name in the remote document if set,
+	// otherwise fall back to the source secret key.
+	remoteProperty := data.GetProperty()
+	fieldName := remoteProperty
+	if fieldName == "" {
+		fieldName = secretKey
+	}
+	m := &map[string]interface{}{fieldName: string(secretValue)}
 
 	request := vault.SecretRequest{
 		Name:       name,
@@ -160,7 +169,10 @@ func (c *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, d
 }
 
 // DeleteSecret will delete the secret from PrivX.
-func (c *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
+func (c *secretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
+	if err := c.validateNamespaceAccess(ctx); err != nil {
+		return err
+	}
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -175,7 +187,7 @@ func (c *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRem
 }
 
 // SecretExists checks if a secret is already present in PrivX at the given location.
-func (c *SecretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+func (c *secretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	if err := ctx.Err(); err != nil {
 		return false, err
 	}
@@ -185,7 +197,7 @@ func (c *SecretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRem
 		return true, nil
 	}
 
-	if isNotFound(err) {
+	if errors.Is(err, esv1.NoSecretErr) || isNotFound(err) {
 		return false, nil
 	}
 
@@ -196,7 +208,7 @@ func (c *SecretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRem
 // Validate checks if the client is configured correctly
 // and is able to retrieve secrets from the provider.
 // If the validation result is unknown it will be ignored.
-func (c *SecretsClient) Validate() (esv1.ValidationResult, error) {
+func (c *secretsClient) Validate() (esv1.ValidationResult, error) {
 	_, err := c.GetSecret(context.TODO(), esv1.ExternalSecretDataRemoteRef{Key: "2F0vZqCe0Z3XU5"})
 
 	if err == nil {
@@ -204,7 +216,7 @@ func (c *SecretsClient) Validate() (esv1.ValidationResult, error) {
 		return esv1.ValidationResultReady, nil
 	}
 
-	if isNotFound(err) {
+	if errors.Is(err, esv1.NoSecretErr) || isNotFound(err) {
 		// We requested a non-existing secret and this is the proper response from PrivX -- all ok.
 		return esv1.ValidationResultReady, nil
 	}
@@ -217,11 +229,11 @@ func (c *SecretsClient) Validate() (esv1.ValidationResult, error) {
 // If ref.Property is empty, all top-level keys are returned.
 // If ref.Property refers to a nested JSON object, its fields are returned.
 // Otherwise, a single key/value pair is returned containing the selected property.
-func (c *SecretsClient) GetSecretMap(
+func (c *secretsClient) GetSecretMap(
 	ctx context.Context,
 	ref esv1.ExternalSecretDataRemoteRef,
 ) (map[string][]byte, error) {
-	if err := c.validateNamespaceAccess(); err != nil {
+	if err := c.validateNamespaceAccess(ctx); err != nil {
 		return nil, err
 	}
 	if err := ctx.Err(); err != nil {
@@ -229,11 +241,14 @@ func (c *SecretsClient) GetSecretMap(
 	}
 	secret, err := c.vault.GetSecret(ref.Key)
 	if err != nil {
+		if isNotFound(err) {
+			return nil, esv1.NoSecretErr
+		}
 		return nil, err
 	}
 
 	if secret.Data == nil {
-		return nil, ErrSecretDataMissing
+		return nil, errSecretDataMissing
 	}
 
 	data := *secret.Data
@@ -252,33 +267,29 @@ func (c *SecretsClient) GetSecretMap(
 		return out, nil
 	}
 
-	// 2) Property specified: extract it
-	v, ok := data[ref.Property]
-	if !ok || v == nil {
-		return nil, ErrPropertyNotFound
+	// 2) Property specified: use gjson for path extraction
+	jsonBytes, err := json.Marshal(data)
+	if err != nil {
+		return nil, err
+	}
+	result := gjson.GetBytes(jsonBytes, ref.Property)
+	if !result.Exists() || result.Type == gjson.Null {
+		return nil, errPropertyNotFound
 	}
 
-	// If property is a nested object, return its fields
-	if nested, ok := v.(map[string]interface{}); ok {
-		out := make(map[string][]byte, len(nested))
-		for k, nv := range nested {
-			b, err := anyToBytes(nv)
-			if err != nil {
-				return nil, err
-			}
-			out[k] = b
-		}
+	// If the result is a JSON object, return its fields
+	if result.IsObject() {
+		out := make(map[string][]byte)
+		result.ForEach(func(key, value gjson.Result) bool {
+			out[key.String()] = []byte(value.String())
+			return true
+		})
 		return out, nil
 	}
 
 	// Otherwise return a single key/value pair
-	b, err := anyToBytes(v)
-	if err != nil {
-		return nil, err
-	}
-
 	return map[string][]byte{
-		ref.Property: b,
+		ref.Property: []byte(result.String()),
 	}, nil
 }
 
@@ -287,8 +298,8 @@ func (c *SecretsClient) GetSecretMap(
 // The returned map key is the secret name and the value is the full JSON document
 // for that secret (the whole secret.Data marshaled as JSON). This avoids key
 // collisions between secrets that may contain identical JSON keys internally.
-func (c *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	if err := c.validateNamespaceAccess(); err != nil {
+func (c *secretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	if err := c.validateNamespaceAccess(ctx); err != nil {
 		return nil, err
 	}
 	if err := ctx.Err(); err != nil {
@@ -297,13 +308,13 @@ func (c *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecr
 	results := make(map[string][]byte)
 
 	if ref.Path != nil {
-		return results, fmt.Errorf("parameter %q: %w", "ref.Path", ErrNotImplemented)
+		return results, fmt.Errorf("parameter %q: %w", "ref.Path", errNotImplemented)
 	}
 	if ref.Tags != nil {
-		return results, fmt.Errorf("parameter %q: %w", "ref.Tags", ErrNotImplemented)
+		return results, fmt.Errorf("parameter %q: %w", "ref.Tags", errNotImplemented)
 	}
 	if ref.ConversionStrategy != "" && ref.ConversionStrategy != esv1.ExternalSecretConversionDefault {
-		return results, fmt.Errorf("parameter %q: %w", "ref.ConversionStrategy", ErrNotImplemented)
+		return results, fmt.Errorf("parameter %q: %w", "ref.ConversionStrategy", errNotImplemented)
 	}
 
 	searchString := ""
@@ -340,7 +351,7 @@ func (c *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecr
 			}
 
 			if secretDetails.Data == nil {
-				return results, ErrSecretDataMissing
+				return results, errSecretDataMissing
 			}
 
 			// Marshal the full JSON object (top-level map) as the secret value
@@ -361,7 +372,7 @@ func (c *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecr
 }
 
 // Close closes the client and releases all resources.
-func (c *SecretsClient) Close(ctx context.Context) error {
+func (c *secretsClient) Close(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err
 	}
@@ -373,9 +384,9 @@ func (c *SecretsClient) Close(ctx context.Context) error {
 
 // namespaceMatchesCondition checks whether a namespace is permitted by a single
 // ClusterSecretStoreCondition. It returns true if the namespace appears in the
-// condition's Namespaces list (direct string match) or matches any of the
-// condition's NamespaceRegexes patterns.
-func namespaceMatchesCondition(namespace string, condition esv1.ClusterSecretStoreCondition) bool {
+// condition's Namespaces list, matches any NamespaceRegexes pattern, or matches
+// the NamespaceSelector label selector.
+func namespaceMatchesCondition(namespace string, condition esv1.ClusterSecretStoreCondition, nsLabels map[string]string) bool {
 	// Check direct namespace list
 	for _, ns := range condition.Namespaces {
 		if namespace == ns {
@@ -398,6 +409,20 @@ func namespaceMatchesCondition(namespace string, condition esv1.ClusterSecretSto
 		}
 	}
 
+	// Check label selector
+	if condition.NamespaceSelector != nil && nsLabels != nil {
+		selector, err := metav1.LabelSelectorAsSelector(condition.NamespaceSelector)
+		if err != nil {
+			slog.Warn("failed to parse namespace label selector, treating as non-match",
+				"error", err,
+			)
+			return false
+		}
+		if selector.Matches(labels.Set(nsLabels)) {
+			return true
+		}
+	}
+
 	return false
 }
 
@@ -405,7 +430,7 @@ func namespaceMatchesCondition(namespace string, condition esv1.ClusterSecretSto
 // by the store's conditions. Namespace-scoped stores and ClusterSecretStores
 // with no conditions are always allowed. For ClusterSecretStores with conditions,
 // the requesting namespace must match at least one condition.
-func (c *SecretsClient) validateNamespaceAccess() error {
+func (c *secretsClient) validateNamespaceAccess(ctx context.Context) error {
 	if c.store == nil {
 		return nil
 	}
@@ -420,17 +445,30 @@ func (c *SecretsClient) validateNamespaceAccess() error {
 		return nil
 	}
 
+	// For label selector support, we need namespace labels.
+	// If kube client is available, fetch namespace labels; otherwise use nil (skips label matching).
+	var nsLabels map[string]string
+	if c.kube != nil {
+		var ns corev1.Namespace
+		if err := c.kube.Get(ctx, kclient.ObjectKey{Name: c.namespace}, &ns); err == nil {
+			nsLabels = ns.Labels
+		}
+	}
+
 	for _, condition := range conditions {
-		if namespaceMatchesCondition(c.namespace, condition) {
+		if namespaceMatchesCondition(c.namespace, condition, nsLabels) {
 			return nil
 		}
 	}
 
-	return ErrNamespaceNotAllowed
+	return errNamespaceNotAllowed
 }
 
 // isNotFound return whether the error is a 404 - Not Found.
 func isNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
 	// PrivX loses the HTTP code so we need to test the error message
 	return strings.Contains(strings.ToLower(err.Error()), "secret not found")
 }

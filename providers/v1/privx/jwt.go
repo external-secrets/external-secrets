@@ -48,26 +48,26 @@ import (
 )
 
 var (
-	// ErrInvalidPEMBlock is returned when the PEM block is invalid or cannot be decoded.
-	ErrInvalidPEMBlock = errors.New("invalid PEM block")
+	// errInvalidPEMBlock is returned when the PEM block is invalid or cannot be decoded.
+	errInvalidPEMBlock = errors.New("invalid PEM block")
 
-	// ErrUnsupportedPrivateKeyAlg is returned when the private key algorithm is not supported.
-	ErrUnsupportedPrivateKeyAlg = errors.New("unsupported private key algorithm")
+	// errUnsupportedPrivateKeyAlg is returned when the private key algorithm is not supported.
+	errUnsupportedPrivateKeyAlg = errors.New("unsupported private key algorithm")
 
-	// ErrUnsupportedPEMBlockType is returned when the PEM block type is not supported.
-	ErrUnsupportedPEMBlockType = errors.New("unsupported PEM block type")
+	// errUnsupportedPEMBlockType is returned when the PEM block type is not supported.
+	errUnsupportedPEMBlockType = errors.New("unsupported PEM block type")
 )
 
 var (
-	// ErrPrivXTokenExchangeBadStatus is returned when the PrivX token exchange returns a non-success HTTP status.
-	ErrPrivXTokenExchangeBadStatus = errors.New("privx token exchange: bad http status")
+	// errPrivXTokenExchangeBadStatus is returned when the PrivX token exchange returns a non-success HTTP status.
+	errPrivXTokenExchangeBadStatus = errors.New("privx token exchange: bad http status")
 
-	// ErrTokenEmpty is returned when the access token is empty.
-	ErrTokenEmpty = errors.New("token debug: empty access token")
+	// errTokenEmpty is returned when the access token is empty.
+	errTokenEmpty = errors.New("token debug: empty access token")
 )
 
-// ExchangeTokenRequest matches PrivX token exchange request fields.
-type ExchangeTokenRequest struct {
+// exchangeTokenRequest matches PrivX token exchange request fields.
+type exchangeTokenRequest struct {
 	// Token to exchange to a PrivX access token
 	Token string `json:"token"`
 	// Access Token Scope
@@ -76,9 +76,9 @@ type ExchangeTokenRequest struct {
 	ClientID string `json:"client_id,omitempty"`
 }
 
-// TokenResponse is a common OAuth-style token response.
+// tokenResponse is a common OAuth-style token response.
 // PrivX may return a subset/superset; unknown fields are ignored by encoding/json.
-type TokenResponse struct {
+type tokenResponse struct {
 	AccessToken  string `json:"access_token"`
 	TokenType    string `json:"token_type"`
 	ExpiresIn    int64  `json:"expires_in"`
@@ -90,18 +90,18 @@ type TokenResponse struct {
 //
 // baseURL example: "https://privx.example.com"
 // If httpClient is nil, a default client with timeout is used.
-func ExchangeToken(
+func exchangeToken(
 	ctx context.Context,
 	httpClient *http.Client,
 	baseURL string,
-	reqBody ExchangeTokenRequest,
-) (TokenResponse, error) {
-	var out TokenResponse
+	reqBody exchangeTokenRequest,
+) (tokenResponse, error) {
+	var out tokenResponse
 
 	baseURL = strings.TrimRight(baseURL, "/")
 	if reqBody.Token == "" {
 		// Keep it simple: server will also reject, but client-side guard is useful.
-		return out, fmt.Errorf("%w: empty token", ErrTokenEmpty)
+		return out, fmt.Errorf("%w: empty token", errTokenEmpty)
 	}
 	if httpClient == nil {
 		httpClient = &http.Client{Timeout: 30 * time.Second}
@@ -137,7 +137,7 @@ func ExchangeToken(
 		if len(trimmed) > 4000 {
 			trimmed = trimmed[:4000] + "…"
 		}
-		return out, fmt.Errorf("%w: status=%d body=%s", ErrPrivXTokenExchangeBadStatus, resp.StatusCode, trimmed)
+		return out, fmt.Errorf("%w: status=%d body=%s", errPrivXTokenExchangeBadStatus, resp.StatusCode, trimmed)
 	}
 
 	if err := json.Unmarshal(respBody, &out); err != nil {
@@ -282,17 +282,17 @@ func getServiceAccountNameFromJWT(jwtStr string) (string, error) {
 
 	parts := strings.Split(jwtStr, ".")
 	if len(parts) < 2 {
-		return "", ErrInvalidJWTFormat
+		return "", errInvalidJWTFormat
 	}
 
 	payloadJSON, err := base64.RawURLEncoding.DecodeString(parts[1])
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrDecodeJWTPayload, err)
+		return "", fmt.Errorf("%w: %w", errDecodeJWTPayload, err)
 	}
 
 	var claims map[string]any
 	if err := json.Unmarshal(payloadJSON, &claims); err != nil {
-		return "", fmt.Errorf("%w: %w", ErrParseJWTPayload, err)
+		return "", fmt.Errorf("%w: %w", errParseJWTPayload, err)
 	}
 
 	// Preferred claim in Kubernetes projected service account tokens.
@@ -309,19 +309,19 @@ func getServiceAccountNameFromJWT(jwtStr string) (string, error) {
 		}
 	}
 
-	return "", ErrServiceAccountNameNotFound
+	return "", errServiceAccountNameNotFound
 }
 
 // getAudienceJWTFromPod requests a bound ServiceAccount token with a custom audience.
 func getAudienceJWTFromPod(ctx context.Context, audience string, expiration time.Duration) (string, error) {
 	audience = strings.TrimSpace(audience)
 	if audience == "" {
-		return "", ErrEmptyAudience
+		return "", errEmptyAudience
 	}
 
 	nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrReadNamespace, err)
+		return "", fmt.Errorf("%w: %w", errReadNamespace, err)
 	}
 	namespace := strings.TrimSpace(string(nsBytes))
 
@@ -339,12 +339,12 @@ func getAudienceJWTFromPod(ctx context.Context, audience string, expiration time
 
 	cfg, err := rest.InClusterConfig()
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrInClusterConfig, err)
+		return "", fmt.Errorf("%w: %w", errInClusterConfig, err)
 	}
 
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrKubernetesClient, err)
+		return "", fmt.Errorf("%w: %w", errKubernetesClient, err)
 	}
 
 	req := &authenticationv1.TokenRequest{
@@ -358,12 +358,12 @@ func getAudienceJWTFromPod(ctx context.Context, audience string, expiration time
 		ServiceAccounts(namespace).
 		CreateToken(ctx, saName, req, metav1.CreateOptions{})
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrCreateToken, err)
+		return "", fmt.Errorf("%w: %w", errCreateToken, err)
 	}
 
 	token := strings.TrimSpace(tr.Status.Token)
 	if token == "" {
-		return "", ErrEmptyReturnedToken
+		return "", errEmptyReturnedToken
 	}
 
 	return token, nil
@@ -422,7 +422,7 @@ func decodeJWT(token string) (string, error) {
 func detectJWTSigningKey(pemBytes []byte) (jwt.SigningMethod, any, error) {
 	block, _ := pem.Decode(pemBytes)
 	if block == nil {
-		return nil, nil, ErrInvalidPEMBlock
+		return nil, nil, errInvalidPEMBlock
 	}
 
 	// Most common cases:
@@ -440,12 +440,10 @@ func detectJWTSigningKey(pemBytes []byte) (jwt.SigningMethod, any, error) {
 		case *rsa.PrivateKey:
 			return jwt.SigningMethodRS256, k, nil
 		case ed25519.PrivateKey:
-			return jwt.SigningMethodEdDSA, k, nil
-			// NOTE: Here we return "Ed25519" instead of the standards compliant "EdDSA"
-			// This is for PrivX 43
-			// return SigningMethodEd25519(), k, nil
+			// Use custom "Ed25519" alg for PrivX 43 compatibility
+			return SigningMethodEd25519(), k, nil
 		default:
-			return nil, nil, fmt.Errorf("%w: %T", ErrUnsupportedPrivateKeyAlg, keyAny)
+			return nil, nil, fmt.Errorf("%w: %T", errUnsupportedPrivateKeyAlg, keyAny)
 		}
 
 	case "RSA PRIVATE KEY":
@@ -457,15 +455,16 @@ func detectJWTSigningKey(pemBytes []byte) (jwt.SigningMethod, any, error) {
 		return jwt.SigningMethodRS256, k, nil
 
 	default:
-		return nil, nil, fmt.Errorf("%w: %s", ErrUnsupportedPEMBlockType, block.Type)
+		return nil, nil, fmt.Errorf("%w: %s", errUnsupportedPEMBlockType, block.Type)
 	}
 }
 
 // LogOpaqueTokenResponse logs metadata of an OAuth token safely.
 // The access token itself is never logged. Instead, a short SHA256 fingerprint is logged.
-func logTokenResponse(logger logr.Logger, tr TokenResponse) {
+func logTokenResponse(logger logr.Logger, tr tokenResponse) {
 	if tr.AccessToken == "" {
 		logger.Info("oauth token response is empty")
+		return
 	}
 
 	hash := sha256.Sum256([]byte(tr.AccessToken))

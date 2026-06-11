@@ -140,7 +140,7 @@ func TestPreservation_SecretStore_GetSecret_Property(t *testing.T) {
 			Spec: esv1.SecretStoreSpec{},
 		}
 
-		c := &SecretsClient{
+		c := &secretsClient{
 			vault: &fakeVaultClient{
 				getSecretFn: func(secretName string) (*vault.Secret, error) {
 					data := map[string]any{"key": "value-for-" + namespace}
@@ -207,7 +207,7 @@ func TestPreservation_ClusterSecretStore_EmptyConditions_GetSecret_Property(t *t
 			},
 		}
 
-		c := &SecretsClient{
+		c := &secretsClient{
 			vault: &fakeVaultClient{
 				getSecretFn: func(secretName string) (*vault.Secret, error) {
 					data := map[string]any{"secret": "data-" + namespace}
@@ -278,7 +278,7 @@ func TestPreservation_ClusterSecretStore_MatchingNamespace_GetSecret_Property(t 
 			},
 		}
 
-		c := &SecretsClient{
+		c := &secretsClient{
 			vault: &fakeVaultClient{
 				getSecretFn: func(secretName string) (*vault.Secret, error) {
 					data := map[string]any{"permitted": "yes-" + namespace}
@@ -361,7 +361,7 @@ func TestPreservation_ClusterSecretStore_MatchingRegex_GetSecret_Property(t *tes
 			},
 		}
 
-		c := &SecretsClient{
+		c := &secretsClient{
 			vault: &fakeVaultClient{
 				getSecretFn: func(secretName string) (*vault.Secret, error) {
 					data := map[string]any{"regex-match": "ok-" + namespace}
@@ -448,7 +448,7 @@ func TestPreservation_GetAllSecrets_AuthorizedStore_Property(t *testing.T) {
 			}
 		}
 
-		c := &SecretsClient{
+		c := &secretsClient{
 			vault: &fakeVaultClient{
 				getSecretsFn: func(opts ...filters.Option) (*response.ResultSet[vault.Secret], error) {
 					return &response.ResultSet[vault.Secret]{
@@ -563,7 +563,7 @@ func TestPreservation_PushSecret_AuthorizedStore_Property(t *testing.T) {
 		}
 
 		var pushedName string
-		c := &SecretsClient{
+		c := &secretsClient{
 			vault: &fakeVaultClient{
 				createSecretFn: func(req *vault.SecretRequest) (vault.SecretCreate, error) {
 					pushedName = req.Name
@@ -631,7 +631,7 @@ func TestPreservation_ClusterSecretStore_NilConditions_GetSecret_Property(t *tes
 			},
 		}
 
-		c := &SecretsClient{
+		c := &secretsClient{
 			vault: &fakeVaultClient{
 				getSecretFn: func(secretName string) (*vault.Secret, error) {
 					data := map[string]any{"nil-cond": "ok-" + namespace}
@@ -687,7 +687,7 @@ func TestPreservation_SecretStore_GetSecret_Deterministic(t *testing.T) {
 				Spec: esv1.SecretStoreSpec{},
 			}
 
-			c := &SecretsClient{
+			c := &secretsClient{
 				vault: &fakeVaultClient{
 					getSecretFn: func(secretName string) (*vault.Secret, error) {
 						data := map[string]any{"password": "secret123"}
@@ -764,7 +764,7 @@ func TestPreservation_ClusterSecretStore_PermittedNamespace_Deterministic(t *tes
 				Spec:       esv1.SecretStoreSpec{Conditions: tc.conditions},
 			}
 
-			c := &SecretsClient{
+			c := &secretsClient{
 				vault: &fakeVaultClient{
 					getSecretFn: func(secretName string) (*vault.Secret, error) {
 						data := map[string]any{"token": "abc123"}

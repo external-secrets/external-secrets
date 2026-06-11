@@ -33,55 +33,53 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 var (
-	// ErrNotImplemented is returned when the requested functionality is not implemented.
-	ErrNotImplemented = errors.New("not implemented")
+	// errInvalidJSON is returned when JSON decoding fails.
+	errInvalidJSON = errors.New("invalid JSON")
 
-	// ErrInvalidJSON is returned when JSON decoding fails.
-	ErrInvalidJSON = errors.New("invalid JSON")
+	// errEmptyAudience is returned when the audience value is empty.
+	errEmptyAudience = errors.New("audience is empty")
 
-	// ErrEmptyAudience is returned when the audience value is empty.
-	ErrEmptyAudience = errors.New("audience is empty")
+	// errReadNamespace is returned when reading the namespace fails.
+	errReadNamespace = errors.New("failed to read namespace")
 
-	// ErrReadNamespace is returned when reading the namespace fails.
-	ErrReadNamespace = errors.New("failed to read namespace")
+	// errReadServiceAccount is returned when reading the service account name fails.
+	errReadServiceAccount = errors.New("failed to read serviceaccount name")
 
-	// ErrReadServiceAccount is returned when reading the service account name fails.
-	ErrReadServiceAccount = errors.New("failed to read serviceaccount name")
+	// errInClusterConfig is returned when creating in-cluster Kubernetes config fails.
+	errInClusterConfig = errors.New("failed to create in-cluster config")
 
-	// ErrInClusterConfig is returned when creating in-cluster Kubernetes config fails.
-	ErrInClusterConfig = errors.New("failed to create in-cluster config")
+	// errKubernetesClient is returned when creating the Kubernetes client fails.
+	errKubernetesClient = errors.New("failed to create kubernetes client")
 
-	// ErrKubernetesClient is returned when creating the Kubernetes client fails.
-	ErrKubernetesClient = errors.New("failed to create kubernetes client")
+	// errCreateToken is returned when creating a service account token fails.
+	errCreateToken = errors.New("failed to create serviceaccount token")
 
-	// ErrCreateToken is returned when creating a service account token fails.
-	ErrCreateToken = errors.New("failed to create serviceaccount token")
+	// errEmptyReturnedToken is returned when the token returned by the API is empty.
+	errEmptyReturnedToken = errors.New("empty token returned")
 
-	// ErrEmptyReturnedToken is returned when the token returned by the API is empty.
-	ErrEmptyReturnedToken = errors.New("empty token returned")
+	// errInvalidJWTFormat is returned when the JWT format is invalid.
+	errInvalidJWTFormat = errors.New("invalid jwt format")
 
-	// ErrInvalidJWTFormat is returned when the JWT format is invalid.
-	ErrInvalidJWTFormat = errors.New("invalid jwt format")
+	// errDecodeJWTPayload is returned when decoding the JWT payload fails.
+	errDecodeJWTPayload = errors.New("failed to decode jwt payload")
 
-	// ErrDecodeJWTPayload is returned when decoding the JWT payload fails.
-	ErrDecodeJWTPayload = errors.New("failed to decode jwt payload")
+	// errParseJWTPayload is returned when parsing the JWT payload JSON fails.
+	errParseJWTPayload = errors.New("failed to parse jwt payload json")
 
-	// ErrParseJWTPayload is returned when parsing the JWT payload JSON fails.
-	ErrParseJWTPayload = errors.New("failed to parse jwt payload json")
-
-	// ErrServiceAccountNameNotFound is returned when the service account name is not found in JWT claims.
-	ErrServiceAccountNameNotFound = errors.New("serviceaccount name not found in jwt claims")
+	// errServiceAccountNameNotFound is returned when the service account name is not found in JWT claims.
+	errServiceAccountNameNotFound = errors.New("serviceaccount name not found in jwt claims")
 )
 
-// ErrNoStoreAuth is an error returned which details what is missing from authorisation.
-type ErrNoStoreAuth struct {
+// errNoStoreAuth is an error returned which details what is missing from authorisation.
+type errNoStoreAuth struct {
 	Field string
 }
 
-func (e ErrNoStoreAuth) Error() string {
+func (e errNoStoreAuth) Error() string {
 	if e.Field == "" {
 		return "no PrivX authorisation from SecretStore definition"
 	}
@@ -89,10 +87,10 @@ func (e ErrNoStoreAuth) Error() string {
 }
 
 // Check during compile that we implement the interface.
-var _ esv1.Provider = (*Provider)(nil)
+var _ esv1.Provider = (*provider)(nil)
 
-// Provider implements the ESO Provider interface for PrivX.
-type Provider struct {
+// provider implements the ESO Provider interface for PrivX.
+type provider struct {
 	// newClient is the function that actually returns a new client.
 	// Tests can replace this function to create a fake client.
 	newClient func(
@@ -199,8 +197,8 @@ func privxAuthJWT(
 	logger.V(1).Info("JWT token", "claims", decoded)
 
 	// Then exchange the token for a PrivX token
-	req := ExchangeTokenRequest{Token: token}
-	tokenResponse, err := ExchangeToken(ctx, nil, privxSpec.Host, req)
+	req := exchangeTokenRequest{Token: token}
+	tokenResponse, err := exchangeToken(ctx, nil, privxSpec.Host, req)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +251,7 @@ func privxAPI(
 }
 
 // NewClient returns a new PrivX Client.
-func (p *Provider) NewClient(
+func (p *provider) NewClient(
 	ctx context.Context,
 	store esv1.GenericStore,
 	kube kclient.Client,
@@ -274,7 +272,7 @@ func newRealClient(
 ) (esv1.SecretsClient, error) {
 	spec := store.GetSpec()
 	if spec == nil || spec.Provider == nil || spec.Provider.PrivX == nil {
-		return nil, ErrNoStoreAuth{Field: "spec.provider.privx"}
+		return nil, errNoStoreAuth{Field: "spec.provider.privx"}
 	}
 
 	config := spec.Provider.PrivX
@@ -283,7 +281,7 @@ func newRealClient(
 		return nil, err
 	}
 
-	client := SecretsClient{
+	client := secretsClient{
 		conn: conn,
 		vault: &sdkVaultClient{
 			v: vault.New(conn),
@@ -298,37 +296,55 @@ func newRealClient(
 }
 
 // ValidateStore checks the configuration.
-func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
+func (p *provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store.GetSpec().Provider == nil {
-		return nil, ErrNoStoreAuth{Field: "spec.provider"}
+		return nil, errNoStoreAuth{Field: "spec.provider"}
 	}
-	provider := store.GetSpec().Provider
-	if provider.PrivX == nil {
-		return nil, ErrNoStoreAuth{Field: "spec.provider.privx"}
+	prov := store.GetSpec().Provider
+	if prov.PrivX == nil {
+		return nil, errNoStoreAuth{Field: "spec.provider.privx"}
 	}
 
-	privx := provider.PrivX
-
-	// with JWT, no auth fields necessary
-	// if privx.Auth == nil {
-	// 	return nil, ErrNoStoreAuth{Field: "spec.provider.privx.auth"}
-	// }
+	privx := prov.PrivX
 
 	if privx.Host == "" {
-		return nil, ErrNoStoreAuth{Field: "spec.provider.privx.host"}
+		return nil, errNoStoreAuth{Field: "spec.provider.privx.host"}
+	}
+
+	// Validate auth selector references at admission time.
+	if privx.Auth != nil {
+		if privx.Auth.OAuth != nil {
+			if err := esutils.ValidateSecretSelector(store, privx.Auth.OAuth.ClientIDRef); err != nil {
+				return nil, err
+			}
+			if err := esutils.ValidateSecretSelector(store, privx.Auth.OAuth.ClientSecretRef); err != nil {
+				return nil, err
+			}
+			if err := esutils.ValidateSecretSelector(store, privx.Auth.OAuth.ApiClientIDRef); err != nil {
+				return nil, err
+			}
+			if err := esutils.ValidateSecretSelector(store, privx.Auth.OAuth.ApiClientSecretRef); err != nil {
+				return nil, err
+			}
+		}
+		if privx.Auth.JWTAuth != nil {
+			if err := esutils.ValidateSecretSelector(store, privx.Auth.JWTAuth.PublicKeyRef); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	return nil, nil
 }
 
 // Capabilities indicates, if store is read-only or read-write.
-func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
+func (p *provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadWrite
 }
 
-// NewProvider creates a new Provider instance.
+// NewProvider creates a new provider instance.
 func NewProvider() esv1.Provider {
-	return &Provider{
+	return &provider{
 		newClient: newRealClient,
 	}
 }
