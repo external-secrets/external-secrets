@@ -84,6 +84,53 @@ If supported by the configured `refreshPolicy`, you can manually trigger a refre
 kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 ```
 
+## SyncWindows
+
+`syncWindows` restricts **when** periodic refreshes may occur. It is evaluated in UTC and applies only to the `Periodic` refresh policy (or when `refreshPolicy` is unset). `OnChange` and `CreatedOnce` policies are unaffected.
+
+A sync-windows block carries a shared `kind` and a list of `schedule + duration` entries:
+
+- `kind: allow` -- periodic syncs are permitted **only** while at least one window is active; all other times are blocked.
+- `kind: deny` -- periodic syncs are **blocked** while any window is active; all other times proceed normally.
+
+Each entry in `windows` uses a standard 5-field cron `schedule` (UTC) and a `duration` string (e.g. `8h`, `30m`). The window stays open for `duration` after each schedule firing. A window entry with an unparseable `schedule` is silently ignored and treated as inactive, so a typo does not permanently block syncs.
+
+### Example: allow syncs only during business hours (Mon-Fri 09:00-17:00 UTC)
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 1h
+  syncWindows:
+    kind: allow
+    windows:
+      - schedule: "0 9 * * 1-5"  # weekdays at 09:00 UTC
+        duration: 8h              # window open until 17:00 UTC
+```
+
+### Example: block syncs during a Saturday maintenance window (02:00-04:00 UTC)
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 30m
+  syncWindows:
+    kind: deny
+    windows:
+      - schedule: "0 2 * * 6"  # Saturdays at 02:00 UTC
+        duration: 2h            # block until 04:00 UTC
+```
+
+### Multiple windows
+
+You can list several entries under `windows`. For `kind: allow`, the sync is permitted when **any** window is active. For `kind: deny`, the sync is blocked when **any** window is active.
+
 ## Features
 
 Individual features are described in the [Guides section](../guides/introduction.md):
