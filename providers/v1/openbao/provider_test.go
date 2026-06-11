@@ -17,13 +17,16 @@ limitations under the License.
 package openbao_test
 
 import (
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -386,12 +389,123 @@ func TestProvider_Validate(t *testing.T) {
 	Expect(client.Validate()).To(Equal(esv1.ValidationResultUnknown))
 }
 
+var dummyCA = []byte(`-----BEGIN CERTIFICATE-----
+MIIBgDCCATKgAwIBAgIRAOzjpCdp42oW5MoccLpRXpAwBQYDK2VwMBIxEDAOBgNV
+BAMTB3Jvb3QtY2EwHhcNMjIwMjA5MTAyNTMxWhcNMzIwMjA3MTAyNTMxWjAaMRgw
+FgYDVQQDEw9pbnRlcm1lZGlhdGUtY2EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNC
+AATekdyX6cZe0Ajmme363TQoWnrQwXnARzeWEf4FRQE8BGWgf8z7wljjpb4M4S4f
++CJAYYY/6x38UnlsxXEeBTofo2YwZDAOBgNVHQ8BAf8EBAMCAQYwEgYDVR0TAQH/
+BAgwBgEB/wIBADAdBgNVHQ4EFgQUIuDzQn9tkFs535jz5X3iXnEzbMQwHwYDVR0j
+BBgwFoAUa2fUac2OZ3pzE6EydVq7UvwiQa0wBQYDK2VwA0EA4gntaGs/3ME6q1y9
+gO4ntri2qwoC25l3q7q9BiFBmeBmvS6I1w9HCZHtB3JnVC/IYDTCYDNTbpGWEOjl
+aCKLCA==
+-----END CERTIFICATE-----`)
+
+func TestProvider_CustomCA(t *testing.T) {
+	cases := []struct {
+		name          string
+		spec          esv1.OpenBaoProvider
+		k8sObjects    []client.Object
+		expectedError string
+	}{
+		{
+			name: "CABundle",
+			spec: esv1.OpenBaoProvider{
+				CABundle: dummyCA,
+			},
+		},
+		{
+			name: "CABundle_invalid",
+			spec: esv1.OpenBaoProvider{
+				CABundle: []byte("invalid"),
+			},
+			expectedError: "cannot set OpenBao CA certificate: failed to decode ca bundle: failed to parse the new certificate, not valid pem data",
+		},
+		{
+			name: "CAProvider",
+			spec: esv1.OpenBaoProvider{
+				CAProvider: &esv1.CAProvider{
+					Type: esv1.CAProviderTypeSecret,
+					Name: "dummy-ca",
+					Key:  "ca.pem",
+				},
+			},
+			k8sObjects: []client.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "dummy-ca",
+					Namespace: "default",
+				},
+				Data: map[string][]byte{
+					"ca.pem": dummyCA,
+				},
+			}},
+		},
+		{
+			name: "CAProvider_not_found",
+			spec: esv1.OpenBaoProvider{
+				CAProvider: &esv1.CAProvider{
+					Type: esv1.CAProviderTypeSecret,
+					Name: "dummy-ca",
+					Key:  "ca.pem",
+				},
+			},
+			expectedError: `cannot set OpenBao CA certificate: failed to get cert from secret: failed to resolve secret key ref: cannot get Kubernetes secret "dummy-ca" from namespace "default": secrets "dummy-ca" not found`,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+
+			kube := clientfake.NewClientBuilder().WithObjects(tc.k8sObjects...).Build()
+			provider := openbao.NewProvider().(*openbao.Provider)
+
+			originalFactory := provider.HTTPClientFactory
+			var httpClient atomic.Pointer[http.Client]
+			var factoryCallCount atomic.Int64
+			provider.HTTPClientFactory = func() *http.Client {
+				c := originalFactory()
+				httpClient.Store(c)
+				factoryCallCount.Add(1)
+				return c
+			}
+
+			store := makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2)
+			store.Spec.Provider.OpenBao = &tc.spec
+
+			client, err := provider.NewClient(t.Context(), store, kube, "default")
+
+			if tc.expectedError != "" {
+				Expect(err).To(MatchError(tc.expectedError))
+				Expect(client).To(BeNil())
+			} else {
+				Expect(err).NotTo(HaveOccurred())
+				Expect(client).NotTo(BeNil())
+
+				expectedPool := x509.NewCertPool()
+				Expect(expectedPool.AppendCertsFromPEM(dummyCA)).To(BeTrue())
+
+				Expect(factoryCallCount.Load()).To(BeEquivalentTo(1))
+				transport := httpClient.Load().Transport
+				Expect(transport).To(BeAssignableToTypeOf(&http.Transport{}))
+				tls := transport.(*http.Transport).TLSClientConfig
+				Expect(tls.RootCAs.Equal(expectedPool)).To(BeTrueBecause("root CAs should equal expected cert pool"))
+
+				client.Close(t.Context())
+			}
+		})
+	}
+}
+
 func setupClient(t *testing.T, v esv1.OpenBaoKVStoreVersion) esv1.SecretsClient {
 	kube, provider := setupProvider(t)
 
 	client, err := provider.NewClient(t.Context(), makeValidSecretStoreWithVersion(v), kube, "default")
 	Expect(err).NotTo(HaveOccurred())
 	Expect(client).NotTo(BeNil())
+	t.Cleanup(func() {
+		client.Close(t.Context())
+	})
 	return client
 }
 
@@ -409,6 +523,6 @@ func setupProvider(t *testing.T) (client.WithWatch, *openbao.Provider) {
 	}).Build()
 
 	provider := openbao.NewProvider().(*openbao.Provider)
-	provider.HTTPClient = r.GetDefaultClient()
+	provider.HTTPClientFactory = r.GetDefaultClient
 	return kube, provider
 }
