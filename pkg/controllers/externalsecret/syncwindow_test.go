@@ -43,7 +43,7 @@ func TestIsWithinSyncWindow(t *testing.T) {
 
 	// Reference firing: 2026-06-01 22:00 UTC (Monday).
 	open := time.Date(2026, 6, 1, 22, 0, 0, 0, time.UTC)
-	close := open.Add(dur) // 2026-06-02 00:00 UTC
+	closeTime := open.Add(dur) // 2026-06-02 00:00 UTC
 
 	tests := []struct {
 		name string
@@ -62,12 +62,12 @@ func TestIsWithinSyncWindow(t *testing.T) {
 		},
 		{
 			name: "at window close (inclusive)",
-			at:   close,
+			at:   closeTime,
 			want: true,
 		},
 		{
 			name: "one second past window close",
-			at:   close.Add(time.Second),
+			at:   closeTime.Add(time.Second),
 			want: false,
 		},
 		{
