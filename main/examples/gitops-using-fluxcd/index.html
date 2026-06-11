@@ -5184,15 +5184,31 @@ and your custom resources, for example a <code>ClusterSecretStore</code> and the
 <p>Both controllers manage the resources independently, at different moments, with no possibility to wait each other.
 This means that we have a wonderful race condition where sometimes the CRs (<code>SecretStore</code>,<code>ClusterSecretStore</code>...) tries
 to be deployed before than the CRDs needed to recognize them.</p>
+<p>A second, subtler race exists around the <strong>admission webhook</strong>. External Secrets ships a <code>ValidatingWebhookConfiguration</code>
+that is registered in the API server as soon as the HelmRelease is applied, before the webhook pod has had time to start
+serving. If a Kustomization tries to apply an <code>ExternalSecret</code> or <code>ClusterSecretStore</code> in that brief window, the API
+server performs a dry-run validation, the webhook endpoint returns <code>connection refused</code>, and the reconciliation fails with:</p>
+<div class="highlight"><pre><span></span><code>Internal error occurred: failed calling webhook &quot;validate.externalsecret.external-secrets.io&quot;: ...
+dial tcp &lt;ip&gt;:443: connect: connection refused
+</code></pre></div>
+<p>Flux retries after <code>interval</code> (typically 10 minutes), so everything works on the second attempt, but the initial
+deployment always fails. The fix is a three-level dependency chain that ensures the webhook pod is healthy before
+any CR is applied.</p>
 <h2 id="the-solution">The solution</h2>
 <p>Let's see the conditions to start working on a solution:</p>
 <ul>
 <li>The External Secrets operator is deployed with Helm, and admits disabling the CRDs deployment</li>
 <li>The race condition only affects the deployment of <code>CustomResourceDefinition</code> and the CRs needed later</li>
 <li>CRDs can be deployed directly from the Git repository of the project using a Flux <code>Kustomization</code></li>
-<li>Required CRs can be deployed using a Flux <code>Kustomization</code> too, allowing dependency between CRDs and CRs</li>
+<li>The operator HelmRelease is wrapped in its own Flux <code>Kustomization</code> with <code>wait: true</code> so it only
+  reports Ready after all deployed resources (including the webhook pod) are healthy</li>
+<li>Required CRs can be deployed using a Flux <code>Kustomization</code> that depends on the operator Kustomization,
+  not just the CRDs, guaranteeing the webhook is serving before any CR dry-run is attempted</li>
 <li>All previous manifests can be applied with a Kubernetes <code>kustomization</code></li>
 </ul>
+<p>The dependency chain is:</p>
+<div class="highlight"><pre><span></span><code>external-secrets-crds --&gt; external-secrets-operator (wait: true) --&gt; external-secrets-crs
+</code></pre></div>
 <h2 id="create-the-main-kustomization">Create the main kustomization</h2>
 <p>To have a better view of things needed later, the first manifest to be created is the <code>kustomization.yaml</code></p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kustomize.config.k8s.io/v1beta1</span>
@@ -5209,11 +5225,11 @@ to be deployed before than the CRDs needed to recognize them.</p>
 <span class="c1"># Deploy the CRDs</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">deployment-crds.yaml</span>
 
-<span class="c1"># Deploy the operator</span>
-<span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">deployment.yaml</span>
+<span class="c1"># Deploy the operator (wrapped in a Kustomization so wait: true gates the CRs)</span>
+<span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">deployment-operator.yaml</span>
 
 <span class="c1"># Deploy default Custom Resources from &#39;crs&#39; directory</span>
-<span class="c1"># INFO: This depends on the CRDs deployment. Will happen after it</span>
+<span class="c1"># INFO: This depends on the operator deployment. Will happen after the webhook is ready</span>
 <span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">deployment-crs.yaml</span>
 </code></pre></div>
 <h2 id="create-the-secret">Create the secret</h2>
@@ -5270,13 +5286,36 @@ from our git repository using a Kustomization manifest called <code>deployment-c
 <span class="w">  </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span>
 <span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./config/crds/bases</span>
 <span class="w">  </span><span class="nt">prune</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">wait</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">  </span><span class="nt">sourceRef</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GitRepository</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
 </code></pre></div>
+<p>Note the <code>wait: true</code> field. This ensures the Kustomization only reports Ready after all CRDs have been fully
+established in the API server, so the operator can register its validation webhooks and controllers cleanly.</p>
 <h2 id="deploy-the-operator">Deploy the operator</h2>
-<p>The operator is deployed using a HelmRelease manifest to deploy the Helm package, but due to the special race condition,
-the deployment must be disabled in the <code>values</code> of the manifest called <code>deployment.yaml</code>, as follows:</p>
+<p>The operator HelmRelease is placed inside an <code>operator/</code> subdirectory and wrapped with its own Flux Kustomization.
+Create a manifest called <code>deployment-operator.yaml</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kustomize.toolkit.fluxcd.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Kustomization</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets-operator</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flux-system</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">dependsOn</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets-crds</span>
+<span class="w">  </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span>
+<span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./infrastructure/external-secrets/operator</span>
+<span class="w">  </span><span class="nt">prune</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">wait</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">sourceRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GitRepository</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flux-system</span>
+</code></pre></div>
+<p>The <code>wait: true</code> here is the key to solving the webhook race condition: Flux will not mark
+<code>external-secrets-operator</code> as Ready until every resource the HelmRelease created -- including the webhook
+Deployment -- has reached a healthy state. Only then will the CRs Kustomization be allowed to proceed.</p>
+<p>Inside the <code>operator/</code> subdirectory, place the HelmRelease manifest (<code>operator/deployment.yaml</code>):</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># How to manage values files. Ref: https://fluxcd.io/docs/guides/helmreleases/#refer-to-values-inside-the-chart</span>
 <span class="c1"># How to inject values: https://fluxcd.io/docs/guides/helmreleases/#cloud-storage</span>
 <span class="nn">---</span>
@@ -5307,16 +5346,16 @@ the deployment must be disabled in the <code>values</code> of the manifest calle
 </code></pre></div>
 <h2 id="deploy-the-crs">Deploy the CRs</h2>
 <p>Now, be ready for the arcane magic. Create a Kustomization manifest called <code>deployment-crs.yaml</code> with the following content:</p>
-<div class="highlight"><pre><span></span><code><span class="nn">---</span>
-<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kustomize.toolkit.fluxcd.io/v1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kustomize.toolkit.fluxcd.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Kustomization</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets-crs</span>
 <span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">flux-system</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">dependsOn</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets-crds</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets-operator</span>
 <span class="w">  </span><span class="nt">interval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10m</span>
+<span class="w">  </span><span class="nt">retryInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span>
 <span class="w">  </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./infrastructure/external-secrets/crs</span>
 <span class="w">  </span><span class="nt">prune</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 <span class="w">  </span><span class="nt">sourceRef</span><span class="p">:</span>
@@ -5325,8 +5364,10 @@ the deployment must be disabled in the <code>values</code> of the manifest calle
 </code></pre></div>
 <p>There are several interesting details to see here, that finally solves the race condition:</p>
 <ol>
-<li>First one is the field <code>dependsOn</code>, which points to a previous Kustomization called <code>external-secrets-crds</code>. This
-   dependency forces this deployment to wait for the other to be ready, before start being deployed.</li>
+<li>The <code>dependsOn</code> field now points to <code>external-secrets-operator</code> rather than <code>external-secrets-crds</code>. This
+   dependency forces this deployment to wait for the operator (including its webhook) to be fully ready before
+   any CR is applied, eliminating the webhook race condition.</li>
+<li><code>retryInterval: 1m</code> makes Flux retry quickly if the very first reconcile still catches a brief startup window.</li>
 <li>The reference to the place where to find the CRs
    <div class="highlight"><pre><span></span><code><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./infrastructure/external-secrets/crs</span>
 <span class="nt">sourceRef</span><span class="p">:</span>
@@ -5358,8 +5399,22 @@ for example, a manifest <code>clusterSecretStore.yaml</code> to reach your Hashi
 <span class="w">          </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
 </code></pre></div>
 <h2 id="results">Results</h2>
-<p>At the end, the required files tree is shown in the following picture:</p>
-<p><img alt="FluxCD files tree" src="../../pictures/screenshot_gitops_final_directory_tree.png" /></p>
+<p>At the end, the required files tree is:</p>
+<div class="highlight"><pre><span></span><code>./infrastructure/external-secrets/
+  kustomization.yaml
+  namespace.yaml
+  secret-token.yaml
+  repositories.yaml
+  deployment-crds.yaml
+  deployment-operator.yaml
+  operator/
+    kustomization.yaml
+    deployment.yaml
+  deployment-crs.yaml
+  crs/
+    kustomization.yaml
+    clusterSecretStore.yaml
+</code></pre></div>
 
 
 
