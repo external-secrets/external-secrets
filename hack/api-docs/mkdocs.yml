@@ -73,7 +73,6 @@ nav:
       - Generators:
           - "api/generator/index.md"
           - Azure Container Registry: api/generator/acr.md
-          - Artifactory: api/generator/artifactory.md
           - AWS Elastic Container Registry: api/generator/ecr.md
           - AWS STS Session Token: api/generator/sts.md
           - Cloudsmith: api/generator/cloudsmith.md
@@ -89,6 +88,7 @@ nav:
           - UUID: api/generator/uuid.md
           - MFA: api/generator/mfa.md
           - SSHKey: api/generator/sshkey.md
+          - Artifactory: api/generator/artifactory.md
       - Reference Docs:
           - API specification: api/spec.md
           - Controller Options: api/controller-options.md
