@@ -1492,6 +1492,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#generating-multiple-passwords" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generating Multiple Passwords
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#encoding-examples" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4979,6 +4990,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#generating-multiple-passwords" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generating Multiple Passwords
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#encoding-examples" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5090,6 +5112,11 @@
 <td>allow repeating characters.</td>
 </tr>
 <tr>
+<td>secretKeys</td>
+<td><code>[password]</code></td>
+<td>List of output keys to populate, each with its own unique password. Keys must be non-empty and unique. Defaults to a single <code>password</code> key.</td>
+</tr>
+<tr>
 <td>encoding</td>
 <td>raw</td>
 <td>Encoding format for the generated password. Valid values: <code>raw</code>, <code>base64</code>, <code>base64url</code>, <code>base32</code>, <code>hex</code>.</td>
@@ -5136,6 +5163,35 @@ Hi$-aK_3Rrrw1Pj9-sIpPZuk5abvEDJlabUYUcS$9L
 ZRv-k!y6x/V&quot;29:43aErSf$1
 Vk9*mwXE30Q+&gt;H?lY$5I64_q
 </code></pre></div>
+<h2 id="generating-multiple-passwords">Generating Multiple Passwords</h2>
+<p>To produce several independent passwords in a single <code>Kind=Secret</code>, list the desired output keys under <code>spec.secretKeys</code>. Each key is populated with its own unique password, so one generator can back a secret that holds multiple credentials:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Password</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">multiple-passwords</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">length</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">36</span>
+<span class="w">  </span><span class="nt">secretKeys</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">key1</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">key2</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auth-secrets</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;30m&quot;</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">auth-secrets</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sourceRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">generatorRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Password</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">multiple-passwords</span>
+</code></pre></div>
+<p>This generates a secret with both <code>key1</code> and <code>key2</code>, each holding a distinct password. All other parameters (<code>length</code>, <code>symbols</code>, <code>encoding</code>, etc.) apply to every generated password.</p>
+<p>If you only need to rename the single generated key rather than produce several, use <a href="../../../guides/datafrom-rewrite/"><code>rewrite</code></a> on the <code>dataFrom</code> entry instead (<code>source: "password"</code>, <code>target: "&lt;your-key&gt;"</code>).</p>
 <h2 id="encoding-examples">Encoding Examples</h2>
 <p>The password generator supports different encoding formats for the output:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># Example with hex encoding</span>
@@ -5189,7 +5245,7 @@ Vk9*mwXE30Q+&gt;H?lY$5I64_q
 <p><strong>base64</strong>: <code>VGVzdD4+UGFzcz8/d29yZA==</code> uses <code>+</code>, <code>/</code>, and <code>=</code> for padding</p>
 </li>
 <li>
-<p><strong>base64url</strong>: <code>VGVzdD4-UGFzcz8_d29yZA==</code> uses <code>-</code>, <code>_</code>, and no padding (URL-safe)</p>
+<p><strong>base64url</strong>: <code>VGVzdD4-UGFzcz8_d29yZA==</code> uses <code>-</code> and <code>_</code> in place of <code>+</code> and <code>/</code> (URL-safe), and still uses <code>=</code> padding</p>
 </li>
 </ul>
 
