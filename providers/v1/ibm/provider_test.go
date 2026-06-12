@@ -27,6 +27,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/IBM/go-sdk-core/v5/core"
 	sm "github.com/IBM/secrets-manager-go-sdk/v2/secretsmanagerv2"
 	"github.com/go-openapi/strfmt"
 	corev1 "k8s.io/api/core/v1"
@@ -1436,6 +1437,292 @@ func TestValidRetryInput(t *testing.T) {
 
 	if !ErrorContains(err, expected) {
 		t.Errorf("CheckValidRetryInput unexpected error: %s, expected: '%s'", err.Error(), expected)
+	}
+}
+
+// listEntry is a compact representation of a SecretMetadata used in test fixtures.
+type listEntry struct {
+	id   string
+	name string
+}
+
+// metadataPage builds a SecretMetadataPaginatedCollection from a slice of
+// (id, name) pairs, with each entry typed as an ArbitrarySecretMetadata. Anything
+// the production code doesn't read off the metadata (CRN, dates, …) is left zero —
+// the production code only inspects id and name.
+func metadataPage(entries ...listEntry) *sm.SecretMetadataPaginatedCollection {
+	out := &sm.SecretMetadataPaginatedCollection{}
+	for _, e := range entries {
+		id, name := e.id, e.name
+		out.Secrets = append(out.Secrets, &sm.ArbitrarySecretMetadata{
+			SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
+			ID:         &id,
+			Name:       &name,
+		})
+	}
+	return out
+}
+
+func TestGetAllSecrets(t *testing.T) {
+	ctx := context.Background()
+	id1 := "00000000-0000-0000-0000-000000000001"
+	id2 := "00000000-0000-0000-0000-000000000002"
+	payload1, payload2 := "v1", "v2"
+
+	t.Run("rejects empty find", func(t *testing.T) {
+		p := &providerIBM{IBMClient: &fakesm.IBMMockClient{}}
+		_, err := p.GetAllSecrets(ctx, esv1.ExternalSecretFind{})
+		if err == nil || !strings.Contains(err.Error(), "at least one of find.name, find.tags or find.path") {
+			t.Fatalf("expected guard error, got %v", err)
+		}
+	})
+
+	t.Run("rejects uninitialised client", func(t *testing.T) {
+		p := &providerIBM{}
+		_, err := p.GetAllSecrets(ctx, esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: ".*"}})
+		if err == nil || !strings.Contains(err.Error(), errUninitializedIBMProvider) {
+			t.Fatalf("expected uninitialised error, got %v", err)
+		}
+	})
+
+	t.Run("name regex filters list and JSON payload is returned", func(t *testing.T) {
+		mock := &fakesm.IBMMockClient{}
+		mock.WithListSecrets(func(_ context.Context, opts *sm.ListSecretsOptions) (*sm.SecretMetadataPaginatedCollection, *core.DetailedResponse, error) {
+			if opts.Limit == nil || *opts.Limit != listSecretsPageSize {
+				return nil, nil, fmt.Errorf("expected default page limit, got %v", opts.Limit)
+			}
+			return metadataPage(
+				listEntry{id: id1, name: "app-db"},
+				listEntry{id: id2, name: "internal-cache"},
+			), nil, nil
+		})
+		mock.WithValue(fakesm.IBMMockClientParams{
+			GetSecretOptions: &sm.GetSecretOptions{ID: &id1},
+			GetSecretOutput: &sm.ArbitrarySecret{
+				SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
+				Name:       new("app-db"),
+				ID:         &id1,
+				Payload:    &payload1,
+			},
+		})
+
+		p := &providerIBM{IBMClient: mock}
+		got, err := p.GetAllSecrets(ctx, esv1.ExternalSecretFind{
+			Name: &esv1.FindName{RegExp: "^app-"},
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if _, ok := got["app-db"]; !ok {
+			t.Fatalf("expected app-db in result, got keys %v", mapKeys(got))
+		}
+		if _, ok := got["internal-cache"]; ok {
+			t.Fatalf("internal-cache should have been filtered out, got keys %v", mapKeys(got))
+		}
+		var decoded map[string]any
+		if err := json.Unmarshal(got["app-db"], &decoded); err != nil {
+			t.Fatalf("payload not JSON: %v", err)
+		}
+		if decoded["payload"] != payload1 {
+			t.Fatalf("expected payload %q in JSON, got %v", payload1, decoded["payload"])
+		}
+	})
+
+	t.Run("path forwards to server search and tags map to labels", func(t *testing.T) {
+		var receivedOpts *sm.ListSecretsOptions
+		mock := &fakesm.IBMMockClient{}
+		mock.WithListSecrets(func(_ context.Context, opts *sm.ListSecretsOptions) (*sm.SecretMetadataPaginatedCollection, *core.DetailedResponse, error) {
+			receivedOpts = opts
+			return metadataPage(), nil, nil
+		})
+
+		p := &providerIBM{IBMClient: mock}
+		path := "db-creds"
+		_, err := p.GetAllSecrets(ctx, esv1.ExternalSecretFind{
+			Path: &path,
+			Tags: map[string]string{"env": "prod", "team": ""},
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if receivedOpts == nil || receivedOpts.Search == nil || *receivedOpts.Search != path {
+			t.Fatalf("expected Search=%q, got %+v", path, receivedOpts)
+		}
+		// buildLabelFilter sorts entries; "env=prod" before "team".
+		want := []string{"env=prod", "team"}
+		if !reflect.DeepEqual(receivedOpts.MatchAllLabels, want) {
+			t.Fatalf("MatchAllLabels = %v, want %v", receivedOpts.MatchAllLabels, want)
+		}
+	})
+
+	t.Run("pages until a short page", func(t *testing.T) {
+		mock := &fakesm.IBMMockClient{}
+		page1 := make([]listEntry, listSecretsPageSize)
+		for i := range page1 {
+			id := fmt.Sprintf("page1-id-%03d", i)
+			page1[i] = listEntry{id: id, name: id}
+		}
+		var calls int
+		mock.WithListSecrets(func(_ context.Context, opts *sm.ListSecretsOptions) (*sm.SecretMetadataPaginatedCollection, *core.DetailedResponse, error) {
+			calls++
+			if *opts.Offset == 0 {
+				return metadataPage(page1...), nil, nil
+			}
+			// short page → terminates iteration
+			return metadataPage(listEntry{id: id2, name: "page2-only"}), nil, nil
+		})
+		mock.WithValue(fakesm.IBMMockClientParams{
+			GetSecretOptions: &sm.GetSecretOptions{ID: &id2},
+			GetSecretOutput: &sm.ArbitrarySecret{
+				SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
+				Name:       new("page2-only"),
+				ID:         &id2,
+				Payload:    &payload2,
+			},
+		})
+
+		p := &providerIBM{IBMClient: mock}
+		got, err := p.GetAllSecrets(ctx, esv1.ExternalSecretFind{
+			Name: &esv1.FindName{RegExp: "^page2-only$"}, // only one secret survives client filter
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if calls != 2 {
+			t.Fatalf("expected 2 List calls, got %d", calls)
+		}
+		if _, ok := got["page2-only"]; !ok {
+			t.Fatalf("expected page2-only in result, keys=%v", mapKeys(got))
+		}
+	})
+
+	t.Run("name collision returns error", func(t *testing.T) {
+		mock := &fakesm.IBMMockClient{}
+		mock.WithListSecrets(func(_ context.Context, _ *sm.ListSecretsOptions) (*sm.SecretMetadataPaginatedCollection, *core.DetailedResponse, error) {
+			return metadataPage(
+				listEntry{id: id1, name: "dup"},
+				listEntry{id: id2, name: "dup"},
+			), nil, nil
+		})
+		mock.WithValue(fakesm.IBMMockClientParams{
+			GetSecretOptions: &sm.GetSecretOptions{ID: &id1},
+			GetSecretOutput: &sm.ArbitrarySecret{
+				SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
+				Name:       new("dup"),
+				ID:         &id1,
+				Payload:    &payload1,
+			},
+		})
+
+		p := &providerIBM{IBMClient: mock}
+		_, err := p.GetAllSecrets(ctx, esv1.ExternalSecretFind{
+			Name: &esv1.FindName{RegExp: ".*"},
+		})
+		if err == nil || !strings.Contains(err.Error(), "not unique") {
+			t.Fatalf("expected collision error, got %v", err)
+		}
+	})
+
+	t.Run("invalid regex surfaces error", func(t *testing.T) {
+		p := &providerIBM{IBMClient: &fakesm.IBMMockClient{}}
+		_, err := p.GetAllSecrets(ctx, esv1.ExternalSecretFind{
+			Name: &esv1.FindName{RegExp: "("},
+		})
+		if err == nil || !strings.Contains(err.Error(), "could not compile") {
+			t.Fatalf("expected regex compile error, got %v", err)
+		}
+	})
+
+	t.Run("missing id or name in metadata fails fast", func(t *testing.T) {
+		// A metadata entry with id="" simulates a malformed IBM SM response.
+		// Silent skip would write a partial Kubernetes Secret to the user; we
+		// surface it as an error instead.
+		mock := &fakesm.IBMMockClient{}
+		mock.WithListSecrets(func(_ context.Context, _ *sm.ListSecretsOptions) (*sm.SecretMetadataPaginatedCollection, *core.DetailedResponse, error) {
+			emptyID := ""
+			validName := "broken-secret"
+			return &sm.SecretMetadataPaginatedCollection{
+				Secrets: []sm.SecretMetadataIntf{
+					&sm.ArbitrarySecretMetadata{
+						SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
+						ID:         &emptyID,
+						Name:       &validName,
+					},
+				},
+			}, nil, nil
+		})
+		p := &providerIBM{IBMClient: mock}
+		_, err := p.GetAllSecrets(ctx, esv1.ExternalSecretFind{
+			Name: &esv1.FindName{RegExp: ".*"},
+		})
+		if err == nil || !strings.Contains(err.Error(), "missing id or name") {
+			t.Fatalf("expected metadata error, got %v", err)
+		}
+	})
+
+	t.Run("list error propagates", func(t *testing.T) {
+		mock := &fakesm.IBMMockClient{}
+		mock.WithListSecrets(func(_ context.Context, _ *sm.ListSecretsOptions) (*sm.SecretMetadataPaginatedCollection, *core.DetailedResponse, error) {
+			return nil, nil, errors.New("boom")
+		})
+		p := &providerIBM{IBMClient: mock}
+		_, err := p.GetAllSecrets(ctx, esv1.ExternalSecretFind{
+			Path: new("anything"),
+		})
+		if err == nil || !strings.Contains(err.Error(), "failed to list secrets") {
+			t.Fatalf("expected list error, got %v", err)
+		}
+	})
+
+	t.Run("fetch error propagates", func(t *testing.T) {
+		// List succeeds and a secret matches the filter, but the per-secret
+		// fetch (GetSecretWithContext) fails. The error must surface rather
+		// than the entry being silently dropped.
+		mock := &fakesm.IBMMockClient{}
+		mock.WithListSecrets(func(_ context.Context, _ *sm.ListSecretsOptions) (*sm.SecretMetadataPaginatedCollection, *core.DetailedResponse, error) {
+			return metadataPage(listEntry{id: id1, name: "app-db"}), nil, nil
+		})
+		mock.WithValue(fakesm.IBMMockClientParams{
+			GetSecretOptions: &sm.GetSecretOptions{ID: &id1},
+			GetSecretErr:     errors.New("boom"),
+		})
+
+		p := &providerIBM{IBMClient: mock}
+		_, err := p.GetAllSecrets(ctx, esv1.ExternalSecretFind{
+			Name: &esv1.FindName{RegExp: "^app-"},
+		})
+		if err == nil || !strings.Contains(err.Error(), "failed to fetch secret") {
+			t.Fatalf("expected fetch error, got %v", err)
+		}
+	})
+}
+
+func mapKeys(m map[string][]byte) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func TestBuildLabelFilter(t *testing.T) {
+	cases := []struct {
+		name string
+		in   map[string]string
+		want []string
+	}{
+		{name: "nil"},
+		{name: "empty value passes bare key", in: map[string]string{"app": ""}, want: []string{"app"}},
+		{name: "value encoded as key=value", in: map[string]string{"env": "prod"}, want: []string{"env=prod"}},
+		{name: "sorted for determinism", in: map[string]string{"team": "x", "env": "prod"}, want: []string{"env=prod", "team=x"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			got := buildLabelFilter(c.in)
+			if !reflect.DeepEqual(got, c.want) {
+				t.Fatalf("got %v, want %v", got, c.want)
+			}
+		})
 	}
 }
 

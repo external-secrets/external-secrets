@@ -29,6 +29,7 @@ import (
 type IBMMockClient struct {
 	getSecretWithContext           func(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
 	getSecretByNameTypeWithContext func(ctx context.Context, getSecretByNameTypeOptions *sm.GetSecretByNameTypeOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
+	listSecretsWithContext         func(ctx context.Context, listSecretsOptions *sm.ListSecretsOptions) (result *sm.SecretMetadataPaginatedCollection, response *core.DetailedResponse, err error)
 }
 
 type IBMMockClientParams struct {
@@ -49,6 +50,31 @@ func (mc *IBMMockClient) GetSecretByNameTypeWithContext(
 	getSecretByNameTypeOptions *sm.GetSecretByNameTypeOptions,
 ) (result sm.SecretIntf, response *core.DetailedResponse, err error) {
 	return mc.getSecretByNameTypeWithContext(ctx, getSecretByNameTypeOptions)
+}
+
+// ListSecretsWithContext delegates to the test-provided callback. Tests opt in by
+// calling WithListSecrets; the default is a nil callback which returns an empty page,
+// keeping existing tests that don't exercise list behavior unchanged.
+func (mc *IBMMockClient) ListSecretsWithContext(
+	ctx context.Context,
+	listSecretsOptions *sm.ListSecretsOptions,
+) (result *sm.SecretMetadataPaginatedCollection, response *core.DetailedResponse, err error) {
+	if mc == nil || mc.listSecretsWithContext == nil {
+		return &sm.SecretMetadataPaginatedCollection{}, nil, nil
+	}
+	return mc.listSecretsWithContext(ctx, listSecretsOptions)
+}
+
+// WithListSecrets sets the callback used by ListSecretsWithContext. The callback is
+// invoked once per page; tests typically return the same page (with a length below
+// the requested limit) on the first call to terminate iteration, or use the options
+// argument to assert that filter parameters were forwarded.
+func (mc *IBMMockClient) WithListSecrets(
+	fn func(ctx context.Context, opts *sm.ListSecretsOptions) (*sm.SecretMetadataPaginatedCollection, *core.DetailedResponse, error),
+) {
+	if mc != nil {
+		mc.listSecretsWithContext = fn
+	}
 }
 
 func (mc *IBMMockClient) WithValue(params IBMMockClientParams) {
