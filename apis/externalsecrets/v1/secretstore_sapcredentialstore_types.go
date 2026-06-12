@@ -21,8 +21,8 @@ import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 // SAPCredentialStoreProvider configures the SAP Credential Store ESO provider.
 type SAPCredentialStoreProvider struct {
 	// ServiceURL is the base URL of the SAP Credential Store REST API endpoint,
-	// as provided in the BTP service binding.
-	// Example: https://<instance>.credstore.cfapps.<region>.hana.ondemand.com
+	// as provided in the BTP service binding (the "url" field).
+	// Example: https://credstore.mesh.cf.sap.hana.ondemand.com/api/v1/credentials
 	// +kubebuilder:validation:Required
 	ServiceURL string `json:"serviceURL"`
 
@@ -35,6 +35,30 @@ type SAPCredentialStoreProvider struct {
 	// Exactly one of oauth2 or mtls must be specified.
 	// +kubebuilder:validation:Required
 	Auth SAPCSAuth `json:"auth"`
+
+	// Encryption configures JWE payload encryption for SAP Credential Store.
+	// Required when the service binding was created with encryption.payload=enabled
+	// (the default for most BTP environments). The client_private_key and
+	// server_public_key values are taken directly from the binding JSON.
+	// +optional
+	Encryption *SAPCSEncryption `json:"encryption,omitempty"`
+}
+
+// SAPCSEncryption holds the JWE keys from the BTP service binding encryption block.
+// When set, all request bodies are encrypted with the server public key and all
+// response bodies are decrypted with the client private key using RSA-OAEP-256 + AES-256-GCM.
+type SAPCSEncryption struct {
+	// ClientPrivateKey references a Kubernetes Secret key containing the base64-encoded
+	// PKCS8 DER private key used to decrypt JWE responses from SAP Credential Store.
+	// Corresponds to the "encryption.client_private_key" field in the BTP service binding.
+	// +kubebuilder:validation:Required
+	ClientPrivateKey esmeta.SecretKeySelector `json:"clientPrivateKey"`
+
+	// ServerPublicKey references a Kubernetes Secret key containing the base64-encoded
+	// SPKI DER public key used to encrypt JWE request bodies sent to SAP Credential Store.
+	// Corresponds to the "encryption.server_public_key" field in the BTP service binding.
+	// +kubebuilder:validation:Required
+	ServerPublicKey esmeta.SecretKeySelector `json:"serverPublicKey"`
 }
 
 // SAPCSAuth configures authentication for the SAP Credential Store provider.

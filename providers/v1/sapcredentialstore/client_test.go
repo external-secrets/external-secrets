@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -37,7 +38,7 @@ const testNamespace = "test-ns"
 
 func newHTTPTestClient(serverURL string) *Client {
 	return &Client{
-		sapClient: api.NewOAuth2Client(serverURL, http.DefaultTransport),
+		sapClient: api.NewOAuth2Client(serverURL, http.DefaultTransport, nil),
 		namespace: testNamespace,
 	}
 }
@@ -52,7 +53,7 @@ func writeJSON(w http.ResponseWriter, v any) {
 func TestGetSecret_PasswordDefault(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodGet, r.Method)
-		assert.Equal(t, "/api/v1/namespaces/"+testNamespace+"/credentials/password/db-pass", r.URL.Path)
+		assert.Equal(t, "/"+testNamespace+"/password/db-pass", r.URL.Path)
 		writeJSON(w, api.Credential{Name: "db-pass", Value: "secret123", Username: "admin"})
 	}))
 	defer srv.Close()
@@ -68,7 +69,7 @@ func TestGetSecret_PasswordDefault(t *testing.T) {
 
 func TestGetSecret_PasswordExplicit(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/api/v1/namespaces/"+testNamespace+"/credentials/password/my-pass", r.URL.Path)
+		assert.Equal(t, "/"+testNamespace+"/password/my-pass", r.URL.Path)
 		writeJSON(w, api.Credential{Name: "my-pass", Value: "pass-value"})
 	}))
 	defer srv.Close()
@@ -84,7 +85,7 @@ func TestGetSecret_PasswordExplicit(t *testing.T) {
 
 func TestGetSecret_Key(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/api/v1/namespaces/"+testNamespace+"/credentials/key/api-key", r.URL.Path)
+		assert.Equal(t, "/"+testNamespace+"/key/api-key", r.URL.Path)
 		writeJSON(w, api.Credential{Name: "api-key", Value: "key-value-abc"})
 	}))
 	defer srv.Close()
@@ -102,7 +103,7 @@ func TestGetSecret_Certificate(t *testing.T) {
 	certPEM := "-----BEGIN CERTIFICATE-----\nMIIBxx\n-----END CERTIFICATE-----"
 	keyPEM := "-----BEGIN RSA PRIVATE KEY-----\nMIIEyy\n-----END RSA PRIVATE KEY-----"
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/api/v1/namespaces/"+testNamespace+"/credentials/certificate/my-cert", r.URL.Path)
+		assert.Equal(t, "/"+testNamespace+"/certificate/my-cert", r.URL.Path)
 		writeJSON(w, api.Credential{Name: "my-cert", Value: certPEM, Key: keyPEM})
 	}))
 	defer srv.Close()
@@ -120,7 +121,7 @@ func TestGetSecret_CertificateKey(t *testing.T) {
 	// certificate/key property returns the private key PEM sub-field
 	keyPEM := "-----BEGIN RSA PRIVATE KEY-----\nMIIEyy\n-----END RSA PRIVATE KEY-----"
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/api/v1/namespaces/"+testNamespace+"/credentials/certificate/my-cert", r.URL.Path)
+		assert.Equal(t, "/"+testNamespace+"/certificate/my-cert", r.URL.Path)
 		writeJSON(w, api.Credential{Name: "my-cert", Value: "CERT_PEM", Key: keyPEM})
 	}))
 	defer srv.Close()
@@ -214,7 +215,7 @@ func TestPushSecret_Create(t *testing.T) {
 	var receivedBody api.CredentialBody
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodPut, r.Method)
-		assert.Equal(t, "/api/v1/namespaces/"+testNamespace+"/credentials/password/db-pass", r.URL.Path)
+		assert.Equal(t, "/"+testNamespace+"/password/db-pass", r.URL.Path)
 		require.NoError(t, json.NewDecoder(r.Body).Decode(&receivedBody))
 		w.WriteHeader(http.StatusCreated)
 	}))
@@ -252,7 +253,7 @@ func TestPushSecret_KeyType(t *testing.T) {
 		property:  "key",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, "/api/v1/namespaces/"+testNamespace+"/credentials/key/my-key", receivedPath)
+	assert.Equal(t, "/"+testNamespace+"/key/my-key", receivedPath)
 }
 
 func TestDeleteSecret(t *testing.T) {
@@ -270,7 +271,7 @@ func TestDeleteSecret(t *testing.T) {
 		property:  "password",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, "/api/v1/namespaces/"+testNamespace+"/credentials/password/db-pass", receivedPath)
+	assert.Equal(t, "/"+testNamespace+"/password/db-pass", receivedPath)
 }
 
 func TestSecretExists_True(t *testing.T) {
@@ -319,17 +320,16 @@ func TestGetAllSecrets(t *testing.T) {
 	}
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		credType := r.URL.Query().Get("type")
-		if credType != "" {
-			// List request
-			writeJSON(w, lists[credType])
+		// List request: GET /{ns}/{type}  (no further path segments)
+		// Item request: GET /{ns}/{type}/{name}
+		parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/"+testNamespace+"/"), "/")
+		if len(parts) == 1 {
+			writeJSON(w, lists[parts[0]])
 			return
 		}
-		// Get individual credential: path is /api/v1/namespaces/{ns}/credentials/{type}/{name}
-		// Extract type and name from path
-		for key, cred := range credentials {
-			typeSlash := key[:len(key)-len(cred.Name)-1]
-			if r.URL.Path == "/api/v1/namespaces/"+testNamespace+"/credentials/"+typeSlash+"/"+cred.Name {
+		if len(parts) == 2 {
+			key := parts[0] + "/" + parts[1]
+			if cred, ok := credentials[key]; ok {
 				writeJSON(w, cred)
 				return
 			}

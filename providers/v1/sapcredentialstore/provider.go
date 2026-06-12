@@ -118,6 +118,23 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	s := spec.Provider.SAPCredentialStore
 	storeKind := store.GetObjectKind().GroupVersionKind().Kind
 
+	// Resolve JWE encryption keys if the binding has payload encryption enabled.
+	var encKeys *api.JWEKeys
+	if s.Encryption != nil {
+		clientPriv, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &s.Encryption.ClientPrivateKey)
+		if err != nil {
+			return nil, fmt.Errorf("sapCredentialStore: resolving encryption.clientPrivateKey: %w", err)
+		}
+		serverPub, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &s.Encryption.ServerPublicKey)
+		if err != nil {
+			return nil, fmt.Errorf("sapCredentialStore: resolving encryption.serverPublicKey: %w", err)
+		}
+		encKeys, err = api.NewJWEKeys(clientPriv, serverPub)
+		if err != nil {
+			return nil, fmt.Errorf("sapCredentialStore: parsing JWE keys: %w", err)
+		}
+	}
+
 	var sapClient api.SAPCSClientInterface
 
 	switch {
@@ -138,7 +155,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 			TokenURL:     s.Auth.OAuth2.TokenURL,
 		}
 		transport := cfg.Client(ctx).Transport
-		sapClient = api.NewOAuth2Client(s.ServiceURL, transport)
+		sapClient = api.NewOAuth2Client(s.ServiceURL, transport, encKeys)
 
 	case s.Auth.MTLS != nil:
 		certPEM, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &s.Auth.MTLS.Certificate)
@@ -152,7 +169,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		}
 
 		var buildErr error
-		sapClient, buildErr = api.NewMTLSClient(s.ServiceURL, []byte(certPEM), []byte(keyPEM))
+		sapClient, buildErr = api.NewMTLSClient(s.ServiceURL, []byte(certPEM), []byte(keyPEM), encKeys)
 		if buildErr != nil {
 			return nil, fmt.Errorf("sapCredentialStore: building mTLS client: %w", buildErr)
 		}
