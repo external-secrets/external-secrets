@@ -18,6 +18,7 @@ package sapcredentialstore
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 
@@ -77,6 +78,14 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	if ref.Property == "certificate/key" {
 		return []byte(cred.Key), nil
 	}
+	// SAP CS stores key-type credential values as base64 — decode before returning.
+	if credType == credTypeKey {
+		decoded, err := base64.StdEncoding.DecodeString(cred.Value)
+		if err != nil {
+			return nil, fmt.Errorf("sapCredentialStore: decoding key value for %s: %w", ref.Key, err)
+		}
+		return decoded, nil
+	}
 	return []byte(cred.Value), nil
 }
 
@@ -98,6 +107,12 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 		"name":  []byte(cred.Name),
 		"value": []byte(cred.Value),
 	}
+	// Key-type values are base64-encoded in SAP CS — decode for the map entry.
+	if credType == credTypeKey {
+		if decoded, err := base64.StdEncoding.DecodeString(cred.Value); err == nil {
+			out["value"] = decoded
+		}
+	}
 	if cred.Username != "" {
 		out["username"] = []byte(cred.Username)
 	}
@@ -115,7 +130,8 @@ func (c *Client) GetAllSecrets(ctx context.Context, _ esv1.ExternalSecretFind) (
 		items, err := c.sapClient.ListCredentials(ctx, c.namespace, credType)
 		metrics.ObserveAPICall(providerName, "ListCredentials", err)
 		if err != nil {
-			return nil, fmt.Errorf("sapCredentialStore: ListCredentials type=%s: %w", credType, err)
+			// Skip unsupported types rather than failing the entire bulk sync.
+			continue
 		}
 
 		for _, item := range items {
@@ -125,6 +141,12 @@ func (c *Client) GetAllSecrets(ctx context.Context, _ esv1.ExternalSecretFind) (
 				return nil, fmt.Errorf("sapCredentialStore: GetCredential %s/%s: %w", credType, item.Name, err)
 			}
 			result[credType+"/"+item.Name] = []byte(cred.Value)
+			// Key-type values are base64-encoded in SAP CS — decode for the bulk map.
+			if credType == credTypeKey {
+				if decoded, err := base64.StdEncoding.DecodeString(cred.Value); err == nil {
+					result[credType+"/"+item.Name] = decoded
+				}
+			}
 		}
 	}
 
