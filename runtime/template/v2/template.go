@@ -345,7 +345,11 @@ func applyParsedToPath(parsed any, target string, obj client.Object) error {
 		if err != nil {
 			return fmt.Errorf("failed to set path %s: %w", target, err)
 		}
-		unstructured = updated.(map[string]any)
+		updatedMap, ok := updated.(map[string]any)
+		if !ok {
+			return fmt.Errorf("failed to set path %s: expected object root, got %T", target, updated)
+		}
+		unstructured = updatedMap
 	}
 
 	// convert back to original object
@@ -412,6 +416,9 @@ func parseTargetPath(target string) ([]pathToken, error) {
 	}
 	if len(tokens) == 0 {
 		return nil, fmt.Errorf("invalid path: %s", target)
+	}
+	if tokens[0].kind != tokenKey {
+		return nil, fmt.Errorf("invalid path %q: path must start with a key", target)
 	}
 	return tokens, nil
 }
