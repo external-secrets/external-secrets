@@ -228,6 +228,70 @@ func RewriteTransform(operation esv1.ExternalSecretRewriteTransform, in map[stri
 	return out, nil
 }
 
+// SelectMap applies a series of select operations to filter keys from the input map.
+func SelectMap(operations []esv1.ExternalSecretSelect, in map[string][]byte) (map[string][]byte, error) {
+	if len(operations) == 0 {
+		return in, nil
+	}
+
+	selected := make(map[string]bool, len(in))
+	for k := range in {
+		selected[k] = true
+	}
+
+	for i, op := range operations {
+		matched, err := handleSelectOperation(op, in)
+		if err != nil {
+			return nil, fmt.Errorf("failed select operation[%v]: %w", i, err)
+		}
+		switch op.Operation {
+		case esv1.ExternalSecretSelectInclude:
+			for k := range in {
+				if !matched[k] {
+					selected[k] = false
+				}
+			}
+		case esv1.ExternalSecretSelectExclude:
+			for k := range matched {
+				selected[k] = false
+			}
+		default:
+			return nil, fmt.Errorf("failed select operation[%v]: unknown operation %q", i, op.Operation)
+		}
+	}
+
+	out := make(map[string][]byte, len(in))
+	for k, v := range in {
+		if selected[k] {
+			out[k] = v
+		}
+	}
+	return out, nil
+}
+
+func handleSelectOperation(op esv1.ExternalSecretSelect, in map[string][]byte) (map[string]bool, error) {
+	matched := make(map[string]bool)
+	if op.Regexp != nil {
+		re, err := regexp.Compile(*op.Regexp)
+		if err != nil {
+			return nil, fmt.Errorf("failed to compile regexp %q: %w", *op.Regexp, err)
+		}
+		for k := range in {
+			if re.MatchString(k) {
+				matched[k] = true
+			}
+		}
+	}
+	if len(op.Names) > 0 {
+		for _, name := range op.Names {
+			if _, exists := in[name]; exists {
+				matched[name] = true
+			}
+		}
+	}
+	return matched, nil
+}
+
 // DecodeMap decodes values from a secretMap.
 func DecodeMap(strategy esv1.ExternalSecretDecodingStrategy, in map[string][]byte) (map[string][]byte, error) {
 	out := make(map[string][]byte, len(in))

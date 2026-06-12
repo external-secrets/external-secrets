@@ -4235,6 +4235,22 @@ Multiple Rewrite operations can be provided. They are applied in a layered order
 </tr>
 <tr>
 <td>
+<code>select</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretSelect">
+[]ExternalSecretSelect
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to filter secret keys after fetching them from the secret Provider.
+Select operations are applied in order after Rewrite operations.
+If no Select operations are provided, all keys are included by default.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>sourceRef</code></br>
 <em>
 <a href="#external-secrets.io/v1.StoreGeneratorSourceRef">
@@ -4940,6 +4956,86 @@ string
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretSelect">ExternalSecretSelect
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
+</p>
+<p>
+<p>ExternalSecretSelect defines rules for filtering secret keys fetched from the provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>regexp</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to match secret keys by a regular expression.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>names</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to match secret keys by exact names.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>operation</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretSelectOperation">
+ExternalSecretSelectOperation
+</a>
+</em>
+</td>
+<td>
+<p>Defines whether the matched keys should be included or excluded.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretSelectOperation">ExternalSecretSelectOperation
+(<code>string</code> alias)</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretSelect">ExternalSecretSelect</a>)
+</p>
+<p>
+<p>ExternalSecretSelectOperation defines the operation type for select filtering.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Exclude&#34;</p></td>
+<td><p>ExternalSecretSelectExclude excludes the matched keys from the resulting secret.</p>
+</td>
+</tr><tr><td><p>&#34;Include&#34;</p></td>
+<td><p>ExternalSecretSelectInclude includes the matched keys in the resulting secret.</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.ExternalSecretSpec">ExternalSecretSpec
 </h3>

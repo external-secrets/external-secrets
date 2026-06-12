@@ -364,6 +364,12 @@ type ExternalSecretDataFromRemoteRef struct {
 	// +optional
 	Rewrite []ExternalSecretRewrite `json:"rewrite,omitempty"`
 
+	// Used to filter secret keys after fetching them from the secret Provider.
+	// Select operations are applied in order after Rewrite operations.
+	// If no Select operations are provided, all keys are included by default.
+	// +optional
+	Select []ExternalSecretSelect `json:"select,omitempty"`
+
 	// SourceRef points to a store or generator
 	// which contains secret values ready to use.
 	// Use this in combination with Extract or Find pull values out of
@@ -372,6 +378,33 @@ type ExternalSecretDataFromRemoteRef struct {
 	// The generator returns a static map of values
 	SourceRef *StoreGeneratorSourceRef `json:"sourceRef,omitempty"`
 }
+
+// ExternalSecretSelect defines rules for filtering secret keys fetched from the provider.
+// +kubebuilder:validation:XValidation:rule="has(self.regexp) || (has(self.names) && size(self.names) > 0)",message="either regexp or at least one name must be specified"
+type ExternalSecretSelect struct {
+	// Used to match secret keys by a regular expression.
+	// +optional
+	Regexp *string `json:"regexp,omitempty"`
+
+	// Used to match secret keys by exact names.
+	// +optional
+	Names []string `json:"names,omitempty"`
+
+	// Defines whether the matched keys should be included or excluded.
+	// +kubebuilder:validation:Enum=Include;Exclude
+	Operation ExternalSecretSelectOperation `json:"operation"`
+}
+
+// ExternalSecretSelectOperation defines the operation type for select filtering.
+// +kubebuilder:validation:Enum=Include;Exclude
+type ExternalSecretSelectOperation string
+
+const (
+	// ExternalSecretSelectInclude includes the matched keys in the resulting secret.
+	ExternalSecretSelectInclude ExternalSecretSelectOperation = "Include"
+	// ExternalSecretSelectExclude excludes the matched keys from the resulting secret.
+	ExternalSecretSelectExclude ExternalSecretSelectOperation = "Exclude"
+)
 
 // ExternalSecretRewrite defines how to rewrite secret data values before they are written to the Secret.
 // +kubebuilder:validation:MinProperties=1
