@@ -18,7 +18,7 @@ limitations under the License.
 package api
 
 // Credential is the full credential payload returned by GET requests to
-// /api/v1/namespaces/{namespace}/credentials/{type}/{name}.
+// {baseURL}/{type}?name={name} with header sapcp-credstore-namespace.
 type Credential struct {
 	Name     string            `json:"name"`
 	Username string            `json:"username,omitempty"` // password type only

@@ -41,10 +41,19 @@ type SAPCSClientInterface interface {
 	CredentialExists(ctx context.Context, ns, credType, name string) (bool, error)
 }
 
-// httpClient implements SAPCSClientInterface using a standard net/http.Client.
+// httpClient implements SAPCSClientInterface against the SAP Credential Store REST API.
+//
+// API conventions (discovered via live testing):
+//   - Namespace is passed as header "sapcp-credstore-namespace: {ns}" on every request
+//   - GET single:  GET  {baseURL}/{type}?name={name}
+//   - List:        GET  {baseURL}/{type}s               (plural, paginated)
+//   - Create:      POST {baseURL}/{type}
+//   - Delete:      DELETE {baseURL}/{type}?name={name}
+//   - Exists:      GET {baseURL}/{type}?name={name} → 200/404
+//
 // When encryptionKeys is non-nil, request bodies are JWE-encrypted with the server
-// public key and response bodies are JWE-decrypted with the client private key.
-// This matches bindings created with encryption.payload=enabled on SAP BTP.
+// public key and response bodies are JWE-decrypted with the client private key
+// (RSA-OAEP-256 + AES-256-GCM). This matches bindings with encryption.payload=enabled.
 type httpClient struct {
 	baseURL        string
 	http           *http.Client
@@ -58,7 +67,6 @@ type JWEKeys struct {
 }
 
 // NewOAuth2Client creates an httpClient that authenticates via OAuth2 bearer tokens.
-// The token source is managed by golang.org/x/oauth2 and tokens are refreshed automatically.
 // Pass non-nil encKeys to enable JWE payload encryption.
 func NewOAuth2Client(baseURL string, transport http.RoundTripper, encKeys *JWEKeys) SAPCSClientInterface {
 	return &httpClient{
@@ -90,8 +98,9 @@ func NewMTLSClient(baseURL string, certPEM, keyPEM []byte, encKeys *JWEKeys) (SA
 }
 
 // NewJWEKeys parses the base64-encoded DER keys from the BTP service binding
-// encryption block. clientPrivKeyB64 is the PKCS8 private key; serverPubKeyB64 is
-// the SPKI public key.
+// encryption block. clientPrivKeyB64 is the PKCS8 private key (binding:
+// encryption.client_private_key); serverPubKeyB64 is the SPKI public key
+// (binding: encryption.server_public_key).
 func NewJWEKeys(clientPrivKeyB64, serverPubKeyB64 string) (*JWEKeys, error) {
 	privDER, err := base64.StdEncoding.DecodeString(clientPrivKeyB64)
 	if err != nil {
@@ -122,15 +131,25 @@ func NewJWEKeys(clientPrivKeyB64, serverPubKeyB64 string) (*JWEKeys, error) {
 	return &JWEKeys{clientPrivate: rsaPriv, serverPublic: rsaPub}, nil
 }
 
-// credentialURL builds the SAP CS REST API URL for a credential.
-// The binding's "url" field already contains the full base path
-// (e.g. https://credstore.mesh.cf.sap.hana.ondemand.com/api/v1/credentials),
-// so we append /{ns}/{type} for list and /{ns}/{type}/{name} for item operations.
-func (c *httpClient) credentialURL(ns, credType, name string) string {
-	if name == "" {
-		return fmt.Sprintf("%s/%s/%s", c.baseURL, ns, credType)
-	}
-	return fmt.Sprintf("%s/%s/%s/%s", c.baseURL, ns, credType, name)
+// nsHeader returns the namespace header value required on every SAP CS request.
+func nsHeader(ns string) string { return ns }
+
+// credentialURL builds the URL for a single credential (get/delete/exists).
+// Pattern: {baseURL}/{type}?name={name}
+func (c *httpClient) credentialURL(credType, name string) string {
+	return fmt.Sprintf("%s/%s?name=%s", c.baseURL, credType, name)
+}
+
+// listURL builds the URL for listing credentials of a type.
+// Pattern: {baseURL}/{type}s  (plural)
+func (c *httpClient) listURL(credType string) string {
+	return fmt.Sprintf("%s/%ss", c.baseURL, credType)
+}
+
+// createURL builds the URL for creating a credential.
+// Pattern: {baseURL}/{type}
+func (c *httpClient) createURL(credType string) string {
+	return fmt.Sprintf("%s/%s", c.baseURL, credType)
 }
 
 // encryptBody JWE-encrypts a JSON payload with the server public key (RSA-OAEP-256 + A256GCM).
@@ -143,11 +162,11 @@ func (c *httpClient) encryptBody(plaintext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("creating JWE encrypter: %w", err)
 	}
-	jwe, err := enc.Encrypt(plaintext)
+	jweObj, err := enc.Encrypt(plaintext)
 	if err != nil {
 		return nil, fmt.Errorf("encrypting request body: %w", err)
 	}
-	compact, err := jwe.CompactSerialize()
+	compact, err := jweObj.CompactSerialize()
 	if err != nil {
 		return nil, fmt.Errorf("serializing JWE: %w", err)
 	}
@@ -156,21 +175,21 @@ func (c *httpClient) encryptBody(plaintext []byte) ([]byte, error) {
 
 // decryptBody JWE-decrypts a response body using the client private key.
 func (c *httpClient) decryptBody(ciphertext []byte) ([]byte, error) {
-	jwe, err := jose.ParseEncrypted(string(ciphertext),
+	jweObj, err := jose.ParseEncrypted(string(ciphertext),
 		[]jose.KeyAlgorithm{jose.RSA_OAEP_256},
 		[]jose.ContentEncryption{jose.A256GCM},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("parsing JWE response: %w", err)
 	}
-	plaintext, err := jwe.Decrypt(c.encryptionKeys.clientPrivate)
+	plaintext, err := jweObj.Decrypt(c.encryptionKeys.clientPrivate)
 	if err != nil {
 		return nil, fmt.Errorf("decrypting JWE response: %w", err)
 	}
 	return plaintext, nil
 }
 
-// readBody reads the response body and decrypts it if encryption is configured.
+// readBody reads and optionally decrypts the response body.
 func (c *httpClient) readBody(resp *http.Response) ([]byte, error) {
 	raw, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -182,7 +201,7 @@ func (c *httpClient) readBody(resp *http.Response) ([]byte, error) {
 	return c.decryptBody(raw)
 }
 
-// marshalBody serialises v to JSON and encrypts it if encryption is configured.
+// marshalBody serialises v to JSON and optionally JWE-encrypts it.
 func (c *httpClient) marshalBody(v any) ([]byte, string, error) {
 	payload, err := json.Marshal(v)
 	if err != nil {
@@ -198,11 +217,17 @@ func (c *httpClient) marshalBody(v any) ([]byte, string, error) {
 	return encrypted, "application/jose+json", nil
 }
 
+// setNS sets the namespace header on a request.
+func setNS(req *http.Request, ns string) {
+	req.Header.Set("sapcp-credstore-namespace", ns)
+}
+
 func (c *httpClient) GetCredential(ctx context.Context, ns, credType, name string) (*Credential, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.credentialURL(ns, credType, name), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.credentialURL(credType, name), nil)
 	if err != nil {
 		return nil, fmt.Errorf("building request: %w", err)
 	}
+	setNS(req, ns)
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("GET credential %s/%s: %w", credType, name, err)
@@ -228,10 +253,11 @@ func (c *httpClient) GetCredential(ctx context.Context, ns, credType, name strin
 }
 
 func (c *httpClient) ListCredentials(ctx context.Context, ns, credType string) ([]CredentialMeta, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.credentialURL(ns, credType, ""), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.listURL(credType), nil)
 	if err != nil {
 		return nil, fmt.Errorf("building list request: %w", err)
 	}
+	setNS(req, ns)
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("LIST credentials type=%s: %w", credType, err)
@@ -246,42 +272,63 @@ func (c *httpClient) ListCredentials(ctx context.Context, ns, credType string) (
 	if err != nil {
 		return nil, fmt.Errorf("reading credential list type=%s: %w", credType, err)
 	}
-	var items []CredentialMeta
-	if err := json.Unmarshal(body, &items); err != nil {
+
+	// SAP CS list response is paginated: {"content":[{"name":"..."}], ...}
+	var page struct {
+		Content []CredentialMeta `json:"content"`
+	}
+	if err := json.Unmarshal(body, &page); err != nil {
 		return nil, fmt.Errorf("decoding credential list type=%s: %w", credType, err)
 	}
-	return items, nil
+	return page.Content, nil
 }
 
 func (c *httpClient) PutCredential(ctx context.Context, ns, credType, name string, body *CredentialBody) error {
-	payload, contentType, err := c.marshalBody(body)
+	// Merge name into body — the SAP CS API identifies the credential by the "name" field in the body.
+	type createBody struct {
+		Name     string            `json:"name"`
+		Value    string            `json:"value"`
+		Username string            `json:"username,omitempty"`
+		Key      string            `json:"key,omitempty"`
+		Metadata map[string]string `json:"metadata,omitempty"`
+	}
+	cb := createBody{
+		Name:     name,
+		Value:    body.Value,
+		Username: body.Username,
+		Key:      body.Key,
+		Metadata: body.Metadata,
+	}
+	payload, contentType, err := c.marshalBody(cb)
 	if err != nil {
 		return fmt.Errorf("preparing credential body: %w", err)
 	}
-	req, err := http.NewRequestWithContext(ctx, http.MethodPut, c.credentialURL(ns, credType, name), bytes.NewReader(payload))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.createURL(credType), bytes.NewReader(payload))
 	if err != nil {
-		return fmt.Errorf("building PUT request: %w", err)
+		return fmt.Errorf("building POST request: %w", err)
 	}
 	req.Header.Set("Content-Type", contentType)
+	setNS(req, ns)
 
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return fmt.Errorf("PUT credential %s/%s: %w", credType, name, err)
+		return fmt.Errorf("POST credential %s/%s: %w", credType, name, err)
 	}
 	defer resp.Body.Close()
 	io.Copy(io.Discard, resp.Body) //nolint:errcheck
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusNoContent {
-		return fmt.Errorf("PUT credential %s/%s: unexpected status %d", credType, name, resp.StatusCode)
+		return fmt.Errorf("POST credential %s/%s: unexpected status %d", credType, name, resp.StatusCode)
 	}
 	return nil
 }
 
 func (c *httpClient) DeleteCredential(ctx context.Context, ns, credType, name string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.credentialURL(ns, credType, name), nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.credentialURL(credType, name), nil)
 	if err != nil {
 		return fmt.Errorf("building DELETE request: %w", err)
 	}
+	setNS(req, ns)
 	resp, err := c.http.Do(req)
 	if err != nil {
 		return fmt.Errorf("DELETE credential %s/%s: %w", credType, name, err)
@@ -296,15 +343,18 @@ func (c *httpClient) DeleteCredential(ctx context.Context, ns, credType, name st
 }
 
 func (c *httpClient) CredentialExists(ctx context.Context, ns, credType, name string) (bool, error) {
-	req, err := http.NewRequestWithContext(ctx, http.MethodHead, c.credentialURL(ns, credType, name), nil)
+	// SAP CS does not support HEAD — use GET and check status code.
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.credentialURL(credType, name), nil)
 	if err != nil {
-		return false, fmt.Errorf("building HEAD request: %w", err)
+		return false, fmt.Errorf("building exists request: %w", err)
 	}
+	setNS(req, ns)
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return false, fmt.Errorf("HEAD credential %s/%s: %w", credType, name, err)
+		return false, fmt.Errorf("exists check %s/%s: %w", credType, name, err)
 	}
 	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body) //nolint:errcheck
 
 	switch resp.StatusCode {
 	case http.StatusOK:
@@ -312,7 +362,7 @@ func (c *httpClient) CredentialExists(ctx context.Context, ns, credType, name st
 	case http.StatusNotFound:
 		return false, nil
 	default:
-		return false, fmt.Errorf("HEAD credential %s/%s: unexpected status %d", credType, name, resp.StatusCode)
+		return false, fmt.Errorf("exists check %s/%s: unexpected status %d", credType, name, resp.StatusCode)
 	}
 }
 
