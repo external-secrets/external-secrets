@@ -17,3 +17,23 @@ tests:
       - equal:
           path: metadata.name
           value: RELEASE-NAME-external-secrets-pdb
+  - it: should render minAvailable when set to zero
+    set:
+      podDisruptionBudget.enabled: true
+      podDisruptionBudget.minAvailable: 0
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: 0
+      - notExists:
+          path: spec.maxUnavailable
+  - it: should render maxUnavailable when set to zero
+    set:
+      podDisruptionBudget.enabled: true
+      podDisruptionBudget.maxUnavailable: 0
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: 0
+      - notExists:
+          path: spec.minAvailable

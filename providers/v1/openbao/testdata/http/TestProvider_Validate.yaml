@@ -1,0 +1,246 @@
+---
+version: 2
+interactions:
+    - id: 0
+      request:
+        proto: HTTP/1.1
+        proto_major: 1
+        proto_minor: 1
+        content_length: 0
+        host: localhost:8200
+        headers:
+            X-Vault-Request:
+                - "true"
+            X-Vault-Token:
+                - root
+        url: http://localhost:8200/v1/sys/mounts/secret_v1
+        method: GET
+      response:
+        proto: HTTP/1.1
+        proto_major: 1
+        proto_minor: 1
+        content_length: 925
+        body: |-
+            {
+              "accessor": "kv_01234567",
+              "auth": null,
+              "config": {
+                "default_lease_ttl": 0,
+                "force_no_cache": false,
+                "max_lease_ttl": 0
+              },
+              "data": {
+                "accessor": "kv_01234567",
+                "config": {
+                  "default_lease_ttl": 0,
+                  "force_no_cache": false,
+                  "max_lease_ttl": 0
+                },
+                "deprecation_status": "supported",
+                "description": "",
+                "external_entropy_access": false,
+                "local": false,
+                "options": {
+                  "version": "1"
+                },
+                "plugin_version": "",
+                "running_plugin_version": "v2.5.4+builtin.bao",
+                "running_sha256": "",
+                "seal_wrap": false,
+                "type": "kv",
+                "uuid": "00000000-0000-0000-0000-000000000000"
+              },
+              "deprecation_status": "supported",
+              "description": "",
+              "external_entropy_access": false,
+              "lease_duration": 0,
+              "lease_id": "",
+              "local": false,
+              "options": {
+                "version": "1"
+              },
+              "plugin_version": "",
+              "renewable": false,
+              "request_id": "00000000-0000-0000-0000-000000000000",
+              "running_plugin_version": "v2.5.4+builtin.bao",
+              "running_sha256": "",
+              "seal_wrap": false,
+              "type": "kv",
+              "uuid": "00000000-0000-0000-0000-000000000000",
+              "warnings": null,
+              "wrap_info": null
+            }
+        headers:
+            Cache-Control:
+                - no-store
+            Content-Length:
+                - "925"
+            Content-Type:
+                - application/json
+            Strict-Transport-Security:
+                - max-age=31536000; includeSubDomains
+        status: 200 OK
+        code: 200
+        duration: 0s
+    - id: 1
+      request:
+        proto: HTTP/1.1
+        proto_major: 1
+        proto_minor: 1
+        content_length: 0
+        host: localhost:8200
+        headers:
+            X-Vault-Request:
+                - "true"
+            X-Vault-Token:
+                - root
+        url: http://localhost:8200/v1/sys/mounts/secret_v1
+        method: GET
+      response:
+        proto: HTTP/1.1
+        proto_major: 1
+        proto_minor: 1
+        content_length: 925
+        body: |-
+            {
+              "accessor": "kv_01234567",
+              "auth": null,
+              "config": {
+                "default_lease_ttl": 0,
+                "force_no_cache": false,
+                "max_lease_ttl": 0
+              },
+              "data": {
+                "accessor": "kv_01234567",
+                "config": {
+                  "default_lease_ttl": 0,
+                  "force_no_cache": false,
+                  "max_lease_ttl": 0
+                },
+                "deprecation_status": "supported",
+                "description": "",
+                "external_entropy_access": false,
+                "local": false,
+                "options": {
+                  "version": "1"
+                },
+                "plugin_version": "",
+                "running_plugin_version": "v2.5.4+builtin.bao",
+                "running_sha256": "",
+                "seal_wrap": false,
+                "type": "kv",
+                "uuid": "00000000-0000-0000-0000-000000000000"
+              },
+              "deprecation_status": "supported",
+              "description": "",
+              "external_entropy_access": false,
+              "lease_duration": 0,
+              "lease_id": "",
+              "local": false,
+              "options": {
+                "version": "1"
+              },
+              "plugin_version": "",
+              "renewable": false,
+              "request_id": "00000000-0000-0000-0000-000000000000",
+              "running_plugin_version": "v2.5.4+builtin.bao",
+              "running_sha256": "",
+              "seal_wrap": false,
+              "type": "kv",
+              "uuid": "00000000-0000-0000-0000-000000000000",
+              "warnings": null,
+              "wrap_info": null
+            }
+        headers:
+            Cache-Control:
+                - no-store
+            Content-Length:
+                - "925"
+            Content-Type:
+                - application/json
+            Strict-Transport-Security:
+                - max-age=31536000; includeSubDomains
+        status: 200 OK
+        code: 200
+        duration: 0s
+    - id: 2
+      request:
+        proto: HTTP/1.1
+        proto_major: 1
+        proto_minor: 1
+        content_length: 0
+        host: localhost:8200
+        headers:
+            X-Vault-Request:
+                - "true"
+            X-Vault-Token:
+                - root
+        url: http://localhost:8200/v1/sys/mounts/sys
+        method: GET
+      response:
+        proto: HTTP/1.1
+        proto_major: 1
+        proto_minor: 1
+        content_length: 1043
+        body: |-
+            {
+              "accessor": "system_01234567",
+              "auth": null,
+              "config": {
+                "default_lease_ttl": 0,
+                "force_no_cache": false,
+                "max_lease_ttl": 0,
+                "passthrough_request_headers": [
+                  "Accept"
+                ]
+              },
+              "data": {
+                "accessor": "system_01234567",
+                "config": {
+                  "default_lease_ttl": 0,
+                  "force_no_cache": false,
+                  "max_lease_ttl": 0,
+                  "passthrough_request_headers": [
+                    "Accept"
+                  ]
+                },
+                "description": "system endpoints used for control, policy and debugging",
+                "external_entropy_access": false,
+                "local": false,
+                "options": null,
+                "plugin_version": "",
+                "running_plugin_version": "v2.5.4+builtin.bao",
+                "running_sha256": "",
+                "seal_wrap": true,
+                "type": "system",
+                "uuid": "00000000-0000-0000-0000-000000000000"
+              },
+              "description": "system endpoints used for control, policy and debugging",
+              "external_entropy_access": false,
+              "lease_duration": 0,
+              "lease_id": "",
+              "local": false,
+              "options": null,
+              "plugin_version": "",
+              "renewable": false,
+              "request_id": "00000000-0000-0000-0000-000000000000",
+              "running_plugin_version": "v2.5.4+builtin.bao",
+              "running_sha256": "",
+              "seal_wrap": true,
+              "type": "system",
+              "uuid": "00000000-0000-0000-0000-000000000000",
+              "warnings": null,
+              "wrap_info": null
+            }
+        headers:
+            Cache-Control:
+                - no-store
+            Content-Length:
+                - "1043"
+            Content-Type:
+                - application/json
+            Strict-Transport-Security:
+                - max-age=31536000; includeSubDomains
+        status: 200 OK
+        code: 200
+        duration: 0s

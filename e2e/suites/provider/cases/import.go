@@ -26,6 +26,7 @@ import (
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/delinea"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/fake"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/gcp"
+	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/infisical"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/kubernetes"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/openbao"
 	_ "github.com/external-secrets/external-secrets-e2e/suites/provider/cases/scaleway"
