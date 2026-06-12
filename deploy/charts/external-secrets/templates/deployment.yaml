@@ -121,6 +121,9 @@ spec:
           {{- if .Values.concurrent }}
           - --concurrent={{ .Values.concurrent }}
           {{- end }}
+          {{- if not .Values.enableExternalSecretCleanupFinalizer }}
+          - --enable-external-secret-cleanup-finalizer=false
+          {{- end }}
           {{- if .Values.genericTargets.enabled }}
           - --unsafe-allow-generic-targets=true
           {{- end }}

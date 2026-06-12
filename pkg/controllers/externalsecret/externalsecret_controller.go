@@ -159,6 +159,7 @@ type Reconciler struct {
 	ClusterSecretStoreEnabled          bool
 	EnableFloodGate                    bool
 	EnableGeneratorState               bool
+	EnableCleanupFinalizer             bool
 	AllowGenericTargets                bool
 	recorder                           record.EventRecorder
 
@@ -237,12 +238,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		return ctrl.Result{}, nil
 	}
 
-	// Add finalizer if it doesn't exist
+	// Add finalizer if it doesn't exist and finalizer is enabled
 	// Use Patch instead of Update to avoid claiming ownership of spec fields like refreshInterval
-	patch := client.MergeFrom(externalSecret.DeepCopy())
-	if updated := controllerutil.AddFinalizer(externalSecret, ExternalSecretFinalizer); updated {
-		if err := r.Patch(ctx, externalSecret, patch); err != nil {
-			return ctrl.Result{}, err
+	if r.EnableCleanupFinalizer {
+		patch := client.MergeFrom(externalSecret.DeepCopy())
+		if updated := controllerutil.AddFinalizer(externalSecret, ExternalSecretFinalizer); updated {
+			if err := r.Patch(ctx, externalSecret, patch); err != nil {
+				return ctrl.Result{}, err
+			}
 		}
 	}
 
