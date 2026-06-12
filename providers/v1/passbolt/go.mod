@@ -6,7 +6,7 @@ require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/onsi/gomega v1.39.1
-	github.com/passbolt/go-passbolt v0.8.0-beta.2
+	github.com/passbolt/go-passbolt v0.8.0
 	k8s.io/api v0.35.2
 	k8s.io/apimachinery v0.35.2
 	sigs.k8s.io/controller-runtime v0.23.3
