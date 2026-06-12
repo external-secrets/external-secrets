@@ -478,7 +478,7 @@ spec:
 
 ### Location and Replication
 
-By default, secrets are automatically replicated across multiple regions. You can specify a single location for your secrets by setting the `replicationLocation` field:
+By default, secrets are automatically replicated across multiple regions. You can specify one or more replication locations for your secrets by setting the `replicationLocations` field:
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
@@ -496,7 +496,8 @@ spec:
         apiVersion: kubernetes.external-secrets.io/v1alpha1
         kind: PushSecretMetadata
         spec:
-          replicationLocation: "us-east1"
+          replicationLocations:
+            - "us-east1"
 ```
 
 ### Customer-Managed Encryption Keys (CMEK)
