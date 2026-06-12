@@ -44,6 +44,7 @@ var (
 const (
 	errInvalidRevVersion      = "invalid Ref.Version: %w"
 	errSecretKeyNotFound      = "cannot find secret data for key: %q"
+	errFetchMount             = "error while validating %q: %w"
 	errInvalidMountType       = `expected mount type "kv" found %q`
 	errInvalidMountVersion    = "expected kv engine version %s found version %s"
 	errKVv1VersionUnsupported = "OpenBao KVv1 secrets do not support versioning (use KVv2)"
@@ -284,7 +285,7 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 
 	mount, err := c.client.Sys().MountInfoWithContext(ctx, c.path())
 	if err != nil {
-		return esv1.ValidationResultError, err
+		return esv1.ValidationResultError, fmt.Errorf(errFetchMount, c.store.Server, err)
 	}
 
 	if mount.Type != "kv" {
