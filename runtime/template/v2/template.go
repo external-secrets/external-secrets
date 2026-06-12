@@ -94,8 +94,10 @@ func init() {
 }
 
 func applyToTarget(k string, val []byte, target string, obj client.Object) error {
-	target = strings.ToLower(target)
-	switch target {
+	// Match the well-known top-level targets case-insensitively, but keep the
+	// original case of target so nested custom-resource paths preserve
+	// mixed-case segments (e.g. spec.headers.customRequestHeaders). Issue #6458.
+	switch strings.ToLower(target) {
 	case "annotations":
 		annotations := obj.GetAnnotations()
 		if annotations == nil {
@@ -184,8 +186,9 @@ func mapScopeApply(tpl string, data map[string][]byte, target string, secret cli
 		return fmt.Errorf(errExecute, tpl, err)
 	}
 
-	target = strings.ToLower(target)
-	switch target {
+	// See applyToTarget: switch on the lowercased target but keep the original
+	// case so nested paths are not lowercased (issue #6458).
+	switch strings.ToLower(target) {
 	case "annotations", "labels", "data":
 		// normal route
 		src := make(map[string]string)
