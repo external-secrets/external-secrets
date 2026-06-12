@@ -23,7 +23,7 @@ If you set up your Secrets Manager server with a self-signed certificate, we rec
 
 ### External secret store
 
-The Secrets Manager provider is configured as an external secret store in ESO. The Secrets Manager provider supports these three methods to authenticate to Secrets Manager:
+The synchronise secrets with Secrets Manager, you must configure an external secret store with one of the following three methods to authenticate to the Secrets Manager API:
 
 * [`apikey`](#option-1-external-secret-store-with-apikey-authentication): uses a Secrets Manager `hostid` and `apikey` to authenticate with Secrets Manager
 * [`jwt`](#option-2-external-secret-store-with-jwt-authentication): uses a JWT to authenticate with Secrets Manager
