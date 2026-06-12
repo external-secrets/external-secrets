@@ -3054,6 +3054,16 @@ func (in *OpenBaoProvider) DeepCopyInto(out *OpenBaoProvider) {
 		*out = new(OpenBaoAuth)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.CABundle != nil {
+		in, out := &in.CABundle, &out.CABundle
+		*out = make([]byte, len(*in))
+		copy(*out, *in)
+	}
+	if in.CAProvider != nil {
+		in, out := &in.CAProvider, &out.CAProvider
+		*out = new(CAProvider)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.Path != nil {
 		in, out := &in.Path, &out.Path
 		*out = new(string)

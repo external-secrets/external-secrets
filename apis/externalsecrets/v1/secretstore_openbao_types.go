@@ -28,9 +28,22 @@ const (
 )
 
 // OpenBaoProvider configures a store to sync secrets using an OpenBao KV backend.
+// +kubebuilder:validation:AtMostOneOf=caBundle;caProvider
 type OpenBaoProvider struct {
 	// Auth configures how secret-manager authenticates with the OpenBao server.
 	Auth *OpenBaoAuth `json:"auth,omitempty"`
+
+	// PEM encoded CA bundle used to validate the OpenBao server certificate. If
+	// this and `caProvider` are not set the system root certificates are used
+	// to validate the TLS connection.
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
+
+	// The provider for the CA bundle to use to validate OpenBao server
+	// certificate. If this and `caBundle` are not set the system root
+	// certificates are used to validate the TLS connection.
+	// +optional
+	CAProvider *CAProvider `json:"caProvider,omitempty"`
 
 	// Server is the connection address for the OpenBao server, e.g: `https://openbao.example.com:8200`.
 	Server string `json:"server"`
