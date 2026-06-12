@@ -119,7 +119,7 @@ func applyToTarget(k string, val []byte, target string, obj client.Object) error
 		}
 	case "spec":
 		if err := setField(obj, "spec", k, val); err != nil {
-			return fmt.Errorf("failed to set data field on object: %w", err)
+			return fmt.Errorf("failed to set spec field on object: %w", err)
 		}
 	default:
 		tokens, err := parseTargetPath(target)
@@ -375,6 +375,8 @@ type pathToken struct {
 	idx  int
 }
 
+const maxArrayIndex = 10000
+
 // parseTargetPath parses a dotted target path with optional slice notation into tokens.
 // e.g. "spec.rules[0].from[0].source.notRemoteIpBlocks" yields key/index steps where
 // "rules[0]" becomes a key "rules" followed by index 0.
@@ -409,6 +411,9 @@ func parseTargetPath(target string) ([]pathToken, error) {
 			}
 			if idx < 0 {
 				return nil, fmt.Errorf("invalid path %q: negative index %d", target, idx)
+			}
+			if idx > maxArrayIndex {
+				return nil, fmt.Errorf("invalid path %q: index %d exceeds maximum (10000)", target, idx)
 			}
 			tokens = append(tokens, pathToken{kind: tokenIndex, idx: idx})
 			rest = rest[end+1:]
