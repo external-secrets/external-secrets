@@ -147,6 +147,14 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 		Recursive:              p.apiScope.Recursive,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 		IncludeImports:         true,
+		// SkipUniqueValidation causes the SDK to dedupe by (path, key) composite
+		// instead of by key alone when Recursive is true. Without this, two
+		// secrets named the same in different folders collapse to one in the
+		// SDK response (last-write-wins), and whichever path "wins" the dedup
+		// determines whether the in-process path filter below keeps or drops
+		// the entry. Result: dataFrom.find against one folder silently misses
+		// keys that also exist in a sibling folder. See issue #6230.
+		SkipUniqueValidation: true,
 	})
 	metrics.ObserveAPICall(constants.ProviderName, getSecretsV3, err)
 	if err != nil {

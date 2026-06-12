@@ -17,9 +17,13 @@ limitations under the License.
 package infisical
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/providers/v1/infisical/api"
 )
 
 func TestGetSecretAddress(t *testing.T) {
@@ -68,4 +72,63 @@ func TestGetSecretAddress(t *testing.T) {
 		assert.Equal(t, "/scope/a/b/c", path)
 		assert.Equal(t, "name", key)
 	})
+}
+
+// TestGetAllSecretsPreservesCrossFolderDuplicates pins the fix for issue #6230.
+//
+// When a project has multiple folders that share the same secret name(s) and
+// the ClusterSecretStore is configured with `recursive: true`, the Infisical
+// Go SDK's `EnsureUniqueSecretsByKey` would (by default) dedupe the response
+// by SecretKey alone before returning it to the provider, collapsing all
+// same-named entries to a single one — last-write-wins. The provider's
+// downstream path filter (HasPrefix on SecretPath) would then either keep
+// the wrong folder's entry or drop the key entirely, depending on the
+// response order. The fix passes SkipUniqueValidation: true so the SDK
+// dedupes by (path, key) composite and preserves all entries.
+func TestGetAllSecretsPreservesCrossFolderDuplicates(t *testing.T) {
+	// Same key name "FOOBAR" lives in two folders with distinct values.
+	// /app/FOOBAR  = "from-app"   ← we want this one
+	// /crons/FOOBAR = "from-crons"
+	sdkClient, closeFunc := api.NewMockClient(200, api.GetSecretsV3Response{
+		Secrets: []api.SecretsV3{
+			{SecretKey: "FOOBAR", SecretValue: "from-app", SecretPath: "/app"},
+			{SecretKey: "FOOBAR", SecretValue: "from-crons", SecretPath: "/crons"},
+			{SecretKey: "ONLY_IN_APP", SecretValue: "app-only", SecretPath: "/app"},
+		},
+	})
+	defer closeFunc()
+
+	p := &Provider{
+		sdkClient: sdkClient,
+		apiScope: &ClientScope{
+			ProjectSlug:     "test-project",
+			EnvironmentSlug: "test",
+			SecretPath:      "/",
+			Recursive:       true,
+		},
+	}
+
+	appPath := "/app"
+	result, err := p.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{
+		Path: &appPath,
+	})
+	assert.NoError(t, err)
+
+	// Both /app keys must be present; the /crons value must NOT shadow /app's FOOBAR.
+	assert.Equal(t, []byte("from-app"), result["FOOBAR"],
+		"FOOBAR should resolve to the /app folder's value, not /crons. "+
+			"If you see 'from-crons' here, the SDK dedupe-by-key has eaten the "+
+			"/app entry — see issue #6230.")
+	assert.Equal(t, []byte("app-only"), result["ONLY_IN_APP"])
+	assert.Len(t, result, 2, "result should contain only /app keys")
+
+	// Sanity-check the other direction with the same fixture and a /crons filter.
+	cronsPath := "/crons"
+	result, err = p.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{
+		Path: &cronsPath,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("from-crons"), result["FOOBAR"])
+	assert.NotContains(t, result, "ONLY_IN_APP")
+	assert.Len(t, result, 1)
 }
