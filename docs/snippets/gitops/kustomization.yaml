@@ -12,9 +12,9 @@ resources:
 # Deploy the CRDs
 - deployment-crds.yaml
 
-# Deploy the operator
-- deployment.yaml
+# Deploy the operator (wrapped in a Kustomization so wait: true gates the CRs)
+- deployment-operator.yaml
 
 # Deploy default Custom Resources from 'crs' directory
-# INFO: This depends on the CRDs deployment. Will happen after it
+# INFO: This depends on the operator deployment. Will happen after the webhook is ready
 - deployment-crs.yaml
