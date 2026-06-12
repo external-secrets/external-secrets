@@ -141,6 +141,45 @@ test.crds.update: cty crds.generate.tests ## Update the snapshots used by the CR
 	$(CTY) test tests -u
 	@$(OK) Successfully updated all test snapshots
 
+.PHONY: perf-test-burst-es
+perf-test-burst-es: envtest ## N ExternalSecrets on 1 SecretStore
+	@$(INFO) perf test burst-es
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" \
+	PERF_ES_CONCURRENCY=20 \
+		bash -c 'set -o pipefail; go test -v -tags=perf -timeout=30m ./pkg/perf/burst-es/... 2>&1 | tee perf-burst-es.log'
+	@$(OK) perf test burst-es done
+
+.PHONY: perf-test-burst-ss
+perf-test-burst-ss: envtest ## 10k SecretStores across 10k namespaces
+	@$(INFO) perf test burst-ss
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" \
+		bash -c 'set -o pipefail; go test -v -tags=perf -timeout=30m ./pkg/perf/burst-ss/... 2>&1 | tee perf-burst-ss.log'
+	@$(OK) perf test burst-ss done
+
+.PHONY: perf-test-fanout
+perf-test-fanout: envtest ## N stores * M ExternalSecrets (with default 100 x 100)
+	@$(INFO) perf test fanout
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" \
+		bash -c 'set -o pipefail; go test -v -tags=perf -timeout=60m ./pkg/perf/fanout/... 2>&1 | tee perf-fanout.log'
+	@$(OK) perf test fanout done
+
+.PHONY: perf-test-steady-es
+perf-test-steady-es: envtest ## steady-state: observe N ExternalSecrets re-reconciling after warmup
+	@$(INFO) perf test steady-es
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" \
+	PERF_ES_CONCURRENCY=20 PERF_REQUEUE_INTERVAL_SECS=30 \
+		bash -c 'set -o pipefail; go test -v -tags=perf -timeout=60m ./pkg/perf/steady-es/... 2>&1 | tee perf-steady-es.log'
+	@$(OK) perf test steady-es done
+
+.PHONY: perf-test-fanout-fullscale
+perf-test-fanout-fullscale: envtest ## Larger scale needs beefy machine. Performance collapses above 20.
+	@$(INFO) perf test fanout fullscale
+	PERF_NUM_STORES=1000 PERF_ES_PER_STORE=20 PERF_ES_CONCURRENCY=32 PERF_STORE_CONCURRENCY=32 \
+		PERF_QPS=1000 PERF_BURST=2000 \
+		KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" \
+		bash -c 'set -o pipefail; go test -v -tags=perf -timeout=120m ./pkg/perf/fanout/... 2>&1 | tee perf-fanout-fullscale.log'
+	@$(OK) perf test fanout fullscale done
+
 .PHONY: build
 build: $(addprefix build-,$(ARCH)) ## Build binary
 
