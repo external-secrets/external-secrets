@@ -179,10 +179,17 @@ func TestClientGetAllSecrets(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "Path not Implemented",
+			name: "Path filter: no record under the path returns empty (no error)",
 			fields: fields{
-				ksmClient: &fake.MockKeeperClient{},
-				folderID:  folderID,
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(strings []string) ([]*ksm.Record, error) {
+						return generateRecords(), nil // records live at the share root
+					},
+					GetFoldersFn: func() ([]*ksm.KeeperFolder, error) {
+						return []*ksm.KeeperFolder{{FolderUid: "fld1", Name: "Production"}}, nil
+					},
+				},
+				folderID: folderID,
 			},
 			args: args{
 				ctx: context.Background(),
@@ -190,7 +197,8 @@ func TestClientGetAllSecrets(t *testing.T) {
 					Path: &path,
 				},
 			},
-			wantErr: true,
+			want:    map[string][]byte{},
+			wantErr: false,
 		},
 		{
 			name: "Get secrets with matching regex",
