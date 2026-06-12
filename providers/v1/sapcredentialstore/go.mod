@@ -5,6 +5,7 @@ go 1.26.3
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
+	github.com/go-jose/go-jose/v4 v4.1.0
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/oauth2 v0.34.0
 	k8s.io/api v0.35.0
