@@ -472,3 +472,16 @@ tests:
       - contains:
           path: spec.template.spec.containers[0].args
           content: "--zap-time-encoding=epoch"
+  - it: should omit store-requeue-interval flag by default
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--store-requeue-interval"
+  - it: should render store-requeue-interval flag when set
+    set:
+      storeRequeueInterval: "30s"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--store-requeue-interval=30s"
+
