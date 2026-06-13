@@ -19,6 +19,18 @@ package constants
 
 // These constants are used for identifying providers and calls to them.
 const (
+	ProviderAWSACM                      = "AWS/CertificateManager"
+	CallAWSACMImportCertificate         = "ImportCertificate"
+	CallAWSACMDeleteCertificate         = "DeleteCertificate"
+	CallAWSACMListCertificates          = "ListCertificates"
+	CallAWSACMAddTagsToCertificate      = "AddTagsToCertificate"
+	CallAWSACMListTagsForCertificate    = "ListTagsForCertificate"
+	CallAWSACMRemoveTagsFromCertificate = "RemoveTagsFromCertificate"
+	CallAWSACMDescribeCertificate       = "DescribeCertificate"
+	CallAWSACMExportCertificate         = "ExportCertificate"
+	CallAWSACMGetCertificate            = "GetCertificate"
+	CallAWSACMGetResources              = "GetResources"
+
 	ProviderAWSSM                 = "AWS/SecretsManager"
 	CallAWSSMGetSecretValue       = "GetSecretValue"
 	CallAWSPSGetParametersByPath  = "GetParametersByPath"
@@ -33,8 +45,8 @@ const (
 	CallAWSSMPutResourcePolicy    = "PutResourcePolicy"
 	CallAWSSMGetResourcePolicy    = "GetResourcePolicy"
 	CallAWSSMDeleteResourcePolicy = "DeleteResourcePolicy"
-	ProviderAWSPS                 = "AWS/ParameterStore"
 
+	ProviderAWSPS                = "AWS/ParameterStore"
 	CallAWSPSGetParameter        = "GetParameter"
 	CallAWSPSPutParameter        = "PutParameter"
 	CallAWSPSDeleteParameter     = "DeleteParameter"
