@@ -126,29 +126,11 @@ func applyToTarget(k string, val []byte, target string, obj client.Object) error
 		if err != nil {
 			return err
 		}
-
-		unstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-		if err != nil {
-			return fmt.Errorf(errConvertingToUnstructured, err)
-		}
-
 		// Set the value at the target path, converting []byte to string to avoid
 		// base64 encoding when serializing.
 		leaf := func(any) any { return tryParseYAML(string(val)) }
-		updated, err := setAtPath(unstructured, tokens, leaf)
-		if err != nil {
-			return fmt.Errorf("failed to set path %s: %w", target, err)
-		}
-
-		var ok bool
-		unstructured, ok = updated.(map[string]any)
-		if !ok {
-			return fmt.Errorf("update was not of type map[string]any but was %T", updated)
-		}
-
-		// Convert back to the original object type
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, obj); err != nil {
-			return fmt.Errorf(errConvertingToObject, err)
+		if err := applyAtPath(obj, target, tokens, leaf); err != nil {
+			return err
 		}
 	}
 
@@ -310,50 +292,56 @@ func tryParseYAML(value any) any {
 
 // applyParsedToPath applies a parsed YAML structure to a specific path in the object.
 func applyParsedToPath(parsed any, target string, obj client.Object) error {
-	unstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-	if err != nil {
-		return fmt.Errorf(errConvertingToUnstructured, err)
-	}
-
 	tokens, err := parseTargetPath(target)
 	if err != nil {
 		return err
 	}
 
-	// single value, aka "spec": replace entirely to preserve historical behavior.
-	if len(tokens) == 1 && tokens[0].kind == tokenKey {
-		unstructured[tokens[0].name] = parsed
-	} else {
-		// navigate to the last element of the path and apply the entire struct at that location.
-		// MERGE the parsed content into existing map content instead of replacing it.
-		leaf := func(existing any) any {
-			existingMap, existingOk := existing.(map[string]any)
-			parsedMap, parsedOk := parsed.(map[string]any)
-			if existingOk && parsedOk {
-				maps.Copy(existingMap, parsedMap)
-				return existingMap
-			}
-			// existing or parsed value is not a map, replace entirely.
-			// this might break if people are trying to overwrite
-			// fields that aren't supposed to do that. but that's
-			// on the user to keep in mind. If they are trying to
-			// update a number field with a complex value, that's
-			// going to error on update anyway.
-			return parsed
+	// navigate to the last element of the path and apply the entire struct at that location.
+	// MERGE the parsed content into existing map content instead of replacing it.
+	leaf := func(existing any) any {
+		existingMap, existingOk := existing.(map[string]any)
+		parsedMap, parsedOk := parsed.(map[string]any)
+		if existingOk && parsedOk {
+			maps.Copy(existingMap, parsedMap)
+			return existingMap
 		}
-		updated, err := setAtPath(unstructured, tokens, leaf)
-		if err != nil {
-			return fmt.Errorf("failed to set path %s: %w", target, err)
-		}
-		updatedMap, ok := updated.(map[string]any)
-		if !ok {
-			return fmt.Errorf("failed to set path %s: expected object root, got %T", target, updated)
-		}
-		unstructured = updatedMap
+		// existing or parsed value is not a map, replace entirely.
+		// this might break if people are trying to overwrite
+		// fields that aren't supposed to do that. but that's
+		// on the user to keep in mind. If they are trying to
+		// update a number field with a complex value, that's
+		// going to error on update anyway.
+		return parsed
 	}
 
-	// convert back to original object
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, obj); err != nil {
+	// single value, aka "spec": replace entirely to preserve historical behavior.
+	if len(tokens) == 1 && tokens[0].kind == tokenKey {
+		leaf = func(any) any { return parsed }
+	}
+
+	return applyAtPath(obj, target, tokens, leaf)
+}
+
+// applyAtPath applies leaf at the token path within obj's unstructured form and
+// writes the result back into obj. target is used only for error messages.
+func applyAtPath(obj client.Object, target string, tokens []pathToken, leaf func(existing any) any) error {
+	unstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+	if err != nil {
+		return fmt.Errorf(errConvertingToUnstructured, err)
+	}
+
+	updated, err := setAtPath(unstructured, tokens, leaf)
+	if err != nil {
+		return fmt.Errorf("failed to set path %s: %w", target, err)
+	}
+
+	updatedMap, ok := updated.(map[string]any)
+	if !ok {
+		return fmt.Errorf("failed to set path %s: expected object root, got %T", target, updated)
+	}
+
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(updatedMap, obj); err != nil {
 		return fmt.Errorf(errConvertingToObject, err)
 	}
 
@@ -458,10 +446,11 @@ func setAtPath(node any, tokens []pathToken, leaf func(existing any) any) (any, 
 			if node != nil {
 				return nil, fmt.Errorf("expected array at index %d but found %T", tok.idx, node)
 			}
-			s = make([]any, 0, tok.idx+1)
-		}
-		for len(s) <= tok.idx {
-			s = append(s, nil)
+			s = make([]any, tok.idx+1)
+		} else {
+			for len(s) <= tok.idx {
+				s = append(s, nil)
+			}
 		}
 		if len(tokens) == 1 {
 			s[tok.idx] = leaf(s[tok.idx])
