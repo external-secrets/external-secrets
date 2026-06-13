@@ -100,10 +100,11 @@ spec:
 First, ensure your cluster has an IAM OIDC provider associated with it:
 
 ```bash
-# Get your cluster's OIDC issuer URL
+# Get your cluster's OIDC issuer URL — note: output includes https:// prefix
 aws eks describe-cluster --name <cluster-name> \
   --query "cluster.identity.oidc.issuer" \
   --output text
+# Example output: https://oidc.eks.eu-central-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE
 
 # Associate the OIDC provider (if not already done)
 eksctl utils associate-iam-oidc-provider \
@@ -111,7 +112,7 @@ eksctl utils associate-iam-oidc-provider \
   --approve
 ```
 
-Create an IAM role with the following trust policy. Replace the OIDC issuer URL, account ID, namespace, and service account name with your values:
+Create an IAM role with the following trust policy. The trust policy uses the OIDC issuer **without** the `https://` prefix — strip it before pasting into the `Federated` ARN and condition keys. Replace the OIDC issuer host/path, account ID, namespace, and service account name with your values:
 
 ```json
 {
@@ -134,7 +135,7 @@ Create an IAM role with the following trust policy. Replace the OIDC issuer URL,
 }
 ```
 
-The `sub` condition must match the `namespace:serviceaccount-name` of the service account referenced in your `SecretStore`. Scope this as narrowly as possible — granting access to a specific service account in a specific namespace is more secure than using a wildcard.
+The `sub` condition must be `system:serviceaccount:<namespace>:<serviceaccount-name>`, matching the service account referenced in your `SecretStore`. Scope this as narrowly as possible — a specific namespace and service account name is more secure than using a wildcard.
 
 Attach an IAM permissions policy to this role granting `secretsmanager:GetSecretValue` (and `secretsmanager:DescribeSecret`) on the secrets ESO needs to access.
 
