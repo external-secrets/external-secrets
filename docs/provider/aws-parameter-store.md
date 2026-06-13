@@ -180,4 +180,4 @@ You should see something similar to the following output:
 }
 ```
 
---8<-- "snippets/provider-aws-access.md"
+--8<-- "provider/aws-access.md"
