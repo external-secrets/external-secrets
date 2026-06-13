@@ -222,6 +222,7 @@ In addition to that you can use over 200+ [sprig functions](http://masterminds.g
 | rsaDecrypt | Decrypts RSA ciphertext using a PEM private key. Usage: ``<rsaDecrypt "SCHEME" "HASH" ciphertext privateKeyPEM>`` or ``<privateKeyPEM \| rsaDecrypt "SCHEME" "HASH" ciphertext>``. **SCHEME**: supported values are `"None"` and `"RSA-OAEP"`. **HASH**: supported values are `"SHA1"` and `"SHA256"`. **Ciphertext** must be binary — use `b64dec` or `decodingStrategy: Base64` to convert Base64 payloads. |
 | toYaml           | Takes an interface, marshals it to yaml. It returns a string, even on marshal error (empty string).                                                                                                                          |
 | fromYaml         | Function converts a YAML document into a map[string]any.                                                                                                                                                             |
+| hexdec           | decodes hexadecimal values                                                                                                                                                                                                   |
 
 ## Migrating from v1
 

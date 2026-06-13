@@ -426,6 +426,18 @@ func TestExecute(t *testing.T) {
 			expErr: "", // silent error
 		},
 		{
+			name: "hexdec",
+			tpl: map[string][]byte{
+				"key": []byte(`{{ .example | sha256sum | hexdec | b64enc }}`),
+			},
+			data: map[string][]byte{
+				"example": []byte("example"),
+			},
+			expectedData: map[string][]byte{
+				"key": []byte("UNhY4JhezH9gQYqvDMWrWH9CwlcKiECVqejMrND2VFw="),
+			},
+		},
+		{
 			name: "pkcs12 key wrong password",
 			tpl: map[string][]byte{
 				"key": []byte(`{{ .secret | b64dec | pkcs12keyPass "wrong" }}`),
@@ -1368,6 +1380,100 @@ channel: {{ .new_channel }}
 				// Should still preserve other existing fields
 				assert.Equal(t, "https://hooks.slack.com/existing", slackMap["api_url"], "existing api_url should be preserved")
 				assert.Equal(t, "test-value", slackMap["other_field"], "existing other_field should be preserved")
+			},
+		},
+		{
+			name:   "nested path preserves mixed-case segments (issue #6458)",
+			target: "spec.headers.customRequestHeaders",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"header": []byte(`foo: {{ .token }}`),
+			},
+			data: map[string][]byte{
+				"token": []byte("Bearer"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				specMap := obj["spec"].(map[string]any)
+				headersMap := specMap["headers"].(map[string]any)
+
+				// The mixed-case segment must be preserved, not lowercased.
+				crh, ok := headersMap["customRequestHeaders"].(map[string]any)
+				require.True(t, ok, "customRequestHeaders should keep its mixed case")
+				assert.Equal(t, "Bearer", crh["foo"], "foo should be set under the mixed-case path")
+
+				// The lowercased variant must NOT exist.
+				_, lowered := headersMap["customrequestheaders"]
+				assert.False(t, lowered, "path must not be forcibly lowercased")
+			},
+		},
+		{
+			name:   "values scope nested path preserves mixed-case (issue #6458)",
+			target: "spec.headers.customRequestHeaders",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"foo": []byte(`{{ .token }}`),
+			},
+			data: map[string][]byte{
+				"token": []byte("Bearer"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				specMap := obj["spec"].(map[string]any)
+				headersMap := specMap["headers"].(map[string]any)
+
+				// applyToTarget sets the value at the final mixed-case segment.
+				assert.Equal(t, "Bearer", headersMap["customRequestHeaders"], "value should land under the mixed-case key")
+
+				// The lowercased variant must NOT exist.
+				_, lowered := headersMap["customrequestheaders"]
+				assert.False(t, lowered, "path must not be forcibly lowercased")
+			},
+		},
+		{
+			name:   "nested path preserves intermediate mixed-case segment (issue #6458)",
+			target: "spec.tlsConfig.certResolver",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"resolver": []byte(`name: {{ .val }}`),
+			},
+			data: map[string][]byte{
+				"val": []byte("myResolver"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				specMap := obj["spec"].(map[string]any)
+
+				// Both the intermediate and the leaf segment keep their case.
+				tlsConfig, ok := specMap["tlsConfig"].(map[string]any)
+				require.True(t, ok, "intermediate tlsConfig segment should keep its case")
+				certResolver, ok := tlsConfig["certResolver"].(map[string]any)
+				require.True(t, ok, "leaf certResolver segment should keep its case")
+				assert.Equal(t, "myResolver", certResolver["name"])
+
+				// No lowercased intermediate segment should be created.
+				_, lowered := specMap["tlsconfig"]
+				assert.False(t, lowered, "intermediate segment must not be lowercased")
+			},
+		},
+		{
+			name:   "values scope preserves intermediate mixed-case segment (issue #6458)",
+			target: "spec.tlsConfig.certResolver",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"x": []byte(`{{ .val }}`),
+			},
+			data: map[string][]byte{
+				"val": []byte("myResolver"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				specMap := obj["spec"].(map[string]any)
+
+				// The intermediate segment keeps its case and the value lands on it.
+				tlsConfig, ok := specMap["tlsConfig"].(map[string]any)
+				require.True(t, ok, "intermediate tlsConfig segment should keep its case")
+				assert.Equal(t, "myResolver", tlsConfig["certResolver"])
+
+				// No lowercased intermediate segment should be created.
+				_, lowered := specMap["tlsconfig"]
+				assert.False(t, lowered, "intermediate segment must not be lowercased")
 			},
 		},
 	}
