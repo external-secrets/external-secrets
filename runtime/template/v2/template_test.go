@@ -1617,3 +1617,107 @@ channel: {{ .new_channel }}
 		})
 	}
 }
+
+func TestNestedPathTargetingIsIdempotent(t *testing.T) {
+	tests := []struct {
+		name   string
+		target string
+		scope  esapi.TemplateScope
+		tpl    map[string][]byte
+		data   map[string][]byte
+		seed   map[string]any
+		verify func(t *testing.T, obj map[string]any)
+	}{
+		{
+			name:   "deep slice path created from scratch",
+			target: "spec.rules[0].from[0].source.notRemoteIpBlocks",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"blocks": []byte("- {{ .cidr }}\n"),
+			},
+			data: map[string][]byte{
+				"cidr": []byte("10.0.0.0/8"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				rules := obj["spec"].(map[string]any)["rules"].([]any)
+				assert.Len(t, rules, 1, "rules slice must not grow on re-apply")
+				from := rules[0].(map[string]any)["from"].([]any)
+				assert.Len(t, from, 1, "from slice must not grow on re-apply")
+				source := from[0].(map[string]any)["source"].(map[string]any)
+				assert.Equal(t, []any{"10.0.0.0/8"}, source["notRemoteIpBlocks"])
+			},
+		},
+		{
+			name:   "map merge into existing element",
+			target: "spec.slack",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"slack-config": []byte("api_url: {{ .url }}\n"),
+			},
+			data: map[string][]byte{
+				"url": []byte("https://hooks.slack.com/services/NEW"),
+			},
+			seed: map[string]any{
+				"slack": map[string]any{
+					"channel": "general",
+				},
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				slack := obj["spec"].(map[string]any)["slack"].(map[string]any)
+				assert.Equal(t, "https://hooks.slack.com/services/NEW", slack["api_url"])
+				assert.Equal(t, "general", slack["channel"], "seeded field must survive every re-apply")
+				_, nested := slack["slack"]
+				assert.False(t, nested, "merge must not nest the target key into itself")
+			},
+		},
+		{
+			name:   "scalar at sparse index",
+			target: "spec.containers[1].image",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"image": []byte("{{ .img }}"),
+			},
+			data: map[string][]byte{
+				"img": []byte("nginx:latest"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				containers := obj["spec"].(map[string]any)["containers"].([]any)
+				assert.Len(t, containers, 2, "slice must stay at index+1, not grow per apply")
+				assert.Nil(t, containers[0])
+				assert.Equal(t, "nginx:latest", containers[1].(map[string]any)["image"])
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			obj := &unstructured.Unstructured{
+				Object: map[string]any{
+					"apiVersion": "example.com/v1",
+					"kind":       "TestResource",
+					"metadata": map[string]any{
+						"name":      "test-resource",
+						"namespace": "default",
+					},
+				},
+			}
+			if tt.seed != nil {
+				obj.Object["spec"] = tt.seed
+			}
+
+			var snapshot map[string]any
+			for i := range 3 {
+				require.NoError(t, Execute(tt.tpl, tt.data, tt.scope, tt.target, obj))
+				if i == 0 {
+					snapshot = obj.DeepCopy().Object
+					continue
+				}
+				if diff := cmp.Diff(snapshot, obj.Object); diff != "" {
+					t.Fatalf("apply #%d diverged from the first apply (-first +current):\n%s", i+1, diff)
+				}
+			}
+
+			tt.verify(t, obj.Object)
+		})
+	}
+}

@@ -363,11 +363,24 @@ type pathToken struct {
 	idx  int
 }
 
+// maxArrayIndex limits the memory assignation for setAtPath.
 const maxArrayIndex = 10000
 
-// parseTargetPath parses a dotted target path with optional slice notation into tokens.
-// e.g. "spec.rules[0].from[0].source.notRemoteIpBlocks" yields key/index steps where
-// "rules[0]" becomes a key "rules" followed by index 0.
+// parseTargetPath is a pure function parsing and validating a dotted target path, with optional slice notation, into tokens.
+// Each step is a pathToken of kind "tokenKey" or "tokenIndex".
+//
+// e.g.
+//
+//		input:  "spec.rules[0].from[0].source.notRemoteIpBlocks"
+//		output: [
+//	  	{key,  "spec"},
+//	  	{key,  "rules"},
+//	  	{index, 0},
+//	  	{key,  "from"},
+//	  	{index, 0},
+//	  	{key,  "source"},
+//	  	{key,  "notRemoteIpBlocks"},
+//		]
 func parseTargetPath(target string) ([]pathToken, error) {
 	var tokens []pathToken
 	for seg := range strings.SplitSeq(target, ".") {
