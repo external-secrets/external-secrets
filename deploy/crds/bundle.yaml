@@ -6168,6 +6168,49 @@ spec:
                                   type: string
                               type: object
                           type: object
+                        caBundle:
+                          description: |-
+                            PEM encoded CA bundle used to validate the OpenBao server certificate. If
+                            this and `caProvider` are not set the system root certificates are used
+                            to validate the TLS connection.
+                          format: byte
+                          type: string
+                        caProvider:
+                          description: |-
+                            The provider for the CA bundle to use to validate OpenBao server
+                            certificate. If this and `caBundle` are not set the system root
+                            certificates are used to validate the TLS connection.
+                          properties:
+                            key:
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the object located at the provider type.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace the Provider type is in.
+                                Can only be defined when used in a ClusterSecretStore.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                            type:
+                              description: The type of provider to use such as "Secret", or "ConfigMap".
+                              enum:
+                                - Secret
+                                - ConfigMap
+                              type: string
+                          required:
+                            - name
+                            - type
+                          type: object
                         path:
                           description: |-
                             Path is the mount path of the OpenBao KV backend endpoint, e.g:
@@ -6190,6 +6233,9 @@ spec:
                       required:
                         - server
                       type: object
+                      x-kubernetes-validations:
+                        - message: at most one of the fields in [caBundle caProvider] may be set
+                          rule: '[has(self.caBundle),has(self.caProvider)].filter(x,x==true).size() <= 1'
                     oracle:
                       description: Oracle configures this store to sync secrets using Oracle Vault provider
                       properties:
@@ -18629,6 +18675,49 @@ spec:
                                   type: string
                               type: object
                           type: object
+                        caBundle:
+                          description: |-
+                            PEM encoded CA bundle used to validate the OpenBao server certificate. If
+                            this and `caProvider` are not set the system root certificates are used
+                            to validate the TLS connection.
+                          format: byte
+                          type: string
+                        caProvider:
+                          description: |-
+                            The provider for the CA bundle to use to validate OpenBao server
+                            certificate. If this and `caBundle` are not set the system root
+                            certificates are used to validate the TLS connection.
+                          properties:
+                            key:
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the object located at the provider type.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace the Provider type is in.
+                                Can only be defined when used in a ClusterSecretStore.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                            type:
+                              description: The type of provider to use such as "Secret", or "ConfigMap".
+                              enum:
+                                - Secret
+                                - ConfigMap
+                              type: string
+                          required:
+                            - name
+                            - type
+                          type: object
                         path:
                           description: |-
                             Path is the mount path of the OpenBao KV backend endpoint, e.g:
@@ -18651,6 +18740,9 @@ spec:
                       required:
                         - server
                       type: object
+                      x-kubernetes-validations:
+                        - message: at most one of the fields in [caBundle caProvider] may be set
+                          rule: '[has(self.caBundle),has(self.caProvider)].filter(x,x==true).size() <= 1'
                     oracle:
                       description: Oracle configures this store to sync secrets using Oracle Vault provider
                       properties:
