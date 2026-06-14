@@ -23,7 +23,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/openbao/openbao/api/v2"
 	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -35,8 +34,10 @@ var (
 
 // Provider implements the ESO Provider interface for OpenBao.
 type Provider struct {
-	HTTPClient *http.Client
+	HTTPClientFactory httpClientFactory
 }
+
+type httpClientFactory func() *http.Client
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
@@ -47,23 +48,13 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube k8sClient.Client, namespace string) (esv1.SecretsClient, error) {
 	spec := store.GetSpec().Provider.OpenBao // if this is somehow nil, there is a bug in the framework
 
-	baoConfig := api.DefaultConfig()
-	baoConfig.HttpClient = p.HTTPClient
-	baoConfig.Address = spec.Server
-
-	baoClient, err := api.NewClient(baoConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	client := &client{
-		client:    baoClient,
 		storeKind: store.GetKind(),
 		store:     spec,
 	}
 
 	if client.storeKind != esv1.ClusterSecretStoreKind || namespace != "" || !isReferentSpec(spec) {
-		err = client.setupAuth(ctx, kube, namespace)
+		err := client.setup(ctx, kube, namespace, p.HTTPClientFactory)
 		if err != nil {
 			return nil, err
 		}
@@ -73,11 +64,15 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 }
 
 func isReferentSpec(prov *esv1.OpenBaoProvider) bool {
-	if prov.Auth == nil {
-		return false
+	if prov.Auth != nil {
+		auth := prov.Auth
+
+		if auth.TokenSecretRef != nil && auth.TokenSecretRef.Namespace == nil {
+			return true
+		}
 	}
 
-	if prov.Auth.TokenSecretRef != nil && prov.Auth.TokenSecretRef.Namespace == nil {
+	if prov.CAProvider != nil && prov.CAProvider.Namespace == nil {
 		return true
 	}
 
@@ -87,7 +82,11 @@ func isReferentSpec(prov *esv1.OpenBaoProvider) bool {
 // NewProvider creates a new Provider instance.
 func NewProvider() esv1.Provider {
 	return &Provider{
-		HTTPClient: http.DefaultClient,
+		HTTPClientFactory: func() *http.Client {
+			return &http.Client{
+				Transport: http.DefaultTransport.(*http.Transport).Clone(),
+			}
+		},
 	}
 }
 

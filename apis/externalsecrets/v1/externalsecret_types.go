@@ -307,7 +307,6 @@ type ExternalSecretDataRemoteRef struct {
 
 	// +optional
 	// Controls how ESO handles fetched secret data containing NUL bytes for this source.
-	// +kubebuilder:default="Ignore"
 	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
 }
 
@@ -497,7 +496,6 @@ type ExternalSecretFind struct {
 
 	// +optional
 	// Controls how ESO handles fetched secret data containing NUL bytes for this find source.
-	// +kubebuilder:default="Ignore"
 	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
 }
 
