@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ngrok/ngrok-api-go/v7"
+	"github.com/ngrok/ngrok-api-go/v9"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -101,6 +101,7 @@ var _ = Describe("Provider", func() {
 		var (
 			store            esv1.GenericStore
 			ngrokStore       *fake.Store
+			vaultsClient     *fake.VaultClient
 			namespace        string
 			kubeClient       kubeClient.Client
 			ngrokCredentials *corev1.Secret
@@ -125,7 +126,8 @@ var _ = Describe("Provider", func() {
 
 		JustBeforeEach(func() {
 			getVaultsClient = func(_ *ngrok.ClientConfig) VaultClient {
-				return ngrokStore.VaultClient().WithListError(vaultListErr)
+				vaultsClient = ngrokStore.VaultClient().WithListError(vaultListErr)
+				return vaultsClient
 			}
 			getSecretsClient = func(_ *ngrok.ClientConfig) SecretsClient {
 				return ngrokStore.SecretsClient()
@@ -197,6 +199,13 @@ var _ = Describe("Provider", func() {
 
 					It("should return a non-nil client", func() {
 						Expect(client).NotTo(BeNil())
+					})
+
+					It("should filter vaults by name when listing", func() {
+						Expect(vaultsClient).NotTo(BeNil())
+						Expect(vaultsClient.LastListPaging()).NotTo(BeNil())
+						Expect(vaultsClient.LastListPaging().Filter).NotTo(BeNil())
+						Expect(*vaultsClient.LastListPaging().Filter).To(Equal(fmt.Sprintf("obj.name == %q", vaultName)))
 					})
 				})
 
@@ -303,6 +312,13 @@ var _ = Describe("Provider", func() {
 
 					It("should return a non-nil client", func() {
 						Expect(client).NotTo(BeNil())
+					})
+
+					It("should filter vaults by name when listing", func() {
+						Expect(vaultsClient).NotTo(BeNil())
+						Expect(vaultsClient.LastListPaging()).NotTo(BeNil())
+						Expect(vaultsClient.LastListPaging().Filter).NotTo(BeNil())
+						Expect(*vaultsClient.LastListPaging().Filter).To(Equal(fmt.Sprintf("obj.name == %q", vaultName)))
 					})
 				})
 			})
