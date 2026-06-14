@@ -436,46 +436,68 @@ func setAtPath(node any, tokens []pathToken, leaf func(existing any) any) (any, 
 	tok := tokens[0]
 	switch tok.kind {
 	case tokenKey:
-		m, ok := node.(map[string]any)
-		if !ok {
-			if node != nil {
-				return nil, fmt.Errorf("expected map at key %q but found %T", tok.name, node)
-			}
-			m = make(map[string]any)
-		}
-		if len(tokens) == 1 {
-			m[tok.name] = leaf(m[tok.name])
-			return m, nil
-		}
-		child, err := setAtPath(m[tok.name], tokens[1:], leaf)
-		if err != nil {
-			return nil, err
-		}
-		m[tok.name] = child
-		return m, nil
+		return setMap(node, tokens, leaf, tok)
 	case tokenIndex:
-		s, ok := node.([]any)
-		if !ok {
-			if node != nil {
-				return nil, fmt.Errorf("expected array at index %d but found %T", tok.idx, node)
-			}
-			s = make([]any, tok.idx+1)
-		} else {
-			for len(s) <= tok.idx {
-				s = append(s, nil)
-			}
-		}
-		if len(tokens) == 1 {
-			s[tok.idx] = leaf(s[tok.idx])
-			return s, nil
-		}
-		child, err := setAtPath(s[tok.idx], tokens[1:], leaf)
-		if err != nil {
-			return nil, err
-		}
-		s[tok.idx] = child
-		return s, nil
+		return setIndex(node, tokens, leaf, tok)
 	default:
 		return nil, fmt.Errorf("unknown path token kind %d", tok.kind)
 	}
+}
+
+// setIndex sets a value in a slice at index.
+func setIndex(node any, tokens []pathToken, leaf func(existing any) any, tok pathToken) (any, error) {
+	s, ok := node.([]any)
+	if !ok && node != nil {
+		return nil, fmt.Errorf("expected array at index %d but found %T", tok.idx, node)
+	}
+	if len(s) == 0 {
+		s = make([]any, tok.idx+1)
+	}
+	if err := setLeaf(
+		func() any { return s[tok.idx] },
+		func(v any) { s[tok.idx] = v },
+		tokens, leaf,
+	); err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+// setMap sets a value in a map at token name.
+func setMap(node any, tokens []pathToken, leaf func(existing any) any, tok pathToken) (any, error) {
+	m, ok := node.(map[string]any)
+	if !ok && node != nil {
+		return nil, fmt.Errorf("expected map at key %q but found %T", tok.name, node)
+	}
+	if len(m) == 0 {
+		m = make(map[string]any)
+	}
+	if err := setLeaf(
+		func() any { return m[tok.name] },
+		func(v any) { m[tok.name] = v },
+		tokens, leaf,
+	); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// setLeaf writes leaf into a container via get/set closures, recursing when
+// the path continues. The closures capture the container (slice or map).
+// set is called to set a value in a container, be that a slice or a map.
+// get is called to retrieve a value from a container, either a slice or a map.
+// This abstraction is necessary because there are no shared slice/map operation even
+// in Typed Parameters, so these cannot be reasonably abstracted. At least, it makes
+// the entire logic a bit more readable.
+func setLeaf(get func() any, set func(any), tokens []pathToken, leaf func(existing any) any) error {
+	if len(tokens) == 1 {
+		set(leaf(get()))
+		return nil
+	}
+	child, err := setAtPath(get(), tokens[1:], leaf)
+	if err != nil {
+		return err
+	}
+	set(child)
+	return nil
 }
