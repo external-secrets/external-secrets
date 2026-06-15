@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -65,12 +66,14 @@ var (
 	liveAddr                              string
 	metricsAddr                           string
 	metricsSecure                         bool
+	metricsAuth                           bool
 	metricsCertDir                        string
 	metricsCertName                       string
 	metricsKeyName                        string
 	healthzAddr                           string
 	controllerClass                       string
 	enableLeaderElection                  bool
+	leaderElectionID                      string
 	enableSecretsCache                    bool
 	enableConfigMapsCache                 bool
 	enableManagedSecretsCache             bool
@@ -154,7 +157,13 @@ var rootCmd = &cobra.Command{
 			metricsOpts.CertName = metricsCertName
 			metricsOpts.KeyName = metricsKeyName
 		}
-
+		if metricsAuth {
+			metricsOpts.FilterProvider = filters.WithAuthenticationAndAuthorization
+		}
+		if metricsAuth && !metricsSecure {
+			setupLog.Error(nil, "--metrics-auth requires --metrics-secure; bearer tokens over plaintext HTTP is not allowed")
+			os.Exit(1)
+		}
 		// Disable HTTP/2 if not explicitly enabled
 		if !enableHTTP2 {
 			metricsOpts.TLSOpts = []func(*tls.Config){disableHTTP2}
@@ -172,7 +181,7 @@ var rootCmd = &cobra.Command{
 				},
 			},
 			LeaderElection:   enableLeaderElection,
-			LeaderElectionID: "external-secrets-controller",
+			LeaderElectionID: leaderElectionID,
 		}
 		if namespace != "" {
 			mgrOpts.Cache.DefaultNamespaces = map[string]cache.Config{
@@ -327,6 +336,7 @@ func Execute() {
 
 func init() {
 	rootCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
+	rootCmd.Flags().BoolVar(&metricsAuth, "metrics-auth", false, "Enable Kubernetes RBAC-based authentication and authorization for the metrics endpoint.")
 	rootCmd.Flags().BoolVar(&metricsSecure, "metrics-secure", false, "Enable HTTPS for the metrics endpoint.")
 	rootCmd.Flags().StringVar(&metricsCertDir, "metrics-cert-dir", "", "Directory containing TLS certificate and key for metrics endpoint.")
 	rootCmd.Flags().StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "TLS certificate filename for metrics endpoint.")
@@ -335,6 +345,8 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
+	rootCmd.Flags().StringVar(&leaderElectionID, "leader-election-id", "external-secrets-controller",
+		"The ID of the lease object used for leader election. Set this to a unique value when running multiple deployments in the same namespace.")
 	rootCmd.Flags().IntVar(&concurrent, "concurrent", 1, "The number of concurrent reconciles.")
 	rootCmd.Flags().Float32Var(&clientQPS, "client-qps", 50, "QPS configuration to be passed to rest.Client")
 	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 100, "Maximum Burst allowed to be passed to rest.Client")

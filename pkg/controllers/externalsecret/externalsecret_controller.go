@@ -98,6 +98,13 @@ const (
 	logErrorSecretCacheNotSynced = "controller caches for Secret are not in sync"
 	logErrorUnmanagedStore       = "unable to determine if store is managed"
 
+	// log messages for mutating / destructive secret operations, emitted at
+	// V(1) so they are opt-in. They only ever carry key names, never values.
+	logSecretDeleted         = "deleted secret"
+	logManagedSecretDeleted  = "deleted managed secret"
+	logSecretDeletedOrphaned = "deleted orphaned secret"
+	logSecretDataChanged     = "secret data keys changed"
+
 	// error formats.
 	errConvert               = "error applying conversion strategy %s to keys: %w"
 	errRewrite               = "error applying rewrite to keys: %w"
@@ -434,6 +441,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 					r.markAsFailed(msgErrorDeleteSecret, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 					return ctrl.Result{}, err
 				}
+				log.V(1).Info(logSecretDeleted, "secret", secretName, "namespace", externalSecret.Namespace, "reason", "DeletionPolicy=Delete and provider returned no data")
 				r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1.ReasonDeleted, eventDeleted)
 			}
 
@@ -450,42 +458,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 	// mutationFunc is a function which can be applied to a secret to make it match the desired state.
 	mutationFunc := func(secret *v1.Secret) error {
-		// get information about the current owner of the secret
-		//  - we ignore the API version as it can change over time
-		//  - we ignore the UID for consistency with the SetControllerReference function
-		currentOwner := metav1.GetControllerOf(secret)
-		ownerIsESKind := false
-		ownerIsCurrentES := false
-		if currentOwner != nil {
-			currentOwnerGK := schema.FromAPIVersionAndKind(currentOwner.APIVersion, currentOwner.Kind).GroupKind()
-			ownerIsESKind = currentOwnerGK.String() == esv1.ExtSecretGroupKind
-			ownerIsCurrentES = ownerIsESKind && currentOwner.Name == externalSecret.Name
-		}
-
-		// if another ExternalSecret is the owner, we should return an error
-		// otherwise the controller will fight with itself to update the secret.
-		// note, this does not prevent other controllers from owning the secret.
-		if ownerIsESKind && !ownerIsCurrentES {
-			return fmt.Errorf("%w: %s", ErrSecretIsOwned, currentOwner.Name)
-		}
-
-		// if the CreationPolicy is Owner, we should set ourselves as the owner of the secret
-		if externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
-			err = controllerutil.SetControllerReference(externalSecret, secret, r.Scheme)
-			if err != nil {
-				return fmt.Errorf("%w: %w", ErrSecretSetCtrlRef, err)
-			}
-		}
-
-		// if the creation policy is not Owner, we should remove ourselves as the owner
-		// this could happen if the creation policy was changed after the secret was created
-		if externalSecret.Spec.Target.CreationPolicy != esv1.CreatePolicyOwner && ownerIsCurrentES {
-			err = controllerutil.RemoveControllerReference(externalSecret, secret, r.Scheme)
-			if err != nil {
-				return fmt.Errorf("%w: %w", ErrSecretRemoveCtrlRef, err)
-			}
-		}
-
 		// initialize maps within the secret so it's safe to set values
 		if secret.Annotations == nil {
 			secret.Annotations = make(map[string]string)
@@ -526,14 +498,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			}
 		}
 
-		// we also use a label to keep track of the owner of the secret
-		// this lets us remove secrets that are no longer needed if the target secret name changes
-		if externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
-			lblValue := esutils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
-			secret.Labels[esv1.LabelOwner] = lblValue
-		} else {
-			// the label should not be set if the creation policy is not Owner
-			delete(secret.Labels, esv1.LabelOwner)
+		if err := r.applyOwnership(externalSecret, secret); err != nil {
+			return err
 		}
 
 		secret.Labels[esv1.LabelManaged] = esv1.LabelManagedValue
@@ -549,7 +515,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	case esv1.CreatePolicyMerge:
 		// update the secret, if it exists
 		if existingSecret.UID != "" {
-			err = r.updateSecret(ctx, existingSecret, mutationFunc, externalSecret, secretName)
+			err = r.updateSecret(ctx, log, existingSecret, mutationFunc, externalSecret, secretName)
 		} else {
 			// if the secret does not exist, we wait until the next refresh interval
 			// rather than returning an error which would requeue immediately
@@ -562,12 +528,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			err = r.createSecret(ctx, mutationFunc, externalSecret, secretName)
 		} else {
 			// if the secret exists, we should update it
-			err = r.updateSecret(ctx, existingSecret, mutationFunc, externalSecret, secretName)
+			err = r.updateSecret(ctx, log, existingSecret, mutationFunc, externalSecret, secretName)
 		}
 	case esv1.CreatePolicyOwner:
 		// we may have orphaned secrets to clean up,
 		// for example, if the target secret name was changed
-		err = r.deleteOrphanedSecrets(ctx, externalSecret, secretName)
+		err = r.deleteOrphanedSecrets(ctx, log, externalSecret, secretName)
 		if err != nil {
 			r.markAsFailed(msgErrorDeleteOrphaned, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 			return ctrl.Result{}, err
@@ -578,7 +544,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			err = r.createSecret(ctx, mutationFunc, externalSecret, secretName)
 		} else {
 			// if the secret exists, we should update it
-			err = r.updateSecret(ctx, existingSecret, mutationFunc, externalSecret, secretName)
+			err = r.updateSecret(ctx, log, existingSecret, mutationFunc, externalSecret, secretName)
 		}
 	}
 	if err != nil {
@@ -816,6 +782,60 @@ func (r *Reconciler) markAsFailed(msg string, err error, externalSecret *esv1.Ex
 	counter.Inc()
 }
 
+// applyOwnership handles ownership-related logic for target resources (Secrets and generic targets).
+// It detects ownership conflicts with other ExternalSecrets, sets or removes the controller reference
+// based on CreationPolicy, and manages the LabelOwner label.
+func (r *Reconciler) applyOwnership(es *esv1.ExternalSecret, target client.Object) error {
+	// get information about the current owner of the target
+	//  - we ignore the API version as it can change over time
+	//  - we ignore the UID for consistency with the SetControllerReference function
+	currentOwner := metav1.GetControllerOf(target)
+	ownerIsESKind := false
+	ownerIsCurrentES := false
+	if currentOwner != nil {
+		currentOwnerGK := schema.FromAPIVersionAndKind(currentOwner.APIVersion, currentOwner.Kind).GroupKind()
+		ownerIsESKind = currentOwnerGK.String() == esv1.ExtSecretGroupKind
+		ownerIsCurrentES = ownerIsESKind && currentOwner.Name == es.Name
+	}
+
+	// if another ExternalSecret is the owner, we should return an error
+	// otherwise the controller will fight with itself to update the target.
+	// note, this does not prevent other controllers from owning the target.
+	if ownerIsESKind && !ownerIsCurrentES {
+		return fmt.Errorf("%w: %s", ErrSecretIsOwned, currentOwner.Name)
+	}
+
+	// if the CreationPolicy is Owner, we should set ourselves as the owner of the target
+	if es.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
+		if err := controllerutil.SetControllerReference(es, target, r.Scheme); err != nil {
+			return fmt.Errorf("%w: %w", ErrSecretSetCtrlRef, err)
+		}
+	}
+
+	// if the creation policy is not Owner, we should remove ourselves as the owner
+	// this could happen if the creation policy was changed after the target was created
+	if es.Spec.Target.CreationPolicy != esv1.CreatePolicyOwner && ownerIsCurrentES {
+		if err := controllerutil.RemoveControllerReference(es, target, r.Scheme); err != nil {
+			return fmt.Errorf("%w: %w", ErrSecretRemoveCtrlRef, err)
+		}
+	}
+
+	// we also use a label to keep track of the owner of the target
+	// this lets us remove targets that are no longer needed if the target name changes
+	labels := target.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
+	}
+	if es.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
+		labels[esv1.LabelOwner] = esutils.ObjectHash(fmt.Sprintf("%v/%v", es.Namespace, es.Name))
+	} else {
+		delete(labels, esv1.LabelOwner)
+	}
+	target.SetLabels(labels)
+
+	return nil
+}
+
 func (r *Reconciler) cleanupManagedSecrets(ctx context.Context, log logr.Logger, externalSecret *esv1.ExternalSecret) error {
 	// Only delete resources if DeletionPolicy is Delete
 	if externalSecret.Spec.Target.DeletionPolicy != esv1.DeletionPolicyDelete {
@@ -848,13 +868,13 @@ func (r *Reconciler) cleanupManagedSecrets(ctx context.Context, log logr.Logger,
 		if err := r.Delete(ctx, &secret); err != nil && !apierrors.IsNotFound(err) {
 			return err
 		}
-		log.V(1).Info("deleted managed secret", "secret", secretName)
+		log.V(1).Info(logManagedSecretDeleted, "secret", secretName, "namespace", externalSecret.Namespace, "reason", "ExternalSecret deleted")
 	}
 
 	return nil
 }
 
-func (r *Reconciler) deleteOrphanedSecrets(ctx context.Context, externalSecret *esv1.ExternalSecret, secretName string) error {
+func (r *Reconciler) deleteOrphanedSecrets(ctx context.Context, log logr.Logger, externalSecret *esv1.ExternalSecret, secretName string) error {
 	ownerLabel := esutils.ObjectHash(fmt.Sprintf("%v/%v", externalSecret.Namespace, externalSecret.Name))
 
 	// we use a PartialObjectMetadataList to avoid loading the full secret objects
@@ -878,6 +898,7 @@ func (r *Reconciler) deleteOrphanedSecrets(ctx context.Context, externalSecret *
 			if err != nil && !apierrors.IsNotFound(err) {
 				return err
 			}
+			log.V(1).Info(logSecretDeletedOrphaned, "secret", secretPartial.GetName(), "namespace", externalSecret.Namespace)
 			r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1.ReasonDeleted, eventDeletedOrphaned)
 		}
 	}
@@ -916,7 +937,7 @@ func (r *Reconciler) createSecret(ctx context.Context, mutationFunc func(secret 
 	return nil
 }
 
-func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret, mutationFunc func(secret *v1.Secret) error, es *esv1.ExternalSecret, secretName string) error {
+func (r *Reconciler) updateSecret(ctx context.Context, log logr.Logger, existingSecret *v1.Secret, mutationFunc func(secret *v1.Secret) error, es *esv1.ExternalSecret, secretName string) error {
 	fqdn := fqdnFor(es.Name)
 
 	// fail if the secret does not exist
@@ -986,6 +1007,23 @@ func (r *Reconciler) updateSecret(ctx context.Context, existingSecret *v1.Secret
 			return err
 		}
 		return fmt.Errorf(errUpdate, updatedSecret.Name, err)
+	}
+
+	// only compute the key diff when debug verbosity is active (--loglevel=debug /
+	// log.level=debug in Helm). skipping it by default avoids per-reconcile
+	// allocation on every managed secret. we only ever log key names, never values.
+	if log.V(1).Enabled() {
+		added, updated, removed, emptied := diffSecretDataKeys(existingSecret.Data, updatedSecret.Data)
+		if len(added) > 0 || len(updated) > 0 || len(removed) > 0 {
+			log.V(1).Info(logSecretDataChanged,
+				"secret", secretName,
+				"namespace", es.Namespace,
+				"added", added,
+				"updated", updated,
+				"removed", removed,
+				"emptied", emptied,
+			)
+		}
 	}
 
 	r.recorder.Event(es, v1.EventTypeNormal, esv1.ReasonUpdated, eventUpdated)

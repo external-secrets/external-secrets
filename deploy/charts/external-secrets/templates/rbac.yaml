@@ -1,14 +1,14 @@
 {{- if .Values.rbac.create -}}
 apiVersion: rbac.authorization.k8s.io/v1
-{{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+{{- if .Values.scopedRBAC }}
 kind: Role
 {{- else }}
 kind: ClusterRole
 {{- end }}
 metadata:
   name: {{ include "external-secrets.fullname" . }}-controller
-  {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
-  namespace: {{ .Values.scopedNamespace | quote }}
+  {{- if .Values.scopedRBAC }}
+  namespace: {{ .Values.scopedNamespace | default .Release.Namespace | quote }}
   {{- end }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
@@ -113,6 +113,7 @@ rules:
     - "webhooks"
     - "grafanas"
     - "mfas"
+    - "beyondtrustworkloadcredentialsdynamicsecrets"
     verbs:
     - "get"
     - "list"
@@ -180,12 +181,14 @@ rules:
     {{- end }}
   {{- end }}
   {{- end }}
+  {{- if .Values.rbac.serviceAccountTokenCreate }}
   - apiGroups:
     - ""
     resources:
     - "serviceaccounts/token"
     verbs:
     - "create"
+  {{- end }}
   - apiGroups:
     - ""
     resources:
@@ -193,6 +196,7 @@ rules:
     verbs:
     - "create"
     - "patch"
+  {{- if .Values.processClusterExternalSecret }}
   - apiGroups:
     - "external-secrets.io"
     resources:
@@ -201,6 +205,7 @@ rules:
     - "create"
     - "update"
     - "delete"
+  {{- end }}
   {{- if .Values.processPushSecret }}
   - apiGroups:
     - "external-secrets.io"
@@ -211,17 +216,31 @@ rules:
     - "update"
     - "delete"
   {{- end }}
+  {{- if .Values.metrics.listen.auth.enabled }}
+  - apiGroups:
+    - "authentication.k8s.io"
+    resources: 
+    - "tokenreviews"
+    verbs:
+    - "create"
+  - apiGroups:
+    - "authorization.k8s.io"
+    resources: 
+    - "subjectaccessreviews"
+    verbs:
+    - "create"
+  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-{{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+{{- if .Values.scopedRBAC }}
 kind: Role
 {{- else }}
 kind: ClusterRole
 {{- end }}
 metadata:
   name: {{ include "external-secrets.fullname" . }}-view
-  {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
-  namespace: {{ .Values.scopedNamespace | quote }}
+  {{- if .Values.scopedRBAC }}
+  namespace: {{ .Values.scopedNamespace | default .Release.Namespace | quote }}
   {{- end }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
@@ -255,6 +274,7 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    - "beyondtrustworkloadcredentialsdynamicsecrets"
     - "cloudsmithaccesstokens"
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
@@ -278,15 +298,15 @@ rules:
       - "list"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-{{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+{{- if .Values.scopedRBAC }}
 kind: Role
 {{- else }}
 kind: ClusterRole
 {{- end }}
 metadata:
   name: {{ include "external-secrets.fullname" . }}-edit
-  {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
-  namespace: {{ .Values.scopedNamespace | quote }}
+  {{- if .Values.scopedRBAC }}
+  namespace: {{ .Values.scopedNamespace | default .Release.Namespace | quote }}
   {{- end }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
@@ -335,6 +355,7 @@ rules:
     - "grafanas"
     - "generatorstates"
     - "mfas"
+    - "beyondtrustworkloadcredentialsdynamicsecrets"
     - "uuids"
     verbs:
       - "create"
@@ -344,21 +365,21 @@ rules:
       - "update"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-{{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+{{- if .Values.scopedRBAC }}
 kind: RoleBinding
 {{- else }}
 kind: ClusterRoleBinding
 {{- end }}
 metadata:
   name: {{ include "external-secrets.fullname" . }}-controller
-  {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
-  namespace: {{ .Values.scopedNamespace | quote }}
+  {{- if .Values.scopedRBAC }}
+  namespace: {{ .Values.scopedNamespace | default .Release.Namespace | quote }}
   {{- end }}
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  {{- if and .Values.scopedNamespace .Values.scopedRBAC }}
+  {{- if .Values.scopedRBAC }}
   kind: Role
   {{- else }}
   kind: ClusterRole
@@ -382,7 +403,7 @@ rules:
     resources:
     - "configmaps"
     resourceNames:
-    - "external-secrets-controller"
+    - {{ default "external-secrets-controller" .Values.leaderElectionID | quote }}
     verbs:
     - "get"
     - "update"

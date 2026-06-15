@@ -26,6 +26,28 @@ spec:
       registry: string
       scope: string
       tenantId: string
+    beyondtrustWorkloadCredentialsDynamicSecretSpec:
+      controller: string
+      provider:
+        auth:
+          apikey:
+            token:
+              key: string
+              name: string
+              namespace: string
+        caBundle: c3RyaW5n
+        caProvider:
+          key: string
+          name: string
+          namespace: string
+          type: "Secret" # "Secret", "ConfigMap"
+        folderPath: string
+        server:
+          apiUrl: string
+          siteId: string
+      retrySettings:
+        maxRetries: 1
+        retryInterval: string
     cloudsmithAccessTokenSpec:
       apiUrl: string
       orgSlug: string
@@ -87,6 +109,7 @@ spec:
             name: string
             namespace: string
           externalTokenEndpoint: string
+          gcpServiceAccountEmail: "my-gsa@my-project.iam.gserviceaccount.com"
           serviceAccountRef:
             audiences: [] # minItems 0 of type string
             name: string
@@ -178,6 +201,7 @@ spec:
     vaultDynamicSecretSpec:
       allowEmptyResponse: false
       controller: string
+      getParameters: {}
       method: string
       parameters: 
       path: string
@@ -353,4 +377,4 @@ spec:
           name: string
       timeout: string
       url: string
-  kind: "ACRAccessToken" # "ACRAccessToken", "CloudsmithAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "SSHKey", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana"
+  kind: "ACRAccessToken" # "ACRAccessToken", "BeyondtrustWorkloadCredentialsDynamicSecret", "CloudsmithAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "SSHKey", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana", "MFA"

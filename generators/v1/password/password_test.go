@@ -161,6 +161,24 @@ func TestGenerate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			// "Test>>Pass??word" exercises the URL-safe alphabet (- and _ in
+			// place of + and /) and keeps "=" padding (Go's base64.URLEncoding).
+			name: "spec with base64url encoding should encode password as url-safe base64 with padding",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec":{"encoding":"base64url"}}`),
+				},
+				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				) (string, error) {
+					return "Test>>Pass??word", nil
+				},
+			},
+			want: map[string][]byte{
+				"password": []byte(base64.URLEncoding.EncodeToString([]byte("Test>>Pass??word"))),
+			},
+			wantErr: false,
+		},
+		{
 			name: "secretKeys overrides default output key",
 			args: args{
 				jsonSpec: &apiextensions.JSON{

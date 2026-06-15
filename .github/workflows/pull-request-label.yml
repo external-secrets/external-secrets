@@ -19,7 +19,7 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v7
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v7
         env:
           # If extended, don't forget to also include it in the verification step verify-labels.
           TYPE_TO_LABEL: |
@@ -30,8 +30,8 @@ jobs:
               "ref":"kind/refactor",
               "clean":"kind/cleanup",
               "design":"kind/design",
-              "docs":"kind/documentation",
-              "test":"kind/testing",
+              "docs":"area/documentation",
+              "test":"area/testing",
               "perf":"kind/performance"
             }
         with:
@@ -112,12 +112,12 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           sparse-checkout: |
             .github/config/labeler.yml
           persist-credentials: false
-      - uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v5
+      - uses: actions/labeler@f27b608878404679385c85cfa523b85ccb86e213 # v5
         with:
           configuration-path: .github/config/labeler.yml
   size-labeler:
@@ -155,5 +155,5 @@ jobs:
       - name: PRs should have at least one qualifying label
         uses: docker://agilepathway/pull-request-label-checker:latest@sha256:14f5f3dfda922496d07d53494e2d2b42885165f90677a1c03d600059b7706a61
         with:
-          any_of: kind/chore,kind/bug,kind/feature,kind/dependency,kind/refactor,kind/design,kind/documentation,kind/testing,kind/performance,kind/cleanup
+          any_of: kind/chore,kind/bug,kind/feature,kind/dependency,kind/refactor,kind/design,area/documentation,area/testing,kind/performance,kind/cleanup
           repo_token: ${{ secrets.GITHUB_TOKEN }}
