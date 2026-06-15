@@ -77,11 +77,6 @@ func TestValidateStore(t *testing.T) {
 		},
 
 		{
-			store: makeNoAuthSecretStore(svcURL),
-			err:   errors.New("missing Auth.* configuration"),
-		},
-
-		{
 			store: makeCertSecretStore(svcURL, certServiceID, "", svcAccount),
 			err:   nil,
 		},

@@ -3766,6 +3766,8 @@ spec:
                       properties:
                         auth:
                           description: Defines authentication settings for connecting to Conjur.
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             apikey:
                               description: Authenticates with Conjur using an API key.
@@ -16579,6 +16581,8 @@ spec:
                       properties:
                         auth:
                           description: Defines authentication settings for connecting to Conjur.
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             apikey:
                               description: Authenticates with Conjur using an API key.

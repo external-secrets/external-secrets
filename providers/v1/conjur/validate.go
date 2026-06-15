@@ -59,11 +59,6 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		}
 	}
 
-	// At least one auth must be configured
-	if prov.Auth.APIKey == nil && prov.Auth.Jwt == nil && prov.Auth.Cert == nil {
-		return nil, errors.New("missing Auth.* configuration")
-	}
-
 	return nil, nil
 }
 

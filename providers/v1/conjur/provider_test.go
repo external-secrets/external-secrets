@@ -782,19 +782,6 @@ func makeCertSecretStoreWithMissingRefs(svcURL, certServiceID, conjurAccount str
 	return store
 }
 
-func makeNoAuthSecretStore(svcURL string) *esv1.SecretStore {
-	store := &esv1.SecretStore{
-		Spec: esv1.SecretStoreSpec{
-			Provider: &esv1.SecretStoreProvider{
-				Conjur: &esv1.ConjurProvider{
-					URL: svcURL,
-				},
-			},
-		},
-	}
-	return store
-}
-
 func makeFakeAPIKeySecrets() []kclient.Object {
 	return []kclient.Object{
 		&corev1.Secret{
