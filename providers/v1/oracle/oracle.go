@@ -609,10 +609,25 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(
 	if err := os.Setenv(auth.ResourcePrincipalRegionEnvVar, region); err != nil {
 		return nil, fmt.Errorf(errSettingOCIEnvVariables, auth.ResourcePrincipalRegionEnvVar, err)
 	}
+
+	// Cache OKE token providers per SecretStore to avoid creating multiple providers for the same store.
+	// We also reset the cache if it exceeds a certain size to avoid unbounded memory growth.
+	if vms.authConfigurationsCache == nil || len(vms.authConfigurationsCache) >= authConfigurationsCachePoolSize {
+		vms.authConfigurationsCache = make(map[string]auth.ConfigurationProviderWithClaimAccess)
+	}
+
+	// Caching by resource version to ensure that updates to the SecretStore are reflected in the cached provider.
+	cacheKey := fmt.Sprintf("%s/%s/%s", store.GetNamespace(), store.GetName(), store.GetResourceVersion())
+	if configurationProvider, ok := vms.authConfigurationsCache[cacheKey]; ok {
+		return configurationProvider, nil
+	}
+
 	// If no service account is specified, use the pod service account to create the Workload Identity provider.
 	if serviceAcccountRef == nil {
-		return auth.OkeWorkloadIdentityConfigurationProvider()
+		vms.authConfigurationsCache[cacheKey], err = auth.OkeWorkloadIdentityConfigurationProvider()
+		return vms.authConfigurationsCache[cacheKey], err
 	}
+
 	// Ensure the service account ref is being used appropriately, so arbitrary tokens are not minted by the provider.
 	if err = esutils.ValidateServiceAccountSelector(store, *serviceAcccountRef); err != nil {
 		return nil, fmt.Errorf("invalid ServiceAccountRef: %w", err)
@@ -627,22 +642,12 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(
 	}
 	tokenProvider := NewTokenProvider(clientset, serviceAcccountRef, namespace)
 
-	// Cache OKE token providers per SecretStore to avoid creating multiple providers for the same store.
-	// We also reset the cache if it exceeds a certain size to avoid unbounded memory growth.
-	if vms.authConfigurationsCache == nil || len(vms.authConfigurationsCache) >= authConfigurationsCachePoolSize {
-		vms.authConfigurationsCache = make(map[string]auth.ConfigurationProviderWithClaimAccess)
+	vms.authConfigurationsCache[cacheKey], err = auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
+	if err != nil {
+		return nil, err
 	}
 
-	// Caching by resource version to ensure that updates to the SecretStore are reflected in the cached provider.
-	_, ok := vms.authConfigurationsCache[store.GetResourceVersion()]
-	if !ok {
-		vms.authConfigurationsCache[store.GetResourceVersion()], err = auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return vms.authConfigurationsCache[store.GetResourceVersion()], nil
+	return vms.authConfigurationsCache[cacheKey], nil
 }
 
 func (vms *VaultManagementService) constructProvider(
