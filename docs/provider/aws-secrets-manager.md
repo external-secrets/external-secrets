@@ -76,7 +76,7 @@ If you're planning to use `PushSecret`, ensure you also have the following permi
 ```
 
 **Note:** The resource policy permissions (`GetResourcePolicy`, `PutResourcePolicy`, `DeleteResourcePolicy`) are only required if you're using the `resourcePolicy` metadata option to manage resource-based policies on secrets.
-**Note:** The replication permissions (`ReplicateSecretToRegions`, `RemoveRegionsFromReplication`) are only required if you're using the `replicationLocations` metadata option to manage secret replication across multiple regions
+**Note:** The replication permissions (`ReplicateSecretToRegions`, `RemoveRegionsFromReplication`) are only required if you're using the `replicationLocations` metadata option to manage secret replication across multiple regions.
 
 Here's a more restrictive version of the IAM policy:
 
@@ -151,7 +151,7 @@ To control this behavior set the following provider metadata:
 - `tags` Key-value map of user-defined tags that are attached to the secret.
 - `replicationLocations` takes a list of valid regions to enable.
 
-**Note:** ESO treats the PushSecret as the **source of truth** for tags, resource policy and replication locations. When any of these resources are specified in `metadata` will be added or updated, and resources NOT specified but existing will be removed from AWS. This synchronization happens on every reconciliation, even when the secret value hasn't changed.
+**Note:** ESO treats the PushSecret as the **source of truth** for tags, resource policy, and replication locations. When any of these resources are specified in `metadata`, they will be added or updated, and resources NOT specified but existing will be removed from AWS. This synchronization happens on every reconciliation, even when the secret value hasn't changed.
 
 - `resourcePolicy` Attach a resource-based policy to the secret for cross-account access or advanced access control.
   - `blockPublicPolicy` (optional) - Set to `true` to validate that the policy doesn't grant public access before applying. Defaults to AWS behavior.
@@ -227,37 +227,10 @@ data:
 
 ##### Location Replication Example
 
-You can specify a list of location for your secrets to be replicated by setting the `replicationLocations` field:
+You can specify a list of locations for your secrets to be replicated by setting the `replicationLocations` field:
 
-```yaml
-apiVersion: external-secrets.io/v1alpha1
-kind: PushSecret
-metadata:
-  name: pushsecret-example
-  namespace: default
-spec:
-  refreshInterval: 10s
-  secretStoreRefs:
-    - name: aws-secretsmanager
-      kind: SecretStore
-  selector:
-    secret:
-      name: pokedex-credentials
-  data:
-    - match:
-        secretKey: my-secret-key
-        remoteRef:
-          remoteKey: my-remote-secret
-          property: password
-      metadata:
-        kmsKeyID: bb123123-b2b0-4f60-ac3a-44a13f0e6b6c
-        replicationLocations:
-          - eu-north-1
-          - eu-west-2
-        secretPushFormat: string
-        description: "Cross-account accessible secret"
-        tags:
-          team: platform-engineering
+``` yaml
+{% include 'aws-sm-push-secret-with-replication.yaml' %}
 ```
 
 ### JSON Secret Values
