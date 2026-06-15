@@ -2389,6 +2389,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Advanced Path Targeting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#array-index-notation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Array Index Notation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -5009,6 +5026,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Advanced Path Targeting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#array-index-notation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Array Index Notation
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -5211,6 +5245,19 @@ We recommend not overusing this feature without too many objects until further p
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database/password</span>
 </code></pre></div>
 <p>The <code>target</code> field accepts dot-notation paths like <code>spec.database</code> or <code>spec.logging</code> to place the rendered template output at specific locations in the resource structure. When <code>target</code> is not specified it defaults to <code>Data</code> for backward compatibility with Secrets.</p>
+<h3 id="array-index-notation">Array Index Notation</h3>
+<p>Paths can navigate into arrays using <code>[n]</code> index notation, for example:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">spec.rules[0].from[0].source.notRemoteIpBlocks</span>
+</code></pre></div>
+<p>This templates a resource like an Istio <code>AuthorizationPolicy</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">rules</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">from</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">source</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">notRemoteIpBlocks</span><span class="p">:</span>
+<span class="w">              </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">10.0.0.0/8</span>
+</code></pre></div>
+<p>Intermediate maps and arrays are created if they don't exist yet, and existing sibling keys in the same array element are preserved. Paths must start with a key; a bare leading index like <code>[0].foo</code> is rejected.</p>
 <div class="admonition note">
 <p class="admonition-title">Using <code>property</code> when templating <code>data</code></p>
 <p>The return of <code>data:</code> isn't an object on the template scope. If templated as a <code>string</code> it will fail in finding the right key. Therefore, something like this:
