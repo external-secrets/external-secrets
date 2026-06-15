@@ -1529,6 +1529,25 @@ channel: {{ .new_channel }}
 			},
 		},
 		{
+			name:   "slice notation grows existing non-empty array",
+			target: "spec.containers[2].image",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"image": []byte("{{ .img }}"),
+			},
+			data: map[string][]byte{
+				"img": []byte("nginx:latest"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				containers := obj["spec"].(map[string]any)["containers"].([]any)
+				assert.Len(t, containers, 3)
+				// pre-existing element at index 0 is preserved
+				assert.Equal(t, "sidecar:v1", containers[0].(map[string]any)["image"])
+				assert.Nil(t, containers[1])
+				assert.Equal(t, "nginx:latest", containers[2].(map[string]any)["image"])
+			},
+		},
+		{
 			name:     "invalid slice notation reports error",
 			target:   "spec.rules[abc].foo",
 			scope:    esapi.TemplateScopeKeysAndValues,
@@ -1597,6 +1616,15 @@ channel: {{ .new_channel }}
 				obj.Object["spec"] = map[string]any{
 					"rules": []any{
 						map[string]any{"from": "existing"},
+					},
+				}
+			}
+
+			// For the slice-grow test, pre-populate a non-empty array.
+			if strings.Contains(tt.name, "grows existing non-empty array") {
+				obj.Object["spec"] = map[string]any{
+					"containers": []any{
+						map[string]any{"image": "sidecar:v1"},
 					},
 				}
 			}

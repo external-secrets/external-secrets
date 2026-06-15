@@ -450,8 +450,10 @@ func setIndex(node any, tokens []pathToken, leaf func(existing any) any, tok pat
 	if !ok && node != nil {
 		return nil, fmt.Errorf("expected array at index %d but found %T", tok.idx, node)
 	}
-	if len(s) == 0 {
-		s = make([]any, tok.idx+1)
+	if tok.idx >= len(s) {
+		grown := make([]any, tok.idx+1)
+		copy(grown, s)
+		s = grown
 	}
 	if err := setLeaf(
 		func() any { return s[tok.idx] },
