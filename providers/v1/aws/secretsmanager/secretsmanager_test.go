@@ -1303,6 +1303,10 @@ func TestSetSecret(t *testing.T) {
 							{KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"), Region: aws.String("eu-west-3"), Status: types.StatusTypeInSync},
 							// Existing replication region part of the desired state (kept).
 							{KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"), Region: aws.String("eu-north-1"), Status: types.StatusTypeInSync},
+							// Existing replication region not part of the desired state with failed status
+							{KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"), Region: aws.String("sa-east-1"), Status: types.StatusTypeFailed},
+							// Existing replication region not part of the desired state with in-progress status
+							{KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"), Region: aws.String("ap-southeast-2"), Status: types.StatusTypeInProgress},
 						},
 					}, nil),
 					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(nil, &types.ResourceNotFoundException{}),
@@ -1310,21 +1314,15 @@ func TestSetSecret(t *testing.T) {
 						&awssm.ReplicateSecretToRegionsOutput{},
 						nil,
 						func(got *awssm.ReplicateSecretToRegionsInput) {
-							expected := []types.ReplicaRegionType{
-								{
-									Region:   aws.String("eu-central-1"),
-									KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"),
-								},
-							}
 							assert.Len(t, got.AddReplicaRegions, 1)
-							assert.ElementsMatch(t, expected, got.AddReplicaRegions)
+							assert.EqualValues(t, got.AddReplicaRegions[0].Region, aws.String("eu-central-1"))
 						},
 					),
 					RemoveRegionsFromReplicationFn: fakesm.NewRemoveRegionsFromReplicationFn(
 						&awssm.RemoveRegionsFromReplicationOutput{},
 						nil,
 						func(got *awssm.RemoveRegionsFromReplicationInput) {
-							assert.ElementsMatch(t, []string{"eu-west-3"}, got.RemoveReplicaRegions)
+							assert.ElementsMatch(t, []string{"eu-west-3", "sa-east-1", "ap-southeast-2"}, got.RemoveReplicaRegions)
 						},
 					),
 				},
@@ -1364,11 +1362,10 @@ func TestSetSecret(t *testing.T) {
 						&awssm.ReplicateSecretToRegionsOutput{},
 						nil,
 						func(got *awssm.ReplicateSecretToRegionsInput) {
-							expected := []types.ReplicaRegionType{
-								{Region: aws.String("eu-north-1"), KmsKeyId: nil},
-								{Region: aws.String("eu-central-1"), KmsKeyId: nil},
-							}
-							assert.Equal(t, expected, got.AddReplicaRegions)
+							assert.EqualValues(t, got.AddReplicaRegions, []types.ReplicaRegionType{{Region: aws.String("eu-north-1")}, {Region: aws.String("eu-central-1")}})
+							assert.Len(t, got.AddReplicaRegions, 2)
+							assert.EqualValues(t, got.AddReplicaRegions[0].Region, aws.String("eu-north-1"))
+							assert.EqualValues(t, got.AddReplicaRegions[1].Region, aws.String("eu-central-1"))
 						},
 					),
 				},

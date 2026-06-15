@@ -16,6 +16,10 @@ limitations under the License.
 
 package esutils
 
+import (
+	"maps"
+)
+
 // Set is a generic collection of unique values.
 type Set[T comparable] struct {
 	data map[T]struct{}
@@ -30,6 +34,10 @@ func NewSet[T comparable]() *Set[T] {
 
 // Add inserts v into the set.
 func (s *Set[T]) Add(v T) {
+	if s == nil {
+		return
+	}
+	s.ensureData()
 	s.data[v] = struct{}{}
 }
 
@@ -64,6 +72,11 @@ func (s *Set[T]) Union(other *Set[T]) *Set[T] {
 	for key := range s.data {
 		result.Add(key)
 	}
+
+	if other == nil {
+		return result
+	}
+
 	for key := range other.data {
 		result.Add(key)
 	}
@@ -74,6 +87,10 @@ func (s *Set[T]) Union(other *Set[T]) *Set[T] {
 // s and other.
 func (s *Set[T]) Intersection(other *Set[T]) *Set[T] {
 	result := NewSet[T]()
+	if other == nil {
+		return result
+	}
+
 	for key := range s.data {
 		if other.Contains(key) {
 			result.Add(key)
@@ -86,10 +103,21 @@ func (s *Set[T]) Intersection(other *Set[T]) *Set[T] {
 // not in other.
 func (s *Set[T]) Difference(other *Set[T]) *Set[T] {
 	result := NewSet[T]()
+	if other == nil {
+		result.data = maps.Clone(s.data)
+		return result
+	}
+
 	for key := range s.data {
 		if !other.Contains(key) {
 			result.Add(key)
 		}
 	}
 	return result
+}
+
+func (s *Set[T]) ensureData() {
+	if s.data == nil {
+		s.data = make(map[T]struct{})
+	}
 }

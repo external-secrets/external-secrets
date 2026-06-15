@@ -1009,21 +1009,26 @@ func computeTagsToUpdate(tags, metaTags map[string]string) ([]types.Tag, bool) {
 
 // manageRegionReplication add or remove regions for secret replication based on
 // desired and live state.
-func (sm *SecretsManager) manageRegionReplication(ctx context.Context, metadata *apiextensionsv1.JSON, secretARN, kmsKeyID *string, existingReplicationRegions []types.ReplicationStatusType) error {
+func (sm *SecretsManager) manageRegionReplication(ctx context.Context, metadata *apiextensionsv1.JSON, secretARN, kmsKeyID *string, existingReplicationStatusType []types.ReplicationStatusType) error {
 	meta, err := sm.constructMetadataWithDefaults(metadata)
 	if err != nil {
 		return err
 	}
 
-	filteredValidExistingReplicationRegions := filterValidExistingReplicationRegion(existingReplicationRegions)
-	requiresRegionReplicationRemoval, regionsToBeRemovedFromReplication := sm.getReplicationRegionToBeRemoved(meta.Spec.ReplicationLocations, filteredValidExistingReplicationRegions)
+	// NOTE: skip replication completely unless explicitly set in the desired state
+	if meta.Spec.ReplicationLocations == nil {
+		return nil
+	}
+
+	existingReplicationRegions := buildExistingReplicationRegionsSlice(existingReplicationStatusType)
+	requiresRegionReplicationRemoval, regionsToBeRemovedFromReplication := sm.getReplicationRegionToBeRemoved(meta.Spec.ReplicationLocations, existingReplicationRegions)
 	if requiresRegionReplicationRemoval {
 		if err := sm.removeRegionsFromReplication(ctx, secretARN, regionsToBeRemovedFromReplication); err != nil {
 			return err
 		}
 	}
 
-	requiresNewRegionReplication, regionsToReplicate := sm.getReplicationRegionsToBeAdded(meta.Spec.ReplicationLocations, filteredValidExistingReplicationRegions)
+	requiresNewRegionReplication, regionsToReplicate := sm.getReplicationRegionsToBeAdded(meta.Spec.ReplicationLocations, existingReplicationRegions)
 	if requiresNewRegionReplication {
 		if err := sm.replicateExistingSecretToRegions(ctx, secretARN, kmsKeyID, regionsToReplicate); err != nil {
 			return err
@@ -1083,12 +1088,10 @@ func (sm *SecretsManager) getReplicationRegionsToBeAdded(desiredReplicationRegio
 	return regionsToBeAddedSet.Len() > 0, regionsToBeAddedSet.ToSlice()
 }
 
-func filterValidExistingReplicationRegion(existingReplicationRegions []types.ReplicationStatusType) []string {
+func buildExistingReplicationRegionsSlice(existingReplicationRegions []types.ReplicationStatusType) []string {
 	replicationRegions := make([]string, 0, len(existingReplicationRegions))
 	for _, replicationStatusType := range existingReplicationRegions {
-		if replicationStatusType.Status == types.StatusTypeInSync {
-			replicationRegions = append(replicationRegions, aws.ToString(replicationStatusType.Region))
-		}
+		replicationRegions = append(replicationRegions, aws.ToString(replicationStatusType.Region))
 	}
 	return replicationRegions
 }
