@@ -1284,8 +1284,8 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"SetReplicationOnSecretWithouAnyReplication": {
-			reason: "sync an existing secret without replication region previously setup",
+		"SetReplicationOnSecretWhileKeepingExistingReplication": {
+			reason: "sync an existing secret with existing replication region previously setup",
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
@@ -1305,9 +1305,28 @@ func TestSetSecret(t *testing.T) {
 							{KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"), Region: aws.String("eu-north-1"), Status: types.StatusTypeInSync},
 						},
 					}, nil),
-					DeleteResourcePolicyFn:         fakesm.NewDeleteResourcePolicyFn(nil, &types.ResourceNotFoundException{}),
-					ReplicateSecretToRegionsFn:     fakesm.NewReplicateSecretToRegionsFn(&awssm.ReplicateSecretToRegionsOutput{}, nil),
-					RemoveRegionsFromReplicationFn: fakesm.NewRemoveRegionsFromReplicationFn(&awssm.RemoveRegionsFromReplicationOutput{}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(nil, &types.ResourceNotFoundException{}),
+					ReplicateSecretToRegionsFn: fakesm.NewReplicateSecretToRegionsFn(
+						&awssm.ReplicateSecretToRegionsOutput{},
+						nil,
+						func(got *awssm.ReplicateSecretToRegionsInput) {
+							expected := []types.ReplicaRegionType{
+								{
+									Region:   aws.String("eu-central-1"),
+									KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"),
+								},
+							}
+							assert.Len(t, got.AddReplicaRegions, 1)
+							assert.ElementsMatch(t, expected, got.AddReplicaRegions)
+						},
+					),
+					RemoveRegionsFromReplicationFn: fakesm.NewRemoveRegionsFromReplicationFn(
+						&awssm.RemoveRegionsFromReplicationOutput{},
+						nil,
+						func(got *awssm.RemoveRegionsFromReplicationInput) {
+							assert.ElementsMatch(t, []string{"eu-west-3"}, got.RemoveReplicaRegions)
+						},
+					),
 				},
 				pushSecretData: fake.PushSecretData{
 					SecretKey: secretKey,
@@ -1332,16 +1351,26 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"SetReplicationOnSecretWhileKeepingExistingReplication": {
-			reason: "sync an existing secret with existing replication region previously setup",
+		"SetReplicationOnSecretWithoutPreviousExistingReplications": {
+			reason: "sync an existing secret with no previous replication region previously setup",
 			args: args{
 				store: makeValidSecretStore().Spec.Provider.AWS,
 				client: fakesm.Client{
-					GetSecretValueFn:           fakesm.NewGetSecretValueFn(secretValueOutput, nil),
-					PutSecretValueFn:           fakesm.NewPutSecretValueFn(putSecretOutput, nil),
-					DescribeSecretFn:           fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
-					DeleteResourcePolicyFn:     fakesm.NewDeleteResourcePolicyFn(nil, &types.ResourceNotFoundException{}),
-					ReplicateSecretToRegionsFn: fakesm.NewReplicateSecretToRegionsFn(&awssm.ReplicateSecretToRegionsOutput{}, nil),
+					GetSecretValueFn:       fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn:       fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn:       fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(nil, &types.ResourceNotFoundException{}),
+					ReplicateSecretToRegionsFn: fakesm.NewReplicateSecretToRegionsFn(
+						&awssm.ReplicateSecretToRegionsOutput{},
+						nil,
+						func(got *awssm.ReplicateSecretToRegionsInput) {
+							expected := []types.ReplicaRegionType{
+								{Region: aws.String("eu-north-1"), KmsKeyId: nil},
+								{Region: aws.String("eu-central-1"), KmsKeyId: nil},
+							}
+							assert.Equal(t, expected, got.AddReplicaRegions)
+						},
+					),
 				},
 				pushSecretData: fake.PushSecretData{
 					SecretKey: secretKey,
