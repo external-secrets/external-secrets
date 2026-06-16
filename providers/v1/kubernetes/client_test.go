@@ -904,7 +904,7 @@ func TestPushSecret(t *testing.T) {
 			},
 		},
 		{
-			name: "push the whole secret if neither remote property or secretKey is defined but keep existing keys",
+			name: "push the whole secret if neither remote property or secretKey is defined replacing the destination",
 			fields: fields{
 				Client: &fakeClient{
 					t: t,
@@ -931,7 +931,6 @@ func TestPushSecret(t *testing.T) {
 						Annotations: map[string]string{},
 					},
 					Data: map[string][]byte{
-						"token":  []byte(`foo`),
 						"token2": []byte(`foo`),
 					},
 				},
