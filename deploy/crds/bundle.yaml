@@ -630,6 +630,15 @@ spec:
                                       - items
                                       - name
                                     type: object
+                                  decodingStrategy:
+                                    default: None
+                                    description: Used to define a decoding Strategy for the rendered template values.
+                                    enum:
+                                      - Auto
+                                      - Base64
+                                      - Base64URL
+                                      - None
+                                    type: string
                                   literal:
                                     type: string
                                   secret:
@@ -1367,6 +1376,15 @@ spec:
                                       - items
                                       - name
                                     type: object
+                                  decodingStrategy:
+                                    default: None
+                                    description: Used to define a decoding Strategy for the rendered template values.
+                                    enum:
+                                      - Auto
+                                      - Base64
+                                      - Base64URL
+                                      - None
+                                    type: string
                                   literal:
                                     type: string
                                   secret:
@@ -2139,6 +2157,15 @@ spec:
                                   - items
                                   - name
                                 type: object
+                              decodingStrategy:
+                                default: None
+                                description: Used to define a decoding Strategy for the rendered template values.
+                                enum:
+                                  - Auto
+                                  - Base64
+                                  - Base64URL
+                                  - None
+                                type: string
                               literal:
                                 type: string
                               secret:
@@ -13453,6 +13480,15 @@ spec:
                                   - items
                                   - name
                                 type: object
+                              decodingStrategy:
+                                default: None
+                                description: Used to define a decoding Strategy for the rendered template values.
+                                enum:
+                                  - Auto
+                                  - Base64
+                                  - Base64URL
+                                  - None
+                                type: string
                               literal:
                                 type: string
                               secret:
@@ -14076,6 +14112,15 @@ spec:
                                   - items
                                   - name
                                 type: object
+                              decodingStrategy:
+                                default: None
+                                description: Used to define a decoding Strategy for the rendered template values.
+                                enum:
+                                  - Auto
+                                  - Base64
+                                  - Base64URL
+                                  - None
+                                type: string
                               literal:
                                 type: string
                               secret:
@@ -14675,6 +14720,15 @@ spec:
                               - items
                               - name
                             type: object
+                          decodingStrategy:
+                            default: None
+                            description: Used to define a decoding Strategy for the rendered template values.
+                            enum:
+                              - Auto
+                              - Base64
+                              - Base64URL
+                              - None
+                            type: string
                           literal:
                             type: string
                           secret:

@@ -1749,3 +1749,89 @@ func TestNestedPathTargetingIsIdempotent(t *testing.T) {
 		})
 	}
 }
+
+func TestExecuteDecodesRenderedTemplateValues(t *testing.T) {
+	tests := []struct {
+		name             string
+		scope            esapi.TemplateScope
+		tpl              map[string][]byte
+		data             map[string][]byte
+		decodingStrategy esapi.ExternalSecretDecodingStrategy
+		wantData         map[string][]byte
+		wantErr          string
+	}{
+		{
+			name:  "keys and values scope decodes each rendered value",
+			scope: esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"tpl": []byte("service-a: SGVsbG8=\nservice-b: V29ybGQ=\n"),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeBase64,
+			wantData: map[string][]byte{
+				"service-a": []byte("Hello"),
+				"service-b": []byte("World"),
+			},
+		},
+		{
+			name:  "keys are not decoded",
+			scope: esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"tpl": []byte("SGVsbG8=: V29ybGQ=\n"),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeBase64,
+			wantData: map[string][]byte{
+				"SGVsbG8=": []byte("World"),
+			},
+		},
+		{
+			name:  "values scope decodes rendered value",
+			scope: esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"service-a": []byte("{{ .encoded }}"),
+			},
+			data: map[string][]byte{
+				"encoded": []byte("SGVsbG8="),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeBase64,
+			wantData: map[string][]byte{
+				"service-a": []byte("Hello"),
+			},
+		},
+		{
+			name:  "none keeps rendered value unchanged",
+			scope: esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"tpl": []byte("service-a: SGVsbG8=\n"),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeNone,
+			wantData: map[string][]byte{
+				"service-a": []byte("SGVsbG8="),
+			},
+		},
+		{
+			name:  "base64 fails for non base64 rendered value",
+			scope: esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"tpl": []byte("service-a: not-base64!\n"),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeBase64,
+			wantErr:          "failed to decode rendered template value for key service-a",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			secret := &corev1.Secret{}
+
+			err := Execute(tt.tpl, tt.data, tt.scope, esapi.TemplateTargetData, secret, tt.decodingStrategy)
+
+			if tt.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantData, secret.Data)
+		})
+	}
+}

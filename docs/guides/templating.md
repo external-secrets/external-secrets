@@ -57,7 +57,102 @@ You do not have to define your templates inline in an ExternalSecret but you can
 
 Lastly, `TemplateFrom` also supports adding `Literal` blocks for quick templating. These `Literal` blocks differ from `Template.Data` as they are rendered as a a `key:value` pair (while the `Template.Data`, you can only template the value).
 
-See an example, how to produce a `htpasswd` file that can be used by an ingress-controller (for example: https://kubernetes.github.io/ingress-nginx/examples/auth/basic/) where the contents of the `htpasswd` file needs to be presented via the `auth` key. We use the `htpasswd` function to create a `bcrytped` hash of the password.
+#### DecodingStrategy example
+
+`TemplateFrom` entries can also decode rendered values with `decodingStrategy`. This is useful when the template selects Base64-encoded values from structured provider data and the final Kubernetes Secret must contain the decoded bytes.
+
+For example, imagine several remote secrets matched by `dataFrom.find` contain JSON values like this:
+
+```json
+{
+  "cert": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCg==",
+  "description": "certificate encoded as base64"
+}
+```
+
+And let's imagine an ExternalSecret definition as this one:
+
+```yaml
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: nginx-certs
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-secretsmanager
+  dataFrom:
+  - find:
+      name:
+        regexp: ^productA/nginx/.*
+    rewrite:
+    - regexp:
+        source: ^productA/nginx/(.*)
+        target: $1
+  target:
+    name: nginx-certs
+    template:
+      engineVersion: v2
+      templateFrom:
+      - literal: |-
+          {{- range $key, $val := . }}
+          {{- $json := $val | fromJson }}
+          {{ $key }}: {{ $json.cert }}
+          {{- end }}
+{% endraw %}
+```
+Without `templateFrom[0].decodingStrategy`, the template will select the `cert` property, and get the base64 text. The resulting Kubernetes Secret value will be stored as Base64 text.
+
+Alternatively, you can use the `templateFrom[0].decodingStrategy: Base64` as following:
+
+```yaml
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: nginx-certs
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-secretsmanager
+  dataFrom:
+  - find:
+      name:
+        regexp: ^productA/nginx/.*
+    rewrite:
+    - regexp:
+        source: ^productA/nginx/(.*)
+        target: $1
+  target:
+    name: nginx-certs
+    template:
+      engineVersion: v2
+      templateFrom:
+      - decodingStrategy: Base64
+        literal: |-
+          {{- range $key, $val := . }}
+          {{- $json := $val | fromJson }}
+          {{ $key }}: {{ $json.cert }}
+          {{- end }}
+{% endraw %}
+```
+
+This way, the template still renders safe Base64 text internally.
+ESO then decodes the value and writes the decoded bytes in the Kubernetes Secret's data.
+Only rendered values are decoded; rendered keys are left unchanged.
+
+In other words, use `decodingStrategy` to `None` when values are not encoded, or `Auto` when values may be either Base64/Base64URL encoded or plain text.
+
+!!! note
+
+    This is safer for binary data than decoding inside the template with `{% raw %}{{ $json.cert | b64dec }}{% endraw %}`, because `b64dec` injects raw bytes into the intermediate rendered YAML.
+
+#### htpasswd example
+
+See an example, how to produce a `htpasswd` file that can be used by an ingress-controller (for example: https://kubernetes.github.io/ingress-nginx/examples/auth/basic/) where the contents of the `htpasswd` file needs to be presented via the `auth` key. We use the `htpasswd` function to create a `bcrypted` hash of the password.
 
 Suppose you have multiple key-value pairs within your provider secret like
 

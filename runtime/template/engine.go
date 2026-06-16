@@ -27,7 +27,7 @@ import (
 )
 
 // ExecFunc is the function signature type for executing a template engine.
-type ExecFunc func(tpl, data map[string][]byte, scope esapi.TemplateScope, target string, secret client.Object) error
+type ExecFunc func(tpl, data map[string][]byte, scope esapi.TemplateScope, target string, secret client.Object, decodingStrategy ...esapi.ExternalSecretDecodingStrategy) error
 
 // EngineForVersion returns the appropriate template engine for the given version.
 func EngineForVersion(version esapi.TemplateEngineVersion) (ExecFunc, error) {
