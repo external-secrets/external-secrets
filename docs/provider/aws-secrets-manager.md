@@ -149,7 +149,7 @@ To control this behavior set the following provider metadata:
 - `kmsKeyID` takes a KMS Key `$ID` or `$ARN` (in case a key source is created in another account) as a string, where `alias/aws/secretsmanager` is the _default_.
 - `description` Description of the secret.
 - `tags` Key-value map of user-defined tags that are attached to the secret.
-- `replicationLocations` takes a list of valid regions to enable.
+- `replicationLocations` takes a list of valid AWS region names where the secret should be replicated.
 
 **Note:** ESO treats the PushSecret as the **source of truth** for tags, resource policy, and replication locations. When any of these resources are specified in `metadata`, they will be added or updated, and resources NOT specified but existing will be removed from AWS. This synchronization happens on every reconciliation, even when the secret value hasn't changed.
 
@@ -159,6 +159,15 @@ To control this behavior set the following provider metadata:
     - `kind` - Either `ConfigMap` or `Secret`.
     - `name` - Name of the ConfigMap or Secret.
     - `key` - Key within the ConfigMap/Secret data that contains the policy JSON.
+
+
+##### KMS Key
+
+The `kmsKeyID` field controls the KMS key used for encrypting/ decrypting the secret.
+
+- If `kmsKeyID` is provided, ESO always uses that value for the primary secret.
+- If `kmsKeyID` is not provided, ESO falls back to AWS’s default Secrets Manager key: `alias/aws/secretsmanager`.
+- ESO does not currently support specifying different `kmsKeyID` values per replica region. A single `kmsKeyID` value is applied uniformly across the primary secret and all configured replication regions.
 
 ##### Resource Policy Example
 
@@ -225,9 +234,22 @@ data:
 
 **Note:** The resource policy is synchronized on every reconciliation, even when the secret value hasn't changed. If the `resourcePolicy` field is removed from metadata, the existing policy will be deleted from the secret.
 
-##### Location Replication Example
+##### Location Replication
 
-You can specify a list of locations for your secrets to be replicated by setting the `replicationLocations` field:
+When this field is set, _ESO_ manages replication as part of the PushSecret reconciliation loop and treats the list as the desired state:
+
+- Regions present in `replicationLocations` but not yet configured in AWS will be added.
+- Regions already configured in AWS but not listed in `replicationLocations` will be removed.
+- If `replicationLocations` is omitted entirely, ESO does not manage replication for that secret.
+- Invalid/unsupported region values or missing permissions will cause the AWS replication call to fail.
+
+**Note**: Replicas do not support per-region KMS key selection. If you configure replication, all replica regions will use the same `kmsKeyID` value defined in the main metadata block, or `alias/aws/secretsmanager` when no key is specified.
+
+**Note**: The KMS key **must be available** in the replication region, usually via KMS key replication.
+
+###### Location Replication Example
+
+You can specify a list of locations for your secrets to be replicated by setting the `replicationLocations` field.
 
 ``` yaml
 {% include 'aws-sm-push-secret-with-replication.yaml' %}
