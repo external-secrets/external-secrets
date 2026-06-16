@@ -83,7 +83,7 @@ func (p *Parser) MergeConfigMap(ctx context.Context, namespace string, tpl esv1.
 		case esv1.TemplateScopeKeysAndValues:
 			out[val] = []byte(val)
 		}
-		err := p.Exec(out, p.DataMap, k.TemplateAs, tpl.Target, p.TargetSecret, tpl.DecodingStrategy)
+		err := p.Exec(out, p.DataMap, k.TemplateAs, tpl.Target, p.TargetSecret, tpl.ValuesDecodingStrategy)
 		if err != nil {
 			return err
 		}
@@ -122,7 +122,7 @@ func (p *Parser) MergeSecret(ctx context.Context, namespace string, tpl esv1.Tem
 		case esv1.TemplateScopeKeysAndValues:
 			out[string(val)] = val
 		}
-		err := p.Exec(out, p.DataMap, k.TemplateAs, tpl.Target, p.TargetSecret, tpl.DecodingStrategy)
+		err := p.Exec(out, p.DataMap, k.TemplateAs, tpl.Target, p.TargetSecret, tpl.ValuesDecodingStrategy)
 		if err != nil {
 			return err
 		}
@@ -137,7 +137,7 @@ func (p *Parser) MergeLiteral(_ context.Context, tpl esv1.TemplateFrom) error {
 	}
 	out := make(map[string][]byte)
 	out[*tpl.Literal] = []byte(*tpl.Literal)
-	return p.Exec(out, p.DataMap, esv1.TemplateScopeKeysAndValues, tpl.Target, p.TargetSecret, tpl.DecodingStrategy)
+	return p.Exec(out, p.DataMap, esv1.TemplateScopeKeysAndValues, tpl.Target, p.TargetSecret, tpl.ValuesDecodingStrategy)
 }
 
 // MergeTemplateFrom merges all templates specified in the ExternalSecretTemplate's TemplateFrom field.

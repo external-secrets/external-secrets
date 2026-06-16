@@ -11446,7 +11446,7 @@ string
 </tr>
 <tr>
 <td>
-<code>decodingStrategy</code></br>
+<code>valuesDecodingStrategy</code></br>
 <em>
 <a href="#external-secrets.io/v1.ExternalSecretDecodingStrategy">
 ExternalSecretDecodingStrategy

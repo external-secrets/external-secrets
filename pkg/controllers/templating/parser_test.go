@@ -28,7 +28,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
-func TestParserMergeLiteralPassesTemplateFromDecodingStrategy(t *testing.T) {
+func TestParserMergeLiteralPassesTemplateFromValuesDecodingStrategy(t *testing.T) {
 	literal := "decoded: SGVsbG8="
 	var got esv1.ExternalSecretDecodingStrategy
 
@@ -43,8 +43,8 @@ func TestParserMergeLiteralPassesTemplateFromDecodingStrategy(t *testing.T) {
 	}
 
 	err := p.MergeLiteral(context.Background(), esv1.TemplateFrom{
-		Literal:          &literal,
-		DecodingStrategy: esv1.ExternalSecretDecodeBase64,
+		Literal:                &literal,
+		ValuesDecodingStrategy: esv1.ExternalSecretDecodeBase64,
 	})
 
 	require.NoError(t, err)

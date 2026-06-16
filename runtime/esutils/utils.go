@@ -229,16 +229,6 @@ func RewriteTransform(operation esv1.ExternalSecretRewriteTransform, in map[stri
 	return out, nil
 }
 
-// DecodeMap decodes values from a secretMap.
-func DecodeMap(strategy esv1.ExternalSecretDecodingStrategy, in map[string][]byte) (map[string][]byte, error) {
-	return decoding.DecodeMap(strategy, in)
-}
-
-// Decode decodes the input byte slice according to the provided decoding strategy.
-func Decode(strategy esv1.ExternalSecretDecodingStrategy, in []byte) ([]byte, error) {
-	return decoding.Decode(strategy, in)
-}
-
 // ValidateKeys checks if the keys in the secret map are valid keys for a Kubernetes secret.
 func ValidateKeys(log logr.Logger, in map[string][]byte) error {
 	for key := range in {
@@ -741,7 +731,7 @@ func base64decode(cert []byte) ([]byte, error) {
 	}
 
 	// try decoding and test for validity again...
-	certificate, err := Decode(esv1.ExternalSecretDecodeAuto, cert)
+	certificate, err := decoding.Decode(esv1.ExternalSecretDecodeAuto, cert)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode base64: %w", err)
 	}
