@@ -231,9 +231,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		return ctrl.Result{}, nil
 	}
 
-	// Add finalizer if it doesn't exist and cleanup is enabled.
-	// Gated so operators can opt out when the finalizer blocks namespace deletion on broken
-	// ExternalSecrets; the deletion path above still removes existing finalizers, so it stays safe.
+	// Add finalizer if it doesn't exist
+	// Gating is opt-out: operators can skip the finalizer when it blocks namespace deletion on
+	// broken ExternalSecrets; the deletion path above still removes existing finalizers, so it stays safe.
 	// Use Patch instead of Update to avoid claiming ownership of spec fields like refreshInterval
 	if r.EnableCleanupFinalizer {
 		patch := client.MergeFrom(externalSecret.DeepCopy())
