@@ -1065,27 +1065,13 @@ func (sm *SecretsManager) removeRegionsFromReplication(ctx context.Context, secr
 }
 
 func (sm *SecretsManager) getReplicationRegionToBeRemoved(desiredReplicationRegions, existingReplicationRegions []string) (bool, []string) {
-	desiredReplicationRegionsSet, existingReplicationRegionsSet := esutils.NewSet[string](), esutils.NewSet[string]()
-	for _, region := range desiredReplicationRegions {
-		desiredReplicationRegionsSet.Add(region)
-	}
-	for _, region := range existingReplicationRegions {
-		existingReplicationRegionsSet.Add(region)
-	}
-	regionsToBeRemovedSet := existingReplicationRegionsSet.Difference(desiredReplicationRegionsSet)
-	return regionsToBeRemovedSet.Len() > 0, regionsToBeRemovedSet.ToSlice()
+	regionsDifference := getDifferenceFromSlices(existingReplicationRegions, desiredReplicationRegions)
+	return len(regionsDifference) > 0, regionsDifference
 }
 
 func (sm *SecretsManager) getReplicationRegionsToBeAdded(desiredReplicationRegions, existingReplicationRegions []string) (bool, []string) {
-	desiredReplicationRegionsSet, existingReplicationRegionsSet := esutils.NewSet[string](), esutils.NewSet[string]()
-	for _, region := range desiredReplicationRegions {
-		desiredReplicationRegionsSet.Add(region)
-	}
-	for _, region := range existingReplicationRegions {
-		existingReplicationRegionsSet.Add(region)
-	}
-	regionsToBeAddedSet := desiredReplicationRegionsSet.Difference(existingReplicationRegionsSet)
-	return regionsToBeAddedSet.Len() > 0, regionsToBeAddedSet.ToSlice()
+	regionsDifference := getDifferenceFromSlices(desiredReplicationRegions, existingReplicationRegions)
+	return len(regionsDifference) > 0, regionsDifference
 }
 
 func buildExistingReplicationRegionsSlice(existingReplicationRegions []types.ReplicationStatusType) []string {
@@ -1106,4 +1092,21 @@ func buildReplicationRegionType(regions []string, kmsKeyID *string) []types.Repl
 		replicationRegionsType = append(replicationRegionsType, replicationRegionType)
 	}
 	return replicationRegionsType
+}
+
+func getDifferenceFromSlices[T comparable](source, other []T) []T {
+	otherSet := make(map[T]struct{}, len(other))
+	result := make([]T, 0, len(source))
+
+	for _, key := range other {
+		otherSet[key] = struct{}{}
+	}
+
+	for _, key := range source {
+		if _, ok := otherSet[key]; !ok {
+			result = append(result, key)
+		}
+	}
+
+	return result
 }
