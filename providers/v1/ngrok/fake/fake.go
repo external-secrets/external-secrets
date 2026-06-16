@@ -23,11 +23,12 @@ import (
 	"math/rand"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/ngrok/ngrok-api-go/v7"
+	"github.com/ngrok/ngrok-api-go/v9"
 )
 
 func GenerateRandomString(length int) string {
@@ -450,6 +451,9 @@ type VaultClient struct {
 	store     *Store
 	createErr error
 	listErr   error
+
+	lastListPagingMu sync.Mutex
+	lastListPaging   *ngrok.FilteredPaging
 }
 
 // WithCreateError sets an error to be returned when Create is called.
@@ -483,10 +487,21 @@ func (m *VaultClient) WithListError(err error) *VaultClient {
 	return m
 }
 
+func (m *VaultClient) LastListPaging() *ngrok.FilteredPaging {
+	m.lastListPagingMu.Lock()
+	defer m.lastListPagingMu.Unlock()
+
+	return cloneFilteredPaging(m.lastListPaging)
+}
+
 // List returns an iterator over the vaults.
 // If an error is set, it will return that error instead of the vaults.
-func (m *VaultClient) List(paging *ngrok.Paging) ngrok.Iter[*ngrok.Vault] {
-	return NewIter(m.store.ListVaults(), m.listErr)
+func (m *VaultClient) List(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+	m.lastListPagingMu.Lock()
+	defer m.lastListPagingMu.Unlock()
+
+	m.lastListPaging = cloneFilteredPaging(paging)
+	return NewIter(filterVaults(m.store.ListVaults(), paging), m.listErr)
 }
 
 // SecretsClient is a mock implementation of the SecretsClient interface.
@@ -498,6 +513,9 @@ type SecretsClient struct {
 	updateErr error
 	deleteErr error
 	listErr   error
+
+	lastListPagingMu sync.Mutex
+	lastListPaging   *ngrok.FilteredPaging
 }
 
 // WithCreateError sets an error to be returned when Create is called.
@@ -561,10 +579,21 @@ func (m *SecretsClient) WithListError(err error) *SecretsClient {
 	return m
 }
 
+func (m *SecretsClient) LastListPaging() *ngrok.FilteredPaging {
+	m.lastListPagingMu.Lock()
+	defer m.lastListPagingMu.Unlock()
+
+	return cloneFilteredPaging(m.lastListPaging)
+}
+
 // List returns an iterator over the secrets.
 // If an error is set, it will return that error instead of the secrets.
-func (m *SecretsClient) List(paging *ngrok.Paging) ngrok.Iter[*ngrok.Secret] {
-	return NewIter(m.store.ListSecrets(), m.listErr)
+func (m *SecretsClient) List(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+	m.lastListPagingMu.Lock()
+	defer m.lastListPagingMu.Unlock()
+
+	m.lastListPaging = cloneFilteredPaging(paging)
+	return NewIter(filterSecrets(m.store.ListSecrets(), paging), m.listErr)
 }
 
 // Iter is a mock iterator that implements the ngrok.Iter[T] interface.
@@ -603,4 +632,76 @@ func NewIter[T any](items []T, err error) *Iter[T] {
 		err:   err,
 		n:     -1,
 	}
+}
+
+func cloneFilteredPaging(paging *ngrok.FilteredPaging) *ngrok.FilteredPaging {
+	if paging == nil {
+		return nil
+	}
+
+	clone := *paging
+	if paging.Filter != nil {
+		filter := *paging.Filter
+		clone.Filter = &filter
+	}
+	if paging.BeforeID != nil {
+		beforeID := *paging.BeforeID
+		clone.BeforeID = &beforeID
+	}
+	if paging.Limit != nil {
+		limit := *paging.Limit
+		clone.Limit = &limit
+	}
+	return &clone
+}
+
+func filterVaults(vaults []*ngrok.Vault, paging *ngrok.FilteredPaging) []*ngrok.Vault {
+	if paging == nil || paging.Filter == nil {
+		return vaults
+	}
+
+	name, ok := exactNameFilter(*paging.Filter)
+	if !ok {
+		return vaults
+	}
+
+	filtered := make([]*ngrok.Vault, 0, len(vaults))
+	for _, vault := range vaults {
+		if vault.Name == name {
+			filtered = append(filtered, vault)
+		}
+	}
+	return filtered
+}
+
+func filterSecrets(secrets []*ngrok.Secret, paging *ngrok.FilteredPaging) []*ngrok.Secret {
+	if paging == nil || paging.Filter == nil {
+		return secrets
+	}
+
+	name, ok := exactNameFilter(*paging.Filter)
+	if !ok {
+		return secrets
+	}
+
+	filtered := make([]*ngrok.Secret, 0, len(secrets))
+	for _, secret := range secrets {
+		if secret.Name == name {
+			filtered = append(filtered, secret)
+		}
+	}
+	return filtered
+}
+
+func exactNameFilter(filter string) (string, bool) {
+	rest, ok := strings.CutPrefix(filter, "obj.name == ")
+	if !ok {
+		return "", false
+	}
+
+	name, err := strconv.Unquote(rest)
+	if err != nil {
+		return "", false
+	}
+	return name, true
 }
