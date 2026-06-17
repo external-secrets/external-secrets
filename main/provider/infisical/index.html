@@ -4519,6 +4519,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#pushing-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pushing Secrets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pushing Secrets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#remote-key-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Remote key resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#push-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Push behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deletion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deletion
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#custom-ca-certificates" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -6090,6 +6140,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#pushing-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Pushing Secrets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Pushing Secrets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#remote-key-resolution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Remote key resolution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#push-behavior" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Push behavior
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#deletion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Deletion
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#custom-ca-certificates" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -6173,10 +6273,7 @@
   <h1>Infisical</h1>
 
 <p><img alt="Infisical k8s Diagram" src="../../pictures/external-secrets-operator.png" /></p>
-<p>Sync secrets from <a href="https://www.infisical.com">Infisical</a> to your Kubernetes cluster using External Secrets Operator.</p>
-<blockquote>
-<p><strong>Note</strong>: The Infisical provider is read-only. PushSecret is not supported.</p>
-</blockquote>
+<p>Sync secrets from <a href="https://www.infisical.com">Infisical</a> to your Kubernetes cluster using External Secrets Operator, and push secrets from the cluster back into Infisical with <code>PushSecret</code>.</p>
 <h2 id="authentication">Authentication</h2>
 <p>In order for the operator to fetch secrets from Infisical, it needs to first authenticate with Infisical using a <a href="https://infisical.com/docs/documentation/platform/identities/machine-identities">Machine Identity</a>.</p>
 <p>The Infisical provider supports multiple authentication methods to accommodate different deployment environments:</p>
@@ -6824,6 +6921,42 @@
 <li><code>find.path</code> filters by folder path prefix. The value must be an absolute path starting with <code>/</code> (e.g. <code>/my-app</code>). It is matched against the <code>secretPath</code> field of each secret.</li>
 <li><code>find.tags</code> is <strong>not supported</strong> and returns an error if set.</li>
 </ul>
+<hr />
+<h2 id="pushing-secrets">Pushing Secrets</h2>
+<p>The Infisical provider supports <code>PushSecret</code>, writing a Kubernetes Secret into an Infisical project. The machine identity used by the store must have write permission on the target project and environment.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">push-example</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">infisical</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-source-secret</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">API_KEY</span><span class="w">          </span><span class="c1"># key in the Kubernetes Secret</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">API_KEY</span><span class="w">        </span><span class="c1"># secret name in Infisical</span>
+</code></pre></div>
+<h3 id="remote-key-resolution">Remote key resolution</h3>
+<p><code>remoteRef.remoteKey</code> resolves the target location with the same three rules as <code>remoteRef.key</code> on reads (see <a href="#key-resolution-for-remoterefkey">Key resolution</a>): a bare name lands under <code>secretsScope.secretsPath</code>, a leading-slash key is an absolute path, and a relative path is joined onto <code>secretsScope.secretsPath</code>.</p>
+<h3 id="push-behavior">Push behavior</h3>
+<ul>
+<li><strong>Single key</strong>: when <code>secretKey</code> is set, the value of that key in the source Secret is pushed as the Infisical secret value.</li>
+<li><strong>Whole secret</strong>: when <code>secretKey</code> is omitted, the entire source Secret is marshaled into a JSON object (<code>{"key":"value",...}</code>) and stored as the value of <code>remoteKey</code>.</li>
+<li><strong>Property</strong>: when <code>remoteRef.property</code> is set, the value is written as that JSON property of the remote secret's value, merging with any existing properties rather than overwriting the whole value.</li>
+<li><strong>Create vs update</strong>: a missing secret is created; an existing one is updated. If the remote value already matches, the push is skipped so no new secret version is created.</li>
+</ul>
+<h3 id="deletion">Deletion</h3>
+<p>When a <code>PushSecret</code> is removed with <code>deletionPolicy: Delete</code>, the provider deletes the remote secret. If <code>remoteRef.property</code> is set, only that property is removed and the secret is deleted once no properties remain. Deleting an already-absent secret is a no-op.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The Infisical write API requires the project's internal ID, while the store is configured with a project slug. The provider resolves the slug to its ID automatically and caches the result, so no extra configuration is needed. If a write later fails because the cached ID no longer works (for example the project was deleted and recreated under the same slug), the provider re-resolves the slug once and retries; if the slug no longer maps to a project, the write fails with a clear "no such project" error.</p>
+</div>
 <hr />
 <h2 id="custom-ca-certificates">Custom CA Certificates</h2>
 <p>If you are using a self-hosted Infisical instance with a self-signed certificate or a certificate signed by a private CA, you can configure the provider to trust it. Set <code>hostAPI</code> to the base URL of your Infisical server (without the <code>/api</code> suffix -- the operator appends it automatically).</p>
