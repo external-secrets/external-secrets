@@ -21,6 +21,7 @@ You can influence the behavior of the generator by providing the following args
 | symbolCharacters | ~!@#$%^&\*()\_+`-={}\|[]\\:"<>?,./ | Specify the character set that should be used when generating the password. |
 | noUpper          | false                              | disable uppercase characters.                                               |
 | allowRepeat      | false                              | allow repeating characters.                                                 |
+| secretKeys       | `[password]`                       | List of output keys to populate, each with its own unique password. Keys must be non-empty and unique. Defaults to a single `password` key. |
 | encoding         | raw                                | Encoding format for the generated password. Valid values: `raw`, `base64`, `base64url`, `base32`, `hex`. |
 
 ## Example Manifest
@@ -51,6 +52,18 @@ ZRv-k!y6x/V"29:43aErSf$1
 Vk9*mwXE30Q+>H?lY$5I64_q
 ```
 
+## Generating Multiple Passwords
+
+To produce several independent passwords in a single `Kind=Secret`, list the desired output keys under `spec.secretKeys`. Each key is populated with its own unique password, so one generator can back a secret that holds multiple credentials:
+
+```yaml
+{% include 'generator-password-multiple-keys.yaml' %}
+```
+
+This generates a secret with both `key1` and `key2`, each holding a distinct password. All other parameters (`length`, `symbols`, `encoding`, etc.) apply to every generated password.
+
+If you only need to rename the single generated key rather than produce several, use [`rewrite`](../../guides/datafrom-rewrite.md) on the `dataFrom` entry instead (`source: "password"`, `target: "<your-key>"`).
+
 ## Encoding Examples
 
 The password generator supports different encoding formats for the output:
@@ -73,4 +86,4 @@ Key differences between `base64` and `base64url`:
 
 - **base64**: `VGVzdD4+UGFzcz8/d29yZA==` uses `+`, `/`, and `=` for padding
 
-- **base64url**: `VGVzdD4-UGFzcz8_d29yZA==` uses `-`, `_`, and no padding (URL-safe)
+- **base64url**: `VGVzdD4-UGFzcz8_d29yZA==` uses `-` and `_` in place of `+` and `/` (URL-safe), and still uses `=` padding

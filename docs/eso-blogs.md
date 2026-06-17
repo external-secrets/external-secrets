@@ -6,10 +6,6 @@ A list of blogs written by people all over the community. Feel free to let us kn
 
 [@Aurélie Vache](https://www.linkedin.com/in/aurelie-vache/) walks you through how to discover ESO and integrate it with the new OVHcloud Secret Manager using the HashiCorp Vault provider. The blog post provides a step-by-step guide covering the setup of OVHcloud prerequisites, the creation of a secret in Secret Manager, the deployment of ESO in a Kubernetes cluster, and the configuration of both ClusterSecretStore and ExternalSecret resources.
 
-## [Secrets Replication in Kubernetes with ESO](https://externalsecrets.com/blog/secrets-replication/)
-
-[@Gustavo Carvalho](https://www.linkedin.com/in/gustavo-carvalho-51427444/) describes how to use ESO to synchronize in-cluster secrets across multiple namespaces using only two manifests: `ClusterSecretStore` and `ClusterExternalSecret`.
-
 ## [Pulumi ESC and External Secrets Operator: The Perfect Solution for Today's Cloud-Native Secret Management](https://www.pulumi.com/blog/cloud-native-secret-management-with-pulumi-esc-and-external-secrets-operator/)
 
 [@Engin Diri](https://www.linkedin.com/in/engin-diri/) walks through the integration of ESO with Pulumi ESC, offering a practical guide for enhancing security from cloud-native application development to infrastructure provisioning. This blog provides a hands-on guide to setting up ESO and Pulumi ESC, and demonstrates how to use them together to manage secrets in a Kubernetes cluster.
