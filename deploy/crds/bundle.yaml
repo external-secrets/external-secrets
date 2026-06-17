@@ -527,7 +527,7 @@ spec:
                                   each window occurrence.
                                   Example: "0 22 * * 1-5" opens a window every weekday at 22:00 UTC.
                                 minLength: 1
-                                pattern: ^(@(annually|yearly|monthly|weekly|daily|midnight|hourly|reboot)|@every [^\s]+.*|[^\s]+( [^\s]+){4})$
+                                pattern: ^(@(annually|yearly|monthly|weekly|daily|midnight|hourly)|@every [^\s]+.*|[^\s]+( [^\s]+){4})$
                                 type: string
                             required:
                               - duration
@@ -13164,7 +13164,7 @@ spec:
                               each window occurrence.
                               Example: "0 22 * * 1-5" opens a window every weekday at 22:00 UTC.
                             minLength: 1
-                            pattern: ^(@(annually|yearly|monthly|weekly|daily|midnight|hourly|reboot)|@every [^\s]+.*|[^\s]+( [^\s]+){4})$
+                            pattern: ^(@(annually|yearly|monthly|weekly|daily|midnight|hourly)|@every [^\s]+.*|[^\s]+( [^\s]+){4})$
                             type: string
                         required:
                           - duration
