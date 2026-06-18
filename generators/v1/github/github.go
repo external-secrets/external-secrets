@@ -35,6 +35,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
 // Generator implements GitHub token generation functionality.
@@ -164,6 +165,23 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 	if err != nil {
 		return nil, fmt.Errorf(errParseSpec, err)
 	}
+
+	appID := res.Spec.AppID
+	if res.Spec.AppIDRef != nil {
+		appID, err = resolvers.SecretKeyRef(ctx, k, resolvers.EmptyStoreKind, n, res.Spec.AppIDRef)
+		if err != nil {
+			return nil, fmt.Errorf("error getting appID from secret: %w", err)
+		}
+	}
+
+	installID := res.Spec.InstallID
+	if res.Spec.InstallIDRef != nil {
+		installID, err = resolvers.SecretKeyRef(ctx, k, resolvers.EmptyStoreKind, n, res.Spec.InstallIDRef)
+		if err != nil {
+			return nil, fmt.Errorf("error getting installID from secret: %w", err)
+		}
+	}
+
 	gh := &Github{
 		Kube:         k,
 		Namespace:    n,
@@ -172,7 +190,7 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 		Permissions:  res.Spec.Permissions,
 	}
 
-	ghPath := fmt.Sprintf("/app/installations/%s/access_tokens", res.Spec.InstallID)
+	ghPath := fmt.Sprintf("/app/installations/%s/access_tokens", installID)
 	gh.URL = defaultGithubAPI + ghPath
 	if res.Spec.URL != "" {
 		gh.URL = res.Spec.URL + ghPath
@@ -186,7 +204,7 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 	if err != nil {
 		return nil, fmt.Errorf("error parsing RSA private key: %w", err)
 	}
-	if gh.InstallTkn, err = GetInstallationToken(pk, res.Spec.AppID); err != nil {
+	if gh.InstallTkn, err = GetInstallationToken(pk, appID); err != nil {
 		return nil, fmt.Errorf("can't get InstallationToken: %w", err)
 	}
 	return gh, nil
