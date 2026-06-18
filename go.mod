@@ -95,7 +95,7 @@ require (
 	github.com/prometheus/client_model v0.6.2
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.11.1
-	github.com/tidwall/gjson v1.18.0 // indirect
+	github.com/tidwall/gjson v1.18.0
 	github.com/yandex-cloud/go-genproto v0.34.0 // indirect
 	github.com/yandex-cloud/go-sdk v0.27.0 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
@@ -119,6 +119,7 @@ require (
 require github.com/1Password/connect-sdk-go v1.5.3 // indirect
 
 require (
+	github.com/SSHcom/privx-sdk-go/v2 v2.42.0
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/generators/v1/acr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/beyondtrustworkloadcredentials v0.0.0-00010101000000-000000000000
@@ -178,6 +179,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/webhook v0.0.0-20251103080423-08fa383f42e5
 	github.com/external-secrets/external-secrets/providers/v1/yandex v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/runtime v0.0.0
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.0
 	sigs.k8s.io/yaml v1.6.0
 )
@@ -291,7 +293,6 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gofrs/flock v0.13.0 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
 	github.com/golang/glog v1.2.5 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/google/btree v1.1.3 // indirect
