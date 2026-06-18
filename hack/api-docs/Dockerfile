@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine:3.23@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11
+FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
 RUN apk add -U --no-cache \
     bash \
     diffutils \
@@ -28,7 +28,7 @@ ENV PATH=$PATH:/.venv/bin
 COPY requirements.txt /
 RUN python3 -m venv .venv && \
     source .venv/bin/activate && \
-    pip3 install --upgrade pip && \
+    pip3 install --upgrade pip wheel setuptools && \
     pip3 install -r /requirements.txt
 
 # Disable the top-level directory owner check

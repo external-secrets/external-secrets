@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/ngrok/ngrok-api-go/v7"
-	"github.com/ngrok/ngrok-api-go/v7/secrets"
-	"github.com/ngrok/ngrok-api-go/v7/vaults"
+	"github.com/ngrok/ngrok-api-go/v9"
+	"github.com/ngrok/ngrok-api-go/v9/secrets"
+	"github.com/ngrok/ngrok-api-go/v9/vaults"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -91,32 +91,22 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kubeC
 	vaultClient := getVaultsClient(clientConfig)
 	secretsClient := getSecretsClient(clientConfig)
 
-	listCtx, cancel := context.WithTimeout(ctx, defaultListTimeout)
-	defer cancel()
-
-	var vault *ngrok.Vault
-	vaultIter := vaultClient.List(nil)
-	for vaultIter.Next(listCtx) {
-		if vaultIter.Item().Name == cfg.Vault.Name {
-			vault = vaultIter.Item()
-			break
-		}
-	}
-
-	if err := vaultIter.Err(); err != nil {
-		return nil, fmt.Errorf("error listing vaults: %w", err)
-	}
-
-	if vault == nil {
-		return nil, fmt.Errorf("vault %q not found", cfg.Vault.Name)
-	}
-
-	return &client{
+	c := &client{
 		vaultClient:   vaultClient,
 		secretsClient: secretsClient,
 		vaultName:     cfg.Vault.Name,
-		vaultID:       vault.ID,
-	}, nil
+	}
+
+	vault, err := c.getVaultByName(ctx, cfg.Vault.Name)
+	if err != nil {
+		if errors.Is(err, errVaultDoesNotExist) {
+			return nil, fmt.Errorf("vault %q not found", cfg.Vault.Name)
+		}
+		return nil, fmt.Errorf("error listing vaults: %w", err)
+	}
+
+	c.setVaultID(vault.ID)
+	return c, nil
 }
 
 // ValidateStore validates the store configuration.
