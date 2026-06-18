@@ -38,6 +38,7 @@ type SecretsClientFactory interface {
 	NewClientFromKey(config conjurapi.Config, loginPair authn.LoginPair) (SecretsClient, error)
 	NewClientFromJWT(config conjurapi.Config) (SecretsClient, error)
 	NewClientFromCert(config conjurapi.Config) (SecretsClient, error)
+	NewClientFromIAM(config conjurapi.Config, creds *authn.IAMCredentials) (SecretsClient, error)
 }
 
 // ClientAPIImpl is an implementation of the ClientAPI interface.
@@ -71,6 +72,13 @@ func (c *ClientAPIImpl) NewClientFromJWT(config conjurapi.Config) (SecretsClient
 		client,
 		&conjurapi.ClientV2{Client: client},
 	}, nil
+}
+
+// NewClientFromIAM creates a new Conjur client using AWS IAM authentication.
+// When creds is non-nil its values are used as explicit credentials; otherwise
+// the ambient AWS SDK credential chain is used.
+func (c *ClientAPIImpl) NewClientFromIAM(config conjurapi.Config, creds *authn.IAMCredentials) (SecretsClient, error) {
+	return conjurapi.NewClientFromAWSCredentialsWith(config, creds)
 }
 
 // NewClientFromCert creates a new Conjur client using certificate-based authentication.

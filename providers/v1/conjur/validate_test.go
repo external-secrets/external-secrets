@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 type ValidateStoreTestCase struct {
@@ -129,6 +130,31 @@ func TestValidateStore(t *testing.T) {
 			store: makeMultiAuthSecretStore(svcURL),
 			err:   errors.New("must specify exactly one Auth.* method"),
 		},
+
+		{
+			store: makeIAMSecretStore(svcURL, "myorg", "prod", "data/myapp/123456789/MyRole", false),
+			err:   nil,
+		},
+		{
+			store: makeIAMSecretStore(svcURL, "myorg", "prod", "data/myapp/123456789/MyRole", true),
+			err:   nil,
+		},
+		{
+			store: makeIAMSecretStore(svcURL, "", "prod", "data/myapp/123456789/MyRole", false),
+			err:   errors.New("missing Auth.Iam.Account"),
+		},
+		{
+			store: makeIAMSecretStore(svcURL, "myorg", "", "data/myapp/123456789/MyRole", false),
+			err:   errors.New("missing Auth.Iam.ServiceID"),
+		},
+		{
+			store: makeIAMSecretStore(svcURL, "myorg", "prod", "", false),
+			err:   errors.New("missing Auth.Iam.HostID"),
+		},
+		{
+			store: makeIAMSecretStore("", "myorg", "prod", "data/myapp/123456789/MyRole", false),
+			err:   errors.New("conjur URL cannot be empty"),
+		},
 	}
 	p := Provider{}
 	for _, tc := range testCases {
@@ -140,5 +166,37 @@ func TestValidateStore(t *testing.T) {
 		} else if tc.err != nil && err == nil {
 			t.Errorf("want err %v got nil", tc.err)
 		}
+	}
+}
+
+func makeIAMSecretStore(svcURL, account, serviceID, hostID string, withSecretRef bool) *esv1.SecretStore {
+	iam := &esv1.ConjurIAM{
+		Account:   account,
+		ServiceID: serviceID,
+		HostID:    hostID,
+	}
+	if withSecretRef {
+		iam.SecretRef = &esv1.ConjurIAMSecretRef{
+			AccessKeyIDSecretRef: esmeta.SecretKeySelector{
+				Name: "aws-creds",
+				Key:  "access-key-id",
+			},
+			SecretAccessKeySecretRef: esmeta.SecretKeySelector{
+				Name: "aws-creds",
+				Key:  "secret-access-key",
+			},
+		}
+	}
+	return &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Conjur: &esv1.ConjurProvider{
+					URL: svcURL,
+					Auth: esv1.ConjurAuth{
+						Iam: iam,
+					},
+				},
+			},
+		},
 	}
 }
