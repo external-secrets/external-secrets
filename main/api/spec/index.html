@@ -13192,6 +13192,20 @@ External Secrets meta/v1.SecretKeySelector
 <p>TokenSecretRef authenticates with OpenBao by presenting a token.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>userPass</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoUserPassAuth">
+OpenBaoUserPassAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UserPass authenticates with OpenBao by passing a username/password pair</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.OpenBaoKVStoreVersion">OpenBaoKVStoreVersion
@@ -13314,6 +13328,66 @@ OpenBaoKVStoreVersion
 <td>
 <p>Version is the OpenBao KV secret engine version. This can be either &ldquo;v1&rdquo; or
 &ldquo;v2&rdquo;. Version defaults to &ldquo;v2&rdquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoUserPassAuth">OpenBaoUserPassAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth</a>)
+</p>
+<p>
+<p>OpenBaoUserPassAuth authenticates with OpenBao using <a href="https://openbao.org/docs/auth/userpass/">UserPass authentication
+method</a>, with the username and password stored in a Kubernetes Secret
+resource.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the UserPassword authentication backend is mounted
+in OpenBao, e.g: &ldquo;userpass&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Username is a username used to authenticate using the <a href="https://openbao.org/docs/auth/userpass/">UserPass
+authentication method</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef to a key in a Secret resource containing password for the user
+used to authenticate with OpenBao using the <a href="https://openbao.org/docs/auth/userpass/">UserPass authentication
+method</a></p>
 </td>
 </tr>
 </tbody>
