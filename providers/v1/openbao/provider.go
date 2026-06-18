@@ -70,6 +70,10 @@ func isReferentSpec(prov *esv1.OpenBaoProvider) bool {
 		if auth.TokenSecretRef != nil && auth.TokenSecretRef.Namespace == nil {
 			return true
 		}
+
+		if auth.UserPass != nil && auth.UserPass.SecretRef.Namespace == nil {
+			return true
+		}
 	}
 
 	if prov.CAProvider != nil && prov.CAProvider.Namespace == nil {
