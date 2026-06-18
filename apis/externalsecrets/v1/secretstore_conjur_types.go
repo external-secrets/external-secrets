@@ -54,6 +54,10 @@ type ConjurAuth struct {
 	// Cert enables certificate-based authentication using a client certificate and key.
 	// +optional
 	Cert *ConjurCert `json:"cert,omitempty"`
+
+	// Iam enables authentication to Conjur via the authn-iam authenticator.
+	// +optional
+	Iam *ConjurIAM `json:"iam,omitempty"`
 }
 
 // ConjurAPIKey contains references to a Secret resource that holds
@@ -123,4 +127,38 @@ type ConjurCert struct {
 	// within a Secret resource. The key must be PEM-encoded.
 	// +required
 	ClientKeyRef *esmeta.SecretKeySelector `json:"clientKeyRef"`
+}
+
+// ConjurIAM configures authentication to Conjur via the authn-iam authenticator.
+// It uses the AWS STS GetCallerIdentity endpoint to authenticate.
+type ConjurIAM struct {
+	// Account is the Conjur organization account name.
+	Account string `json:"account"`
+
+	// ServiceID is the Conjur authn-iam webservice identifier (e.g. "prod").
+	ServiceID string `json:"serviceID"`
+
+	// HostID is the Conjur host mapped to the AWS IAM role
+	// (e.g. "data/myapp/123456789012/MyRole").
+	HostID string `json:"hostId"`
+
+	// SecretRef holds optional references to Kubernetes Secrets containing explicit
+	// AWS credentials. If omitted, the default AWS SDK credential chain is used
+	// (IRSA, instance metadata, environment variables, etc.).
+	// +optional
+	SecretRef *ConjurIAMSecretRef `json:"secretRef,omitempty"`
+}
+
+// ConjurIAMSecretRef holds secret selectors for explicit AWS credentials.
+type ConjurIAMSecretRef struct {
+	// A reference to a Secret key containing the AWS Access Key ID.
+	AccessKeyIDSecretRef esmeta.SecretKeySelector `json:"accessKeyIDSecretRef"`
+
+	// A reference to a Secret key containing the AWS Secret Access Key.
+	SecretAccessKeySecretRef esmeta.SecretKeySelector `json:"secretAccessKeySecretRef"`
+
+	// A reference to a Secret key containing the AWS Session Token.
+	// Required only when using temporary credentials.
+	// +optional
+	SessionTokenSecretRef *esmeta.SecretKeySelector `json:"sessionTokenSecretRef,omitempty"`
 }

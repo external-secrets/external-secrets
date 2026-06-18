@@ -275,6 +275,42 @@ func TestGetSecret(t *testing.T) {
 				value: "",
 			},
 		},
+		"IamAmbientCredsReadSecretSuccess": {
+			reason: "Should read a secret using IAM auth with ambient AWS credentials.",
+			args: args{
+				store:      makeIAMSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/123/MyRole", false),
+				kube:       clientfake.NewClientBuilder().Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"IamExplicitCredsReadSecretSuccess": {
+			reason: "Should read a secret using IAM auth with explicit AWS credentials from Secrets.",
+			args: args{
+				store: makeIAMSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/123/MyRole", true),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "aws-creds",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"access-key-id":     []byte("AKIAIOSFODNN7EXAMPLE"),
+							"secret-access-key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+						},
+					}).Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
 	}
 
 	runTest := func(t *testing.T, _ string, tc testCase) {
@@ -937,6 +973,10 @@ func (c *ConjurMockAPIClient) NewClientFromKey(_ conjurapi.Config, _ authn.Login
 }
 
 func (c *ConjurMockAPIClient) NewClientFromJWT(_ conjurapi.Config) (SecretsClient, error) {
+	return &fake.ConjurMockClient{}, nil
+}
+
+func (c *ConjurMockAPIClient) NewClientFromIAM(_ conjurapi.Config, _ *authn.IAMCredentials) (SecretsClient, error) {
 	return &fake.ConjurMockClient{}, nil
 }
 
