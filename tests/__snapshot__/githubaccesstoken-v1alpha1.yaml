@@ -3,6 +3,10 @@ kind: GithubAccessToken
 metadata: {}
 spec:
   appID: string
+  appIDRef:
+    key: string
+    name: string
+    namespace: string
   auth:
     privateKey:
       secretRef:
@@ -10,6 +14,10 @@ spec:
         name: string
         namespace: string
   installID: string
+  installIDRef:
+    key: string
+    name: string
+    namespace: string
   permissions: {}
   repositories: [] # minItems 0 of type string
   url: string

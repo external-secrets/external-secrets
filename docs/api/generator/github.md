@@ -49,6 +49,16 @@ After installation, you need to get the installation ID to authenticate API requ
 {% include 'generator-github-example-basicauth.yaml' %}
 ```
 
+### Storing App ID and Installation ID in Secrets
+
+Instead of embedding `appID` and `installID` as plain strings, you can reference them from a Kubernetes Secret using `appIDRef` and `installIDRef`. This is useful when your organization requires all configuration to come from Secrets.
+
+```yaml
+{% include 'generator-github-secretref.yaml' %}
+```
+
+Exactly one of `appID`/`appIDRef` and exactly one of `installID`/`installIDRef` must be set; providing both or neither is rejected by the CRD validation.
+
 ### Notes
 - Ensure that all sensitive data such as private keys and IDs are securely handled and stored.
 - Adjust the permissions and configurations according to your specific requirements and security policies.
