@@ -3945,6 +3945,115 @@ spec:
                                 - clientKeyRef
                                 - serviceID
                               type: object
+                            iam:
+                              description: Iam enables authentication to Conjur via the authn-iam authenticator.
+                              properties:
+                                account:
+                                  description: Account is the Conjur organization account name.
+                                  type: string
+                                hostId:
+                                  description: |-
+                                    HostID is the Conjur host mapped to the AWS IAM role
+                                    (e.g. "data/myapp/123456789012/MyRole").
+                                  type: string
+                                secretRef:
+                                  description: |-
+                                    SecretRef holds optional references to Kubernetes Secrets containing explicit
+                                    AWS credentials. If omitted, the default AWS SDK credential chain is used
+                                    (IRSA, instance metadata, environment variables, etc.).
+                                  properties:
+                                    accessKeyIDSecretRef:
+                                      description: A reference to a Secret key containing the AWS Access Key ID.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                    secretAccessKeySecretRef:
+                                      description: A reference to a Secret key containing the AWS Secret Access Key.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                    sessionTokenSecretRef:
+                                      description: |-
+                                        A reference to a Secret key containing the AWS Session Token.
+                                        Required only when using temporary credentials.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                  required:
+                                    - accessKeyIDSecretRef
+                                    - secretAccessKeySecretRef
+                                  type: object
+                                serviceID:
+                                  description: ServiceID is the Conjur authn-iam webservice identifier (e.g. "prod").
+                                  type: string
+                              required:
+                                - account
+                                - hostId
+                                - serviceID
+                              type: object
                             jwt:
                               description: Jwt enables JWT authentication using Kubernetes service account tokens.
                               properties:
@@ -10715,6 +10824,115 @@ spec:
                                 - apiKeyRef
                                 - userRef
                               type: object
+                            iam:
+                              description: Iam enables authentication to Conjur via the authn-iam authenticator.
+                              properties:
+                                account:
+                                  description: Account is the Conjur organization account name.
+                                  type: string
+                                hostId:
+                                  description: |-
+                                    HostID is the Conjur host mapped to the AWS IAM role
+                                    (e.g. "data/myapp/123456789012/MyRole").
+                                  type: string
+                                secretRef:
+                                  description: |-
+                                    SecretRef holds optional references to Kubernetes Secrets containing explicit
+                                    AWS credentials. If omitted, the default AWS SDK credential chain is used
+                                    (IRSA, instance metadata, environment variables, etc.).
+                                  properties:
+                                    accessKeyIDSecretRef:
+                                      description: A reference to a Secret key containing the AWS Access Key ID.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                    secretAccessKeySecretRef:
+                                      description: A reference to a Secret key containing the AWS Secret Access Key.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                    sessionTokenSecretRef:
+                                      description: |-
+                                        A reference to a Secret key containing the AWS Session Token.
+                                        Required only when using temporary credentials.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                  required:
+                                    - accessKeyIDSecretRef
+                                    - secretAccessKeySecretRef
+                                  type: object
+                                serviceID:
+                                  description: ServiceID is the Conjur authn-iam webservice identifier (e.g. "prod").
+                                  type: string
+                              required:
+                                - account
+                                - hostId
+                                - serviceID
+                              type: object
                             jwt:
                               description: Jwt enables JWT authentication using Kubernetes service account tokens.
                               properties:
@@ -17294,6 +17512,115 @@ spec:
                                 - account
                                 - clientCertRef
                                 - clientKeyRef
+                                - serviceID
+                              type: object
+                            iam:
+                              description: Iam enables authentication to Conjur via the authn-iam authenticator.
+                              properties:
+                                account:
+                                  description: Account is the Conjur organization account name.
+                                  type: string
+                                hostId:
+                                  description: |-
+                                    HostID is the Conjur host mapped to the AWS IAM role
+                                    (e.g. "data/myapp/123456789012/MyRole").
+                                  type: string
+                                secretRef:
+                                  description: |-
+                                    SecretRef holds optional references to Kubernetes Secrets containing explicit
+                                    AWS credentials. If omitted, the default AWS SDK credential chain is used
+                                    (IRSA, instance metadata, environment variables, etc.).
+                                  properties:
+                                    accessKeyIDSecretRef:
+                                      description: A reference to a Secret key containing the AWS Access Key ID.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                    secretAccessKeySecretRef:
+                                      description: A reference to a Secret key containing the AWS Secret Access Key.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                    sessionTokenSecretRef:
+                                      description: |-
+                                        A reference to a Secret key containing the AWS Session Token.
+                                        Required only when using temporary credentials.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                  required:
+                                    - accessKeyIDSecretRef
+                                    - secretAccessKeySecretRef
+                                  type: object
+                                serviceID:
+                                  description: ServiceID is the Conjur authn-iam webservice identifier (e.g. "prod").
+                                  type: string
+                              required:
+                                - account
+                                - hostId
                                 - serviceID
                               type: object
                             jwt:
@@ -24065,6 +24392,115 @@ spec:
                                 - account
                                 - apiKeyRef
                                 - userRef
+                              type: object
+                            iam:
+                              description: Iam enables authentication to Conjur via the authn-iam authenticator.
+                              properties:
+                                account:
+                                  description: Account is the Conjur organization account name.
+                                  type: string
+                                hostId:
+                                  description: |-
+                                    HostID is the Conjur host mapped to the AWS IAM role
+                                    (e.g. "data/myapp/123456789012/MyRole").
+                                  type: string
+                                secretRef:
+                                  description: |-
+                                    SecretRef holds optional references to Kubernetes Secrets containing explicit
+                                    AWS credentials. If omitted, the default AWS SDK credential chain is used
+                                    (IRSA, instance metadata, environment variables, etc.).
+                                  properties:
+                                    accessKeyIDSecretRef:
+                                      description: A reference to a Secret key containing the AWS Access Key ID.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                    secretAccessKeySecretRef:
+                                      description: A reference to a Secret key containing the AWS Secret Access Key.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                    sessionTokenSecretRef:
+                                      description: |-
+                                        A reference to a Secret key containing the AWS Session Token.
+                                        Required only when using temporary credentials.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                  required:
+                                    - accessKeyIDSecretRef
+                                    - secretAccessKeySecretRef
+                                  type: object
+                                serviceID:
+                                  description: ServiceID is the Conjur authn-iam webservice identifier (e.g. "prod").
+                                  type: string
+                              required:
+                                - account
+                                - hostId
+                                - serviceID
                               type: object
                             jwt:
                               description: Jwt enables JWT authentication using Kubernetes service account tokens.

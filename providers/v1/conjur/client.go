@@ -92,6 +92,9 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 	if prov.Auth.Jwt != nil {
 		return c.conjurClientFromJWT(ctx, config, prov)
 	}
+	if prov.Auth.Iam != nil {
+		return c.conjurClientFromIAM(ctx, config, prov)
+	}
 	if prov.Auth.Cert != nil {
 		return c.conjurClientFromCert(ctx, config, prov)
 	}
