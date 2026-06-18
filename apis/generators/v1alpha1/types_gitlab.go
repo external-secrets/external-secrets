@@ -50,17 +50,22 @@ type GitlabDeployTokenSpec struct {
 	// +optional
 	URL string `json:"url,omitempty"`
 
-	// ProjectID is the numeric ID or URL-encoded path of the project to create the
-	// deploy token in. Mutually exclusive with groupID.
+	// ProjectID is the numeric ID or unescaped path (e.g. group/project) of the
+	// project to create the deploy token in. The generator URL-escapes paths before
+	// calling the GitLab API, so do not pre-encode. Mutually exclusive with groupID.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	ProjectID string `json:"projectID,omitempty"`
 
-	// GroupID is the numeric ID or URL-encoded path of the group to create the deploy
-	// token in. Mutually exclusive with projectID.
+	// GroupID is the numeric ID or unescaped path (e.g. parent/group) of the group to
+	// create the deploy token in. The generator URL-escapes paths before calling the
+	// GitLab API, so do not pre-encode. Mutually exclusive with projectID.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	GroupID string `json:"groupID,omitempty"`
 
 	// Name of the deploy token.
+	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name"`
 
 	// Scopes granted to the deploy token. At least one scope is required.

@@ -17,7 +17,7 @@ kubectl create secret generic gitlab-api-token --from-literal=token=glpat-xxxxxx
 
 ### Target
 
-Set exactly one of `spec.projectID` or `spec.groupID` (both accept a numeric ID or a URL-encoded path). Setting both, or neither, is rejected by the CRD.
+Set exactly one of `spec.projectID` or `spec.groupID`. Both accept either a numeric ID or an unescaped path such as `group/project`, the generator URL-escapes paths before calling the API, so do not pre-encode them. Setting both, neither, or an empty string is rejected by the CRD.
 
 ### Scopes
 

@@ -4,6 +4,7 @@ go 1.26.4
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
+	github.com/external-secrets/external-secrets/runtime v0.0.0-00010101000000-000000000000
 	github.com/stretchr/testify v1.11.1
 	k8s.io/api v0.35.2
 	k8s.io/apiextensions-apiserver v0.35.2

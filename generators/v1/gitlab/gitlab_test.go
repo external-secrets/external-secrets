@@ -65,7 +65,9 @@ type captured struct {
 func newServer(t *testing.T, status int, response []byte, sink *captured) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		sink.method = req.Method
-		sink.path = req.URL.Path
+		// EscapedPath() preserves the on-the-wire encoding (e.g. group%2Fproject),
+		// whereas req.URL.Path would be decoded back and hide double/non-encoding.
+		sink.path = req.URL.EscapedPath()
 		sink.privateTok = req.Header.Get("PRIVATE-TOKEN")
 		sink.contentType = req.Header.Get("Content-Type")
 		if req.Body != nil && req.Method == http.MethodPost {
@@ -127,10 +129,11 @@ func TestGenerate(t *testing.T) {
 		defer srv.Close()
 
 		g := &Generator{httpClient: srv.Client()}
-		got, state, err := g.generate(context.Background(), specJSON(t, srv.URL, "group%2Fproject", ""), newKube(), testNamespace)
+		got, state, err := g.generate(context.Background(), specJSON(t, srv.URL, "group/project", ""), newKube(), testNamespace)
 		require.NoError(t, err)
 
 		assert.Equal(t, http.MethodPost, sink.method)
+		// Unescaped path input is URL-escaped on the wire.
 		assert.Equal(t, "/api/v4/projects/group%2Fproject/deploy_tokens", sink.path)
 		assert.Equal(t, "glpat-secret-access-token", sink.privateTok)
 		assert.Equal(t, "application/json", sink.contentType)
@@ -147,7 +150,7 @@ func TestGenerate(t *testing.T) {
 		var st deployTokenState
 		require.NoError(t, json.Unmarshal(state.Raw, &st))
 		assert.Equal(t, 42, st.TokenID)
-		assert.Equal(t, "group%2Fproject", st.ProjectID)
+		assert.Equal(t, "group/project", st.ProjectID)
 	})
 
 	t.Run("group deploy token", func(t *testing.T) {
@@ -188,7 +191,7 @@ func TestGenerate(t *testing.T) {
 		}).Build()
 		g := &Generator{}
 		_, _, err := g.generate(context.Background(), specJSON(t, "https://gitlab.com", "1", ""), kube, testNamespace)
-		require.ErrorContains(t, err, "empty or missing")
+		require.ErrorContains(t, err, "cannot find secret data for key")
 	})
 }
 

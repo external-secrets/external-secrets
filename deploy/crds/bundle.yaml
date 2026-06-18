@@ -26702,16 +26702,21 @@ spec:
                           type: string
                         groupID:
                           description: |-
-                            GroupID is the numeric ID or URL-encoded path of the group to create the deploy
-                            token in. Mutually exclusive with projectID.
+                            GroupID is the numeric ID or unescaped path (e.g. parent/group) of the group to
+                            create the deploy token in. The generator URL-escapes paths before calling the
+                            GitLab API, so do not pre-encode. Mutually exclusive with projectID.
+                          minLength: 1
                           type: string
                         name:
                           description: Name of the deploy token.
+                          minLength: 1
                           type: string
                         projectID:
                           description: |-
-                            ProjectID is the numeric ID or URL-encoded path of the project to create the
-                            deploy token in. Mutually exclusive with groupID.
+                            ProjectID is the numeric ID or unescaped path (e.g. group/project) of the
+                            project to create the deploy token in. The generator URL-escapes paths before
+                            calling the GitLab API, so do not pre-encode. Mutually exclusive with groupID.
+                          minLength: 1
                           type: string
                         scopes:
                           description: Scopes granted to the deploy token. At least one scope is required.
@@ -29170,16 +29175,21 @@ spec:
                   type: string
                 groupID:
                   description: |-
-                    GroupID is the numeric ID or URL-encoded path of the group to create the deploy
-                    token in. Mutually exclusive with projectID.
+                    GroupID is the numeric ID or unescaped path (e.g. parent/group) of the group to
+                    create the deploy token in. The generator URL-escapes paths before calling the
+                    GitLab API, so do not pre-encode. Mutually exclusive with projectID.
+                  minLength: 1
                   type: string
                 name:
                   description: Name of the deploy token.
+                  minLength: 1
                   type: string
                 projectID:
                   description: |-
-                    ProjectID is the numeric ID or URL-encoded path of the project to create the
-                    deploy token in. Mutually exclusive with groupID.
+                    ProjectID is the numeric ID or unescaped path (e.g. group/project) of the
+                    project to create the deploy token in. The generator URL-escapes paths before
+                    calling the GitLab API, so do not pre-encode. Mutually exclusive with groupID.
+                  minLength: 1
                   type: string
                 scopes:
                   description: Scopes granted to the deploy token. At least one scope is required.

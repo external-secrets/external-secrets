@@ -29,12 +29,12 @@ import (
 	"strconv"
 	"time"
 
-	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
 const (
@@ -189,7 +189,13 @@ func (g *Generator) cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, r
 		return err
 	}
 
-	base, err := deployTokensURL(&spec.Spec)
+	// Build the revoke endpoint from the persisted state, not the (possibly
+	// changed) current spec, so cleanup always targets where the token was made.
+	base, err := deployTokensURL(&genv1alpha1.GitlabDeployTokenSpec{
+		URL:       state.URL,
+		ProjectID: state.ProjectID,
+		GroupID:   state.GroupID,
+	})
 	if err != nil {
 		return err
 	}
@@ -222,16 +228,11 @@ func (g *Generator) client() *http.Client {
 }
 
 func (g *Generator) fetchAuthToken(ctx context.Context, kube client.Client, namespace string, spec *genv1alpha1.GitlabDeployTokenSpec) (string, error) {
-	ref := spec.Auth.Token.SecretRef
-	secret := &corev1.Secret{}
-	if err := kube.Get(ctx, client.ObjectKey{Name: ref.Name, Namespace: namespace}, secret); err != nil {
+	token, err := resolvers.SecretKeyRef(ctx, kube, resolvers.EmptyStoreKind, namespace, &spec.Auth.Token.SecretRef)
+	if err != nil {
 		return "", fmt.Errorf("error getting GitLab token from secret: %w", err)
 	}
-	token := secret.Data[ref.Key]
-	if len(token) == 0 {
-		return "", fmt.Errorf("key %q is empty or missing in secret %q", ref.Key, ref.Name)
-	}
-	return string(token), nil
+	return token, nil
 }
 
 // deployTokensURL builds the deploy-tokens collection URL for the configured

@@ -10,7 +10,7 @@ metadata:
   name: gitlab-deploy-token
 spec:
   url: "" # Optional, defaults to https://gitlab.com
-  projectID: "42" # Numeric ID or URL-encoded path. Mutually exclusive with groupID.
+  projectID: "42" # Numeric ID or unescaped path e.g. group/project. Mutually exclusive with groupID.
   # groupID: "7"   # Use instead of projectID to create a group deploy token.
   name: "eso-managed"
   scopes:
