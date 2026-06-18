@@ -64,6 +64,13 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		}
 	}
 
+	if prov.Auth.Iam != nil {
+		err := validateIAMStore(store, *prov.Auth.Iam)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return nil, nil
 }
 
@@ -76,6 +83,9 @@ func validateAuthCount(auth esv1.ConjurAuth) error {
 		count++
 	}
 	if auth.Cert != nil {
+		count++
+	}
+	if auth.Iam != nil {
 		count++
 	}
 	if count != 1 {
@@ -99,6 +109,32 @@ func validateAPIKeyStore(store esv1.GenericStore, auth esv1.ConjurAPIKey) error 
 	}
 	if err := esutils.ValidateReferentSecretSelector(store, *auth.APIKeyRef); err != nil {
 		return fmt.Errorf("invalid Auth.Apikey.ApiKeyRef: %w", err)
+	}
+	return nil
+}
+
+func validateIAMStore(store esv1.GenericStore, auth esv1.ConjurIAM) error {
+	if auth.Account == "" {
+		return errors.New("missing Auth.Iam.Account")
+	}
+	if auth.ServiceID == "" {
+		return errors.New("missing Auth.Iam.ServiceID")
+	}
+	if auth.HostID == "" {
+		return errors.New("missing Auth.Iam.HostID")
+	}
+	if auth.SecretRef != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, auth.SecretRef.AccessKeyIDSecretRef); err != nil {
+			return fmt.Errorf("invalid Auth.Iam.SecretRef.AccessKeyIDSecretRef: %w", err)
+		}
+		if err := esutils.ValidateReferentSecretSelector(store, auth.SecretRef.SecretAccessKeySecretRef); err != nil {
+			return fmt.Errorf("invalid Auth.Iam.SecretRef.SecretAccessKeySecretRef: %w", err)
+		}
+		if auth.SecretRef.SessionTokenSecretRef != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, *auth.SecretRef.SessionTokenSecretRef); err != nil {
+				return fmt.Errorf("invalid Auth.Iam.SecretRef.SessionTokenSecretRef: %w", err)
+			}
+		}
 	}
 	return nil
 }
