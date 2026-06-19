@@ -104,23 +104,16 @@ func (p *SecretsClient) Close(_ context.Context) error {
 
 // DeleteSecret implements Secret Deletion on the provider when PushSecret.spec.DeletionPolicy=Delete.
 func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) (err error) {
-	var (
-		providerItem onepassword.Item
-	)
-	providerItem, err = p.findItem(ctx, ref.GetRemoteKey())
+	providerItem, err := p.findItem(ctx, ref.GetRemoteKey())
 	if errors.Is(err, ErrKeyNotFound) {
+		// Since the item no longer exists upstream, it's safe to remove it from the cache.
+		p.invalidateItem(providerItem)
 		return nil
 	}
 	if err != nil {
+		// do not remove cache entry because the error might be a network problem
+		// or something unrelated.
 		return err
-	}
-
-	providerItem.Fields = normalizeItemFields(providerItem.Fields)
-
-	var deleted bool
-	providerItem.Fields, deleted, err = deleteField(providerItem.Fields, ref.GetProperty())
-	if err != nil {
-		return fmt.Errorf("failed to delete fields: %w", err)
 	}
 
 	defer func() {
@@ -130,9 +123,16 @@ func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRem
 		}
 	}()
 
+	providerItem.Fields = normalizeItemFields(providerItem.Fields)
+
+	var deleted bool
+	providerItem.Fields, deleted, err = deleteField(providerItem.Fields, ref.GetProperty())
+	if err != nil {
+		return fmt.Errorf("failed to delete fields: %w", err)
+	}
+
 	if !deleted {
-		// also invalidate the cache here, as this field might have been deleted
-		// outside ESO.
+		// also invalidate the cache on not deleted so we refresh the fields on an item.
 		return nil
 	}
 
