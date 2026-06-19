@@ -114,6 +114,7 @@ rules:
     - "webhooks"
     - "grafanas"
     - "mfas"
+    - "beyondtrustworkloadcredentialsdynamicsecrets"
     verbs:
     - "get"
     - "list"
@@ -274,6 +275,7 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    - "beyondtrustworkloadcredentialsdynamicsecrets"
     - "cloudsmithaccesstokens"
     - "codeartifactauthorizationtokens"
     {{- if .Values.processClusterGenerator }}
@@ -356,6 +358,7 @@ rules:
     - "grafanas"
     - "generatorstates"
     - "mfas"
+    - "beyondtrustworkloadcredentialsdynamicsecrets"
     - "uuids"
     verbs:
       - "create"

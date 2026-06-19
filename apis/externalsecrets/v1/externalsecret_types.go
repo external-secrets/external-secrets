@@ -307,7 +307,6 @@ type ExternalSecretDataRemoteRef struct {
 
 	// +optional
 	// Controls how ESO handles fetched secret data containing NUL bytes for this source.
-	// +kubebuilder:default="Ignore"
 	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
 }
 
@@ -497,7 +496,6 @@ type ExternalSecretFind struct {
 
 	// +optional
 	// Controls how ESO handles fetched secret data containing NUL bytes for this find source.
-	// +kubebuilder:default="Ignore"
 	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
 }
 
@@ -593,7 +591,7 @@ type GeneratorRef struct {
 	APIVersion string `json:"apiVersion,omitempty"`
 
 	// Specify the Kind of the generator resource
-	// +kubebuilder:validation:Enum=ACRAccessToken;ClusterGenerator;CloudsmithAccessToken;CodeArtifactAuthorizationToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
+	// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;ClusterGenerator;CloudsmithAccessToken;CodeArtifactAuthorizationToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
 	Kind string `json:"kind"`
 
 	// Specify the name of the generator resource

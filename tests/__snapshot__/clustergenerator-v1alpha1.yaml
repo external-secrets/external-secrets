@@ -26,6 +26,28 @@ spec:
       registry: string
       scope: string
       tenantId: string
+    beyondtrustWorkloadCredentialsDynamicSecretSpec:
+      controller: string
+      provider:
+        auth:
+          apikey:
+            token:
+              key: string
+              name: string
+              namespace: string
+        caBundle: c3RyaW5n
+        caProvider:
+          key: string
+          name: string
+          namespace: string
+          type: "Secret" # "Secret", "ConfigMap"
+        folderPath: string
+        server:
+          apiUrl: string
+          siteId: string
+      retrySettings:
+        maxRetries: 1
+        retryInterval: string
     cloudsmithAccessTokenSpec:
       apiUrl: string
       orgSlug: string
@@ -378,4 +400,5 @@ spec:
           name: string
       timeout: string
       url: string
-  kind: "ACRAccessToken" # "ACRAccessToken", "CloudsmithAccessToken", "CodeArtifactAuthorizationToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "SSHKey", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana", "MFA"
+  kind: "ACRAccessToken" # "ACRAccessToken", "BeyondtrustWorkloadCredentialsDynamicSecret", "CloudsmithAccessToken", "CodeArtifactAuthorizationToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "SSHKey", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana", "MFA"
+

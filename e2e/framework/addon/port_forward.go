@@ -134,7 +134,9 @@ func (pf *PortForward) Start() error {
 }
 
 func (pf *PortForward) Close() {
-	pf.fwd.Close()
+	if pf.fwd != nil {
+		pf.fwd.Close()
+	}
 }
 
 // findAvailablePort finds an available local port

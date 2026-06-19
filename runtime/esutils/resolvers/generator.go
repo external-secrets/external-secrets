@@ -152,6 +152,17 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			},
 			Spec: *gen.Spec.Generator.ACRAccessTokenSpec,
 		}, nil
+	case genv1alpha1.GeneratorKindBeyondtrustWorkloadCredentialsDynamicSecret:
+		if gen.Spec.Generator.BeyondtrustWorkloadCredentialsDynamicSecretSpec == nil {
+			return nil, fmt.Errorf("when kind is %s, BeyondtrustWorkloadCredentialsDynamicSecretSpec must be set", gen.Spec.Kind)
+		}
+		return &genv1alpha1.BeyondtrustWorkloadCredentialsDynamicSecret{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.BeyondtrustWorkloadCredentialsDynamicSecretKind,
+			},
+			Spec: *gen.Spec.Generator.BeyondtrustWorkloadCredentialsDynamicSecretSpec,
+		}, nil
 	case genv1alpha1.GeneratorKindCloudsmithAccessToken:
 		if gen.Spec.Generator.CloudsmithAccessTokenSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, CloudsmithAccessTokenSpec must be set", gen.Spec.Kind)
