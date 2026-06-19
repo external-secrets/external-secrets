@@ -114,13 +114,16 @@ type SMInterface interface {
 	DeleteResourcePolicy(ctx context.Context, params *awssm.DeleteResourcePolicyInput, optFuncs ...func(*awssm.Options)) (*awssm.DeleteResourcePolicyOutput, error)
 	ReplicateSecretToRegions(ctx context.Context, params *awssm.ReplicateSecretToRegionsInput, optFuncs ...func(*awssm.Options)) (*awssm.ReplicateSecretToRegionsOutput, error)
 	RemoveRegionsFromReplication(ctx context.Context, params *awssm.RemoveRegionsFromReplicationInput, optFuncs ...func(*awssm.Options)) (*awssm.RemoveRegionsFromReplicationOutput, error)
+	UpdateSecret(ctx context.Context, params *awssm.UpdateSecretInput, optFuncs ...func(*awssm.Options)) (*awssm.UpdateSecretOutput, error)
 }
 
 const (
 	errUnexpectedFindOperator = "unexpected find operator"
+	errFailedToParseMetadata  = "failed to parse metadata: %w"
 	managedBy                 = "managed-by"
 	externalSecrets           = "external-secrets"
 	initialVersion            = "00000000-0000-0000-0000-000000000001"
+	defaultKMSKeyID           = "alias/aws/secretsmanager"
 )
 
 var log = ctrl.Log.WithName("provider").WithName("aws").WithName("secretsmanager")
@@ -630,11 +633,23 @@ func (sm *SecretsManager) putSecretValueWithContext(
 	value []byte,
 	describeSecret *awssm.DescribeSecretOutput,
 ) error {
-	currentTags := make(map[string]string, len(describeSecret.Tags))
-	for _, tag := range describeSecret.Tags {
-		currentTags[*tag.Key] = *tag.Value
+	valueUnchanged := awsSecret != nil && (bytes.Equal(awsSecret.SecretBinary, value) ||
+		esutils.CompareStringAndByteSlices(awsSecret.SecretString, value))
+
+	var err error
+	if valueUnchanged {
+		// Value is the same — reconcile Description / KMSKeyID if they changed.
+		err = sm.reconcileSecretMetadata(ctx, secretArn, psd, describeSecret)
+	} else {
+		err = sm.pushSecretValue(ctx, secretArn, awsSecret, psd, value)
 	}
-	if err := sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags); err != nil {
+	if err != nil {
+		return err
+	}
+
+	// Reconcile tags, resource policy, and region replication on every push,
+	// regardless of whether the secret value changed.
+	if err := sm.reconcileTags(ctx, secretArn, psd, describeSecret); err != nil {
 		return err
 	}
 
@@ -642,14 +657,11 @@ func (sm *SecretsManager) putSecretValueWithContext(
 		return err
 	}
 
-	if err := sm.manageRegionReplication(ctx, psd.GetMetadata(), &secretArn, describeSecret.KmsKeyId, describeSecret.ReplicationStatus); err != nil {
-		return err
-	}
+	return sm.manageRegionReplication(ctx, psd.GetMetadata(), &secretArn, describeSecret.KmsKeyId, describeSecret.ReplicationStatus)
+}
 
-	if awsSecret != nil && (bytes.Equal(awsSecret.SecretBinary, value) || esutils.CompareStringAndByteSlices(awsSecret.SecretString, value)) {
-		return nil
-	}
-
+// pushSecretValue writes a new version of the secret value.
+func (sm *SecretsManager) pushSecretValue(ctx context.Context, secretArn string, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte) error {
 	newVersionNumber := initialVersion
 	if awsSecret != nil {
 		if sm.newUUID == nil {
@@ -665,7 +677,7 @@ func (sm *SecretsManager) putSecretValueWithContext(
 	}
 	secretPushFormat, err := esutils.FetchValueFromMetadata(SecretPushFormatKey, psd.GetMetadata(), SecretPushFormatBinary)
 	if err != nil {
-		return fmt.Errorf("failed to parse metadata: %w", err)
+		return fmt.Errorf(errFailedToParseMetadata, err)
 	}
 	if secretPushFormat == SecretPushFormatString {
 		input.SecretBinary = nil
@@ -675,6 +687,80 @@ func (sm *SecretsManager) putSecretValueWithContext(
 	_, err = sm.client.PutSecretValue(ctx, input)
 	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
 	return err
+}
+
+// reconcileSecretMetadata updates the secret's Description or KMSKeyID when the
+// value is unchanged but the desired metadata differs from the current state.
+func (sm *SecretsManager) reconcileSecretMetadata(ctx context.Context, secretArn string, psd esv1.PushSecretData, describeSecret *awssm.DescribeSecretOutput) error {
+	meta, err := sm.constructMetadataWithDefaults(psd.GetMetadata())
+	if err != nil {
+		return fmt.Errorf(errFailedToParseMetadata, err)
+	}
+	if describeSecret == nil || !hasSecretMetadataChanged(describeSecret, meta.Spec.Description, meta.Spec.KMSKeyID) {
+		return nil
+	}
+
+	_, err = sm.client.UpdateSecret(ctx, &awssm.UpdateSecretInput{
+		SecretId:    &secretArn,
+		Description: aws.String(meta.Spec.Description),
+		KmsKeyId:    aws.String(meta.Spec.KMSKeyID),
+	})
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMUpdateSecret, err)
+	if err != nil {
+		return fmt.Errorf("error updating metadata for secret %v: %w", secretArn, err)
+	}
+	return nil
+}
+
+// reconcileTags syncs the secret's tags with the desired metadata state.
+func (sm *SecretsManager) reconcileTags(ctx context.Context, secretArn string, psd esv1.PushSecretData, describeSecret *awssm.DescribeSecretOutput) error {
+	currentTags := make(map[string]string, len(describeSecret.Tags))
+	for _, tag := range describeSecret.Tags {
+		currentTags[*tag.Key] = *tag.Value
+	}
+	return sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags)
+}
+
+// isDefaultKMSKey reports whether kmsKeyID represents the AWS-managed default
+// KMS key for Secrets Manager. Per the DescribeSecret API, the KmsKeyId field
+// is omitted (empty) when the default key is in use. The alias short-form and
+// its full ARN are also recognised for completeness.
+func isDefaultKMSKey(kmsKeyID string) bool {
+	switch {
+	case kmsKeyID == "":
+		// AWS omits the field when the default key is in use.
+		return true
+	case kmsKeyID == defaultKMSKeyID: // "alias/aws/secretsmanager"
+		return true
+	case kmsKeyID == "aws/secretsmanager":
+		return true
+	case strings.HasSuffix(kmsKeyID, ":alias/aws/secretsmanager"):
+		// Full ARN form: "arn:aws:kms:<region>:<account>:alias/aws/secretsmanager"
+		return true
+	default:
+		return false
+	}
+}
+
+// hasSecretMetadataChanged reports whether Description or KMSKeyID differ from the
+// current secret state captured in describe.
+func hasSecretMetadataChanged(describe *awssm.DescribeSecretOutput, desiredDescription, desiredKMSKeyID string) bool {
+	if aws.ToString(describe.Description) != desiredDescription {
+		return true
+	}
+	currentKMSKeyID := aws.ToString(describe.KmsKeyId)
+	if desiredKMSKeyID == defaultKMSKeyID {
+		// Transitioning to (or staying at) the default key: trigger an update
+		// only when the current key is not already the default.
+		if !isDefaultKMSKey(currentKMSKeyID) {
+			return true
+		}
+	} else {
+		if currentKMSKeyID != desiredKMSKeyID {
+			return true
+		}
+	}
+	return false
 }
 
 func (sm *SecretsManager) patchTags(ctx context.Context, rawMetadata *apiextensionsv1.JSON, secretID *string, tags map[string]string) error {
@@ -820,7 +906,7 @@ func (sm *SecretsManager) constructMetadataWithDefaults(data *apiextensionsv1.JS
 
 	meta, err = metadata.ParseMetadataParameters[PushSecretMetadataSpec](data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse metadata: %w", err)
+		return nil, fmt.Errorf(errFailedToParseMetadata, err)
 	}
 
 	if meta == nil {
@@ -838,7 +924,7 @@ func (sm *SecretsManager) constructMetadataWithDefaults(data *apiextensionsv1.JS
 	}
 
 	if meta.Spec.KMSKeyID == "" {
-		meta.Spec.KMSKeyID = "alias/aws/secretsmanager"
+		meta.Spec.KMSKeyID = defaultKMSKeyID
 	}
 
 	if len(meta.Spec.Tags) > 0 {

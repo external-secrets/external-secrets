@@ -61,7 +61,9 @@ If you're planning to use `PushSecret`, ensure you also have the following permi
   "Action": [
     "secretsmanager:CreateSecret",
     "secretsmanager:PutSecretValue",
+    "secretsmanager:UpdateSecret",
     "secretsmanager:TagResource",
+    "secretsmanager:UntagResource",
     "secretsmanager:DeleteSecret",
     "secretsmanager:GetResourcePolicy",
     "secretsmanager:PutResourcePolicy",
@@ -75,6 +77,7 @@ If you're planning to use `PushSecret`, ensure you also have the following permi
 }
 ```
 
+**Note:** `UpdateSecret` is required to update a secret's `description` or `kmsKeyID` when the secret value itself has not changed.
 **Note:** The resource policy permissions (`GetResourcePolicy`, `PutResourcePolicy`, `DeleteResourcePolicy`) are only required if you're using the `resourcePolicy` metadata option to manage resource-based policies on secrets.
 **Note:** The replication permissions (`ReplicateSecretToRegions`, `RemoveRegionsFromReplication`) are only required if you're using the `replicationLocations` metadata option to manage secret replication across multiple regions.
 
@@ -89,7 +92,9 @@ Here's a more restrictive version of the IAM policy:
       "Action": [
         "secretsmanager:CreateSecret",
         "secretsmanager:PutSecretValue",
+        "secretsmanager:UpdateSecret",
         "secretsmanager:TagResource",
+        "secretsmanager:UntagResource",
         "secretsmanager:GetResourcePolicy",
         "secretsmanager:PutResourcePolicy",
         "secretsmanager:DeleteResourcePolicy",

@@ -48,6 +48,9 @@ type Client struct {
 	DeleteResourcePolicyFn         DeleteResourcePolicyFn
 	ReplicateSecretToRegionsFn     ReplicateSecretToRegionsFn
 	RemoveRegionsFromReplicationFn RemoveRegionsFromReplicationFn
+	UpdateSecretFn                 UpdateSecretFn
+	UpdateSecretCalledN            int
+	UpdateSecretFnCalledWith       [][]*awssm.UpdateSecretInput
 }
 type (
 	CreateSecretFn        func(context.Context, *awssm.CreateSecretInput, ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error)
@@ -71,6 +74,8 @@ type (
 	ReplicateSecretToRegionsFn     func(context.Context, *awssm.ReplicateSecretToRegionsInput, ...func(*awssm.Options)) (*awssm.ReplicateSecretToRegionsOutput, error)
 	RemoveRegionsFromReplicationFn func(context.Context, *awssm.RemoveRegionsFromReplicationInput, ...func(*awssm.Options)) (*awssm.RemoveRegionsFromReplicationOutput, error)
 )
+
+type UpdateSecretFn func(context.Context, *awssm.UpdateSecretInput, ...func(*awssm.Options)) (*awssm.UpdateSecretOutput, error)
 
 func (sm *Client) CreateSecret(ctx context.Context, input *awssm.CreateSecretInput, options ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error) {
 	return sm.CreateSecretFn(ctx, input, options...)
@@ -310,4 +315,16 @@ func (sm *Client) RemoveRegionsFromReplication(
 	optFns ...func(*awssm.Options),
 ) (*awssm.RemoveRegionsFromReplicationOutput, error) {
 	return sm.RemoveRegionsFromReplicationFn(ctx, params, optFns...)
+}
+
+func (sm *Client) UpdateSecret(ctx context.Context, input *awssm.UpdateSecretInput, opts ...func(*awssm.Options)) (*awssm.UpdateSecretOutput, error) {
+	sm.UpdateSecretCalledN++
+	sm.UpdateSecretFnCalledWith = append(sm.UpdateSecretFnCalledWith, []*awssm.UpdateSecretInput{input})
+	return sm.UpdateSecretFn(ctx, input, opts...)
+}
+
+func NewUpdateSecretFn(output *awssm.UpdateSecretOutput, err error) UpdateSecretFn {
+	return func(_ context.Context, _ *awssm.UpdateSecretInput, _ ...func(*awssm.Options)) (*awssm.UpdateSecretOutput, error) {
+		return output, err
+	}
 }

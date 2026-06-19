@@ -35,6 +35,7 @@ const (
 	CallAWSSMDeleteResourcePolicy         = "DeleteResourcePolicy"
 	CallAWSSMReplicateSecretToRegions     = "ReplicateSecretToRegions"
 	CallAWSSMRemoveRegionsFromReplication = "RemoveRegionsFromReplication"
+	CallAWSSMUpdateSecret                 = "UpdateSecret"
 	ProviderAWSPS                         = "AWS/ParameterStore"
 
 	CallAWSPSGetParameter        = "GetParameter"
