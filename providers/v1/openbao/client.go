@@ -27,6 +27,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/openbao/openbao/api/auth/userpass/v2"
 	"github.com/openbao/openbao/api/v2"
 	v1 "k8s.io/api/core/v1"
 	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -106,13 +107,33 @@ func (c *client) setupAuth(ctx context.Context, kube k8sClient.Client, namespace
 		return nil
 	}
 
-	if c.store.Auth.TokenSecretRef != nil {
+	switch {
+	case c.store.Auth.TokenSecretRef != nil:
 		token, err := resolvers.SecretKeyRef(ctx, kube, c.storeKind, namespace, c.store.Auth.TokenSecretRef)
 		if err != nil {
 			return err
 		}
 
 		c.client.SetToken(token)
+
+	case c.store.Auth.UserPass != nil:
+		userPass := c.store.Auth.UserPass
+		password, err := resolvers.SecretKeyRef(ctx, kube, c.storeKind, namespace, &userPass.SecretRef)
+		if err != nil {
+			return err
+		}
+
+		auth, err := userpass.NewUserpassAuth(userPass.Username, &userpass.Password{
+			FromString: password,
+		}, userpass.WithMountPath(userPass.Path))
+		if err != nil {
+			return err
+		}
+
+		_, err = c.client.Auth().Login(ctx, auth)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
