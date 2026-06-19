@@ -18,6 +18,7 @@ package grpc
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -141,15 +142,23 @@ func (rc *ResilientClient) GetSecret(
 	sourceNamespace string,
 ) ([]byte, error) {
 	var result []byte
+	var notFound bool
 
 	err := rc.executeWithResilience(ctx, func(client v2.Provider) error {
 		secretData, err := client.GetSecret(ctx, ref, providerRef, sourceNamespace)
+		if errors.Is(err, esv1.NoSecretErr) {
+			notFound = true
+			return nil
+		}
 		if err != nil {
 			return err
 		}
 		result = secretData
 		return nil
 	})
+	if notFound {
+		return nil, esv1.NoSecretErr
+	}
 
 	return result, err
 }
@@ -162,15 +171,23 @@ func (rc *ResilientClient) GetSecretMap(
 	sourceNamespace string,
 ) (map[string][]byte, error) {
 	var result map[string][]byte
+	var notFound bool
 
 	err := rc.executeWithResilience(ctx, func(client v2.Provider) error {
 		secretMap, err := client.GetSecretMap(ctx, ref, providerRef, sourceNamespace)
+		if errors.Is(err, esv1.NoSecretErr) {
+			notFound = true
+			return nil
+		}
 		if err != nil {
 			return err
 		}
 		result = secretMap
 		return nil
 	})
+	if notFound {
+		return nil, esv1.NoSecretErr
+	}
 
 	return result, err
 }

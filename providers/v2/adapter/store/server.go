@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"strings"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -175,6 +177,9 @@ func (s *Server) GetSecret(ctx context.Context, req *pb.GetSecretRequest) (*pb.G
 
 	value, err := client.GetSecret(ctx, ref)
 	if err != nil {
+		if errors.Is(err, esv1.NoSecretErr) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
 		return nil, fmt.Errorf("failed to get secret: %w", err)
 	}
 
@@ -196,6 +201,9 @@ func (s *Server) GetSecretMap(ctx context.Context, req *pb.GetSecretMapRequest) 
 
 	secrets, err := client.GetSecretMap(ctx, ref)
 	if err != nil {
+		if errors.Is(err, esv1.NoSecretErr) {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
 		return nil, fmt.Errorf("failed to get secret map: %w", err)
 	}
 

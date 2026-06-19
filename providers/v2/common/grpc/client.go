@@ -23,7 +23,9 @@ import (
 
 	"github.com/go-logr/logr"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/connectivity"
+	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -107,6 +109,10 @@ func (c *grpcProviderClient) GetSecret(
 
 	resp, err := c.client.GetSecret(ctx, req)
 	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			err = esv1.NoSecretErr
+			return nil, err
+		}
 		c.log.Error(err, "GetSecret RPC failed",
 			"key", ref.Key,
 			"connectionState", c.conn.GetState().String(),
@@ -171,6 +177,10 @@ func (c *grpcProviderClient) GetSecretMap(
 
 	resp, err := c.client.GetSecretMap(ctx, req)
 	if err != nil {
+		if status.Code(err) == codes.NotFound {
+			err = esv1.NoSecretErr
+			return nil, err
+		}
 		c.log.Error(err, "GetSecretMap RPC failed",
 			"connectionState", c.conn.GetState().String(),
 			"target", c.conn.Target())
