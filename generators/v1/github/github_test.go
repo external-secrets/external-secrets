@@ -171,6 +171,8 @@ spec:
     name: "configSecret"
     key: "installID"
   URL: %q
+  repositories:
+  - "Hello-World"
   auth:
     privateKey:
       secretRef:
