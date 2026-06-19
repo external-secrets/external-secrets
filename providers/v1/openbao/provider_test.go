@@ -41,6 +41,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/openbao"
+	"github.com/external-secrets/external-secrets/providers/v1/openbao/internal/auth"
 
 	. "github.com/onsi/gomega"
 )
@@ -355,6 +356,91 @@ func TestProvider_KVv1(t *testing.T) {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(allData).To(HaveLen(0))
 	})
+}
+
+func TestProvider_Auth(t *testing.T) {
+	RegisterTestingT(t)
+
+	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shared-secret",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"approle-id":        []byte("dynamic-roleid"),
+			"approle-secret":    []byte("the-secret"),
+			"userpass-password": []byte("the-password"),
+		},
+	}).Build()
+	provider := openbao.NewProvider().(*openbao.Provider)
+
+	cases := []struct {
+		name          string
+		auth          *esv1.OpenBaoAuth
+		expectedCalls []string
+	}{{
+		name: "userpass",
+		auth: &esv1.OpenBaoAuth{
+			UserPass: &esv1.OpenBaoUserPassAuth{
+				Path:     "userpasspath",
+				Username: "the-user",
+				SecretRef: esmeta.SecretKeySelector{
+					Name: "shared-secret",
+					Key:  "userpass-password",
+				},
+			},
+		},
+		expectedCalls: []string{`UserPass("the-user", "the-password", "userpasspath")`},
+	}, {
+		name: "approle static",
+		auth: &esv1.OpenBaoAuth{
+			AppRole: &esv1.OpenBaoAppRole{
+				Path:   "approlepath",
+				RoleID: "static-roleid",
+				SecretRef: esmeta.SecretKeySelector{
+					Name: "shared-secret",
+					Key:  "approle-secret",
+				},
+			},
+		},
+		expectedCalls: []string{`AppRole("static-roleid", "the-secret", "approlepath")`},
+	}, {
+		name: "approle dynamic",
+		auth: &esv1.OpenBaoAuth{
+			AppRole: &esv1.OpenBaoAppRole{
+				Path: "approlepath",
+				RoleRef: &esmeta.SecretKeySelector{
+					Name: "shared-secret",
+					Key:  "approle-id",
+				},
+				SecretRef: esmeta.SecretKeySelector{
+					Name: "shared-secret",
+					Key:  "approle-secret",
+				},
+			},
+		},
+		expectedCalls: []string{`AppRole("dynamic-roleid", "the-secret", "approlepath")`},
+	}}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+			factory := &auth.AuthFactoryMock{}
+			provider.AuthMethodFactory = factory
+
+			store := makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2)
+			store.Spec.Provider.OpenBao.Auth = tc.auth
+
+			client, err := provider.NewClient(t.Context(), store, kube, "default")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(client).NotTo(BeNil())
+			t.Cleanup(func() {
+				client.Close(t.Context())
+			})
+
+			Expect(factory.GetCalls()).To(Equal(tc.expectedCalls))
+		})
+	}
 }
 
 func TestProvider_Auth_UserPass(t *testing.T) {
