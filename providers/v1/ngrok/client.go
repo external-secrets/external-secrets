@@ -239,7 +239,7 @@ func (c *client) verifyVaultNameStillMatchesID(ctx context.Context) error {
 	}
 
 	vault, err := c.vaultClient.Get(ctx, vaultID)
-	if err != nil || vault.Name != c.vaultName {
+	if err != nil || vault == nil || vault.Name != c.vaultName {
 		return c.refreshVaultID(ctx)
 	}
 
