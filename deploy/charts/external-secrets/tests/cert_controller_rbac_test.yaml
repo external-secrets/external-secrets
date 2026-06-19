@@ -107,3 +107,38 @@ tests:
               - "watch"
               - "update"
               - "patch"
+  - it: should not grant access to the provider tls secret when providers are disabled
+    documentIndex: 0
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            apiGroups:
+              - ""
+            resources:
+              - "secrets"
+            resourceNames:
+              - "external-secrets-provider-tls"
+            verbs:
+              - "update"
+              - "patch"
+  - it: should scope provider tls secret update/patch by resourceNames when v2 providers are enabled
+    documentIndex: 0
+    set:
+      v2:
+        enabled: true
+      providers:
+        enabled: true
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups:
+              - ""
+            resources:
+              - "secrets"
+            resourceNames:
+              - "external-secrets-provider-tls"
+            verbs:
+              - "update"
+              - "patch"
