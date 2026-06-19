@@ -1,8 +1,6 @@
 ![Infisical k8s Diagram](../pictures/external-secrets-operator.png)
 
-Sync secrets from [Infisical](https://www.infisical.com) to your Kubernetes cluster using External Secrets Operator.
-
-> **Note**: The Infisical provider is read-only. PushSecret is not supported.
+Sync secrets from [Infisical](https://www.infisical.com) to your Kubernetes cluster using External Secrets Operator, and push secrets from the cluster back into Infisical with `PushSecret`.
 
 ## Authentication
 
@@ -655,6 +653,50 @@ The following restrictions apply:
 - `find.name.regexp` matches against the secret name. At least one of `find.name` or `find.path` must be provided.
 - `find.path` filters by folder path prefix. The value must be an absolute path starting with `/` (e.g. `/my-app`). It is matched against the `secretPath` field of each secret.
 - `find.tags` is **not supported** and returns an error if set.
+
+---
+
+## Pushing Secrets
+
+The Infisical provider supports `PushSecret`, writing a Kubernetes Secret into an Infisical project. The machine identity used by the store must have write permission on the target project and environment.
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-example
+spec:
+  refreshInterval: 1h
+  secretStoreRefs:
+    - name: infisical
+      kind: SecretStore
+  selector:
+    secret:
+      name: my-source-secret
+  data:
+    - match:
+        secretKey: API_KEY          # key in the Kubernetes Secret
+        remoteRef:
+          remoteKey: API_KEY        # secret name in Infisical
+```
+
+### Remote key resolution
+
+`remoteRef.remoteKey` resolves the target location with the same three rules as `remoteRef.key` on reads (see [Key resolution](#key-resolution-for-remoterefkey)): a bare name lands under `secretsScope.secretsPath`, a leading-slash key is an absolute path, and a relative path is joined onto `secretsScope.secretsPath`.
+
+### Push behavior
+
+- **Single key**: when `secretKey` is set, the value of that key in the source Secret is pushed as the Infisical secret value.
+- **Whole secret**: when `secretKey` is omitted, the entire source Secret is marshaled into a JSON object (`{"key":"value",...}`) and stored as the value of `remoteKey`.
+- **Property**: when `remoteRef.property` is set, the value is written as that JSON property of the remote secret's value, merging with any existing properties rather than overwriting the whole value.
+- **Create vs update**: a missing secret is created; an existing one is updated. If the remote value already matches, the push is skipped so no new secret version is created.
+
+### Deletion
+
+When a `PushSecret` is removed with `deletionPolicy: Delete`, the provider deletes the remote secret. If `remoteRef.property` is set, only that property is removed and the secret is deleted once no properties remain. Deleting an already-absent secret is a no-op.
+
+!!! note
+    The Infisical write API requires the project's internal ID, while the store is configured with a project slug. The provider resolves the slug to its ID automatically and caches the result, so no extra configuration is needed. If a write later fails because the cached ID no longer works (for example the project was deleted and recreated under the same slug), the provider re-resolves the slug once and retries; if the slug no longer maps to a project, the write fails with a clear "no such project" error.
 
 ---
 
