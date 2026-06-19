@@ -27,11 +27,12 @@ import (
 )
 
 const (
-	errInvalidStore       = "invalid store"
-	errInvalidStoreSpec   = "invalid store spec"
-	errInvalidStoreProv   = "invalid store provider"
-	errInvalidOpenBaoProv = "invalid OpenBao provider"
-	errInvalidTokenRef    = "invalid Auth.TokenSecretRef: %w"
+	errInvalidStore             = "invalid store"
+	errInvalidStoreSpec         = "invalid store spec"
+	errInvalidStoreProv         = "invalid store provider"
+	errInvalidOpenBaoProv       = "invalid OpenBao provider"
+	errInvalidTokenRef          = "invalid Auth.TokenSecretRef: %w"
+	errInvalidUserPassSecretRef = "invalid Auth.UserPass.SecretRef: %w"
 )
 
 // ValidateStore validates the OpenBao provider configuration in the SecretStore.
@@ -51,9 +52,15 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, errors.New(errInvalidOpenBaoProv)
 	}
 	if baoProvider.Auth != nil {
-		if baoProvider.Auth.TokenSecretRef != nil {
-			if err := esutils.ValidateReferentSecretSelector(store, *baoProvider.Auth.TokenSecretRef); err != nil {
+		auth := baoProvider.Auth
+		if auth.TokenSecretRef != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, *auth.TokenSecretRef); err != nil {
 				return nil, fmt.Errorf(errInvalidTokenRef, err)
+			}
+		}
+		if auth.UserPass != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, auth.UserPass.SecretRef); err != nil {
+				return nil, fmt.Errorf(errInvalidUserPassSecretRef, err)
 			}
 		}
 	}
