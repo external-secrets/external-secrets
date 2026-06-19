@@ -32,34 +32,45 @@ import (
 
 // Client implements the aws secretsmanager interface.
 type Client struct {
-	ExecutionCounter       int
-	valFn                  map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
-	CreateSecretFn         CreateSecretFn
-	GetSecretValueFn       GetSecretValueFn
-	PutSecretValueFn       PutSecretValueFn
-	DescribeSecretFn       DescribeSecretFn
-	DeleteSecretFn         DeleteSecretFn
-	ListSecretsFn          ListSecretsFn
-	BatchGetSecretValueFn  BatchGetSecretValueFn
-	TagResourceFn          TagResourceFn
-	UntagResourceFn        UntagResourceFn
-	PutResourcePolicyFn    PutResourcePolicyFn
-	GetResourcePolicyFn    GetResourcePolicyFn
-	DeleteResourcePolicyFn DeleteResourcePolicyFn
+	ExecutionCounter               int
+	valFn                          map[string]func(*awssm.GetSecretValueInput) (*awssm.GetSecretValueOutput, error)
+	CreateSecretFn                 CreateSecretFn
+	GetSecretValueFn               GetSecretValueFn
+	PutSecretValueFn               PutSecretValueFn
+	DescribeSecretFn               DescribeSecretFn
+	DeleteSecretFn                 DeleteSecretFn
+	ListSecretsFn                  ListSecretsFn
+	BatchGetSecretValueFn          BatchGetSecretValueFn
+	TagResourceFn                  TagResourceFn
+	UntagResourceFn                UntagResourceFn
+	PutResourcePolicyFn            PutResourcePolicyFn
+	GetResourcePolicyFn            GetResourcePolicyFn
+	DeleteResourcePolicyFn         DeleteResourcePolicyFn
+	ReplicateSecretToRegionsFn     ReplicateSecretToRegionsFn
+	RemoveRegionsFromReplicationFn RemoveRegionsFromReplicationFn
 }
-type CreateSecretFn func(context.Context, *awssm.CreateSecretInput, ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error)
-type GetSecretValueFn func(context.Context, *awssm.GetSecretValueInput, ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error)
-type PutSecretValueFn func(context.Context, *awssm.PutSecretValueInput, ...func(*awssm.Options)) (*awssm.PutSecretValueOutput, error)
-type DescribeSecretFn func(context.Context, *awssm.DescribeSecretInput, ...func(*awssm.Options)) (*awssm.DescribeSecretOutput, error)
-type DeleteSecretFn func(context.Context, *awssm.DeleteSecretInput, ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error)
-type ListSecretsFn func(context.Context, *awssm.ListSecretsInput, ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error)
-type BatchGetSecretValueFn func(context.Context, *awssm.BatchGetSecretValueInput, ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error)
+type (
+	CreateSecretFn        func(context.Context, *awssm.CreateSecretInput, ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error)
+	GetSecretValueFn      func(context.Context, *awssm.GetSecretValueInput, ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error)
+	PutSecretValueFn      func(context.Context, *awssm.PutSecretValueInput, ...func(*awssm.Options)) (*awssm.PutSecretValueOutput, error)
+	DescribeSecretFn      func(context.Context, *awssm.DescribeSecretInput, ...func(*awssm.Options)) (*awssm.DescribeSecretOutput, error)
+	DeleteSecretFn        func(context.Context, *awssm.DeleteSecretInput, ...func(*awssm.Options)) (*awssm.DeleteSecretOutput, error)
+	ListSecretsFn         func(context.Context, *awssm.ListSecretsInput, ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error)
+	BatchGetSecretValueFn func(context.Context, *awssm.BatchGetSecretValueInput, ...func(*awssm.Options)) (*awssm.BatchGetSecretValueOutput, error)
+)
 
-type TagResourceFn func(context.Context, *awssm.TagResourceInput, ...func(*awssm.Options)) (*awssm.TagResourceOutput, error)
-type UntagResourceFn func(context.Context, *awssm.UntagResourceInput, ...func(*awssm.Options)) (*awssm.UntagResourceOutput, error)
-type PutResourcePolicyFn func(context.Context, *awssm.PutResourcePolicyInput, ...func(*awssm.Options)) (*awssm.PutResourcePolicyOutput, error)
-type GetResourcePolicyFn func(context.Context, *awssm.GetResourcePolicyInput, ...func(*awssm.Options)) (*awssm.GetResourcePolicyOutput, error)
-type DeleteResourcePolicyFn func(context.Context, *awssm.DeleteResourcePolicyInput, ...func(*awssm.Options)) (*awssm.DeleteResourcePolicyOutput, error)
+type (
+	TagResourceFn          func(context.Context, *awssm.TagResourceInput, ...func(*awssm.Options)) (*awssm.TagResourceOutput, error)
+	UntagResourceFn        func(context.Context, *awssm.UntagResourceInput, ...func(*awssm.Options)) (*awssm.UntagResourceOutput, error)
+	PutResourcePolicyFn    func(context.Context, *awssm.PutResourcePolicyInput, ...func(*awssm.Options)) (*awssm.PutResourcePolicyOutput, error)
+	GetResourcePolicyFn    func(context.Context, *awssm.GetResourcePolicyInput, ...func(*awssm.Options)) (*awssm.GetResourcePolicyOutput, error)
+	DeleteResourcePolicyFn func(context.Context, *awssm.DeleteResourcePolicyInput, ...func(*awssm.Options)) (*awssm.DeleteResourcePolicyOutput, error)
+)
+
+type (
+	ReplicateSecretToRegionsFn     func(context.Context, *awssm.ReplicateSecretToRegionsInput, ...func(*awssm.Options)) (*awssm.ReplicateSecretToRegionsOutput, error)
+	RemoveRegionsFromReplicationFn func(context.Context, *awssm.RemoveRegionsFromReplicationInput, ...func(*awssm.Options)) (*awssm.RemoveRegionsFromReplicationOutput, error)
+)
 
 func (sm *Client) CreateSecret(ctx context.Context, input *awssm.CreateSecretInput, options ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error) {
 	return sm.CreateSecretFn(ctx, input, options...)
@@ -269,4 +280,34 @@ func NewDeleteResourcePolicyFn(output *awssm.DeleteResourcePolicyOutput, err err
 		}
 		return output, err
 	}
+}
+
+func NewReplicateSecretToRegionsFn(output *awssm.ReplicateSecretToRegionsOutput, err error, aFunc ...func(input *awssm.ReplicateSecretToRegionsInput)) ReplicateSecretToRegionsFn {
+	return func(ctx context.Context, params *awssm.ReplicateSecretToRegionsInput, optFns ...func(*awssm.Options)) (*awssm.ReplicateSecretToRegionsOutput, error) {
+		for _, f := range aFunc {
+			f(params)
+		}
+		return output, err
+	}
+}
+
+func (sm *Client) ReplicateSecretToRegions(ctx context.Context, params *awssm.ReplicateSecretToRegionsInput, optFns ...func(*awssm.Options)) (*awssm.ReplicateSecretToRegionsOutput, error) {
+	return sm.ReplicateSecretToRegionsFn(ctx, params, optFns...)
+}
+
+func NewRemoveRegionsFromReplicationFn(output *awssm.RemoveRegionsFromReplicationOutput, err error, aFunc ...func(input *awssm.RemoveRegionsFromReplicationInput)) RemoveRegionsFromReplicationFn {
+	return func(ctx context.Context, params *awssm.RemoveRegionsFromReplicationInput, optFns ...func(*awssm.Options)) (*awssm.RemoveRegionsFromReplicationOutput, error) {
+		for _, f := range aFunc {
+			f(params)
+		}
+		return output, err
+	}
+}
+
+func (sm *Client) RemoveRegionsFromReplication(
+	ctx context.Context,
+	params *awssm.RemoveRegionsFromReplicationInput,
+	optFns ...func(*awssm.Options),
+) (*awssm.RemoveRegionsFromReplicationOutput, error) {
+	return sm.RemoveRegionsFromReplicationFn(ctx, params, optFns...)
 }
