@@ -31,24 +31,19 @@ func TestAPIErrorError(t *testing.T) {
 		want string
 	}{
 		{
-			name: "full request context",
-			err:  &APIError{Method: "GET", Path: "/v3/projects", StatusCode: 401, Message: "Invalid Auth token"},
-			want: "Doppler API Client Error: GET /v3/projects (HTTP 401): Invalid Auth token",
+			name: "with status",
+			err:  &APIError{StatusCode: 401, Message: "Invalid Auth token"},
+			want: "Doppler API Client Error (HTTP 401): Invalid Auth token",
 		},
 		{
-			name: "no request context stays backward compatible",
+			name: "no status stays backward compatible",
 			err:  &APIError{Message: "secret 'FOO' not found"},
 			want: "Doppler API Client Error: secret 'FOO' not found",
 		},
 		{
-			name: "endpoint without status",
-			err:  &APIError{Method: "POST", Path: "/v3/configs/config/secrets", Message: "unable to form HTTP request"},
-			want: "Doppler API Client Error: POST /v3/configs/config/secrets: unable to form HTTP request",
-		},
-		{
 			name: "appends underlying error",
-			err:  &APIError{Method: "GET", Path: "/v3/projects", StatusCode: 500, Message: "unable to load response", Err: errors.New("boom")},
-			want: "Doppler API Client Error: GET /v3/projects (HTTP 500): unable to load response\nboom",
+			err:  &APIError{StatusCode: 500, Message: "unable to load response", Err: errors.New("boom")},
+			want: "Doppler API Client Error (HTTP 500): unable to load response\nboom",
 		},
 		{
 			name: "appends data",
@@ -66,9 +61,10 @@ func TestAPIErrorError(t *testing.T) {
 	}
 }
 
-// TestPerformRequestSurfacesEndpoint exercises the real request path: a failing
-// Doppler API response must yield an error naming the endpoint and HTTP status.
-func TestPerformRequestSurfacesEndpoint(t *testing.T) {
+// TestPerformRequestSurfacesStatus exercises the real request path: a failing
+// Doppler API response must yield an error naming the HTTP status, without
+// leaking the request endpoint.
+func TestPerformRequestSurfacesStatus(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -90,9 +86,12 @@ func TestPerformRequestSurfacesEndpoint(t *testing.T) {
 	}
 
 	got := err.Error()
-	for _, want := range []string{"GET /v3/projects", "(HTTP 401)", "Invalid Auth token"} {
+	for _, want := range []string{"(HTTP 401)", "Invalid Auth token"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("error %q does not contain %q", got, want)
 		}
+	}
+	if strings.Contains(got, "/v3/projects") {
+		t.Errorf("error %q should not surface the request endpoint", got)
 	}
 }

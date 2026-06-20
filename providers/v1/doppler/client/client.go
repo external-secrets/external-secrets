@@ -59,10 +59,6 @@ type APIError struct {
 	Err     error
 	Message string
 	Data    string
-	// Method is the HTTP method of the request that produced this error.
-	Method string
-	// Path is the API endpoint path of the request that produced this error.
-	Path string
 	// StatusCode is the HTTP status of the response, when one was received.
 	StatusCode int
 }
@@ -275,11 +271,11 @@ func (r *SecretsRequest) buildQueryParams() queryParams {
 }
 
 func (c *DopplerClient) performRequest(path, method string, headers headers, params queryParams, body httpRequestBody) (*apiResponse, error) {
-	// newErr stamps the request method and path (and an optional HTTP status)
-	// onto every APIError this function returns, so callers can see which
-	// endpoint failed.
+	// newErr stamps the HTTP status (when a response was received) onto every
+	// APIError this function returns, so callers can see the response code that
+	// failed.
 	newErr := func(statusCode int, err error, message string) *APIError {
-		return &APIError{Err: err, Message: message, Method: method, Path: path, StatusCode: statusCode}
+		return &APIError{Err: err, Message: message, StatusCode: statusCode}
 	}
 
 	urlStr := c.BaseURL().String() + path
@@ -374,15 +370,13 @@ func isSuccess(statusCode int) bool {
 }
 
 func (e *APIError) Error() string {
-	// Surface the endpoint (method + path) and HTTP status when known, so a
-	// failure points at the request that produced it. Both are omitted for
-	// errors not tied to a request (e.g. a "secret not found").
+	// Surface the HTTP status when a response was received, so a failure points
+	// at the response code that produced it. The status is omitted for errors
+	// not tied to a response (e.g. a request that never reached the server, or
+	// a "secret not found").
 	prefix := "Doppler API Client Error:"
-	if endpoint := strings.TrimSpace(e.Method + " " + e.Path); endpoint != "" {
-		if e.StatusCode != 0 {
-			endpoint += fmt.Sprintf(" (HTTP %d)", e.StatusCode)
-		}
-		prefix = fmt.Sprintf("%s %s:", prefix, endpoint)
+	if e.StatusCode != 0 {
+		prefix = fmt.Sprintf("Doppler API Client Error (HTTP %d):", e.StatusCode)
 	}
 	message := fmt.Sprintf("%s %s", prefix, e.Message)
 	if underlyingError := e.Err; underlyingError != nil {
