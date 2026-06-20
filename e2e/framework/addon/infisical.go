@@ -76,7 +76,7 @@ type Infisical struct {
 	EnvironmentSlug string
 
 	// SDKClient is logged in via Universal Auth and used by the suite to seed
-	// and remove backend secrets (the provider itself is read-only).
+	// and remove backend secrets.
 	SDKClient infisicalSdk.InfisicalClientInterface
 }
 

@@ -1476,6 +1476,104 @@ channel: {{ .new_channel }}
 				assert.False(t, lowered, "intermediate segment must not be lowercased")
 			},
 		},
+		{
+			name:   "slice notation creates nested array path from scratch",
+			target: "spec.rules[0].from[0].source.notRemoteIpBlocks",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"blocks": []byte("- {{ .cidr1 }}\n- {{ .cidr2 }}\n"),
+			},
+			data: map[string][]byte{
+				"cidr1": []byte("10.0.0.0/8"),
+				"cidr2": []byte("192.168.0.0/16"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				rules := obj["spec"].(map[string]any)["rules"].([]any)
+				from := rules[0].(map[string]any)["from"].([]any)
+				source := from[0].(map[string]any)["source"].(map[string]any)
+				assert.Equal(t, []any{"10.0.0.0/8", "192.168.0.0/16"}, source["notRemoteIpBlocks"])
+			},
+		},
+		{
+			name:   "slice notation merges into existing array element",
+			target: "spec.rules[0].to",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"to": []byte("operation:\n  methods:\n    - GET\n"),
+			},
+			data: map[string][]byte{},
+			verify: func(t *testing.T, obj map[string]any) {
+				rules := obj["spec"].(map[string]any)["rules"].([]any)
+				rule := rules[0].(map[string]any)
+				// existing sibling key in the same element is preserved
+				assert.Equal(t, "existing", rule["from"])
+				op := rule["to"].(map[string]any)["operation"].(map[string]any)
+				assert.Equal(t, []any{"GET"}, op["methods"])
+			},
+		},
+		{
+			name:   "slice notation with value scope sets scalar at index",
+			target: "spec.containers[1].image",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"image": []byte("{{ .img }}"),
+			},
+			data: map[string][]byte{
+				"img": []byte("nginx:latest"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				containers := obj["spec"].(map[string]any)["containers"].([]any)
+				// index 0 was grown and left nil, index 1 holds the value
+				assert.Nil(t, containers[0])
+				assert.Equal(t, "nginx:latest", containers[1].(map[string]any)["image"])
+			},
+		},
+		{
+			name:   "slice notation grows existing non-empty array",
+			target: "spec.containers[2].image",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"image": []byte("{{ .img }}"),
+			},
+			data: map[string][]byte{
+				"img": []byte("nginx:latest"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				containers := obj["spec"].(map[string]any)["containers"].([]any)
+				assert.Len(t, containers, 3)
+				// pre-existing element at index 0 is preserved
+				assert.Equal(t, "sidecar:v1", containers[0].(map[string]any)["image"])
+				assert.Nil(t, containers[1])
+				assert.Equal(t, "nginx:latest", containers[2].(map[string]any)["image"])
+			},
+		},
+		{
+			name:     "invalid slice notation reports error",
+			target:   "spec.rules[abc].foo",
+			scope:    esapi.TemplateScopeKeysAndValues,
+			tpl:      map[string][]byte{"x": []byte("y: z")},
+			data:     map[string][]byte{},
+			wantErr:  true,
+			errorMsg: "bad index",
+		},
+		{
+			name:     "bare leading index is rejected",
+			target:   "[0]",
+			scope:    esapi.TemplateScopeKeysAndValues,
+			tpl:      map[string][]byte{"x": []byte("y: z")},
+			data:     map[string][]byte{},
+			wantErr:  true,
+			errorMsg: "must start with a key",
+		},
+		{
+			name:     "leading index followed by key is rejected",
+			target:   "[0].test",
+			scope:    esapi.TemplateScopeKeysAndValues,
+			tpl:      map[string][]byte{"x": []byte("y: z")},
+			data:     map[string][]byte{},
+			wantErr:  true,
+			errorMsg: "must start with a key",
+		},
 	}
 
 	for _, tt := range tests {
@@ -1513,6 +1611,24 @@ channel: {{ .new_channel }}
 				}
 			}
 
+			// For the slice-merge test, pre-populate an existing array element.
+			if strings.Contains(tt.name, "merges into existing array element") {
+				obj.Object["spec"] = map[string]any{
+					"rules": []any{
+						map[string]any{"from": "existing"},
+					},
+				}
+			}
+
+			// For the slice-grow test, pre-populate a non-empty array.
+			if strings.Contains(tt.name, "grows existing non-empty array") {
+				obj.Object["spec"] = map[string]any{
+					"containers": []any{
+						map[string]any{"image": "sidecar:v1"},
+					},
+				}
+			}
+
 			err := Execute(tt.tpl, tt.data, tt.scope, tt.target, obj)
 
 			if tt.wantErr {
@@ -1526,6 +1642,110 @@ channel: {{ .new_channel }}
 					tt.verify(t, obj.Object)
 				}
 			}
+		})
+	}
+}
+
+func TestNestedPathTargetingIsIdempotent(t *testing.T) {
+	tests := []struct {
+		name   string
+		target string
+		scope  esapi.TemplateScope
+		tpl    map[string][]byte
+		data   map[string][]byte
+		seed   map[string]any
+		verify func(t *testing.T, obj map[string]any)
+	}{
+		{
+			name:   "deep slice path created from scratch",
+			target: "spec.rules[0].from[0].source.notRemoteIpBlocks",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"blocks": []byte("- {{ .cidr }}\n"),
+			},
+			data: map[string][]byte{
+				"cidr": []byte("10.0.0.0/8"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				rules := obj["spec"].(map[string]any)["rules"].([]any)
+				assert.Len(t, rules, 1, "rules slice must not grow on re-apply")
+				from := rules[0].(map[string]any)["from"].([]any)
+				assert.Len(t, from, 1, "from slice must not grow on re-apply")
+				source := from[0].(map[string]any)["source"].(map[string]any)
+				assert.Equal(t, []any{"10.0.0.0/8"}, source["notRemoteIpBlocks"])
+			},
+		},
+		{
+			name:   "map merge into existing element",
+			target: "spec.slack",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"slack-config": []byte("api_url: {{ .url }}\n"),
+			},
+			data: map[string][]byte{
+				"url": []byte("https://hooks.slack.com/services/NEW"),
+			},
+			seed: map[string]any{
+				"slack": map[string]any{
+					"channel": "general",
+				},
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				slack := obj["spec"].(map[string]any)["slack"].(map[string]any)
+				assert.Equal(t, "https://hooks.slack.com/services/NEW", slack["api_url"])
+				assert.Equal(t, "general", slack["channel"], "seeded field must survive every re-apply")
+				_, nested := slack["slack"]
+				assert.False(t, nested, "merge must not nest the target key into itself")
+			},
+		},
+		{
+			name:   "scalar at sparse index",
+			target: "spec.containers[1].image",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"image": []byte("{{ .img }}"),
+			},
+			data: map[string][]byte{
+				"img": []byte("nginx:latest"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				containers := obj["spec"].(map[string]any)["containers"].([]any)
+				assert.Len(t, containers, 2, "slice must stay at index+1, not grow per apply")
+				assert.Nil(t, containers[0])
+				assert.Equal(t, "nginx:latest", containers[1].(map[string]any)["image"])
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			obj := &unstructured.Unstructured{
+				Object: map[string]any{
+					"apiVersion": "example.com/v1",
+					"kind":       "TestResource",
+					"metadata": map[string]any{
+						"name":      "test-resource",
+						"namespace": "default",
+					},
+				},
+			}
+			if tt.seed != nil {
+				obj.Object["spec"] = tt.seed
+			}
+
+			var snapshot map[string]any
+			for i := range 3 {
+				require.NoError(t, Execute(tt.tpl, tt.data, tt.scope, tt.target, obj))
+				if i == 0 {
+					snapshot = obj.DeepCopy().Object
+					continue
+				}
+				if diff := cmp.Diff(snapshot, obj.Object); diff != "" {
+					t.Fatalf("apply #%d diverged from the first apply (-first +current):\n%s", i+1, diff)
+				}
+			}
+
+			tt.verify(t, obj.Object)
 		})
 	}
 }

@@ -130,7 +130,7 @@ The following table show the support for features across different providers.
 | SecretServer              |      x       |              |                      |                         |        x         |      x      |              x              |
 | Pulumi ESC                |      x       |              |                      |                         |        x         |             |                             |
 | Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
-| Infisical                 |      x       |              |                      |            x            |        x         |             |                             |
+| Infisical                 |      x       |              |                      |            x            |        x         |      x      |              x              |
 | Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
 | Previder                  |      x       |              |                      |                         |        x         |             |                             |
 | Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |              x              |

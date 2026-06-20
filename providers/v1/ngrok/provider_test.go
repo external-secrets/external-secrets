@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ngrok/ngrok-api-go/v7"
+	"github.com/ngrok/ngrok-api-go/v9"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -100,11 +100,13 @@ var _ = Describe("Provider", func() {
 	Describe("NewClient", func() {
 		var (
 			store            esv1.GenericStore
-			ngrokStore       *fake.Store
+			vaultsClient     *fake.VaultClient
 			namespace        string
 			kubeClient       kubeClient.Client
 			ngrokCredentials *corev1.Secret
 			vaultName        string
+
+			mockVaultsListFn func(*ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault]
 
 			// Injected errors
 			vaultListErr error
@@ -119,16 +121,21 @@ var _ = Describe("Provider", func() {
 			vaultName = "vault-" + fake.GenerateRandomString(5)
 			ngrokCredentials = newNgrokAPICredentials("ngrok-credentials", namespace, "secret-api-key")
 			kubeClient = clientfake.NewClientBuilder().WithObjects(ngrokCredentials).Build()
-			ngrokStore = fake.NewStore()
 			vaultListErr = nil
+
+			mockVaultsListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+				return fake.NewIter([]*ngrok.Vault{}, vaultListErr)
+			}
 		})
 
 		JustBeforeEach(func() {
 			getVaultsClient = func(_ *ngrok.ClientConfig) VaultClient {
-				return ngrokStore.VaultClient().WithListError(vaultListErr)
+				vaultsClient = &fake.VaultClient{}
+				vaultsClient.ListFn = mockVaultsListFn
+				return vaultsClient
 			}
 			getSecretsClient = func(_ *ngrok.ClientConfig) SecretsClient {
-				return ngrokStore.SecretsClient()
+				return &fake.SecretsClient{}
 			}
 			client, err = provider.NewClient(GinkgoT().Context(), store, kubeClient, namespace)
 		})
@@ -184,11 +191,12 @@ var _ = Describe("Provider", func() {
 				})
 
 				When("the vault exists", func() {
+					var listPaging *ngrok.FilteredPaging
 					BeforeEach(func() {
-						_, createErr := ngrokStore.CreateVault(&ngrok.VaultCreate{
-							Name: vaultName,
-						})
-						Expect(createErr).To(BeNil())
+						mockVaultsListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+							listPaging = paging
+							return fake.NewIter([]*ngrok.Vault{{ID: "vault-1", Name: vaultName}}, nil)
+						}
 					})
 
 					It("should not return an error", func() {
@@ -197,6 +205,12 @@ var _ = Describe("Provider", func() {
 
 					It("should return a non-nil client", func() {
 						Expect(client).NotTo(BeNil())
+					})
+
+					It("should filter vaults by name when listing", func() {
+						Expect(listPaging).NotTo(BeNil())
+						Expect(listPaging.Filter).NotTo(BeNil())
+						Expect(*listPaging.Filter).To(Equal(fmt.Sprintf("obj.name == %q", vaultName)))
 					})
 				})
 
@@ -290,11 +304,12 @@ var _ = Describe("Provider", func() {
 				})
 
 				When("the vault exists", func() {
+					var listPaging *ngrok.FilteredPaging
 					BeforeEach(func() {
-						_, createErr := ngrokStore.CreateVault(&ngrok.VaultCreate{
-							Name: vaultName,
-						})
-						Expect(createErr).To(BeNil())
+						mockVaultsListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+							listPaging = paging
+							return fake.NewIter([]*ngrok.Vault{{ID: "vault-1", Name: vaultName}}, nil)
+						}
 					})
 
 					It("should not return an error", func() {
@@ -303,6 +318,12 @@ var _ = Describe("Provider", func() {
 
 					It("should return a non-nil client", func() {
 						Expect(client).NotTo(BeNil())
+					})
+
+					It("should filter vaults by name when listing", func() {
+						Expect(listPaging).NotTo(BeNil())
+						Expect(listPaging.Filter).NotTo(BeNil())
+						Expect(*listPaging.Filter).To(Equal(fmt.Sprintf("obj.name == %q", vaultName)))
 					})
 				})
 			})
