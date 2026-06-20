@@ -66,6 +66,13 @@ func SetUpMetrics() {
 
 // UpdatePushSecretCondition updates the condition metrics for a PushSecret.
 func UpdatePushSecretCondition(ps *esapi.PushSecret, condition *esapi.PushSecretStatusCondition, value float64) {
+	// Legacy dual-emit fallback, gated by --use-deprecated-status-condition.
+	// Deprecated: removal slated for v3, see psmetrics_deprecated.go.
+	if ctrlmetrics.UseDeprecatedStatusCondition() {
+		updatePushSecretConditionDeprecated(ps, condition, value)
+		return
+	}
+
 	psInfo := make(map[string]string)
 	psInfo["name"] = ps.Name
 	psInfo["namespace"] = ps.Namespace
