@@ -201,3 +201,91 @@ func TestUpdateExternalSecretConditionDeletedCleanup(t *testing.T) {
 		t.Fatalf("Deleted series: got %v, expected 1.0", got)
 	}
 }
+
+// TestUpdateExternalSecretConditionDeprecated verifies that with
+// --use-deprecated-status-condition the legacy dual-emit behavior is restored:
+// the Ready condition emits both {status="True"} and {status="False"} series.
+func TestUpdateExternalSecretConditionDeprecated(t *testing.T) {
+	tmpConditionMetricLabels := metrics.ConditionMetricLabels
+	defer func() {
+		metrics.ConditionMetricLabels = tmpConditionMetricLabels
+	}()
+	metrics.ConditionMetricLabels = map[string]string{
+		"name": "", "namespace": "", "condition": "", "status": "",
+	}
+
+	metrics.SetUseDeprecatedStatusCondition(true)
+	defer metrics.SetUseDeprecatedStatusCondition(false)
+
+	const (
+		name      = "test-es"
+		namespace = "test-ns"
+	)
+
+	tests := []struct {
+		desc           string
+		condition      *esv1.ExternalSecretStatusCondition
+		value          float64
+		expectedValues map[string]float64 // status label -> value
+	}{
+		{
+			desc: "Ready/ConditionTrue emits both status series (legacy)",
+			condition: &esv1.ExternalSecretStatusCondition{
+				Type:   esv1.ExternalSecretReady,
+				Status: v1.ConditionTrue,
+			},
+			value:          1.0,
+			expectedValues: map[string]float64{"True": 1.0, "False": 0.0},
+		},
+		{
+			desc: "Ready/ConditionFalse emits both status series (legacy)",
+			condition: &esv1.ExternalSecretStatusCondition{
+				Type:   esv1.ExternalSecretReady,
+				Status: v1.ConditionFalse,
+			},
+			value:          1.0,
+			expectedValues: map[string]float64{"False": 1.0, "True": 0.0},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+				},
+			}
+
+			tmpGaugeVec := GetGaugeVec(ExternalSecretStatusConditionKey)
+			defer func() {
+				gaugeVecMetrics[ExternalSecretStatusConditionKey] = tmpGaugeVec
+			}()
+
+			gaugeVec := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+				Subsystem: "esmetrics_test",
+				Name:      "update_external_secret_condition_deprecated",
+			}, []string{"name", "namespace", "condition", "status"})
+
+			gaugeVecMetrics[ExternalSecretStatusConditionKey] = gaugeVec
+			UpdateExternalSecretCondition(es, test.condition, test.value)
+
+			if got := testutil.CollectAndCount(gaugeVec); got != len(test.expectedValues) {
+				t.Fatalf("unexpected metric count: got %d, expected %d",
+					got, len(test.expectedValues))
+			}
+
+			for status, expected := range test.expectedValues {
+				labels := prometheus.Labels{
+					"namespace": namespace,
+					"name":      name,
+					"condition": "Ready",
+					"status":    status,
+				}
+				if got := testutil.ToFloat64(gaugeVec.With(labels)); got != expected {
+					t.Fatalf("status=%s: got %v, expected %v", status, got, expected)
+				}
+			}
+		})
+	}
+}

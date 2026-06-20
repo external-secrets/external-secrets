@@ -88,6 +88,13 @@ func SetUpMetrics() {
 
 // UpdateExternalSecretCondition is a function that updates the condition of an external secret.
 func UpdateExternalSecretCondition(es *esv1.ExternalSecret, condition *esv1.ExternalSecretStatusCondition, value float64) {
+	// Legacy dual-emit fallback, gated by --use-deprecated-status-condition.
+	// Deprecated: removal slated for v3, see esmetrics_deprecated.go.
+	if ctrlmetrics.UseDeprecatedStatusCondition() {
+		updateExternalSecretConditionDeprecated(es, condition, value)
+		return
+	}
+
 	esInfo := make(map[string]string)
 	esInfo["name"] = es.Name
 	esInfo["namespace"] = es.Namespace

@@ -135,3 +135,91 @@ func TestUpdatePushSecretCondition(t *testing.T) {
 		})
 	}
 }
+
+// TestUpdatePushSecretConditionDeprecated verifies that with
+// --use-deprecated-status-condition the legacy dual-emit behavior is restored:
+// the Ready condition emits both {status="True"} and {status="False"} series.
+func TestUpdatePushSecretConditionDeprecated(t *testing.T) {
+	tmpConditionMetricLabels := metrics.ConditionMetricLabels
+	defer func() {
+		metrics.ConditionMetricLabels = tmpConditionMetricLabels
+	}()
+	metrics.ConditionMetricLabels = map[string]string{
+		"name": "", "namespace": "", "condition": "", "status": "",
+	}
+
+	metrics.SetUseDeprecatedStatusCondition(true)
+	defer metrics.SetUseDeprecatedStatusCondition(false)
+
+	const (
+		name      = "test-ps"
+		namespace = "test-ns"
+	)
+
+	tests := []struct {
+		desc           string
+		condition      *esapi.PushSecretStatusCondition
+		value          float64
+		expectedValues map[string]float64 // status label -> value
+	}{
+		{
+			desc: "Ready/ConditionTrue emits both status series (legacy)",
+			condition: &esapi.PushSecretStatusCondition{
+				Type:   esapi.PushSecretReady,
+				Status: v1.ConditionTrue,
+			},
+			value:          1.0,
+			expectedValues: map[string]float64{"True": 1.0, "False": 0.0},
+		},
+		{
+			desc: "Ready/ConditionFalse emits both status series (legacy)",
+			condition: &esapi.PushSecretStatusCondition{
+				Type:   esapi.PushSecretReady,
+				Status: v1.ConditionFalse,
+			},
+			value:          1.0,
+			expectedValues: map[string]float64{"False": 1.0, "True": 0.0},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.desc, func(t *testing.T) {
+			ps := &esapi.PushSecret{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+				},
+			}
+
+			tmpGaugeVec := GetGaugeVec(PushSecretStatusConditionKey)
+			defer func() {
+				gaugeVecMetrics[PushSecretStatusConditionKey] = tmpGaugeVec
+			}()
+
+			gaugeVec := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+				Subsystem: "psmetrics_test",
+				Name:      "update_push_secret_condition_deprecated",
+			}, []string{"name", "namespace", "condition", "status"})
+
+			gaugeVecMetrics[PushSecretStatusConditionKey] = gaugeVec
+			UpdatePushSecretCondition(ps, test.condition, test.value)
+
+			if got := testutil.CollectAndCount(gaugeVec); got != len(test.expectedValues) {
+				t.Fatalf("unexpected metric count: got %d, expected %d",
+					got, len(test.expectedValues))
+			}
+
+			for status, expected := range test.expectedValues {
+				labels := prometheus.Labels{
+					"namespace": namespace,
+					"name":      name,
+					"condition": "Ready",
+					"status":    status,
+				}
+				if got := testutil.ToFloat64(gaugeVec.With(labels)); got != expected {
+					t.Fatalf("status=%s: got %v, expected %v", status, got, expected)
+				}
+			}
+		})
+	}
+}
