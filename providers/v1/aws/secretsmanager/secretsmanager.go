@@ -724,7 +724,7 @@ func (sm *SecretsManager) reconcileTags(ctx context.Context, secretArn string, p
 // isDefaultKMSKey reports whether kmsKeyID represents the AWS-managed default
 // KMS key for Secrets Manager. Per the DescribeSecret API, the KmsKeyId field
 // is omitted (empty) when the default key is in use. The alias short-form and
-// its full ARN are also recognised for completeness.
+// its full ARN are also recognized for completeness.
 func isDefaultKMSKey(kmsKeyID string) bool {
 	switch {
 	case kmsKeyID == "":

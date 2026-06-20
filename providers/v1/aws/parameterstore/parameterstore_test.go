@@ -40,8 +40,9 @@ import (
 )
 
 const (
-	errInvalidProperty = "key INVALPROP does not exist in secret"
-	invalidProp        = "INVALPROP"
+	errInvalidProperty        = "key INVALPROP does not exist in secret"
+	invalidProp               = "INVALPROP"
+	defaultManagedDescription = "secret 'managed-by:external-secrets'"
 )
 
 var (
@@ -769,7 +770,7 @@ func TestPushSecretCalledOnlyOnce(t *testing.T) {
 			Value: &fakeValue,
 		},
 	}
-	defaultDescription := "secret 'managed-by:external-secrets'"
+	defaultDescription := defaultManagedDescription
 	describeParameterOutput := &ssm.DescribeParametersOutput{
 		Parameters: []ssmtypes.ParameterMetadata{
 			{
@@ -803,7 +804,7 @@ func TestPushSecretCalledOnlyOnce(t *testing.T) {
 // TestPushSecretMetadataChange tests that PutParameter is (or is not) called when the
 // secret value is unchanged but metadata fields differ.
 func TestPushSecretMetadataChange(t *testing.T) {
-	defaultDescription := "secret 'managed-by:external-secrets'"
+	defaultDescription := defaultManagedDescription
 	managedByESO := ssmtypes.Tag{Key: &managedBy, Value: &externalSecrets}
 
 	fakeSecret := &corev1.Secret{
@@ -817,12 +818,12 @@ func TestPushSecretMetadataChange(t *testing.T) {
 	}
 
 	type testCase struct {
-		reason             string
-		describeOutput     *ssm.DescribeParametersOutput
-		describeErr        error
-		metadata           *apiextensionsv1.JSON
-		wantErr            string
-		wantPutParameterN  int
+		reason            string
+		describeOutput    *ssm.DescribeParametersOutput
+		describeErr       error
+		metadata          *apiextensionsv1.JSON
+		wantErr           string
+		wantPutParameterN int
 	}
 
 	tests := map[string]testCase{
@@ -1012,10 +1013,10 @@ func TestPushSecretMetadataChange(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			client := fakeps.Client{
-				PutParameterFn:        fakeps.NewPutParameterFn(&ssm.PutParameterOutput{}, nil),
-				GetParameterFn:        fakeps.NewGetParameterFn(validGetParameterOutput, nil),
-				DescribeParametersFn:  fakeps.NewDescribeParametersFn(tc.describeOutput, tc.describeErr),
-				ListTagsForResourceFn: fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
+				PutParameterFn:           fakeps.NewPutParameterFn(&ssm.PutParameterOutput{}, nil),
+				GetParameterFn:           fakeps.NewGetParameterFn(validGetParameterOutput, nil),
+				DescribeParametersFn:     fakeps.NewDescribeParametersFn(tc.describeOutput, tc.describeErr),
+				ListTagsForResourceFn:    fakeps.NewListTagsForResourceFn(validListTagsForResourceOutput, nil),
 				RemoveTagsFromResourceFn: fakeps.NewRemoveTagsFromResourceFn(&ssm.RemoveTagsFromResourceOutput{}, nil),
 				AddTagsToResourceFn:      fakeps.NewAddTagsToResourceFn(&ssm.AddTagsToResourceOutput{}, nil),
 			}
@@ -1038,7 +1039,7 @@ func TestPushSecretMetadataChange(t *testing.T) {
 }
 
 func TestHasParameterMetadataChanged(t *testing.T) {
-	defaultDescription := "secret 'managed-by:external-secrets'"
+	defaultDescription := defaultManagedDescription
 
 	tests := map[string]struct {
 		meta *ssmtypes.ParameterMetadata
@@ -1561,7 +1562,7 @@ func TestConstructMetadataWithDefaults(t *testing.T) {
 			input: nil,
 			expected: &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
 				Spec: PushSecretMetadataSpec{
-					Description: "secret 'managed-by:external-secrets'",
+					Description: defaultManagedDescription,
 					Tier: Tier{
 						Type: "Standard",
 					},

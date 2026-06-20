@@ -318,7 +318,10 @@ func (pm *ParameterStore) setExisting(ctx context.Context, existing *ssm.GetPara
 	if paramMeta != nil &&
 		paramMeta.Tier == ssmTypes.ParameterTierAdvanced &&
 		secretRequest.Tier != ssmTypes.ParameterTierAdvanced {
-		return fmt.Errorf("cannot downgrade parameter %q from Advanced to Standard tier: AWS does not support this operation; set tier.type to Advanced in PushSecret metadata to continue managing this parameter", secretName)
+		return fmt.Errorf(
+			"cannot downgrade parameter %q from Advanced to Standard tier: AWS does not support this operation; set tier.type to Advanced in PushSecret metadata to continue managing this parameter",
+			secretName,
+		)
 	}
 
 	if existing.Parameter.Value != nil && *existing.Parameter.Value == string(value) {
