@@ -103,14 +103,25 @@ func (p *SecretsClient) Close(_ context.Context) error {
 }
 
 // DeleteSecret implements Secret Deletion on the provider when PushSecret.spec.DeletionPolicy=Delete.
-func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
+func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) (err error) {
 	providerItem, err := p.findItem(ctx, ref.GetRemoteKey())
 	if errors.Is(err, ErrKeyNotFound) {
+		// Since the item no longer exists upstream, it's safe to remove it from the cache.
+		p.invalidateItem(providerItem)
 		return nil
 	}
 	if err != nil {
+		// do not remove cache entry because the error might be a network problem
+		// or something unrelated.
 		return err
 	}
+
+	defer func() {
+		if err == nil {
+			// invalidate the cache if there was no error
+			p.invalidateItem(providerItem)
+		}
+	}()
 
 	providerItem.Fields = normalizeItemFields(providerItem.Fields)
 
@@ -121,11 +132,7 @@ func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRem
 	}
 
 	if !deleted {
-		// also invalidate the cache here, as this field might have been deleted
-		// outside ESO.
-		p.invalidateCacheByPrefix(p.constructRefKey(ref.GetRemoteKey()))
-		p.invalidateItemCache(ref.GetRemoteKey())
-
+		// also invalidate the cache on not deleted so we refresh the fields on an item.
 		return nil
 	}
 
@@ -140,8 +147,6 @@ func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRem
 		if err != nil {
 			return fmt.Errorf("failed to delete item: %w", err)
 		}
-		p.invalidateCacheByPrefix(p.constructRefKey(ref.GetRemoteKey()))
-		p.invalidateItemCache(ref.GetRemoteKey())
 		return nil
 	}
 
@@ -150,9 +155,6 @@ func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRem
 	if err != nil {
 		return fmt.Errorf(errMsgUpdateItem, err)
 	}
-
-	p.invalidateCacheByPrefix(p.constructRefKey(ref.GetRemoteKey()))
-	p.invalidateItemCache(ref.GetRemoteKey())
 
 	return nil
 }
@@ -499,7 +501,7 @@ func (p *SecretsClient) createItem(ctx context.Context, val []byte, ref esv1.Pus
 		fieldType = resolveFieldType(mdata.Spec.FieldType)
 	}
 
-	_, err = p.client.Items().Create(ctx, onepassword.ItemCreateParams{
+	createdItem, err := p.client.Items().Create(ctx, onepassword.ItemCreateParams{
 		Category: onepassword.ItemCategoryServer,
 		VaultID:  p.vaultID,
 		Title:    ref.GetRemoteKey(),
@@ -513,8 +515,7 @@ func (p *SecretsClient) createItem(ctx context.Context, val []byte, ref esv1.Pus
 		return fmt.Errorf(errMsgCreateItem, err)
 	}
 
-	p.invalidateCacheByPrefix(p.constructRefKey(ref.GetRemoteKey()))
-	p.invalidateItemCache(ref.GetRemoteKey())
+	p.invalidateItem(createdItem)
 
 	return nil
 }
@@ -648,8 +649,7 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 		return fmt.Errorf(errMsgUpdateItem, err)
 	}
 
-	p.invalidateCacheByPrefix(p.constructRefKey(title))
-	p.invalidateItemCache(title)
+	p.invalidateItem(providerItem)
 
 	return nil
 }
@@ -660,7 +660,7 @@ func (p *SecretsClient) createAllKeysItem(ctx context.Context, secret *corev1.Se
 	for k, v := range secret.Data {
 		fields = append(fields, generateNewItemField(k, string(v), fieldType))
 	}
-	_, err := p.client.Items().Create(ctx, onepassword.ItemCreateParams{
+	createdItem, err := p.client.Items().Create(ctx, onepassword.ItemCreateParams{
 		Category: onepassword.ItemCategoryServer,
 		VaultID:  p.vaultID,
 		Title:    title,
@@ -671,8 +671,7 @@ func (p *SecretsClient) createAllKeysItem(ctx context.Context, secret *corev1.Se
 	if err != nil {
 		return fmt.Errorf(errMsgCreateItem, err)
 	}
-	p.invalidateCacheByPrefix(p.constructRefKey(title))
-	p.invalidateItemCache(title)
+	p.invalidateItem(createdItem)
 	return nil
 }
 
@@ -726,8 +725,7 @@ func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, 
 	if err != nil {
 		return fmt.Errorf(errMsgUpdateItem, err)
 	}
-	p.invalidateCacheByPrefix(p.constructRefKey(title))
-	p.invalidateItemCache(title)
+	p.invalidateItem(providerItem)
 	return nil
 }
 
@@ -886,6 +884,7 @@ func (p *SecretsClient) cacheAdd(key string, value []byte) {
 // No-op if cache is disabled.
 // Why are we using a Prefix? Because items and properties are stored via prefixes using 1Password SDK.
 // This means when an item is deleted we delete the fields and properties that belong to the item as well.
+// This is a helper for invalidateItem. Do not call directly.
 func (p *SecretsClient) invalidateCacheByPrefix(prefix string) {
 	if p.cache == nil {
 		return
@@ -893,23 +892,37 @@ func (p *SecretsClient) invalidateCacheByPrefix(prefix string) {
 
 	keys := p.cache.Keys()
 	for _, key := range keys {
-		if strings.HasPrefix(key, prefix) {
-			if len(key) == len(prefix) || key[len(prefix)] == '/' || key[len(prefix)] == '|' {
-				p.cache.Remove(key)
-			}
+		if !strings.HasPrefix(key, prefix) {
+			continue
+		}
+		if len(key) == len(prefix) || key[len(prefix)] == '/' || key[len(prefix)] == '|' {
+			p.cache.Remove(key)
 		}
 	}
 }
 
-// invalidateItemCache removes cached item entries for the given item name.
+// invalidateItem drops every cache entry tied to an item after a mutation: the
+// resolved values (op://...), both the title- and ID-keyed item entries, and the
+// vault item list. Mutations are addressed by title, but findItem always resolves
+// through the item's UUID and listItems backs every title->UUID lookup, so all
+// three must be dropped or reads return stale data.
 // No-op if cache is disabled.
-func (p *SecretsClient) invalidateItemCache(name string) {
+func (p *SecretsClient) invalidateItem(item onepassword.Item) {
 	if p.cache == nil {
 		return
 	}
 
-	cacheKey := itemCachePrefix + p.vaultID + ":" + name
-	p.cache.Remove(cacheKey)
+	p.invalidateCacheByPrefix(p.constructRefKey(item.Title))
+	if item.ID != "" && item.ID != item.Title {
+		p.invalidateCacheByPrefix(p.constructRefKey(item.ID))
+	}
+
+	p.cache.Remove(itemCachePrefix + p.vaultID + ":" + item.Title)
+	if item.ID != "" {
+		p.cache.Remove(itemCachePrefix + p.vaultID + ":" + item.ID)
+	}
+
+	p.cache.Remove(vaultCachePrefix + p.vaultID)
 }
 
 func isNotFoundError(err error) bool {

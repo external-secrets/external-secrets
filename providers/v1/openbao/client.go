@@ -18,12 +18,16 @@ package openbao
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"time"
 
+	"github.com/openbao/openbao/api/auth/userpass/v2"
 	"github.com/openbao/openbao/api/v2"
 	v1 "k8s.io/api/core/v1"
 	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -41,15 +45,61 @@ var (
 const (
 	errInvalidRevVersion      = "invalid Ref.Version: %w"
 	errSecretKeyNotFound      = "cannot find secret data for key: %q"
+	errFetchMount             = "error while validating %q: %w"
 	errInvalidMountType       = `expected mount type "kv" found %q`
 	errInvalidMountVersion    = "expected kv engine version %s found version %s"
 	errKVv1VersionUnsupported = "OpenBao KVv1 secrets do not support versioning (use KVv2)"
+	errCustomCA               = "cannot set OpenBao CA certificate: %w"
 )
 
 type client struct {
-	client    *api.Client
-	store     *esv1.OpenBaoProvider
-	storeKind string
+	client     *api.Client
+	httpClient *http.Client
+	store      *esv1.OpenBaoProvider
+	storeKind  string
+}
+
+func (c *client) setup(ctx context.Context, kube k8sClient.Client, namespace string, httpClient httpClientFactory) error {
+	c.httpClient = httpClient()
+
+	config := api.DefaultConfig()
+	config.HttpClient = c.httpClient
+	config.Address = c.store.Server
+
+	if len(c.store.CABundle) != 0 || c.store.CAProvider != nil {
+		caCertPool := x509.NewCertPool()
+		ca, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
+			CABundle:   c.store.CABundle,
+			CAProvider: c.store.CAProvider,
+			StoreKind:  c.storeKind,
+			Namespace:  namespace,
+			Client:     kube,
+		})
+		if err != nil {
+			return fmt.Errorf(errCustomCA, err)
+		}
+		ok := caCertPool.AppendCertsFromPEM(ca)
+		if !ok {
+			return fmt.Errorf(errCustomCA, errors.New("failed add certificate to CertPool"))
+		}
+
+		if transport, ok := config.HttpClient.Transport.(*http.Transport); ok {
+			transport = transport.Clone()
+			if transport.TLSClientConfig == nil {
+				transport.TLSClientConfig = &tls.Config{}
+			}
+			transport.TLSClientConfig.RootCAs = caCertPool
+			config.HttpClient.Transport = transport
+		}
+	}
+
+	client, err := api.NewClient(config)
+	if err != nil {
+		return err
+	}
+	c.client = client
+
+	return c.setupAuth(ctx, kube, namespace)
 }
 
 func (c *client) setupAuth(ctx context.Context, kube k8sClient.Client, namespace string) error {
@@ -57,20 +107,45 @@ func (c *client) setupAuth(ctx context.Context, kube k8sClient.Client, namespace
 		return nil
 	}
 
-	if c.store.Auth.TokenSecretRef != nil {
+	switch {
+	case c.store.Auth.TokenSecretRef != nil:
 		token, err := resolvers.SecretKeyRef(ctx, kube, c.storeKind, namespace, c.store.Auth.TokenSecretRef)
 		if err != nil {
 			return err
 		}
 
 		c.client.SetToken(token)
+
+	case c.store.Auth.UserPass != nil:
+		userPass := c.store.Auth.UserPass
+		password, err := resolvers.SecretKeyRef(ctx, kube, c.storeKind, namespace, &userPass.SecretRef)
+		if err != nil {
+			return err
+		}
+
+		auth, err := userpass.NewUserpassAuth(userPass.Username, &userpass.Password{
+			FromString: password,
+		}, userpass.WithMountPath(userPass.Path))
+		if err != nil {
+			return err
+		}
+
+		_, err = c.client.Auth().Login(ctx, auth)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 func (c *client) Close(_ context.Context) error {
+	if c.httpClient != nil {
+		c.httpClient.CloseIdleConnections()
+		c.httpClient = nil
+	}
 	c.client = nil
+	c.store = nil
 	return nil
 }
 
@@ -231,7 +306,7 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 
 	mount, err := c.client.Sys().MountInfoWithContext(ctx, c.path())
 	if err != nil {
-		return esv1.ValidationResultError, err
+		return esv1.ValidationResultError, fmt.Errorf(errFetchMount, c.store.Server, err)
 	}
 
 	if mount.Type != "kv" {

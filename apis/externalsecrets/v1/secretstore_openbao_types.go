@@ -28,9 +28,22 @@ const (
 )
 
 // OpenBaoProvider configures a store to sync secrets using an OpenBao KV backend.
+// +kubebuilder:validation:AtMostOneOf=caBundle;caProvider
 type OpenBaoProvider struct {
 	// Auth configures how secret-manager authenticates with the OpenBao server.
 	Auth *OpenBaoAuth `json:"auth,omitempty"`
+
+	// PEM encoded CA bundle used to validate the OpenBao server certificate. If
+	// this and `caProvider` are not set the system root certificates are used
+	// to validate the TLS connection.
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
+
+	// The provider for the CA bundle to use to validate OpenBao server
+	// certificate. If this and `caBundle` are not set the system root
+	// certificates are used to validate the TLS connection.
+	// +optional
+	CAProvider *CAProvider `json:"caProvider,omitempty"`
 
 	// Server is the connection address for the OpenBao server, e.g: `https://openbao.example.com:8200`.
 	Server string `json:"server"`
@@ -53,8 +66,39 @@ type OpenBaoProvider struct {
 // OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
 // Currently only token-based authentication is supported via `tokenSecretRef`.
 // Additional authentication methods are planned for future releases.
+//
+// +kubebuilder:validation:MaxProperties=1
 type OpenBaoAuth struct {
 	// TokenSecretRef authenticates with OpenBao by presenting a token.
 	// +optional
 	TokenSecretRef *esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`
+
+	// UserPass authenticates with OpenBao by passing a username/password pair
+	// +optional
+	UserPass *OpenBaoUserPassAuth `json:"userPass,omitempty"`
+}
+
+// OpenBaoUserPassAuth authenticates with OpenBao using [UserPass authentication
+// method], with the username and password stored in a Kubernetes Secret
+// resource.
+//
+// [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
+type OpenBaoUserPassAuth struct {
+	// Path where the UserPassword authentication backend is mounted
+	// in OpenBao, e.g: "userpass"
+	// +kubebuilder:default=userpass
+	Path string `json:"path"`
+
+	// Username is a username used to authenticate using the [UserPass
+	// authentication method]
+	//
+	// [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
+	Username string `json:"username"`
+
+	// SecretRef to a key in a Secret resource containing password for the user
+	// used to authenticate with OpenBao using the [UserPass authentication
+	// method]
+	//
+	// [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
+	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
