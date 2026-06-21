@@ -1187,6 +1187,14 @@ func isPeriodicRefreshAllowedByWindows(es *esv1.ExternalSecret, at time.Time) bo
 	for _, w := range sw.Windows {
 		sched, err := cronParser.Parse(w.Schedule)
 		if err != nil {
+			// A schedule that fails to parse is skipped rather than aborting the
+			// whole evaluation. The kubebuilder pattern marker rejects malformed
+			// schedules at admission, so this is a defensive log for any value
+			// that slips past validation (e.g. a parser/regex mismatch).
+			ctrl.Log.V(1).Info("ignoring unparseable sync window schedule",
+				"ExternalSecret", es.Namespace+"/"+es.Name,
+				"schedule", w.Schedule,
+				"error", err.Error())
 			continue
 		}
 		if isWithinSyncWindow(sched, w.Duration.Duration, at) {
