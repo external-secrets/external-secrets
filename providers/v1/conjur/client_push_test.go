@@ -77,7 +77,7 @@ func TestDefaultPolicy(t *testing.T) {
 	exp, err := yaml.Marshal(p)
 	assert.NoError(t, err)
 
-	assert.Equal(t, string(exp), policy)
+	assert.Equal(t, exp, policy)
 }
 
 type RemoteRef struct {

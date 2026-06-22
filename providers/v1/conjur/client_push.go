@@ -17,6 +17,7 @@ limitations under the License.
 package conjur
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"strings"
@@ -37,7 +38,7 @@ const (
 	AnnotationManagedByValue = "external-secrets"
 )
 
-func conjurPolicy(name string, vars []string) (string, error) {
+func conjurPolicy(name string, vars []string) ([]byte, error) {
 	pvars := make([]conjurpolicy.Resource, len(vars))
 	permits := make([]conjurpolicy.Resource, len(vars))
 
@@ -73,9 +74,9 @@ func conjurPolicy(name string, vars []string) (string, error) {
 
 	policy, err := yaml.Marshal(conjurpolicy.PolicyStatements{p})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return string(policy), nil
+	return policy, nil
 }
 
 // PushSecret writes a single secret into the provider.
@@ -132,7 +133,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1
 		return fmt.Errorf("failed to generate policy: %w", err)
 	}
 
-	_, err = conjurClient.LoadPolicy(conjurapi.PolicyModePost, parentPolicy, strings.NewReader(policy))
+	_, err = conjurClient.LoadPolicy(conjurapi.PolicyModePost, parentPolicy, bytes.NewReader(policy))
 	if err != nil {
 		return fmt.Errorf("failed to load policy: %w", err)
 	}
