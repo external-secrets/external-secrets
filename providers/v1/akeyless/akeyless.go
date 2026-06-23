@@ -185,6 +185,12 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, err
 	}
 
+	if akeylessSpec.Auth.ServiceAccountRef != nil {
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *akeylessSpec.Auth.ServiceAccountRef); err != nil {
+			return nil, fmt.Errorf("invalid Auth.ServiceAccountRef: %w", err)
+		}
+	}
+
 	return nil, nil
 }
 

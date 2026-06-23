@@ -43,6 +43,12 @@ The supported auth-methods and their parameters are:
 | `access_key`   | The access key (alias for api_key) |
 | `k8s`          | The k8s configuration name         |
 
+For namespace-scoped Azure Workload Identity on AKS, set `authSecretRef.serviceAccountRef` to a ServiceAccount in the target namespace annotated with `azure.workload.identity/client-id` and `azure.workload.identity/tenant-id`:
+
+```yaml
+{% include 'akeyless-secret-store-azure-ad-wi.yaml' %}
+```
+
 For more information see [Akeyless Authentication Methods](https://docs.akeyless.io/docs/access-and-authentication-methods)
 
 #### Creating an Akeyless Credentials Secret

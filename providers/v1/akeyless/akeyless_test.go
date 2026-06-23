@@ -201,6 +201,36 @@ func TestValidateStore(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("secret auth with serviceAccountRef", func(t *testing.T) {
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							SecretRef: esv1.AkeylessAuthSecretRef{
+								AccessID: esmeta.SecretKeySelector{
+									Name: "accessId",
+									Key:  "key-1",
+								},
+								AccessType: esmeta.SecretKeySelector{
+									Name: "accessId",
+									Key:  "key-1",
+								},
+							},
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name: "akeyless-wi-sa",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.NoError(t, err)
+	})
+
 	t.Run("k8s auth", func(t *testing.T) {
 		store := &esv1.SecretStore{
 			Spec: esv1.SecretStoreSpec{
