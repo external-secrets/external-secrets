@@ -214,6 +214,11 @@ func (in *AkeylessProvider) DeepCopyInto(out *AkeylessProvider) {
 		*out = new(string)
 		**out = **in
 	}
+	if in.IgnoreCache != nil {
+		in, out := &in.IgnoreCache, &out.IgnoreCache
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Auth != nil {
 		in, out := &in.Auth, &out.Auth
 		*out = new(AkeylessAuth)

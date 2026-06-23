@@ -170,6 +170,9 @@ func (a *akeylessBase) GetCertificate(ctx context.Context, certificateName strin
 		Name:    certificateName,
 		Version: &version,
 	}
+	if a.ignoreCache {
+		body.SetIgnoreCache("true")
+	}
 	if err := SetBodyToken(ctx, &body); err != nil {
 		return "", err
 	}
@@ -197,6 +200,9 @@ func (a *akeylessBase) GetRotatedSecrets(ctx context.Context, secretName string,
 	body := akeyless.GetRotatedSecretValue{
 		Names:   secretName,
 		Version: &version,
+	}
+	if a.ignoreCache {
+		body.SetIgnoreCache("true")
 	}
 	if err := SetBodyToken(ctx, &body); err != nil {
 		return "", err
@@ -264,6 +270,9 @@ func (a *akeylessBase) GetStaticSecret(ctx context.Context, secretName string, v
 	body := akeyless.GetSecretValue{
 		Names:   []string{secretName},
 		Version: &version,
+	}
+	if a.ignoreCache {
+		body.SetIgnoreCache("true")
 	}
 	if err := SetBodyToken(ctx, &body); err != nil {
 		return "", err
