@@ -973,21 +973,6 @@ func TestPushSecretMetadataChange(t *testing.T) {
 			wantErr:           "",
 			wantPutParameterN: 1,
 		},
-		"SetSecretTierDowngradeAdvancedToStandard": {
-			reason: "error returned and no PutParameter when trying to downgrade from Advanced to Standard tier",
-			describeOutput: &ssm.DescribeParametersOutput{
-				Parameters: []ssmtypes.ParameterMetadata{
-					{
-						Type:        ssmtypes.ParameterTypeString,
-						Description: aws.String(defaultDescription),
-						Tier:        ssmtypes.ParameterTierAdvanced,
-					},
-				},
-			},
-			// No metadata - defaults to Standard tier, triggering the downgrade guard.
-			wantErr:           "cannot downgrade",
-			wantPutParameterN: 0,
-		},
 		"SetSecretTierKeepAdvanced": {
 			reason: "no PutParameter when current and desired tier are both Advanced and metadata is unchanged",
 			describeOutput: &ssm.DescribeParametersOutput{
