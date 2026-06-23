@@ -71,6 +71,7 @@ type akeylessBase struct {
 	namespace string
 
 	akeylessGwAPIURL string
+	ignoreCache      bool
 	RestAPI          *akeyless.V2ApiService
 }
 
@@ -232,6 +233,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	}).V2Api
 
 	akl.akeylessGwAPIURL = akeylessGwAPIURL
+	akl.ignoreCache = ignoreCacheEnabled(spec)
 	akl.RestAPI = RestAPIClient
 	return &Akeyless{Client: akl, url: akeylessGwAPIURL}, nil
 }
