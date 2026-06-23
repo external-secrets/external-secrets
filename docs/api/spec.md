@@ -7428,6 +7428,18 @@ string
 </tr>
 <tr>
 <td>
+<code>organizationSlug</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>OrganizationSlug is the optional slug that identifies the organization that will be used
+during authentication. Useful for sub-organization setups</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>expandSecretReferences</code></br>
 <em>
 bool
