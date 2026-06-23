@@ -784,7 +784,7 @@ The `secretsScope` configuration controls which secrets are accessible:
     To get your project slug from Infisical, head over to the project settings and click the button `Copy Project Slug`.
 
 !!! tip
-    To get your organization slug from Insical, head over to the organization settings and copy the `Organization Slug`or `Sub-Organization Slug`
+    To get your organization slug from Infisical, head over to the organization settings. For a standard organization, copy the `Organization Slug`; for a sub-organization, copy the `Sub-Organization Slug`.
 
 !!! note
     `secretsPath` is a default scope for secret lookups, not a security boundary. A `remoteRef.key` that begins with `/` is always treated as an absolute path and bypasses `secretsPath` entirely. To enforce that the operator can only access secrets under a specific path, configure Access Controls in Infisical rather than relying on `secretsPath`.
