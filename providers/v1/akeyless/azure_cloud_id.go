@@ -34,9 +34,8 @@ import (
 )
 
 const (
-	azureDefaultAudience   = "api://AzureADTokenExchange"
-	azureADManagementScope = "https://management.azure.com/.default"
-	annotationClientID     = "azure.workload.identity/client-id"
+	azureDefaultAudience = "api://AzureADTokenExchange"
+	annotationClientID   = "azure.workload.identity/client-id"
 	annotationTenantID     = "azure.workload.identity/tenant-id"
 
 	errMissingAzureClientID = "missing Azure client ID: set accessTypeParam or annotate the service account with %s"
@@ -87,11 +86,13 @@ func (a *akeylessBase) getAzureCloudIDFromServiceAccount(ctx context.Context, re
 		return "", fmt.Errorf("failed to create Azure client assertion credential: %w", err)
 	}
 
-	accessToken, err := cred.GetToken(ctx, policy.TokenRequestOptions{Scopes: []string{azureADManagementScope}})
+	accessToken, err := cred.GetToken(ctx, policy.TokenRequestOptions{Scopes: []string{azure_cloud_id.AzureADManagementScope}})
 	if err != nil {
 		return "", fmt.Errorf("failed to get Azure access token: %w", err)
 	}
 
+	// akeyless-go-cloud-id GetCloudId returns a base64-encoded access token (see
+	// cloudprovider/azure/cloud_id.go); keep the same format for Workload Identity.
 	return base64.StdEncoding.EncodeToString([]byte(accessToken.Token)), nil
 }
 
