@@ -241,10 +241,9 @@ func TestPushSecret(t *testing.T) {
 }
 
 func TestPushSecretSelectedRepos(t *testing.T) {
-	ptr := func(s string) *string { return &s }
 	validKey := withGetPublicKeyFn(&github.PublicKey{
-		Key:   ptr("Zm9vYmFyCg=="),
-		KeyID: ptr("123"),
+		Key:   new("Zm9vYmFyCg=="),
+		KeyID: new("123"),
 	}, nil, nil)
 	secret := &corev1.Secret{Data: map[string][]byte{"foo": []byte("bingg")}}
 	ref := esv1alpha1.PushSecretData{
