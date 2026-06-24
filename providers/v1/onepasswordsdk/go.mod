@@ -3,7 +3,7 @@ module github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk
 go 1.26.4
 
 require (
-	github.com/1password/onepassword-sdk-go v0.4.1-beta.1
+	github.com/1password/onepassword-sdk-go v0.4.1-0.20260605221002-f1117e36ce06
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
@@ -74,16 +74,16 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
 	github.com/tetratelabs/wabin v0.0.0-20230304001439-f6f874872834 // indirect
-	github.com/tetratelabs/wazero v1.11.0 // indirect
+	github.com/tetratelabs/wazero v1.12.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.opentelemetry.io/proto/otlp v1.9.0 // indirect
+	go.opentelemetry.io/proto/otlp v1.10.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/crypto v0.51.0 // indirect
 	golang.org/x/net v0.54.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.44.0 // indirect
+	golang.org/x/sys v0.46.0 // indirect
 	golang.org/x/term v0.43.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
