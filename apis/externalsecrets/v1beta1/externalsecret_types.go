@@ -143,11 +143,6 @@ type TemplateFrom struct {
 
 	// +optional
 	Literal *string `json:"literal,omitempty"`
-
-	// Used to define a decoding Strategy for the rendered template values.
-	// +optional
-	// +kubebuilder:default="None"
-	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
 }
 
 // TemplateScope defines the scope of the template when processing template data.

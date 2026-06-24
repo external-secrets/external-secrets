@@ -205,24 +205,20 @@ func mapScopeApply(tpl string, data map[string][]byte, target string, secret cli
 }
 
 // Execute renders the secret data as template. If an error occurs processing is stopped immediately.
-func Execute(tpl, data map[string][]byte, scope esapi.TemplateScope, target string, secret client.Object, decodingStrategies ...esapi.ExternalSecretDecodingStrategy) error {
+func Execute(tpl, data map[string][]byte, scope esapi.TemplateScope, target string, secret client.Object, valueDecodingStrategy esapi.ExternalSecretDecodingStrategy) error {
 	if tpl == nil {
 		return nil
-	}
-	decodingStrategy := esapi.ExternalSecretDecodeNone
-	if len(decodingStrategies) > 0 {
-		decodingStrategy = decodingStrategies[0]
 	}
 	switch scope {
 	case esapi.TemplateScopeKeysAndValues:
 		for _, v := range tpl {
-			err := mapScopeApply(string(v), data, target, secret, decodingStrategy)
+			err := mapScopeApply(string(v), data, target, secret, valueDecodingStrategy)
 			if err != nil {
 				return err
 			}
 		}
 	case esapi.TemplateScopeValues:
-		err := valueScopeApply(tpl, data, target, secret, decodingStrategy)
+		err := valueScopeApply(tpl, data, target, secret, valueDecodingStrategy)
 		if err != nil {
 			return err
 		}

@@ -57,9 +57,9 @@ You do not have to define your templates inline in an ExternalSecret but you can
 
 Lastly, `TemplateFrom` also supports adding `Literal` blocks for quick templating. These `Literal` blocks differ from `Template.Data` as they are rendered as a a `key:value` pair (while the `Template.Data`, you can only template the value).
 
-#### DecodingStrategy example
+#### ValuesDecodingStrategy example
 
-`TemplateFrom` entries can also decode rendered values with `decodingStrategy`. This is useful when the template selects Base64-encoded values from structured provider data and the final Kubernetes Secret must contain the decoded bytes.
+`TemplateFrom` entries can also decode rendered values with `ValuesDecodingStrategy`. This is useful when the template selects Base64-encoded values from structured provider data and the final Kubernetes Secret must contain the decoded bytes.
 
 For example, imagine several remote secrets matched by `dataFrom.find` contain JSON values like this:
 
@@ -103,9 +103,9 @@ spec:
           {{- end }}
 {% endraw %}
 ```
-Without `templateFrom[0].decodingStrategy`, the template will select the `cert` property, and get the base64 text. The resulting Kubernetes Secret value will be stored as Base64 text.
+Without `templateFrom[0].ValuesDecodingStrategy`, the template will select the `cert` property, and get the base64 text. The resulting Kubernetes Secret value will be stored as Base64 text.
 
-Alternatively, you can use the `templateFrom[0].decodingStrategy: Base64` as following:
+Alternatively, you can use the `templateFrom[0].valuesDecodingStrategy: Base64` as following:
 
 ```yaml
 {% raw %}
@@ -131,7 +131,7 @@ spec:
     template:
       engineVersion: v2
       templateFrom:
-      - decodingStrategy: Base64
+      - valuesDecodingStrategy: Base64
         literal: |-
           {{- range $key, $val := . }}
           {{- $json := $val | fromJson }}
@@ -144,7 +144,7 @@ This way, the template still renders safe Base64 text internally.
 ESO then decodes the value and writes the decoded bytes in the Kubernetes Secret's data.
 Only rendered values are decoded; rendered keys are left unchanged.
 
-In other words, use `decodingStrategy` to `None` when values are not encoded, or `Auto` when values may be either Base64/Base64URL encoded or plain text.
+In other words, use `valuesDecodingStrategy` to `None` when values are not encoded, and our usual strategies like `Base64`, `Base64URL` (or even `Auto`) when values may be either Base64/Base64URL encoded.
 
 !!! note
 

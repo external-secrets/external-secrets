@@ -18761,8 +18761,7 @@ ExternalSecretDecodingStrategy
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
-<a href="#external-secrets.io/v1beta1.ExternalSecretFind">ExternalSecretFind</a>, 
-<a href="#external-secrets.io/v1beta1.TemplateFrom">TemplateFrom</a>)
+<a href="#external-secrets.io/v1beta1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
 <p>ExternalSecretDecodingStrategy defines how secret values are decoded.</p>
@@ -23527,20 +23526,6 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-</td>
-</tr>
-<tr>
-<td>
-<code>decodingStrategy</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretDecodingStrategy">
-ExternalSecretDecodingStrategy
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Used to define a decoding Strategy for the rendered template values.</p>
 </td>
 </tr>
 </tbody>

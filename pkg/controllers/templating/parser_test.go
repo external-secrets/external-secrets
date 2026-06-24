@@ -33,9 +33,8 @@ func TestParserMergeLiteralPassesTemplateFromValuesDecodingStrategy(t *testing.T
 	var got esv1.ExternalSecretDecodingStrategy
 
 	p := &Parser{
-		Exec: func(_ map[string][]byte, _ map[string][]byte, _ esv1.TemplateScope, _ string, _ client.Object, decodingStrategies ...esv1.ExternalSecretDecodingStrategy) error {
-			require.Len(t, decodingStrategies, 1)
-			got = decodingStrategies[0]
+		Exec: func(_ map[string][]byte, _ map[string][]byte, _ esv1.TemplateScope, _ string, _ client.Object, decodingStrategy esv1.ExternalSecretDecodingStrategy) error {
+			got = decodingStrategy
 			return nil
 		},
 		DataMap:      map[string][]byte{},
@@ -55,9 +54,8 @@ func TestParserMergeMapKeepsTemplateDataUndecoded(t *testing.T) {
 	var got esv1.ExternalSecretDecodingStrategy
 
 	p := &Parser{
-		Exec: func(_ map[string][]byte, _ map[string][]byte, _ esv1.TemplateScope, _ string, _ client.Object, decodingStrategies ...esv1.ExternalSecretDecodingStrategy) error {
-			require.Len(t, decodingStrategies, 1)
-			got = decodingStrategies[0]
+		Exec: func(_ map[string][]byte, _ map[string][]byte, _ esv1.TemplateScope, _ string, _ client.Object, decodingStrategy esv1.ExternalSecretDecodingStrategy) error {
+			got = decodingStrategy
 			return nil
 		},
 		DataMap:      map[string][]byte{},
