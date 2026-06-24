@@ -27,7 +27,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/openbao/openbao/api/auth/userpass/v2"
 	"github.com/openbao/openbao/api/v2"
 	v1 "k8s.io/api/core/v1"
 	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -59,8 +58,8 @@ type client struct {
 	storeKind  string
 }
 
-func (c *client) setup(ctx context.Context, kube k8sClient.Client, namespace string, httpClient httpClientFactory) error {
-	c.httpClient = httpClient()
+func (c *client) setup(ctx context.Context, kube k8sClient.Client, namespace string, provider *Provider) error {
+	c.httpClient = provider.HTTPClientFactory()
 
 	config := api.DefaultConfig()
 	config.HttpClient = c.httpClient
@@ -99,23 +98,27 @@ func (c *client) setup(ctx context.Context, kube k8sClient.Client, namespace str
 	}
 	c.client = client
 
-	return c.setupAuth(ctx, kube, namespace)
+	return c.setupAuth(ctx, kube, namespace, provider)
 }
 
-func (c *client) setupAuth(ctx context.Context, kube k8sClient.Client, namespace string) error {
+func (c *client) setupAuth(ctx context.Context, kube k8sClient.Client, namespace string, provider *Provider) error {
 	if c.store.Auth == nil {
 		return nil
 	}
 
-	switch {
-	case c.store.Auth.TokenSecretRef != nil:
+	if c.store.Auth.TokenSecretRef != nil {
 		token, err := resolvers.SecretKeyRef(ctx, kube, c.storeKind, namespace, c.store.Auth.TokenSecretRef)
 		if err != nil {
 			return err
 		}
 
 		c.client.SetToken(token)
+		return nil
+	}
 
+	var auth api.AuthMethod
+
+	switch {
 	case c.store.Auth.UserPass != nil:
 		userPass := c.store.Auth.UserPass
 		password, err := resolvers.SecretKeyRef(ctx, kube, c.storeKind, namespace, &userPass.SecretRef)
@@ -123,20 +126,37 @@ func (c *client) setupAuth(ctx context.Context, kube k8sClient.Client, namespace
 			return err
 		}
 
-		auth, err := userpass.NewUserpassAuth(userPass.Username, &userpass.Password{
-			FromString: password,
-		}, userpass.WithMountPath(userPass.Path))
+		auth, err = provider.AuthMethodFactory.UserPass(userPass.Username, password, userPass.Path)
 		if err != nil {
 			return err
 		}
 
-		_, err = c.client.Auth().Login(ctx, auth)
+	case c.store.Auth.AppRole != nil:
+		appRole := c.store.Auth.AppRole
+		secret, err := resolvers.SecretKeyRef(ctx, kube, c.storeKind, namespace, &appRole.SecretRef)
 		if err != nil {
 			return err
 		}
+
+		roleID := appRole.RoleID
+		if appRole.RoleRef != nil { // RoleID and RoleRef are mutually exclusive (enforced by CRD validation)
+			roleID, err = resolvers.SecretKeyRef(ctx, kube, c.storeKind, namespace, appRole.RoleRef)
+			if err != nil {
+				return err
+			}
+		}
+
+		auth, err = provider.AuthMethodFactory.AppRole(roleID, secret, appRole.Path)
+		if err != nil {
+			return err
+		}
+
+	default:
+		return fmt.Errorf("unsupported auth method") // this should not happen, because of CRD validation (unless a case is missing above)
 	}
 
-	return nil
+	_, err := c.client.Auth().Login(ctx, auth)
+	return err
 }
 
 func (c *client) Close(_ context.Context) error {
