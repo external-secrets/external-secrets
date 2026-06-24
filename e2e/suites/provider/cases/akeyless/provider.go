@@ -28,18 +28,17 @@ import (
 	azure_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/azure"
 	gcp_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/gcp"
 	"github.com/akeylesslabs/akeyless-go/v4"
-
-	//nolint
-	. "github.com/onsi/ginkgo/v2"
-
-	//nolint
-	. "github.com/onsi/gomega"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+
+	//nolint
+	. "github.com/onsi/ginkgo/v2"
+	//nolint
+	. "github.com/onsi/gomega"
 )
 
 type akeylessProvider struct {
@@ -178,7 +177,7 @@ func (a *akeylessProvider) GetToken() (string, error) {
 	} else {
 		cloudID, err := a.getCloudID(a.accessType, a.accessTypeParam)
 		if err != nil {
-			return "", fmt.Errorf("Require Cloud ID " + err.Error())
+			return "", fmt.Errorf("require cloud ID: %w", err)
 		}
 		authBody.AccessType = akeyless.PtrString(a.accessType)
 		authBody.CloudId = akeyless.PtrString(cloudID)

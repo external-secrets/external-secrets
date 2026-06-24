@@ -17,19 +17,17 @@ limitations under the License.
 package fake
 
 import (
-	"encoding/json"
-
-	// nolint
-	. "github.com/onsi/ginkgo/v2"
-
-	// nolint
-	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+
+	// nolint
+	. "github.com/onsi/ginkgo/v2"
+	// nolint
+	. "github.com/onsi/gomega"
 )
 
 type Provider struct {
@@ -53,9 +51,7 @@ func (s *Provider) CreateSecret(key string, val framework.SecretEntry) {
 	Expect(err).ToNot(HaveOccurred())
 	base := store.DeepCopy()
 
-	mapData := make(map[string]string)
-	_ = json.Unmarshal([]byte(val.Value), &mapData)
-	store.Spec.Provider.Fake.Data = append(store.Spec.Provider.Fake.Data, esv1.FakeProviderData{
+	store.Spec.Provider.Fake.Data = upsertFakeProviderData(store.Spec.Provider.Fake.Data, esv1.FakeProviderData{
 		Key:   key,
 		Value: val.Value,
 	})
@@ -75,13 +71,7 @@ func (s *Provider) DeleteSecret(key string) {
 	}, &store)
 	Expect(err).ToNot(HaveOccurred())
 	base := store.DeepCopy()
-	data := make([]esv1.FakeProviderData, 0)
-	for _, v := range store.Spec.Provider.Fake.Data {
-		if v.Key != key {
-			data = append(data, v)
-		}
-	}
-	store.Spec.Provider.Fake.Data = data
+	store.Spec.Provider.Fake.Data = removeFakeProviderData(store.Spec.Provider.Fake.Data, key, "")
 	err = s.framework.CRClient.Patch(GinkgoT().Context(), &store, client.MergeFrom(base))
 	Expect(err).ToNot(HaveOccurred())
 }
@@ -104,4 +94,25 @@ func (s *Provider) CreateStore() {
 	}
 	err := s.framework.CRClient.Create(GinkgoT().Context(), fakeStore)
 	Expect(err).ToNot(HaveOccurred())
+}
+
+func upsertFakeProviderData(data []esv1.FakeProviderData, entry esv1.FakeProviderData) []esv1.FakeProviderData {
+	for i := range data {
+		if data[i].Key == entry.Key && data[i].Version == entry.Version {
+			data[i] = entry
+			return data
+		}
+	}
+	return append(data, entry)
+}
+
+func removeFakeProviderData(data []esv1.FakeProviderData, key, version string) []esv1.FakeProviderData {
+	filtered := make([]esv1.FakeProviderData, 0, len(data))
+	for _, entry := range data {
+		if entry.Key == key && entry.Version == version {
+			continue
+		}
+		filtered = append(filtered, entry)
+	}
+	return filtered
 }

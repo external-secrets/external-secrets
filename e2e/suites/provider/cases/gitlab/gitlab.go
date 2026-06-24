@@ -21,12 +21,11 @@ package gitlab
 // and in e2e/suite/common/common.go, but this breaks Azure provider.
 
 import (
+	"github.com/external-secrets/external-secrets-e2e/framework"
+	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
-
-	"github.com/external-secrets/external-secrets-e2e/framework"
-	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
 )
 
 var _ = Describe("[gitlab]", Label("gitlab"), func() {

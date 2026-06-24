@@ -1,0 +1,155 @@
+{{- if .Values.providers.enabled }}
+{{- range .Values.providers.list }}
+{{- if .enabled }}
+{{- $root := $ }}
+{{- $provider := include "external-secrets.provider.mergeDefaults" (dict "provider" . "root" $root) | fromYaml }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "external-secrets.provider.fullname" (dict "provider" $provider "root" $root) }}
+  namespace: {{ include "external-secrets.namespace" $root }}
+  labels:
+    {{- include "external-secrets.provider.labels" (dict "provider" $provider "root" $root) | nindent 4 }}
+  {{- with $root.Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not (and $provider.autoscaling $provider.autoscaling.enabled) }}
+  replicas: {{ $provider.replicaCount | default 2 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "external-secrets.provider.selectorLabels" (dict "provider" $provider "root" $root) | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        {{- with $provider.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "external-secrets.provider.selectorLabels" (dict "provider" $provider "root" $root) | nindent 8 }}
+        {{- with $provider.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with $provider.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "external-secrets.provider.serviceAccountName" (dict "provider" $provider "root" $root) }}
+      {{- if $provider.priorityClassName }}
+      priorityClassName: {{ $provider.priorityClassName }}
+      {{- end }}
+      {{- if and $provider.podSecurityContext $provider.podSecurityContext.enabled }}
+      securityContext:
+        {{- include "external-secrets.renderSecurityContext" (dict "securityContext" $provider.podSecurityContext "context" $root) | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: provider
+        image: {{ include "external-secrets.provider.image" (dict "provider" $provider "root" $root) }}
+        imagePullPolicy: {{ $provider.image.pullPolicy | default "IfNotPresent" }}
+        {{- if and $provider.securityContext $provider.securityContext.enabled }}
+        securityContext:
+          {{- include "external-secrets.renderSecurityContext" (dict "securityContext" $provider.securityContext "context" $root) | nindent 10 }}
+        {{- end }}
+        args: []
+        env:
+        {{- if and $provider.tls $provider.tls.enabled }}
+        - name: TLS_ENABLED
+          value: "true"
+        - name: TLS_CERT_DIR
+          value: {{ $provider.tls.certPath | default "/etc/provider/certs" }}
+        {{- end }}
+        {{- if $provider.config }}
+        {{- range $key, $value := $provider.config }}
+        - name: {{ $key | upper | replace "." "_" }}
+          value: {{ $value | quote }}
+        {{- end }}
+        {{- end }}
+        {{- with $provider.extraEnv }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        ports:
+        - name: grpc
+          containerPort: {{ $provider.service.port | default 8080 }}
+          protocol: TCP
+        {{- if and $provider.metrics $provider.metrics.enabled }}
+        - name: metrics
+          containerPort: {{ $provider.metrics.port | default 8081 }}
+          protocol: TCP
+        {{- end }}
+        {{- if $provider.health }}
+        - name: health
+          containerPort: {{ $provider.health.port | default 8082 }}
+          protocol: TCP
+        {{- end }}
+        {{- if and $provider.health $provider.health.livenessProbe $provider.health.livenessProbe.enabled }}
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: health
+          initialDelaySeconds: {{ $provider.health.livenessProbe.initialDelaySeconds | default 10 }}
+          periodSeconds: {{ $provider.health.livenessProbe.periodSeconds | default 20 }}
+          timeoutSeconds: {{ $provider.health.livenessProbe.timeoutSeconds | default 5 }}
+          failureThreshold: {{ $provider.health.livenessProbe.failureThreshold | default 3 }}
+        {{- end }}
+        {{- if and $provider.health $provider.health.readinessProbe $provider.health.readinessProbe.enabled }}
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: health
+          initialDelaySeconds: {{ $provider.health.readinessProbe.initialDelaySeconds | default 5 }}
+          periodSeconds: {{ $provider.health.readinessProbe.periodSeconds | default 10 }}
+          timeoutSeconds: {{ $provider.health.readinessProbe.timeoutSeconds | default 5 }}
+          failureThreshold: {{ $provider.health.readinessProbe.failureThreshold | default 3 }}
+        {{- end }}
+        {{- with $provider.resources }}
+        resources:
+          {{- toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        {{- if and $provider.tls $provider.tls.enabled }}
+        - name: provider-certs
+          mountPath: {{ $provider.tls.certPath | default "/etc/provider/certs" }}
+          readOnly: true
+        {{- end }}
+        {{- with $provider.extraVolumeMounts }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      volumes:
+      {{- if and $provider.tls $provider.tls.enabled }}
+      - name: provider-certs
+        secret:
+          secretName: "external-secrets-provider-tls"
+          items:
+          - key: tls.crt
+            path: tls.crt
+          - key: tls.key
+            path: tls.key
+          - key: ca.crt
+            path: ca.crt
+      {{- end }}
+      {{- with $provider.extraVolumes }}
+      {{- toYaml . | nindent 6 }}
+      {{- end }}
+      {{- with $provider.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $provider.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $provider.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $provider.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -53,15 +53,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	// Metrics.
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	ctrlutil "github.com/external-secrets/external-secrets/pkg/controllers/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 
-	// Loading registered generators.
-	_ "github.com/external-secrets/external-secrets/pkg/register"
+	_ "github.com/external-secrets/external-secrets/pkg/register" // Register generators for side-effect initialization.
 )
 
 const (

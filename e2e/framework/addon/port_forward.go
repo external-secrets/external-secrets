@@ -22,13 +22,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/external-secrets/external-secrets-e2e/framework/log"
-	. "github.com/onsi/ginkgo/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/portforward"
 	"k8s.io/client-go/transport/spdy"
+
+	"github.com/external-secrets/external-secrets-e2e/framework/log"
+
+	. "github.com/onsi/ginkgo/v2"
 )
 
 type PortForward struct {

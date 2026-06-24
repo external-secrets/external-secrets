@@ -50,7 +50,7 @@ func MaintenanceStatus() esv1.MaintenanceStatus {
 	return esv1.MaintenanceStatusMaintained
 }
 
-var _ esv1.Provider = &Provider{}
+var _ esv1.ProviderInterface = &Provider{}
 var _ esv1.SecretsClient = &Client{}
 
 // Provider is a secrets provider for Cloud.ru Secret Manager.

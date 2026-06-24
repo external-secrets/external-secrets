@@ -260,7 +260,7 @@ func mapKey(key, version string) string {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.Provider {
+func NewProvider() esv1.ProviderInterface {
 	return &Provider{}
 }
 
