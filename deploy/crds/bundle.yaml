@@ -3949,6 +3949,61 @@ spec:
                                 - clientKeyRef
                                 - serviceID
                               type: object
+                            azure:
+                              description: Azure enables authentication to Conjur via the authn-azure authenticator.
+                              properties:
+                                account:
+                                  description: Account is the Conjur organization account name.
+                                  type: string
+                                clientId:
+                                  description: |-
+                                    ClientID is the Azure managed identity client ID. Required for user-assigned
+                                    managed identities; omit for system-assigned identities.
+                                  type: string
+                                hostId:
+                                  description: |-
+                                    HostID is the Conjur host mapped to the Azure managed identity
+                                    (e.g. "data/myapp/myhost").
+                                  type: string
+                                serviceAccountRef:
+                                  description: |-
+                                    ServiceAccountRef specifies the Kubernetes service account for which to request
+                                    a token via the TokenRequest API. That token is used as the Azure JWT for Conjur
+                                    authn-azure. If omitted, the token is fetched from the Azure IMDS endpoint instead.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                                serviceID:
+                                  description: ServiceID is the Conjur authn-azure webservice identifier (e.g. "prod").
+                                  type: string
+                              required:
+                                - account
+                                - hostId
+                                - serviceID
+                              type: object
                             iam:
                               description: Iam enables authentication to Conjur via the authn-iam authenticator.
                               properties:
@@ -17365,6 +17420,61 @@ spec:
                                 - account
                                 - clientCertRef
                                 - clientKeyRef
+                                - serviceID
+                              type: object
+                            azure:
+                              description: Azure enables authentication to Conjur via the authn-azure authenticator.
+                              properties:
+                                account:
+                                  description: Account is the Conjur organization account name.
+                                  type: string
+                                clientId:
+                                  description: |-
+                                    ClientID is the Azure managed identity client ID. Required for user-assigned
+                                    managed identities; omit for system-assigned identities.
+                                  type: string
+                                hostId:
+                                  description: |-
+                                    HostID is the Conjur host mapped to the Azure managed identity
+                                    (e.g. "data/myapp/myhost").
+                                  type: string
+                                serviceAccountRef:
+                                  description: |-
+                                    ServiceAccountRef specifies the Kubernetes service account for which to request
+                                    a token via the TokenRequest API. That token is used as the Azure JWT for Conjur
+                                    authn-azure. If omitted, the token is fetched from the Azure IMDS endpoint instead.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                                serviceID:
+                                  description: ServiceID is the Conjur authn-azure webservice identifier (e.g. "prod").
+                                  type: string
+                              required:
+                                - account
+                                - hostId
                                 - serviceID
                               type: object
                             iam:

@@ -100,6 +100,9 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 		return c.conjurClientFromCert(ctx, config, prov)
 	}
 
+	if prov.Auth.Azure != nil {
+		return c.conjurClientFromAzure(ctx, config, prov)
+	}
 	// Should not happen because validate func should catch this
 	return nil, errors.New("no authentication method provided")
 }
