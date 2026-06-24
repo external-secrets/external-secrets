@@ -5485,6 +5485,11 @@ spec:
                               default: true
                               description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
                               type: boolean
+                            organizationSlug:
+                              description: |-
+                                OrganizationSlug is the optional slug that identifies the organization that will be used
+                                during authentication. Useful for sub-organization setups
+                              type: string
                             projectSlug:
                               description: ProjectSlug is the required slug identifier for the project.
                               type: string
@@ -18044,6 +18049,11 @@ spec:
                               default: true
                               description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
                               type: boolean
+                            organizationSlug:
+                              description: |-
+                                OrganizationSlug is the optional slug that identifies the organization that will be used
+                                during authentication. Useful for sub-organization setups
+                              type: string
                             projectSlug:
                               description: ProjectSlug is the required slug identifier for the project.
                               type: string
