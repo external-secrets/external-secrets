@@ -311,6 +311,33 @@ func TestGetSecret(t *testing.T) {
 				value: "secret",
 			},
 		},
+		"AzureAmbientTokenSuccess": {
+			reason: "Should read a secret using Azure auth with ambient IMDS token.",
+			args: args{
+				store:      makeAzureSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/myhost", false),
+				kube:       clientfake.NewClientBuilder().Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"AzureServiceAccountTokenSuccess": {
+			reason: "Should read a secret using Azure auth with a Kubernetes ServiceAccount token.",
+			args: args{
+				store:      makeAzureSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/myhost", true),
+				kube:       clientfake.NewClientBuilder().Build(),
+				namespace:  "default",
+				corev1:     utilfake.NewCreateTokenMock().WithToken(createFakeJwtToken(true)),
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
 	}
 
 	runTest := func(t *testing.T, _ string, tc testCase) {
@@ -977,6 +1004,10 @@ func (c *ConjurMockAPIClient) NewClientFromJWT(_ conjurapi.Config) (SecretsClien
 }
 
 func (c *ConjurMockAPIClient) NewClientFromIAM(_ conjurapi.Config, _ *authn.IAMCredentials) (SecretsClient, error) {
+	return &fake.ConjurMockClient{}, nil
+}
+
+func (c *ConjurMockAPIClient) NewClientFromAzure(_ conjurapi.Config) (SecretsClient, error) {
 	return &fake.ConjurMockClient{}, nil
 }
 

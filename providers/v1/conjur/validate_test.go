@@ -155,6 +155,31 @@ func TestValidateStore(t *testing.T) {
 			store: makeIAMSecretStore("", "myorg", "prod", "data/myapp/123456789/MyRole", false),
 			err:   errors.New("conjur URL cannot be empty"),
 		},
+
+		{
+			store: makeAzureSecretStore(svcURL, "myorg", "prod", "data/myapp/myhost", false),
+			err:   nil,
+		},
+		{
+			store: makeAzureSecretStore(svcURL, "myorg", "prod", "data/myapp/myhost", true),
+			err:   nil,
+		},
+		{
+			store: makeAzureSecretStore(svcURL, "", "prod", "data/myapp/myhost", false),
+			err:   errors.New("missing Auth.Azure.Account"),
+		},
+		{
+			store: makeAzureSecretStore(svcURL, "myorg", "", "data/myapp/myhost", false),
+			err:   errors.New("missing Auth.Azure.ServiceID"),
+		},
+		{
+			store: makeAzureSecretStore(svcURL, "myorg", "prod", "", false),
+			err:   errors.New("missing Auth.Azure.HostID"),
+		},
+		{
+			store: makeAzureSecretStore("", "myorg", "prod", "data/myapp/myhost", false),
+			err:   errors.New("conjur URL cannot be empty"),
+		},
 	}
 	p := Provider{}
 	for _, tc := range testCases {
@@ -166,6 +191,32 @@ func TestValidateStore(t *testing.T) {
 		} else if tc.err != nil && err == nil {
 			t.Errorf("want err %v got nil", tc.err)
 		}
+	}
+}
+
+func makeAzureSecretStore(svcURL, account, serviceID, hostID string, withServiceAccountRef bool) *esv1.SecretStore {
+	azure := &esv1.ConjurAzure{
+		Account:   account,
+		ServiceID: serviceID,
+		HostID:    hostID,
+	}
+	if withServiceAccountRef {
+		azure.ServiceAccountRef = &esmeta.ServiceAccountSelector{
+			Name:      "my-service-account",
+			Audiences: []string{"conjur"},
+		}
+	}
+	return &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Conjur: &esv1.ConjurProvider{
+					URL: svcURL,
+					Auth: esv1.ConjurAuth{
+						Azure: azure,
+					},
+				},
+			},
+		},
 	}
 }
 
