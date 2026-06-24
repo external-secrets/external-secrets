@@ -738,15 +738,15 @@ func TestExecute(t *testing.T) {
 				leftDelim = oldLeftDelim
 				rightDelim = oldRightDelim
 			}()
-			err := Execute(tt.tpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetData, sec)
+			err := Execute(tt.tpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetData, sec, esapi.ExternalSecretDecodeNone)
 			if !ErrorContains(err, tt.expErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, tt.expErr)
 			}
-			err = Execute(tt.labelsTpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetLabels, sec)
+			err = Execute(tt.labelsTpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetLabels, sec, esapi.ExternalSecretDecodeNone)
 			if !ErrorContains(err, tt.expLblErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, tt.expErr)
 			}
-			err = Execute(tt.annotationsTpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetAnnotations, sec)
+			err = Execute(tt.annotationsTpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetAnnotations, sec, esapi.ExternalSecretDecodeNone)
 			if !ErrorContains(err, tt.expAnnoErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, tt.expErr)
 			}
@@ -820,7 +820,7 @@ func TestScopeValuesWithSecretFieldsNil(t *testing.T) {
 		row := tbl[i]
 		t.Run(row.name, func(t *testing.T) {
 			sec := &corev1.Secret{}
-			err := Execute(row.tpl, row.data, esapi.TemplateScopeValues, row.target, sec)
+			err := Execute(row.tpl, row.data, esapi.TemplateScopeValues, row.target, sec, esapi.ExternalSecretDecodeNone)
 			if !ErrorContains(err, row.expErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
@@ -844,7 +844,7 @@ func TestScopeValuesWithSecretFieldsNil(t *testing.T) {
 
 func TestExecuteInvalidTemplateScope(t *testing.T) {
 	sec := &corev1.Secret{}
-	err := Execute(map[string][]byte{"foo": []byte("bar")}, nil, "invalid", esapi.TemplateTargetData, sec)
+	err := Execute(map[string][]byte{"foo": []byte("bar")}, nil, "invalid", esapi.TemplateTargetData, sec, esapi.ExternalSecretDecodeNone)
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "expected 'Values' or 'KeysAndValues'")
 }
@@ -854,7 +854,7 @@ func TestExecuteTargetCaseInsensitive(t *testing.T) {
 	for _, target := range []string{"Annotations", "annotations", "ANNOTATIONS", "AnNoTaTiOnS"} {
 		t.Run(target, func(t *testing.T) {
 			sec := &corev1.Secret{}
-			require.NoError(t, Execute(map[string][]byte{"foo": []byte("bar")}, nil, esapi.TemplateScopeValues, target, sec))
+			require.NoError(t, Execute(map[string][]byte{"foo": []byte("bar")}, nil, esapi.TemplateScopeValues, target, sec, esapi.ExternalSecretDecodeNone))
 			assert.Equal(t, "bar", sec.Annotations["foo"])
 			assert.Empty(t, sec.Labels)
 			assert.Empty(t, sec.Data)
@@ -923,7 +923,7 @@ func TestScopeKeysAndValues(t *testing.T) {
 				StringData: make(map[string]string),
 				ObjectMeta: v1.ObjectMeta{Labels: make(map[string]string), Annotations: make(map[string]string)},
 			}
-			err := Execute(row.tpl, row.data, esapi.TemplateScopeKeysAndValues, row.target, sec)
+			err := Execute(row.tpl, row.data, esapi.TemplateScopeKeysAndValues, row.target, sec, esapi.ExternalSecretDecodeNone)
 			if !ErrorContains(err, row.expErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
@@ -1039,7 +1039,7 @@ func TestComplexYAMLFieldsWithSpec(t *testing.T) {
 				Data: make(map[string][]byte),
 			}
 
-			err := Execute(tt.tpl, tt.data, tt.scope, tt.target, obj)
+			err := Execute(tt.tpl, tt.data, tt.scope, tt.target, obj, esapi.ExternalSecretDecodeNone)
 
 			if tt.expErr != "" {
 				require.Error(t, err)
@@ -1285,7 +1285,7 @@ func TestConfigMapDataNotBase64Encoded(t *testing.T) {
 		"database": []byte("{{ .database }}"),
 	}
 
-	err := Execute(tplMap, data, esapi.TemplateScopeValues, "Data", configMap)
+	err := Execute(tplMap, data, esapi.TemplateScopeValues, "Data", configMap, esapi.ExternalSecretDecodeNone)
 	require.NoError(t, err)
 
 	assert.Equal(t, "localhost", configMap.Data["host"], "host should be plain text, not base64")
@@ -1629,7 +1629,7 @@ channel: {{ .new_channel }}
 				}
 			}
 
-			err := Execute(tt.tpl, tt.data, tt.scope, tt.target, obj)
+			err := Execute(tt.tpl, tt.data, tt.scope, tt.target, obj, esapi.ExternalSecretDecodeNone)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -1735,7 +1735,7 @@ func TestNestedPathTargetingIsIdempotent(t *testing.T) {
 
 			var snapshot map[string]any
 			for i := range 3 {
-				require.NoError(t, Execute(tt.tpl, tt.data, tt.scope, tt.target, obj))
+				require.NoError(t, Execute(tt.tpl, tt.data, tt.scope, tt.target, obj, esapi.ExternalSecretDecodeNone))
 				if i == 0 {
 					snapshot = obj.DeepCopy().Object
 					continue
@@ -1746,6 +1746,92 @@ func TestNestedPathTargetingIsIdempotent(t *testing.T) {
 			}
 
 			tt.verify(t, obj.Object)
+		})
+	}
+}
+
+func TestExecuteDecodesRenderedTemplateValues(t *testing.T) {
+	tests := []struct {
+		name             string
+		scope            esapi.TemplateScope
+		tpl              map[string][]byte
+		data             map[string][]byte
+		decodingStrategy esapi.ExternalSecretDecodingStrategy
+		wantData         map[string][]byte
+		wantErr          string
+	}{
+		{
+			name:  "keys and values scope decodes each rendered value",
+			scope: esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"tpl": []byte("service-a: SGVsbG8=\nservice-b: V29ybGQ=\n"),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeBase64,
+			wantData: map[string][]byte{
+				"service-a": []byte("Hello"),
+				"service-b": []byte("World"),
+			},
+		},
+		{
+			name:  "keys are not decoded",
+			scope: esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"tpl": []byte("SGVsbG8=: V29ybGQ=\n"),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeBase64,
+			wantData: map[string][]byte{
+				"SGVsbG8=": []byte("World"),
+			},
+		},
+		{
+			name:  "values scope decodes rendered value",
+			scope: esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"service-a": []byte("{{ .encoded }}"),
+			},
+			data: map[string][]byte{
+				"encoded": []byte("SGVsbG8="),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeBase64,
+			wantData: map[string][]byte{
+				"service-a": []byte("Hello"),
+			},
+		},
+		{
+			name:  "none keeps rendered value unchanged",
+			scope: esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"tpl": []byte("service-a: SGVsbG8=\n"),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeNone,
+			wantData: map[string][]byte{
+				"service-a": []byte("SGVsbG8="),
+			},
+		},
+		{
+			name:  "base64 fails for non base64 rendered value",
+			scope: esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"tpl": []byte("service-a: not-base64!\n"),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeBase64,
+			wantErr:          "failed to decode rendered template value for key service-a",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			secret := &corev1.Secret{}
+
+			err := Execute(tt.tpl, tt.data, tt.scope, esapi.TemplateTargetData, secret, tt.decodingStrategy)
+
+			if tt.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantData, secret.Data)
 		})
 	}
 }
