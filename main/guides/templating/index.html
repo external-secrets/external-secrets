@@ -2206,6 +2206,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="TemplateFrom">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#valuesdecodingstrategy-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ValuesDecodingStrategy example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#htpasswd-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        htpasswd example
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -5088,6 +5116,34 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="TemplateFrom">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#valuesdecodingstrategy-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ValuesDecodingStrategy example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#htpasswd-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        htpasswd example
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
         
           <li class="md-nav__item">
@@ -5422,7 +5478,84 @@ Example: <strong><code>{{ index .data "service-account-token" }}</code></strong>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/grafana/password</span>
 </code></pre></div>
 <p>Lastly, <code>TemplateFrom</code> also supports adding <code>Literal</code> blocks for quick templating. These <code>Literal</code> blocks differ from <code>Template.Data</code> as they are rendered as a a <code>key:value</code> pair (while the <code>Template.Data</code>, you can only template the value).</p>
-<p>See an example, how to produce a <code>htpasswd</code> file that can be used by an ingress-controller (for example: https://kubernetes.github.io/ingress-nginx/examples/auth/basic/) where the contents of the <code>htpasswd</code> file needs to be presented via the <code>auth</code> key. We use the <code>htpasswd</code> function to create a <code>bcrytped</code> hash of the password.</p>
+<h4 id="valuesdecodingstrategy-example">ValuesDecodingStrategy example</h4>
+<p><code>TemplateFrom</code> entries can also decode rendered values with <code>ValuesDecodingStrategy</code>. This is useful when the template selects Base64-encoded values from structured provider data and the final Kubernetes Secret must contain the decoded bytes.</p>
+<p>For example, imagine several remote secrets matched by <code>dataFrom.find</code> contain JSON values like this:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;cert&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCg==&quot;</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;certificate encoded as base64&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>And let's imagine an ExternalSecret definition as this one:</p>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nginx-certs</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-secretsmanager</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">^productA/nginx/.*</span>
+<span class="w">    </span><span class="nt">rewrite</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">regexp</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">^productA/nginx/(.*)</span>
+<span class="w">        </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$1</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nginx-certs</span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">engineVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span>
+<span class="w">      </span><span class="nt">templateFrom</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">literal</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span>
+<span class="w">          </span><span class="no">{{- range $key, $val := . }}</span>
+<span class="w">          </span><span class="no">{{- $json := $val | fromJson }}</span>
+<span class="w">          </span><span class="no">{{ $key }}: {{ $json.cert }}</span>
+<span class="w">          </span><span class="no">{{- end }}</span>
+</code></pre></div>
+Without <code>templateFrom[0].ValuesDecodingStrategy</code>, the template will select the <code>cert</code> property, and get the base64 text. The resulting Kubernetes Secret value will be stored as Base64 text.</p>
+<p>Alternatively, you can use the <code>templateFrom[0].valuesDecodingStrategy: Base64</code> as following:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nginx-certs</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-secretsmanager</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">^productA/nginx/.*</span>
+<span class="w">    </span><span class="nt">rewrite</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">regexp</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">source</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">^productA/nginx/(.*)</span>
+<span class="w">        </span><span class="nt">target</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">$1</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">nginx-certs</span>
+<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">engineVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v2</span>
+<span class="w">      </span><span class="nt">templateFrom</span><span class="p">:</span>
+<span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">valuesDecodingStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Base64</span>
+<span class="w">        </span><span class="nt">literal</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|-</span>
+<span class="w">          </span><span class="no">{{- range $key, $val := . }}</span>
+<span class="w">          </span><span class="no">{{- $json := $val | fromJson }}</span>
+<span class="w">          </span><span class="no">{{ $key }}: {{ $json.cert }}</span>
+<span class="w">          </span><span class="no">{{- end }}</span>
+</code></pre></div>
+<p>This way, the template still renders safe Base64 text internally.
+ESO then decodes the value and writes the decoded bytes in the Kubernetes Secret's data.
+Only rendered values are decoded; rendered keys are left unchanged.</p>
+<p>In other words, use <code>valuesDecodingStrategy</code> to <code>None</code> when values are not encoded, and our usual strategies like <code>Base64</code>, <code>Base64URL</code> (or even <code>Auto</code>) when values may be either Base64/Base64URL encoded.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This is safer for binary data than decoding inside the template with <code>{{ $json.cert | b64dec }}</code>, because <code>b64dec</code> injects raw bytes into the intermediate rendered YAML.</p>
+</div>
+<h4 id="htpasswd-example">htpasswd example</h4>
+<p>See an example, how to produce a <code>htpasswd</code> file that can be used by an ingress-controller (for example: https://kubernetes.github.io/ingress-nginx/examples/auth/basic/) where the contents of the <code>htpasswd</code> file needs to be presented via the <code>auth</code> key. We use the <code>htpasswd</code> function to create a <code>bcrypted</code> hash of the password.</p>
 <p>Suppose you have multiple key-value pairs within your provider secret like</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
 <span class="w">  </span><span class="nt">&quot;user1&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;password1&quot;</span><span class="p">,</span>
