@@ -154,6 +154,10 @@ spec:
             initialDelaySeconds: 20
             periodSeconds: 5
           {{- end }}
+          {{- with .Values.certController.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.certController.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}
