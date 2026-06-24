@@ -16,7 +16,7 @@ Multi-module repo: `apis/`, `runtime/`, `e2e/`, and each `providers/v1/*/` have 
 
 - `make reviewable` is the gate for PRs. Run it, not individual checks.
 - Helm chart is the source of truth for deploy manifests. `make manifests` generates static YAML from it.
-- Provider docs use MkDocs snippet transclusion (`--8<--`). Auth docs are shared across providers via `docs/snippets/`.
+- Provider docs use MkDocs snippet transclusion (`--8<--`). Shared auth docs (e.g. `docs/provider/aws-access.md`) are transcluded into the relevant provider pages.
 - CRD tests use snapshot testing. Run `make test.crds.update` to update snapshots after CRD changes.
 - `make update-deps` updates dependencies across all modules at once.
 - Add a `git notes add HEAD` entry on every non-trivial commit. Record key design decisions, trade-offs, and gotchas. Queryable via `git notes show <sha>`.
