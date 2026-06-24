@@ -51,6 +51,7 @@ metadata:
 ```
 
 Next, create a Doppler Service Account Identity with:
+
 - **Issuer**: Your cluster's OIDC discovery URL
 - **Audience**: The resource-specific audience for the SecretStore (`secretStore:<namespace>:<storeName>` or `clusterSecretStore:<storeName>`), e.g. `secretStore:external-secrets:doppler-oidc-sa` or `clusterSecretStore:doppler-auth-api`
 - **Subject**: The Kubernetes ServiceAccount (`system:serviceaccount:<serviceAccountNamespace>:<serviceAccountName>`), e.g. `system:serviceaccount:external-secrets:doppler-oidc-sa`

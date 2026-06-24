@@ -71,7 +71,7 @@ spec:
           args:
           - certcontroller
           - --crd-requeue-interval={{ .Values.certController.requeueInterval }}
-          - --service-name={{ include "external-secrets.fullname" . }}-webhook
+          - --service-name={{ include "external-secrets.componentName" (list . "-webhook") }}
           - --service-namespace={{ template "external-secrets.namespace" . }}
           - --secret-name={{ include "external-secrets.fullname" . }}-webhook
           - --secret-namespace={{ template "external-secrets.namespace" . }}
@@ -98,6 +98,15 @@ spec:
             {{- else }}
           - --{{ $key }}
             {{- end }}
+          {{- end }}
+          {{- if .Values.certController.metrics.listen.secure.enabled }}
+          - --metrics-secure=true
+          - --metrics-cert-dir={{ .Values.certController.metrics.listen.secure.certDir }}
+          - --metrics-cert-name={{ .Values.certController.metrics.listen.secure.certFile }}
+          - --metrics-key-name={{ .Values.certController.metrics.listen.secure.keyFile }}
+          {{- end }}
+          {{- if .Values.certController.metrics.listen.auth.enabled }}
+          - --metrics-auth=true
           {{- end }}
           ports:
             - containerPort: {{ .Values.certController.metrics.listen.port }}

@@ -38,7 +38,7 @@ func TestNewSession_should_return_session_with_default_credentials_when_auth_is_
 	}
 	kube := fake.NewClientBuilder().Build()
 
-	sess, err := NewSession(context.Background(), store, kube, testNamespace)
+	sess, err := NewSession(context.Background(), store, kube, esv1.SecretStoreKind, testNamespace)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, sess)
@@ -55,7 +55,7 @@ func TestNewSession_should_return_session_with_default_credentials_when_secretre
 	}
 	kube := fake.NewClientBuilder().Build()
 
-	sess, err := NewSession(context.Background(), store, kube, testNamespace)
+	sess, err := NewSession(context.Background(), store, kube, esv1.SecretStoreKind, testNamespace)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, sess)
@@ -96,7 +96,7 @@ func TestNewSession_should_return_session_with_static_credentials_when_secretref
 	_ = v1.AddToScheme(scheme)
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 
-	sess, err := NewSession(context.Background(), store, kube, testNamespace)
+	sess, err := NewSession(context.Background(), store, kube, esv1.SecretStoreKind, testNamespace)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, sess)
@@ -121,7 +121,7 @@ func TestNewSession_should_return_error_when_accesskeyid_secret_is_not_found(t *
 	}
 	kube := fake.NewClientBuilder().Build()
 
-	_, err := NewSession(context.Background(), store, kube, testNamespace)
+	_, err := NewSession(context.Background(), store, kube, esv1.SecretStoreKind, testNamespace)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get accessKeyID")
@@ -156,7 +156,7 @@ func TestNewSession_should_return_error_when_secretaccesskey_secret_is_not_found
 	_ = v1.AddToScheme(scheme)
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 
-	_, err := NewSession(context.Background(), store, kube, testNamespace)
+	_, err := NewSession(context.Background(), store, kube, esv1.SecretStoreKind, testNamespace)
 
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get secretAccessKey")
@@ -185,10 +185,10 @@ func TestNewSession_should_return_error_when_accesskeyid_key_is_not_found_in_sec
 	_ = v1.AddToScheme(scheme)
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 
-	_, err := NewSession(context.Background(), store, kube, testNamespace)
+	_, err := NewSession(context.Background(), store, kube, esv1.SecretStoreKind, testNamespace)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "key \"non-existent-key\" not found in secret")
+	assert.Contains(t, err.Error(), "cannot find secret data for key: \"non-existent-key\"")
 }
 
 func TestNewSession_should_return_session_with_token_credentials_when_secretref_is_provided(t *testing.T) {
@@ -227,7 +227,7 @@ func TestNewSession_should_return_session_with_token_credentials_when_secretref_
 	_ = v1.AddToScheme(scheme)
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 
-	sess, err := NewSession(context.Background(), store, kube, testNamespace)
+	sess, err := NewSession(context.Background(), store, kube, esv1.SecretStoreKind, testNamespace)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, sess)
@@ -268,10 +268,10 @@ func TestNewSession_should_return_error_when_secretaccesskey_key_is_not_found_in
 	_ = v1.AddToScheme(scheme)
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
 
-	_, err := NewSession(context.Background(), store, kube, testNamespace)
+	_, err := NewSession(context.Background(), store, kube, esv1.SecretStoreKind, testNamespace)
 
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "key \"non-existent-key\" not found in secret")
+	assert.Contains(t, err.Error(), "cannot find secret data for key: \"non-existent-key\"")
 }
 
 func TestNewSession_should_return_error_when_store_is_nil(t *testing.T) {
@@ -280,7 +280,7 @@ func TestNewSession_should_return_error_when_store_is_nil(t *testing.T) {
 	var kube client.Client
 	namespace := "default"
 
-	sess, err := NewSession(ctx, store, kube, namespace)
+	sess, err := NewSession(ctx, store, kube, esv1.SecretStoreKind, namespace)
 
 	assert.Error(t, err)
 	assert.Nil(t, sess)
@@ -293,9 +293,95 @@ func TestNewSession_should_return_error_when_region_is_empty(t *testing.T) {
 	var kube client.Client
 	namespace := "default"
 
-	sess, err := NewSession(ctx, store, kube, namespace)
+	sess, err := NewSession(ctx, store, kube, esv1.SecretStoreKind, namespace)
 
 	assert.Error(t, err)
 	assert.Nil(t, sess)
 	assert.Equal(t, "region must be specified", err.Error())
+}
+
+func TestNewSession_ClusterSecretStore_should_resolve_secret_from_ref_namespace(t *testing.T) {
+	const credentialsNamespace = "credentials-ns"
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: credentialsNamespace,
+		},
+		Data: map[string][]byte{
+			accessKeyIDKey:     []byte(testAccessKeyID),
+			secretAccessKeyKey: []byte(testSecretAccessKey),
+		},
+	}
+	refNamespace := credentialsNamespace
+	store := &esv1.VolcengineProvider{
+		Region: testRegion,
+		Auth: &esv1.VolcengineAuth{
+			SecretRef: &esv1.VolcengineAuthSecretRef{
+				AccessKeyID: esmeta.SecretKeySelector{
+					Name:      secretName,
+					Key:       accessKeyIDKey,
+					Namespace: &refNamespace,
+				},
+				SecretAccessKey: esmeta.SecretKeySelector{
+					Name:      secretName,
+					Key:       secretAccessKeyKey,
+					Namespace: &refNamespace,
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	_ = v1.AddToScheme(scheme)
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
+
+	sess, err := NewSession(context.Background(), store, kube, esv1.ClusterSecretStoreKind, testNamespace)
+
+	assert.NoError(t, err)
+	assert.NotNil(t, sess)
+	creds, err := sess.Config.Credentials.Get()
+	assert.NoError(t, err)
+	assert.Equal(t, testAccessKeyID, creds.AccessKeyID)
+	assert.Equal(t, testSecretAccessKey, creds.SecretAccessKey)
+}
+
+func TestNewSession_SecretStore_should_ignore_ref_namespace(t *testing.T) {
+	const otherNamespace = "other-ns"
+	secret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      secretName,
+			Namespace: otherNamespace,
+		},
+		Data: map[string][]byte{
+			accessKeyIDKey:     []byte(testAccessKeyID),
+			secretAccessKeyKey: []byte(testSecretAccessKey),
+		},
+	}
+	refNamespace := otherNamespace
+	store := &esv1.VolcengineProvider{
+		Region: testRegion,
+		Auth: &esv1.VolcengineAuth{
+			SecretRef: &esv1.VolcengineAuthSecretRef{
+				AccessKeyID: esmeta.SecretKeySelector{
+					Name:      secretName,
+					Key:       accessKeyIDKey,
+					Namespace: &refNamespace,
+				},
+				SecretAccessKey: esmeta.SecretKeySelector{
+					Name:      secretName,
+					Key:       secretAccessKeyKey,
+					Namespace: &refNamespace,
+				},
+			},
+		},
+	}
+
+	scheme := runtime.NewScheme()
+	_ = v1.AddToScheme(scheme)
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret).Build()
+
+	_, err := NewSession(context.Background(), store, kube, esv1.SecretStoreKind, testNamespace)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get accessKeyID")
 }

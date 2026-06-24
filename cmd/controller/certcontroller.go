@@ -32,7 +32,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
@@ -79,6 +81,20 @@ var certcontrollerCmd = &cobra.Command{
 			BindAddress: metricsAddr,
 		}
 
+		if metricsSecure {
+			metricsServerOpts.SecureServing = true
+			metricsServerOpts.CertDir = metricsCertDir
+			metricsServerOpts.CertName = metricsCertName
+			metricsServerOpts.KeyName = metricsKeyName
+		}
+
+		if metricsAuth {
+			metricsServerOpts.FilterProvider = filters.WithAuthenticationAndAuthorization
+		}
+		if metricsAuth && !metricsSecure {
+			setupLog.Error(nil, "--metrics-auth requires --metrics-secure; bearer tokens over plaintext HTTP is not allowed")
+			os.Exit(1)
+		}
 		// Disable HTTP/2 if not explicitly enabled
 		if !enableHTTP2 {
 			metricsServerOpts.TLSOpts = []func(*tls.Config){disableHTTP2}
@@ -136,6 +152,10 @@ var certcontrollerCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
+		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+			setupLog.Error(err, "unable to add cert controller healthz check")
+			os.Exit(1)
+		}
 		err = mgr.AddReadyzCheck("crd-inject", crdctrl.ReadyCheck)
 		if err != nil {
 			setupLog.Error(err, "unable to add crd readyz check")
@@ -182,6 +202,11 @@ func init() {
 
 	certcontrollerCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	certcontrollerCmd.Flags().StringVar(&healthzAddr, "healthz-addr", ":8081", "The address the health endpoint binds to.")
+	certcontrollerCmd.Flags().BoolVar(&metricsAuth, "metrics-auth", false, "Enable Kubernetes RBAC-based authentication and authorization for the metrics endpoint.")
+	certcontrollerCmd.Flags().BoolVar(&metricsSecure, "metrics-secure", false, "Enable HTTPS for the metrics endpoint.")
+	certcontrollerCmd.Flags().StringVar(&metricsCertDir, "metrics-cert-dir", "", "Directory containing TLS certificate and key for metrics endpoint.")
+	certcontrollerCmd.Flags().StringVar(&metricsCertName, "metrics-cert-name", "tls.crt", "TLS certificate filename for metrics endpoint.")
+	certcontrollerCmd.Flags().StringVar(&metricsKeyName, "metrics-key-name", "tls.key", "TLS key filename for metrics endpoint.")
 	certcontrollerCmd.Flags().StringVar(&serviceName, "service-name", "external-secrets-webhook", "Webhook service name")
 	certcontrollerCmd.Flags().StringVar(&serviceNamespace, "service-namespace", "default", "Webhook service namespace")
 	certcontrollerCmd.Flags().StringVar(&secretName, "secret-name", "external-secrets-webhook", "Secret to store certs for webhook")

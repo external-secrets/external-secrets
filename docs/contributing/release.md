@@ -5,6 +5,7 @@ The external-secrets project is released on a as-needed basis. Feel free to open
 ## Multi-Module Versioning
 
 External Secrets Operator uses a multi-module structure with the following modules:
+
 - `/apis` - CRD types and interfaces
 - `/runtime` - Shared utilities
 - `/providers/v1/*` - Individual provider modules
@@ -48,6 +49,7 @@ Otherwise the `latest` documentation will point to the older version. Also avoid
 5. CI picks up the new chart version and creates a new GitHub Release for it
 
 The following things are updated with those commands:
+
 1. Update helm docs
 2. Update the apiVersion in the snapshots for the helm tests
 3. Update all the helm tests with potential added values
