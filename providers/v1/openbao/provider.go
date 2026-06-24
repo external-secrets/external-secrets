@@ -36,7 +36,7 @@ var (
 // Provider implements the ESO Provider interface for OpenBao.
 type Provider struct {
 	HTTPClientFactory httpClientFactory
-	AuthMethodFactory auth.AuthMethodFactory
+	AuthMethodFactory auth.Factory
 }
 
 type httpClientFactory func() *http.Client

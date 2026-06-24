@@ -425,7 +425,7 @@ func TestProvider_Auth(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			RegisterTestingT(t)
-			factory := &auth.AuthFactoryMock{}
+			factory := &auth.MockFactory{}
 			provider.AuthMethodFactory = factory
 
 			store := makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2)

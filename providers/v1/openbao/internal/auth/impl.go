@@ -24,16 +24,19 @@ import (
 
 type authMethodFactory struct{}
 
+// AppRole implements [Factory].
 func (authMethodFactory) AppRole(id, secret, mount string) (api.AuthMethod, error) {
 	return approle.NewAppRoleAuth(id, &approle.SecretID{
 		FromString: secret,
 	}, approle.WithMountPath(mount))
 }
 
+// UserPass implements [Factory].
 func (authMethodFactory) UserPass(username, password, mount string) (api.AuthMethod, error) {
 	return userpass.NewUserpassAuth(username, &userpass.Password{
 		FromString: password,
 	}, userpass.WithMountPath(mount))
 }
 
-var DefaultAuthMethodFactory AuthMethodFactory = authMethodFactory{}
+// DefaultAuthMethodFactory implements [Factory].
+var DefaultAuthMethodFactory Factory = authMethodFactory{}

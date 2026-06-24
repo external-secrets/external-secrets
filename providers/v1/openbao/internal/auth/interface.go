@@ -14,13 +14,23 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+// Package auth provides a minimal, mockable interface to OpenBao auth methods.
+//
+// For provider internal use only, API might change at any point in time.
 package auth
 
 import (
 	"github.com/openbao/openbao/api/v2"
 )
 
-type AuthMethodFactory interface {
+// Factory provides a minimal, mockable interface to OpenBao auth methods
+// (minimal in a sense that it exposes exactly the parameters that are needed by
+// the provider). There are two implementation available:
+//
+// - [DefaultAuthMethodFactory]
+//
+// - [MockFactory] a mock for testing.
+type Factory interface {
 	UserPass(username, password, mount string) (api.AuthMethod, error)
 	AppRole(id, secret, mount string) (api.AuthMethod, error)
 }
