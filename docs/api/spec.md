@@ -4384,7 +4384,8 @@ ExternalSecretNullBytePolicy
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
-<a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>)
+<a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>, 
+<a href="#external-secrets.io/v1.TemplateFrom">TemplateFrom</a>)
 </p>
 <p>
 <p>ExternalSecretDecodingStrategy defines strategies for decoding secret values.</p>
@@ -7579,6 +7580,18 @@ string
 </td>
 <td>
 <p>ProjectSlug is the required slug identifier for the project.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>organizationSlug</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>OrganizationSlug is the optional slug that identifies the organization that will be used
+during authentication. Useful for sub-organization setups</p>
 </td>
 </tr>
 <tr>
@@ -11584,6 +11597,20 @@ string
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>valuesDecodingStrategy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretDecodingStrategy">
+ExternalSecretDecodingStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a decoding Strategy for the rendered template values.</p>
 </td>
 </tr>
 </tbody>

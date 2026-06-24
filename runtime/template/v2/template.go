@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/decoding"
 	"github.com/external-secrets/external-secrets/runtime/feature"
 	"github.com/external-secrets/external-secrets/runtime/template/v2/sprig"
 )
@@ -145,11 +146,15 @@ func applyToTarget(k string, val []byte, target string, obj client.Object) error
 	return nil
 }
 
-func valueScopeApply(tplMap, data map[string][]byte, target string, secret client.Object) error {
+func valueScopeApply(tplMap, data map[string][]byte, target string, secret client.Object, decodingStrategy esapi.ExternalSecretDecodingStrategy) error {
 	for k, v := range tplMap {
 		val, err := execute(k, string(v), data)
 		if err != nil {
 			return fmt.Errorf(errExecute, k, err)
+		}
+		val, err = decoding.Decode(decodingStrategy, val)
+		if err != nil {
+			return fmt.Errorf("failed to decode rendered template value for key %s: %w", k, err)
 		}
 		if err := applyToTarget(k, val, target, secret); err != nil {
 			return fmt.Errorf("failed to apply to target: %w", err)
@@ -158,7 +163,7 @@ func valueScopeApply(tplMap, data map[string][]byte, target string, secret clien
 	return nil
 }
 
-func mapScopeApply(tpl string, data map[string][]byte, target string, secret client.Object) error {
+func mapScopeApply(tpl string, data map[string][]byte, target string, secret client.Object, decodingStrategy esapi.ExternalSecretDecodingStrategy) error {
 	val, err := execute(tpl, tpl, data)
 	if err != nil {
 		return fmt.Errorf(errExecute, tpl, err)
@@ -175,7 +180,11 @@ func mapScopeApply(tpl string, data map[string][]byte, target string, secret cli
 			return fmt.Errorf("could not unmarshal template to 'map[string][]byte': %w", err)
 		}
 		for k, val := range src {
-			if err := applyToTarget(k, []byte(val), target, secret); err != nil {
+			decodedVal, err := decoding.Decode(decodingStrategy, []byte(val))
+			if err != nil {
+				return fmt.Errorf("failed to decode rendered template value for key %s: %w", k, err)
+			}
+			if err := applyToTarget(k, decodedVal, target, secret); err != nil {
 				return fmt.Errorf("failed to apply to target: %w", err)
 			}
 		}
@@ -196,20 +205,20 @@ func mapScopeApply(tpl string, data map[string][]byte, target string, secret cli
 }
 
 // Execute renders the secret data as template. If an error occurs processing is stopped immediately.
-func Execute(tpl, data map[string][]byte, scope esapi.TemplateScope, target string, secret client.Object) error {
+func Execute(tpl, data map[string][]byte, scope esapi.TemplateScope, target string, secret client.Object, valueDecodingStrategy esapi.ExternalSecretDecodingStrategy) error {
 	if tpl == nil {
 		return nil
 	}
 	switch scope {
 	case esapi.TemplateScopeKeysAndValues:
 		for _, v := range tpl {
-			err := mapScopeApply(string(v), data, target, secret)
+			err := mapScopeApply(string(v), data, target, secret, valueDecodingStrategy)
 			if err != nil {
 				return err
 			}
 		}
 	case esapi.TemplateScopeValues:
-		err := valueScopeApply(tpl, data, target, secret)
+		err := valueScopeApply(tpl, data, target, secret, valueDecodingStrategy)
 		if err != nil {
 			return err
 		}

@@ -722,6 +722,15 @@ spec:
                                       For custom resources (when spec.target.manifest is set), this supports
                                       nested paths like "spec.database.config" or "data".
                                     type: string
+                                  valuesDecodingStrategy:
+                                    default: None
+                                    description: Used to define a decoding Strategy for the rendered template values.
+                                    enum:
+                                      - Auto
+                                      - Base64
+                                      - Base64URL
+                                      - None
+                                    type: string
                                 type: object
                               type: array
                             type:
@@ -2230,6 +2239,15 @@ spec:
                                   For Secret resources, common values are: "Data", "Annotations", "Labels".
                                   For custom resources (when spec.target.manifest is set), this supports
                                   nested paths like "spec.database.config" or "data".
+                                type: string
+                              valuesDecodingStrategy:
+                                default: None
+                                description: Used to define a decoding Strategy for the rendered template values.
+                                enum:
+                                  - Auto
+                                  - Base64
+                                  - Base64URL
+                                  - None
                                 type: string
                             type: object
                           type: array
@@ -5532,6 +5550,11 @@ spec:
                               default: true
                               description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
                               type: boolean
+                            organizationSlug:
+                              description: |-
+                                OrganizationSlug is the optional slug that identifies the organization that will be used
+                                during authentication. Useful for sub-organization setups
+                              type: string
                             projectSlug:
                               description: ProjectSlug is the required slug identifier for the project.
                               type: string
@@ -13587,6 +13610,15 @@ spec:
                                   For custom resources (when spec.target.manifest is set), this supports
                                   nested paths like "spec.database.config" or "data".
                                 type: string
+                              valuesDecodingStrategy:
+                                default: None
+                                description: Used to define a decoding Strategy for the rendered template values.
+                                enum:
+                                  - Auto
+                                  - Base64
+                                  - Base64URL
+                                  - None
+                                type: string
                             type: object
                           type: array
                         type:
@@ -14808,6 +14840,15 @@ spec:
                               For Secret resources, common values are: "Data", "Annotations", "Labels".
                               For custom resources (when spec.target.manifest is set), this supports
                               nested paths like "spec.database.config" or "data".
+                            type: string
+                          valuesDecodingStrategy:
+                            default: None
+                            description: Used to define a decoding Strategy for the rendered template values.
+                            enum:
+                              - Auto
+                              - Base64
+                              - Base64URL
+                              - None
                             type: string
                         type: object
                       type: array
@@ -18138,6 +18179,11 @@ spec:
                               default: true
                               description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
                               type: boolean
+                            organizationSlug:
+                              description: |-
+                                OrganizationSlug is the optional slug that identifies the organization that will be used
+                                during authentication. Useful for sub-organization setups
+                              type: string
                             projectSlug:
                               description: ProjectSlug is the required slug identifier for the project.
                               type: string
