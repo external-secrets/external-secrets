@@ -1,3 +1,5 @@
+# Doppler
+
 ![Doppler External Secrets Provider](../pictures/doppler-provider-header.jpg)
 
 ## Doppler SecretOps Platform
@@ -62,7 +64,6 @@ Then configure the SecretStore:
 {% include 'doppler-oidc-secret-store.yaml' %}
 ```
 
-
 ## Use Cases
 
 The Doppler provider allows for a wide range of use cases:
@@ -80,7 +81,7 @@ Let's explore each use case using a fictional `auth-api` Doppler project.
 
 To sync one or more individual secrets:
 
-``` yaml
+```yaml
 {% include 'doppler-fetch-secret.yaml' %}
 ```
 
@@ -90,7 +91,7 @@ To sync one or more individual secrets:
 
 To sync every secret from a config:
 
-``` yaml
+```yaml
 {% include 'doppler-fetch-all-secrets.yaml' %}
 ```
 
@@ -100,7 +101,7 @@ To sync every secret from a config:
 
 To filter secrets by `path` (path prefix), `name` (regular expression) or a combination of both:
 
-``` yaml
+```yaml
 {% include 'doppler-filtered-secrets.yaml' %}
 ```
 
@@ -110,7 +111,7 @@ To filter secrets by `path` (path prefix), `name` (regular expression) or a comb
 
 To parse a JSON secret to its key-value pairs:
 
-``` yaml
+```yaml
 {% include 'doppler-parse-json-secret.yaml' %}
 ```
 

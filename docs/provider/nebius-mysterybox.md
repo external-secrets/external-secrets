@@ -1,11 +1,10 @@
-## Nebius MysteryBox
+# Nebius MysteryBox
 
 External Secrets Operator integrates with [Nebius MysteryBox](https://docs.nebius.com/mysterybox/overview).
 
-### Authentication
+## Authentication
 
 Currently, only [Service Account credentials](https://docs.nebius.com/grpc-api/auth) authorization is supported.
-
 
 Before you start, create a service account and grant it permission to read desired secrets in MysteryBox.
 For details on required roles and permissions, see [MysteryBox get method](https://docs.nebius.com/mysterybox/secrets/get).
@@ -49,12 +48,12 @@ You can get a secret by its secretID and key.
 
 Another way is to get a full secret that will be imported. When fetching the full secret, each key–value pair from MysteryBox is mapped to a separate entry in the target Kubernetes Secret’s `data` field.
 
-
 ```yaml
 {% include 'nebius-mysterybox-external-secret-all.yaml' %}
 ```
 
 Example of a target secret:
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -71,16 +70,14 @@ data:
 There is also a possibility to specify Version variable to get a secret.
 
 ```yaml
-...
- data:
-    - secretKey: <secretKey>
-      remoteRef:
-        key: <secretID>
-        version: <secretVersion>
 
+...
+data:
+  - secretKey: <secretKey>
+    remoteRef:
+      key: <secretID>
+      version: <secretVersion>
 ```
 
 !!! tip inline end
     When the `version` field is not specified, a primary version of the secret will be retrieved.
-
-

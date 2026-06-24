@@ -1,3 +1,5 @@
+# Google Secrets Manager
+
 External Secrets Operator integrates with the [Google Cloud Secret Manager](https://cloud.google.com/secret-manager).
 
 ## Authentication
@@ -6,13 +8,14 @@ The Google Secret Manager provider resolves credentials in this order: static se
 
 Pick the mechanism that matches where the operator runs:
 
-| Mechanism | API field | Typical use |
-| --- | --- | --- |
-| GKE Workload Identity | `auth.workloadIdentity` | GKE clusters with [Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) enabled; uses the GKE metadata server and the identity binding token flow. |
+| Mechanism                        | API field                         | Typical use                                                                                                                                                                                                                   |
+| -------------------------------- | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GKE Workload Identity            | `auth.workloadIdentity`           | GKE clusters with [Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) enabled; uses the GKE metadata server and the identity binding token flow.                                    |
 | GCP Workload Identity Federation | `auth.workloadIdentityFederation` | AKS, EKS, self-hosted Kubernetes, or any setup where you configure an IAM workload identity pool and provider per [Google’s federation docs](https://cloud.google.com/iam/docs/workload-identity-federation-with-kubernetes). |
-| Static service account key | `auth.secretRef` | Any cluster; long-lived JSON key in a Kubernetes `Secret` (not recommended where federation or GKE WI is available). |
+| Static service account key       | `auth.secretRef`                  | Any cluster; long-lived JSON key in a Kubernetes `Secret` (not recommended where federation or GKE WI is available).                                                                                                          |
 
 <a id="workload-identity-gke"></a>
+
 ### Workload Identity (GKE)
 
 Through [GKE Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity), workloads on **Google Kubernetes Engine** can call Google APIs (including Secret Manager) without storing long-lived keys. In External Secrets Operator this path is implemented as `auth.workloadIdentity` and expects the **GCP metadata server** (available on GKE nodes) so the operator can discover the cluster project, name, and location when those fields are omitted.
@@ -27,7 +30,7 @@ In the following, we will describe each of these options in detail.
 
 #### Prerequisites
 
-* Enable and use [Workload Identity on the GKE cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity).
+- Enable and use [Workload Identity on the GKE cluster](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity).
 
 #### Using a Kubernetes service account as a GCP IAM principal
 
@@ -47,10 +50,10 @@ metadata:
 
 To grant a Kubernetes service account access to Secret Manager secret(s), you need to know four values:
 
-* `PROJECT_ID`: Your GCP project ID, which you can find under "Project Info" on your console dashboard. Note that this might be different from your project's _name_.
-* `PROJECT_NUMBER`: Your GCP project number, which you can find under "Project Info" on your console dashboard or through `gcloud projects describe $PROJECT_ID --format="value(projectNumber)"`.
-* `K8S_SA`: The name of the Kubernetes service account you created. (In our example, `demo-secrets-sa`.)
-* `K8S_NAMESPACE`: The namespace where you created the Kubernetes service account (In our example, `demo`.)
+- `PROJECT_ID`: Your GCP project ID, which you can find under "Project Info" on your console dashboard. Note that this might be different from your project's _name_.
+- `PROJECT_NUMBER`: Your GCP project number, which you can find under "Project Info" on your console dashboard or through `gcloud projects describe $PROJECT_ID --format="value(projectNumber)"`.
+- `K8S_SA`: The name of the Kubernetes service account you created. (In our example, `demo-secrets-sa`.)
+- `K8S_NAMESPACE`: The namespace where you created the Kubernetes service account (In our example, `demo`.)
 
 For example, the following CLI call grants the Kubernetes service account access to a secret `demo-secret`:
 
@@ -73,8 +76,8 @@ Note that this allows anyone who can create `ExternalSecret` resources referenci
 
 _For more information about GKE Workload Identity and Secret Manager permissions, refer to:_
 
-* _[Authenticate to Google Cloud APIs from GKE workloads](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) in the GKE documentation._
-* _[Access control with IAM](https://cloud.google.com/secret-manager/docs/access-control) in the Secret Manager documentation._
+- _[Authenticate to Google Cloud APIs from GKE workloads](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) in the GKE documentation._
+- _[Access control with IAM](https://cloud.google.com/secret-manager/docs/access-control) in the Secret Manager documentation._
 
 Next, create a `SecretStore` that references the `demo-secrets-sa` Kubernetes service account:
 
@@ -98,8 +101,8 @@ To demonstrate this approach, we'll create a `SecretStore` in the `demo` namespa
 
 To set up the Kubernetes service account, you need to know or choose the following values:
 
-* `PROJECT_ID`: Your GCP project ID, which you can find under "Project Info" on your console dashboard. Note that this might be different from your project's _name_.
-* `GCP_SA`: The name of the GCP service account you are going to create and use (e.g., `external-secrets`).
+- `PROJECT_ID`: Your GCP project ID, which you can find under "Project Info" on your console dashboard. Note that this might be different from your project's _name_.
+- `GCP_SA`: The name of the GCP service account you are going to create and use (e.g., `external-secrets`).
 
 First, create the Kubernetes service account with an annotation that references the GCP service account:
 
@@ -122,8 +125,8 @@ gcloud iam service-accounts create $GCP_SA \
 
 To finalize the link between the GCP service account and the Kubernetes service account, you need two additional values:
 
-* `K8S_SA`: The name of the Kubernetes service account you created. (In our example, `demo-secrets-sa`.)
-* `K8S_NAMESPACE`: The namespace where you created the Kubernetes service account (In our example, `demo`.)
+- `K8S_SA`: The name of the Kubernetes service account you created. (In our example, `demo-secrets-sa`.)
+- `K8S_NAMESPACE`: The namespace where you created the Kubernetes service account (In our example, `demo`.)
 
 Grant the Kubernetes service account the `iam.workloadIdentityUser` role on the GCP service account:
 
@@ -156,8 +159,8 @@ Note that this allows anyone who can create `ExternalSecret` resources referenci
 
 _For more information about GKE Workload Identity and Secret Manager permissions, refer to:_
 
-* _[Authenticate to Google Cloud APIs from GKE workloads](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) in the GKE documentation._
-* _[Access control with IAM](https://cloud.google.com/secret-manager/docs/access-control) in the Secret Manager documentation._
+- _[Authenticate to Google Cloud APIs from GKE workloads](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) in the GKE documentation._
+- _[Access control with IAM](https://cloud.google.com/secret-manager/docs/access-control) in the Secret Manager documentation._
 
 Next, create a `SecretStore` that references the `demo-secrets-sa` Kubernetes service account:
 
@@ -200,8 +203,8 @@ You can use either of the approaches described in the previous two sections.
 
 _For details and further information on GKE Workload Identity and Secret Manager permissions, refer to:_
 
-* _[Authenticate to Google Cloud APIs from GKE workloads](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) in the GKE documentation._
-* _[Access control with IAM](https://cloud.google.com/secret-manager/docs/access-control) in the Secret Manager documentation._
+- _[Authenticate to Google Cloud APIs from GKE workloads](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity) in the GKE documentation._
+- _[Access control with IAM](https://cloud.google.com/secret-manager/docs/access-control) in the Secret Manager documentation._
 
 Once the Core Controller Pod can access the Secret Manager secret(s) through GKE Workload Identity via its Kubernetes service account, you can create `SecretStore` or `ClusterSecretStore` instances without authentication configuration. You can optionally specify the GCP project ID, or omit it to use auto-detection from the GCP metadata server:
 
@@ -278,9 +281,9 @@ Alternatively, you can explicitly specify some or all of these values.
 
 For a fully specified configuration, you'll need to know the following three values:
 
-* `CLUSTER_PROJECT_ID`: The ID of GCP project that contains the GKE cluster.
-* `CLUSTER_NAME`: The name of the GKE cluster.
-* `CLUSTER_LOCATION`: The location of the GKE cluster. For a regional cluster, this is the region. For a zonal cluster, this is the zone.
+- `CLUSTER_PROJECT_ID`: The ID of GCP project that contains the GKE cluster.
+- `CLUSTER_NAME`: The name of the GKE cluster.
+- `CLUSTER_LOCATION`: The location of the GKE cluster. For a regional cluster, this is the region. For a zonal cluster, this is the zone.
 
 You can optionally verify these values through the CLI:
 
@@ -298,6 +301,7 @@ Then, you can create a `SecretStore` or `ClusterSecretStore` that explicitly spe
 ```
 
 <a id="workload-identity-federation"></a>
+
 ### Workload Identity Federation
 
 [GCP Workload Identity Federation](https://cloud.google.com/iam/docs/workload-identity-federation) lets workloads use **short-lived tokens from an external identity provider** (for example a Kubernetes API server or AWS) that Google trusts through an IAM **workload identity pool** and **provider**. This is different from [GKE Workload Identity](#workload-identity-gke): federation uses the **external account** OAuth flow (STS token exchange via `golang.org/x/oauth2/google/externalaccount`) and does **not** rely on the GKE identity binding token or the default `.svc.id.goog` pool on the cluster project.
@@ -308,11 +312,11 @@ Use `auth.workloadIdentityFederation` when you follow Google’s guide to [confi
 
 Under `auth.workloadIdentityFederation` you must set **exactly one** of `serviceAccountRef`, `credConfig`, or `awsSecurityCredentials`. The provider rejects any other combination.
 
-| Field | Purpose |
-| --- | --- |
-| `serviceAccountRef` | Request a bound token for the named Kubernetes `ServiceAccount` and use it as the STS subject token (`urn:ietf:params:oauth:token-type:jwt`). **Requires `audience`.** |
-| `credConfig` | Load an `external_account` JSON document from a `ConfigMap` key ([external identity ADC JSON](https://cloud.google.com/docs/authentication/application-default-credentials#external-identities)). `audience` may come from the JSON or be overridden by the spec field; it must be non-empty after merge. |
-| `awsSecurityCredentials` | Supply static AWS credentials in a Kubernetes `Secret` plus `region` so the subject token type is `urn:ietf:params:aws:token-type:aws4_request` without using the instance metadata service from inside the pod. **Requires `audience`.** |
+| Field                    | Purpose                                                                                                                                                                                                                                                                                                   |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `serviceAccountRef`      | Request a bound token for the named Kubernetes `ServiceAccount` and use it as the STS subject token (`urn:ietf:params:oauth:token-type:jwt`). **Requires `audience`.**                                                                                                                                    |
+| `credConfig`             | Load an `external_account` JSON document from a `ConfigMap` key ([external identity ADC JSON](https://cloud.google.com/docs/authentication/application-default-credentials#external-identities)). `audience` may come from the JSON or be overridden by the spec field; it must be non-empty after merge. |
+| `awsSecurityCredentials` | Supply static AWS credentials in a Kubernetes `Secret` plus `region` so the subject token type is `urn:ietf:params:aws:token-type:aws4_request` without using the instance metadata service from inside the pod. **Requires `audience`.**                                                                 |
 
 **`audience`:** Required on the spec when `serviceAccountRef` or `awsSecurityCredentials` is set. It must be the full workload identity **provider** resource name, for example `//iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/providers/PROVIDER_ID`. When only `credConfig` is used, `audience` can be supplied in the JSON; a non-empty `audience` on the spec overrides the file value.
 
@@ -411,8 +415,8 @@ First, create a GCP service account and grant it the `secretmanager.secretAccess
 
 _For details and further information on managing service account permissions and Secret Manager roles, refer to:_
 
-* _[Attach service accounts to resources](https://cloud.google.com/iam/docs/attach-service-accounts) in the IAM documentation._
-* _[Access control with IAM](https://cloud.google.com/secret-manager/docs/access-control) in the Secret Manager documentation._
+- _[Attach service accounts to resources](https://cloud.google.com/iam/docs/attach-service-accounts) in the IAM documentation._
+- _[Access control with IAM](https://cloud.google.com/secret-manager/docs/access-control) in the Secret Manager documentation._
 
 Then, create a service account key pair using one of the methods described on the page [Create and delete service account keys](https://cloud.google.com/iam/docs/keys-create-delete) in the Google Cloud IAM documentation and store the JSON file with the private key in a Kubernetes `Secret`:
 
@@ -538,10 +542,11 @@ spec:
   provider:
     gcpsm:
       projectID: my-project
-      location: us-east1  # Required when using CMEK
+      location: us-east1 # Required when using CMEK
 ```
 
 ## Regional Secrets
+
 GCP Secret Manager Regional Secrets are available to be used with both ExternalSecrets and PushSecrets.
 
 In order to achieve so, add a `location` to your SecretStore definition:
@@ -583,7 +588,7 @@ spec:
     gcpsm:
       projectID: my-project
       location: us-east1
-      secretVersionSelectionPolicy: LatestOrFetch  # or LatestOrFail (default)
+      secretVersionSelectionPolicy: LatestOrFetch # or LatestOrFail (default)
 ```
 
 **Note**: When using `secretVersionSelectionPolicy: LatestOrFetch`, the service account requires additional permissions to list secret versions. You'll need to grant the `roles/secretmanager.viewer` role (which includes `secretmanager.versions.list`) or the specific `secretmanager.versions.list` permission in addition to the standard `secretmanager.secretAccessor` role.

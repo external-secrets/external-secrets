@@ -6,12 +6,12 @@ In order to disable both or one of these features, it is necessary to configure 
 
 If you would like to install the operator without `ClusterSecretStore` and `ClusterExternalSecret` and `ClusterPushSecret` management, you will have to :
 
-* set `crds.createClusterExternalSecret` to false
-* set `crds.createClusterSecretStore` to false
-* set `crds.createClusterPushSecret` to false
-* set `processClusterExternalSecret` to false
-* set `processClusterStore` to false
-* set `processClusterPushSecret` to false
+- set `crds.createClusterExternalSecret` to false
+- set `crds.createClusterSecretStore` to false
+- set `crds.createClusterPushSecret` to false
+- set `processClusterExternalSecret` to false
+- set `processClusterStore` to false
+- set `processClusterPushSecret` to false
 
 Example:
 

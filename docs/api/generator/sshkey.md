@@ -4,18 +4,18 @@ The SSHKey generator provides SSH key pairs that you can use for authentication 
 
 ## Output Keys and Values
 
-| Key        | Description                     |
-| ---------- | ------------------------------- |
-| privateKey | the generated SSH private key   |
-| publicKey  | the generated SSH public key    |
+| Key        | Description                   |
+| ---------- | ----------------------------- |
+| privateKey | the generated SSH private key |
+| publicKey  | the generated SSH public key  |
 
 ## Parameters
 
-| Parameter | Description                                                        | Default | Required |
-| --------- | ------------------------------------------------------------------ | ------- | -------- |
-| keyType   | SSH key type (rsa, ecdsa, ed25519)                                        | rsa     | No       |
-| keySize   | Key size for RSA keys (2048, 3072, 4096) and ECDSA (256, 384, 521); ignored for ed25519      | 2048 / 256    | No       |
-| comment   | Optional comment for the SSH key                                   | ""      | No       |
+| Parameter | Description                                                                             | Default    | Required |
+| --------- | --------------------------------------------------------------------------------------- | ---------- | -------- |
+| keyType   | SSH key type (rsa, ecdsa, ed25519)                                                      | rsa        | No       |
+| keySize   | Key size for RSA keys (2048, 3072, 4096) and ECDSA (256, 384, 521); ignored for ed25519 | 2048 / 256 | No       |
+| comment   | Optional comment for the SSH key                                                        | ""         | No       |
 
 ## Example Manifest
 

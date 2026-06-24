@@ -20,11 +20,11 @@ ExternalSecret already solved the equivalent inbound problem with `dataFrom` (bu
 
 ### Workarounds today
 
-| Workaround | Drawback |
-|---|---|
-| Enumerate every key in `spec.data` | Verbose; falls out of sync when keys change |
-| External tooling (scripts, Helm helpers) to generate PushSecret YAML | Adds build-time dependency; not declarative |
-| One PushSecret per key | Explodes resource count; harder to reason about |
+| Workaround                                                           | Drawback                                        |
+| -------------------------------------------------------------------- | ----------------------------------------------- |
+| Enumerate every key in `spec.data`                                   | Verbose; falls out of sync when keys change     |
+| External tooling (scripts, Helm helpers) to generate PushSecret YAML | Adds build-time dependency; not declarative     |
+| One PushSecret per key                                               | Explodes resource count; harder to reason about |
 
 None of these are satisfactory for teams with dynamic secret sets that change frequently.
 
@@ -80,23 +80,23 @@ The direction is unambiguous and the symmetry aids discoverability.
 
 ### Two operating modes
 
-| Mode | Trigger | Behavior | Use case |
-|---|---|---|---|
-| **Per-key** | `remoteKey` not set | Each matched key becomes its own provider secret/variable | Env-var providers (GitHub Actions, Doppler) |
-| **Bundle** | `remoteKey` set | All matched keys bundled as JSON into one named provider secret | Named-secret providers (AWS SM, Vault, Azure KV, GCP SM) |
+| Mode        | Trigger             | Behavior                                                        | Use case                                                 |
+| ----------- | ------------------- | --------------------------------------------------------------- | -------------------------------------------------------- |
+| **Per-key** | `remoteKey` not set | Each matched key becomes its own provider secret/variable       | Env-var providers (GitHub Actions, Doppler)              |
+| **Bundle**  | `remoteKey` set     | All matched keys bundled as JSON into one named provider secret | Named-secret providers (AWS SM, Vault, Azure KV, GCP SM) |
 
 Bundle mode and `rewrite` are mutually exclusive — when keys are bundled into a JSON object, the key names inside the JSON are the source names (after conversion), not individually rewritten provider paths.
 
 ### Comparison with ExternalSecret `dataFrom`
 
-| Aspect | ExternalSecret `dataFrom` | PushSecret `dataTo` |
-|---|---|---|
-| **Direction** | Provider → K8s | K8s → Provider |
-| **Source** | Provider (Extract, Find, GeneratorRef) | K8s Secret (via `spec.selector`) |
-| **Source discovery** | Find by tags/name in provider | Filter by regexp on K8s key names |
-| **Key transformation** | Regexp, Transform, Merge | Regexp, Transform (no Merge — single source) |
-| **Store targeting** | Single `secretStoreRef` per ES | Per-entry `storeRef` (required) |
-| **Merge strategy** | Multiple dataFrom merged into one Secret | `dataTo` + explicit `data` merged (explicit wins) |
+| Aspect                 | ExternalSecret `dataFrom`                | PushSecret `dataTo`                               |
+| ---------------------- | ---------------------------------------- | ------------------------------------------------- |
+| **Direction**          | Provider → K8s                           | K8s → Provider                                    |
+| **Source**             | Provider (Extract, Find, GeneratorRef)   | K8s Secret (via `spec.selector`)                  |
+| **Source discovery**   | Find by tags/name in provider            | Filter by regexp on K8s key names                 |
+| **Key transformation** | Regexp, Transform, Merge                 | Regexp, Transform (no Merge — single source)      |
+| **Store targeting**    | Single `secretStoreRef` per ES           | Per-entry `storeRef` (required)                   |
+| **Merge strategy**     | Multiple dataFrom merged into one Secret | `dataTo` + explicit `data` merged (explicit wins) |
 
 ### Why simpler than `dataFrom`?
 
@@ -125,34 +125,34 @@ Each `dataTo` entry carries its own `Metadata` field. Since different providers 
 
 ### Feature interactions
 
-| Feature | Interaction with `dataTo` |
-|---|---|
-| **Template** (`spec.template`) | Template is applied *before* `dataTo` expansion. `dataTo` matches against template output keys. |
-| **UpdatePolicy=IfNotExists** | Honored per-entry: if the remote secret already exists, the push is skipped. |
-| **DeletionPolicy=Delete** | All `dataTo`-expanded entries are tracked in `status.syncedPushSecrets`. When the source Secret is deleted, all tracked provider secrets are cleaned up. |
-| **ConversionStrategy** | Applied *before* key matching and rewriting, so regexp patterns see converted key names. |
-| **Explicit `data`** | Explicit entries override `dataTo` for the same source key. Comparison uses original (unconverted) K8s key names. |
+| Feature                        | Interaction with `dataTo`                                                                                                                                |
+| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Template** (`spec.template`) | Template is applied _before_ `dataTo` expansion. `dataTo` matches against template output keys.                                                          |
+| **UpdatePolicy=IfNotExists**   | Honored per-entry: if the remote secret already exists, the push is skipped.                                                                             |
+| **DeletionPolicy=Delete**      | All `dataTo`-expanded entries are tracked in `status.syncedPushSecrets`. When the source Secret is deleted, all tracked provider secrets are cleaned up. |
+| **ConversionStrategy**         | Applied _before_ key matching and rewriting, so regexp patterns see converted key names.                                                                 |
+| **Explicit `data`**            | Explicit entries override `dataTo` for the same source key. Comparison uses original (unconverted) K8s key names.                                        |
 
 ### Edge cases
 
-| Scenario | Behavior |
-|---|---|
-| Empty match pattern | Matches all keys |
-| No keys match | Info log, continue (not an error) |
-| Invalid regexp | PushSecret enters error state with details in status |
+| Scenario                                         | Behavior                                             |
+| ------------------------------------------------ | ---------------------------------------------------- |
+| Empty match pattern                              | Matches all keys                                     |
+| No keys match                                    | Info log, continue (not an error)                    |
+| Invalid regexp                                   | PushSecret enters error state with details in status |
 | Duplicate remote keys (within or across entries) | Reconciliation fails listing all conflicting sources |
-| Explicit `data` for same source key | `data` wins; `dataTo` entry is dropped |
-| Invalid template | Fail with template parsing error |
-| Both `regexp` and `transform` on a rewrite | Blocked by CRD XValidation |
-| `storeRef` not in `secretStoreRefs` | Validation error |
-| Source Secret deleted + DeletionPolicy=Delete | Provider secrets cleaned up via status tracking |
-| `remoteKey` + `rewrite` on same entry | `rewrite` is ignored in bundle mode (documented) |
+| Explicit `data` for same source key              | `data` wins; `dataTo` entry is dropped               |
+| Invalid template                                 | Fail with template parsing error                     |
+| Both `regexp` and `transform` on a rewrite       | Blocked by CRD XValidation                           |
+| `storeRef` not in `secretStoreRefs`              | Validation error                                     |
+| Source Secret deleted + DeletionPolicy=Delete    | Provider secrets cleaned up via status tracking      |
+| `remoteKey` + `rewrite` on same entry            | `rewrite` is ignored in bundle mode (documented)     |
 
 ## Alternatives considered
 
 ### Alternative 1: Reuse ExternalSecret's `dataFrom` field name
 
-Rejected because `dataFrom` implies pulling *from* a source, while PushSecret pushes *to* a destination. Using `dataFrom` on PushSecret would be semantically confusing.
+Rejected because `dataFrom` implies pulling _from_ a source, while PushSecret pushes _to_ a destination. Using `dataFrom` on PushSecret would be semantically confusing.
 
 ### Alternative 2: Implicit "push all keys" when `data` is empty
 

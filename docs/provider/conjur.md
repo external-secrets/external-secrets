@@ -1,17 +1,17 @@
-## CyberArk Secrets Manager Provider
+# CyberArk Secrets Manager Provider
 
 This section describes how to set up the CyberArk Secrets Manager provider for External Secrets Operator (ESO). For a working example, see the [Accelerator-K8s-External-Secrets repo](https://github.com/conjurdemos/Accelerator-K8s-External-Secrets).
 
-### Prerequisites
+## Prerequisites
 
 Before installing the Secrets Manager provider, you need:
 
-* A running instance of [Conjur OSS](https://github.com/cyberark/conjur) or CyberArk Secrets Manager, with:
-  * An accessible Secrets Manager endpoint (for example: `https://myapi.example.com`).
-  * Your configured Secrets Manager authentication info (such as `hostid`, `apikey`, or JWT service ID). For more information on configuring Secrets Manager, see [Policy statement reference](https://docs.cyberark.com/conjur-open-source/Latest/en/Content/Operations/Policy/policy-statement-ref.htm).
-  * Support for your authentication method (`apikey` is supported by default, `jwt` requires additional configuration).
-  * **Optional**: Secrets Manager server certificate (see [below](#conjur-server-certificate)).
-* A Kubernetes cluster with ESO installed.
+- A running instance of [Conjur OSS](https://github.com/cyberark/conjur) or CyberArk Secrets Manager, with:
+  - An accessible Secrets Manager endpoint (for example: `https://myapi.example.com`).
+  - Your configured Secrets Manager authentication info (such as `hostid`, `apikey`, or JWT service ID). For more information on configuring Secrets Manager, see [Policy statement reference](https://docs.cyberark.com/conjur-open-source/Latest/en/Content/Operations/Policy/policy-statement-ref.htm).
+  - Support for your authentication method (`apikey` is supported by default, `jwt` requires additional configuration).
+  - **Optional**: Secrets Manager server certificate (see [below](#secrets-manager-server-certificate)).
+- A Kubernetes cluster with ESO installed.
 
 ### Secrets Manager server certificate
 
@@ -25,8 +25,8 @@ If you set up your Secrets Manager server with a self-signed certificate, we rec
 
 The Secrets Manager provider is configured as an external secret store in ESO. The Secrets Manager provider supports these two methods to authenticate to Secrets Manager:
 
-* [`apikey`](#option-1-external-secret-store-with-apikey-authentication): uses a Secrets Manager `hostid` and `apikey` to authenticate with Secrets Manager
-* [`jwt`](#option-2-external-secret-store-with-jwt-authentication): uses a JWT to authenticate with Secrets Manager
+- [`apikey`](#option-1-external-secret-store-with-apikey-authentication): uses a Secrets Manager `hostid` and `apikey` to authenticate with Secrets Manager
+- [`jwt`](#option-2-external-secret-store-with-jwt-authentication): uses a JWT to authenticate with Secrets Manager
 
 #### Option 1: External secret store with apiKey authentication
 
@@ -61,7 +61,6 @@ kubectl -n external-secrets create secret generic conjur-creds --from-literal=ho
 !!! Note
     `conjur-creds` is the `name` defined in the `userRef` and `apikeyRef` fields of the `conjur-secret-store.yml` file.
 
-
 ##### Step 3: Create the external secrets store
 
 !!! Important
@@ -82,15 +81,15 @@ kubectl apply -n external-secrets -f conjur-secret-store.yaml
 
 This method uses JWT tokens to authenticate with Secrets Manager. You can use the following methods to retrieve a JWT token for authentication:
 
-* JWT token from a referenced Kubernetes service account
-* JWT token stored in a Kubernetes secret
+- JWT token from a referenced Kubernetes service account
+- JWT token stored in a Kubernetes secret
 
-##### Step 1: Define an external secret store
+##### Step 1: Define an external secret store 2
 
 When you use JWT authentication, the following must be specified in the `SecretStore`:
 
-* `account` -  The name of the Secrets Manager account
-* `serviceId` - The ID of the JWT Authenticator `WebService` configured in Secrets Manager that is used to authenticate the JWT token
+- `account` - The name of the Secrets Manager account
+- `serviceId` - The ID of the JWT Authenticator `WebService` configured in Secrets Manager that is used to authenticate the JWT token
 
 You can retrieve the JWT token from either a referenced service account or a Kubernetes secret.
 
@@ -172,8 +171,8 @@ kubectl apply -n external-secrets -f conjur-external-secret.yaml
 
 ### Get the K8s secret
 
-* Log in to your Secrets Manager server and verify that your secret exists
-* Review the value of your Kubernetes secret to verify that it contains the same value as the Secrets Manager server
+- Log in to your Secrets Manager server and verify that your secret exists
+- Review the value of your Kubernetes secret to verify that it contains the same value as the Secrets Manager server
 
 ```shell
 # WARNING: this command will reveal the stored secret in plain text
@@ -184,21 +183,5 @@ kubectl get secret -n external-secrets conjur -o jsonpath="{.data.secret00}"  | 
 
 ### See also
 
-* [Accelerator-K8s-External-Secrets repo](https://github.com/conjurdemos/Accelerator-K8s-External-Secrets)
-* [Configure Secrets Manager JWT authentication](https://docs.cyberark.com/conjur-open-source/Latest/en/Content/Operations/Services/cjr-authn-jwt-guidelines.htm)
-
-### License
-
-Copyright (c) 2023-2024 CyberArk Software Ltd. All rights reserved.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-<http://www.apache.org/licenses/LICENSE-2.0>
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+- [Accelerator-K8s-External-Secrets repo](https://github.com/conjurdemos/Accelerator-K8s-External-Secrets)
+- [Configure Secrets Manager JWT authentication](https://docs.cyberark.com/conjur-open-source/Latest/en/Content/Operations/Services/cjr-authn-jwt-guidelines.htm)

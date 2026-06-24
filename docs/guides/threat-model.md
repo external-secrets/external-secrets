@@ -3,6 +3,8 @@ hide:
   - toc
 ---
 
+# Threat Model
+
 ## Background
 
 The External Secrets Operator is a Kubernetes Operator that seamlessly incorporates external secret management systems into Kubernetes. This Operator retrieves data from the external API and generates Kubernetes Secret resources using the corresponding secret values. This process occurs continuously in the background through regular polling of the external API. Consequently, whenever a secret undergoes changes in the external API, the corresponding Kubernetes Secret will also be updated accordingly.
@@ -30,7 +32,6 @@ The following diagram illustrates the security perspective of how ESO functions,
 ### Scope
 
 For the purpose of this threat model, we assume an ESO installation using helm and default settings on a public cloud provider. It is important to note that the [Kubernetes SIG Security](https://github.com/kubernetes/community/tree/master/sig-security) team has defined an [Admission Control Threat Model](https://github.com/kubernetes/sig-security/blob/main/sig-security-docs/papers/admission-control/kubernetes-admission-control-threat-model.md), which is recommended reading for a better understanding of the security aspects that partially apply to External Secrets Operator.
-
 
 ESO utilizes the `ValidatingWebhookConfiguration` mechanism to validate `(Cluster)SecretStore` and `(Cluster)ExternalSecret` resources. However, it is essential to understand that this validation process does not serve as a security control mechanism. Instead, ESO performs validation by enforcing additional rules that go beyond the [CustomResourceDefinition OpenAPI v3 Validation schema](https://kubernetes.io/docs/tasks/extend-kubernetes/custom-resources/custom-resource-definitions/#validation).
 
@@ -93,7 +94,6 @@ An attack can infiltrate the ESO container through various attack vectors. The f
 
 An attacker can deploy malicious workloads within the external-secrets namespace, taking advantage of the ESO service account with potentially cluster-wide privileges.
 
-
 ### Controls
 
 #### C01: Network Security Policy
@@ -104,7 +104,7 @@ Please note that ESO does not provide pre-packaged network policies, and it is t
 
 #### C02: Least Privilege RBAC
 
-Adhere to the principle of least privilege by configuring Role-Based Access Control (RBAC) permissions not only for the ESO workload but also for all users interacting with it. Ensure that RBAC permissions on provider side are appropriate according to your setup, by for example limiting which sensitive information a given credential can have access to. Ensure that  kubernetes RBAC are set up to grant access to ESO resources only where necessary. For example, allowing write access to `ClusterSecretStore`/`ExternalSecret` may be sufficient for a threat to become a reality.
+Adhere to the principle of least privilege by configuring Role-Based Access Control (RBAC) permissions not only for the ESO workload but also for all users interacting with it. Ensure that RBAC permissions on provider side are appropriate according to your setup, by for example limiting which sensitive information a given credential can have access to. Ensure that kubernetes RBAC are set up to grant access to ESO resources only where necessary. For example, allowing write access to `ClusterSecretStore`/`ExternalSecret` may be sufficient for a threat to become a reality.
 
 #### C03: Policy Enforcement
 

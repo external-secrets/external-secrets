@@ -1,25 +1,24 @@
-## Can I manually trigger a secret refresh?
+# Can I manually trigger a secret refresh?
 
 You can trigger a secret refresh by using kubectl or any other kubernetes api client.
 You just need to change an annotation, label or the spec of the resource:
 
-```
+```yaml
 kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 ```
 
 For ClusterExternalSecrets you can refresh all corresponding ExternalSecrets by changing
 the `external-secrets.io/force-sync` annotation on the ClusterExternalSecret resource:
 
-```
+```yaml
 kubectl annotate ces my-ces external-secrets.io/force-sync=$(date +%s) --overwrite
 ```
 
 ## How do I know when my secret was last synced?
 
-
 The last synchronization timestamp of an ExternalSecret can be retrieved from the field `refreshTime`.
 
-```
+```yaml
 kubectl get es my-external-secret -o yaml | grep refreshTime
   refreshTime: "2022-05-21T23:02:47Z"
 ```
@@ -34,7 +33,7 @@ The interval can be changed by the `spec.refreshInterval` in the ExternalSecret.
 
 Every ExternalSecret resource contains a status condition that indicates whether a secret was successfully synchronized, along with the timestamp of the last status change of the ExternalSecret (e.g. from SecretSyncedError to SecretSynced). This can be obtained from the field `lastTransitionTime`:
 
-```
+```yaml
 kubectl get es my-external-secret -o yaml | grep condition -A 5
   conditions:
   - lastTransitionTime: "2022-05-21T21:02:47Z"
@@ -45,6 +44,7 @@ kubectl get es my-external-secret -o yaml | grep condition -A 5
 ```
 
 ## Differences to csi-secret-store
+
 Please take a look at this [issue comment here](https://github.com/external-secrets/external-secrets/issues/478#issuecomment-964413129).
 
 ## How do I debug an external-secret that doesn't sync?
@@ -52,7 +52,7 @@ Please take a look at this [issue comment here](https://github.com/external-secr
 First, check the status of the ExternalSecret resource using `kubectl describe`. That displays the status conditions as well as recent events.
 You should expect a status condition with `Type=Ready`, `Status=True`. Further you shouldn't see any events with `Type=Warning`. Read carefully if they exist.
 
-```
+```yaml
 kubectl describe es my-external-secret
 [...]
 Status:
@@ -75,7 +75,7 @@ If everything looks good you should check the corresponding secret store resourc
 
 In an ideally, the store should be validated and Ready.
 
-```
+```yaml
 kubectl describe css kubernetes
 [...]
 Status:
@@ -96,10 +96,7 @@ If everything looks normal so far, please go ahead and ensure that the created s
 
 ## Upgrading from KES to ESO
 
-Migrating from KES to ESO is quite tricky! There is a tool we built to help users out available [here](https://github.com/external-secrets/kes-to-eso), and there is a small migration procedure.
+Migrating from KES to ESO is quite tricky! There is a tool we built to help users out available [the linked documentation](https://github.com/external-secrets/kes-to-eso), and there is a small migration procedure.
 
 There are some incompatibilities between KES to ESO, and while the tool tries to cover most of them, some of them will require manual intervention. We recommend to first convert the manifest files, and actually see if the tool provides a warning about any file needed to be changed.
 Beware that the tool points the SecretStores to use KES Service Account, so you'll also need to tweak that if you plan to uninstall KES after the upgrade.
-
-
-

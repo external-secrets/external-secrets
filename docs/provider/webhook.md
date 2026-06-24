@@ -1,10 +1,10 @@
-## Generic Webhook
+# Generic Webhook
 
 External Secrets Operator can integrate with simple web apis by specifying the endpoint
 
-### Example
+## Example
 
-First, create a SecretStore with a webhook backend.  We'll use a static user/password `test`:
+First, create a SecretStore with a webhook backend. We'll use a static user/password `test`:
 
 ```yaml
 {% raw %}
@@ -57,9 +57,9 @@ spec:
   target:
     name: example-sync
   data:
-  - secretKey: foobar
-    remoteRef:
-      key: secret
+    - secretKey: foobar
+      remoteRef:
+        key: secret
 ---
 # will create a secret with:
 kind: Secret
@@ -68,7 +68,8 @@ metadata:
 data:
   foobar: c2VjcmV0
 ```
-#### Push secret
+
+### Push secret
 
 To push a secret, create the following store:
 
@@ -115,6 +116,7 @@ spec:
         remoteRef:
           remoteKey: remotekey
 ```
+
 If `secretKey` is not provided, the whole secret is provided JSON encoded.
 
 The secret will be added to the `remoteRef` object so that it is retrievable in the templating engine. The secret will be sent in the body when the body field of the provider is empty. In the rare case that the body should be empty, the provider can be configured to use `{% raw %}'{{ "" }}'{% endraw %}` for the body value.
@@ -157,15 +159,12 @@ data:
   password: dGVzdA== # "test"
 ```
 
-
-
-
 !!! note
-      If a webhook endpoint for a given `ExternalSecret` returns a 404 status code, the secret is considered to have been deleted.  This will trigger the `deletionPolicy` set on the `ExternalSecret`.
+    If a webhook endpoint for a given `ExternalSecret` returns a 404 status code, the secret is considered to have been deleted. This will trigger the `deletionPolicy` set on the `ExternalSecret`.
 
 ### Templating
 
-Generic WebHook provider uses the templating engine to generate the API call.  It can be used in the url, headers, body and result.jsonPath fields.
+Generic WebHook provider uses the templating engine to generate the API call. It can be used in the url, headers, body and result.jsonPath fields.
 
 The provider inserts the secret to be retrieved in the object named `remoteRef`.
 
@@ -198,11 +197,11 @@ spec:
       body: <body>
       # List of secrets to expose to the templating engine
       secrets:
-      # Use this name to refer to this secret in templating, above
-      - name: <name>
-        secretRef:
-          namespace: <namespace> # Only used in ClusterSecretStores
-          name: <name>
+        # Use this name to refer to this secret in templating, above
+        - name: <name>
+          secretRef:
+            namespace: <namespace> # Only used in ClusterSecretStores
+            name: <name>
       # Add CAs here for the TLS handshake
       caBundle: <base64 encoded cabundle>
       caProvider:
@@ -213,4 +212,5 @@ spec:
 ```
 
 ### Webhook as generators
+
 You can also leverage webhooks as generators, following the same syntax. The only difference is that the webhook generator needs its source secrets to be labeled, as opposed to webhook secretstores. Please see the [generator-webhook](../api/generator/webhook.md) documentation for more information.

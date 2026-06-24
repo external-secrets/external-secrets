@@ -2,22 +2,21 @@
 
 The tool can be found under `cmd/esoctl`.
 
-
 ## Debugging templates
 
- The `template` command can be used to test templates for `PushSecret` and `ExternalSecret`.
+The `template` command can be used to test templates for `PushSecret` and `ExternalSecret`.
 
 To run render simply execute `make build` in the `cmd/esoctl` folder. This will result in a binary under `cmd/esoctl/bin`.
 
 Once the build succeeds, the command can be used as such:
 
-```
+```bash
 bin/esoctl template --source-templated-object template-test/push-secret.yaml --source-secret-data-file template-test/secret.yaml
 ```
 
 Where template-test looks like this:
 
-```
+```bash
 ❯ tree template-test/                                                                                                                                                                                                                   (base)
 template-test/
 ├── push-secret.yaml
@@ -43,7 +42,7 @@ simply put it into a file along with the data it's using, and run this command.
 
 The output will be something like this:
 
-```
+```bash
 bin/esoctl template --source-templated-object template-test/push-secret.yaml --source-secret-data-file template-test/secret.yaml
 data:
   token: VE9LRU4gd2FzIHRlbXBsYXRlZA==
@@ -55,11 +54,12 @@ TOKEN was templated⏎
 ```
 
 Further options can be used to provide templates from a ConfigMap or a Secret:
-```
+
+```bash
 bin/esoctl template --source-templated-object template-test/push-secret.yaml \
-  --source-secret-data-file template-test/secret.yaml \
-  --template-from-config-map template-test/template-config-map.yaml \
-  --template-from-secret template-test/template-secret.yaml
+--source-secret-data-file template-test/secret.yaml \
+--template-from-config-map template-test/template-config-map.yaml \
+--template-from-secret template-test/template-secret.yaml
 ```
 
 ## Bootstrapping generator code
@@ -72,15 +72,17 @@ When running it, it will automatically:
 - Bootstrap a new generator implementation
 - Update the register file with the new generator
 - Update Cluster Generators to include the new generator
-- Update needed dependencies  (go.mod, resolver file, etc)
+- Update needed dependencies (go.mod, resolver file, etc)
 
 To run, simply execute:
-```
+
+```bash
 bin/esoctl bootstrap generator --name GeneratorName --description "A description of this generator" --package generatorname
 ```
 
 ### Example
-```
+
+```bash
 bin/esoctl bootstrap generator --name MyAwesomeGenerator --description "An awesome generator I want to add to ESO :)"
 
 ✓ Created CRD: /home/gusfcarvalho/Documents/repos/external-secrets/apis/generators/v1alpha1/types_myawesomegenerator.go
@@ -106,7 +108,7 @@ Next steps:
 
 You should also expect the following `git diff` with specific changes:
 
-```diff
+```bash
 diff --git a/apis/generators/v1alpha1/register.go b/apis/generators/v1alpha1/register.go
 index 16c05154b..9538bcc57 100644
 --- a/apis/generators/v1alpha1/register.go
@@ -119,7 +121,7 @@ index 16c05154b..9538bcc57 100644
 +       // MyAwesomeGeneratorKind is the kind name for MyAwesomeGenerator resource.
 +       MyAwesomeGeneratorKind = reflect.TypeOf(MyAwesomeGenerator{}).Name()
  )
- 
+
  func init() {
 @@ -109,4 +112,5 @@ func init() {
         SchemeBuilder.Register(&Webhook{}, &WebhookList{})
@@ -133,12 +135,12 @@ index e212dab76..0245e8f1c 100644
 +++ b/apis/generators/v1alpha1/types_cluster.go
 @@ -30,7 +30,7 @@ type ClusterGeneratorSpec struct {
  }
- 
+
  // GeneratorKind represents a kind of generator.
 -// +kubebuilder:validation:Enum=ACRAccessToken;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana
 +// +kubebuilder:validation:Enum=ACRAccessToken;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MyAwesomeGenerator
  type GeneratorKind string
- 
+
  const (
 @@ -64,6 +64,8 @@ const (
         GeneratorKindMFA GeneratorKind = "MFA"
@@ -147,7 +149,7 @@ index e212dab76..0245e8f1c 100644
 +       // GeneratorKindMyAwesomeGenerator represents a myawesomegenerator generator.
 +       GeneratorKindMyAwesomeGenerator GeneratorKind = "MyAwesomeGenerator"
  )
- 
+
  // GeneratorSpec defines the configuration for various supported generator types.
 @@ -85,6 +87,7 @@ type GeneratorSpec struct {
         WebhookSpec               *WebhookSpec               `json:"webhookSpec,omitempty"`
@@ -155,7 +157,7 @@ index e212dab76..0245e8f1c 100644
         MFASpec                   *MFASpec                   `json:"mfaSpec,omitempty"`
 +       MyAwesomeGeneratorSpec             *MyAwesomeGeneratorSpec             `json:"myawesomegeneratorSpec,omitempty"`
  }
- 
+
  // ClusterGenerator represents a cluster-wide generator which can be referenced as part of `generatorRef` fields.
 diff --git a/go.mod b/go.mod
 index ff95a9558..c73ecb0c7 100644
@@ -179,7 +181,7 @@ index dd9ad55fb..6aafd4089 100644
         webhookgen "github.com/external-secrets/external-secrets/generators/v1/webhook"
 +       myawesomegenerator "github.com/external-secrets/external-secrets/generators/v1/myawesomegenerator"
  )
- 
+
  func init() {
 @@ -53,4 +54,5 @@ func init() {
         genv1alpha1.Register(uuid.Kind(), uuid.NewGenerator())
@@ -212,11 +214,15 @@ index 66f4b4037..938ccd6cd 100644
 ```
 
 ### flags
+
 #### name
+
 Defines the generator name. Must be `PascalCase`.
 
 #### description
+
 Defines the generator description (added as a golang comment)
 
 #### package (optional)
+
 Defines the package name for the generator. Must be `snake_case`. defaults to lowercase of `name`

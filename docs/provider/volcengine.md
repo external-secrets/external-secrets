@@ -4,7 +4,7 @@
 
 This guide demonstrates how to use the Volcengine (BytePlus) provider.
 
-### Step 1 
+### Step 1
 
 Create a secret in the [Volcengine KMS](https://console.volcengine.com/kms).
 
@@ -52,7 +52,7 @@ spec:
 
 #### Case 2: IRSA is enabled
 
-When the `auth` block is not specified or does not contain secretRef, IRSA is enabled by default. 
+When the `auth` block is not specified or does not contain secretRef, IRSA is enabled by default.
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -77,18 +77,18 @@ extraEnv:
     value: "/var/run/secrets/vke.volcengine.com/irsa-tokens/token"
 # Volume mounts of external-secrets Pod
 extraVolumeMounts:
-- mountPath: /var/run/secrets/vke.volcengine.com/irsa-tokens
-  name: irsa-oidc-token
-  readOnly: true
+  - mountPath: /var/run/secrets/vke.volcengine.com/irsa-tokens
+    name: irsa-oidc-token
+    readOnly: true
 extraVolumes:
-- name: irsa-oidc-token
-  projected:
-    defaultMode: 420
-    sources:
-    - serviceAccountToken:
-        audience: sts.volcengine.com
-        expirationSeconds: 3600
-        path: token
+  - name: irsa-oidc-token
+    projected:
+      defaultMode: 420
+      sources:
+        - serviceAccountToken:
+            audience: sts.volcengine.com
+            expirationSeconds: 3600
+            path: token
 # Service account of external-secrets Pod
 serviceAccount:
   name: "YOUR_SERVICE_ACCOUNT_NAME"
@@ -116,10 +116,10 @@ spec:
   target:
     name: db-credentials
   data:
-  - secretKey: password
-    remoteRef:
-      key: "my-app/db/credentials" # The name of the secret in the secret manager
-      property: "password" # The field name in the JSON
+    - secretKey: password
+      remoteRef:
+        key: "my-app/db/credentials" # The name of the secret in the secret manager
+        property: "password" # The field name in the JSON
 ```
 
 #### Case 2: Do not specify a property, get the entire Secret from the secret manager and sync all its key-value pairs
@@ -136,7 +136,7 @@ spec:
   target:
     name: db-credentials
   data:
-  - secretKey: password
-    remoteRef:
-      key: "my-app/db/credentials" # The name of the secret in the secret manager
+    - secretKey: password
+      remoteRef:
+        key: "my-app/db/credentials" # The name of the secret in the secret manager
 ```

@@ -1,8 +1,8 @@
-## GitHub
+# GitHub
 
 External Secrets Operator integrates with GitHub to sync Kubernetes secrets with [GitHub Actions secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions).
 
-### Limitations
+## Limitations
 
 The GitHub provider is **write-only**, designed specifically to **create and update** GitHub Actions secrets using the
 [GitHub REST API](https://docs.github.com/en/rest/actions/secrets), and does not support **fetching the secret values**.

@@ -7,7 +7,7 @@ based format of that QR code. That's the secret that this generator will use to 
 ## Output Keys and Values
 
 | Key      | Description                                      |
-|----------|--------------------------------------------------|
+| -------- | ------------------------------------------------ |
 | token    | the generated N letter token                     |
 | timeLeft | the time left until the token expires in seconds |
 
@@ -16,7 +16,7 @@ based format of that QR code. That's the secret that this generator will use to 
 The following configuration options are available when generating a token:
 
 | Key        | Default  | Description                                                                                                    |
-|------------|----------|----------------------------------------------------------------------------------------------------------------|
+| ---------- | -------- | -------------------------------------------------------------------------------------------------------------- |
 | length     | 6        | Digit length of the generated code. Some providers allow larger tokens.                                        |
 | timePeriod | 30       | Number of seconds the code can be valid. This is provider specific, usually it's 30 seconds                    |
 | secret     | empty    | This is a secret ref pointing to the seed secret                                                               |
@@ -31,7 +31,7 @@ The following configuration options are available when generating a token:
 
 This will generate an output like this:
 
-```
+```yaml
 token: 123456
 timeLeft: 25
 ```

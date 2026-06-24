@@ -9,10 +9,10 @@ store and optionally filter or transform the keys that get pushed.
 `dataTo` supports two distinct modes. Which one to use depends entirely on your **provider's
 secret model**:
 
-| Mode | When to use | `remoteKey` |
-|---|---|---|
-| **Per-key** | Provider uses one named variable/entry per secret (GitHub Actions, Doppler) | not set |
-| **Bundle** | Provider stores structured config as a single named secret (AWS SM, Azure KV, GCP SM, Vault) | **required** |
+| Mode        | When to use                                                                                  | `remoteKey`  |
+| ----------- | -------------------------------------------------------------------------------------------- | ------------ |
+| **Per-key** | Provider uses one named variable/entry per secret (GitHub Actions, Doppler)                  | not set      |
+| **Bundle**  | Provider stores structured config as a single named secret (AWS SM, Azure KV, GCP SM, Vault) | **required** |
 
 ## Choosing the right mode
 
@@ -25,14 +25,15 @@ Do **not** set `remoteKey` in this case; the key names themselves become the pro
 ```yaml
 # GitHub Actions / Doppler — one variable per key
 dataTo:
-  - storeRef:
-      name: github-store
-    # no remoteKey — each K8s key becomes its own GitHub secret
-    match:
-      regexp: "^APP_"
+  storeRef:
+    name: github-store
+  # no remoteKey — each K8s key becomes its own GitHub secret
+  match:
+    regexp: "^APP_"
 ```
 
 Result in GitHub Actions (assuming the K8s Secret has `APP_TOKEN` and `APP_ENV`):
+
 ```text
 APP_TOKEN → value of APP_TOKEN
 APP_ENV   → value of APP_ENV
@@ -49,12 +50,13 @@ Providers like **AWS Secrets Manager**, **Azure Key Vault**, **GCP Secret Manage
 dataTo:
   - storeRef:
       name: aws-store
-    remoteKey: my-app/config    # the AWS Secrets Manager secret name
+    remoteKey: my-app/config # the AWS Secrets Manager secret name
     match:
       regexp: "^DB_"
 ```
 
 Result in AWS Secrets Manager:
+
 ```text
 my-app/config → {"DB_HOST":"localhost","DB_USER":"admin","DB_PASS":"s3cr3t"}
 ```
@@ -68,19 +70,19 @@ my-app/config → {"DB_HOST":"localhost","DB_USER":"admin","DB_PASS":"s3cr3t"}
 
 ## Provider reference
 
-| Provider | Secret model | Use `remoteKey`? | Notes |
-|---|---|---|---|
-| AWS Secrets Manager | Named secret (JSON) | **Yes** | `remoteKey` = secret name; store `prefix` is prepended |
-| AWS Parameter Store | Named parameter | **Yes** | `remoteKey` = parameter path |
-| Azure Key Vault | Named secret/key/cert | **Yes** | `remoteKey` = object name |
-| GCP Secret Manager | Named secret | **Yes** | `remoteKey` = secret ID |
-| HashiCorp Vault | Named path (JSON) | **Yes** | `remoteKey` = Vault path |
-| Oracle Vault | Named secret | **Yes** | `remoteKey` = secret name |
-| Kubernetes | Named secret | **Yes** | `remoteKey` = target Secret name |
-| Bitwarden | Named item | **Yes** | `remoteKey` = item key |
-| GitHub Actions | Env-var (one per key) | **No** | Key name = Actions secret name |
-| Doppler | Env-var (one per key) | **No** | Key name = Doppler variable name |
-| Webhook | Configurable | Depends | Check your webhook implementation |
+| Provider            | Secret model          | Use `remoteKey`? | Notes                                                  |
+| ------------------- | --------------------- | ---------------- | ------------------------------------------------------ |
+| AWS Secrets Manager | Named secret (JSON)   | **Yes**          | `remoteKey` = secret name; store `prefix` is prepended |
+| AWS Parameter Store | Named parameter       | **Yes**          | `remoteKey` = parameter path                           |
+| Azure Key Vault     | Named secret/key/cert | **Yes**          | `remoteKey` = object name                              |
+| GCP Secret Manager  | Named secret          | **Yes**          | `remoteKey` = secret ID                                |
+| HashiCorp Vault     | Named path (JSON)     | **Yes**          | `remoteKey` = Vault path                               |
+| Oracle Vault        | Named secret          | **Yes**          | `remoteKey` = secret name                              |
+| Kubernetes          | Named secret          | **Yes**          | `remoteKey` = target Secret name                       |
+| Bitwarden           | Named item            | **Yes**          | `remoteKey` = item key                                 |
+| GitHub Actions      | Env-var (one per key) | **No**           | Key name = Actions secret name                         |
+| Doppler             | Env-var (one per key) | **No**           | Key name = Doppler variable name                       |
+| Webhook             | Configurable          | Depends          | Check your webhook implementation                      |
 
 ## Examples by provider
 
@@ -91,10 +93,10 @@ my-app/config → {"DB_HOST":"localhost","DB_USER":"admin","DB_PASS":"s3cr3t"}
     `prefix: myapp/` and your `dataTo` has `remoteKey: db-config`, the resulting AWS secret
     name is `myapp/db-config` — not `db-config`.
 
-    A common mistake is setting `prefix: secrets-sync-temp/` and `remoteKey: secrets-sync-temp`,
-    which creates `secrets-sync-temp/secrets-sync-temp` — not `secrets-sync-temp`.
-    If you want the secret name to be exactly `secrets-sync-temp`, either remove the prefix
-    from the store or set `remoteKey` to the suffix portion only.
+A common mistake is setting `prefix: secrets-sync-temp/` and `remoteKey: secrets-sync-temp`,
+which creates `secrets-sync-temp/secrets-sync-temp` — not `secrets-sync-temp`.
+If you want the secret name to be exactly `secrets-sync-temp`, either remove the prefix
+from the store or set `remoteKey` to the suffix portion only.
 
 !!! tip "Make the value visible in the AWS Console"
     By default ESO stores secret values as **binary** (`SecretBinary`). The AWS Console
@@ -124,21 +126,22 @@ spec:
       kind: SecretStore
   selector:
     secret:
-      name: app-secrets    # K8s Secret with DB_HOST, DB_USER, DB_PASS
+      name: app-secrets # K8s Secret with DB_HOST, DB_USER, DB_PASS
   dataTo:
     - storeRef:
         name: aws-store
-      remoteKey: my-app/db-config   # → AWS secret named exactly "my-app/db-config"
+      remoteKey: my-app/db-config # → AWS secret named exactly "my-app/db-config"
       match:
         regexp: "^DB_"
       metadata:
         apiVersion: kubernetes.external-secrets.io/v1alpha1
         kind: PushSecretMetadata
         spec:
-          secretPushFormat: string    # store as SecretString (readable in console)
+          secretPushFormat: string # store as SecretString (readable in console)
 ```
 
 Result in AWS Secrets Manager:
+
 ```text
 my-app/db-config → {"DB_HOST":"localhost","DB_USER":"admin","DB_PASS":"s3cr3t"}
 ```
@@ -148,7 +151,7 @@ my-app/db-config → {"DB_HOST":"localhost","DB_USER":"admin","DB_PASS":"s3cr3t"
     `PushSecretMetadata` object with `apiVersion`, `kind`, and `spec`. Putting
     `secretPushFormat: string` directly under `metadata:` will cause a parse error.
 
-**With a store prefix:**
+With a store prefix:
 
 ```yaml
 # SecretStore has prefix: myapp/
@@ -162,7 +165,7 @@ my-app/db-config → {"DB_HOST":"localhost","DB_USER":"admin","DB_PASS":"s3cr3t"
 dataTo:
   - storeRef:
       name: azure-store
-    remoteKey: app-db-config    # Azure Key Vault secret name
+    remoteKey: app-db-config # Azure Key Vault secret name
     match:
       regexp: "^DB_"
 ```
@@ -184,7 +187,7 @@ dataTo:
 dataTo:
   - storeRef:
       name: vault-store
-    remoteKey: secret/data/myapp/db    # Vault path (KV v2 style)
+    remoteKey: secret/data/myapp/db # Vault path (KV v2 style)
     match:
       regexp: "^DB_"
 ```
@@ -221,7 +224,7 @@ dataTo:
       name: aws-store
     remoteKey: myapp/db-secrets
     match:
-      regexp: "^DB_"      # only keys starting with DB_
+      regexp: "^DB_" # only keys starting with DB_
 ```
 
 ```yaml
@@ -248,20 +251,22 @@ dataTo:
     rewrite:
       - regexp:
           source: "^db-"
-          target: "DATABASE_"   # db-host → DATABASE_host
+          target: "DATABASE_" # db-host → DATABASE_host
 ```
 
 ### Template rewrite
 
 {% raw %}
+
 ```yaml
 dataTo:
   - storeRef:
       name: github-store
     rewrite:
       - transform:
-          template: "{{ .value | upper }}"   # db-host → DB-HOST
+          template: "{{ .value | upper }}" # db-host → DB-HOST
 ```
+
 {% endraw %}
 
 ### Chained rewrites
@@ -275,8 +280,8 @@ dataTo:
     match:
       regexp: "^prod-db-"
     rewrite:
-      - regexp: {source: "^prod-", target: ""}        # prod-db-host → db-host
-      - regexp: {source: "^db-", target: "DATABASE_"} # db-host      → DATABASE_host
+      - regexp: { source: "^prod-", target: "" } # prod-db-host → db-host
+      - regexp: { source: "^db-", target: "DATABASE_" } # db-host      → DATABASE_host
 ```
 
 !!! tip "Rewrites are ignored in bundle mode"
@@ -325,12 +330,12 @@ spec:
   dataTo:
     - storeRef:
         name: aws-store
-      remoteKey: myapp/config       # all keys bundled here by default
+      remoteKey: myapp/config # all keys bundled here by default
   data:
     - match:
         secretKey: MASTER_PASSWORD
         remoteRef:
-          remoteKey: myapp/security/master-password   # this key gets its own secret
+          remoteKey: myapp/security/master-password # this key gets its own secret
 ```
 
 ## Conversion strategy
@@ -348,13 +353,13 @@ dataTo:
 
 ## Error handling
 
-| Situation | Behavior |
-|---|---|
-| Invalid regexp in `match` | PushSecret enters error state; check `.status.conditions` |
-| Rewrite produces empty key | Reconciliation fails with the offending source key named |
-| Two entries produce the same remote key | Reconciliation fails listing all conflicting sources |
-| `match` matches no keys | Not an error; info log, PushSecret stays Ready |
-| `storeRef` not in `secretStoreRefs` | Validation error on apply |
+| Situation                               | Behavior                                                  |
+| --------------------------------------- | --------------------------------------------------------- |
+| Invalid regexp in `match`               | PushSecret enters error state; check `.status.conditions` |
+| Rewrite produces empty key              | Reconciliation fails with the offending source key named  |
+| Two entries produce the same remote key | Reconciliation fails listing all conflicting sources      |
+| `match` matches no keys                 | Not an error; info log, PushSecret stays Ready            |
+| `storeRef` not in `secretStoreRefs`     | Validation error on apply                                 |
 
 ## Best practices
 
@@ -362,9 +367,11 @@ dataTo:
 2. **Never set `remoteKey` for env-var providers** (GitHub Actions, Doppler) — the key name IS the variable name
 3. **Filter before you bundle** — use `match.regexp` to be explicit about which keys end up in a bundle; avoids accidentally including sensitive keys
 4. **Test patterns first** — inspect your source Secret's keys before writing patterns:
+
    ```bash
    kubectl get secret my-secret -o jsonpath='{.data}' | jq 'keys'
    ```
+
 5. **Combine with `data` for exceptions** — use `dataTo` for the common case, explicit `data` entries for keys that need custom paths or properties
 6. **Monitor status** — check `kubectl get pushsecret <name> -o yaml` for sync errors
 

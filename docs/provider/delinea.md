@@ -1,15 +1,15 @@
-## Delinea DevOps Secrets Vault
+# Delinea DevOps Secrets Vault
 
 External Secrets Operator integrates with [Delinea DevOps Secrets Vault](https://docs.delinea.com/online-help/products/devops-secrets-vault/current).
 
 Please note that the [Delinea Secret Server](https://delinea.com/products/secret-server) product is NOT in scope of this integration.
 
-### Creating a SecretStore
+## Creating a SecretStore
 
 You need client ID, client secret and tenant to authenticate with DSV.
 Both client ID and client secret can be specified either directly in the config, or by referencing a kubernetes secret.
 
-To acquire client ID and client secret, refer to the  [policy management](https://docs.delinea.com/dsv/current/tutorials/policy.md) and [client management](https://docs.delinea.com/dsv/current/usage/cli-ref/client.md) documentation.
+To acquire client ID and client secret, refer to the [policy management](https://docs.delinea.com/dsv/current/tutorials/policy.md) and [client management](https://docs.delinea.com/dsv/current/usage/cli-ref/client.md) documentation.
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -45,15 +45,15 @@ Note that because all DSV secrets are JSON objects, you must specify `remoteRef.
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-    name: secret
+  name: secret
 spec:
-    refreshInterval: 1h0m0s
-    secretStoreRef:
-        kind: SecretStore
-        name: secret-store
-    data:
-      - secretKey: <KEY_IN_KUBE_SECRET>
-        remoteRef:
-          key: <SECRET_PATH>
-          property: <JSON_PROPERTY>
+  refreshInterval: 1h0m0s
+  secretStoreRef:
+    kind: SecretStore
+    name: secret-store
+  data:
+    - secretKey: <KEY_IN_KUBE_SECRET>
+      remoteRef:
+        key: <SECRET_PATH>
+        property: <JSON_PROPERTY>
 ```

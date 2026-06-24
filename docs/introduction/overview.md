@@ -1,6 +1,7 @@
 # API Overview
 
 ## Architecture
+
 ![high-level](../pictures/diagrams-high-level-simple.png)
 
 The External Secrets Operator extends Kubernetes with [Custom
@@ -10,7 +11,6 @@ fetches secrets from an external API and creates Kubernetes
 [secrets](https://kubernetes.io/docs/concepts/configuration/secret/). If the
 secret from the external API changes, the controller will reconcile the state in
 the cluster and update the secrets accordingly.
-
 
 ## Resource model
 
@@ -30,18 +30,20 @@ authentication/access and the actual Secret and configuration needed for
 workloads. The ExternalSecret specifies what to fetch, the SecretStore specifies
 how to access. This resource is namespaced.
 
-``` yaml
+```yaml
 {% include 'basic-secret-store.yaml' %}
 ```
+
 The `SecretStore` contains references to secrets which hold credentials to
 access the external API.
 
 ### ExternalSecret
+
 An [ExternalSecret](../api/externalsecret.md) declares what data to fetch. It has a reference to a
 `SecretStore` which knows how to access that data. The controller uses that
 `ExternalSecret` as a blueprint to create secrets.
 
-``` yaml
+```yaml
 {% include 'basic-external-secret.yaml' %}
 ```
 
@@ -62,19 +64,19 @@ the following manner:
    the `SecretStore` spec.
 3. ESO fetches the secrets as requested by the `ExternalSecret`, it will decode
    the secrets if required
-5. ESO creates an `Kind=Secret` based on the template provided by
+4. ESO creates an `Kind=Secret` based on the template provided by
    `ExternalSecret.target.template`. The `Secret.data` can be templated using
    the secret values from the external API.
-6. ESO ensures that the secret values stay in sync with the external API
+5. ESO ensures that the secret values stay in sync with the external API
 
 ## Roles and responsibilities
 
 The External Secret Operator is designed to target the following persona:
 
-* **Cluster Operator**: The cluster operator is responsible for setting up the
+- **Cluster Operator**: The cluster operator is responsible for setting up the
   External Secret Operator, managing access policies and creating
   ClusterSecretStores.
-* **Application developer**: The Application developer is responsible for
+- **Application developer**: The Application developer is responsible for
   defining ExternalSecrets and the application configuration
 
 Each persona will roughly map to a Kubernetes RBAC role. Depending on your
@@ -98,6 +100,7 @@ You should also consider using Kubernetes' admission control system (e.g.
 fine-grained access control.
 
 ## Running multiple Controller
+
 You can run multiple controllers within the cluster. One controller can be
 limited to only process `SecretStores` with a predefined `spec.controller`
 field.

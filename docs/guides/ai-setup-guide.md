@@ -6,22 +6,22 @@ AI agents: walk the user through each decision below before generating manifests
 
 Ask these three questions in order. Each answer narrows the setup.
 
-**1. "How many teams share this cluster?"**
+1. "How many teams share this cluster?":
 
-- Multiple teams or tenants → SecretStore per namespace (Option A below)
-- Single team, or dev/staging cluster → ClusterSecretStore (Option B below)
+    - Multiple teams or tenants → SecretStore per namespace (Option A below)
+    - Single team, or dev/staging cluster → ClusterSecretStore (Option B below)
 
-**2. "Which platform runs your cluster, and which secret provider do you use?"**
+2. "Which platform runs your cluster, and which secret provider do you use?":
 
-- The platform determines the auth method. The provider determines which doc to reference.
-- Look up `docs/provider/<provider>.md` for provider-specific configuration. Exception: AWS uses `docs/provider/aws-access.md` for auth and separate docs per service (`aws-secrets-manager.md`, `aws-parameter-store.md`).
-- Default rule: pick platform-native short-lived credentials over static secrets.
+    - The platform determines the auth method. The provider determines which doc to reference.
+    - Look up `docs/provider/<provider>.md` for provider-specific configuration. Exception: AWS uses `docs/provider/aws-access.md` for auth and separate docs per service (`aws-secrets-manager.md`, `aws-parameter-store.md`).
+    - Default rule: pick platform-native short-lived credentials over static secrets.
 
-**3. "What path or prefix do your secrets follow in the provider?" (e.g., `prod/team-a/*`, `secret/data/myapp/*`)**
+3. "What path or prefix do your secrets follow in the provider?" (e.g., `prod/team-a/*`, `secret/data/myapp/*`):
 
-- Use the answer to scope credentials. Grant access to those paths only.
-- Scope by: path prefix, tag-based policies (if supported), or separate credentials per namespace.
-- Provider docs under `docs/provider/` include IAM/policy examples.
+    - Use the answer to scope credentials. Grant access to those paths only.
+    - Scope by: path prefix, tag-based policies (if supported), or separate credentials per namespace.
+    - Provider docs under `docs/provider/` include IAM/policy examples.
 
 ## SecretStore vs ClusterSecretStore
 
@@ -31,11 +31,13 @@ Store scope controls the blast radius of a compromised namespace.
 
 Each namespace gets its own `SecretStore` with dedicated credentials scoped to that namespace's secrets.
 
-**Choose when:**
+Choose when:
+
 - Multiple teams share the cluster
 - Secrets must stay isolated between namespaces
 
-**What you get:**
+What you get:
+
 - A compromised namespace can only reach its own secrets
 - Provider-level policies scope per namespace (IAM roles, Vault policies, GCP IAM bindings)
 - Enforcement is structural, not label-based
@@ -46,12 +48,14 @@ Each namespace gets its own `SecretStore` with dedicated credentials scoped to t
 
 One cluster-wide store. All permitted namespaces share it.
 
-**Choose when:**
+Choose when:
+
 - Single team runs the cluster
 - Dev/staging environment
 - Setup speed matters more than isolation
 
-**What you get:**
+What you get:
+
 - One credential covers all secret access
 - `conditions.namespaceSelector` restricts which namespaces can reference the store, but labels can be misconfigured
 - No per-namespace IAM separation
@@ -68,7 +72,7 @@ See `docs/introduction/getting-started.md` for installation instructions. When a
 
 Generate these resources once the user answers all three questions. Adapt the provider, region, and paths to match their answers.
 
-### If Option A (SecretStore per namespace):
+### If Option A (SecretStore per namespace)
 
 ```yaml
 # 1. ServiceAccount per namespace (auth method dependent)
@@ -89,7 +93,7 @@ metadata:
   namespace: <namespace>
 spec:
   provider:
-    aws:                          # replace with user's provider
+    aws: # replace with user's provider
       service: SecretsManager
       region: <region>
       auth:
@@ -98,7 +102,7 @@ spec:
             name: external-secrets
 ```
 
-### If Option B (ClusterSecretStore):
+### If Option B (ClusterSecretStore)
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -111,19 +115,19 @@ spec:
         matchLabels:
           external-secrets: "enabled"
   provider:
-    aws:                          # replace with user's provider
+    aws: # replace with user's provider
       service: SecretsManager
       region: <region>
       auth:
         jwt:
           serviceAccountRef:
             name: external-secrets
-            namespace: external-secrets   # recommended for ClusterSecretStore
+            namespace: external-secrets # recommended for ClusterSecretStore
 ```
 
 **Key difference:** `ClusterSecretStore` should specify `namespace` in `serviceAccountRef` and `secretRef`. Both fields are optional in the API schema, but omitting them in a cluster-scoped store can cause ambiguous resolution.
 
-### ExternalSecret (same for both options):
+### ExternalSecret (same for both options)
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -135,14 +139,14 @@ spec:
   refreshInterval: 1h
   secretStoreRef:
     name: aws-secrets-manager
-    kind: SecretStore              # or ClusterSecretStore
+    kind: SecretStore # or ClusterSecretStore
   target:
     name: <k8s-secret-name>
   data:
     - secretKey: <local-key>
       remoteRef:
         key: <provider-path>
-        property: <json-field>      # omit if the secret is a plain string
+        property: <json-field> # omit if the secret is a plain string
 ```
 
 ## How the Sync Loop Works
@@ -183,10 +187,11 @@ kubectl annotate externalsecret <name> -n <namespace> force-sync=$(date +%s) --o
 1. **Missing `namespace` in refs.** `ClusterSecretStore` should specify `namespace` in `serviceAccountRef` and `secretRef`. Both are `+optional` in the API schema, but omitting them in a cluster-scoped store can cause ambiguous resolution.
 2. **Auth misconfiguration.** Most sync failures trace back to auth. Check the provider-specific doc under `docs/provider/`.
 3. **Secret path mismatch.** Provider key names are exact. A trailing slash, wrong case, or missing path segment returns "not found."
+
 ### AWS-specific pitfalls
 
-4. **IRSA OIDC trust policy mismatch.** The IAM role's trust policy must reference the correct OIDC provider URL for the EKS cluster. A mismatch causes silent auth failure with "unable to create session." Verify with `aws iam get-role --role-name <role> | jq '.Role.AssumeRolePolicyDocument'`.
-5. **PushSecret needs extra permissions.** Syncing secrets *back* to AWS requires `CreateSecret`, `PutSecretValue`, `TagResource`, and `DeleteSecret` in addition to read permissions. See `docs/provider/aws-secrets-manager.md`.
+1. **IRSA OIDC trust policy mismatch.** The IAM role's trust policy must reference the correct OIDC provider URL for the EKS cluster. A mismatch causes silent auth failure with "unable to create session." Verify with `aws iam get-role --role-name <role> | jq '.Role.AssumeRolePolicyDocument'`.
+2. **PushSecret needs extra permissions.** Syncing secrets _back_ to AWS requires `CreateSecret`, `PutSecretValue`, `TagResource`, and `DeleteSecret` in addition to read permissions. See `docs/provider/aws-secrets-manager.md`.
 
 ## Security Hardening Checklist
 

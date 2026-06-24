@@ -8,58 +8,50 @@ The Jenkins credentials plugin uses labels and annotations on a kubernetes secre
 
 The different types of Jenkins credentials that can be created are SecretText, privateSSHKey, UsernamePassword.
 
-
 ### SecretText
 
 Here are some examples of SecretText with the Hashicorp Vault and AWS External Secrets providers:
 
+#### SecretText with Hashicorp Vault
 
-#### Hashicorp Vault
-
-``` yaml
+```yaml
 {% include 'vault-jenkins-credential-sonarqube-api-token-external-secret.yaml' %}
 ```
 
-#### AWS Secrets Manager
+#### SecretText with AWS Secrets Manager
 
-``` yaml
+```yaml
 {% include 'aws-jenkins-credential-sonarqube-api-token-external-secret.yaml' %}
 ```
-
 
 ### UsernamePassword
 
 Here are some examples of UsernamePassword credentials with the Hashicorp Vault and AWS External Secrets providers:
 
+#### UsernamePassword with Hashicorp Vault
 
-#### Hashicorp Vault
-
-``` yaml
+```yaml
 {% include 'vault-jenkins-credential-harbor-chart-robot-external-secret.yaml' %}
 ```
 
-#### AWS Secrets Manager
+#### UsernamePassword with AWS Secrets Manager
 
-``` yaml
+```yaml
 {% include 'aws-jenkins-credentials-harbor-chart-robot-external-secret.yaml' %}
 ```
-
-
 
 ### basicSSHUserPrivateKey
 
 Here are some examples of basicSSHUserPrivateKey credentials with the Hashicorp Vault and AWS External Secrets providers:
 
+#### basicSSHUserPrivateKey with Hashicorp Vault
 
-#### Hashicorp Vault
-
-``` yaml
+```yaml
 {% include 'vault-jenkins-credential-github-ssh-access-external-secret.yaml' %}
 ```
 
-#### AWS Secrets Manager
+#### basicSSHUserPrivateKey with AWS Secrets Manager
 
-``` yaml
+```yaml
 {% include 'aws-jenkins-credential-github-ssh-external-secret.yaml' %}
 ```
-

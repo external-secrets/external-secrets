@@ -1,4 +1,4 @@
-## Getting Started
+# Getting Started
 
 You must have a working [Go environment](https://golang.org/doc/install) and
 then clone the repo:
@@ -30,6 +30,7 @@ make docker.build IMAGE_NAME=external-secrets IMAGE_TAG=latest
 ```
 
 Run tests and lint the code:
+
 ```shell
 make test
 make lint # OR
@@ -37,6 +38,7 @@ docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.49.0 golangci-l
 ```
 
 Build the documentation:
+
 ```shell
 make docs
 ```
@@ -71,7 +73,6 @@ helm install external-secrets external-secrets/external-secrets
 ```
 
 You can alternatively run the controller on your host system for development purposes:
-
 
 ```shell
 make crds.install
@@ -118,7 +119,6 @@ helm upgrade --install external-secrets ./deploy/charts/external-secrets/ \
 
 !!! note "Contributing Flow"
     The HOW TO guide for contributing is at the [Contributing Process](process.md) page.
-
 
 ## Documentation
 

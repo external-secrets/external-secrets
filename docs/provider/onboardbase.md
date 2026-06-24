@@ -1,3 +1,4 @@
+# Onboardbase
 
 ![Onboardbase External Secrets Provider](../pictures/onboardbase-provider.png)
 
@@ -7,16 +8,13 @@ Sync secrets from [Onboardbase](https://www.onboardbase.com/) to Kubernetes usin
 
 ## Authentication
 
-### Get an Onboardbase [API Key](https://docs.onboardbase.com/reference/api-auth).
+### Get an Onboardbase [API Key](https://docs.onboardbase.com/reference/api-auth)
 
 Create the Onboardbase API by opening the organization tab under your account settings:
 
 ![Onboardabse API Key](../pictures/onboardbase-api-key.png)
 
-
-
 And view them under the team name in your Account settings
-
 
 ![Onboardabse API Key](../pictures/onboardbase-create-api-key.png)
 

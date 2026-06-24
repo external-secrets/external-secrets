@@ -1,3 +1,5 @@
+# Release
+
 ESO and the ESO Helm Chart have two distinct lifecycles and can be released independently. Helm Chart releases are named `external-secrets-x.y.z`.
 
 The external-secrets project is released on a as-needed basis. Feel free to open a issue to request a release.
@@ -15,6 +17,7 @@ External Secrets Operator uses a multi-module structure with the following modul
 **All modules share the same version tag.** When releasing version `v0.x.y`, a single git tag is created that applies to all modules in the repository. Go's module system automatically handles this, and consumers can reference any module using the same version tag.
 
 For example:
+
 ```go
 require (
     github.com/external-secrets/external-secrets/apis v0.10.0
@@ -27,7 +30,7 @@ require (
 
 ## Release ESO
 
-When doing a release it's best to start with  with the ["Create Release" issue template](https://github.com/external-secrets/external-secrets/issues/new?assignees=&labels=area%2Frelease&projects=&template=create_release.md&title=Release+x.y), it has a checklist to go over.
+When doing a release it's best to start with with the ["Create Release" issue template](https://github.com/external-secrets/external-secrets/issues/new?assignees=&labels=area%2Frelease&projects=&template=create_release.md&title=Release+x.y), it has a checklist to go over.
 
 ⚠️ Note: when releasing multiple versions, make sure to first release the "old" version, then the newer version.
 Otherwise the `latest` documentation will point to the older version. Also avoid to release both versions at the same time to avoid race conditions in the CI pipeline (updating docs, GitHub Release, helm chart release).
@@ -37,8 +40,8 @@ Otherwise the `latest` documentation will point to the older version. Also avoid
 1. Run `Create Release` Action to create a new release, pass in the desired version number to release.
     1. choose the right `branch` to execute the action: use `main` when creating a new release.
     2. ⚠️ make sure that CI on the relevant branch has completed the docker build/push jobs. Otherwise an old image will be promoted.
-2. GitHub Release, Changelog will be created by the `release.yml` workflow which also promotes the container image.
-3. update Helm Chart, see below
+1. GitHub Release, Changelog will be created by the `release.yml` workflow which also promotes the container image.
+1. update Helm Chart, see below
 
 ## Release Helm Chart
 

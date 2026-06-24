@@ -5,10 +5,8 @@ With External Secrets Operator you can transform the data from the external secr
 Each data value is interpreted as a [Go template](https://golang.org/pkg/text/template/). Please note that referencing a non-existing key in the template will raise an error, instead of being suppressed.
 
 !!! note
-
-    Consider using camelcase when defining  **.'spec.data.secretkey'**, example: serviceAccountToken
-
-    If your secret keys contain **`-` (dashes)**, you will need to reference them using **`index`** </br>
+    Consider using camelcase when defining `spec.data.secretkey`, example: serviceAccountToken.
+    If your secret keys contain **`-` (dashes)**, you will need to reference them using **`index`**.
     Example: **`{% raw %}{{ index .data "service-account-token" }}{% endraw %}`**
 
 ## Helm
@@ -41,7 +39,7 @@ By default, the templating mechanism will not use any information available from
 {% include 'merge-template-v2-external-secret.yaml' %}
 ```
 
-### TemplateFrom
+### templateFrom
 
 You do not have to define your templates inline in an ExternalSecret but you can pull `ConfigMaps` or other Secrets that contain a template. Consider the following example:
 
@@ -49,17 +47,17 @@ You do not have to define your templates inline in an ExternalSecret but you can
 {% include 'template-v2-from-secret.yaml' %}
 ```
 
-`TemplateFrom` also gives you the ability to Target your template to the Secret's Annotations, Labels or the Data block. It also allows you to render the templated information as `Values` or as `KeysAndValues` through the `templateAs` configuration:
+`templateFrom` also gives you the ability to Target your template to the Secret's Annotations, Labels or the Data block. It also allows you to render the templated information as `Values` or as `KeysAndValues` through the `templateAs` configuration:
 
 ```yaml
 {% include 'template-v2-scope-and-target.yaml' %}
 ```
 
-Lastly, `TemplateFrom` also supports adding `Literal` blocks for quick templating. These `Literal` blocks differ from `Template.Data` as they are rendered as a a `key:value` pair (while the `Template.Data`, you can only template the value).
+Lastly, `templateFrom` also supports adding `Literal` blocks for quick templating. These `Literal` blocks differ from `Template.Data` as they are rendered as a a `key:value` pair (while the `Template.Data`, you can only template the value).
 
-#### ValuesDecodingStrategy example
+#### valuesDecodingStrategy example
 
-`TemplateFrom` entries can also decode rendered values with `ValuesDecodingStrategy`. This is useful when the template selects Base64-encoded values from structured provider data and the final Kubernetes Secret must contain the decoded bytes.
+`templateFrom` entries can also decode rendered values with `valuesDecodingStrategy`. This is useful when the template selects Base64-encoded values from structured provider data and the final Kubernetes Secret must contain the decoded bytes.
 
 For example, imagine several remote secrets matched by `dataFrom.find` contain JSON values like this:
 
@@ -103,7 +101,8 @@ spec:
           {{- end }}
 {% endraw %}
 ```
-Without `templateFrom[0].ValuesDecodingStrategy`, the template will select the `cert` property, and get the base64 text. The resulting Kubernetes Secret value will be stored as Base64 text.
+
+Without `templateFrom[0].valuesDecodingStrategy`, the template will select the `cert` property, and get the base64 text. The resulting Kubernetes Secret value will be stored as Base64 text.
 
 Alternatively, you can use the `templateFrom[0].valuesDecodingStrategy: Base64` as following:
 
@@ -147,12 +146,11 @@ Only rendered values are decoded; rendered keys are left unchanged.
 In other words, use `valuesDecodingStrategy` to `None` when values are not encoded, and our usual strategies like `Base64`, `Base64URL` (or even `Auto`) when values may be either Base64/Base64URL encoded.
 
 !!! note
-
     This is safer for binary data than decoding inside the template with `{% raw %}{{ $json.cert | b64dec }}{% endraw %}`, because `b64dec` injects raw bytes into the intermediate rendered YAML.
 
 #### htpasswd example
 
-See an example, how to produce a `htpasswd` file that can be used by an ingress-controller (for example: https://kubernetes.github.io/ingress-nginx/examples/auth/basic/) where the contents of the `htpasswd` file needs to be presented via the `auth` key. We use the `htpasswd` function to create a `bcrypted` hash of the password.
+See an example, how to produce a `htpasswd` file that can be used by an ingress-controller (for example: <https://kubernetes.github.io/ingress-nginx/examples/auth/basic/>) where the contents of the `htpasswd` file needs to be presented via the `auth` key. We use the `htpasswd` function to create a `bcrypted` hash of the password.
 
 Suppose you have multiple key-value pairs within your provider secret like
 
@@ -205,20 +203,19 @@ And what you want may be a PEM-encoded public or private key portion of it. Take
 
 Consider you have a secret that contains both a certificate and a private key encoded in PEM format and it is your goal to use only the certificate from that secret.
 
-```
+```yaml
 -----BEGIN PRIVATE KEY-----
 MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCvxGZOW4IXvGlh
- . . .
+. . .
 m8JCpbJXDfSSVxKHgK1Siw4K6pnTsIA2e/Z+Ha2fvtocERjq7VQMAJFaIZSTKo9Q
 JwwY+vj0yxWjyzHUzZB33tg=
 -----END PRIVATE KEY-----
 -----BEGIN CERTIFICATE-----
 MIIDMDCCAhigAwIBAgIQabPaXuZCQaCg+eQAVptGGDANBgkqhkiG9w0BAQsFADAV
- . . .
+. . .
 NtFUGA95RGN9s+pl6XY0YARPHf5O76ErC1OZtDTR5RdyQfcM+94gYZsexsXl0aQO
 9YD3Wg==
 -----END CERTIFICATE-----
-
 ```
 
 You can achieve that by using the `filterPEM` function to extract a specific type of PEM block from that secret. If multiple blocks of that type (here: `CERTIFICATE`) exist, all of them are returned in the order specified. To extract a specific type of PEM block, pass the type as a string argument to the filterPEM function. Take a look at this example of how to transform a secret which contains a private key and a certificate into the desired format:
@@ -288,7 +285,6 @@ created at the provider.
 ## Helper functions
 
 !!! info inline end
-
     Note: we removed `env` and `expandenv` from sprig functions for security reasons.
 
 We provide a couple of convenience functions that help you transform your secrets. This is useful when dealing with PKCS#12 archives or JSON Web Keys (JWK).
@@ -297,27 +293,27 @@ In addition to that you can use over 200+ [sprig functions](http://masterminds.g
 
 <br/>
 
-| Function         | Description                                                                                                                                                                                                                  |
-| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| pkcs12key        | Extracts all private keys from a PKCS#12 archive and encodes them in **PKCS#8 PEM** format.                                                                                                                                  |
-| pkcs12keyPass    | Same as `pkcs12key`. Uses the provided password to decrypt the PKCS#12 archive.                                                                                                                                              |
-| pkcs12cert       | Extracts all certificates from a PKCS#12 archive and orders them if possible. If disjunct or multiple leaf certs are provided they are returned as-is. <br/> Sort order: `leaf / intermediate(s) / root`.                    |
-| pkcs12certPass   | Same as `pkcs12cert`. Uses the provided password to decrypt the PKCS#12 archive.                                                                                                                                             |
-| pemToPkcs12      | Takes a PEM encoded certificate and key and creates a base64 encoded PKCS#12 archive.                                                                                                                                         |
-| pemToPkcs12Pass  | Same as `pemToPkcs12`. Uses the provided password to encrypt the PKCS#12 archive.                                                                                                                                            |
-| fullPemToPkcs12      | Takes a PEM encoded certificates chain and key and creates a base64 encoded PKCS#12 archive.                                                                                                                                         |
-| fullPemToPkcs12Pass  | Same as `fullPemToPkcs12`. Uses the provided password to encrypt the PKCS#12 archive.                                                                                                                                            |
-| pemTruststoreToPKCS12    | Takes a PEM encoded certificates and creates a base64 encoded PKCS#12 archive.                                                                                                                                         |
-| pemTruststoreToPKCS12Pass| Same as `pemTruststoreToPKCS12`. Uses the provided password to encrypt the PKCS#12 archive.                                                                                                                                            |
-| filterPEM        | Filters PEM blocks with a specific type from a list of PEM blocks.                                                                                                                                                           |
-| filterCertChain  | Filters PEM block(s) with a specific certificate type (`leaf`, `intermediate` or `root`)  from a certificate chain of PEM blocks (PEM blocks with type `CERTIFICATE`). |
-| certSANs         | Extracts Subject Alternative Names (SANs) from a PEM-encoded certificate and returns them as a list of strings. Includes DNS names, IP addresses, email addresses, and URIs. |
-| jwkPublicKeyPem  | Takes an json-serialized JWK and returns an PEM block of type `PUBLIC KEY` that contains the public key. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKIXPublicKey) for details.                                   |
-| jwkPrivateKeyPem | Takes an json-serialized JWK as `string` and returns an PEM block of type `PRIVATE KEY` that contains the private key in PKCS #8 format. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKCS8PrivateKey) for details. |
-| rsaDecrypt | Decrypts RSA ciphertext using a PEM private key. Usage: ``<rsaDecrypt "SCHEME" "HASH" ciphertext privateKeyPEM>`` or ``<privateKeyPEM \| rsaDecrypt "SCHEME" "HASH" ciphertext>``. **SCHEME**: supported values are `"None"` and `"RSA-OAEP"`. **HASH**: supported values are `"SHA1"` and `"SHA256"`. **Ciphertext** must be binary — use `b64dec` or `decodingStrategy: Base64` to convert Base64 payloads. |
-| toYaml           | Takes an interface, marshals it to yaml. It returns a string, even on marshal error (empty string).                                                                                                                          |
-| fromYaml         | Function converts a YAML document into a map[string]any.                                                                                                                                                             |
-| hexdec           | decodes hexadecimal values                                                                                                                                                                                                   |
+| Function                  | Description                                                                                                                                                                                                                                                                                                                                                                                               |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| pkcs12key                 | Extracts all private keys from a PKCS#12 archive and encodes them in **PKCS#8 PEM** format.                                                                                                                                                                                                                                                                                                               |
+| pkcs12keyPass             | Same as `pkcs12key`. Uses the provided password to decrypt the PKCS#12 archive.                                                                                                                                                                                                                                                                                                                           |
+| pkcs12cert                | Extracts all certificates from a PKCS#12 archive and orders them if possible. If disjunct or multiple leaf certs are provided they are returned as-is. <br/> Sort order: `leaf / intermediate(s) / root`.                                                                                                                                                                                                 |
+| pkcs12certPass            | Same as `pkcs12cert`. Uses the provided password to decrypt the PKCS#12 archive.                                                                                                                                                                                                                                                                                                                          |
+| pemToPkcs12               | Takes a PEM encoded certificate and key and creates a base64 encoded PKCS#12 archive.                                                                                                                                                                                                                                                                                                                     |
+| pemToPkcs12Pass           | Same as `pemToPkcs12`. Uses the provided password to encrypt the PKCS#12 archive.                                                                                                                                                                                                                                                                                                                         |
+| fullPemToPkcs12           | Takes a PEM encoded certificates chain and key and creates a base64 encoded PKCS#12 archive.                                                                                                                                                                                                                                                                                                              |
+| fullPemToPkcs12Pass       | Same as `fullPemToPkcs12`. Uses the provided password to encrypt the PKCS#12 archive.                                                                                                                                                                                                                                                                                                                     |
+| pemTruststoreToPKCS12     | Takes a PEM encoded certificates and creates a base64 encoded PKCS#12 archive.                                                                                                                                                                                                                                                                                                                            |
+| pemTruststoreToPKCS12Pass | Same as `pemTruststoreToPKCS12`. Uses the provided password to encrypt the PKCS#12 archive.                                                                                                                                                                                                                                                                                                               |
+| filterPEM                 | Filters PEM blocks with a specific type from a list of PEM blocks.                                                                                                                                                                                                                                                                                                                                        |
+| filterCertChain           | Filters PEM block(s) with a specific certificate type (`leaf`, `intermediate` or `root`) from a certificate chain of PEM blocks (PEM blocks with type `CERTIFICATE`).                                                                                                                                                                                                                                     |
+| certSANs                  | Extracts Subject Alternative Names (SANs) from a PEM-encoded certificate and returns them as a list of strings. Includes DNS names, IP addresses, email addresses, and URIs.                                                                                                                                                                                                                              |
+| jwkPublicKeyPem           | Takes an json-serialized JWK and returns an PEM block of type `PUBLIC KEY` that contains the public key. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKIXPublicKey) for details.                                                                                                                                                                                                                |
+| jwkPrivateKeyPem          | Takes an json-serialized JWK as `string` and returns an PEM block of type `PRIVATE KEY` that contains the private key in PKCS #8 format. [See here](https://golang.org/pkg/crypto/x509/#MarshalPKCS8PrivateKey) for details.                                                                                                                                                                              |
+| rsaDecrypt                | Decrypts RSA ciphertext using a PEM private key. Usage: `<rsaDecrypt "SCHEME" "HASH" ciphertext privateKeyPEM>` or `<privateKeyPEM \| rsaDecrypt "SCHEME" "HASH" ciphertext>`. **SCHEME**: supported values are `"None"` and `"RSA-OAEP"`. **HASH**: supported values are `"SHA1"` and `"SHA256"`. **Ciphertext** must be binary — use `b64dec` or `decodingStrategy: Base64` to convert Base64 payloads. |
+| toYaml                    | Takes an interface, marshals it to yaml. It returns a string, even on marshal error (empty string).                                                                                                                                                                                                                                                                                                       |
+| fromYaml                  | Function converts a YAML document into a map[string]any.                                                                                                                                                                                                                                                                                                                                                  |
+| hexdec                    | decodes hexadecimal values                                                                                                                                                                                                                                                                                                                                                                                |
 
 ## Migrating from v1
 
@@ -353,7 +349,7 @@ spec:
 {% endraw %}
 ```
 
-##### Functions removed/replaced
+### Functions removed/replaced
 
 - `base64encode` was renamed to `b64enc`.
 - `base64decode` was renamed to `b64dec`. Any errors that occur during decoding are silenced.

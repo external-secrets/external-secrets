@@ -1,10 +1,11 @@
-## GitLab Variables
+# GitLab Variables
 
 External Secrets Operator integrates with GitLab to sync [GitLab Project Variables API](https://docs.gitlab.com/ee/api/project_level_variables.html) and/or [GitLab Group Variables API](https://docs.gitlab.com/ee/api/group_level_variables.html) to secrets held on the Kubernetes cluster.
 
 > **Note**: The GitLab provider is read-only. PushSecret is not supported.
 
-### Configuring GitLab
+## Configuring GitLab
+
 The GitLab API requires an access token, project ID and/or groupIDs.
 
 To create a new access token, go to your user settings and select 'access tokens'. Give your token a name, expiration date, and select the permissions required (Note 'api' is required).
@@ -25,6 +26,7 @@ Create a secret containing your access token:
 ```
 
 ### Configuring the secret store
+
 Be sure the `gitlab` provider is listed in the `Kind=SecretStore` and the ProjectID is set. If you are not using `https://gitlab.com`, you must set the `url` field as well.
 
 In order to sync group variables `inheritFromGroups` must be true or `groupIDs` have to be defined.
@@ -52,6 +54,7 @@ The GitLab provider implements an intelligent fallback mechanism for environment
 ```yaml
 {% include 'gitlab-secret-store.yaml' %}
 ```
+
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessToken` with the namespace where the secret resides.
 
 Your project ID can be found on your project's page.
@@ -78,7 +81,7 @@ spec:
             name: gitlab-secret
             key: token
       projectID: "12345"
-      caBundle: LS0tLS1CRUdJTi...  # base64-encoded PEM certificate
+      caBundle: LS0tLS1CRUdJTi... # base64-encoded PEM certificate
 ```
 
 **Option 2 -- reference a Secret or ConfigMap via `caProvider`**: store the PEM certificate in a Kubernetes resource and point the store at it. This avoids embedding the certificate in the store spec and works well with cert-manager or manually provisioned CA bundles.
@@ -99,9 +102,9 @@ spec:
             key: token
       projectID: "12345"
       caProvider:
-        type: Secret       # or ConfigMap
-        name: gitlab-ca    # name of the Secret or ConfigMap
-        key: ca.crt        # key inside the resource that holds the PEM certificate
+        type: Secret # or ConfigMap
+        name: gitlab-ca # name of the Secret or ConfigMap
+        key: ca.crt # key inside the resource that holds the PEM certificate
         # namespace: ...   # required only for ClusterSecretStore
 ```
 
@@ -137,8 +140,8 @@ spec:
   data:
     - secretKey: db-password
       remoteRef:
-        key: MY_JSON_CONFIG          # GitLab variable whose value is a JSON string
-        property: database.password   # GJSON path into that JSON value
+        key: MY_JSON_CONFIG # GitLab variable whose value is a JSON string
+        property: database.password # GJSON path into that JSON value
 ```
 
 #### Using DataFrom
@@ -169,9 +172,9 @@ spec:
   dataFrom:
     - find:
         name:
-          regexp: "^PROD_.*"            # required: regexp matched against variable names
+          regexp: "^PROD_.*" # required: regexp matched against variable names
         tags:
-          environment_scope: production  # optional: also filter by environment scope
+          environment_scope: production # optional: also filter by environment scope
 ```
 
 The following restrictions apply when using `find`:
@@ -181,7 +184,9 @@ The following restrictions apply when using `find`:
 - `find.path` is not implemented in the GitLab provider and returns an error if set.
 
 ### Getting the Kubernetes secret
+
 The operator will fetch the project variable and inject it as a `Kind=Secret`.
-```
+
+```yaml
 kubectl get secret gitlab-secret-to-create -o jsonpath='{.data.secretKey}' | base64 -d
 ```

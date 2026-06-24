@@ -1,6 +1,6 @@
-## Secrets Manager
+# Secrets Manager
 
-External Secrets Operator integrates with [OVHcloud KMS](https://www.ovhcloud.com/en/identity-security-operations/key-management-service/).  
+External Secrets Operator integrates with [OVHcloud KMS](https://www.ovhcloud.com/en/identity-security-operations/key-management-service/).
 
 This guide demonstrates:
 
@@ -14,13 +14,14 @@ This guide assumes:
 - You have access to OVHcloud Secret Manager
 - Required credentials are already created
 
-### <u>SecretStore</u>
+## SecretStore
 
-**OVH provider supports both `token` and `mTLS` authentication.**
+OVH provider supports both `token` and `mTLS` authentication.:
 
 Token authentication:
+
 ```yaml
-apiVersion: external-secrets.io/v1 
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secret-store-ovh
@@ -29,7 +30,7 @@ spec:
   provider:
     ovh:
       server: <kms-endpoint> # for example: "https://eu-west-rbx.okms.ovh.net"
-      okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017" 
+      okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017"
       auth:
         token:
           tokenSecretRef:
@@ -43,7 +44,9 @@ metadata:
 data:
   token: BASE64-TOKEN-VALUE-PLACEHOLDER
 ```
+
 mTLS authentication:
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: SecretStore
@@ -54,7 +57,7 @@ spec:
   provider:
     ovh:
       server: <kms-endpoint> # for example: "https://eu-west-rbx.okms.ovh.net"
-      okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017" 
+      okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017"
       auth:
         mtls:
           certSecretRef:
@@ -72,15 +75,16 @@ metadata:
 type: kubernetes.io/tls
 data:
   tls.crt: BASE64_CERT_PLACEHOLDER # "client certificate value"
-  tls.key: BASE64_KEY_PLACEHOLDER  # "client key value"
+  tls.key: BASE64_KEY_PLACEHOLDER # "client key value"
 ```
 
 !!! note
-     A `ClusterSecretStore` configuration is the same except you must provide the `namespace` for `tokenSecretRef`, `certSecretRef` and `keySecretRef` according to your chosen authentication method.  
+    A `ClusterSecretStore` configuration is the same except you must provide the `namespace` for `tokenSecretRef`, `certSecretRef` and `keySecretRef` according to your chosen authentication method.
 
 ### <u>ExternalSecret</u>
- 
+
 For these examples, we will assume you have the following secret in your Secret Manager:
+
 ```json
 {
   "path": "creds",
@@ -97,6 +101,7 @@ For these examples, we will assume you have the following secret in your Secret 
   }
 }
 ```
+
 `path` refers to the secret's path in OVH Secret Manager.
 
 ```yaml
@@ -119,15 +124,16 @@ spec:
         property: property
 ```
 
-| Field      | Description                                                            | Required |
-|------------|------------------------------------------------------------------------|----------|
-| version    | Secret version to retrieve                                             | No       |
-| property   | Specific key or nested key in the secret                               | No       |
-| secretKey  | The key inside the Kubernetes Secret that will hold the secret's value | Yes      |
+| Field     | Description                                                            | Required |
+| --------- | ---------------------------------------------------------------------- | -------- |
+| version   | Secret version to retrieve                                             | No       |
+| property  | Specific key or nested key in the secret                               | No       |
+| secretKey | The key inside the Kubernetes Secret that will hold the secret's value | Yes      |
 
 #### Fetch the whole secret
 
 - Using `spec.data`
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -145,7 +151,9 @@ spec:
       remoteRef:
         key: creds
 ```
+
 Resulting Kubernetes Secret data:
+
 ```json
 {
   "foo": {
@@ -161,7 +169,9 @@ Resulting Kubernetes Secret data:
   }
 }
 ```
+
 - Using `spec.dataFrom.extract`
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -175,10 +185,12 @@ spec:
   target:
     name: secret-example
   dataFrom:
-  - extract:
-      key: creds
+    - extract:
+        key: creds
 ```
+
 Resulting Kubernetes Secret data:
+
 ```json
 {
   "type": "credential",
@@ -194,7 +206,9 @@ Resulting Kubernetes Secret data:
 ```
 
 #### Fetch scalar/nested values
+
 - Scalar value using `data`
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -213,13 +227,17 @@ spec:
         key: creds
         property: type
 ```
+
 Resulting Kubernetes Secret data:
+
 ```json
 {
   "type": "credential"
 }
 ```
+
 - Nested value using `data`
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -238,13 +256,17 @@ spec:
         key: creds
         property: users.kevin.token
 ```
+
 Resulting Kubernetes Secret data:
+
 ```json
 {
   "kevin-token": "kevin token value"
 }
 ```
+
 - Nested value using `dataFrom.extract`
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -258,11 +280,13 @@ spec:
   target:
     name: secret-example
   dataFrom:
-  - extract:
-      key: creds
-      property: users
+    - extract:
+        key: creds
+        property: users
 ```
+
 Resulting Kubernetes Secret data:
+
 ```json
 {
   "kevin": {
@@ -275,7 +299,7 @@ Resulting Kubernetes Secret data:
 ```
 
 !!! warning
-     Scalar values cannot be retrieved using `dataFrom.extract` because no Kubernetes secret key can be specified, which would imply storing a value without a corresponding key.
+    Scalar values cannot be retrieved using `dataFrom.extract` because no Kubernetes secret key can be specified, which would imply storing a value without a corresponding key.
 
 #### Fetch multiple secrets
 
@@ -283,7 +307,9 @@ Extract multiple secrets, with filtering support.
 You can filter either by path or/and regular expression. Path filtering occurs first if you use both.
 
 For these examples, we will assume you have the following secrets in your Secret Manager: `path/to/secret/secret1`, `path/to/secret/secret2`, `path/to/config/config2`, `path/to/config/config3`, `secret-example2`.
+
 - Path filtering
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -297,20 +323,24 @@ spec:
   target:
     name: secret-example
   dataFrom:
-  - find:
-      path: "path/to/secret"
+    - find:
+        path: "path/to/secret"
 ```
+
 Resulting Kubernetes Secret data:
+
 ```json
 {
   "path/to/secret/secret1": "secret1 value",
   "path/to/secret/secret2": "secret2 value"
 }
 ```
+
 !!! note
-     If path is left empty or is "/", every secret will be retrieved from your Secret Manager.
+    If path is left empty or is "/", every secret will be retrieved from your Secret Manager.
 
 - Regular expression filtering
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -324,11 +354,13 @@ spec:
   target:
     name: secret-example
   dataFrom:
-  - find:
-      name:
-        regexp: "[2-3]"
+    - find:
+        name:
+          regexp: "[2-3]"
 ```
+
 Resulting Kubernetes Secret data:
+
 ```json
 {
   "path/to/secret/secret2": "secret2 value",
@@ -337,10 +369,12 @@ Resulting Kubernetes Secret data:
   "secret-example2": "secret-example2 value"
 }
 ```
+
 !!! note
-     If name.regexp is left empty, every secret will be retrieved from your Secret Manager.
+    If name.regexp is left empty, every secret will be retrieved from your Secret Manager.
 
 - Combination of both
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -354,12 +388,14 @@ spec:
   target:
     name: secret-example
   dataFrom:
-  - find:
-      path: "path/to"
-      name:
-        regexp: "2$"
+    - find:
+        path: "path/to"
+        name:
+          regexp: "2$"
 ```
+
 Resulting Kubernetes Secret data:
+
 ```json
 {
   "path/to/secret/secret2": "secret2 value",
@@ -368,12 +404,14 @@ Resulting Kubernetes Secret data:
 ```
 
 !!! note
-     When both are combined, path filtering occurs first.
+    When both are combined, path filtering occurs first.
 
-### <u>PushSecret</u>
+### PushSecret
 
 #### Check-And-Set
+
 Check-And-Set can be enabled/disabled (default: disabled), in the Secret Store configuration:
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: SecretStore
@@ -384,7 +422,7 @@ spec:
   provider:
     ovh:
       server: <kms-endpoint> # for example: "https://eu-west-rbx.okms.ovh.net"
-      okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017" 
+      okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017"
       auth:
         token:
           tokenSecretRef:
@@ -401,6 +439,7 @@ data:
 ```
 
 #### Secret Rotation
+
 ```yaml
 apiVersion: generators.external-secrets.io/v1alpha1
 kind: Password
@@ -438,6 +477,7 @@ spec:
 With this configuration, the secret is automatically rotated every 6 hours in the OVH Secret Manager.
 
 #### Secret migration
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: SecretStore
@@ -481,7 +521,7 @@ spec:
   provider:
     ovh:
       server: <kms-endpoint> # for example: "https://eu-west-rbx.okms.ovh.net"
-      okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017" 
+      okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017"
       auth:
         token:
           tokenSecretRef:

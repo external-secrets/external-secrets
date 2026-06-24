@@ -1,6 +1,8 @@
+# Hashicorp Vault
+
 ![HCP Vault](../pictures/diagrams-provider-vault.png)
 
-## Hashicorp Vault
+## Introduction
 
 External Secrets Operator integrates with [HashiCorp Vault](https://www.vaultproject.io/) for secret management.
 
@@ -39,17 +41,18 @@ metadata:
 data:
   token: cm9vdA== # "root"
 ```
+
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `tokenSecretRef` with the namespace of the secret that we just created.
 
 Then create a simple k/v pair at path `secret/foo`:
 
-```
+```yaml
 vault kv put secret/foo my-value=s3cr3t
 ```
 
 Can check kv version using following and check for `Options` column, it should indicate [version:2]:
 
-```
+```yaml
 vault secrets list -detailed
 ```
 
@@ -70,23 +73,23 @@ spec:
   target:
     name: example-sync
   data:
-  - secretKey: foobar
-    remoteRef:
-      key: foo
-      property: my-value
+    - secretKey: foobar
+      remoteRef:
+        key: foo
+        property: my-value
 
-  # metadataPolicy to fetch all the labels in JSON format
-  - secretKey: tags
-    remoteRef:
-      metadataPolicy: Fetch
-      key: foo
+    # metadataPolicy to fetch all the labels in JSON format
+    - secretKey: tags
+      remoteRef:
+        metadataPolicy: Fetch
+        key: foo
 
-  # metadataPolicy to fetch a specific label (dev) from the source secret
-  - secretKey: developer
-    remoteRef:
-      metadataPolicy: Fetch
-      key: foo
-      property: dev
+    # metadataPolicy to fetch a specific label (dev) from the source secret
+    - secretKey: developer
+      remoteRef:
+        metadataPolicy: Fetch
+        key: foo
+        property: dev
 
 ---
 # That will automatically create a Kubernetes Secret with:
@@ -112,9 +115,9 @@ metadata:
 spec:
   # ...
   data:
-  - secretKey: foobar
-    remoteRef:
-      key: /dev/package.json
+    - secretKey: foobar
+      remoteRef:
+        key: /dev/package.json
 ```
 
 #### Nested Values
@@ -122,6 +125,7 @@ spec:
 Vault supports nested key/value pairs. You can specify a [gjson](https://github.com/tidwall/gjson) expression at `remoteRef.property` to get a nested value.
 
 Given the following secret - assume its path is `/dev/config`:
+
 ```json
 {
   "foo": {
@@ -133,6 +137,7 @@ Given the following secret - assume its path is `/dev/config`:
 ```
 
 You can set the `remoteRef.property` to point to the nested key using a [gjson](https://github.com/tidwall/gjson) expression.
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -141,10 +146,10 @@ metadata:
 spec:
   # ...
   data:
-  - secretKey: foobar
-    remoteRef:
-      key: /dev/config
-      property: foo.nested.bar
+    - secretKey: foobar
+      remoteRef:
+        key: /dev/config
+        property: foo.nested.bar
 ---
 # creates a secret with:
 # foobar=mysecret
@@ -157,6 +162,7 @@ If you would set the `remoteRef.property` to just `foo` then you would get the j
 You can extract multiple keys from a nested secret using `dataFrom`.
 
 Given the following secret - assume its path is `/dev/config`:
+
 ```json
 {
   "foo": {
@@ -169,6 +175,7 @@ Given the following secret - assume its path is `/dev/config`:
 ```
 
 You can set the `remoteRef.property` to point to the nested key using a [gjson](https://github.com/tidwall/gjson) expression.
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -177,13 +184,14 @@ metadata:
 spec:
   # ...
   dataFrom:
-  - extract:
-      key: /dev/config
-      property: foo.nested
+    - extract:
+        key: /dev/config
+        property: foo.nested
 ```
 
 That results in a secret with these values:
-```
+
+```yaml
 bar=mysecret
 baz=bang
 ```
@@ -194,11 +202,11 @@ You can extract multiple secrets from Hashicorp vault by using `dataFrom.Find`
 
 Currently, `dataFrom.Find` allows users to fetch secret names that match a given regexp pattern, or fetch secrets whose `custom_metadata` tags match a predefined set.
 
-
 !!! warning
-    The way hashicorp Vault currently allows LIST operations is through the existence of a secret metadata. If you delete the secret, you will also need to delete the secret's metadata or this will currently make Find operations fail.
+The way hashicorp Vault currently allows LIST operations is through the existence of a secret metadata. If you delete the secret, you will also need to delete the secret's metadata or this will currently make Find operations fail.
 
 Given the following secret - assume its path is `/dev/config`:
+
 ```json
 {
   "foo": {
@@ -211,6 +219,7 @@ Given the following secret - assume its path is `/dev/config`:
 ```
 
 Also consider the following secret has the following `custom_metadata`:
+
 ```json
 {
   "environment": "dev",
@@ -219,6 +228,7 @@ Also consider the following secret has the following `custom_metadata`:
 ```
 
 It is possible to find this secret by all the following possibilities:
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -227,21 +237,24 @@ metadata:
 spec:
   # ...
   dataFrom:
-  - find: #will return every secret with 'dev' in it (including paths)
-      name:
-        regexp: dev
-  - find: #will return every secret matching environment:dev tags from dev/ folder and beyond
-      tags:
-        environment: dev
+    - find: #will return every secret with 'dev' in it (including paths)
+        name:
+          regexp: dev
+    - find: #will return every secret matching environment:dev tags from dev/ folder and beyond
+        tags:
+          environment: dev
 ```
+
 will generate a secret with:
+
 ```json
 {
-  "dev_config":"{\"foo\":{\"nested\":{\"bar\":\"mysecret\",\"baz\":\"bang\"}}}"
+  "dev_config": "{\"foo\":{\"nested\":{\"bar\":\"mysecret\",\"baz\":\"bang\"}}}"
 }
 ```
 
 Currently, `Find` operations are recursive throughout a given vault folder, starting on `provider.Path` definition. It is recommended to narrow down the scope of search by setting a `find.path` variable. This is also useful to automatically reduce the resulting secret key names:
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -250,22 +263,24 @@ metadata:
 spec:
   # ...
   dataFrom:
-  - find: #will return every secret from dev/ folder
-      path: dev
-      name:
-        regexp: ".*"
-  - find: #will return every secret matching environment:dev tags from dev/ folder
-      path: dev
-      tags:
-        environment: dev
+    - find: #will return every secret from dev/ folder
+        path: dev
+        name:
+          regexp: ".*"
+    - find: #will return every secret matching environment:dev tags from dev/ folder
+        path: dev
+        tags:
+          environment: dev
 ```
+
 Will generate a secret with:
+
 ```json
 {
-  "config":"{\"foo\": {\"nested\": {\"bar\": \"mysecret\",\"baz\": \"bang\"}}}"
+  "config": "{\"foo\": {\"nested\": {\"bar\": \"mysecret\",\"baz\": \"bang\"}}}"
 }
-
 ```
+
 ### Authentication
 
 We support five different modes for authentication:
@@ -288,6 +303,7 @@ A static token is stored in a `Kind=Secret` and is used to authenticate with vau
 ```yaml
 {% include 'vault-token-store.yaml' %}
 ```
+
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `tokenSecretRef` with the namespace where the secret resides.
 
 #### AppRole authentication example
@@ -298,6 +314,7 @@ A static token is stored in a `Kind=Secret` and is used to authenticate with vau
 ```yaml
 {% include 'vault-approle-store.yaml' %}
 ```
+
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 #### Kubernetes authentication
@@ -305,22 +322,24 @@ A static token is stored in a `Kind=Secret` and is used to authenticate with vau
 [Kubernetes-native authentication](https://www.vaultproject.io/docs/auth/kubernetes) has three
 options of obtaining credentials for vault:
 
-1.  by using a service account jwt referenced in `serviceAccountRef`
-2.  by using the jwt from a `Kind=Secret` referenced by the `secretRef`
-3.  by using transient credentials from the mounted service account token within the
-    external-secrets operator
+1. by using a service account jwt referenced in `serviceAccountRef`
+2. by using the jwt from a `Kind=Secret` referenced by the `secretRef`
+3. by using transient credentials from the mounted service account token within the
+   external-secrets operator
 
 Vault validates the service account token by using the TokenReview API. ⚠️ You have to bind the `system:auth-delegator` ClusterRole to the service account that is used for authentication. Please follow the [Vault documentation](https://developer.hashicorp.com/vault/docs/auth/kubernetes#configuring-kubernetes).
 
 ```yaml
 {% include 'vault-kubernetes-store.yaml' %}
 ```
+
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `serviceAccountRef` or in `secretRef`, if used.
 
 **NOTE:** Starting with Vault 1.20, roles without an audience will trigger warnings during authentication.
 In Vault 1.21 and later, roles must include an audience or authentication will fail.
 
 Update your role definitions to include an audience, for example:
+
 ```yaml
 auth:
   kubernetes:
@@ -332,8 +351,6 @@ auth:
         - vault # Required for Vault 1.21+
 ```
 
-
-
 #### LDAP authentication
 
 [LDAP authentication](https://www.vaultproject.io/docs/auth/ldap) uses
@@ -344,6 +361,7 @@ in a `Kind=Secret` referenced by the `secretRef`.
 ```yaml
 {% include 'vault-ldap-store.yaml' %}
 ```
+
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 #### UserPass authentication
@@ -356,6 +374,7 @@ in a `Kind=Secret` referenced by the `secretRef`.
 ```yaml
 {% include 'vault-userpass-store.yaml' %}
 ```
+
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 #### JWT/OIDC authentication
@@ -368,6 +387,7 @@ or `Kind=ClusterSecretStore` resource.
 ```yaml
 {% include 'vault-jwt-store.yaml' %}
 ```
+
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 #### AWS IAM authentication
@@ -397,6 +417,7 @@ Under specific compliance requirements, the Vault server can be set up to enforc
 ```
 
 ### Access Key ID & Secret Access Key
+
 You can store Access Key ID & Secret Access Key in a `Kind=Secret` and reference it from a SecretStore.
 
 ```yaml
@@ -421,6 +442,7 @@ Reference the service account from above in the Secret Store:
 ```yaml
 {% include 'vault-iam-store.yaml' %}
 ```
+
 ### Controller's Pod Identity
 
 This is basically a zero-configuration authentication approach that inherits the credentials from the controller's pod identity.
@@ -441,6 +463,7 @@ The provider automatically detects which authentication method is available and 
 ```yaml
 {% include 'vault-jwt-store.yaml' %}
 ```
+
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretRef` with the namespace where the secret resides.
 
 ### PushSecret
@@ -449,8 +472,7 @@ Vault supports PushSecret features which allow you to sync a given Kubernetes se
 To use PushSecret, you need to give `create`, `read` and `update` permissions to the path where you want to push secrets for both `data` and `metadata` of the secret. Use it with care!
 
 !!! note
-     Since Vault KV v1 API is not supported with storing secrets metadata, PushSecret will add a `custom_metadata` map to each secret in Vault that he will manage. It means pushing secret keys named `custom_metadata` is not supported with Vault KV v1.
-
+    Since Vault KV v1 API is not supported with storing secrets metadata, PushSecret will add a `custom_metadata` map to each secret in Vault that he will manage. It means pushing secret keys named `custom_metadata` is not supported with Vault KV v1.
 
 Here is an example of how to set up `PushSecret`:
 
@@ -476,9 +498,9 @@ spec:
     vault:
       server: "http://my.vault.server:8200"
       path: "secret"
-      version: "v2"  # CAS only works with KV v2
+      version: "v2" # CAS only works with KV v2
       checkAndSet:
-        required: true  # Enable CAS for all write operations
+        required: true # Enable CAS for all write operations
       auth:
         # ... authentication config
 ```

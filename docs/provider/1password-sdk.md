@@ -1,4 +1,4 @@
-## 1Password Secrets with SDK
+# 1Password Secrets with SDK
 
 1Password released [developer SDKs](https://developer.1password.com/docs/sdks/) to ease the usage of the secret provider
 without the need for any external devices. This provides a much better user experience for automated processes without
@@ -8,7 +8,7 @@ _Note_: In order to use ESO with 1Password SDK, documents must have unique label
 that has the same title as another label we won't know which one to update and an error is thrown:
 `found multiple labels with the same key`.
 
-### Store Configuration
+## Store Configuration
 
 A store is per vault. This is to prevent a single ExternalSecret potentially accessing ALL vaults.
 
@@ -36,7 +36,7 @@ spec:
           name: op-token
           key: token
       cache:
-        ttl: 5m      # Optional, default: 5m
+        ttl: 5m # Optional, default: 5m
         maxSize: 100 # Optional, default: 100
 ```
 

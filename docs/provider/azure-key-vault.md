@@ -1,7 +1,8 @@
+# Azure Key Vault
 
 ![aws sm](../pictures/eso-az-kv-azure-kv.png)
 
-## Azure Key Vault
+## Introduction
 
 External Secrets Operator integrates with [Azure Key Vault](https://azure.microsoft.com/en-us/services/key-vault/) via `SecretStore` and `ClusterSecretStore` resources. The operator can fetch secrets, keys and certificates stored in Azure Key Vault and synchronize them as Kubernetes secrets using an `ExternalSecret`. Vice versa, it can also push secrets from Kubernetes into Azure Key Vault as secrets, keys and certificates by using a `PushSecret`.
 
@@ -95,7 +96,8 @@ azwi serviceaccount create phase sa \
   --service-account-namespace "${SERVICE_ACCOUNT_NAMESPACE}" \
   --service-account-name "${SERVICE_ACCOUNT_NAME}"
 ```
-2. Configure the trust relationship between Azure AD and Kubernetes ([guide](https://azure.github.io/azure-workload-identity/docs/quick-start.html#6-establish-federated-identity-credential-between-the-aad-application-and-the-service-account-issuer--subject))
+
+1. Configure the trust relationship between Azure AD and Kubernetes ([guide](https://azure.github.io/azure-workload-identity/docs/quick-start.html#6-establish-federated-identity-credential-between-the-aad-application-and-the-service-account-issuer--subject))
 
 ```sh
 azwi serviceaccount create phase federated-identity \
@@ -108,6 +110,7 @@ azwi serviceaccount create phase federated-identity \
 With these prerequisites met you can configure External Secrets Operator to use that Service Account. You have two options:
 
 ##### Mounted Service Account
+
 You run the controller and mount that particular service account into the pod by adding the label `azure.workload.identity/use: "true"`to the pod. That grants _everyone_ who is able to create a secret store or reference a correctly configured one the ability to read secrets. **This approach is usually not recommended**. But may make sense when you want to share an identity with multiple namespaces. Also see our [Multi-Tenancy Guide](../guides/multi-tenancy.md) for design considerations.
 
 ```yaml
@@ -115,6 +118,7 @@ You run the controller and mount that particular service account into the pod by
 ```
 
 ##### Referenced Service Account
+
 You run the controller without service account (effectively without azure permissions). Now you have to configure the SecretStore and set the `serviceAccountRef` and point to the service account you have just created. **This is usually the recommended approach**. It makes sense for everyone who wants to run the controller without Azure permissions and delegate authentication via service accounts in particular namespaces. Also see our [Multi-Tenancy Guide](../guides/multi-tenancy.md) for design considerations.
 
 ```yaml
@@ -198,7 +202,6 @@ spec:
 ```
 
 !!! note
-
     - `useAzureSDK: true` is mandatory when using `customCloudConfig`
     - `customCloudConfig` can be used with any `environmentType` (PublicCloud, ChinaCloud, etc.)
     - For AzureStackCloud, `customCloudConfig` is required
@@ -208,11 +211,11 @@ spec:
 
 Azure Key Vault has different [object types](https://docs.microsoft.com/en-us/azure/key-vault/general/about-keys-secrets-certificates#object-types); Secrets, Keys and Certificates, all of which are supported. To explicitly select which object type to fetch via an `ExternalSecret` or push via a `PushSecret`, prefix the `spec.data[].remoteRef.key` field with either `key`, `secret` or `cert`. If no prefix is provided, the operator defaults to `secret`.
 
-| Object Type | Prefix | Description
-| ----------- | ------ | ------------------------- |
-| Secret      | `secret` (default) | Generic secrets, such as passwords and database connection strings. |
-| Key         | `key`    | Cryptographic keys represented as JSON Web Key [JWK] objects. Azure Key Vault does **not** export the private key. You may want to use [template functions](../guides/templating.md) to transform this JWK into PEM encoded PKIX ASN.1 DER format. |
-| Certificate | `cert`   | X509 certificates, for example TLS certificates. You may want to use [template functions](../guides/templating.md) to transform this into your desired encoding. |
+| Object Type | Prefix             | Description                                                                                                                                                                                                                                        |
+| ----------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Secret      | `secret` (default) | Generic secrets, such as passwords and database connection strings.                                                                                                                                                                                |
+| Key         | `key`              | Cryptographic keys represented as JSON Web Key [JWK] objects. Azure Key Vault does **not** export the private key. You may want to use [template functions](../guides/templating.md) to transform this JWK into PEM encoded PKIX ASN.1 DER format. |
+| Certificate | `cert`             | X509 certificates, for example TLS certificates. You may want to use [template functions](../guides/templating.md) to transform this into your desired encoding.                                                                                   |
 
 ### Creating an ExternalSecret
 
@@ -241,18 +244,20 @@ To fetch a P12 certificate (also known as PKCS12 or PFX) from Azure Key Vault an
 ```
 
 ### Creating a PushSecret
+
 You can push secrets from Kubernetes into Azure Key Vault as secrets, keys or certificates by using a `PushSecret`. A `PushSecret` references a Kubernetes Secret as the source of the data. The operator can create, update or delete the corresponding secret in Azure Key Vault to match the desired state defined in the `PushSecret`.
 
 #### Pushing to a Secret
+
 Pushing to a Secret requires no previous setup. Provided you have a Kubernetes Secret available, you can create a `PushSecret` which references it to have it created on Azure Key Vault. The operator will read the data from the Kubernetes Secret and push it to Azure Key Vault as a secret.
 
 You can optionally attach metadata to the secret via the `spec.data[].metadata` field. The following fields are supported:
 
-| Field | Type | Description
-|---|---|---
-| `expirationDate` | string | Expiration date for the secret in RFC3339 format (e.g. `2099-12-31T23:59:59Z`).
-| `contentType` | string | Content type of the secret value (e.g. `application/json`, `text/plain`).
-| `tags` | map[string]string | Arbitrary key-value tags attached to the secret in Azure Key Vault.
+| Field            | Type              | Description                                                                     |
+| ---------------- | ----------------- | ------------------------------------------------------------------------------- |
+| `expirationDate` | string            | Expiration date for the secret in RFC3339 format (e.g. `2099-12-31T23:59:59Z`). |
+| `contentType`    | string            | Content type of the secret value (e.g. `application/json`, `text/plain`).       |
+| `tags`           | map[string]string | Arbitrary key-value tags attached to the secret in Azure Key Vault.             |
 
 ```yaml
 {% include 'azkv-pushsecret-secret.yaml' %}
@@ -265,6 +270,7 @@ You can optionally attach metadata to the secret via the `spec.data[].metadata` 
     Omitting `contentType` (or setting it to an empty string) is interpreted as "don't change" rather than "clear": if the secret in Azure Key Vault already has a `ContentType` set, it will be preserved on update. There is currently no way to clear an existing `ContentType` via PushSecret — if you need to remove it, delete the secret from Azure Key Vault directly and let PushSecret recreate it.
 
 #### Pushing to a Key
+
 The first step is to generate a valid private key. Supported formats include `PRIVATE KEY`, `RSA PRIVATE KEY` AND `EC PRIVATE KEY` (EC/PKCS1/PKCS8 types). After uploading your key to a Kubernetes Secret, the next step is to create a PushSecret manifest with the following configuration:
 
 ```yaml

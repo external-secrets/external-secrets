@@ -1,3 +1,5 @@
+# Grafana
+
 The Grafana generator creates short-lived [Grafana Service Account Tokens](https://grafana.com/docs/grafana/latest/administration/service-accounts/).
 It creates or reuses a Grafana service account (not a Kubernetes ServiceAccount) and generates a new API token for it.
 When the ExternalSecret is deleted, the generated token is cleaned up automatically. Note that the Grafana service account itself is not deleted.
@@ -12,10 +14,10 @@ See the [Grafana RBAC documentation](https://grafana.com/docs/grafana/latest/adm
 
 The generator produces two keys:
 
-| Key     | Description                                |
-|---------|--------------------------------------------|
+| Key     | Description                                           |
+| ------- | ----------------------------------------------------- |
 | `login` | The login name of the created Grafana service account |
-| `token` | The generated Grafana service account token         |
+| `token` | The generated Grafana service account token           |
 
 ## Example Manifests
 

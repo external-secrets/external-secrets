@@ -74,9 +74,9 @@ spec:
     name: example-secret
     creationPolicy: Owner
   data:
-  - secretKey: password
-    remoteRef:
-      key: "my-secret-uuid"
+    - secretKey: password
+      remoteRef:
+        key: "my-secret-uuid"
 ```
 
 The `remoteRef.key` should be the UUID of the secret in Barbican. You can find this by listing secrets in Barbican:
@@ -104,9 +104,9 @@ spec:
     name: found-secrets
     creationPolicy: Owner
   dataFrom:
-  - find:
-      name:
-        regexp: "database"
+    - find:
+        name:
+          regexp: "database"
 ```
 
 This will find all secrets in Barbican whose name exactly matches the string.
@@ -132,49 +132,49 @@ spec:
           secretRef:
             name: "barbican-secret"
             key: "username"
-            namespace: "default"  # Required for ClusterSecretStore
+            namespace: "default" # Required for ClusterSecretStore
         password:
           secretRef:
             name: "barbican-secret"
             key: "password"
-            namespace: "default"  # Required for ClusterSecretStore
+            namespace: "default" # Required for ClusterSecretStore
 ```
 
 ## Configuration Reference
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `authURL` | string | Yes | OpenStack Keystone authentication endpoint URL |
-| `tenantName` | string | Yes | OpenStack tenant/project name |
-| `domainName` | string | No | OpenStack domain name |
-| `region` | string | No | OpenStack region |
-| `auth` | BarbicanAuth | Yes | Authentication credentials |
+| Field        | Type         | Required | Description                                    |
+| ------------ | ------------ | -------- | ---------------------------------------------- |
+| `authURL`    | string       | Yes      | OpenStack Keystone authentication endpoint URL |
+| `tenantName` | string       | Yes      | OpenStack tenant/project name                  |
+| `domainName` | string       | No       | OpenStack domain name                          |
+| `region`     | string       | No       | OpenStack region                               |
+| `auth`       | BarbicanAuth | Yes      | Authentication credentials                     |
 
 ### BarbicanAuth
 
 The `BarbicanAuth` type contains the authentication information:
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `username` | BarbicanProviderUsernameRef | Yes | OpenStack username (from secret or literal value) |
-| `password` | BarbicanProviderPasswordRef | Yes | OpenStack password (from secret only) |
+| Field      | Type                        | Required | Description                                       |
+| ---------- | --------------------------- | -------- | ------------------------------------------------- |
+| `username` | BarbicanProviderUsernameRef | Yes      | OpenStack username (from secret or literal value) |
+| `password` | BarbicanProviderPasswordRef | Yes      | OpenStack password (from secret only)             |
 
 ### BarbicanProviderUsernameRef
 
 The `BarbicanProviderUsernameRef` type allows you to specify username either as a literal or reference to a Kubernetes secret:
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `value` | string | No | Literal value (not recommended for sensitive data) |
-| `secretRef` | SecretKeySelector | No | Reference to a Kubernetes secret |
+| Field       | Type              | Required | Description                                        |
+| ----------- | ----------------- | -------- | -------------------------------------------------- |
+| `value`     | string            | No       | Literal value (not recommended for sensitive data) |
+| `secretRef` | SecretKeySelector | No       | Reference to a Kubernetes secret                   |
 
 ### BarbicanProviderPasswordRef
 
 The `BarbicanProviderPasswordRef` type requires a reference to a Kubernetes secret:
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `secretRef` | SecretKeySelector | Yes | Reference to a Kubernetes secret |
+| Field       | Type              | Required | Description                      |
+| ----------- | ----------------- | -------- | -------------------------------- |
+| `secretRef` | SecretKeySelector | Yes      | Reference to a Kubernetes secret |
 
 ## Limitations
 

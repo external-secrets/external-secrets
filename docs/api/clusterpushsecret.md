@@ -1,3 +1,5 @@
+# Cluster PushSecret
+
 The `ClusterPushSecret` is a cluster scoped resource that can be used to manage `PushSecret` resources in specific namespaces.
 
 With `namespaceSelectors` you can select namespaces in which the PushSecret should be created.

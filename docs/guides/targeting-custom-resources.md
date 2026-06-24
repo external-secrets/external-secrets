@@ -80,21 +80,21 @@ Intermediate maps and arrays are created if they don't exist yet, and existing s
 !!! note "Using `property` when templating `data`"
     The return of `data:` isn't an object on the template scope. If templated as a `string` it will fail in finding the right key. Therefore, something like this:
     ```yaml
-      data:
-        - secretKey: url
-          remoteRef:
-            key: slack-alerts/myalert-dev
+          data:
+            - secretKey: url
+              remoteRef:
+                key: slack-alerts/myalert-dev
     ```
     templated as a literal:
     ```yaml
-    {% raw %}
-    template:
-      engineVersion: v2
-      templateFrom:
-        - literal: |
-            api_url: {{ .url }}
-          target: spec.slack
-    {% endraw %}
+        {% raw %}
+        template:
+          engineVersion: v2
+          templateFrom:
+            - literal: |
+                api_url: {{ .url }}
+              target: spec.slack
+        {% endraw %}
     ```
     will not work. A property like `property: url` MUST be defined.
 
@@ -121,9 +121,9 @@ When using custom resource targets, ensure the External Secrets Operator has app
 genericTargets:
   enabled: true
   resources:
-  - apiGroups: ["config.example.com"]
-    resources: ["appconfigs"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+    - apiGroups: ["config.example.com"]
+      resources: ["appconfigs"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
 ```
 
 Without these permissions, the operator will not be able to create or update your target resources.

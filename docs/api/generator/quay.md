@@ -1,12 +1,14 @@
+# Quay
+
 `QuayAccessToken` creates a short-lived Quay Access token that can be used to authenticate against quay.io or a self-hosted instance of Quay in order to push or pull images. This requires a [Quay Robot Account configured to federate](https://docs.projectquay.io/manage_quay.html#setting-robot-federation) with a Kubernetes service account.
 
 ## Output Keys and Values
 
-| Key        | Description                                                                    |
-| ---------- | ------------------------------------------------------------------------------ |
-| registry   | Domain name of the registry you are authenticating to (defaults to `quay.io`). |
-| auth       | Base64 encoded authentication string.                                          |
-| expiry     | Time when token expires in UNIX time (seconds since January 1, 1970 UTC).      |
+| Key      | Description                                                                    |
+| -------- | ------------------------------------------------------------------------------ |
+| registry | Domain name of the registry you are authenticating to (defaults to `quay.io`). |
+| auth     | Base64 encoded authentication string.                                          |
+| expiry   | Time when token expires in UNIX time (seconds since January 1, 1970 UTC).      |
 
 ## Authentication
 
@@ -24,7 +26,7 @@ Obtain subject:
 kubectl create token default -n default | cut -d '.' -f 2 | sed 's/[^=]$/&==/' | base64 -d | jq -r '.sub'
 ```
 
-Then use the instructions [here](https://docs.projectquay.io/manage_quay.html#setting-robot-federation) to set up a robot account and federation.
+Then use the instructions [the linked documentation](https://docs.projectquay.io/manage_quay.html#setting-robot-federation) to set up a robot account and federation.
 
 ## Example Manifest
 

@@ -1,22 +1,21 @@
-## Bitwarden Secrets Manager Provider
+# Bitwarden Secrets Manager Provider
 
 This section describes how to set up the Bitwarden Secrets Manager provider for External Secrets Operator (ESO).
 
 !!! note
-
     [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/)
     enables developers, DevOps, and cybersecurity teams to centrally store, manage, and deploy secrets at scale.
     This is different from [Bitwarden Password Manager](https://bitwarden.com/products/personal/).
     To integrate with Bitwarden **Password Manager**, reference the [example documentation](../examples/bitwarden.md).
 
-### Prerequisites
+## Prerequisites
 
 In order for the Bitwarden provider to work, we need a second service. This service is the [Bitwarden SDK Server](https://github.com/external-secrets/bitwarden-sdk-server).
 The Bitwarden SDK is Rust based and requires CGO enabled. In order to not restrict the capabilities of ESO, and the image
 size ( the bitwarden Rust SDK libraries are over 150MB in size ) it has been decided to create a soft wrapper
 around the SDK that runs as a separate service providing ESO with a light REST API to pull secrets through.
 
-#### Bitwarden SDK server
+### Bitwarden SDK server
 
 The server itself can be installed together with ESO. The ESO Helm Chart packages this service as a dependency.
 The Bitwarden SDK Server's full name is hardcoded to bitwarden-sdk-server. This is so that the exposed service URL
@@ -24,15 +23,15 @@ gets a determinable endpoint.
 
 In order to install the service install ESO with the following helm directive:
 
-```
+```yaml
 helm install external-secrets \
-   external-secrets/external-secrets \
-    -n external-secrets \
-    --create-namespace \
-    --set bitwarden-sdk-server.enabled=true
+external-secrets/external-secrets \
+-n external-secrets \
+--create-namespace \
+--set bitwarden-sdk-server.enabled=true
 ```
 
-##### Certificate
+#### Certificate
 
 The Bitwarden SDK Server _NEEDS_ to run as an HTTPS service. That means that any installation that wants to communicate with the Bitwarden
 provider will need to generate a certificate. The best approach for that is to use cert-manager. It's easy to set up
@@ -78,9 +77,9 @@ spec:
     name: bitwarden-secretsmanager
     kind: SecretStore
   data:
-  - secretKey: test
-    remoteRef:
-      key: "339062b8-a5a1-4303-bf1d-b1920146a622"
+    - secretKey: test
+      remoteRef:
+        key: "339062b8-a5a1-4303-bf1d-b1920146a622"
 ```
 
 #### Find by Name
@@ -104,9 +103,9 @@ spec:
     name: bitwarden-secretsmanager
     kind: SecretStore
   data:
-  - secretKey: test
-    remoteRef:
-      key: "secret-name"
+    - secretKey: test
+      remoteRef:
+        key: "secret-name"
 ```
 
 #### DataFrom
@@ -114,7 +113,7 @@ spec:
 When using dataFrom like this:
 
 ```yaml
-  dataFrom:
+dataFrom:
   - find:
       conversionStrategy: Default
       decodingStrategy: None
@@ -124,7 +123,7 @@ When using dataFrom like this:
 
 Note that the secrets in the map will end up something like this:
 
-```
+```yaml
 $ kubectl get secret secret-to-be-created -o jsonpath='{.data}'|jq
 {
 "2989464a-03c2-4ced-9fe2-b34400aca42d": "bG9jYWxob3N0OjEyMzQ1",

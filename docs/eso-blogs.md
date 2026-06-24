@@ -47,11 +47,9 @@ Gustavo writes about how to setup ESO with AWS Secrets Manager. He also shows yo
 
 In this multi-articles series, Xavier writes about how to setup ESO with IBM Secrets Manager using the web user-interface. Xavier also shares how it is integrated into his pipeline scripts. [How to Set External-Secrets with IBM Secrets Manager](https://0x58.medium.com/ibm-cloud-secrets-manager-and-the-external-secrets-operator-1c94234993b6)
 
-
 ## [Kubernetes Hardening Tutorial Part 2: Network](https://blog.gitguardian.com/kubernetes-tutorial-part-2-network/)
 
 Tiexin Guo Writes about Kubernetes hardening in this series of blogs. He mentions ESO as one of the convenient options when dealing with secrets in Kubernetes, and how to use it with AWS Secret Manager using AWS credentials. [Kubernetes Hardening Tutorial Part 2: Network](https://blog.gitguardian.com/kubernetes-tutorial-part-2-network/)
-
 
 ## [Tutorial: How to manage secrets in OpenShift using Vault and External Secrets Operator](https://youtu.be/N7njTq6TSx8)
 

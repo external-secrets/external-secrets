@@ -14,7 +14,8 @@ Before using these examples, ensure you have:
 
 Push all database-related secrets with organized naming.
 
-**Source Secret:**
+Source Secret:
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -31,7 +32,8 @@ stringData:
   db-ssl-mode: "require"
 ```
 
-**PushSecret with dataTo:**
+PushSecret with dataTo:
+
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -57,7 +59,7 @@ spec:
             target: "myapp/production/database/"
 ```
 
-**Result in AWS Secrets Manager:**
+Result in AWS Secrets Manager:
 
 - `myapp/production/database/host`
 - `myapp/production/database/port`
@@ -70,7 +72,8 @@ spec:
 
 Push the same secrets to different environments with different prefixes.
 
-**Source Secret:**
+Source Secret:
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -85,7 +88,8 @@ stringData:
   postgres-url: "postgres://db:5432/mydb"
 ```
 
-**Development Environment:**
+Development Environment:
+
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -107,7 +111,8 @@ spec:
             target: "dev/myapp/"
 ```
 
-**Production Environment:**
+Production Environment:
+
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -133,7 +138,8 @@ spec:
 
 Push different types of secrets to organized paths.
 
-**Source Secret:**
+Source Secret:
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -150,7 +156,8 @@ stringData:
   tls-key: "-----BEGIN PRIVATE KEY-----"
 ```
 
-**PushSecret with Multiple Patterns:**
+PushSecret with Multiple Patterns:
+
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -195,7 +202,7 @@ spec:
             target: "config/tls/"
 ```
 
-**Result:**
+Result:
 
 - `config/database/host`
 - `config/database/password`
@@ -208,7 +215,8 @@ spec:
 
 Use Go templates to transform key names with advanced logic.
 
-**Source Secret:**
+Source Secret:
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -222,9 +230,10 @@ stringData:
   storage-service-key: "ss_xxx"
 ```
 
-**PushSecret with Template:**
-{% raw %}
+PushSecret with Template
+
 ```yaml
+{% raw %}
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
 metadata:
@@ -241,11 +250,11 @@ spec:
         name: gcp-secret-manager
       rewrite:
         - transform:
-            template: "services/{{ .value | upper | replace \"-\" \"_\" }}"
-```
+            template: 'services/{{ .value | upper | replace "-" "_" }}'
 {% endraw %}
+```
 
-**Result:**
+Result:
 
 - `services/PAYMENT_GATEWAY_KEY`
 - `services/EMAIL_SERVICE_KEY`
@@ -255,7 +264,8 @@ spec:
 
 Apply multiple transformations sequentially for complex key restructuring.
 
-**Source Secret:**
+Source Secret:
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -269,7 +279,8 @@ stringData:
   old-cache-redis-url: "redis://old-cache:6379"
 ```
 
-**PushSecret with Chained Rewrites:**
+PushSecret with Chained Rewrites:
+
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -300,7 +311,7 @@ spec:
             target: "/"
 ```
 
-**Result:**
+Result:
 
 - `migrated/db/primary/host`
 - `migrated/db/replica/host`
@@ -310,7 +321,8 @@ spec:
 
 Use both dataTo and explicit data to handle exceptions.
 
-**Source Secret:**
+Source Secret:
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -323,10 +335,11 @@ stringData:
   db-port: "5432"
   db-user: "app"
   db-password: "secret123"
-  db-admin-password: "admin-secret"  # Should go to different location
+  db-admin-password: "admin-secret" # Should go to different location
 ```
 
-**PushSecret with Override:**
+PushSecret with Override:
+
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -358,7 +371,7 @@ spec:
           remoteKey: admin/database/password
 ```
 
-**Result:**
+Result:
 
 - `app/database/host` (from dataTo)
 - `app/database/port` (from dataTo)
@@ -370,7 +383,8 @@ spec:
 
 Push secrets with AWS-specific metadata tags.
 
-**PushSecret with Metadata:**
+PushSecret with Metadata:
+
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -406,7 +420,8 @@ spec:
 
 Push secrets to HashiCorp Vault KV v2 engine with proper paths.
 
-**Source Secret:**
+Source Secret:
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -420,7 +435,8 @@ stringData:
   shared-secret: "shared"
 ```
 
-**PushSecret for Vault:**
+PushSecret for Vault:
+
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -442,7 +458,7 @@ spec:
       rewrite:
         - regexp:
             source: "^service-(.*)-key$"
-            target: "services/$1/api-key"  # Use capture group
+            target: "services/$1/api-key" # Use capture group
 
     # Shared secrets
     - storeRef:
@@ -455,7 +471,7 @@ spec:
             target: "shared/"
 ```
 
-**Result:**
+Result:
 
 - `services/a/api-key`
 - `services/b/api-key`
@@ -465,7 +481,8 @@ spec:
 
 Push secrets to Azure Key Vault with naming constraints (alphanumeric and hyphens only).
 
-**PushSecret for Azure:**
+PushSecret for Azure:
+
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -497,7 +514,8 @@ spec:
 
 Backup secrets from AWS to GCP while maintaining structure.
 
-**Step 1: Pull from AWS using ExternalSecret:**
+Step 1: Pull from AWS using ExternalSecret:
+
 ```yaml
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
@@ -516,7 +534,8 @@ spec:
           regexp: "^myapp/.*"
 ```
 
-**Step 2: Push to GCP with dataTo:**
+Step 2: Push to GCP with dataTo:
+
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
@@ -557,17 +576,17 @@ kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.status.syncedPushSec
 
 ### Common Issues
 
-**1. No keys matched:**
+**No keys matched:**
 
 - Verify the source Secret has keys matching your pattern
 - Check regexp syntax: `kubectl get secret <name> -o jsonpath='{.data}' | jq 'keys'`
 
-**2. Invalid regexp error:**
+**Invalid regexp error:**
 
 - Validate your regexp using an online regexp tester
 - Ensure special characters are properly escaped
 
-**3. Duplicate remote keys:**
+**Duplicate remote keys:**
 
 - Check if your rewrites produce unique keys
 - Adjust patterns or use explicit data overrides

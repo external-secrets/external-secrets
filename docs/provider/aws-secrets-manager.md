@@ -1,3 +1,4 @@
+# AWS Secrets Manager
 
 ![aws sm](../pictures/eso-az-kv-aws-sm.png)
 
@@ -8,10 +9,11 @@ defined region. You should define Roles that define fine-grained access to
 individual secrets and pass them to ESO using `spec.provider.aws.role`. This
 way users of the `SecretStore` can only access the secrets necessary.
 
-``` yaml
+```yaml
 {% include 'aws-sm-store.yaml' %}
 ```
-**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef` and `secretAccessKeySecretRef`  with the namespaces where the secrets reside.
+
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef` and `secretAccessKeySecretRef` with the namespaces where the secrets reside.
 
 **NOTE:** When using `dataFrom` without a `path` defined, the provider will fall back to using `ListSecrets`. `ListSecrets`
 then proceeds to fetch each individual secret in turn. To use `BatchGetSecretValue` and avoid excessive API calls define
@@ -21,19 +23,19 @@ a `path` prefix or use `Tags` filter.
 
 Create a IAM Policy to pin down access to secrets matching `dev-*`.
 
-For Batch permissions read the following post https://aws.amazon.com/about-aws/whats-new/2023/11/aws-secrets-manager-batch-retrieval-secrets/.
+For Batch permissions read the following post <https://aws.amazon.com/about-aws/whats-new/2023/11/aws-secrets-manager-batch-retrieval-secrets/>.
 
-``` json
+```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
-      "Action" : [
+      "Action": [
         "secretsmanager:ListSecrets",
         "secretsmanager:BatchGetSecretValue"
       ],
-      "Effect" : "Allow",
-      "Resource" : "*"
+      "Effect": "Allow",
+      "Resource": "*"
     },
     {
       "Effect": "Allow",
@@ -43,9 +45,7 @@ For Batch permissions read the following post https://aws.amazon.com/about-aws/w
         "secretsmanager:DescribeSecret",
         "secretsmanager:ListSecretVersionIds"
       ],
-      "Resource": [
-        "arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*"
-      ]
+      "Resource": ["arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*"]
     }
   ]
 }
@@ -55,7 +55,7 @@ For Batch permissions read the following post https://aws.amazon.com/about-aws/w
 
 If you're planning to use `PushSecret`, ensure you also have the following permissions in your IAM policy:
 
-``` json
+```json
 {
   "Effect": "Allow",
   "Action": [
@@ -69,9 +69,7 @@ If you're planning to use `PushSecret`, ensure you also have the following permi
     "secretsmanager:ReplicateSecretToRegions",
     "secretsmanager:RemoveRegionsFromReplication"
   ],
-  "Resource": [
-    "arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*"
-  ]
+  "Resource": ["arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*"]
 }
 ```
 
@@ -80,7 +78,7 @@ If you're planning to use `PushSecret`, ensure you also have the following permi
 
 Here's a more restrictive version of the IAM policy:
 
-``` json
+```json
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -96,15 +94,11 @@ Here's a more restrictive version of the IAM policy:
         "secretsmanager:ReplicateSecretToRegions",
         "secretsmanager:RemoveRegionsFromReplication"
       ],
-      "Resource": [
-        "arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*"
-      ]
+      "Resource": ["arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*"]
     },
     {
       "Effect": "Allow",
-      "Action": [
-        "secretsmanager:DeleteSecret"
-      ],
+      "Action": ["secretsmanager:DeleteSecret"],
       "Resource": [
         "arn:aws:secretsmanager:us-west-2:111122223333:secret:dev-*"
       ],
@@ -159,7 +153,6 @@ To control this behavior set the following provider metadata:
     - `kind` - Either `ConfigMap` or `Secret`.
     - `name` - Name of the ConfigMap or Secret.
     - `key` - Key within the ConfigMap/Secret data that contains the policy JSON.
-
 
 ##### KMS Key
 
@@ -251,29 +244,30 @@ When this field is set, _ESO_ manages replication as part of the PushSecret reco
 
 You can specify a list of locations for your secrets to be replicated by setting the `replicationLocations` field.
 
-``` yaml
+```yaml
 {% include 'aws-sm-push-secret-with-replication.yaml' %}
 ```
 
 ### JSON Secret Values
 
-SecretsManager supports *simple* key/value pairs that are stored as json. If you use the API you can store more complex JSON objects. You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md):
+SecretsManager supports _simple_ key/value pairs that are stored as json. If you use the API you can store more complex JSON objects. You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md):
 
 Consider the following JSON object that is stored in the SecretsManager key `friendslist`:
-``` json
+
+```json
 {
-  "name": {"first": "Tom", "last": "Anderson"},
+  "name": { "first": "Tom", "last": "Anderson" },
   "friends": [
-    {"first": "Dale", "last": "Murphy"},
-    {"first": "Roger", "last": "Craig"},
-    {"first": "Jane", "last": "Murphy"}
+    { "first": "Dale", "last": "Murphy" },
+    { "first": "Roger", "last": "Craig" },
+    { "first": "Jane", "last": "Murphy" }
   ]
 }
 ```
 
 This is an example on how you would look up nested keys in the above json object:
 
-``` yaml
+```yaml
 {% include 'aws-sm-external-secret.yaml' %}
 ```
 
@@ -285,7 +279,7 @@ The `version` field on the `remoteRef` of the ExternalSecret will normally consi
 
 So in this example, the operator will request the same secret with different versions: `AWSCURRENT` and `AWSPREVIOUS`:
 
-``` yaml
+```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
@@ -299,19 +293,19 @@ spec:
     name: versioned-api-key
     creationPolicy: Owner
   data:
-  - secretKey: previous-api-key
-    remoteRef:
-      key: "production/api-key"
-      version: "AWSPREVIOUS"
-  - secretKey: current-api-key
-    remoteRef:
-      key: "production/api-key"
-      version: "AWSCURRENT"
+    - secretKey: previous-api-key
+      remoteRef:
+        key: "production/api-key"
+        version: "AWSPREVIOUS"
+    - secretKey: current-api-key
+      remoteRef:
+        key: "production/api-key"
+        version: "AWSCURRENT"
 ```
 
 While in this example, the operator will request the secret with `VersionId` as `abcd-1234`
 
-``` yaml
+```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
@@ -325,10 +319,10 @@ spec:
     name: versioned-api-key
     creationPolicy: Owner
   data:
-  - secretKey: api-key
-    remoteRef:
-      key: "production/api-key"
-      version: "uuid/123e4567-e89b-12d3-a456-426614174000"
+    - secretKey: api-key
+      remoteRef:
+        key: "production/api-key"
+        version: "uuid/123e4567-e89b-12d3-a456-426614174000"
 ```
 
 --8<-- "snippets/provider-aws-access.md"

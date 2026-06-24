@@ -1,6 +1,6 @@
 # Glossary
-This glossary includes technologies related to ESO in alphabetic order.
 
+This glossary includes technologies related to ESO in alphabetic order.
 
  <details>
   <summary>Cluster</summary>
@@ -76,8 +76,6 @@ This glossary includes technologies related to ESO in alphabetic order.
     <li><a href="https://github.com/helm/helm" target="_blank">GitHub project</a></li>
   </ul>
 </details>
-
-
 
 <details>
   <summary>HPA</summary>
@@ -189,7 +187,6 @@ This glossary includes technologies related to ESO in alphabetic order.
     <li><a href="https://github.com/kubernetes/kubernetes" target="_blank">Project GitHub</a></li>
   </ul>
 </details>
-
 
 <details>
   <summary>Nginx</summary>

@@ -1,13 +1,13 @@
-## Akeyless Secrets Management Platform
+# Akeyless Secrets Management Platform
 
 External Secrets Operator integrates with the [Akeyless Secrets Management Platform](https://www.akeyless.io/).
 
-### Create Secret Store
+## Create Secret Store
 
 SecretStore resource specifies how to access Akeyless. This resource is namespaced.
 
 **NOTE:** Make sure the Akeyless provider is listed in the Kind=SecretStore.
-If you use a customer fragment, define the value of akeylessGWApiURL as the URL of your Akeyless Gateway in the following format: https://your.akeyless.gw:8080/v2.
+If you use a customer fragment, define the value of akeylessGWApiURL as the URL of your Akeyless Gateway in the following format: <https://your.akeyless.gw:8080/v2>.
 
 Akeyless provides several Authentication Methods:
 
@@ -34,14 +34,14 @@ to set your SecretStore with an authentication method from Akeyless.
 
 The supported auth-methods and their parameters are:
 
-| accessType     | accessTypeParam                    |
-| -------------- | ---------------------------------- |
-| `aws_iam`      | -                                  |
-| `gcp`          | The GCP audience                   |
-| `azure_ad`     | Azure object ID (optional)         |
-| `api_key`      | The access key                     |
-| `access_key`   | The access key (alias for api_key) |
-| `k8s`          | The k8s configuration name         |
+| accessType   | accessTypeParam                    |
+| ------------ | ---------------------------------- |
+| `aws_iam`    | -                                  |
+| `gcp`        | The GCP audience                   |
+| `azure_ad`   | Azure object ID (optional)         |
+| `api_key`    | The access key                     |
+| `access_key` | The access key (alias for api_key) |
+| `k8s`        | The k8s configuration name         |
 
 For more information see [Akeyless Authentication Methods](https://docs.akeyless.io/docs/access-and-authentication-methods)
 
@@ -110,7 +110,7 @@ data:
   - secretKey: password
     remoteRef:
       key: /path/to/secret
-      version: "3"  # fetch version 3 specifically
+      version: "3" # fetch version 3 specifically
 ```
 
 #### Extracting a property from a JSON secret
@@ -122,7 +122,7 @@ data:
   - secretKey: db-password
     remoteRef:
       key: /path/to/json-secret
-      property: password  # extracts {"password": "..."} from the JSON value
+      property: password # extracts {"password": "..."} from the JSON value
 ```
 
 #### Using DataFrom

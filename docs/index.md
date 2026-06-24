@@ -5,7 +5,7 @@
 [![Form3](./pictures/form3_logo.png)](https://www.form3.tech/)
 [![Pento](./pictures/pento_logo.png)](https://www.pento.io)
 
-# Introduction
+## Introduction
 
 ![high-level](./pictures/diagrams-high-level-simple.png)
 
@@ -56,4 +56,3 @@ How to get involved:
 ### Kicked off by
 
 ![godaddy-logo](./pictures/godaddy_logo.png)
-

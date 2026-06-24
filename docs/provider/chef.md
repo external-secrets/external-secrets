@@ -1,4 +1,4 @@
-## Chef
+# Chef
 
 `Chef External Secrets provider` will enable users to seamlessly integrate their Chef-based secret management with Kubernetes through the existing External Secrets framework.
 
@@ -6,21 +6,23 @@ In many enterprises, legacy applications and infrastructure are still tightly in
 
 **NOTE:** `Chef External Secrets provider` is designed only to fetch data from the Chef data bags into Kubernetes secrets, it won't update/delete any item in the data bags.
 
-### Authentication
+## Authentication
 
-Every request made to the Chef Infra server needs to be authenticated. [Authentication](https://docs.chef.io/server/auth/) is done using the Private keys of the Chef Users.  The User needs to have appropriate [Permissions](https://docs.chef.io/server/server_orgs/#permissions) to the data bags containing the data that they want to fetch using the External Secrets Operator.
+Every request made to the Chef Infra server needs to be authenticated. [Authentication](https://docs.chef.io/server/auth/) is done using the Private keys of the Chef Users. The User needs to have appropriate [Permissions](https://docs.chef.io/server/server_orgs/#permissions) to the data bags containing the data that they want to fetch using the External Secrets Operator.
 
 The following command can be used to create Chef Users:
+
 ```sh
 chef-server-ctl user-create USER_NAME FIRST_NAME [MIDDLE_NAME] LAST_NAME EMAIL 'PASSWORD' (options)
 ```
 
-More details on the above command are available here [Chef User Create Option](https://docs.chef.io/server/server_users/#user-create). The above command will return the default private key (PRIVATE_KEY_VALUE), which we will use for authentication. Additionally, a Chef User with access to specific data bags, a private key pair with an expiration date can be created with the help of the  [knife user key](https://docs.chef.io/server/auth/#knife-user-key) command.
+More details on the above command are available here [Chef User Create Option](https://docs.chef.io/server/server_users/#user-create). The above command will return the default private key (PRIVATE_KEY_VALUE), which we will use for authentication. Additionally, a Chef User with access to specific data bags, a private key pair with an expiration date can be created with the help of the [knife user key](https://docs.chef.io/server/auth/#knife-user-key) command.
 
 ### Create a secret containing your private key
 
 We need to store the above User's API key into a secret resource.
 Example:
+
 ```sh
 kubectl create secret generic chef-user-secret -n vivid --from-literal=user-private-key='PRIVATE_KEY_VALUE'
 ```
@@ -70,7 +72,6 @@ spec:
             name: chef-user-secret # name of Kubernetes Secret resource containing the Chef User's private key
             key: user-private-key # name of the key inside Secret resource
             namespace: vivid # the ns where the k8s secret resource containing Chef User's private key resides
-
 ```
 
 ### Creating ExternalSecret
@@ -78,6 +79,7 @@ spec:
 The Chef `ExternalSecret` describes what data should be fetched from Chef Data bags, and how the data should be transformed and saved as a Kind=Secret.
 
 You can follow the below example to create an `ExternalSecret` resource.
+
 ```yaml
 {% include 'chef-external-secret.yaml' %}
 ```
@@ -85,6 +87,7 @@ You can follow the below example to create an `ExternalSecret` resource.
 When the above `ClusterSecretStore` and `ExternalSecret` resources are created, the `ExternalSecret` will connect to the Chef Server using the private key and will fetch the data bags contained in the `vivid-credentials` secret resource.
 
 To get all data items inside the data bag, you can use the `dataFrom` directive:
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -102,12 +105,11 @@ spec:
     name: vivid-clustersecretstore # name of ClusterSecretStore
     kind: ClusterSecretStore
   dataFrom:
-  - extract:
-      key: vivid_global # only data bag name
+    - extract:
+        key: vivid_global # only data bag name
   target:
     name: vivid_global_all_cred # name of Kubernetes Secret resource that will be created and will contain the obtained secrets
     creationPolicy: Owner
-
 ```
 
 follow : [this file](https://github.com/external-secrets/external-secrets/blob/main/apis/externalsecrets/v1beta1/secretstore_chef_types.go) for more info

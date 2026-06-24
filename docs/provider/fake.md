@@ -1,3 +1,5 @@
+# Fake
+
 We provide a `fake` implementation to help with testing. This provider returns static key/value pairs and nothing else.
 To use the `fake` provider simply create a `SecretStore` or `ClusterSecretStore` and configure it like in the following example:
 
@@ -20,7 +22,6 @@ Here is an example `ExternalSecret` that displays this behavior:
 ```
 
 This results in the following secret:
-
 
 ```yaml
 {% include 'fake-provider-secret.yaml' %}

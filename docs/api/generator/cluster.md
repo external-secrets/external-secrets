@@ -1,3 +1,5 @@
+# Cluster
+
 `ClusterGenerator` is a generator wrapper that is available to configure a generator
 cluster-wide. The purpose of this generator is that the user doesn't have to redefine
 the generator in every namespace. They could define it once in the cluster and then reference that
@@ -17,6 +19,7 @@ in the consuming `ExternalSecret`.
 ```
 
 Example `ExternalSecret` that references the Cluster generator:
+
 ```yaml
 {% include 'generator-cluster-example.yaml' %}
 ```

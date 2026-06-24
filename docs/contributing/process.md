@@ -1,4 +1,5 @@
-## Project Management
+# Project Management
+
 The Code, our TODOs and Documentation is maintained on
 [GitHub](https://github.com/external-secrets/external-secrets). All Issues
 should be opened in that repository.
@@ -18,7 +19,7 @@ They are categorized as this:
 
 | Label                       | Purpose                                                                                                                                                                                                                                                                                                                                                                                               |
 |-----------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `kind/`                     | Kinds classification allows maintainer to easily spot what the issue is about (not where is the code touched). Bugs (kind/bug), features (kind/feature), maintenance items (kind/chore, kind/refactor, kind/cleanup, kind/dependency), initiatives (kind/design), performance changes (kind/performance), support-questions (kind/support).                                                                            |
+| `kind/`                     | Kinds classification allows maintainer to easily spot what the issue is about (not where is the code touched). Bugs (kind/bug), features (kind/feature), maintenance items (kind/chore, kind/refactor, kind/cleanup, kind/dependency), initiatives (kind/design), performance changes (kind/performance), support-questions (kind/support).                                                           |
 | `triage/`                   | Triage labels tracks the issue's lifecycle (or change's lifecycle). Suggested mappings: `triage/pending-triage` (not triaged yet), `triage/needs-information` (missing details from reporter), `triage/not-reproducible` (cannot reproduce with provided info), `triage/confirmed` (valid/reproducible report), `triage/invalid` (incorrect bug report/PR), `triage/duplicate` (duplicate bug report) |
 | `priority/`                 | Priority shows an increasing urgency from "important-long-term", "important-soon" to "urgent"                                                                                                                                                                                                                                                                                                         |
 | `size/`                     | Allows maintainers to better guess the amount of work required to review the issue/PR                                                                                                                                                                                                                                                                                                                 |
@@ -33,7 +34,7 @@ They are categorized as this:
 
 With those labels, maintainers are able to efficiently see where they can help better.
 
-Note: Some labels  like `size` and `kind` are applied automatically to Pull Requests by semantic conventions. See also the section below about submitting a pull request.
+Note: Some labels like `size` and `kind` are applied automatically to Pull Requests by semantic conventions. See also the section below about submitting a pull request.
 
 ## Submitting a Pull Request
 
@@ -47,10 +48,10 @@ The use of the right semantics helps the maintaining team to classify your PR ef
 
 Merging a pull request only happens when:
 
-* there is ideally an issue that documents the problem or feature in depth.
-* code has a reasonable amount of test coverage
-* tests pass
-* At least one review approves the change
+- there is ideally an issue that documents the problem or feature in depth.
+- code has a reasonable amount of test coverage
+- tests pass
+- At least one review approves the change
 
 Once these steps are completed the PR will be merged by a code owner.
 We're using the pull request `assignee` feature to track who is responsible
@@ -65,14 +66,16 @@ of code in this project.
 
 ### Triggering e2e tests
 
-We have an extensive set of e2e tests that test the integration with *real* cloud provider APIs.
+We have an extensive set of e2e tests that test the integration with _real_ cloud provider APIs.
 Maintainers must trigger these kind of tests manually for PRs that come from forked repositories. These tests run inside a `kind` cluster in the GitHub Actions runner:
 
-```
+```bash
 /ok-to-test sha=<full_commit_hash>
 ```
+
 Examples:
-```
+
+```bash
 /ok-to-test sha=b8ca0040200a7a05d57048d86a972fdf833b8c9b
 ```
 
@@ -87,7 +90,7 @@ Use [ginkgo labels](https://onsi.github.io/ginkgo/#spec-labels) to select the te
 you want to execute. You have to specify `!managed` to ensure that you do not
 run managed tests.
 
-```
+```bash
 make test.e2e GINKGO_LABELS='gcp&&!managed'
 ```
 
@@ -103,7 +106,7 @@ This is necessary to test the authentication integration
 These tests are time intensive (~20-45min) and must be triggered manually by
 a maintainer when a particular provider or authentication mechanism was changed:
 
-```
+```bash
 /ok-to-test-managed sha=xxxxxx provider=aws
 # or
 /ok-to-test-managed sha=xxxxxx provider=gcp
@@ -112,7 +115,6 @@ a maintainer when a particular provider or authentication mechanism was changed:
 ```
 
 Both tests can run in parallel. Once started they add a dynamic GitHub check `integration-managed-(gcp|aws|azure)` to the PR that triggered the test.
-
 
 ### Executing Managed Kubernetes e2e tests locally
 
@@ -123,7 +125,7 @@ sure set all variables containing `AWS_*` and `TF_VAR_AWS_*` mentioned in that f
 
 Then execute `tf.apply.aws` or `tf.apply.gcp` to create the infrastructure.
 
-```
+```bash
 make tf.apply.aws
 ```
 
@@ -131,7 +133,7 @@ Then run the `managed` testsuite. You will need push permissions to the external
 
 You also have to setup a proper Kubeconfig so the e2e test pod gets deployed into the managed cluster.
 
-```
+```bash
 aws eks update-kubeconfig --name ${AWS_CLUSTER_NAME}
 or
 gcloud container clusters get-credentials ${GCP_GKE_CLUSTER} --region europe-west1-b
@@ -140,19 +142,20 @@ gcloud container clusters get-credentials ${GCP_GKE_CLUSTER} --region europe-wes
 Use [ginkgo labels](https://onsi.github.io/ginkgo/#spec-labels) to select the tests
 you want to execute.
 
-```
+```bash
 # you may have to set IMAGE_NAME=docker.io/your-user/external-secrets
 make test.e2e.managed GINKGO_LABELS='gcp'
 ```
 
 ## Proposal Process
+
 Before we introduce significant changes to the project we want to gather feedback
 from the community to ensure that we progress in the right direction before we
 develop and release big changes. Significant changes include for example:
 
-* creating new custom resources
-* proposing breaking changes
-* changing the behavior of the controller significantly
+- creating new custom resources
+- proposing breaking changes
+- changing the behavior of the controller significantly
 
 Please create a document in the `design/` directory based on the template `000-template.md`
 and fill in your proposal. Open a pull request in draft mode and request feedback. Once the proposal is accepted and the pull request is merged we can create work packages and proceed with the implementation.

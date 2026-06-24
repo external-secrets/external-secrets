@@ -8,12 +8,12 @@ created, to get credentials with no manual intervention from the beginning.
 
 This approach has several advantages as follows:
 
-* **Homogenize environments** allowing developers to use the same toolset in Kind in the same way they do in the cloud
+- **Homogenize environments** allowing developers to use the same toolset in Kind in the same way they do in the cloud
   provider distributions such as EKS or GKE. This accelerates the development
-* **Reduce security risks**, because credentials can be easily obtained, so temptation to store them locally is reduced.
-* **Application compatibility increase**: Applications are deployed in different ways, and sometimes they need to share
+- **Reduce security risks**, because credentials can be easily obtained, so temptation to store them locally is reduced.
+- **Application compatibility increase**: Applications are deployed in different ways, and sometimes they need to share
   credentials. This can be done using External Secrets as a wire for them at real time.
-* **Automation by default** oh, come on!
+- **Automation by default** oh, come on!
 
 ## The approach
 
@@ -43,7 +43,7 @@ that is registered in the API server as soon as the HelmRelease is applied, befo
 serving. If a Kustomization tries to apply an `ExternalSecret` or `ClusterSecretStore` in that brief window, the API
 server performs a dry-run validation, the webhook endpoint returns `connection refused`, and the reconciliation fails with:
 
-```
+```yaml
 Internal error occurred: failed calling webhook "validate.externalsecret.external-secrets.io": ...
 dial tcp <ip>:443: connect: connection refused
 ```
@@ -56,18 +56,18 @@ any CR is applied.
 
 Let's see the conditions to start working on a solution:
 
-* The External Secrets operator is deployed with Helm, and admits disabling the CRDs deployment
-* The race condition only affects the deployment of `CustomResourceDefinition` and the CRs needed later
-* CRDs can be deployed directly from the Git repository of the project using a Flux `Kustomization`
-* The operator HelmRelease is wrapped in its own Flux `Kustomization` with `wait: true` so it only
+- The External Secrets operator is deployed with Helm, and admits disabling the CRDs deployment
+- The race condition only affects the deployment of `CustomResourceDefinition` and the CRs needed later
+- CRDs can be deployed directly from the Git repository of the project using a Flux `Kustomization`
+- The operator HelmRelease is wrapped in its own Flux `Kustomization` with `wait: true` so it only
   reports Ready after all deployed resources (including the webhook pod) are healthy
-* Required CRs can be deployed using a Flux `Kustomization` that depends on the operator Kustomization,
+- Required CRs can be deployed using a Flux `Kustomization` that depends on the operator Kustomization,
   not just the CRDs, guaranteeing the webhook is serving before any CR dry-run is attempted
-* All previous manifests can be applied with a Kubernetes `kustomization`
+- All previous manifests can be applied with a Kubernetes `kustomization`
 
 The dependency chain is:
 
-```
+```yaml
 external-secrets-crds --> external-secrets-operator (wait: true) --> external-secrets-crs
 ```
 
@@ -147,12 +147,14 @@ There are several interesting details to see here, that finally solves the race 
    any CR is applied, eliminating the webhook race condition.
 2. `retryInterval: 1m` makes Flux retry quickly if the very first reconcile still catches a brief startup window.
 3. The reference to the place where to find the CRs
+
    ```yaml
    path: ./infrastructure/external-secrets/crs
    sourceRef:
-    kind: GitRepository
-    name: flux-system
+     kind: GitRepository
+     name: flux-system
    ```
+
    Custom Resources will be searched in the relative path `./infrastructure/external-secrets/crs` of the GitRepository
    called `flux-system`, which is a reference to the same repository that FluxCD watches to synchronize the cluster.
    With fewer words, a reference to itself, but going to another directory called `crs`
@@ -168,8 +170,7 @@ for example, a manifest `clusterSecretStore.yaml` to reach your Hashicorp Vault 
 
 At the end, the required files tree is:
 
-```
-./infrastructure/external-secrets/
+```yaml
   kustomization.yaml
   namespace.yaml
   secret-token.yaml

@@ -8,7 +8,6 @@ This tutorial is intended for those who already have the PreRequisites complete.
 
 > Note: The minimum supported version of Kubernetes is `1.16.0`. Users still running Kubernetes v1.15 or below should upgrade
 > to a supported version before installing external-secrets.
-
 > Note: Our CRDs have reached the 256KB limit! You have to use [server-side-apply](https://kubernetes.io/docs/reference/using-api/server-side-apply/) in all locations to install them correctly.
 
 ## Installing with Helm
@@ -16,6 +15,7 @@ This tutorial is intended for those who already have the PreRequisites complete.
 The default install options will automatically install and manage the CRDs as part of your helm release. If you do not want the CRDs to be automatically upgraded and managed, you must set the `installCRDs` option to `false`. (e.g. `--set installCRDs=false`)
 
 You can install those CRDs outside of `helm` using:
+
 ```bash
 kubectl apply -f "https://raw.githubusercontent.com/external-secrets/external-secrets/<replace_with_your_version>/deploy/crds/bundle.yaml" --server-side
 ```
@@ -66,7 +66,7 @@ Create a file 'basic-secret-store.yaml' with the following content.
 
 Apply it to create a SecretStore resource.
 
-```
+```yaml
 kubectl apply -f "basic-secret-store.yaml"
 ```
 
@@ -80,7 +80,7 @@ Create a file 'basic-external-secret.yaml' with the following content.
 
 Apply it to create an External Secret resource.
 
-```
+```yaml
 kubectl apply -f "basic-external-secret.yaml"
 ```
 

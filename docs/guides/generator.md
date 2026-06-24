@@ -1,3 +1,5 @@
+# Generator
+
 Generators allow you to generate values. They are used through a ExternalSecret `spec.DataFrom`. They are referenced from a custom resource using `sourceRef.generatorRef`.
 
 If the External Secret should be refreshed via `spec.refreshInterval` the generator produces a map of values with the `generator.spec` as input. The generator does not keep track of the produced values. Every invocation produces a new set of values.
@@ -18,11 +20,11 @@ spec:
   target:
     name: ecr-token
   dataFrom:
-  - sourceRef:
-      generatorRef:
-        apiVersion: generators.external-secrets.io/v1alpha1
-        kind: ECRAuthorizationToken
-        name: "my-ecr"
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: ECRAuthorizationToken
+          name: "my-ecr"
 ```
 
 ## Cluster Generate Resource
@@ -55,20 +57,20 @@ exactly. The following Spec fields are available:
 
 ```go
 type GeneratorSpec struct {
-	ACRAccessTokenSpec        *ACRAccessTokenSpec        `json:"acrAccessTokenSpec,omitempty"`
-	CloudsmithAccessTokenSpec *CloudsmithAccessTokenSpec `json:"cloudsmithAccessTokenSpec,omitempty"`
-	ECRAuthorizationTokenSpec *ECRAuthorizationTokenSpec `json:"ecrAuthorizationTokenSpec,omitempty"`
-	FakeSpec                  *FakeSpec                  `json:"fakeSpec,omitempty"`
-	GCRAccessTokenSpec        *GCRAccessTokenSpec        `json:"gcrAccessTokenSpec,omitempty"`
-	GithubAccessTokenSpec     *GithubAccessTokenSpec     `json:"githubAccessTokenSpec,omitempty"`
-	QuayAccessTokenSpec       *QuayAccessTokenSpec       `json:"quayAccessTokenSpec,omitempty"`
-	PasswordSpec              *PasswordSpec              `json:"passwordSpec,omitempty"`
-	SSHKeySpec                *SSHKeySpec                `json:"sshKeySpec,omitempty"`
-	STSSessionTokenSpec       *STSSessionTokenSpec       `json:"stsSessionTokenSpec,omitempty"`
-	UUIDSpec                  *UUIDSpec                  `json:"uuidSpec,omitempty"`
-	VaultDynamicSecretSpec    *VaultDynamicSecretSpec    `json:"vaultDynamicSecretSpec,omitempty"`
-	WebhookSpec               *WebhookSpec               `json:"webhookSpec,omitempty"`
-	GrafanaSpec               *GrafanaSpec               `json:"grafanaSpec,omitempty"`
-	MFASpec                   *MFASpec                   `json:"mfaSpec,omitempty"`
+ ACRAccessTokenSpec        *ACRAccessTokenSpec        `json:"acrAccessTokenSpec,omitempty"`
+ CloudsmithAccessTokenSpec *CloudsmithAccessTokenSpec `json:"cloudsmithAccessTokenSpec,omitempty"`
+ ECRAuthorizationTokenSpec *ECRAuthorizationTokenSpec `json:"ecrAuthorizationTokenSpec,omitempty"`
+ FakeSpec                  *FakeSpec                  `json:"fakeSpec,omitempty"`
+ GCRAccessTokenSpec        *GCRAccessTokenSpec        `json:"gcrAccessTokenSpec,omitempty"`
+ GithubAccessTokenSpec     *GithubAccessTokenSpec     `json:"githubAccessTokenSpec,omitempty"`
+ QuayAccessTokenSpec       *QuayAccessTokenSpec       `json:"quayAccessTokenSpec,omitempty"`
+ PasswordSpec              *PasswordSpec              `json:"passwordSpec,omitempty"`
+ SSHKeySpec                *SSHKeySpec                `json:"sshKeySpec,omitempty"`
+ STSSessionTokenSpec       *STSSessionTokenSpec       `json:"stsSessionTokenSpec,omitempty"`
+ UUIDSpec                  *UUIDSpec                  `json:"uuidSpec,omitempty"`
+ VaultDynamicSecretSpec    *VaultDynamicSecretSpec    `json:"vaultDynamicSecretSpec,omitempty"`
+ WebhookSpec               *WebhookSpec               `json:"webhookSpec,omitempty"`
+ GrafanaSpec               *GrafanaSpec               `json:"grafanaSpec,omitempty"`
+ MFASpec                   *MFASpec                   `json:"mfaSpec,omitempty"`
 }
 ```

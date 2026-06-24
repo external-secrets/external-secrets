@@ -1,10 +1,12 @@
+# ExternalSecret
+
 The `ExternalSecret` describes what data should be fetched, how the data should
 be transformed and saved as a `Kind=Secret`:
 
-* tells the operator what secrets should be synced by using `spec.data` to
+- tells the operator what secrets should be synced by using `spec.data` to
   explicitly sync individual keys or use `spec.dataFrom` to get **all values**
   from the external API.
-* you can specify how the secret should look like by specifying a
+- you can specify how the secret should look like by specifying a
   `spec.target.template`
 
 ## Template
@@ -25,6 +27,7 @@ With `refreshPolicy: CreatedOnce`, the controller will:
 - Useful for immutable credentials or when you want to manage updates manually
 
 Example:
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -45,6 +48,7 @@ With `refreshPolicy: Periodic` (the default behavior), the controller will:
 - When `spec.refreshInterval` is set to a value greater than zero, the controller will update the `Kind=Secret` at the specified interval or when the `ExternalSecret` specification changes
 
 Example:
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -52,7 +56,7 @@ metadata:
   name: example
 spec:
   refreshPolicy: Periodic
-  refreshInterval: 1h0m0s  # Update every hour
+  refreshInterval: 1h0m0s # Update every hour
   # other fields...
 ```
 
@@ -66,6 +70,7 @@ With `refreshPolicy: OnChange`, the controller will:
 - Useful when you want to manually control when the secret is updated, by modifying the `ExternalSecret` resource
 
 Example:
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -80,7 +85,7 @@ spec:
 
 If supported by the configured `refreshPolicy`, you can manually trigger a refresh of the `Kind=Secret` by updating the annotations of the `ExternalSecret`:
 
-```
+```bash
 kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 ```
 
@@ -88,18 +93,18 @@ kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 
 Individual features are described in the [Guides section](../guides/introduction.md):
 
-* [Find many secrets / Extract from structured data](../guides/getallsecrets.md)
-* [Templating](../guides/templating.md)
-* [Using Generators](../guides/generator.md)
-* [Secret Ownership and Deletion](../guides/ownership-deletion-policy.md)
-* [Key Rewriting](../guides/datafrom-rewrite.md)
-* [Decoding Strategy](../guides/decoding-strategy.md)
+- [Find many secrets / Extract from structured data](../guides/getallsecrets.md)
+- [Templating](../guides/templating.md)
+- [Using Generators](../guides/generator.md)
+- [Secret Ownership and Deletion](../guides/ownership-deletion-policy.md)
+- [Key Rewriting](../guides/datafrom-rewrite.md)
+- [Decoding Strategy](../guides/decoding-strategy.md)
 
 ## Example
 
 Take a look at an annotated example to understand the design behind the
 `ExternalSecret`.
 
-``` yaml
+```yaml
 {% include 'full-external-secret.yaml' %}
 ```

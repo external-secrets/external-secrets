@@ -1,0 +1,16 @@
+{
+  "config": {
+    "MD007": false,
+    "MD013": false,
+    "MD033": false,
+    "MD046": {
+      "style": "fenced"
+    },
+    "MD060": {
+      "style": "aligned"
+    }
+  },
+  "ignores": [
+    "docs/api/spec.md"
+  ]
+}

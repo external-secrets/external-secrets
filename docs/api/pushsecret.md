@@ -1,17 +1,19 @@
+# PushSecret
+
 ![PushSecret](../pictures/diagrams-pushsecret-basic.png)
 
 The `PushSecret` is namespaced and it describes what data should be pushed to the secret provider.
 
-* tells the operator what secrets should be pushed by using `spec.selector`.
-* you can specify what secret keys should be pushed by using `spec.data`.
-* you can bulk-push secrets using pattern matching with `spec.dataTo`.
-* you can also template the resulting property values using [templating](#templating).
+- tells the operator what secrets should be pushed by using `spec.selector`.
+- you can specify what secret keys should be pushed by using `spec.data`.
+- you can bulk-push secrets using pattern matching with `spec.dataTo`.
+- you can also template the resulting property values using [templating](#template).
 
 ## Example
 
 Below is an example of the `PushSecret` in use.
 
-``` yaml
+```yaml
 {% include 'full-pushsecret.yaml' %}
 ```
 
@@ -48,11 +50,11 @@ spec:
     - storeRef:
         name: aws-secret-store
       match:
-        regexp: "^db-.*"  # Push all keys starting with "db-"
+        regexp: "^db-.*" # Push all keys starting with "db-"
       rewrite:
         - regexp:
             source: "^db-"
-            target: "myapp/database/"  # db-host -> myapp/database/host
+            target: "myapp/database/" # db-host -> myapp/database/host
 ```
 
 ### Fields
@@ -89,7 +91,8 @@ Defines which keys to select from the source Secret.
 
 - **`regexp`** (string, optional): Regular expression pattern to match keys. If omitted, all keys are matched.
 
-**Examples:**
+Examples:
+
 ```yaml
 # Match all keys
 dataTo:
@@ -117,28 +120,32 @@ Array of rewrite operations to transform key names. Operations are applied seque
 
 Each rewrite can be either:
 
-**Regexp Rewrite:**
+Regexp Rewrite:
+
 ```yaml
 rewrite:
   - regexp:
-      source: "^db-"      # Regex pattern to match
-      target: "app/db/"   # Replacement string (supports capture groups like $1, $2)
+      source: "^db-" # Regex pattern to match
+      target: "app/db/" # Replacement string (supports capture groups like $1, $2)
 ```
 
-**Transform Rewrite (Go Template):**
+Transform Rewrite (Go Template)::
 {% raw %}
+
 ```yaml
 rewrite:
   - transform:
-      template: "secrets/{{ .value | upper }}"  # .value contains the key name
+      template: "secrets/{{ .value | upper }}" # .value contains the key name
 ```
+
 {% endraw %}
 
-**Chained Rewrites:**
+Chained Rewrites:
+
 ```yaml
 rewrite:
-  - regexp: {source: "^db-", target: ""}     # Remove "db-" prefix
-  - regexp: {source: "^", target: "prod/"}   # Add "prod/" prefix
+  - regexp: { source: "^db-", target: "" } # Remove "db-" prefix
+  - regexp: { source: "^", target: "prod/" } # Add "prod/" prefix
 ```
 
 #### `metadata` (object, optional)
@@ -181,12 +188,12 @@ spec:
     - name: my-store
   dataTo:
     - storeRef:
-        name: my-store  # Push all keys with original names
+        name: my-store # Push all keys with original names
   data:
     - match:
         secretKey: db-host
         remoteRef:
-          remoteKey: custom-db-host  # Override for db-host only
+          remoteKey: custom-db-host # Override for db-host only
 ```
 
 In this example, all keys are pushed via `dataTo`, but `db-host` uses the custom remote key from `data` instead.
@@ -206,14 +213,14 @@ spec:
       match:
         regexp: "^db-.*"
       rewrite:
-        - regexp: {source: "^db-", target: "database/"}
+        - regexp: { source: "^db-", target: "database/" }
     # Push api-* keys with api/ prefix
     - storeRef:
         name: my-store
       match:
         regexp: "^api-.*"
       rewrite:
-        - regexp: {source: "^api-", target: "api/"}
+        - regexp: { source: "^api-", target: "api/" }
 ```
 
 ### Error Handling

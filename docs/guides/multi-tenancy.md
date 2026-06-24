@@ -1,3 +1,5 @@
+# Multi Tenancy
+
 External Secrets Operator provides different modes of operation to fulfill
 organizational needs. This guide outlines the flexibility of ESO and should give
 you a first impression of how you can employ this operator in your organization.
@@ -5,7 +7,7 @@ you a first impression of how you can employ this operator in your organization.
 For a multi-tenant deployment you should first examine your organizational
 structure:
 
-1. what roles (i.e. *Application Developers*, *Cluster Admins*, ...) do you have
+1. what roles (i.e. _Application Developers_, _Cluster Admins_, ...) do you have
    in your organization,
 2. what responsibilities do they have and
 3. how does that map to Kubernetes RBAC roles.
@@ -19,7 +21,7 @@ external APIs provide fine-grained access management for secrets.
 but rather as a example to show how to combine different mechanics and
 techniques for tenant isolation.
 
-### Shared ClusterSecretStore
+## Shared ClusterSecretStore
 
 ![Shared CSS](../pictures/diagrams-multi-tenancy-shared.png)
 
@@ -42,20 +44,20 @@ is very simple but does not scale very well.
 ![Shared CSS](../pictures/diagrams-multi-tenancy-managed-store.png)
 
 Cluster Administrators manage one or multiple `SecretStores` per Namespace. Each
-SecretStore uses it's own *role* that limits access to a small set of keys. The
+SecretStore uses it's own _role_ that limits access to a small set of keys. The
 peculiarity of this is approach is, that **access is actually managed by the
 external API** which provides the roles. The Cluster Administrator does just the
 wiring. This approach may be desirable if you have an external entity - let's
 call it **Secret Administrator** - that manages access and lifecycle of the
 secrets.
 
-
 ### ESO as a Service
+
 ![Shared CSS](../pictures/diagrams-multi-tenancy-self-service.png)
 
 Every namespace is self-contained. Application developers manage `SecretStore`,
 `ExternalSecret` and secret infrastructure on their own. Cluster Administrators
-*just* provide the External Secrets Operator as a service.
+_just_ provide the External Secrets Operator as a service.
 
 This makes sense if application developers should be completely autonomous while
 a central team provides common services.

@@ -1,4 +1,4 @@
-## BeyondTrust Password Safe
+# BeyondTrust Password Safe
 
 External Secrets Operator integrates with [BeyondTrust Password Safe](https://www.beyondtrust.com/docs/beyondinsight-password-safe/).
 
@@ -6,7 +6,8 @@ Warning: The External Secrets Operator secure usage involves taking several meas
 
 Warning: If the BT provider secret is deleted it will still exist in the Kubernetes secrets.
 
-### Prerequisites
+## Prerequisites
+
 The BT provider supports retrieval of a secret from BeyondInsight/Password Safe versions 23.1 or greater.
 
 For this provider to retrieve a secret the Password Safe/Secrets Safe instance must be preconfigured with the secret in question and authorized to read it.
@@ -25,12 +26,14 @@ BeyondTrust [OAuth Authentication](https://www.beyondtrust.com/docs/beyondinsigh
 > NOTE: The ClientID and ClientSecret must be stored in a Kubernetes secret in order for the SecretStore to read the configuration.
 
 If you're using client credentials authentication:
+
 ```sh
 kubectl create secret generic bt-secret --from-literal ClientSecret="<your secret>"
 kubectl create secret generic bt-id --from-literal ClientId="<your ID>"
 ```
 
 If you're using API Key authentication:
+
 ```sh
 kubectl create secret generic bt-apikey --from-literal ApiKey="<your apikey>"
 ```
@@ -76,7 +79,7 @@ spec:
     beyondtrust:
       server:
         apiUrl: https://example.com:443/BeyondTrust/api/public/v3/
-        retrievalType: MANAGED_ACCOUNT  # or SECRET
+        retrievalType: MANAGED_ACCOUNT # or SECRET
         verifyCA: true
         clientTimeOutSeconds: 45
         apiVersion: "3.0" # The recommended version is 3.1. If no version is specified, the default API version 3.0 will be used.

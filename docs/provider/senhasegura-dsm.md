@@ -1,4 +1,4 @@
-## Segura® DevOps Secret Manager (DSM)
+# Segura® DevOps Secret Manager (DSM)
 
 External Secrets Operator integrates with [Segura®](https://segura.security/) [DevOps Secret Manager (DSM)](https://segura.security/solutions/devops) module to sync application secrets to secrets held on the Kubernetes cluster.
 
@@ -9,7 +9,6 @@ External Secrets Operator integrates with [Segura®](https://segura.security/) [
 Authentication in Segura® uses DevOps Secret Manager (DSM) application authorization schema. Instructions to setup Authorizations and Secrets in Segura® DSM can be found at [Segura docs for DSM](https://docs.senhasegura.io/docs/how-to-manage-authorizations-per-application-in-devops-secret-manager).
 
 You will need to create an Kubernetes Secret with desired auth parameters, for example:
-
 
 ```yaml
 {% include 'senhasegura-dsm-secret.yaml' %}
@@ -23,13 +22,13 @@ To sync secrets between Segura® DSM and Kubernetes with External Secrets, you n
 
 ### SecretStore
 
-``` yaml
+```yaml
 {% include 'senhasegura-dsm-secretstore.yaml' %}
 ```
 
 ### ClusterSecretStore
 
-``` yaml
+```yaml
 {% include 'senhasegura-dsm-clustersecretstore.yaml' %}
 ```
 
@@ -41,9 +40,9 @@ In examples below, consider that three secrets (api-settings, db-settings and hs
 
 ---
 
-**Secret Identifier: ** api-settings
+**Secret Identifier:** api-settings
 
-**Secret data:** 
+Secret data:
 
 ```bash
 URL=https://example.com/api/example
@@ -52,9 +51,9 @@ TOKEN=example-token-value
 
 ---
 
-**Secret Identifier: ** db-settings
+**Secret Identifier:** db-settings
 
-**Secret data:** 
+Secret data:
 
 ```bash
 DB_HOST='db.example'
@@ -65,15 +64,14 @@ DB_PASSWORD='example'
 
 ---
 
-**Secret Identifier: ** hsm-settings
+**Secret Identifier:** hsm-settings
 
-**Secret data:** 
+Secret data:
 
 ```bash
 HSM_ADDRESS='hsm.example'
 HSM_PORT='9223'
 ```
-
 
 ---
 
@@ -85,7 +83,7 @@ If you only need a specific key, you can select it using remoteRef.property as t
 
 In this method, you can overwrites data name in Kubernetes Secret object (e.g API_SETTINGS and API_SETTINGS_TOKEN)
 
-``` yaml
+```yaml
 {% include 'senhasegura-dsm-external-secret-single.yaml' %}
 ```
 
@@ -104,7 +102,7 @@ If your app requires multiples secrets, it is not required to create multiple Ex
 
 In this method, every secret data in Segura® creates a Kubernetes Secret `.data.X` field
 
-``` yaml
+```yaml
 {% include 'senhasegura-dsm-external-secret-multiple.yaml' %}
 ```
 
@@ -125,7 +123,7 @@ DB_PASSWORD='example'
 
 You can sync all secrets that your authorization in DSM has using find, in a future release you will be able to filter secrets by name, path or tags
 
-``` yaml
+```yaml
 {% include 'senhasegura-dsm-external-secret-all.yaml' %}
 ```
 
@@ -140,4 +138,4 @@ DB_USERNAME='example'
 DB_PASSWORD='example'
 HSM_ADDRESS='hsm.example'
 HSM_PORT='9223'
-``` -->
+```

@@ -4,7 +4,6 @@ Here we will give some examples of how to work with a few common k8s secret type
 
 Please follow the authentication and SecretStore steps of the [Google Cloud Secrets Manager guide](../provider/google-secrets-manager.md) to setup access to your google cloud account first.
 
-
 ## Dockerconfigjson example
 
 First create a secret in Google Cloud Secrets Manager containing your docker config:
@@ -81,7 +80,7 @@ With a certificate.p12 you can upload it to Google Cloud Secrets Manager:
 And now you can create an ExternalSecret that gets it. You will end up with a k8s secret of type tls with pem values.
 
 ```yaml
-{% include 'gcpsm-tls-externalsecret.yaml' %}
+{% include "gcpsm-tls-externalsecret.yaml" %}
 ```
 
 You can get their values with:
@@ -90,7 +89,6 @@ You can get their values with:
 kubectl get secret secret-to-be-created -n <namespace> -o jsonpath="{.data.tls\.crt}" | base64 -d
 kubectl get secret secret-to-be-created -n <namespace> -o jsonpath="{.data.tls\.key}" | base64 -d
 ```
-
 
 ## SSH Auth example
 

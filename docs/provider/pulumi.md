@@ -1,4 +1,4 @@
-## Pulumi ESC
+# Pulumi ESC
 
 Sync environments, configs and secrets from [Pulumi ESC](https://www.pulumi.com/product/esc/) to Kubernetes using the External Secrets Operator.
 
@@ -6,7 +6,7 @@ Sync environments, configs and secrets from [Pulumi ESC](https://www.pulumi.com/
 
 More information about setting up [Pulumi](https://www.pulumi.com/) ESC can be found in the [Pulumi ESC documentation](https://www.pulumi.com/docs/esc/).
 
-### Authentication
+## Authentication
 
 The Pulumi provider supports two authentication methods:
 
@@ -57,7 +57,7 @@ If required, the API URL (`apiUrl`) can be customized as well. If not specified,
 
 ### Creating a ClusterSecretStore
 
-#### Using Access Token
+#### Using Access Token for ClusterSecretStore
 
 Similarly, a `ClusterSecretStore` can be created by specifying the `namespace` and referencing a Kubernetes secret containing the `accessToken`.
 
@@ -80,7 +80,7 @@ spec:
             namespace: <NAMESPACE>
 ```
 
-#### Using OIDC
+#### Using OIDC for ClusterSecretStore
 
 For ClusterSecretStore with OIDC, you need to specify the ServiceAccount namespace:
 
@@ -125,32 +125,32 @@ spec:
     kind: SecretStore
     name: secret-store
   data:
-  - secretKey: <KEY_IN_KUBE_SECRET>
-    remoteRef:
-      key: <PULUMI_PATH_SYNTAX>
+    - secretKey: <KEY_IN_KUBE_SECRET>
+      remoteRef:
+        key: <PULUMI_PATH_SYNTAX>
 ```
 
 **Note:** `key` is not following the JSON Path syntax, but rather the Pulumi path syntax.
 
 #### Examples
 
-* root
-* root.nested
-* root["nested"]
-* root.double.nest
-* root["double"].nest
-* root["double"]["nest"]
-* root.array[0]
-* root.array[100]
-* root.array[0].nested
-* root.array[0][1].nested
-* root.nested.array[0].double[1]
-* root["key with \"escaped\" quotes"]
-* root["key with a ."]
-* ["root key with \"escaped\" quotes"].nested
-* ["root key with a ."][100]
-* root.array[*].field
-* root.array["*"].field
+- root
+- root.nested
+- `root["nested"]`
+- root.double.nest
+- `root["double"].nest`
+- `root["double"]["nest"]`
+- `root.array[0]`
+- `root.array[100]`
+- `root.array[0].nested`
+- `root.array[0][1].nested`
+- `root.nested.array[0].double[1]`
+- `root["key with \"escaped\" quotes"]`
+- `root["key with a ."]`
+- `["root key with \"escaped\" quotes"].nested`
+- `["root key with a ."][100]`
+- `root.array[*].field`
+- `root.array["*"].field`
 
 See [Pulumi's documentation](https://www.pulumi.com/docs/concepts/options/ignorechanges/) for more information.
 
@@ -171,13 +171,13 @@ spec:
     secret:
       name: <NAME_OF_KUBE_SECRET>
   secretStoreRefs:
-  - kind: ClusterSecretStore
-    name: secret-store
+    - kind: ClusterSecretStore
+      name: secret-store
   data:
-  - match:
-      secretKey: <KEY_IN_KUBE_SECRET>
-      remoteRef:
-        remoteKey: <PULUMI_PATH_SYNTAX>
+    - match:
+        secretKey: <KEY_IN_KUBE_SECRET>
+        remoteRef:
+          remoteKey: <PULUMI_PATH_SYNTAX>
 ```
 
 This will then push the secret to the Pulumi service. If the secret already exists, it will be updated.

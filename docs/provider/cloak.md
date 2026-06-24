@@ -1,6 +1,8 @@
+# Cloak
+
 ![Cloak End 2 End Encrypted Secrets](../pictures/cloak-provider-header.png)
 
-## Cloak
+## Introduction
 
 Sync secrets from the [Cloak Encrypted Secrets Platform](https://cloak.software) to Kubernetes using the External Secrets Operator.
 

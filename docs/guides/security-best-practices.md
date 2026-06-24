@@ -64,7 +64,7 @@ The core controller will issue error logs if the CRD is not installed but the re
 
 To disable reconciliation in the core controller, set the following flags:
 
-```
+```bash
 --enable-cluster-external-secret-reconciler=false
 --enable-cluster-store-reconciler=false
 --enable-secret-store-reconciler=false
@@ -87,22 +87,24 @@ scopedNamespace: my-namespace
 ### 5. Restrict Webhook TLS Ciphers
 
 Consider installing ESO restricting webhook ciphers. Use the following Helm values to scope webhook for specific TLS ciphers:
+
 ```yaml
 webhook:
   extraArgs:
-    tls-ciphers: "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256"
+  tls-ciphers: "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256"
 ```
+
 ### 6. Harden the Helm Chart
 
 The provided Helm chart is designed for ease of use and may not meet your organization's specific security requirements out-of-the-box. It is crucial to review the default Helm chart values and harden the configuration. Any misconfiguration caused by using the provided helm charts is not covered by our support policy - even if it leads to a security incident.
 
 Here are some examples of how you can harden the Helm chart:
 
-* **Scope RBAC Permissions**: The default chart grants permissions to create service account tokens for any service account. You can disable this by setting `rbac.serviceAccountTokenCreate: false`. When disabled, you must grant ESO token creation for specific ServiceAccounts via dedicated Role/RoleBinding with a `resourceNames` constraint. This limits the operator's ability to impersonate other service accounts.
+- **Scope RBAC Permissions**: The default chart grants permissions to create service account tokens for any service account. You can disable this by setting `rbac.serviceAccountTokenCreate: false`. When disabled, you must grant ESO token creation for specific ServiceAccounts via dedicated Role/RoleBinding with a `resourceNames` constraint. This limits the operator's ability to impersonate other service accounts.
 
-* **Use Tightly Scoped Deployments**: If you don't need certain features, disable them. For example, you can prevent the injection of sidecar containers by using a custom appArmor profile, or an admission controller like Kyverno to enforce restrictions on your deployment.
+- **Use Tightly Scoped Deployments**: If you don't need certain features, disable them. For example, you can prevent the injection of sidecar containers by using a custom appArmor profile, or an admission controller like Kyverno to enforce restrictions on your deployment.
 
-* **Use it as a Dependency**: Instead of deploying the chart directly, you can use it as a dependency in your own Helm chart. This allows you to extend its functionality and layer on your own security controls, such as `NetworkPolicies`, custom `RBAC` roles, and other security mechanisms that are specific to your environment.
+- **Use it as a Dependency**: Instead of deploying the chart directly, you can use it as a dependency in your own Helm chart. This allows you to extend its functionality and layer on your own security controls, such as `NetworkPolicies`, custom `RBAC` roles, and other security mechanisms that are specific to your environment.
 
 ## Pod Security
 
@@ -118,10 +120,10 @@ In most scenarios, the External Secrets Operator is deployed cluster-wide. Howev
 
 To ensure a secure RBAC configuration, consider the following checklist:
 
-* Restrict access to execute shell commands (pods/exec) within the External Secrets Operator Pod.
-* Restrict access to (Cluster)ExternalSecret and (Cluster)SecretStore resources.
-* Limit access to aggregated ClusterRoles (view/edit/admin) as needed.
-* If necessary, deploy ESO with scoped RBAC or within a specific namespace.
+- Restrict access to execute shell commands (pods/exec) within the External Secrets Operator Pod.
+- Restrict access to (Cluster)ExternalSecret and (Cluster)SecretStore resources.
+- Limit access to aggregated ClusterRoles (view/edit/admin) as needed.
+- If necessary, deploy ESO with scoped RBAC or within a specific namespace.
 
 By carefully managing RBAC permissions and scoping the External Secrets Operator appropriately, you can enhance the security of your Kubernetes cluster.
 
@@ -129,7 +131,7 @@ By carefully managing RBAC permissions and scoping the External Secrets Operator
 
 By default, the ESO controller Role/ClusterRole includes a blanket `serviceaccounts/token: create` permission. This permission is necessary for authentication methods that rely on `serviceAccountRef` — such as Vault Kubernetes auth or Conjur JWT auth — where ESO creates a short-lived token for the referenced ServiceAccount and uses it to authenticate with the external secret provider.
 
-However, this means ESO can create tokens for *any* ServiceAccount within its scope. If the ESO service account is compromised, an attacker could leverage this permission to create tokens for other ServiceAccounts in the cluster (or in the namespace, when using scoped RBAC), effectively impersonating them and escalating privileges beyond ESO's intended scope.
+However, this means ESO can create tokens for _any_ ServiceAccount within its scope. If the ESO service account is compromised, an attacker could leverage this permission to create tokens for other ServiceAccounts in the cluster (or in the namespace, when using scoped RBAC), effectively impersonating them and escalating privileges beyond ESO's intended scope.
 
 To mitigate this risk, you can set `rbac.serviceAccountTokenCreate: false` in the Helm chart values. This removes the blanket permission from ESO's Role/ClusterRole entirely.
 
@@ -142,10 +144,10 @@ metadata:
   name: eso-token-<sa-name>
   namespace: <namespace>
 rules:
-  - apiGroups: ['']
-    resources: ['serviceaccounts/token']
-    resourceNames: ['<sa-name>']
-    verbs: ['create']
+  - apiGroups: [""]
+    resources: ["serviceaccounts/token"]
+    resourceNames: ["<sa-name>"]
+    verbs: ["create"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -170,18 +172,16 @@ To ensure a secure network environment, it is recommended to restrict network tr
 
 To implement network restrictions effectively, consider the following steps:
 
-* Define and apply appropriate NetworkPolicies to limit inbound and outbound traffic for the External Secrets Operator.
-* Specify a "deny all" policy by default and selectively permit necessary communication based on your specific requirements.
-* Restrict access to only the required endpoints and protocols for the External Secrets Operator, such as communication with the Kubernetes API server or external secret providers.
-* Regularly review and update the Network Policies to align with changes in your network infrastructure and security requirements.
+- Define and apply appropriate NetworkPolicies to limit inbound and outbound traffic for the External Secrets Operator.
+- Specify a "deny all" policy by default and selectively permit necessary communication based on your specific requirements.
+- Restrict access to only the required endpoints and protocols for the External Secrets Operator, such as communication with the Kubernetes API server or external secret providers.
+- Regularly review and update the Network Policies to align with changes in your network infrastructure and security requirements.
 
 It is the responsibility of the user to define and configure Network Policies tailored to their specific environment and security needs. By implementing proper network restrictions, you can enhance the overall security posture of the External Secrets Operator within your Kubernetes cluster.
 
 !!! danger "Data Exfiltration Risk"
-
     If not configured properly ESO may be used to exfiltrate data out of your cluster.
     It is advised to create tight NetworkPolicies and use a policy engine such as kyverno to prevent data exfiltration.
-
 
 ### Outbound Traffic Restrictions
 
@@ -189,43 +189,41 @@ It is the responsibility of the user to define and configure Network Policies ta
 
 Restrict outbound traffic from the core controller component to the following destinations:
 
-* `kube-apiserver`: The Kubernetes API server.
-* Secret provider (e.g., AWS, GCP): Whenever possible, use private endpoints to establish secure and private communication.
+- `kube-apiserver`: The Kubernetes API server.
+- Secret provider (e.g., AWS, GCP): Whenever possible, use private endpoints to establish secure and private communication.
 
 #### Webhook
 
-* Restrict outbound traffic from the webhook component to the `kube-apiserver`.
+- Restrict outbound traffic from the webhook component to the `kube-apiserver`.
 
 #### Cert Controller
 
-* Restrict outbound traffic from the cert controller component to the `kube-apiserver`.
-
+- Restrict outbound traffic from the cert controller component to the `kube-apiserver`.
 
 ### Inbound Traffic Restrictions
 
-#### Core Controller
+#### Core Controller inbound traffic
 
-* Restrict inbound traffic to the core controller component by allowing communication on port `8080` from your monitoring agent.
+- Restrict inbound traffic to the core controller component by allowing communication on port `8080` from your monitoring agent.
 
-#### Cert Controller
+#### Cert Controller inbound traffic
 
-* Restrict inbound traffic to the cert controller component by allowing communication on port `8080` from your monitoring agent.
-* Additionally, permit inbound traffic on port `8081` from the kubelet for health check endpoints (healthz/readyz).
+- Restrict inbound traffic to the cert controller component by allowing communication on port `8080` from your monitoring agent.
+- Additionally, permit inbound traffic on port `8081` from the kubelet for health check endpoints (healthz/readyz).
 
-#### Webhook
+#### Webhook inbound traffic
 
 Restrict inbound traffic to the webhook component as follows:
 
-* Allow communication on port `10250` from the kube-apiserver.
-* Allow communication on port `8080` from your monitoring agent.
-* Permit inbound traffic on port `8081` from the kubelet for health check endpoints (healthz/readyz).
+- Allow communication on port `10250` from the kube-apiserver.
+- Allow communication on port `8080` from your monitoring agent.
+- Permit inbound traffic on port `8081` from the kubelet for health check endpoints (healthz/readyz).
 
 ## Policy Engine Best Practices
 
 To enhance the security and enforce specific policies for External Secrets Operator (ESO) resources such as SecretStore and ExternalSecret, it is recommended to utilize a policy engine like [Kyverno](http://kyverno.io/) or [OPA Gatekeeper](https://github.com/open-policy-agent/gatekeeper). These policy engines provide a way to define and enforce custom policies that restrict changes made to ESO resources.
 
 !!! danger "Data Exfiltration Risk"
-
     ESO could be used to exfiltrate data out of your cluster. You should disable all providers you don't need.
     Further, you should implement `NetworkPolicies` to restrict network access to known entities (see above), to prevent data exfiltration.
 
@@ -237,15 +235,30 @@ Here are some recommendations to consider when configuring your policies:
 
 By leveraging a policy engine, you can implement these recommendations and enforce custom policies that align with your organization's security requirements. Please refer to the documentation of the chosen policy engine (e.g., Kyverno or OPA Gatekeeper) for detailed instructions on how to define and enforce policies for ESO resources.
 
-
 !!! note "Provider Validation Example Policy"
-
     The following policy validates the usage of the `provider` field in the SecretStore manifest.
-
     ```yaml
-    {% filter indent(width=4) %}
-{% include 'kyverno-policy-secretstore.yaml' %}
-    {% endfilter %}
+    apiVersion: kyverno.io/v1
+    kind: ClusterPolicy
+    metadata:
+      name: require-secretstore-aws-provider
+    spec:
+      validationFailureAction: Enforce
+      rules:
+      - name: require-secretstore-aws-provider
+        match:
+          any:
+          - resources:
+              kinds:
+              - SecretStore
+              - ClusterSecretStore
+        validate:
+          message: "You must only use AWS SecretsManager"
+          pattern:
+            spec:
+              provider:
+                aws:
+                  service: SecretsManager
     ```
 
 ## Regular Patches
@@ -264,16 +277,15 @@ By adhering to a regular patching and updating schedule, you can proactively mit
 
 The container images of External Secrets Operator are signed using Cosign and the keyless signing feature. To ensure the authenticity and integrity of the container image, you can follow the steps outlined below:
 
-
 ```sh
-# Retrieve Image Signature
+## Retrieve Image Signature
 $ crane digest ghcr.io/external-secrets/external-secrets:v0.8.1
 sha256:36e606279dbebac51b4b9300b9fa85e8c08c1c673ba3ecc38af1402a0b035554
 
-# verify signature
+## verify signature
 $ COSIGN_EXPERIMENTAL=1 cosign verify ghcr.io/external-secrets/external-secrets@sha256:36e606279dbebac51b4b9300b9fa85e8c08c1c673ba3ecc38af1402a0b035554 | jq
 
-# ...
+## ...
 [
   {
     "critical": {
@@ -311,7 +323,6 @@ $ COSIGN_EXPERIMENTAL=1 cosign verify ghcr.io/external-secrets/external-secrets@
 In the output of the verification process, pay close attention to the `optional.Issuer` and `optional.Subject` fields. These fields contain important information about the image's authenticity. Verify that the values of Issuer and Subject match the expected values for the ESO container image. If they do not match, it indicates that the image is not legitimate and should not be used.
 
 By following these steps and confirming that the Issuer and Subject fields align with the expected values for the ESO container image, you can ensure that the image has not been tampered with and is safe to use.
-
 
 ### Verifying Provenance
 
@@ -360,7 +371,6 @@ GitHub Workflow Ref: refs/heads/main
         "version": "v0.8.1"
       }
     },
-    [...]
   }
 }
 ```
@@ -369,13 +379,13 @@ GitHub Workflow Ref: refs/heads/main
 
 Every External Secrets Operator image is accompanied by an SBOM (Software Bill of Materials) in SPDX JSON format. The SBOM provides detailed information about the software components and dependencies used in the image. This technical documentation explains the process of downloading and verifying the SBOM for a specific version of External Secrets Operator using the Cosign tool.
 
-```sh
+```bash
 $ crane digest ghcr.io/external-secrets/external-secrets:v0.8.1
 sha256:36e606279dbebac51b4b9300b9fa85e8c08c1c673ba3ecc38af1402a0b035554
 
 $ COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type spdx ghcr.io/external-secrets/external-secrets@sha256:36e606279dbebac51b4b9300b9fa85e8c08c1c673ba3ecc38af1402a0b035554 | jq '.payload |= @base64d | .payload | fromjson' | jq '.predicate.Data | fromjson'
 
-[...]
+(snipped)
 {
   "SPDXID": "SPDXRef-DOCUMENT",
   "name": "ghcr.io/external-secrets/external-secrets@sha256-36e606279dbebac51b4b9300b9fa85e8c08c1c673ba3ecc38af1402a0b035554",

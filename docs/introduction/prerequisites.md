@@ -1,8 +1,13 @@
 # Prerequisites
+
 To collaborate on the External Secrets Operator (ESO) project, you need to install some tools on your computer. This guide explains what each tool is, why it is needed, the recommended version, and how to install it on the corresponding operating system.
-### Supported Operating Systems
+
+## Supported Operating Systems
+
 To collaborate on the External Secrets Operator (ESO) project, it is recommended to use Unix-based operating systems, such as Linux and macOS. ESO's development environment is primarily designed for these systems, and many of the tools and scripts used during development are built to work on them.
+
 ### Can You Develop on Windows?
+
 It is possible to use Windows for development, but there are important considerations to keep in mind. Since ESO's development environment is not optimized for Windows, compatibility issues may arise with tools like Make, Tilt, and shell scripts. The project's automation scripts and commands are written for Unix environments, using bash scripting, which might not be compatible with Windows without adaptations. This tutorial will not cover the installation and configuration of tools on Windows due to its complexity and lack of testing.
 
 ---
@@ -27,6 +32,7 @@ It is possible to use Windows for development, but there are important considera
   <h3> How to Install Go</h3>
 
 Please consult the <a href="https://go.dev/doc/install">official documentation</a>.</p>
+
 </details>
 
 ## Install Helm
@@ -45,7 +51,6 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
   <h3>Required Version</h3>
   <p><strong>Recommended version:</strong> Helm 3 (latest version of Helm 3).</p>
   <h3>How to Install Helm</h3>
-
 
   <p>Please consult the <a href="https://helm.sh/docs/intro/install/">official Helm installation guide</a>.</p>
 </details>
@@ -72,7 +77,6 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
 
   <p>Please consult the <a href="https://github.com/mikefarah/yq">official yq repository</a>.</p>
 </details>
-
 
 ---
 
@@ -110,11 +114,13 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
   <p>
   To work with Kubernetes, we need to install and configure some tools first. This will be explained in the sections below.
 
-  For more details, check the [official documentation](https://kubernetes.io/docs/home/).
+For more details, check the [official documentation](https://kubernetes.io/docs/home/).
+
 </p>
 </details>
 
 ---
+
 ## Install Docker
 
 <details>
@@ -153,6 +159,7 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
 </details>
 
 ---
+
 ## Install kubectl
 
 <details>
@@ -173,6 +180,7 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
 </details>
 
 ---
+
 ## Install ctlptl and Create a Kind Cluster with Local Registry
 
 <details>
@@ -192,7 +200,6 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
     <p>Please consult the <a href="https://github.com/tilt-dev/ctlptl/blob/main/INSTALL.md
     ">official ctlptl installation guide</a>.</p>
 </details>
-
 
 <h3>Create a Kind Cluster with Local Registry</h3>
 
@@ -215,6 +222,7 @@ Please consult the <a href="https://go.dev/doc/install">official documentation</
 </details>
 
 ---
+
 ## Install Tilt
 
 <details>

@@ -20,26 +20,31 @@ The following spec fields are available for field selectors in ExternalSecret re
 ### Using kubectl with field selectors
 
 Query all ExternalSecrets that use a specific SecretStore:
+
 ```bash
 kubectl get externalsecrets --field-selector spec.secretStoreRef.name=my-vault-store
 ```
 
 Find all ExternalSecrets that use ClusterSecretStores:
+
 ```bash
 kubectl get externalsecrets --field-selector spec.secretStoreRef.kind=ClusterSecretStore
 ```
 
 Find ExternalSecrets with a specific refresh interval:
+
 ```bash
 kubectl get externalsecrets --field-selector spec.refreshInterval=15m
 ```
 
 Find ExternalSecrets that create a specific target secret:
+
 ```bash
 kubectl get externalsecrets --field-selector spec.target.name=database-credentials
 ```
 
 You can also combine multiple field selectors:
+
 ```bash
 kubectl get externalsecrets --field-selector spec.secretStoreRef.kind=SecretStore,spec.refreshInterval=1h
 ```

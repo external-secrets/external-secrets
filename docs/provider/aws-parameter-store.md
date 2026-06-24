@@ -1,3 +1,4 @@
+# AWS Parameter Store
 
 ![aws sm](../pictures/diagrams-provider-aws-ssm-parameter-store.png)
 
@@ -8,16 +9,16 @@ defined region. You should define Roles that define fine-grained access to
 individual secrets and pass them to ESO using `spec.provider.aws.role`. This
 way users of the `SecretStore` can only access the secrets necessary.
 
-``` yaml
+```yaml
 {% include 'aws-parameter-store.yaml' %}
 ```
 
-**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef` and `secretAccessKeySecretRef`  with the namespaces where the secrets reside.
+**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef` and `secretAccessKeySecretRef` with the namespaces where the secrets reside.
 
 !!! warning "API Pricing & Throttling"
-    The SSM Parameter Store API is charged by throughput and
-    is available in different tiers, [see pricing](https://aws.amazon.com/systems-manager/pricing/#Parameter_Store).
-    Please estimate your costs before using ESO. Cost depends on the RefreshInterval of your ExternalSecrets.
+The SSM Parameter Store API is charged by throughput and
+is available in different tiers, [see pricing](https://aws.amazon.com/systems-manager/pricing/#Parameter_Store).
+Please estimate your costs before using ESO. Cost depends on the RefreshInterval of your ExternalSecrets.
 
 ### IAM Policy
 
@@ -27,15 +28,13 @@ The example policy below shows the minimum required permissions for fetching SSM
 
 For further information see [AWS Documentation](https://docs.aws.amazon.com/systems-manager/latest/userguide/sysman-paramstore-access.html).
 
-``` json
+```json
 {
   "Version": "2012-10-17",
   "Statement": [
     {
       "Effect": "Allow",
-      "Action": [
-        "ssm:GetParameter*",
-      ],
+      "Action": ["ssm:GetParameter*"],
       "Resource": "arn:aws:ssm:us-east-2:1234567889911:parameter/dev-*"
     }
   ]
@@ -46,16 +45,16 @@ For further information see [AWS Documentation](https://docs.aws.amazon.com/syst
 
 The example policy below shows the minimum required permissions for pushing SSM parameters. Like with the fetching policy it restricts the path in which it can push secrets too.
 
-``` json
+```json
 {
-    "Action": [
-        "ssm:GetParameter*",
-        "ssm:PutParameter*",
-        "ssm:AddTagsToResource",
-        "ssm:ListTagsForResource"
-    ],
-    "Effect": "Allow",
-    "Resource": "arn:aws:ssm:us-east-2:1234567889911:parameter/dev-*"
+  "Action": [
+    "ssm:GetParameter*",
+    "ssm:PutParameter*",
+    "ssm:AddTagsToResource",
+    "ssm:ListTagsForResource"
+  ],
+  "Effect": "Allow",
+  "Resource": "arn:aws:ssm:us-east-2:1234567889911:parameter/dev-*"
 }
 ```
 
@@ -65,20 +64,20 @@ You can store JSON objects in a parameter. You can access nested values or array
 
 Consider the following JSON object that is stored in the Parameter Store key `friendslist`:
 
-``` json
+```json
 {
-  "name": {"first": "Tom", "last": "Anderson"},
+  "name": { "first": "Tom", "last": "Anderson" },
   "friends": [
-    {"first": "Dale", "last": "Murphy"},
-    {"first": "Roger", "last": "Craig"},
-    {"first": "Jane", "last": "Murphy"}
+    { "first": "Dale", "last": "Murphy" },
+    { "first": "Roger", "last": "Craig" },
+    { "first": "Jane", "last": "Murphy" }
   ]
 }
 ```
 
 This is an example on how you would look up nested keys in the above json object:
 
-``` yaml
+```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
@@ -86,27 +85,27 @@ metadata:
 spec:
   # [omitted for brevity]
   data:
-  - secretKey: my_name
-    remoteRef:
-      key: friendslist
-      property: name.first # Tom
-  - secretKey: first_friend
-    remoteRef:
-      key: friendslist
-      property: friends.1.first # Roger
+    - secretKey: my_name
+      remoteRef:
+        key: friendslist
+        property: name.first # Tom
+    - secretKey: first_friend
+      remoteRef:
+        key: friendslist
+        property: friends.1.first # Roger
 
-  # metadataPolicy to fetch all the tags in JSON format
-  - secretKey: tags
-    remoteRef:
-      metadataPolicy: Fetch
-      key: database-credentials
+    # metadataPolicy to fetch all the tags in JSON format
+    - secretKey: tags
+      remoteRef:
+        metadataPolicy: Fetch
+        key: database-credentials
 
-  # metadataPolicy to fetch a specific tag (dev) from the source secret
-  - secretKey: developer
-    remoteRef:
-      metadataPolicy: Fetch
-      key: database-credentials
-      property: dev
+    # metadataPolicy to fetch a specific tag (dev) from the source secret
+    - secretKey: developer
+      remoteRef:
+        metadataPolicy: Fetch
+        key: database-credentials
+        property: dev
 ```
 
 ### Parameter Versions
@@ -142,7 +141,7 @@ To control this behaviour you can set the following provider's `metadata`:
 - `kmsKeyID` takes a KMS Key `$ID` or `$ARN` (in case a key source is created in another account) as a string, where `alias/aws/ssm` is the _default_. This property is only used if `secretType` is set as `SecureString`.
 - tier & policies contains advanced policy configs such as `ExpirationNotification`.
 - encodeAsDecoded if set to true will get the secrets and push them as plain values when pushing the entire secret (instead of encoding them)
-instead of base64 encoding the []byte values from the secret.
+  instead of base64 encoding the []byte values from the secret.
 
 #### Check successful secret sync
 
@@ -168,15 +167,15 @@ You should see something similar to the following output:
 
 ```json
 {
-    "Parameter": {
-        "Name": "my-first-parameter",
-        "Type": "String",
-        "Value": "charmander",
-        "Version": 4,
-        "LastModifiedDate": "2022-09-15T13:04:31.098000-03:00",
-        "ARN": "arn:aws:ssm:us-east-1:1234567890123:parameter/my-first-parameter",
-        "DataType": "text"
-    }
+  "Parameter": {
+    "Name": "my-first-parameter",
+    "Type": "String",
+    "Value": "charmander",
+    "Version": 4,
+    "LastModifiedDate": "2022-09-15T13:04:31.098000-03:00",
+    "ARN": "arn:aws:ssm:us-east-1:1234567890123:parameter/my-first-parameter",
+    "DataType": "text"
+  }
 }
 ```
 

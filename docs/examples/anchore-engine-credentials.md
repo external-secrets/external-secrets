@@ -15,17 +15,14 @@ There are several parts of the installation that require credentials these being
 
 You can use an **ExternalSecret** to automatically fetch these credentials from your preferred backend provider. The following examples demonstrate how to configure it with **HashiCorp Vault** and **AWS Secrets Manager**.
 
+### Hashicorp Vault
 
-#### Hashicorp Vault
-
-``` yaml
+```yaml
 {% include 'vault-anchore-engine-access-credentials-external-secret.yaml' %}
 ```
 
-
 #### AWS Secrets Manager
 
-``` yaml
+```yaml
 {% include 'aws-anchore-engine-access-credentials-external-secret.yaml' %}
 ```
-

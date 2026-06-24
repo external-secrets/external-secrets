@@ -1,11 +1,13 @@
+# Cloudsmith
+
 `CloudsmithAccessToken` creates a short-lived Cloudsmith access token that can be used to authenticate against Cloudsmith's container registry for pushing or pulling container images. This generator uses OIDC token exchange to authenticate with Cloudsmith using a Kubernetes service account token and generates Docker registry credentials in dockerconfigjson format.
 
 ## Output Keys and Values
 
-| Key        | Description                                                                    |
-| ---------- | ------------------------------------------------------------------------------ |
-| auth       | Base64 encoded authentication string for Docker registry access.              |
-| expiry     | Time when token expires in UNIX time (seconds since January 1, 1970 UTC).    |
+| Key    | Description                                                               |
+| ------ | ------------------------------------------------------------------------- |
+| auth   | Base64 encoded authentication string for Docker registry access.          |
+| expiry | Time when token expires in UNIX time (seconds since January 1, 1970 UTC). |
 
 ## Authentication
 

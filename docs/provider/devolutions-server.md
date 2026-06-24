@@ -1,4 +1,4 @@
-## Devolutions Server (DVLS)
+# Devolutions Server (DVLS)
 
 External Secrets Operator integrates with [Devolutions Server](https://devolutions.net/server/) (DVLS) for secret management.
 
@@ -32,13 +32,13 @@ kubectl create secret generic dvls-credentials \
 {% include 'dvls-secret-store.yaml' %}
 ```
 
-| Field | Description |
-|-------|-------------|
-| `serverUrl` | The URL of your DVLS instance (e.g., `https://dvls.example.com`) |
-| `vault` | (Optional) The name or UUID of the vault to fetch secrets from. When omitted, the vault must be specified in the secret key using the legacy `<vault-id>/<entry-id>` format. |
-| `insecure` | (Optional) Set to `true` to allow plain HTTP connections. **Not recommended for production.** |
-| `auth.secretRef.appId` | Reference to the secret containing the Application ID |
-| `auth.secretRef.appSecret` | Reference to the secret containing the Application Secret |
+| Field                      | Description                                                                                                                                                                  |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `serverUrl`                | The URL of your DVLS instance (e.g., `https://dvls.example.com`)                                                                                                             |
+| `vault`                    | (Optional) The name or UUID of the vault to fetch secrets from. When omitted, the vault must be specified in the secret key using the legacy `<vault-id>/<entry-id>` format. |
+| `insecure`                 | (Optional) Set to `true` to allow plain HTTP connections. **Not recommended for production.**                                                                                |
+| `auth.secretRef.appId`     | Reference to the secret containing the Application ID                                                                                                                        |
+| `auth.secretRef.appSecret` | Reference to the secret containing the Application Secret                                                                                                                    |
 
 **NOTE:** For `ClusterSecretStore`, ensure you specify the `namespace` in the secret references.
 
@@ -46,11 +46,11 @@ kubectl create secret generic dvls-credentials \
 
 Entries can be referenced by **UUID** or **name**:
 
-| Format | Example |
-|--------|---------|
-| Entry UUID | `7c9e6679-7425-40de-944b-e07fc1f90ae7` |
-| Entry name | `db-credentials` |
-| Entry name with folder path | `infrastructure/databases/db-credentials` |
+| Format                       | Example                                   |
+| ---------------------------- | ----------------------------------------- |
+| Entry UUID                   | `7c9e6679-7425-40de-944b-e07fc1f90ae7`    |
+| Entry name                   | `db-credentials`                          |
+| Entry name with folder path  | `infrastructure/databases/db-credentials` |
 | Folder path with backslashes | `infrastructure\databases\db-credentials` |
 
 The vault is configured in the SecretStore's `vault` field (name or UUID), so the key only needs to identify the entry.
@@ -84,14 +84,14 @@ You can find UUIDs in the DVLS web interface by viewing the entry properties.
 
 DVLS supports multiple credential types. The provider maps each type to specific properties:
 
-| Credential Type | DVLS Entry Type | Available Properties |
-|-----------------|-----------------|---------------------|
-| **Default** | Credential | `username`, `password`, `domain` |
-| **Access Code** | Secret | `password` |
-| **API Key** | Credential | `api-id`, `api-key`, `tenant-id` |
-| **Azure Service Principal** | Credential | `client-id`, `client-secret`, `tenant-id` |
-| **Connection String** | Credential | `connection-string` |
-| **Private Key** | Credential | `username`, `password`, `private-key`, `public-key`, `passphrase` |
+| Credential Type             | DVLS Entry Type | Available Properties                                              |
+| --------------------------- | --------------- | ----------------------------------------------------------------- |
+| **Default**                 | Credential      | `username`, `password`, `domain`                                  |
+| **Access Code**             | Secret          | `password`                                                        |
+| **API Key**                 | Credential      | `api-id`, `api-key`, `tenant-id`                                  |
+| **Azure Service Principal** | Credential      | `client-id`, `client-secret`, `tenant-id`                         |
+| **Connection String**       | Credential      | `connection-string`                                               |
+| **Private Key**             | Credential      | `username`, `password`, `private-key`, `public-key`, `passphrase` |
 
 All entries also include `entry-id` and `entry-name` metadata properties.
 

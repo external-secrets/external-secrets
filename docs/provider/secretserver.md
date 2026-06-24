@@ -1,8 +1,8 @@
 # Delinea Secret-Server/Platform
 
-For detailed information about configuring  Kubernetes ESO with Secret Server and the Delinea Platform, see the https://docs.delinea.com/online-help/integrations/external-secrets/kubernetes-eso-secret-server.htm
+For detailed information about configuring Kubernetes ESO with Secret Server and the Delinea Platform, see the <https://docs.delinea.com/online-help/integrations/external-secrets/kubernetes-eso-secret-server.htm>
 
-### Creating a SecretStore
+## Creating a SecretStore
 
 You need a username, password and a fully qualified Secret-Server/Platform tenant URL to authenticate
 i.e. `https://yourTenantName.secretservercloud.com` or `https://yourtenantname.delinea.app`.
@@ -10,12 +10,17 @@ i.e. `https://yourTenantName.secretservercloud.com` or `https://yourtenantname.d
 Both username and password can be specified either directly in your `SecretStore` yaml config, or by referencing a kubernetes secret.
 
 Both `username` and `password` can either be specified directly via the `value` field (example below)
->spec.provider.secretserver.username.value: "yourusername"<br />
-spec.provider.secretserver.password.value: "yourpassword" <br />
+
+```text
+spec.provider.secretserver.username.value: "yourusername"
+spec.provider.secretserver.password.value: "yourpassword"
+```
 
 Or you can reference a kubernetes secret (password example below).
 
-**Note:** Use `https://yourtenantname.secretservercloud.com` for Secret Server or `https://yourtenantname.delinea.app` for Platform.
+!!! note
+    Use `https://yourtenantname.secretservercloud.com` for Secret Server or `https://yourtenantname.delinea.app` for Platform.
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: SecretStore
@@ -24,7 +29,7 @@ metadata:
 spec:
   provider:
     secretserver:
-      serverURL: "https://yourtenantname.secretservercloud.com"  # or "https://yourtenantname.delinea.app" for Platform
+      serverURL: "https://yourtenantname.secretservercloud.com" # or "https://yourtenantname.delinea.app" for Platform
       username:
         value: "yourusername"
       password:
@@ -37,18 +42,17 @@ spec:
 
 Secrets can be referenced using four different key formats in the `remoteRef.key` field:
 
-| Format | Example | Description |
-|--------|---------|-------------|
-| Secret ID | `52622` | Numeric ID of the secret. Always unambiguous. |
-| Secret Name | `my-secret` | Name of the secret. If multiple secrets share the same name across different folders, the first match is returned. |
-| Secret Path | `/FolderName/SecretName` | Full folder path including the secret name. Uniquely identifies a secret across folders. |
-| Folder-scoped Name | `folderId:73/my-secret` | Name-based lookup scoped to a specific folder ID. Use this when multiple secrets share the same name in different folders and you need to target a specific one. |
+| Format             | Example                  | Description                                                                                                                                                      |
+| ------------------ | ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Secret ID          | `52622`                  | Numeric ID of the secret. Always unambiguous.                                                                                                                    |
+| Secret Name        | `my-secret`              | Name of the secret. If multiple secrets share the same name across different folders, the first match is returned.                                               |
+| Secret Path        | `/FolderName/SecretName` | Full folder path including the secret name. Uniquely identifies a secret across folders.                                                                         |
+| Folder-scoped Name | `folderId:73/my-secret`  | Name-based lookup scoped to a specific folder ID. Use this when multiple secrets share the same name in different folders and you need to target a specific one. |
 
-**Notes:**
-
-- If using the secret name or path, the name must not contain spaces or control characters.
-- Retrieving a specific version of a secret is not yet supported.
-- The **folder-scoped name** format (`folderId:<id>/<name>`) is particularly important when using `PushSecret` with `deletionPolicy: Delete`, because the deletion and existence-check operations need to identify the correct secret without access to metadata. See [Pushing Secrets](#pushing-secrets) for details.
+!!! note
+    - If using the secret name or path, the name must not contain spaces or control characters.
+    - Retrieving a specific version of a secret is not yet supported.
+    - The **folder-scoped name** format (`folderId:<id>/<name>`) is particularly important when using `PushSecret` with `deletionPolicy: Delete`, because the deletion and existence-check operations need to identify the correct secret without access to metadata. See [Pushing Secrets](#pushing-secrets) for details.
 
 Because all Secret-Server/Platform secrets are JSON objects, you must specify the `remoteRef.property`
 in your ExternalSecret configuration.<br />
@@ -58,17 +62,17 @@ You can access nested values or arrays using [gjson syntax](https://github.com/t
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-    name: secret-server-external-secret
+  name: secret-server-external-secret
 spec:
-    refreshInterval: 1h0m0s
-    secretStoreRef:
-        kind: SecretStore
-        name: secret-server-store
-    data:
-      - secretKey: SecretServerValue #<SECRET_VALUE_RETURNED_HERE>
-        remoteRef:
-          key: "52622" #<SECRET_ID>
-          property: "array.0.value" #<GJSON_PROPERTY> * an empty property will return the entire secret
+  refreshInterval: 1h0m0s
+  secretStoreRef:
+    kind: SecretStore
+    name: secret-server-store
+  data:
+    - secretKey: SecretServerValue #<SECRET_VALUE_RETURNED_HERE>
+      remoteRef:
+        key: "52622" #<SECRET_ID>
+        property: "array.0.value" #<GJSON_PROPERTY> * an empty property will return the entire secret
 ```
 
 ### Working with Plain Text ItemValue Fields
@@ -83,17 +87,17 @@ When retrieving fields that contain plain text values, you can reference them di
 apiVersion: external-secrets.io/v1beta1
 kind: ExternalSecret
 metadata:
-    name: secret-server-external-secret
+  name: secret-server-external-secret
 spec:
-    refreshInterval: 1h0m0s
-    secretStoreRef:
-      kind: SecretStore
-      name: secret-server-store
-    data:
-      - secretKey: password
-        remoteRef:
-          key: "52622"      # Secret ID
-          property: "password"  # FieldName or Slug of the password field
+  refreshInterval: 1h0m0s
+  secretStoreRef:
+    kind: SecretStore
+    name: secret-server-store
+  data:
+    - secretKey: password
+      remoteRef:
+        key: "52622" # Secret ID
+        property: "password" # FieldName or Slug of the password field
 ```
 
 In this example, if the secret contains an Item with `FieldName: "Password"` or `Slug: "password"`, the plain text value stored in `ItemValue` is retrieved directly and stored under the key `password` in the Kubernetes Secret.
@@ -104,9 +108,12 @@ This approach works for any field type (text, password, URL, etc.) where the `It
 
 In addition to retrieving secrets by ID or Name, the Secret-Server/Platform provider now supports fetching secrets by **path**.
 This allows you to specify a secret’s folder hierarchy and name in the format:
->/FolderName/SecretName
 
-#### Example
+```text
+/FolderName/SecretName
+```
+
+#### Example for Fetching Secrets by Path
 
 ```yaml
 apiVersion: external-secrets.io/v1beta1
@@ -119,44 +126,51 @@ spec:
     kind: SecretStore
     name: secret-server-store
   data:
-    - secretKey: SecretServerValue  # Key in the Kubernetes Secret
+    - secretKey: SecretServerValue # Key in the Kubernetes Secret
       remoteRef:
-        key: "/secretFolder/secretname"  # Path format: /<Folder>/<SecretName>
-        property: ""                    # Optional: matched against field Slug/FieldName first, then gjson on Items.0.ItemValue as fallback
+        key: "/secretFolder/secretname" # Path format: /<Folder>/<SecretName>
+        property: "" # Optional: matched against field Slug/FieldName first, then gjson on Items.0.ItemValue as fallback
 ```
 
-#### Notes:
+#### Notes
 
 The path must exactly match the folder and secret name in Secret-Server/Platform.
 If multiple secrets with the same name exist in different folders, the path helps to uniquely identify the correct one.
 You can still use property to match fields by Slug/FieldName, extract values from JSON-formatted secrets via gjson, or omit it to retrieve the entire secret.
 
 ### Preparing your secret
+
 You can either retrieve your entire secret, match a field by its Slug or FieldName, or use a JSON formatted string
-stored in your secret located at Items[0].ItemValue to retrieve a specific value using gjson syntax.<br />
+stored in your secret located at Items[0].ItemValue to retrieve a specific value using gjson syntax.
 See example JSON secret below.
 
 #### Examples
+
 Using the json formatted secret below:
 
 - Lookup a single top level property using secret ID.
 
->spec.data.remoteRef.key = 52622 (id of the secret)<br />
-spec.data.remoteRef.property = "user" (Items.0.ItemValue user attribute)<br />
-returns: marktwain@hannibal.com
+  ```text
+  spec.data.remoteRef.key = 52622 (id of the secret)
+  spec.data.remoteRef.property = "user" (Items.0.ItemValue user attribute)
+  > returns: <marktwain@hannibal.com>
+  ```
 
 - Lookup a nested property using secret name.
 
->spec.data.remoteRef.key = "external-secret-testing" (name of the secret)<br />
-spec.data.remoteRef.property = "books.1" (Items.0.ItemValue books.1 attribute)<br />
-returns: huckleberryFinn
+  ```text
+  spec.data.remoteRef.key = "external-secret-testing" (name of the secret)
+  spec.data.remoteRef.property = "books.1" (Items.0.ItemValue books.1 attribute)
+  > returns: huckleberryFinn
+  ```
 
-- Lookup by secret ID (*secret name will work as well*) and return the entire secret.
+- Lookup by secret ID (_secret name will work as well_) and return the entire secret.
 
->spec.data.remoteRef.key = "52622" (id of the secret)<br />
-spec.data.remoteRef.property = "" <br />
-returns: The entire secret in JSON format as displayed below
-
+  ```text
+  spec.data.remoteRef.key = "52622" (id of the secret)
+  spec.data.remoteRef.property = ""
+  > returns: The entire secret in JSON format as displayed below
+  ```
 
 ```JSON
 {
@@ -203,27 +217,32 @@ returns: The entire secret in JSON format as displayed below
 
 When `property` is set, the provider first tries to match it against each field's `Slug` or `FieldName` and returns the corresponding `ItemValue`. This works for secrets with any number of fields. If no field matches, it falls back to treating the first field's `ItemValue` as JSON and extracting the property using gjson syntax (supporting nested paths like `"books.1"`).
 
-#### Examples
+#### Examples for Referencing Secrets by Field Name or Slug
 
 Using the json formatted secret below:
 
 - Lookup a single top level property using secret ID.
 
->spec.data.remoteRef.key = 4000 (id of the secret)<br />
-spec.data.remoteRef.property = "Username" (Items.0.FieldName)<br />
-returns: usernamevalue
+```text
+> spec.data.remoteRef.key = 4000 (id of the secret)
+> spec.data.remoteRef.property = "Username" (Items.0.FieldName)
+> returns: usernamevalue
+```
 
 - Lookup a nested property using secret name.
 
->spec.data.remoteRef.key = "Secretname" (name of the secret)<br />
-spec.data.remoteRef.property = "password" (Items.1.slug)<br />
-returns: passwordvalue
+```text
+> spec.data.remoteRef.key = "Secretname" (name of the secret)
+> spec.data.remoteRef.property = "password" (Items.1.slug)
+> returns: passwordvalue
+```
 
-- Lookup by secret ID (*secret name will work as well*) and return the entire secret.
+- Lookup by secret ID (_secret name will work as well_) and return the entire secret.
 
->spec.data.remoteRef.key = "4000" (id of the secret)<br />
-returns: The entire secret in JSON format as displayed below
-
+```text
+> spec.data.remoteRef.key = "4000" (id of the secret)
+> returns: The entire secret in JSON format as displayed below
+```
 
 ```JSON
 {
@@ -286,14 +305,14 @@ The Delinea Secret-Server/Platform provider supports pushing secrets from Kubern
 When using `PushSecret`, the `remoteRef.remoteKey` field determines how the provider identifies
 the target secret in Secret Server. The same key formats described in [Referencing Secrets](#referencing-secrets) apply here:
 
-| Format | Example | When to Use |
-|--------|---------|-------------|
-| Secret ID | `52622` | Updating an existing secret by its numeric ID. |
-| Secret Name | `my-secret` | Simple environments where secret names are unique across all folders. |
-| Secret Path | `/FolderName/SecretName` | When you know the full folder path of the secret. |
-| Folder-scoped Name | `folderId:73/my-secret` | **Recommended for new secrets.** Ensures all operations (push, delete, existence check) target the correct folder. |
+| Format             | Example                  | When to Use                                                                                                        |
+| ------------------ | ------------------------ | ------------------------------------------------------------------------------------------------------------------ |
+| Secret ID          | `52622`                  | Updating an existing secret by its numeric ID.                                                                     |
+| Secret Name        | `my-secret`              | Simple environments where secret names are unique across all folders.                                              |
+| Secret Path        | `/FolderName/SecretName` | When you know the full folder path of the secret.                                                                  |
+| Folder-scoped Name | `folderId:73/my-secret`  | **Recommended for new secrets.** Ensures all operations (push, delete, existence check) target the correct folder. |
 
-**Why the folder-scoped name format matters:**
+Why the folder-scoped name format matters::
 
 The `PushSecret` controller performs three distinct operations on secrets: **push** (create/update),
 **delete**, and **existence check**. While the push operation has access to the `metadata` field
@@ -354,9 +373,9 @@ spec:
           secretTemplateId: 6098
 ```
 
-> **Note:** The `folderId` in the `remoteKey` (`folderId:73/...`) is used when **looking up** the
-> secret (for push, delete, and existence checks). The `folderId` and `secretTemplateId` in
-> `metadata` are used when **creating** a new secret via the Secret Server API.
+!!! note
+    The `folderId` in the `remoteKey` (`folderId:73/...`) is used when **looking up** the secret (for push, delete, and existence checks).
+    The `folderId` and `secretTemplateId` in `metadata` are used when **creating** a new secret via the Secret Server API.
 
 #### Updating Existing Secrets
 

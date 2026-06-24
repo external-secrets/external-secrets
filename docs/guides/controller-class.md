@@ -7,10 +7,12 @@ Controller classes are a property set during the deployment that allows multiple
 ## Setting up Controller Class
 
 In order to deploy the controller with a specific class, install the helm charts specifying the controller class, and create a `SecretStore` with the appropriate `spec.controller` values:
-```
+
+```yaml
 helm install custom-external-secrets external-secrets/external-secrets --set controllerClass=custom
 ```
-``` yaml
+
+```yaml
 {% include 'controller-class-store.yaml' %}
 ```
 

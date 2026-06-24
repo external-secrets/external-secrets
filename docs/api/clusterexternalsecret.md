@@ -1,3 +1,5 @@
+# Cluster ExternalSecret
+
 ![ClusterExternalSecret](../pictures/diagrams-cluster-external-secrets.png)
 
 The `ClusterExternalSecret` is a cluster scoped resource that can be used to manage `ExternalSecret` resources in specific namespaces.
@@ -16,8 +18,8 @@ Below is an example of the `ClusterExternalSecret` in use.
 ## Reducing provider calls for large namespace sets
 
 A `ClusterExternalSecret` creates one `ExternalSecret` per matched namespace,
-and **each of those `ExternalSecret`s independently polls the upstream provider** on its own `refreshInterval`. 
-This means provider API calls scale linearly with the number of matched namespaces, which can be costly or hit rate limits. 
+and **each of those `ExternalSecret`s independently polls the upstream provider** on its own `refreshInterval`.
+This means provider API calls scale linearly with the number of matched namespaces, which can be costly or hit rate limits.
 This is a known characteristic of the design.
 
 ![Direct polling: each namespace polls the provider independently](../pictures/diagrams-ces-direct-polling.png)
@@ -57,7 +59,7 @@ Regular refreshes can be controlled using the `refreshPolicy` and
 setting, updating or deleting the annotation `external-secrets.io/force-sync`
 on the ClusterExternalSecret:
 
-```
+```bash
 kubectl annotate ces my-ces external-secrets.io/force-sync=$(date +%s) --overwrite
 ```
 

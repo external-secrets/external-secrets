@@ -1,8 +1,8 @@
-## Fortanix DSM / SDKMS
+# Fortanix DSM / SDKMS
 
 Populate kubernetes secrets from OPAQUE or SECRET security objects in Fortanix.
 
-### Authentication
+## Authentication
 
 SDKMS [Application API Key](https://support.fortanix.com/hc/en-us/articles/360015941132-Authentication)
 
@@ -37,9 +37,9 @@ spec:
     kind: SecretStore
     name: secret-store
   data:
-  - secretKey: <KEY_IN_KUBE_SECRET>
-    remoteRef:
-      key: <SDKMS_SECURITY_OBJECT_NAME>
+    - secretKey: <KEY_IN_KUBE_SECRET>
+      remoteRef:
+        key: <SDKMS_SECURITY_OBJECT_NAME>
 ---
 # From stored key-value JSON
 apiVersion: external-secrets.io/v1
@@ -52,10 +52,10 @@ spec:
     kind: SecretStore
     name: secret-store
   data:
-  - secretKey: <KEY_IN_KUBE_SECRET>
-    remoteRef:
-      key: <SDKMS_SECURITY_OBJECT_NAME>
-      property: <SECURITY_OBJECT_VALUE_INNER_PROPERTY>
+    - secretKey: <KEY_IN_KUBE_SECRET>
+      remoteRef:
+        key: <SDKMS_SECURITY_OBJECT_NAME>
+        property: <SECURITY_OBJECT_VALUE_INNER_PROPERTY>
 ---
 # Extract all keys from stored key-value JSON
 apiVersion: external-secrets.io/v1
@@ -68,6 +68,6 @@ spec:
     kind: SecretStore
     name: secret-store
   dataFrom:
-  - extract:
-      key: <SDKMS_SECURITY_OBJECT_NAME>
+    - extract:
+        key: <SDKMS_SECURITY_OBJECT_NAME>
 ```

@@ -1,9 +1,11 @@
+# STS
+
 STSSessionToken uses the GetSessionToken API to retrieve a temporary session token.
 
 ## Output Keys and Values
 
 | Key               | Description                                                                         |
-|-------------------|-------------------------------------------------------------------------------------|
+| ----------------- | ----------------------------------------------------------------------------------- |
 | access_key_id     | The access key ID that identifies the temporary security credentials.               |
 | secret_access_key | The secret access key that can be used to sign requests.                            |
 | session_token     | The token that users must pass to the service API to use the temporary credentials. |
@@ -13,7 +15,7 @@ STSSessionToken uses the GetSessionToken API to retrieve a temporary session tok
 
 You can choose from one authentication mechanisms:
 
-* static credentials using `spec.auth.secretRef`
+- static credentials using `spec.auth.secretRef`
 
 _Note_: STSSessionToken uses GetSessionToken API. This API can _only_ be used by long-term credentials such as an id + key.
 Therefore, it is only usable with a secretRef for authentication.
@@ -33,6 +35,7 @@ The following request parameters can be provided:
 ```
 
 Example `ExternalSecret` that references the STS Session Token generator:
+
 ```yaml
 {% include 'generator-sts-example.yaml' %}
 ```

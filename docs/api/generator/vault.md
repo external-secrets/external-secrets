@@ -1,3 +1,5 @@
+# Vault
+
 The `VaultDynamicSecret` Generator provides an interface to HashiCorp Vault's
 [Secrets engines](https://developer.hashicorp.com/vault/docs/secrets). Specifically,
 it enables obtaining dynamic secrets not covered by the
@@ -14,7 +16,7 @@ are stored into the resulting Secret in JSON format. The generator exposes `data
 section of the response from Vault API by default. To adjust the behaviour, use
 `resultType` key.
 
-### Passing parameters
+## Passing parameters
 
 - `parameters` is a JSON body sent on write methods (POST, PUT, etc.) and
   supports arbitrary nested JSON. It is **ignored** on `GET` and `LIST`.
@@ -37,6 +39,7 @@ GET method with query-string parameters:
 ```
 
 Example `ExternalSecret` that references the Vault generator:
+
 ```yaml
 {% include 'generator-vault-example.yaml' %}
 ```

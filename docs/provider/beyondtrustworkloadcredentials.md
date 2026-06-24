@@ -1,4 +1,4 @@
-## BeyondTrust Workload Credentials
+# BeyondTrust Workload Credentials
 
 External Secrets Operator integrates with [BeyondTrust Workload Credentials](https://docs.beyondtrust.com/bt-docs/docs/secrets-api) for secret management.
 
@@ -6,7 +6,7 @@ The provider supports static key-value secrets stored in folders. For dynamic se
 
 For complete BeyondTrust Workload Credentials API documentation, see: [https://docs.beyondtrust.com/bt-docs/docs/secrets-api](https://docs.beyondtrust.com/bt-docs/docs/secrets-api)
 
-### Example
+## Example
 
 First, create a SecretStore with a BeyondTrust Workload Credentials backend. You'll need an API token and the server configuration:
 
@@ -15,6 +15,7 @@ First, create a SecretStore with a BeyondTrust Workload Credentials backend. You
 ```
 
 Create the API token secret:
+
 ```bash
 kubectl create secret generic api-token \
   --from-literal=token=<YOUR_API_TOKEN> \
@@ -22,6 +23,7 @@ kubectl create secret generic api-token \
 ```
 
 If using self-signed certificates, create a CA bundle secret:
+
 ```bash
 kubectl create secret generic my-ca-bundle \
   --from-file=ca.crt="/path/to/root.crt" \
@@ -65,6 +67,7 @@ spec:
         key: postgresCreds
         property: password
 ```
+
 This creates a secret with individual keys for `username` and `password`.
 
 #### Fetching All Properties as JSON
@@ -115,10 +118,11 @@ spec:
 ```
 
 This creates a secret with:
+
 ```yaml
 data:
-  username: dXNlcg==     # base64("user")
-  password: cGFzcw==     # base64("pass")
+  username: dXNlcg== # base64("user")
+  password: cGFzcw== # base64("pass")
 ```
 
 ### Getting Multiple Secrets
@@ -126,6 +130,7 @@ data:
 You can extract multiple secrets from a folder by using `dataFrom.find`.
 
 Given a folder `eso/static` with these secrets:
+
 - `anotherSecret`: `{"someKey": "value1"}`
 - `mySecret`: `{"myKey": "value2", "someKey": "value3"}`
 - `postgresCreds`: `{"username": "user", "password": "pass"}`
@@ -197,9 +202,9 @@ spec:
     name: subfolder-data
   dataFrom:
     - find:
-        path: "eso/production"  # Override folder path
+        path: "eso/production" # Override folder path
         name:
-          regexp: ".*"           # Get all secrets in this folder
+          regexp: ".*" # Get all secrets in this folder
 ```
 
 This will list all secrets in the `eso/production` folder, regardless of the `folderPath` configured in the SecretStore.
@@ -223,7 +228,7 @@ spec:
     kind: SecretStore
   target:
     name: managed-secret
-    deletionPolicy: Delete  # Delete the Kubernetes secret when source is removed
+    deletionPolicy: Delete # Delete the Kubernetes secret when source is removed
   data:
     - secretKey: myKey
       remoteRef:
@@ -231,6 +236,7 @@ spec:
 ```
 
 Valid values:
+
 - `Retain` (default): Keep the Kubernetes secret even if the source is deleted
 - `Delete`: Remove the Kubernetes secret when the source is deleted
 
@@ -250,8 +256,8 @@ spec:
       auth:
         apikey:
           token:
-            name: api-token  # Name of the Kubernetes Secret
-            key: token            # Key within the Secret
+            name: api-token # Name of the Kubernetes Secret
+            key: token # Key within the Secret
       server:
         apiUrl: "https://api.beyondtrust.io/site"
         siteId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
@@ -269,6 +275,7 @@ auth:
 ### Server Configuration
 
 The server configuration consists of:
+
 - `apiUrl`: The base URL of your BeyondTrust Workload Credentials API
 - `siteId`: Your BeyondTrust site identifier (UUID format)
 
@@ -291,10 +298,11 @@ spec:
         type: Secret
         name: my-ca-bundle
         key: ca.crt
-        namespace: external-secrets  # Required for ClusterSecretStore
+        namespace: external-secrets # Required for ClusterSecretStore
 ```
 
 First create the CA bundle secret:
+
 ```bash
 kubectl create secret generic my-ca-bundle \
   --from-file=ca.crt="/path/to/ca.crt" \
@@ -313,10 +321,11 @@ spec:
       server:
         apiUrl: "https://api.beyondtrust.io/site"
         siteId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-      caBundle: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0t..."  # base64-encoded PEM
+      caBundle: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0t..." # base64-encoded PEM
 ```
 
 To generate the base64 string:
+
 ```bash
 cat /path/to/ca.crt | base64 -w 0
 ```
@@ -326,6 +335,7 @@ cat /path/to/ca.crt | base64 -w 0
 The `folderPath` specifies the default folder containing your secrets. This should be a folder path, not the full path to a specific secret.
 
 For example, if your secrets are stored at:
+
 - `eso/static/secret1`
 - `eso/static/secret2`
 - `eso/static/secret3`
@@ -333,12 +343,14 @@ For example, if your secrets are stored at:
 Set `folderPath: "eso/static"` in your SecretStore.
 
 When using `data` or `dataFrom.extract`, secret names are relative to this folder. When using `dataFrom.find`, this folder is searched by default (unless overridden with the `path` field).
+
 ### Refresh Interval
+
 The `refreshInterval` controls how often the ExternalSecret checks for updates:
 
 ```yaml
 spec:
-  refreshInterval: 5m  # Check every 5 minutes
+  refreshInterval: 5m # Check every 5 minutes
 ```
 
 Supported units: `s` (seconds), `m` (minutes), `h` (hours).
@@ -362,7 +374,7 @@ spec:
           token:
             name: api-token
             key: token
-            namespace: external-secrets  # Required: specify where the token secret lives
+            namespace: external-secrets # Required: specify where the token secret lives
       server:
         apiUrl: "https://api.beyondtrust.io/site"
         siteId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
@@ -370,6 +382,7 @@ spec:
 ```
 
 Reference it in an ExternalSecret:
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -379,6 +392,6 @@ metadata:
 spec:
   secretStoreRef:
     name: beyondtrustworkloadcredentials-css
-    kind: ClusterSecretStore  # Specify ClusterSecretStore
+    kind: ClusterSecretStore # Specify ClusterSecretStore
   # ... rest of spec
 ```

@@ -1,3 +1,5 @@
+# Infisical
+
 ![Infisical k8s Diagram](../pictures/external-secrets-operator.png)
 
 Sync secrets from [Infisical](https://www.infisical.com) to your Kubernetes cluster using External Secrets Operator, and push secrets from the cluster back into Infisical with `PushSecret`.
@@ -8,18 +10,18 @@ In order for the operator to fetch secrets from Infisical, it needs to first aut
 
 The Infisical provider supports multiple authentication methods to accommodate different deployment environments:
 
-| Authentication Method | Use Case |
-|----------------------|----------|
-| [Universal Auth](#universal-auth) | Platform-agnostic authentication using Client ID and Client Secret |
-| [Kubernetes Auth](#kubernetes-auth) | Native authentication for Kubernetes workloads using service account tokens |
-| [AWS Auth](#aws-iam-auth) | Native authentication for AWS resources (EC2, Lambda, EKS) using IAM |
-| [Azure Auth](#azure-auth) | Native authentication for Azure resources using managed identities |
-| [GCP ID Token Auth](#gcp-id-token-auth) | Native authentication for GCP resources (GCE, Cloud Functions, Cloud Run) |
-| [GCP IAM Auth](#gcp-iam-auth) | Authentication using GCP service account credentials |
-| [JWT Auth](#jwt-auth) | Authentication using JSON Web Tokens from any JWT issuer |
-| [LDAP Auth](#ldap-auth) | Authentication using LDAP credentials |
-| [OCI Auth](#oci-auth) | Native authentication for Oracle Cloud Infrastructure resources |
-| [Token Auth](#token-auth) | Simple authentication using a pre-generated access token |
+| Authentication Method                   | Use Case                                                                    |
+| --------------------------------------- | --------------------------------------------------------------------------- |
+| [Universal Auth](#universal-auth)       | Platform-agnostic authentication using Client ID and Client Secret          |
+| [Kubernetes Auth](#kubernetes-auth)     | Native authentication for Kubernetes workloads using service account tokens |
+| [AWS Auth](#aws-iam-auth)               | Native authentication for AWS resources (EC2, Lambda, EKS) using IAM        |
+| [Azure Auth](#azure-auth)               | Native authentication for Azure resources using managed identities          |
+| [GCP ID Token Auth](#gcp-id-token-auth) | Native authentication for GCP resources (GCE, Cloud Functions, Cloud Run)   |
+| [GCP IAM Auth](#gcp-iam-auth)           | Authentication using GCP service account credentials                        |
+| [JWT Auth](#jwt-auth)                   | Authentication using JSON Web Tokens from any JWT issuer                    |
+| [LDAP Auth](#ldap-auth)                 | Authentication using LDAP credentials                                       |
+| [OCI Auth](#oci-auth)                   | Native authentication for Oracle Cloud Infrastructure resources             |
+| [Token Auth](#token-auth)               | Simple authentication using a pre-generated access token                    |
 
 ---
 
@@ -81,7 +83,7 @@ spec:
 
 [Kubernetes Auth](https://infisical.com/docs/documentation/platform/identities/kubernetes-auth) is a Kubernetes-native authentication method that validates service account tokens to authenticate with Infisical.
 
-### Prerequisites
+### Prerequisites with k8s auth
 
 1. Create a Machine Identity in Infisical with Kubernetes Auth enabled
 2. Configure allowed service account names and namespaces in Infisical
@@ -90,7 +92,7 @@ spec:
 !!! note
     Infisical requires access to the Kubernetes TokenReview API for authentication. Follow the [Infisical Kubernetes Auth guide](https://infisical.com/docs/documentation/platform/identities/kubernetes-auth) to set up the required `system:auth-delegator` ClusterRoleBinding.
 
-### Storing Credentials
+### Storing Credentials with k8s auth
 
 Create a Kubernetes secret containing your Machine Identity ID:
 
@@ -117,7 +119,7 @@ stringData:
   serviceAccountTokenPath: /var/run/secrets/kubernetes.io/serviceaccount/token
 ```
 
-### SecretStore Configuration
+### SecretStore Configuration with k8s auth
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -148,13 +150,13 @@ spec:
 
 [AWS Auth](https://infisical.com/docs/documentation/platform/identities/aws-auth) is an AWS-native authentication method for IAM principals like EC2 instances, Lambda functions, or EKS pods to authenticate with Infisical.
 
-### Prerequisites
+### Prerequisites with AWS IAM Auth
 
 1. Create a Machine Identity in Infisical with AWS Auth enabled
 2. Configure allowed Principal ARNs or Account IDs in Infisical
 3. Ensure your AWS resource has an IAM role attached
 
-### Storing Credentials
+### Storing Credentials with AWS IAM Auth
 
 Create a Kubernetes secret containing your Machine Identity ID:
 
@@ -168,7 +170,7 @@ stringData:
   identityId: <your-machine-identity-id>
 ```
 
-### SecretStore Configuration
+### SecretStore Configuration with AWS IAM Auth
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -198,13 +200,13 @@ spec:
 
 [Azure Auth](https://infisical.com/docs/documentation/platform/identities/azure-auth) is an Azure-native authentication method for Azure resources with managed identities to authenticate with Infisical.
 
-### Prerequisites
+### Prerequisites with Azure Auth
 
 1. Create a Machine Identity in Infisical with Azure Auth enabled
 2. Configure allowed Service Principal IDs in Infisical
 3. Ensure your Azure resource has a managed identity attached
 
-### Storing Credentials
+### Storing Credentials with Azure Auth
 
 Create a Kubernetes secret containing your Machine Identity ID:
 
@@ -231,7 +233,7 @@ stringData:
   resource: https://management.azure.com/
 ```
 
-### SecretStore Configuration
+### SecretStore Configuration with Azure Auth
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -265,13 +267,13 @@ spec:
 
 [GCP ID Token Auth](https://infisical.com/docs/documentation/platform/identities/gcp-auth) is for GCP services like Compute Engine, App Engine, Cloud Functions, Cloud Run, and GKE to authenticate with Infisical using instance identity tokens.
 
-### Prerequisites
+### Prerequisites with GCP ID Token Auth
 
 1. Create a Machine Identity in Infisical with GCP Auth (ID Token type) enabled
 2. Configure allowed service account emails in Infisical
 3. Ensure your GCP resource has a service account attached
 
-### Storing Credentials
+### Storing Credentials with GCP ID Token Auth
 
 Create a Kubernetes secret containing your Machine Identity ID:
 
@@ -285,7 +287,7 @@ stringData:
   identityId: <your-machine-identity-id>
 ```
 
-### SecretStore Configuration
+### SecretStore Configuration with GCP ID Token Auth
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -315,14 +317,14 @@ spec:
 
 [GCP IAM Auth](https://infisical.com/docs/documentation/platform/identities/gcp-auth) allows GCP service accounts to authenticate with Infisical by signing a JWT token using the service account's credentials.
 
-### Prerequisites
+### Prerequisites with GCP IAM Auth
 
 1. Create a Machine Identity in Infisical with GCP Auth (IAM type) enabled
 2. Configure allowed service account emails in Infisical
 3. Have a GCP service account key file available
 4. The service account must have the `iam.serviceAccounts.signJwt` permission
 
-### Storing Credentials
+### Storing Credentials with GCP IAM Auth
 
 Create a Kubernetes secret containing your Machine Identity ID and the path to the service account key:
 
@@ -337,7 +339,7 @@ stringData:
   serviceAccountKeyFilePath: /path/to/service-account-key.json
 ```
 
-### SecretStore Configuration
+### SecretStore Configuration with GCP IAM Auth
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -367,13 +369,13 @@ spec:
 
 [JWT Auth](https://infisical.com/docs/documentation/platform/identities/jwt-auth) is a platform-agnostic authentication method that validates JSON Web Tokens from any JWT issuer.
 
-### Prerequisites
+### Prerequisites with JWT Auth
 
 1. Create a Machine Identity in Infisical with JWT Auth enabled
 2. Configure the JWT validation settings (JWKS URL or public keys, issuer, audience, etc.)
 3. Have a valid JWT available from your identity provider
 
-### Storing Credentials
+### Storing Credentials with JWT Auth
 
 Create a Kubernetes secret containing your Machine Identity ID and the JWT:
 
@@ -388,7 +390,7 @@ stringData:
   jwt: <your-jwt-token>
 ```
 
-### SecretStore Configuration
+### SecretStore Configuration with JWT Auth
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -418,12 +420,12 @@ spec:
 
 [LDAP Auth](https://infisical.com/docs/documentation/platform/identities/ldap-auth/general) allows authentication using LDAP credentials (username and password).
 
-### Prerequisites
+### Prerequisites with LDAP Auth
 
 1. Create a Machine Identity in Infisical with LDAP Auth enabled
 2. Configure LDAP settings in Infisical (server, bind DN, etc.)
 
-### Storing Credentials
+### Storing Credentials with LDAP Auth
 
 Create a Kubernetes secret containing your LDAP credentials:
 
@@ -439,7 +441,7 @@ stringData:
   ldapPassword: <your-ldap-password>
 ```
 
-### SecretStore Configuration
+### SecretStore Configuration with LDAP Auth
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -472,13 +474,13 @@ spec:
 
 [OCI Auth](https://infisical.com/docs/documentation/platform/identities/oci-auth) is an Oracle Cloud Infrastructure-native authentication method that verifies OCI users through signature validation.
 
-### Prerequisites
+### Prerequisites with OCI Auth
 
 1. Create a Machine Identity in Infisical with OCI Auth enabled
 2. Configure allowed usernames and tenancy OCID in Infisical
 3. Have OCI user credentials (private key, fingerprint, etc.)
 
-### Storing Credentials
+### Storing Credentials with OCI Auth
 
 Create a Kubernetes secret containing your OCI credentials:
 
@@ -502,7 +504,7 @@ stringData:
   # privateKeyPassphrase: <your-passphrase>
 ```
 
-### SecretStore Configuration
+### SecretStore Configuration with OCI Auth
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -548,12 +550,12 @@ spec:
 
 [Token Auth](https://infisical.com/docs/documentation/platform/identities/token-auth) is the simplest authentication method that uses a pre-generated access token to authenticate directly with Infisical. This is similar to using an API key.
 
-### Prerequisites
+### Prerequisites with Token Auth
 
 1. Create a Machine Identity in Infisical with Token Auth enabled
 2. Generate an access token from the Infisical UI
 
-### Storing Credentials
+### Storing Credentials with Token Auth
 
 Create a Kubernetes secret containing your access token:
 
@@ -567,7 +569,7 @@ stringData:
   accessToken: <your-access-token>
 ```
 
-### SecretStore Configuration
+### SecretStore Configuration with Token Auth
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -615,11 +617,11 @@ Where `JSON_BLOB` is a JSON string like `{"key": "value"}`.
 
 The `remoteRef.key` field resolves secret location using three rules:
 
-| Key format | Resolution |
-|------------|------------|
-| `FOO` (no slash) | Uses `secretsScope.secretsPath` as the folder; `FOO` is the secret name |
-| `/my-app/FOO` (leading slash) | Absolute path: folder is `/my-app`, secret name is `FOO`. `secretsScope.secretsPath` is ignored |
-| `sub/FOO` (slash, no leading `/`) | Relative path: `sub` is joined to `secretsScope.secretsPath`, `FOO` is the secret name |
+| Key format                        | Resolution                                                                                      |
+| --------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `FOO` (no slash)                  | Uses `secretsScope.secretsPath` as the folder; `FOO` is the secret name                         |
+| `/my-app/FOO` (leading slash)     | Absolute path: folder is `/my-app`, secret name is `FOO`. `secretsScope.secretsPath` is ignored |
+| `sub/FOO` (slash, no leading `/`) | Relative path: `sub` is joined to `secretsScope.secretsPath`, `FOO` is the secret name          |
 
 !!! note
     Both `GetSecret` (single-secret lookup) and `GetAllSecrets` (dataFrom) always set `IncludeImports: true`. Secrets imported from linked Infisical projects are automatically included in results. There is no option to disable this.
@@ -636,7 +638,7 @@ To sync one or more secrets individually, use the following YAML:
 
 To sync all secrets from an Infisical project, use the following YAML:
 
-``` yaml
+```yaml
 {% include 'infisical-fetch-all-secrets.yaml' %}
 ```
 
@@ -644,7 +646,7 @@ To sync all secrets from an Infisical project, use the following YAML:
 
 Use `dataFrom.find` to filter secrets by name regex and/or folder path:
 
-``` yaml
+```yaml
 {% include 'infisical-filtered-secrets.yaml' %}
 ```
 
@@ -675,9 +677,9 @@ spec:
       name: my-source-secret
   data:
     - match:
-        secretKey: API_KEY          # key in the Kubernetes Secret
+        secretKey: API_KEY # key in the Kubernetes Secret
         remoteRef:
-          remoteKey: API_KEY        # secret name in Infisical
+          remoteKey: API_KEY # secret name in Infisical
 ```
 
 ### Remote key resolution
@@ -771,14 +773,14 @@ spec:
 
 The `secretsScope` configuration controls which secrets are accessible:
 
-| Field | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `projectSlug` | Yes | - | The slug identifier for your Infisical project |
-| `environmentSlug` | Yes | - | The environment slug (e.g., `dev`, `staging`, `prod`) |
-| `organizationSlug` | No | - | The organization the project is part of. Used for sub-organization setups |
-| `secretsPath` | No | `/` | The base path for secrets retrieval |
-| `recursive` | No | `false` | When true, fetches secrets recursively from subfolders |
-| `expandSecretReferences` | No | `true` | When true, expands secret references (e.g., `${SECRET_NAME}`) |
+| Field                    | Required | Default | Description                                                               |
+| ------------------------ | -------- | ------- | ------------------------------------------------------------------------- |
+| `projectSlug`            | Yes      | -       | The slug identifier for your Infisical project                            |
+| `environmentSlug`        | Yes      | -       | The environment slug (e.g., `dev`, `staging`, `prod`)                     |
+| `organizationSlug`       | No       | -       | The organization the project is part of. Used for sub-organization setups |
+| `secretsPath`            | No       | `/`     | The base path for secrets retrieval                                       |
+| `recursive`              | No       | `false` | When true, fetches secrets recursively from subfolders                    |
+| `expandSecretReferences` | No       | `true`  | When true, expands secret references (e.g., `${SECRET_NAME}`)             |
 
 !!! tip
     To get your project slug from Infisical, head over to the project settings and click the button `Copy Project Slug`.

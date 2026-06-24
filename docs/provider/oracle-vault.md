@@ -1,4 +1,4 @@
-## Oracle Vault
+# Oracle Vault
 
 External Secrets Operator integrates with the [Oracle Cloud Infrastructure (OCI) REST API](https://docs.oracle.com/en-us/iaas/api/) to manage secrets in Oracle Vault. All secret operations exposed by External Secrets Operator are supported by the Oracle provider.
 
@@ -73,11 +73,12 @@ Note that if a service account is not provided in the secret store, the Oracle p
 
 To create a Kubernetes secret from an OCI Vault secret a `Kind=ExternalSecret` is needed. The External Secret will reference an OCI Vault instance containing secrets with either JSON or plaintext data.
 
-#### External Secret targeting JSON data
+### External Secret targeting JSON data
 
 ```yaml
 {% include 'oracle-external-secret.yaml' %}
 ```
+
 #### External Secret targeting plaintext data
 
 ```yaml
@@ -85,12 +86,15 @@ To create a Kubernetes secret from an OCI Vault secret a `Kind=ExternalSecret` i
 ```
 
 ### Getting the Kubernetes secret
+
 The operator will fetch the OCI Vault Secret and inject it as a `Kind=Secret`.
-```
+
+```yaml
 kubectl get secret oracle-secret-to-create -o jsonpath='{.data.dev-secret-test}' | base64 -d
 ```
 
-## PushSecrets and retrieving multiple secrets.
+## PushSecrets and retrieving multiple secrets
+
 When using [PushSecrets](https://external-secrets.io/latest/guides/pushsecrets/), the compartment OCID and encryption key OCID must be specified in the
 Oracle SecretStore. You can find your compartment and encryption key OCIDs in the OCI console.
 

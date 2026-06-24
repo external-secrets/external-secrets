@@ -1,3 +1,5 @@
+# Beyondtrustworkloadcredentials
+
 The `BeyondtrustWorkloadCredentialsDynamicSecret` Generator provides an interface to BeyondTrust Workload Credentials's
 dynamic secret generation capabilities. This enables obtaining temporary, short-lived credentials.
 
@@ -17,6 +19,7 @@ Any authentication method supported by the BeyondTrust Workload Credentials prov
 ```
 
 Example `ExternalSecret` that references the BeyondTrust Workload Credentials generator:
+
 ```yaml
 {% include 'beyondtrustworkloadcredentials-dynamic-external-secret.yaml' %}
 ```
@@ -26,6 +29,7 @@ Example `ExternalSecret` that references the BeyondTrust Workload Credentials ge
 ### Folder Path
 
 The `folderPath` in the generator spec uses the format `{folder}/{secretName}`:
+
 - `folder`: The folder containing the dynamic secret definition (e.g., `eso`)
 - `secretName`: The name of the dynamic secret definition (e.g., `dynamic`)
 
@@ -36,9 +40,13 @@ spec:
   provider:
     folderPath: "my/dynamic"
 ```
+
 ### Generated Secret Fields
+
 The generator returns different fields depending on the type of dynamic secret:
+
 #### AWS Dynamic Secrets
+
 ```yaml
 stringData:
   accessKeyId: ASIAIOSFODNN7EXAMPLE
@@ -47,8 +55,11 @@ stringData:
   leaseId: 84038398-ec0f-417d-9a0f-02494fd7d22c
   expiration: 2025-12-29T22:35:29Z
 ```
+
 All fields are automatically populated in the target Kubernetes secret.
+
 ### Credential Refresh and Expiration
+
 **Important:** External Secrets Operator does NOT automatically handle credential expiration/TTL from BeyondTrust Workload Credentials. The refresh is controlled solely by the `refreshInterval` specified in the ExternalSecret spec.
 
 #### Setting Refresh Interval
@@ -61,7 +72,7 @@ kind: ExternalSecret
 metadata:
   name: aws-credentials
 spec:
-  refreshInterval: 45m  # If credentials expire in 1 hour
+  refreshInterval: 45m # If credentials expire in 1 hour
   target:
     name: aws-temp-creds
   dataFrom:
@@ -75,6 +86,7 @@ spec:
 #### What happens if refreshInterval > credential expiration?
 
 Credentials will expire before being refreshed. Users will see:
+
 - ExternalSecret status: `SecretSyncError`
 - Logs/events: Authorization errors when the application tries to use expired credentials
 - The application will fail to authenticate with the target service
@@ -82,12 +94,14 @@ Credentials will expire before being refreshed. Users will see:
 #### What happens if refreshInterval << credential expiration?
 
 For example, if credentials expire in 1 hour but `refreshInterval: 1m`:
+
 - New credentials are generated every minute
 - Old credentials remain valid until their expiration time
 - Multiple valid credential sets may exist simultaneously
 - **These credentials expire automatically at their TTL in AWS** (for AssumeRole credentials).
 
 **Recommendation:** Set `refreshInterval` to 75-80% of the credential lifetime. For example:
+
 - 1-hour credentials → `refreshInterval: 45m`
 - 12-hour credentials → `refreshInterval: 9h`
 - 24-hour credentials → `refreshInterval: 18h`
@@ -149,6 +163,7 @@ spec:
 ```
 
 Create the API token secret:
+
 ```bash
 kubectl create secret generic api-token \
   --from-literal=token=<YOUR_API_TOKEN> \
@@ -170,6 +185,7 @@ spec:
 ```
 
 Create the CA bundle secret:
+
 ```bash
 kubectl create secret generic my-ca-bundle \
   --from-file=ca.crt="/path/to/ca.crt" \
@@ -196,6 +212,7 @@ spec:
 Here's a complete example for AWS dynamic credentials:
 
 1. Create the API token and CA bundle secrets:
+
 ```bash
 kubectl create secret generic api-token \
   --from-literal=token=<YOUR_API_TOKEN> \
@@ -205,7 +222,8 @@ kubectl create secret generic my-ca-bundle \
   -n external-secrets
 ```
 
-2. Create the generator:
+1. Create the generator:
+
 ```yaml
 apiVersion: generators.external-secrets.io/v1alpha1
 kind: BeyondtrustWorkloadCredentialsDynamicSecret
@@ -225,7 +243,8 @@ spec:
     folderPath: "production/aws-temp"
 ```
 
-3. Create an ExternalSecret that uses the generator:
+1. Create an ExternalSecret that uses the generator:
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
@@ -233,7 +252,7 @@ metadata:
   name: app-aws-credentials
   namespace: external-secrets
 spec:
-  refreshInterval: 45m  # Refresh before 1-hour expiration
+  refreshInterval: 45m # Refresh before 1-hour expiration
   target:
     name: aws-temp-credentials
     creationPolicy: Owner
@@ -245,7 +264,8 @@ spec:
           name: aws-dynamic-generator
 ```
 
-4. The resulting Kubernetes secret will contain:
+1. The resulting Kubernetes secret will contain:
+
 ```yaml
 apiVersion: v1
 kind: Secret
@@ -265,6 +285,7 @@ data:
 #### Empty Credential Fields
 
 If the generated secret has empty values:
+
 1. Verify the dynamic secret exists in BeyondTrust Workload Credentials at the specified path
 2. Check the API token has permissions to generate credentials
 3. Verify the `folderPath` format is correct (`folder/secretName`)
@@ -273,6 +294,7 @@ If the generated secret has empty values:
 #### Authentication Errors
 
 If you see 403/401 errors:
+
 1. Verify the API token is valid and not expired
 2. Check the token has `generate` permissions for the dynamic secret
 3. Ensure the `caProvider` or `caBundle` is configured correctly if using self-signed certificates
@@ -280,6 +302,7 @@ If you see 403/401 errors:
 #### Timeout Errors
 
 If credential generation times out:
+
 1. Check network connectivity from the cluster to BeyondTrust Workload Credentials API
 2. Verify the API endpoint is responsive
 3. Check if there are firewall rules blocking the connection
@@ -287,6 +310,7 @@ If credential generation times out:
 #### Credential Expiration Issues
 
 If applications report authentication failures:
+
 1. Check if `refreshInterval` is greater than credential lifetime
 2. Review the `expiration` field in the secret to see when credentials expire
 3. Adjust `refreshInterval` to be 75-80% of the credential lifetime

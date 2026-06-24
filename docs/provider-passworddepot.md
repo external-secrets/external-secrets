@@ -1,21 +1,22 @@
+# Provider Passworddepot
+
 External Secrets Operator integrates with [Password Depot API](https://www.password-depot.de/) to sync Password Depot to secrets held on the Kubernetes cluster.
 
-### Authentication
+## Authentication
 
-The API requires a username and password. 
-
+The API requires a username and password.
 
 ```yaml
 {% include 'password-depot-credentials-secret.yaml' %}
 ```
 
 ### Update secret store
+
 Be sure the `passworddepot` provider is listed in the `Kind=SecretStore` and host and database are set.
 
 ```yaml
 {% include 'passworddepot-secret-store.yaml' %}
 ```
-
 
 ### Creating external secret
 
@@ -34,7 +35,9 @@ DataFrom can be used to get a variable as a JSON string and attempt to parse it.
 ```
 
 ### Getting the Kubernetes secret
+
 The operator will fetch the project variable and inject it as a `Kind=Secret`.
-```
+
+```yaml
 kubectl get secret passworddepot-secret-to-create -o jsonpath='{.data.secretKey}' | base64 -d
 ```
