@@ -13172,6 +13172,86 @@ cache: {} is a valid option to set.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.OpenBaoAppRole">OpenBaoAppRole
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth</a>)
+</p>
+<p>
+<p>OpenBaoAppRole authenticates with OpenBao using the <a href="https://openbao.org/docs/auth/approle/">App Role auth
+mechanism</a>, with the role and secret stored in a Kubernetes Secret resource.
+The role ID has to be specified either inline via <code>roleId</code> or by referencing
+a secret via <code>roleRef</code>.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the App Role authentication backend is mounted
+in OpenBao, e.g: &ldquo;approle&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RoleID configured in the App Role authentication backend when setting
+up the authentication backend in OpenBao.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Reference to a key in a Secret that contains the App Role ID used
+to authenticate with OpenBao.
+The <code>key</code> field must be specified and denotes which entry within the Secret
+resource is used as the app role id.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>Reference to a key in a Secret that contains the App Role secret used
+to authenticate with OpenBao.
+The <code>key</code> field must be specified and denotes which entry within the Secret
+resource is used as the app role secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth
 </h3>
 <p>
@@ -13191,6 +13271,21 @@ Additional authentication methods are planned for future releases.</p>
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>appRole</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoAppRole">
+OpenBaoAppRole
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AppRole authenticates with OpenBao using the <a href="https://openbao.org/docs/auth/approle/">App Role auth mechanism</a>,
+with the role and secret stored in a Kubernetes Secret resource.</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>tokenSecretRef</code></br>
