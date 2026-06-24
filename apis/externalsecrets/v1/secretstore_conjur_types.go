@@ -58,6 +58,10 @@ type ConjurAuth struct {
 	// Iam enables authentication to Conjur via the authn-iam authenticator.
 	// +optional
 	Iam *ConjurIAM `json:"iam,omitempty"`
+
+	// Azure enables authentication to Conjur via the authn-azure authenticator.
+	// +optional
+	Azure *ConjurAzure `json:"azure,omitempty"`
 }
 
 // ConjurAPIKey contains references to a Secret resource that holds
@@ -161,4 +165,30 @@ type ConjurIAMSecretRef struct {
 	// Required only when using temporary credentials.
 	// +optional
 	SessionTokenSecretRef *esmeta.SecretKeySelector `json:"sessionTokenSecretRef,omitempty"`
+}
+
+// ConjurAzure configures authentication to Conjur via the authn-azure authenticator.
+// It uses an Azure JWT token to authenticate — either fetched from the Azure Instance
+// Metadata Service (IMDS) automatically, or sourced from a Kubernetes ServiceAccount token.
+type ConjurAzure struct {
+	// Account is the Conjur organization account name.
+	Account string `json:"account"`
+
+	// ServiceID is the Conjur authn-azure webservice identifier (e.g. "prod").
+	ServiceID string `json:"serviceID"`
+
+	// HostID is the Conjur host mapped to the Azure managed identity
+	// (e.g. "data/myapp/myhost").
+	HostID string `json:"hostId"`
+
+	// ClientID is the Azure managed identity client ID. Required for user-assigned
+	// managed identities; omit for system-assigned identities.
+	// +optional
+	ClientID string `json:"clientId,omitempty"`
+
+	// ServiceAccountRef specifies the Kubernetes service account for which to request
+	// a token via the TokenRequest API. That token is used as the Azure JWT for Conjur
+	// authn-azure. If omitted, the token is fetched from the Azure IMDS endpoint instead.
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }

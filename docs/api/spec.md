@@ -3642,6 +3642,91 @@ ConjurIAM
 <p>Iam enables authentication to Conjur via the authn-iam authenticator.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>azure</code></br>
+<em>
+<a href="#external-secrets.io/v1.ConjurAzure">
+ConjurAzure
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Azure enables authentication to Conjur via the authn-azure authenticator.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ConjurAzure">ConjurAzure
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ConjurAuth">ConjurAuth</a>)
+</p>
+<p>
+<p>ConjurAzure configures authentication to Conjur via the authn-azure authenticator.
+It uses an Azure JWT token to authenticate — either fetched from the Azure Instance
+Metadata Service (IMDS) automatically, or sourced from a Kubernetes ServiceAccount token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>account</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Account is the Conjur organization account name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ServiceID is the Conjur authn-azure webservice identifier (e.g. &ldquo;prod&rdquo;).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>HostID is the Conjur host mapped to the Azure managed identity
+(e.g. &ldquo;data/myapp/myhost&rdquo;).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef specifies the Kubernetes service account for which to request
+a token via the TokenRequest API. That token is used as the Azure JWT for Conjur
+authn-azure. If omitted, the token is fetched from the Azure IMDS endpoint instead.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.ConjurIAM">ConjurIAM
