@@ -312,7 +312,6 @@ require (
 	github.com/hashicorp/vault/api/auth/gcp v0.11.0 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5 // indirect
 	github.com/infisical/go-sdk v0.8.0 // indirect
-	github.com/keeper-security/secrets-manager-go/core v1.6.4 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/lestrrat-go/httprc v1.0.6 // indirect
 	github.com/nebius/gosdk v0.0.0-20260204094009-511fd4d4f7a1 // indirect
@@ -321,9 +320,6 @@ require (
 	github.com/openbao/openbao/api/auth/userpass/v2 v2.5.1 // indirect
 	github.com/openbao/openbao/api/v2 v2.5.1-0.20260603121413-a08669ff09ec // indirect
 	github.com/ovh/okms-sdk-go v0.5.1 // indirect
-	github.com/passbolt/go-passbolt v0.8.0 // indirect
-	github.com/previder/vault-cli v0.1.3 // indirect
-	github.com/pulumi/esc-sdk/sdk v0.14.0 // indirect
 	github.com/rs/zerolog v1.33.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect

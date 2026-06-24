@@ -4423,7 +4423,8 @@ ExternalSecretNullBytePolicy
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
-<a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>)
+<a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>, 
+<a href="#external-secrets.io/v1.TemplateFrom">TemplateFrom</a>)
 </p>
 <p>
 <p>ExternalSecretDecodingStrategy defines strategies for decoding secret values.</p>
@@ -11660,6 +11661,20 @@ string
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>valuesDecodingStrategy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretDecodingStrategy">
+ExternalSecretDecodingStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a decoding Strategy for the rendered template values.</p>
 </td>
 </tr>
 </tbody>
