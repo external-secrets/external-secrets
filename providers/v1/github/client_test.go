@@ -240,6 +240,69 @@ func TestPushSecret(t *testing.T) {
 	}
 }
 
+func TestPushSecretSelectedRepos(t *testing.T) {
+	ptr := func(s string) *string { return &s }
+	validKey := withGetPublicKeyFn(&github.PublicKey{
+		Key:   ptr("Zm9vYmFyCg=="),
+		KeyID: ptr("123"),
+	}, nil, nil)
+	secret := &corev1.Secret{Data: map[string][]byte{"foo": []byte("bingg")}}
+	ref := esv1alpha1.PushSecretData{
+		Match: esv1alpha1.PushSecretMatch{SecretKey: "foo"},
+	}
+
+	t.Run("selected visibility preserves existing repositories", func(t *testing.T) {
+		var pushed *github.EncryptedSecret
+		g := Client{provider: &esv1.GithubProvider{}}
+		g.getSecretFn = withGetSecretFn(&github.Secret{Name: "foo", Visibility: "selected"}, nil, nil)
+		g.getPublicKeyFn = validKey
+		g.listSelectedReposFn = func(_ context.Context, _ string) (github.SelectedRepoIDs, error) {
+			return github.SelectedRepoIDs{1, 2, 3}, nil
+		}
+		g.createOrUpdateFn = func(_ context.Context, es *github.EncryptedSecret) (*github.Response, error) {
+			pushed = es
+			return nil, nil
+		}
+		require.NoError(t, g.PushSecret(context.TODO(), secret, ref))
+		require.NotNil(t, pushed)
+		assert.Equal(t, "selected", pushed.Visibility)
+		assert.Equal(t, github.SelectedRepoIDs{1, 2, 3}, pushed.SelectedRepositoryIDs)
+	})
+
+	t.Run("list selected repos error is propagated", func(t *testing.T) {
+		g := Client{provider: &esv1.GithubProvider{}}
+		g.getSecretFn = withGetSecretFn(&github.Secret{Name: "foo", Visibility: "selected"}, nil, nil)
+		g.getPublicKeyFn = validKey
+		g.listSelectedReposFn = func(_ context.Context, _ string) (github.SelectedRepoIDs, error) {
+			return nil, errors.New("boom")
+		}
+		g.createOrUpdateFn = withCreateOrUpdateSecretFn(nil, nil)
+		err := g.PushSecret(context.TODO(), secret, ref)
+		assert.ErrorContains(t, err, "failed to list selected repositories")
+	})
+
+	t.Run("non-selected visibility does not set repositories", func(t *testing.T) {
+		var pushed *github.EncryptedSecret
+		called := false
+		g := Client{provider: &esv1.GithubProvider{}}
+		g.getSecretFn = withGetSecretFn(&github.Secret{Name: "foo", Visibility: "all"}, nil, nil)
+		g.getPublicKeyFn = validKey
+		g.listSelectedReposFn = func(_ context.Context, _ string) (github.SelectedRepoIDs, error) {
+			called = true
+			return github.SelectedRepoIDs{9}, nil
+		}
+		g.createOrUpdateFn = func(_ context.Context, es *github.EncryptedSecret) (*github.Response, error) {
+			pushed = es
+			return nil, nil
+		}
+		require.NoError(t, g.PushSecret(context.TODO(), secret, ref))
+		require.NotNil(t, pushed)
+		assert.False(t, called)
+		assert.Equal(t, "all", pushed.Visibility)
+		assert.Nil(t, pushed.SelectedRepositoryIDs)
+	})
+}
+
 func TestResolveOrgSecretVisibility(t *testing.T) {
 	ptr := func(s string) *string { return &s }
 	tests := []struct {
