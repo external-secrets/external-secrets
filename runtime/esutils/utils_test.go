@@ -665,6 +665,471 @@ func TestRewrite(t *testing.T) {
 	}
 }
 
+func TestSelectMap(t *testing.T) {
+	type args struct {
+		operations []esv1.ExternalSecretSelect
+		in         map[string][]byte
+	}
+	ptrStr := func(s string) *string { return &s }
+	tests := []struct {
+		name    string
+		args    args
+		want    map[string][]byte
+		wantErr bool
+	}{
+		{
+			name: "no operation",
+			args: args{
+				operations: nil,
+				in: map[string][]byte{
+					"foo": []byte("a"),
+					"bar": []byte("b"),
+				},
+			},
+			want: map[string][]byte{
+				"foo": []byte("a"),
+				"bar": []byte("b"),
+			},
+		},
+		{
+			name: "exclude by names",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr(".*"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+					{
+						Names:     []string{"notesPlain", "username"},
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+				},
+				in: map[string][]byte{
+					"password":   []byte("secret"),
+					"notesPlain": []byte(""),
+					"username":   []byte(""),
+					"host":       []byte("db.example.com"),
+				},
+			},
+			want: map[string][]byte{
+				"password": []byte("secret"),
+				"host":     []byte("db.example.com"),
+			},
+		},
+		{
+			name: "exclude by regexp",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr("^db_"),
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+				},
+				in: map[string][]byte{
+					"db_host":  []byte("localhost"),
+					"db_port":  []byte("5432"),
+					"app_name": []byte("myapp"),
+				},
+			},
+			want: map[string][]byte{
+				"app_name": []byte("myapp"),
+			},
+		},
+		{
+			name: "include by regexp",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr("^db_"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+				},
+				in: map[string][]byte{
+					"db_host":  []byte("localhost"),
+					"db_port":  []byte("5432"),
+					"app_name": []byte("myapp"),
+				},
+			},
+			want: map[string][]byte{
+				"db_host": []byte("localhost"),
+				"db_port": []byte("5432"),
+			},
+		},
+		{
+			name: "using include then exclude",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr(".*"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+					{
+						Regexp:    ptrStr("^notesPlain$"),
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+				},
+				in: map[string][]byte{
+					"password":   []byte("secret"),
+					"notesPlain": []byte(""),
+					"host":       []byte("db.example.com"),
+				},
+			},
+			want: map[string][]byte{
+				"password": []byte("secret"),
+				"host":     []byte("db.example.com"),
+			},
+		},
+		{
+			name: "include by names",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Names:     []string{"host", "port"},
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+				},
+				in: map[string][]byte{
+					"host":       []byte("localhost"),
+					"port":       []byte("5432"),
+					"notesPlain": []byte(""),
+					"password":   []byte("secret"),
+				},
+			},
+			want: map[string][]byte{
+				"host": []byte("localhost"),
+				"port": []byte("5432"),
+			},
+		},
+		{
+			name: "exclude nonexistent names",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Names:     []string{"nonexistent"},
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+				},
+				in: map[string][]byte{
+					"foo": []byte("a"),
+					"bar": []byte("b"),
+				},
+			},
+			want: map[string][]byte{
+				"foo": []byte("a"),
+				"bar": []byte("b"),
+			},
+		},
+		{
+			name: "invalid regexp",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr("[invalid"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+				},
+				in: map[string][]byte{
+					"foo": []byte("a"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty input",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr(".*"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+				},
+				in: map[string][]byte{},
+			},
+			want: map[string][]byte{},
+		},
+		{
+			name: "using regexp and names together",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr("^db_"),
+						Names:     []string{"app_name"},
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+				},
+				in: map[string][]byte{
+					"db_host":  []byte("localhost"),
+					"db_port":  []byte("5432"),
+					"app_name": []byte("myapp"),
+					"other":    []byte("value"),
+				},
+			},
+			want: map[string][]byte{
+				"db_host":  []byte("localhost"),
+				"db_port":  []byte("5432"),
+				"app_name": []byte("myapp"),
+			},
+		},
+		{
+			name: "unknown operation",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Names:     []string{"foo"},
+						Operation: esv1.ExternalSecretSelectOperation("Unknown"),
+					},
+				},
+				in: map[string][]byte{
+					"foo": []byte("a"),
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "exclude then include all - sequential additive",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Names:     []string{"host"},
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+					{
+						Regexp:    ptrStr(".*"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+				},
+				in: map[string][]byte{
+					"host":     []byte("localhost"),
+					"port":     []byte("5432"),
+					"password": []byte("secret"),
+				},
+			},
+			want: map[string][]byte{
+				"port":     []byte("5432"),
+				"password": []byte("secret"),
+			},
+		},
+		{
+			name: "exclude all then include all - results in zero keys",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr(".*"),
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+					{
+						Regexp:    ptrStr(".*"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+				},
+				in: map[string][]byte{
+					"foo": []byte("a"),
+					"bar": []byte("b"),
+				},
+			},
+			want: map[string][]byte{},
+		},
+		{
+			name: "include all then exclude all - results in zero keys",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr(".*"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+					{
+						Regexp:    ptrStr(".*"),
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+				},
+				in: map[string][]byte{
+					"foo": []byte("a"),
+					"bar": []byte("b"),
+				},
+			},
+			want: map[string][]byte{},
+		},
+		{
+			name: "exclude prefix then include subset - only subset remains",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr("^foo-"),
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+					{
+						Regexp:    ptrStr("^bar-"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+				},
+				in: map[string][]byte{
+					"foo-one":  []byte("1"),
+					"foo-two":  []byte("2"),
+					"bar-one":  []byte("3"),
+					"bar-two":  []byte("4"),
+					"baz-one":  []byte("5"),
+				},
+			},
+			want: map[string][]byte{
+				"bar-one": []byte("3"),
+				"bar-two": []byte("4"),
+			},
+		},
+		{
+			name: "include subset then exclude specific - narrowing down",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr("^db_"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+					{
+						Names:     []string{"db_password"},
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+				},
+				in: map[string][]byte{
+					"db_host":     []byte("localhost"),
+					"db_port":     []byte("5432"),
+					"db_password": []byte("secret"),
+					"app_name":    []byte("myapp"),
+				},
+			},
+			want: map[string][]byte{
+				"db_host": []byte("localhost"),
+				"db_port": []byte("5432"),
+			},
+		},
+		{
+			name: "exclude set then include all and include a specific subset",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr("^foo_"),
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+					{
+						Regexp:    ptrStr(".*"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+					{
+						Regexp:    ptrStr("^bar_special_ones_"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+				},
+				in: map[string][]byte{
+					"foo_1":               []byte("drop"),
+					"foo_2":               []byte("drop"),
+					"foo_bar":             []byte("drop"),
+					"bar_1":               []byte("drop"),
+					"bar_2":               []byte("drop"),
+					"bar_ordinary_ones_1": []byte("drop"),
+					"bar_special_ones_1":  []byte("keep"),
+					"bar_special_ones_2":  []byte("keep"),
+				},
+			},
+			want: map[string][]byte{
+				"bar_special_ones_1": []byte("keep"),
+				"bar_special_ones_2": []byte("keep"),
+			},
+		},
+		{
+			name: "multi-step narrowing specific regex and names",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr("^(api|db|cache)_"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+					{
+						Names:     []string{"api_key", "db_password"},
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+					{
+						Regexp:    ptrStr("^cache_ttl"),
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+					{
+						Regexp:    ptrStr("^(db|cache)_"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+				},
+				in: map[string][]byte{
+					"api_host":    []byte("api.example.com"),
+					"api_key":     []byte("secret-key"),
+					"api_port":    []byte("443"),
+					"db_host":     []byte("db.example.com"),
+					"db_port":     []byte("5432"),
+					"db_password": []byte("secret"),
+					"cache_host":  []byte("redis.example.com"),
+					"cache_ttl":   []byte("300"),
+					"cache_port":  []byte("6379"),
+					"app_name":    []byte("myapp"),
+					"log_level":   []byte("info"),
+				},
+			},
+			want: map[string][]byte{
+				"db_host":    []byte("db.example.com"),
+				"db_port":    []byte("5432"),
+				"cache_host": []byte("redis.example.com"),
+				"cache_port": []byte("6379"),
+			},
+		},
+		{
+			name: "interleaved includes and excludes with overlap of regex and names",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr("^env_"),
+						Names:     []string{"version", "region"},
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+					{
+						Regexp:    ptrStr("_secret$"),
+						Names:     []string{"env_debug"},
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+					{
+						Regexp:    ptrStr("^env_prod"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+					{
+						Names:     []string{"env_prod_cache"},
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+				},
+				in: map[string][]byte{
+					"env_prod_host":    []byte("keep.example.com"),
+					"env_prod_port":    []byte("443-keep"),
+					"env_prod_secret":  []byte("drop"),
+					"env_prod_cache":   []byte("redis://drop"),
+					"env_staging_host": []byte("drop.example.com"),
+					"env_debug":        []byte("drop"),
+					"version":          []byte("drop-v1.2.0"),
+					"region":           []byte("dropped-region"),
+					"unrelated":        []byte("noise"),
+				},
+			},
+			want: map[string][]byte{
+				"env_prod_host": []byte("keep.example.com"),
+				"env_prod_port": []byte("443-keep"),
+			},
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := SelectMap(tt.args.operations, tt.args.in)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("SelectMap() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("SelectMap() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestRewriteMerge(t *testing.T) {
 	type args struct {
 		operation esv1.ExternalSecretRewriteMerge

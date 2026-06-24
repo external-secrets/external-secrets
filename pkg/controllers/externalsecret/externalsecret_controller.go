@@ -108,6 +108,7 @@ const (
 	// error formats.
 	errConvert               = "error applying conversion strategy %s to keys: %w"
 	errRewrite               = "error applying rewrite to keys: %w"
+	errSelect                = "error applying select filter to keys: %w"
 	errDecode                = "error applying decoding strategy %s to data: %w"
 	errGenerate              = "error using generator: %w"
 	errInvalidKeys           = "invalid secret keys (TIP: use rewrite or conversionStrategy to change keys): %w"
