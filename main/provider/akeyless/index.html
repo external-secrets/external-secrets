@@ -3357,12 +3357,12 @@
   <a href="#authentication-with-cloud-identity-or-api-access-key" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Authentication With Cloud-Identity or Api-Access-Key
+        Authentication with Cloud-Identity or Api-Access-Key
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Authentication With Cloud-Identity or Api-Access-Key">
+    <nav class="md-nav" aria-label="Authentication with Cloud-Identity or Api-Access-Key">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -3404,6 +3404,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#supported-secret-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported Secret Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#creating-an-external-secret" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3416,10 +3427,43 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#fetching-a-specific-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fetching a specific version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extracting-a-property-from-a-json-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extracting a property from a JSON secret
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#using-datafrom" class="md-nav__link">
     <span class="md-ellipsis">
       
         Using DataFrom
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#finding-secrets-by-name-or-tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finding secrets by name or tag
       
     </span>
   </a>
@@ -5095,12 +5139,12 @@
   <a href="#authentication-with-cloud-identity-or-api-access-key" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Authentication With Cloud-Identity or Api-Access-Key
+        Authentication with Cloud-Identity or Api-Access-Key
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Authentication With Cloud-Identity or Api-Access-Key">
+    <nav class="md-nav" aria-label="Authentication with Cloud-Identity or Api-Access-Key">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
@@ -5142,6 +5186,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#supported-secret-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported Secret Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#creating-an-external-secret" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5154,10 +5209,43 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#fetching-a-specific-version" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fetching a specific version
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extracting-a-property-from-a-json-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extracting a property from a JSON secret
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#using-datafrom" class="md-nav__link">
     <span class="md-ellipsis">
       
         Using DataFrom
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#finding-secrets-by-name-or-tag" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Finding secrets by name or tag
       
     </span>
   </a>
@@ -5224,7 +5312,7 @@
 <p>SecretStore resource specifies how to access Akeyless. This resource is namespaced.</p>
 <p><strong>NOTE:</strong> Make sure the Akeyless provider is listed in the Kind=SecretStore.
 If you use a customer fragment, define the value of akeylessGWApiURL as the URL of your Akeyless Gateway in the following format: https://your.akeyless.gw:8080/v2.</p>
-<p>Akeyelss provide several Authentication Methods:</p>
+<p>Akeyless provides several Authentication Methods:</p>
 <h3 id="authentication-with-kubernetes">Authentication with Kubernetes</h3>
 <p>Options for obtaining Kubernetes credentials include:</p>
 <ol>
@@ -5248,20 +5336,24 @@ If you use a customer fragment, define the value of akeylessGWApiURL as the URL 
 <span class="w">          </span><span class="nt">k8sConfName</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-conf-name&quot;</span>
 
 <span class="w">          </span><span class="c1"># Optional service account field containing the name</span>
-<span class="w">          </span><span class="c1"># of a kubernetes ServiceAccount</span>
+<span class="w">          </span><span class="c1"># of a kubernetes ServiceAccount.</span>
+<span class="w">          </span><span class="c1"># For ClusterSecretStore, namespace is required.</span>
 <span class="w">          </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-sa&quot;</span>
+<span class="w">            </span><span class="c1"># namespace: &quot;my-namespace&quot;  # required for ClusterSecretStore</span>
 
 <span class="w">          </span><span class="c1"># Optional secret field containing a Kubernetes ServiceAccount JWT</span>
-<span class="w">          </span><span class="c1"># used for authenticating with Akeyless</span>
+<span class="w">          </span><span class="c1"># used for authenticating with Akeyless.</span>
+<span class="w">          </span><span class="c1"># For ClusterSecretStore, namespace is required.</span>
 <span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret&quot;</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;token&quot;</span>
+<span class="w">            </span><span class="c1"># namespace: &quot;my-namespace&quot;  # required for ClusterSecretStore</span>
 </code></pre></div>
-<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>serviceAccountRef</code> and <code>secretRef</code> according to  the namespaces where the secrets reside.</p>
-<h3 id="authentication-with-cloud-identity-or-api-access-key">Authentication With Cloud-Identity or Api-Access-Key</h3>
-<p>Akeyless providers require an access-id, access-type and access-Type-param
-To set your SecretStore with an authentication method from Akeyless.</p>
+<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, be sure to provide <code>namespace</code> for <code>serviceAccountRef</code> and <code>secretRef</code> according to the namespaces where the secrets reside.</p>
+<h3 id="authentication-with-cloud-identity-or-api-access-key">Authentication with Cloud-Identity or Api-Access-Key</h3>
+<p>Akeyless providers require an access-id, access-type and access-type-param
+to set your SecretStore with an authentication method from Akeyless.</p>
 <p>The supported auth-methods and their parameters are:</p>
 <table>
 <thead>
@@ -5277,15 +5369,19 @@ To set your SecretStore with an authentication method from Akeyless.</p>
 </tr>
 <tr>
 <td><code>gcp</code></td>
-<td>The gcp audience</td>
+<td>The GCP audience</td>
 </tr>
 <tr>
 <td><code>azure_ad</code></td>
-<td>azure object id  (optional)</td>
+<td>Azure object ID (optional)</td>
 </tr>
 <tr>
 <td><code>api_key</code></td>
-<td>The access key.</td>
+<td>The access key</td>
+</tr>
+<tr>
+<td><code>access_key</code></td>
+<td>The access key (alias for api_key)</td>
 </tr>
 <tr>
 <td><code>k8s</code></td>
@@ -5303,8 +5399,8 @@ To set your SecretStore with an authentication method from Akeyless.</p>
 <span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
 <span class="nt">stringData</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">accessId</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;p-XXXX&quot;</span>
-<span class="w">  </span><span class="nt">accessType</span><span class="p">:</span><span class="w">  </span><span class="c1"># gcp/azure_ad/api_key/k8s/aws_iam</span>
-<span class="w">  </span><span class="nt">accessTypeParam</span><span class="p">:</span><span class="w">  </span><span class="c1"># optional: can be one of the following: gcp-audience/azure-obj-id/access-key/k8s-conf-name</span>
+<span class="w">  </span><span class="nt">accessType</span><span class="p">:</span><span class="w">  </span><span class="c1"># one of: aws_iam / gcp / azure_ad / api_key / access_key / k8s</span>
+<span class="w">  </span><span class="nt">accessTypeParam</span><span class="p">:</span><span class="w">  </span><span class="c1"># optional -- one of: gcp-audience / azure-obj-id / access-key / k8s-conf-name</span>
 </code></pre></div>
 <h4 id="create-the-akeyless-secret-store-provider-with-the-credentials-secret">Create the Akeyless Secret Store Provider with the Credentials Secret</h4>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
@@ -5328,7 +5424,7 @@ To set your SecretStore with an authentication method from Akeyless.</p>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-secret-creds</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">accessTypeParam</span>
 </code></pre></div>
-<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, be sure to provide <code>namespace</code> for <code>accessID</code>, <code>accessType</code> and <code>accessTypeParam</code>  according to the namespaces where the secrets reside.</p>
+<p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, be sure to provide <code>namespace</code> for <code>accessID</code>, <code>accessType</code> and <code>accessTypeParam</code> according to the namespaces where the secrets reside.</p>
 <h4 id="create-the-akeyless-secret-store-with-cas-for-tls-handshake">Create the Akeyless Secret Store With CAs for TLS handshake</h4>
 <div class="highlight"><pre><span></span><code><span class="l l-Scalar l-Scalar-Plain">....</span>
 <span class="l l-Scalar l-Scalar-Plain">spec</span><span class="p p-Indicator">:</span>
@@ -5342,13 +5438,21 @@ To set your SecretStore with an authentication method from Akeyless.</p>
 <span class="w">      </span><span class="c1"># Instead of caBundle you can also specify a caProvider</span>
 <span class="w">      </span><span class="c1"># this will retrieve the cert from a Secret or ConfigMap</span>
 <span class="w">      </span><span class="nt">caProvider</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Secret/ConfigMap&quot;</span><span class="w"> </span><span class="c1"># Can be Secret or ConfigMap</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span><span class="w">  </span><span class="c1"># Can be Secret or ConfigMap</span>
 <span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;name</span><span class="nv"> </span><span class="s">of</span><span class="nv"> </span><span class="s">secret</span><span class="nv"> </span><span class="s">or</span><span class="nv"> </span><span class="s">configmap&gt;&quot;</span>
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;key</span><span class="nv"> </span><span class="s">inside</span><span class="nv"> </span><span class="s">secret&gt;&quot;</span>
 <span class="w">        </span><span class="c1"># namespace is mandatory for ClusterSecretStore and not relevant for SecretStore</span>
 <span class="w">        </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-cert-secret-namespace&quot;</span>
 <span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">....</span>
 </code></pre></div>
+<h3 id="supported-secret-types">Supported Secret Types</h3>
+<p>The provider supports the following Akeyless item types:</p>
+<ul>
+<li><strong>Static Secret</strong> -- standard key/value secret</li>
+<li><strong>Dynamic Secret</strong> -- ephemeral credentials generated on demand</li>
+<li><strong>Rotated Secret</strong> -- automatically rotated credentials</li>
+<li><strong>Certificate</strong> -- TLS/SSH certificates</li>
+</ul>
 <h3 id="creating-an-external-secret">Creating an external secret</h3>
 <p>To get a secret from Akeyless and create it as a secret on the Kubernetes cluster, a <code>Kind=ExternalSecret</code> is needed.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
@@ -5374,8 +5478,24 @@ To set your SecretStore with an authentication method from Akeyless.</p>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db-password</span><span class="w">  </span><span class="c1"># Full path of the secret on Akeyless</span>
 </code></pre></div>
+<h4 id="fetching-a-specific-version">Fetching a specific version</h4>
+<p>Use <code>remoteRef.version</code> to pin a specific secret version (integer). Omit the field or set it to <code>0</code> to get the latest version.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/path/to/secret</span>
+<span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;3&quot;</span><span class="w">  </span><span class="c1"># fetch version 3 specifically</span>
+</code></pre></div>
+<h4 id="extracting-a-property-from-a-json-secret">Extracting a property from a JSON secret</h4>
+<p>If the secret value is a JSON object, use <code>remoteRef.property</code> to extract a single key. Nested keys can be addressed with dot notation; literal dots in key names are escaped with a backslash (<code>key\.with\.dots</code>).</p>
+<div class="highlight"><pre><span></span><code><span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db-password</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/path/to/json-secret</span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span><span class="w">  </span><span class="c1"># extracts {&quot;password&quot;: &quot;...&quot;} from the JSON value</span>
+</code></pre></div>
 <h4 id="using-datafrom">Using DataFrom</h4>
-<p>DataFrom can be used to get a secret as a JSON string and attempt to parse it.</p>
+<p>DataFrom can be used to get a secret as a JSON string and attempt to parse it, creating one Kubernetes secret key per JSON field.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5396,6 +5516,21 @@ To set your SecretStore with an authentication method from Akeyless.</p>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span><span class="w"> </span><span class="c1"># Full path of the secret on Akeyless</span>
 </code></pre></div>
+<h4 id="finding-secrets-by-name-or-tag">Finding secrets by name or tag</h4>
+<p>Use <code>dataFrom.find</code> to bulk-fetch secrets matching a name pattern or tag:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># by name regex</span>
+<span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/my/path/</span><span class="w">         </span><span class="c1"># optional path prefix</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;.*db.*&quot;</span>
+
+<span class="c1"># by tag</span>
+<span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">tags</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span>
+</code></pre></div>
 <h3 id="getting-the-kubernetes-secret">Getting the Kubernetes Secret</h3>
 <p>The operator will fetch the secret and inject it as a <code>Kind=Secret</code>.</p>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span>database-credentials<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.data.db-password}&#39;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-d
@@ -5404,24 +5539,25 @@ To set your SecretStore with an authentication method from Akeyless.</p>
 </code></pre></div>
 <h3 id="pushing-a-secret">Pushing a secret</h3>
 <p>To push a secret from Kubernetes cluster and create it as a secret to Akeyless, a <code>Kind=PushSecret</code> resource is needed.</p>
-<p>apiVersion: external-secrets.io/v1alpha1
-kind: PushSecret
-metadata:
- name: push-secret
-spec:
- refreshInterval: 1h0m0s
- updatePolicy: Replace
- deletionPolicy: Delete
- secretStoreRefs:
-   - name: akeyless-secret-store
-     kind: SecretStore
- selector:
-   secret:
-     name: k8s-created-secret
- data:
-   - match:
-      remoteRef:
-        remoteKey: eso-created/my-secret</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">push-secret</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w"> </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h0m0s</span>
+<span class="w"> </span><span class="nt">updatePolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Replace</span>
+<span class="w"> </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Delete</span>
+<span class="w"> </span><span class="nt">secretStoreRefs</span><span class="p">:</span>
+<span class="w">   </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-secret-store</span>
+<span class="w">     </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w"> </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">   </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">     </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">k8s-created-secret</span>
+<span class="w"> </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">   </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eso-created/my-secret</span>
+</code></pre></div>
 <p>Then when you create a matching secret as follows:</p>
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>--from-literal<span class="o">=</span>cache-pass<span class="o">=</span>mypassword<span class="w"> </span>k8s-created-secret
 </code></pre></div>
