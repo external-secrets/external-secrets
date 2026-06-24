@@ -1121,9 +1121,9 @@ func TestCacheInvalidationStaleItemAfterPush(t *testing.T) {
 				VaultsAPI:  fc,
 				ItemsAPI:   fl,
 			},
-			vaultPrefix: "op://vault/",
-			vaultID:     "vault-id",
-			cache:       expirable.NewLRU[string, []byte](100, nil, time.Minute),
+			targetPrefix: "op://vault/",
+			targetID:     "vault-id",
+			cache:        expirable.NewLRU[string, []byte](100, nil, time.Minute),
 		}
 
 		mapRef := v1.ExternalSecretDataRemoteRef{Key: "key", Property: "password"}
@@ -1961,8 +1961,8 @@ func TestGetAllSecrets(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &SecretsClient{
-				client:      tt.client(),
-				vaultPrefix: "op://vault/",
+				client:       tt.client(),
+				targetPrefix: "op://vault/",
 			}
 			got, err := p.GetAllSecrets(t.Context(), tt.ref)
 			tt.assertError(t, err)
@@ -2041,9 +2041,9 @@ func TestCachingGetAllSecrets(t *testing.T) {
 			},
 		}
 		return &SecretsClient{
-			client:  &onepassword.Client{SecretsAPI: fc, VaultsAPI: fc, ItemsAPI: fl},
-			vaultID: "vault-id",
-			cache:   expirable.NewLRU[string, []byte](100, nil, time.Minute),
+			client:   &onepassword.Client{SecretsAPI: fc, VaultsAPI: fc, ItemsAPI: fl},
+			targetID: "vault-id",
+			cache:    expirable.NewLRU[string, []byte](100, nil, time.Minute),
 		}
 	}
 
@@ -2116,9 +2116,6 @@ func TestCachingGetAllSecrets(t *testing.T) {
 	})
 
 	t.Run("item fetched by GetAllSecrets is reused by GetSecret", func(t *testing.T) {
-		t.Skip("TODO: GetSecret and GetSecretMap/GetAllSecrets use different caching formats. " +
-			"See https://github.com/external-secrets/external-secrets/issues/6444")
-
 		fl := createLister(item1)
 		p := newCachedClient(fl)
 		fc := p.client.SecretsAPI.(*fakeClientWithCounter)
@@ -2340,12 +2337,6 @@ func TestEnvironmentGetAllSecrets(t *testing.T) {
 	got, err := p.GetAllSecrets(t.Context(), v1.ExternalSecretFind{})
 	require.NoError(t, err)
 	require.Equal(t, map[string][]byte{"K1": []byte("v1"), "K2": []byte("v2")}, got)
-}
-
-func TestEnvironmentVaultGetAllSecretsNotImplemented(t *testing.T) {
-	p := &SecretsClient{source: sourceVault}
-	_, err := p.GetAllSecrets(t.Context(), v1.ExternalSecretFind{})
-	require.ErrorContains(t, err, "not implemented")
 }
 
 func TestEnvironmentRejectsWrites(t *testing.T) {
