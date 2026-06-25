@@ -23,7 +23,7 @@ If you set up your Secrets Manager server with a self-signed certificate, we rec
 
 ## External secret store
 
-The Secrets Manager provider is configured as an external secret store in ESO. The Secrets Manager provider supports these three methods to authenticate to Secrets Manager:
+To synchronise secrets with Secrets Manager, you must configure an external secret store with one of the following three methods to authenticate to the Secrets Manager API:
 
 * [`apikey`](#option-1-external-secret-store-with-apikey-authentication): uses a Secrets Manager `hostid` and `apikey` to authenticate with Secrets Manager
 * [`jwt`](#option-2-external-secret-store-with-jwt-authentication): uses a JWT to authenticate with Secrets Manager
@@ -135,9 +135,9 @@ kubectl apply -n external-secrets -f conjur-secret-store.yaml
 
 ### Option 3: External secret store with cert authentication
 
-This method uses a client X.509 certificate and private key to authenticate with Secrets Manager via the `authn-cert` authenticator. The certificate must be issued by a CA that is trusted by the Secrets Manager `authn-cert` service, and the certificate's Common Name (CN) or `sub` annotation must match a host that is permitted to authenticate against the `authn-cert` web service.
+This method uses a client X.509 certificate and private key to authenticate with Secrets Manager via the `authn-cert` authenticator. The certificate must be issued by a CA that is trusted by the Secrets Manager `authn-cert` service. Conjur validates the presented certificate using constraints configured in the authenticator policy (such as `cn`, `san-uri`, `san-dns`, `san-ip` variables), and optionally per-host annotations that scope constraints to individual workloads.
 
-For more information on configuring the certificate authenticator, see the [Secrets Manager authn-cert documentation](https://docs.cyberark.com/conjur-open-source/Latest/en/Content/Operations/Services/cjr-authn-cert.htm).
+For more information on configuring the certificate authenticator, see the [Secrets Manager Certificate authenticator documentation](https://docs.cyberark.com/conjur-open-source/latest/en/content/operations/authn/authn-cert/authn-cert.htm?TocPath=Integrations%7CCertificate%20authenticator%7C_____0).
 
 #### Step 1: Define an external secret store
 
@@ -147,7 +147,7 @@ When you use cert authentication, the following must be specified in the `Secret
 * `serviceID` - The ID of the `authn-cert` `WebService` configured in Secrets Manager that is used to authenticate the client certificate
 * `clientCertRef` - Reference to a Kubernetes secret containing the PEM-encoded client certificate
 * `clientKeyRef` - Reference to a Kubernetes secret containing the PEM-encoded client private key
-* `hostId` (optional) - The Secrets Manager host identity to authenticate as. If you are using SPIFFE with SVID based on CN/SaN, leave this field empty.
+* `hostId` (optional) - The Secrets Manager host identity to authenticate as. Required in the default `request` mode. Leave empty when using `spiffe` mode, where the host identity is derived from the SPIFFE SAN URI (`spiffe://<trust-domain>/<workload-id>`) in the certificate.
 
 ```yaml
 {% include 'conjur-secret-store-cert.yaml' %}
