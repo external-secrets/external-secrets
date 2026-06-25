@@ -25,7 +25,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	clientgofake "k8s.io/client-go/kubernetes/fake"
-	pointer "k8s.io/utils/ptr"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	fclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -121,7 +120,7 @@ func TestNewClient(t *testing.T) {
 							Kubernetes: &esv1.KubernetesProvider{
 								AuthRef: &v1.SecretKeySelector{
 									Name:      "foo",
-									Namespace: pointer.To("default"),
+									Namespace: new("default"),
 									Key:       "config",
 								},
 							},
@@ -195,7 +194,7 @@ func TestNewClient(t *testing.T) {
 									Token: &esv1.TokenAuth{
 										BearerToken: v1.SecretKeySelector{
 											Name:      "foo",
-											Namespace: pointer.To("default"),
+											Namespace: new("default"),
 											Key:       "token",
 										},
 									},
@@ -230,7 +229,7 @@ func TestNewClient(t *testing.T) {
 									Token: &esv1.TokenAuth{
 										BearerToken: v1.SecretKeySelector{
 											Name:      "foo",
-											Namespace: pointer.To("default"),
+											Namespace: new("default"),
 											Key:       "token",
 										},
 									},

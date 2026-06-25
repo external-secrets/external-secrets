@@ -27,6 +27,7 @@ import (
 
 type DopplerClient struct {
 	getSecret     func(request client.SecretRequest) (*client.SecretResponse, error)
+	getSecrets    func(request client.SecretsRequest) (*client.SecretsResponse, error)
 	updateSecrets func(request client.UpdateSecretsRequest) error
 }
 
@@ -42,9 +43,12 @@ func (dc *DopplerClient) GetSecret(request client.SecretRequest) (*client.Secret
 	return dc.getSecret(request)
 }
 
-func (dc *DopplerClient) GetSecrets(_ client.SecretsRequest) (*client.SecretsResponse, error) {
-	// Not implemented
-	return &client.SecretsResponse{}, nil
+func (dc *DopplerClient) GetSecrets(request client.SecretsRequest) (*client.SecretsResponse, error) {
+	if dc.getSecrets != nil {
+		return dc.getSecrets(request)
+	}
+	// Default: return empty response with Modified=true (simulates fresh fetch)
+	return &client.SecretsResponse{Modified: true}, nil
 }
 
 func (dc *DopplerClient) UpdateSecrets(request client.UpdateSecretsRequest) error {
@@ -70,5 +74,25 @@ func (dc *DopplerClient) WithUpdateValue(request client.UpdateSecretsRequest, er
 			}
 			return err
 		}
+	}
+}
+
+func (dc *DopplerClient) WithSecretsValue(response *client.SecretsResponse, err error) {
+	if dc != nil {
+		dc.getSecrets = func(_ client.SecretsRequest) (*client.SecretsResponse, error) {
+			return response, err
+		}
+	}
+}
+
+func (dc *DopplerClient) WithSecretsFunc(fn func(request client.SecretsRequest) (*client.SecretsResponse, error)) {
+	if dc != nil {
+		dc.getSecrets = fn
+	}
+}
+
+func (dc *DopplerClient) WithSecretFunc(fn func(request client.SecretRequest) (*client.SecretResponse, error)) {
+	if dc != nil {
+		dc.getSecret = fn
 	}
 }

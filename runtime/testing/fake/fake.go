@@ -18,6 +18,7 @@ package fake
 
 import (
 	"context"
+	"maps"
 	"sync"
 
 	corev1 "k8s.io/api/core/v1"
@@ -25,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 var _ esv1.Provider = &Client{}
@@ -36,7 +38,7 @@ type SetSecretCallArgs struct {
 
 // Client is a fake client for testing.
 type Client struct {
-	mu              *sync.RWMutex
+	mu              sync.RWMutex
 	pushSecretData  map[string]SetSecretCallArgs
 	NewFn           func(context.Context, esv1.GenericStore, client.Client, string) (esv1.SecretsClient, error)
 	GetSecretFn     func(context.Context, esv1.ExternalSecretDataRemoteRef) ([]byte, error)
@@ -47,35 +49,10 @@ type Client struct {
 	DeleteSecretFn  func() error
 }
 
-// New returns a fake provider/client.
+// New returns a fake provider/client with default no-op behavior.
 func New() *Client {
-	v := &Client{
-		mu: &sync.RWMutex{},
-		GetSecretFn: func(context.Context, esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-			return nil, nil
-		},
-		GetSecretMapFn: func(context.Context, esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-			return nil, nil
-		},
-		GetAllSecretsFn: func(context.Context, esv1.ExternalSecretFind) (map[string][]byte, error) {
-			return nil, nil
-		},
-		SecretExistsFn: func(context.Context, esv1.PushSecretRemoteRef) (bool, error) {
-			return false, nil
-		},
-		SetSecretFn: func() error {
-			return nil
-		},
-		DeleteSecretFn: func() error {
-			return nil
-		},
-		pushSecretData: map[string]SetSecretCallArgs{},
-	}
-
-	v.NewFn = func(context.Context, esv1.GenericStore, client.Client, string) (esv1.SecretsClient, error) {
-		return v, nil
-	}
-
+	v := &Client{}
+	v.Reset()
 	return v
 }
 
@@ -94,8 +71,9 @@ func (v *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 
 func (v *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	v.mu.Lock()
+	value, _ := esutils.ExtractSecretData(data, secret)
 	v.pushSecretData[data.GetRemoteKey()] = SetSecretCallArgs{
-		Value:     secret.Data[data.GetSecretKey()],
+		Value:     value,
 		RemoteRef: data,
 	}
 	fn := v.SetSecretFn
@@ -107,11 +85,8 @@ func (v *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.
 func (v *Client) GetPushSecretData() map[string]SetSecretCallArgs {
 	v.mu.RLock()
 	defer v.mu.RUnlock()
-	// Create a copy to avoid race conditions
 	result := make(map[string]SetSecretCallArgs, len(v.pushSecretData))
-	for k, v := range v.pushSecretData {
-		result[k] = v
-	}
+	maps.Copy(result, v.pushSecretData)
 	return result
 }
 
@@ -187,12 +162,26 @@ func (v *Client) WithGetAllSecrets(secData map[string][]byte, err error) *Client
 	return v
 }
 
-// WithSetSecret wraps the secret response to the fake provider.
-func (v *Client) WithSetSecret(err error) *Client {
+// WithSetSecretFn installs a custom SetSecret function under the client lock.
+func (v *Client) WithSetSecretFn(fn func() error) *Client {
 	v.mu.Lock()
-	v.SetSecretFn = func() error {
-		return err
-	}
+	v.SetSecretFn = fn
+	v.mu.Unlock()
+	return v
+}
+
+// WithDeleteSecretFn installs a custom DeleteSecret function under the client lock.
+func (v *Client) WithDeleteSecretFn(fn func() error) *Client {
+	v.mu.Lock()
+	v.DeleteSecretFn = fn
+	v.mu.Unlock()
+	return v
+}
+
+// WithSecretExistsFn installs a custom SecretExists function under the client lock.
+func (v *Client) WithSecretExistsFn(fn func(context.Context, esv1.PushSecretRemoteRef) (bool, error)) *Client {
+	v.mu.Lock()
+	v.SecretExistsFn = fn
 	v.mu.Unlock()
 	return v
 }
@@ -216,19 +205,33 @@ func (v *Client) NewClient(ctx context.Context, store esv1.GenericStore, kube cl
 	v.mu.RLock()
 	fn := v.NewFn
 	v.mu.RUnlock()
-	c, err := fn(ctx, store, kube, namespace)
-	if err != nil {
-		return nil, err
-	}
-	return c, nil
+	return fn(ctx, store, kube, namespace)
 }
 
+// Reset restores all functions to their default no-op behavior and clears recorded push data.
 func (v *Client) Reset() {
-	v.WithNew(func(context.Context, esv1.GenericStore, client.Client,
-		string) (esv1.SecretsClient, error) {
-		return v, nil
-	})
 	v.mu.Lock()
 	defer v.mu.Unlock()
+	v.NewFn = func(context.Context, esv1.GenericStore, client.Client, string) (esv1.SecretsClient, error) {
+		return v, nil
+	}
+	v.GetSecretFn = func(context.Context, esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+		return nil, nil
+	}
+	v.GetSecretMapFn = func(context.Context, esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+		return nil, nil
+	}
+	v.GetAllSecretsFn = func(context.Context, esv1.ExternalSecretFind) (map[string][]byte, error) {
+		return nil, nil
+	}
+	v.SecretExistsFn = func(context.Context, esv1.PushSecretRemoteRef) (bool, error) {
+		return false, nil
+	}
+	v.SetSecretFn = func() error {
+		return nil
+	}
+	v.DeleteSecretFn = func() error {
+		return nil
+	}
 	v.pushSecretData = map[string]SetSecretCallArgs{}
 }

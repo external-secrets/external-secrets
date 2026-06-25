@@ -40,7 +40,7 @@ func (v *PreviderVaultFakeClient) DecryptSecret(id string) (*model.SecretDecrypt
 }
 
 func (v *PreviderVaultFakeClient) GetSecrets() ([]model.Secret, error) {
-	secretList := make([]model.Secret, 0)
+	secretList := make([]model.Secret, 0, len(secrets))
 	for k := range secrets {
 		secretList = append(secretList, model.Secret{Description: k})
 	}

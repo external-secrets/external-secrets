@@ -55,6 +55,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/decoding"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	estemplate "github.com/external-secrets/external-secrets/runtime/template/v2"
 )
@@ -77,9 +78,7 @@ func JSONMarshal(t any) ([]byte, error) {
 
 // MergeByteMap merges map of byte slices.
 func MergeByteMap(dst, src map[string][]byte) map[string][]byte {
-	for k, v := range src {
-		dst[k] = v
-	}
+	maps.Copy(dst, src)
 	return dst
 }
 
@@ -230,54 +229,6 @@ func RewriteTransform(operation esv1.ExternalSecretRewriteTransform, in map[stri
 	return out, nil
 }
 
-// DecodeMap decodes values from a secretMap.
-func DecodeMap(strategy esv1.ExternalSecretDecodingStrategy, in map[string][]byte) (map[string][]byte, error) {
-	out := make(map[string][]byte, len(in))
-	for k, v := range in {
-		val, err := Decode(strategy, v)
-		if err != nil {
-			return nil, fmt.Errorf("failure decoding key %v: %w", k, err)
-		}
-		out[k] = val
-	}
-	return out, nil
-}
-
-// Decode decodes the input byte slice according to the provided decoding strategy.
-func Decode(strategy esv1.ExternalSecretDecodingStrategy, in []byte) ([]byte, error) {
-	switch strategy {
-	case esv1.ExternalSecretDecodeBase64:
-		out, err := base64.StdEncoding.DecodeString(string(in))
-		if err != nil {
-			return nil, err
-		}
-		return out, nil
-	case esv1.ExternalSecretDecodeBase64URL:
-		out, err := base64.URLEncoding.DecodeString(string(in))
-		if err != nil {
-			return nil, err
-		}
-		return out, nil
-	case esv1.ExternalSecretDecodeNone:
-		return in, nil
-	// default when stored version is v1alpha1
-	case "":
-		return in, nil
-	case esv1.ExternalSecretDecodeAuto:
-		out, err := Decode(esv1.ExternalSecretDecodeBase64, in)
-		if err != nil {
-			out, err := Decode(esv1.ExternalSecretDecodeBase64URL, in)
-			if err != nil {
-				return Decode(esv1.ExternalSecretDecodeNone, in)
-			}
-			return out, nil
-		}
-		return out, nil
-	default:
-		return nil, fmt.Errorf("decoding strategy %v is not supported", strategy)
-	}
-}
-
 // ValidateKeys checks if the keys in the secret map are valid keys for a Kubernetes secret.
 func ValidateKeys(log logr.Logger, in map[string][]byte) error {
 	for key := range in {
@@ -353,6 +304,11 @@ func ReverseKeys(strategy esv1alpha1.PushSecretConversionStrategy, in map[string
 	return out, nil
 }
 
+// ReverseKey applies the conversion strategy to a single key name.
+func ReverseKey(strategy esv1alpha1.PushSecretConversionStrategy, key string) string {
+	return reverse(strategy, key)
+}
+
 func reverse(strategy esv1alpha1.PushSecretConversionStrategy, str string) string {
 	switch strategy {
 	case esv1alpha1.PushSecretConversionReverseUnicode:
@@ -383,9 +339,7 @@ func reverse(strategy esv1alpha1.PushSecretConversionStrategy, str string) strin
 
 // MergeStringMap performs a deep clone from src to dest.
 func MergeStringMap(dest, src map[string]string) {
-	for k, v := range src {
-		dest[k] = v
-	}
+	maps.Copy(dest, src)
 }
 
 var (
@@ -556,8 +510,10 @@ func Deref[V any](v *V) V {
 }
 
 // Ptr returns a pointer to the given value.
+//
+//go:fix inline
 func Ptr[T any](i T) *T {
-	return &i
+	return new(i)
 }
 
 // ConvertToType converts an object to the specified type using JSON marshaling.
@@ -680,6 +636,13 @@ func FetchCACertFromSource(ctx context.Context, opts CreateCertOpts) ([]byte, er
 	}
 
 	if opts.CAProvider != nil &&
+		opts.StoreKind != esv1.ClusterSecretStoreKind &&
+		opts.CAProvider.Namespace != nil &&
+		*opts.CAProvider.Namespace != opts.Namespace {
+		return nil, errNamespaceNotAllowed
+	}
+
+	if opts.CAProvider != nil &&
 		opts.StoreKind == esv1.ClusterSecretStoreKind &&
 		opts.CAProvider.Namespace == nil {
 		return nil, errors.New("missing namespace on caProvider secret")
@@ -694,7 +657,7 @@ func FetchCACertFromSource(ctx context.Context, opts CreateCertOpts) ([]byte, er
 
 		return cert, nil
 	case esv1.CAProviderTypeConfigMap:
-		cert, err := getCertFromConfigMap(ctx, opts.Namespace, opts.Client, opts.CAProvider)
+		cert, err := getCertFromConfigMap(ctx, opts.Namespace, opts.Client, opts.CAProvider, opts.StoreKind)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get cert from configmap: %w", err)
 		}
@@ -768,7 +731,7 @@ func base64decode(cert []byte) ([]byte, error) {
 	}
 
 	// try decoding and test for validity again...
-	certificate, err := Decode(esv1.ExternalSecretDecodeAuto, cert)
+	certificate, err := decoding.Decode(esv1.ExternalSecretDecodeAuto, cert)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode base64: %w", err)
 	}
@@ -807,13 +770,13 @@ func getCertFromSecret(ctx context.Context, c client.Client, provider *esv1.CAPr
 	return []byte(cert), nil
 }
 
-func getCertFromConfigMap(ctx context.Context, namespace string, c client.Client, provider *esv1.CAProvider) ([]byte, error) {
+func getCertFromConfigMap(ctx context.Context, namespace string, c client.Client, provider *esv1.CAProvider, storeKind string) ([]byte, error) {
 	objKey := client.ObjectKey{
 		Name:      provider.Name,
 		Namespace: namespace,
 	}
 
-	if provider.Namespace != nil {
+	if provider.Namespace != nil && storeKind == esv1.ClusterSecretStoreKind {
 		objKey.Namespace = *provider.Namespace
 	}
 
@@ -860,7 +823,7 @@ func CheckEndpointSlicesReady(ctx context.Context, c client.Client, svcName, svc
 }
 
 // ParseJWTClaims extracts claims from a JWT token string.
-func ParseJWTClaims(tokenString string) (map[string]interface{}, error) {
+func ParseJWTClaims(tokenString string) (map[string]any, error) {
 	// Split the token into its three parts
 	parts := strings.Split(tokenString, ".")
 	if len(parts) != 3 {
@@ -873,7 +836,7 @@ func ParseJWTClaims(tokenString string) (map[string]interface{}, error) {
 		return nil, fmt.Errorf("error decoding payload: %w", err)
 	}
 
-	var claims map[string]interface{}
+	var claims map[string]any
 	if err := json.Unmarshal(payload, &claims); err != nil {
 		return nil, fmt.Errorf("error un-marshaling claims: %w", err)
 	}

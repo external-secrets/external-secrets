@@ -19,6 +19,7 @@ package externalsecret
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
@@ -183,9 +184,9 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		obj.SetNamespace(es.Namespace)
 		switch gvk.Kind {
 		case "ConfigMap", "Secret":
-			obj.Object["data"] = map[string]interface{}{}
+			obj.Object["data"] = map[string]any{}
 		default:
-			obj.Object["spec"] = map[string]interface{}{}
+			obj.Object["spec"] = map[string]any{}
 		}
 	}
 
@@ -198,14 +199,13 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		annotations = make(map[string]string)
 	}
 
+	srcLabels, srcAnnotations := es.ObjectMeta.Labels, es.ObjectMeta.Annotations
 	if es.Spec.Target.Template != nil {
-		for k, v := range es.Spec.Target.Template.Metadata.Labels {
-			labels[k] = v
-		}
-		for k, v := range es.Spec.Target.Template.Metadata.Annotations {
-			annotations[k] = v
-		}
+		srcLabels = es.Spec.Target.Template.Metadata.Labels
+		srcAnnotations = es.Spec.Target.Template.Metadata.Annotations
 	}
+	maps.Copy(labels, srcLabels)
+	maps.Copy(annotations, srcAnnotations)
 
 	labels[esv1.LabelManaged] = esv1.LabelManagedValue
 
@@ -235,6 +235,10 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 
 	ann[esv1.AnnotationDataHash] = hash
 	result.SetAnnotations(ann)
+
+	if err := r.applyOwnership(es, result); err != nil {
+		return nil, err
+	}
 
 	return result, nil
 }
@@ -284,7 +288,7 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 			// Execute template directly against the unstructured object
 			out := make(map[string][]byte)
 			out[*tplFrom.Literal] = []byte(*tplFrom.Literal)
-			if err := execute(out, dataMap, esv1.TemplateScopeKeysAndValues, targetPath, obj); err != nil {
+			if err := execute(out, dataMap, esv1.TemplateScopeKeysAndValues, targetPath, obj, tplFrom.ValuesDecodingStrategy); err != nil {
 				return nil, fmt.Errorf("failed to execute literal template: %w", err)
 			}
 		}
@@ -312,7 +316,7 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 			}
 
 			// apply collected data to the target object
-			if err := execute(tempSecret.Data, dataMap, esv1.TemplateScopeValues, targetPath, obj); err != nil {
+			if err := execute(tempSecret.Data, dataMap, esv1.TemplateScopeValues, targetPath, obj, esv1.ExternalSecretDecodeNone); err != nil {
 				return nil, fmt.Errorf("failed to apply merged templates to path %s: %w", targetPath, err)
 			}
 		}
@@ -325,7 +329,7 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 			tplMap[k] = []byte(v)
 		}
 
-		if err := execute(tplMap, dataMap, esv1.TemplateScopeValues, esv1.TemplateTargetData, obj); err != nil {
+		if err := execute(tplMap, dataMap, esv1.TemplateScopeValues, esv1.TemplateTargetData, obj, esv1.ExternalSecretDecodeNone); err != nil {
 			return nil, fmt.Errorf("failed to execute template.data: %w", err)
 		}
 	}

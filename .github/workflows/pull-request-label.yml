@@ -19,7 +19,7 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v7
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v7
         env:
           # If extended, don't forget to also include it in the verification step verify-labels.
           TYPE_TO_LABEL: |
@@ -30,8 +30,8 @@ jobs:
               "ref":"kind/refactor",
               "clean":"kind/cleanup",
               "design":"kind/design",
-              "docs":"kind/documentation",
-              "test":"kind/testing",
+              "docs":"area/documentation",
+              "test":"area/testing",
               "perf":"kind/performance"
             }
         with:
@@ -112,11 +112,12 @@ jobs:
       pull-requests: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v5
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           sparse-checkout: |
             .github/config/labeler.yml
-      - uses: actions/labeler@634933edcd8ababfe52f92936142cc22ac488b1b # v5
+          persist-credentials: false
+      - uses: actions/labeler@f27b608878404679385c85cfa523b85ccb86e213 # v5
         with:
           configuration-path: .github/config/labeler.yml
   size-labeler:
@@ -126,7 +127,7 @@ jobs:
       issues: write
       pull-requests: write
     steps:
-      - uses: codelytv/pr-size-labeler@4ec67706cd878fbc1c8db0a5dcd28b6bb412e85a # v1
+      - uses: codelytv/pr-size-labeler@095a41fca88b8764fd9e008ad269bcdb82bb38b9 # v1
         with:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           xs_label: 'size/xs'
@@ -154,5 +155,5 @@ jobs:
       - name: PRs should have at least one qualifying label
         uses: docker://agilepathway/pull-request-label-checker:latest@sha256:14f5f3dfda922496d07d53494e2d2b42885165f90677a1c03d600059b7706a61
         with:
-          any_of: kind/chore,kind/bug,kind/feature,kind/dependency,kind/refactor,kind/design,kind/documentation,kind/testing,kind/performance,kind/cleanup
+          any_of: kind/chore,kind/bug,kind/feature,kind/dependency,kind/refactor,kind/design,area/documentation,area/testing,kind/performance,kind/cleanup
           repo_token: ${{ secrets.GITHUB_TOKEN }}

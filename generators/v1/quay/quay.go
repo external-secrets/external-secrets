@@ -135,7 +135,7 @@ func getQuayRobotToken(ctx context.Context, fedToken, robotAccount, url string, 
 		return "", err
 	}
 
-	var result map[string]interface{}
+	var result map[string]any
 
 	err = json.Unmarshal(body, &result)
 	if err != nil {

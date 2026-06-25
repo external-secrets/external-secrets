@@ -19,6 +19,7 @@ package aws
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"testing"
 
@@ -26,7 +27,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pointer "k8s.io/utils/ptr"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -277,7 +277,7 @@ func TestValidateStore(t *testing.T) {
 									SecretRef: &esv1.AWSAuthSecretRef{
 										AccessKeyID: esmeta.SecretKeySelector{
 											Name:      "foobar",
-											Namespace: pointer.To("unacceptable"),
+											Namespace: new("unacceptable"),
 										},
 									},
 								},
@@ -301,7 +301,7 @@ func TestValidateStore(t *testing.T) {
 									SecretRef: &esv1.AWSAuthSecretRef{
 										SecretAccessKey: esmeta.SecretKeySelector{
 											Name:      "foobar",
-											Namespace: pointer.To("unacceptable"),
+											Namespace: new("unacceptable"),
 										},
 									},
 								},
@@ -403,7 +403,7 @@ func TestValidateStore(t *testing.T) {
 									JWTAuth: &esv1.AWSJWTAuth{
 										ServiceAccountRef: &esmeta.ServiceAccountSelector{
 											Name:      "foobar",
-											Namespace: pointer.To("unacceptable"),
+											Namespace: new("unacceptable"),
 										},
 									},
 								},
@@ -540,4 +540,94 @@ func ErrorContains(out error, want string) bool {
 		return false
 	}
 	return strings.Contains(out.Error(), want)
+}
+
+func TestBuildSessionTags(t *testing.T) {
+	tests := []struct {
+		name       string
+		customTags map[string]string
+		namespace  string
+		storeName  string
+		storeKind  string
+		expected   []*esv1.Tag
+	}{
+		{
+			name:       "simple mode - no custom tags, adds namespace and store",
+			customTags: nil,
+			namespace:  "test-namespace",
+			storeName:  "test-store",
+			storeKind:  "TestSecretStore",
+			expected: []*esv1.Tag{
+				{Key: "esoNamespace", Value: "test-namespace"},
+				{Key: "esoStoreName", Value: "test-store"},
+				{Key: "esoStoreKind", Value: "TestSecretStore"},
+			},
+		},
+		{
+			name: "custom mode - merges custom tags with namespace and store",
+			customTags: map[string]string{
+				"env":  "prod",
+				"team": "platform",
+			},
+			namespace: "test-namespace",
+			storeName: "test-store",
+			storeKind: "TestSecretStore",
+			expected: []*esv1.Tag{
+				{Key: "env", Value: "prod"},
+				{Key: "esoNamespace", Value: "test-namespace"},
+				{Key: "esoStoreName", Value: "test-store"},
+				{Key: "esoStoreKind", Value: "TestSecretStore"},
+				{Key: "team", Value: "platform"},
+			},
+		},
+		{
+			name: "custom mode - empty key/value pairs are skipped",
+			customTags: map[string]string{
+				"valid":  "tag",
+				"":       "no-key",
+				"no-val": "",
+			},
+			namespace: "test-namespace",
+			storeName: "test-store",
+			storeKind: "TestSecretStore",
+			expected: []*esv1.Tag{
+				{Key: "esoNamespace", Value: "test-namespace"},
+				{Key: "esoStoreName", Value: "test-store"},
+				{Key: "esoStoreKind", Value: "TestSecretStore"},
+				{Key: "valid", Value: "tag"},
+			},
+		},
+		{
+			name: "custom mode - esoNamespace/esoStoreName in custom tags are overridden",
+			customTags: map[string]string{
+				"esoNamespace": "should-be-overridden",
+				"esoStoreName": "should-be-overridden",
+			},
+			namespace: "real-namespace",
+			storeName: "real-store",
+			storeKind: "TestSecretStore",
+			expected: []*esv1.Tag{
+				{Key: "esoNamespace", Value: "real-namespace"},
+				{Key: "esoStoreName", Value: "real-store"},
+				{Key: "esoStoreKind", Value: "TestSecretStore"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := buildSessionTags(tt.customTags, tt.namespace, tt.storeName, tt.storeKind)
+
+			sortTags(result)
+			sortTags(tt.expected)
+
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func sortTags(tags []*esv1.Tag) {
+	sort.Slice(tags, func(i, j int) bool {
+		return tags[i].Key < tags[j].Key
+	})
 }

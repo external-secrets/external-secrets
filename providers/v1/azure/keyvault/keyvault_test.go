@@ -32,7 +32,6 @@ import (
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	pointer "k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -74,6 +73,9 @@ type secretManagerTestCase struct {
 	secret *corev1.Secret
 	// for testing changes in expiration date for akv secrets
 	newExpiry *date.UnixTime
+	// optional hook; called with the SetSecret params captured by the fake.
+	// params is nil if SetSecret was not invoked during the test.
+	verifySetSecret func(t *testing.T, key int, params *keyvault.SecretSetParameters)
 }
 
 func makeValidSecretManagerTestCase() *secretManagerTestCase {
@@ -131,6 +133,7 @@ const (
 	errNotManaged        = "not managed by external-secrets"
 	errNoPermission      = "No Permissions"
 	errAPI               = "unexpected api error"
+	contentTypeJSON      = "application/json"
 	something            = "something"
 	tagname              = "tagname"
 	tagname2             = "tagname2"
@@ -181,9 +184,9 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
-			Value: pointer.To("foo"),
+			Value: new("foo"),
 		}
 		smtc.deleteSecretOutput = keyvault.DeletedSecretBundle{}
 	}
@@ -201,7 +204,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 			RemoteKey: secretName,
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
-			Value: pointer.To("foo"),
+			Value: new("foo"),
 		}
 		smtc.expectError = errNotManaged
 		smtc.deleteErr = autorest.DetailedError{StatusCode: 500, Method: "DELETE", Message: "Shouldnt happen"}
@@ -221,9 +224,9 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
-			Value: pointer.To("foo"),
+			Value: new("foo"),
 		}
 		smtc.expectError = errNoPermission
 		smtc.deleteErr = autorest.DetailedError{StatusCode: 403, Method: "DELETE", Message: errNoPermission}
@@ -243,7 +246,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 		}
 		smtc.deleteCertificateOutput = keyvault.DeletedCertificateBundle{}
@@ -279,7 +282,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 		}
 		smtc.expectError = "No certificate delete Permissions"
@@ -300,7 +303,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 		}
 		smtc.deleteKeyOutput = keyvault.DeletedKeyBundle{}
@@ -336,7 +339,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 		}
 		smtc.expectError = errNoPermission
@@ -374,7 +377,7 @@ func TestAzureKeyVaultDeleteSecret(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &esv1.AzureKVProvider{VaultURL: new(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -405,6 +408,28 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 	secretKey := "fakeSecretKey"
 	tagKey := "fakeTagKey"
 	tagValue := "fakeTagValue"
+	expectSetSecretContentType := func(expected *string) func(t *testing.T, key int, params *keyvault.SecretSetParameters) {
+		return func(t *testing.T, key int, params *keyvault.SecretSetParameters) {
+			if params == nil {
+				t.Errorf("[%d] expected SetSecret to be called, but it was not", key)
+				return
+			}
+			got := params.ContentType
+			switch {
+			case expected == nil && got != nil:
+				t.Errorf("[%d] expected ContentType=nil, got %q", key, *got)
+			case expected != nil && got == nil:
+				t.Errorf("[%d] expected ContentType=%q, got nil", key, *expected)
+			case expected != nil && got != nil && *got != *expected:
+				t.Errorf("[%d] ContentType mismatch: got=%q expected=%q", key, *got, *expected)
+			}
+		}
+	}
+	expectSetSecretNotCalled := func(t *testing.T, key int, params *keyvault.SecretSetParameters) {
+		if params != nil {
+			t.Errorf("[%d] expected SetSecret to NOT be called, but it was (ContentType=%v)", key, params.ContentType)
+		}
+	}
 	mdataWithTag := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
 		APIVersion: metadata.APIVersion,
 		Kind:       metadata.Kind,
@@ -430,7 +455,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 			Value: &goodSecret,
 		}
@@ -443,7 +468,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 			Value: &goodSecret,
 		}
@@ -470,7 +495,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 			Value: &goodSecret,
 			Attributes: &keyvault.SecretAttributes{
@@ -479,7 +504,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.setSecretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 			Value: &goodSecret,
 			Attributes: &keyvault.SecretAttributes{
@@ -495,7 +520,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To("nope"),
+				managedBy: new("nope"),
 			},
 			Value: &goodSecret,
 		}
@@ -512,11 +537,179 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
-				tagKey:    pointer.To(tagValue),
+				managedBy: new(externalSecrets),
+				tagKey:    new(tagValue),
 			},
 			Value: &goodSecret,
 		}
+	}
+	secretWithContentType := func(smtc *secretManagerTestCase) {
+		contentType := contentTypeJSON
+		mdata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+			APIVersion: metadata.APIVersion,
+			Kind:       metadata.Kind,
+			Spec: PushSecretMetadataSpec{
+				ContentType: contentType,
+			},
+		}
+		metadataRaw, _ := yaml.Marshal(mdata)
+		smtc.setValue = []byte("newSecret")
+		smtc.pushData = testingfake.PushSecretData{
+			SecretKey: secretKey,
+			RemoteKey: secretName,
+			Metadata: &apiextensionsv1.JSON{
+				Raw: metadataRaw,
+			},
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				managedBy: new(externalSecrets),
+			},
+			Value:       &goodSecret,
+			ContentType: &contentType,
+		}
+		smtc.verifySetSecret = expectSetSecretContentType(&contentType)
+	}
+	secretNoChangeWithContentType := func(smtc *secretManagerTestCase) {
+		contentType := contentTypeJSON
+		mdata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+			APIVersion: metadata.APIVersion,
+			Kind:       metadata.Kind,
+			Spec: PushSecretMetadataSpec{
+				ContentType: contentType,
+			},
+		}
+		metadataRaw, _ := yaml.Marshal(mdata)
+		smtc.setValue = []byte(goodSecret)
+		smtc.pushData = testingfake.PushSecretData{
+			SecretKey: secretKey,
+			RemoteKey: secretName,
+			Metadata: &apiextensionsv1.JSON{
+				Raw: metadataRaw,
+			},
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				managedBy: new(externalSecrets),
+			},
+			Value:       &goodSecret,
+			ContentType: &contentType,
+			Attributes:  &keyvault.SecretAttributes{},
+		}
+		smtc.setErr = errors.New("SetSecret should not be called when nothing changed")
+		smtc.verifySetSecret = expectSetSecretNotCalled
+	}
+	secretContentTypeChange := func(smtc *secretManagerTestCase) {
+		newContentType := contentTypeJSON
+		oldContentType := "text/plain"
+		mdata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+			APIVersion: metadata.APIVersion,
+			Kind:       metadata.Kind,
+			Spec: PushSecretMetadataSpec{
+				ContentType: newContentType,
+			},
+		}
+		metadataRaw, _ := yaml.Marshal(mdata)
+		smtc.setValue = []byte(goodSecret)
+		smtc.pushData = testingfake.PushSecretData{
+			SecretKey: secretKey,
+			RemoteKey: secretName,
+			Metadata: &apiextensionsv1.JSON{
+				Raw: metadataRaw,
+			},
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				managedBy: new(externalSecrets),
+			},
+			Value:       &goodSecret,
+			ContentType: &oldContentType,
+			Attributes:  &keyvault.SecretAttributes{},
+		}
+		smtc.setErr = errors.New("content type changed, SetSecret called")
+		smtc.expectError = "content type changed, SetSecret called"
+		smtc.verifySetSecret = expectSetSecretContentType(&newContentType)
+	}
+	secretContentTypeAddedToExisting := func(smtc *secretManagerTestCase) {
+		newContentType := contentTypeJSON
+		mdata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+			APIVersion: metadata.APIVersion,
+			Kind:       metadata.Kind,
+			Spec: PushSecretMetadataSpec{
+				ContentType: newContentType,
+			},
+		}
+		metadataRaw, _ := yaml.Marshal(mdata)
+		smtc.setValue = []byte(goodSecret)
+		smtc.pushData = testingfake.PushSecretData{
+			SecretKey: secretKey,
+			RemoteKey: secretName,
+			Metadata: &apiextensionsv1.JSON{
+				Raw: metadataRaw,
+			},
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				managedBy: new(externalSecrets),
+			},
+			Value:      &goodSecret,
+			Attributes: &keyvault.SecretAttributes{},
+		}
+		smtc.setErr = errors.New("contentType added, SetSecret called")
+		smtc.expectError = "contentType added, SetSecret called"
+		smtc.verifySetSecret = expectSetSecretContentType(&newContentType)
+	}
+	secretContentTypeOmittedFromRequest := func(smtc *secretManagerTestCase) {
+		existingContentType := contentTypeJSON
+		smtc.setValue = []byte(goodSecret)
+		smtc.pushData = testingfake.PushSecretData{
+			SecretKey: secretKey,
+			RemoteKey: secretName,
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				managedBy: new(externalSecrets),
+			},
+			Value:       &goodSecret,
+			ContentType: &existingContentType,
+			Attributes:  &keyvault.SecretAttributes{},
+		}
+		smtc.setErr = errors.New("SetSecret should not be called when contentType is unset")
+		smtc.verifySetSecret = expectSetSecretNotCalled
+	}
+	secretContentTypeWithExpiration := func(smtc *secretManagerTestCase) {
+		contentType := contentTypeJSON
+		expiryTime, _ := time.Parse(time.RFC3339, "2099-12-31T23:59:59Z")
+		expiry := date.UnixTime(expiryTime)
+		mdata := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+			APIVersion: metadata.APIVersion,
+			Kind:       metadata.Kind,
+			Spec: PushSecretMetadataSpec{
+				ContentType:    contentType,
+				ExpirationDate: "2099-12-31T23:59:59Z",
+			},
+		}
+		metadataRaw, _ := yaml.Marshal(mdata)
+		smtc.setValue = []byte(goodSecret)
+		smtc.pushData = testingfake.PushSecretData{
+			SecretKey: secretKey,
+			RemoteKey: secretName,
+			Metadata: &apiextensionsv1.JSON{
+				Raw: metadataRaw,
+			},
+		}
+		smtc.secretOutput = keyvault.SecretBundle{
+			Tags: map[string]*string{
+				managedBy: new(externalSecrets),
+			},
+			Value:       &goodSecret,
+			ContentType: &contentType,
+			Attributes: &keyvault.SecretAttributes{
+				Expires: &expiry,
+			},
+		}
+		smtc.setErr = errors.New("SetSecret should not be called when nothing changed")
+		smtc.verifySetSecret = expectSetSecretNotCalled
 	}
 	wholeSecretNoKey := func(smtc *secretManagerTestCase) {
 		wholeSecretMap := map[string][]byte{"key1": []byte(`value1`), "key2": []byte(`value2`)}
@@ -528,7 +721,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 			Value: &wholeSecretString,
 		}
@@ -592,7 +785,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(managerLabel),
+				managedBy: new(managerLabel),
 			},
 			Key: &keyvault.JSONWebKey{},
 		}
@@ -605,7 +798,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(managerLabel),
+				managedBy: new(managerLabel),
 			},
 			Key: &keyvault.JSONWebKey{},
 		}
@@ -620,7 +813,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(managerLabel),
+				managedBy: new(managerLabel),
 			},
 			Key: &keyvault.JSONWebKey{},
 		}
@@ -635,7 +828,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(managerLabel),
+				managedBy: new(managerLabel),
 			},
 			Key: &keyvault.JSONWebKey{},
 		}
@@ -650,7 +843,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(managerLabel),
+				managedBy: new(managerLabel),
 			},
 			Key: &keyvault.JSONWebKey{},
 		}
@@ -677,7 +870,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To("internal-secrets"),
+				managedBy: new("internal-secrets"),
 			},
 			Key: &keyvault.JSONWebKey{},
 		}
@@ -694,8 +887,8 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		}
 		smtc.keyOutput = keyvault.KeyBundle{
 			Tags: map[string]*string{
-				managedBy: pointer.To(managerLabel),
-				tagKey:    pointer.To(tagValue),
+				managedBy: new(managerLabel),
+				tagKey:    new(tagValue),
 			},
 			Key: &keyvault.JSONWebKey{},
 		}
@@ -735,9 +928,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			RemoteKey: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.To("123"),
+			X509Thumbprint: new("123"),
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 		}
 	}
@@ -748,9 +941,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			RemoteKey: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.To("123"),
+			X509Thumbprint: new("123"),
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 		}
 	}
@@ -761,9 +954,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			RemoteKey: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.To("123"),
+			X509Thumbprint: new("123"),
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 		}
 	}
@@ -777,9 +970,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			RemoteKey: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.To("123"),
+			X509Thumbprint: new("123"),
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 		}
 	}
@@ -794,9 +987,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			RemoteKey: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.To("123"),
+			X509Thumbprint: new("123"),
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 		}
 	}
@@ -811,9 +1004,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			RemoteKey: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.To("123"),
+			X509Thumbprint: new("123"),
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 		}
 	}
@@ -826,9 +1019,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			RemoteKey: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.To("123"),
+			X509Thumbprint: new("123"),
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 		}
 		smtc.expectError = "could not import certificate certname: error"
@@ -847,7 +1040,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		smtc.certOutput = keyvault.CertificateBundle{
 			Cer: &cert,
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
+				managedBy: new(externalSecrets),
 			},
 		}
 	}
@@ -859,9 +1052,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			RemoteKey: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.To("123"),
+			X509Thumbprint: new("123"),
 			Tags: map[string]*string{
-				managedBy: pointer.To("foobar"),
+				managedBy: new("foobar"),
 			},
 		}
 		smtc.expectError = "certificate certname: not managed by external-secrets"
@@ -874,7 +1067,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			RemoteKey: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.To("123"),
+			X509Thumbprint: new("123"),
 		}
 		smtc.expectError = "certificate certname: not managed by external-secrets"
 	}
@@ -889,10 +1082,10 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			},
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.To("123"),
+			X509Thumbprint: new("123"),
 			Tags: map[string]*string{
-				managedBy: pointer.To(externalSecrets),
-				tagKey:    pointer.To(tagValue),
+				managedBy: new(externalSecrets),
+				tagKey:    new(tagValue),
 			},
 		}
 	}
@@ -904,7 +1097,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			RemoteKey: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.To("123"),
+			X509Thumbprint: new("123"),
 		}
 		smtc.expectError = "value from secret is not a valid certificate: could not parse certificate value as PKCS#12, DER or PEM"
 	}
@@ -921,7 +1114,7 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			RemoteKey: certName,
 		}
 		smtc.certOutput = keyvault.CertificateBundle{
-			X509Thumbprint: pointer.To("123"),
+			X509Thumbprint: new("123"),
 		}
 		smtc.expectError = errAPI
 	}
@@ -961,12 +1154,18 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(typeNotSupported),
 		makeValidSecretManagerTestCaseCustom(wholeSecretNoKey),
 		makeValidSecretManagerTestCaseCustom(secretWithTags),
+		makeValidSecretManagerTestCaseCustom(secretWithContentType),
+		makeValidSecretManagerTestCaseCustom(secretNoChangeWithContentType),
+		makeValidSecretManagerTestCaseCustom(secretContentTypeChange),
+		makeValidSecretManagerTestCaseCustom(secretContentTypeAddedToExisting),
+		makeValidSecretManagerTestCaseCustom(secretContentTypeOmittedFromRequest),
+		makeValidSecretManagerTestCaseCustom(secretContentTypeWithExpiration),
 		makeValidSecretManagerTestCaseCustom(certWithTags),
 		makeValidSecretManagerTestCaseCustom(keyWithTags),
 	}
 
 	sm := Azure{
-		provider: &esv1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &esv1.AzureKVProvider{VaultURL: new(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -984,6 +1183,9 @@ func TestAzureKeyVaultPushSecret(t *testing.T) {
 			} else {
 				t.Errorf(unexpectedError, k, err.Error(), v.expectError)
 			}
+		}
+		if v.verifySetSecret != nil {
+			v.verifySetSecret(t, k, v.mockClient.LastSetSecretParams)
 		}
 		if len(v.expectedData) > 0 {
 			sm.baseClient = v.mockClient
@@ -1098,6 +1300,21 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		smtc.expectedSecret = ""
 		smtc.expectError = fmt.Sprintf("unknown Azure Keyvault object Type for %s", smtc.secretName)
 		smtc.ref.Key = fmt.Sprintf("example/%s", smtc.secretName)
+	}
+
+	setSecretWithExpiresAttribute := func(smtc *secretManagerTestCase) {
+		expiryTime := date.UnixTime(time.Date(2030, 1, 1, 0, 0, 0, 0, time.UTC))
+		createdTime := date.UnixTime(time.Date(2024, 6, 15, 12, 0, 0, 0, time.UTC))
+		smtc.ref.MetadataPolicy = esv1.ExternalSecretMetadataPolicyFetch
+		smtc.ref.Property = "attribute.expires"
+		smtc.secretOutput = keyvault.SecretBundle{
+			Value: &secretString,
+			Attributes: &keyvault.SecretAttributes{
+				Expires: &expiryTime,
+				Created: &createdTime,
+			},
+		}
+		smtc.expectedSecret = "2030-01-01T00:00:00Z"
 	}
 
 	setSecretWithTag := func(smtc *secretManagerTestCase) {
@@ -1336,6 +1553,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(keyNotFound),
 		makeValidSecretManagerTestCaseCustom(setCertificate),
 		makeValidSecretManagerTestCaseCustom(badSecretType),
+		makeValidSecretManagerTestCaseCustom(setSecretWithExpiresAttribute),
 		makeValidSecretManagerTestCaseCustom(setSecretWithTag),
 		makeValidSecretManagerTestCaseCustom(badSecretWithTag),
 		makeValidSecretManagerTestCaseCustom(setSecretWithNoSpecificTag),
@@ -1359,7 +1577,7 @@ func TestAzureKeyVaultSecretManagerGetSecret(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &esv1.AzureKVProvider{VaultURL: new(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -1518,7 +1736,7 @@ func TestAzureKeyVaultSecretManagerGetSecretMap(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &esv1.AzureKVProvider{VaultURL: new(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -1661,7 +1879,7 @@ func TestAzureKeyVaultSecretManagerGetAllSecrets(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &esv1.AzureKVProvider{VaultURL: new(fakeURL)},
 	}
 	for k, v := range successCases {
 		sm.baseClient = v.mockClient
@@ -1770,7 +1988,7 @@ func TestValidateStore(t *testing.T) {
 							AzureKV: &esv1.AzureKVProvider{
 								AuthSecretRef: &esv1.AzureKVAuth{
 									ClientID: &v1.SecretKeySelector{
-										Namespace: pointer.To("invalid"),
+										Namespace: new("invalid"),
 									},
 								},
 							},
@@ -1789,7 +2007,7 @@ func TestValidateStore(t *testing.T) {
 							AzureKV: &esv1.AzureKVProvider{
 								AuthSecretRef: &esv1.AzureKVAuth{
 									ClientSecret: &v1.SecretKeySelector{
-										Namespace: pointer.To("invalid"),
+										Namespace: new("invalid"),
 									},
 								},
 							},
@@ -1828,9 +2046,9 @@ func TestAzureKeyVaultSecretExists(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				"managed-by": pointer.To(externalSecrets),
+				"managed-by": new(externalSecrets),
 			},
-			Value: pointer.To("foo"),
+			Value: new("foo"),
 		}
 		smtc.expectedExistence = true
 	}
@@ -1841,9 +2059,9 @@ func TestAzureKeyVaultSecretExists(t *testing.T) {
 		}
 		smtc.secretOutput = keyvault.SecretBundle{
 			Tags: map[string]*string{
-				"someTag": pointer.To("someUselessValue"),
+				"someTag": new("someUselessValue"),
 			},
-			Value: pointer.To("foo"),
+			Value: new("foo"),
 		}
 		smtc.expectedExistence = true
 	}
@@ -1864,7 +2082,7 @@ func TestAzureKeyVaultSecretExists(t *testing.T) {
 	}
 
 	sm := Azure{
-		provider: &esv1.AzureKVProvider{VaultURL: pointer.To(fakeURL)},
+		provider: &esv1.AzureKVProvider{VaultURL: new(fakeURL)},
 	}
 
 	for k, tc := range testCases {

@@ -22,11 +22,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"path"
 	"strings"
 
 	infisical "github.com/infisical/go-sdk"
+	sdkErrors "github.com/infisical/go-sdk/packages/errors"
 	"github.com/tidwall/gjson"
-	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/infisical/constants"
@@ -35,7 +37,6 @@ import (
 )
 
 var (
-	errNotImplemented     = errors.New("not implemented")
 	errPropertyNotFound   = "property %s does not exist in secret %s"
 	errTagsNotImplemented = errors.New("find by tags not supported")
 )
@@ -45,6 +46,14 @@ const (
 	getSecretByKeyV3 = "GetSecretByKeyV3"
 )
 
+// isNotFoundError reports whether err is an Infisical API error with HTTP 404.
+// The go-sdk wraps transport failures in *sdkErrors.APIError, which carries the
+// upstream StatusCode.
+func isNotFoundError(err error) bool {
+	var apiErr *sdkErrors.APIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound
+}
+
 func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 	result := gjson.Get(jsonData, propertyName)
 	if !result.Exists() {
@@ -53,38 +62,35 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 	return []byte(result.Str), nil
 }
 
-// getSecretAddress returns the path and key from the given key.
+// getSecretAddress returns the (folder, name) pair to look up in Infisical for the given key.
 //
-// Users can configure a root path, and when a SecretKey is provided with a slash we assume that it is
-// within a path appended to the root path.
-//
-// If the key is not addressing a path at all (i.e. has no `/`), simply return the original
-// path and key.
-func getSecretAddress(defaultPath, key string) (string, string, error) {
+// Resolution rules:
+//   - No slash in key: treat key as a bare secret name in defaultPath.
+//     ("foo" + defaultPath="/scope")            -> ("/scope", "foo")
+//   - Key starts with `/`: treat key as an absolute path; defaultPath is ignored.
+//     ("/a/b/foo" + defaultPath="/scope")       -> ("/a/b", "foo")
+//   - Otherwise (slash present, no leading `/`): treat key as a folder path relative to defaultPath.
+//     ("sub/foo" + defaultPath="/scope")        -> ("/scope/sub", "foo")
+func getSecretAddress(defaultPath, key string) (string, string) {
 	if !strings.Contains(key, "/") {
-		return defaultPath, key, nil
+		return defaultPath, key
 	}
 
-	// Check if `key` starts with a `/`, and throw and error if it does not.
-	if !strings.HasPrefix(key, "/") {
-		return "", "", fmt.Errorf("a secret key referencing a folder must start with a '/' as it is an absolute path, key: %s", key)
-	}
-
-	// Otherwise, take the prefix from `key` and use that as the path. We intentionally discard
-	// `defaultPath`.
 	lastIndex := strings.LastIndex(key, "/")
-	return key[:lastIndex], key[lastIndex+1:], nil
+	folder, name := key[:lastIndex], key[lastIndex+1:]
+
+	if strings.HasPrefix(key, "/") {
+		return folder, name
+	}
+
+	return path.Join(defaultPath, folder), name
 }
 
 // GetSecret retrieves a secret value from Infisical.
 // If this returns an error with type NoSecretError then the secret entry will be deleted depending on the
 // deletionPolicy.
 func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	path, key, err := getSecretAddress(p.apiScope.SecretPath, ref.Key)
-	if err != nil {
-		return nil, err
-	}
-
+	path, key := getSecretAddress(p.apiScope.SecretPath, ref.Key)
 	secret, err := p.sdkClient.Secrets().Retrieve(infisical.RetrieveSecretOptions{
 		Environment:            p.apiScope.EnvironmentSlug,
 		ProjectSlug:            p.apiScope.ProjectSlug,
@@ -96,6 +102,12 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 	metrics.ObserveAPICall(constants.ProviderName, getSecretByKeyV3, err)
 
 	if err != nil {
+		// Translate a 404 into the NoSecret sentinel so deletionPolicy: Delete
+		// can prune the entry and a missing key reports as not-found rather
+		// than a generic sync error.
+		if isNotFoundError(err) {
+			return nil, esv1.NoSecretErr
+		}
 		return nil, err
 	}
 
@@ -174,7 +186,7 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 
 	selected := map[string][]byte{}
 	for _, secret := range secrets {
-		if (matcher != nil && !matcher.MatchName(secret.SecretKey)) || (ref.Path != nil && !strings.HasPrefix(secret.SecretKey, *ref.Path)) {
+		if (matcher != nil && !matcher.MatchName(secret.SecretKey)) || (ref.Path != nil && !strings.HasPrefix(secret.SecretPath, *ref.Path)) {
 			continue
 		}
 		selected[secret.SecretKey] = []byte(secret.SecretValue)
@@ -208,22 +220,4 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 	}
 
 	return esv1.ValidationResultReady, nil
-}
-
-// PushSecret will write a single secret into the provider.
-// This is not implemented for this provider.
-func (p *Provider) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
-	return errNotImplemented
-}
-
-// DeleteSecret will delete the secret from a provider.
-// This is not implemented for this provider.
-func (p *Provider) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
-	return errNotImplemented
-}
-
-// SecretExists checks if a secret is already present in the provider at the given location.
-// This is not implemented for this provider.
-func (p *Provider) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errNotImplemented
 }

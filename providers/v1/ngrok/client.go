@@ -24,13 +24,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
-	"github.com/ngrok/ngrok-api-go/v7"
+	"github.com/ngrok/ngrok-api-go/v9"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/utils/ptr"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
@@ -61,7 +61,7 @@ type VaultClient interface {
 	Create(context.Context, *ngrok.VaultCreate) (*ngrok.Vault, error)
 	Get(context.Context, string) (*ngrok.Vault, error)
 	GetSecretsByVault(string, *ngrok.Paging) ngrok.Iter[*ngrok.Secret]
-	List(*ngrok.Paging) ngrok.Iter[*ngrok.Vault]
+	List(*ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault]
 }
 
 // SecretsClient defines interface for interactions with ngrok secrets API.
@@ -69,7 +69,7 @@ type SecretsClient interface {
 	Create(context.Context, *ngrok.SecretCreate) (*ngrok.Secret, error)
 	Delete(context.Context, string) error
 	Get(context.Context, string) (*ngrok.Secret, error)
-	List(*ngrok.Paging) ngrok.Iter[*ngrok.Secret]
+	List(*ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret]
 	Update(context.Context, *ngrok.SecretUpdate) (*ngrok.Secret, error)
 }
 
@@ -140,9 +140,9 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	// If the secret exists, update it
 	_, err = c.secretsClient.Update(ctx, &ngrok.SecretUpdate{
 		ID:          existingSecret.ID,
-		Value:       ptr.To(string(value)),
-		Metadata:    ptr.To(string(metadataJSON)),
-		Description: ptr.To(psmd.Description),
+		Value:       new(string(value)),
+		Metadata:    new(string(metadataJSON)),
+		Description: new(psmd.Description),
 	})
 	return err
 }
@@ -239,7 +239,7 @@ func (c *client) verifyVaultNameStillMatchesID(ctx context.Context) error {
 	}
 
 	vault, err := c.vaultClient.Get(ctx, vaultID)
-	if err != nil || vault.Name != c.vaultName {
+	if err != nil || vault == nil || vault.Name != c.vaultName {
 		return c.refreshVaultID(ctx)
 	}
 
@@ -274,7 +274,7 @@ func (c *client) getVaultByName(ctx context.Context, name string) (*ngrok.Vault,
 	listCtx, cancel := context.WithTimeout(ctx, defaultListTimeout)
 	defer cancel()
 
-	iter := c.vaultClient.List(nil)
+	iter := c.vaultClient.List(newObjectNameFilteredPaging(name))
 	for iter.Next(listCtx) {
 		vault := iter.Item()
 		if vault.Name == name {
@@ -291,10 +291,10 @@ func (c *client) getVaultByName(ctx context.Context, name string) (*ngrok.Vault,
 
 // getSecretByVaultIDAndName retrieves a secret by its vault ID and secret name.
 func (c *client) getSecretByVaultIDAndName(ctx context.Context, vaultID, name string) (*ngrok.Secret, error) {
-	iter := c.vaultClient.GetSecretsByVault(vaultID, nil)
+	iter := c.secretsClient.List(newObjectNameFilteredPaging(name))
 	for iter.Next(ctx) {
 		secret := iter.Item()
-		if secret.Name == name {
+		if secret.Name == name && secret.Vault.ID == vaultID {
 			return secret, nil
 		}
 	}
@@ -330,4 +330,11 @@ func parseAndDefaultMetadata(data *v1.JSON) (PushSecretMetadataSpec, error) {
 	}
 
 	return def, nil
+}
+
+func newObjectNameFilteredPaging(name string) *ngrok.FilteredPaging {
+	filter := fmt.Sprintf("obj.name == %s", strconv.Quote(name))
+	return &ngrok.FilteredPaging{
+		Filter: &filter,
+	}
 }

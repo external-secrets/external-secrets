@@ -17,8 +17,10 @@ limitations under the License.
 package externalsecret
 
 import (
+	"bytes"
 	"crypto/sha3"
 	"fmt"
+	"sort"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -38,20 +40,10 @@ func NewExternalSecretCondition(condType esv1.ExternalSecretConditionType, statu
 	}
 }
 
-// GetExternalSecretCondition returns the condition with the provided type.
-func GetExternalSecretCondition(status esv1.ExternalSecretStatus, condType esv1.ExternalSecretConditionType) *esv1.ExternalSecretStatusCondition {
-	for _, c := range status.Conditions {
-		if c.Type == condType {
-			return &c
-		}
-	}
-	return nil
-}
-
 // SetExternalSecretCondition updates the external secret to include the provided
 // condition.
 func SetExternalSecretCondition(es *esv1.ExternalSecret, condition esv1.ExternalSecretStatusCondition) {
-	currentCond := GetExternalSecretCondition(es.Status, condition.Type)
+	currentCond := esv1.GetExternalSecretCondition(es.Status, condition.Type)
 
 	if currentCond != nil && currentCond.Status == condition.Status &&
 		currentCond.Reason == condition.Reason && currentCond.Message == condition.Message {
@@ -93,4 +85,38 @@ func fqdnFor(name string) string {
 		fqdn = fmt.Sprintf(fieldOwnerTemplateSha, sha3.Sum224([]byte(name)))
 	}
 	return fqdn
+}
+
+// diffSecretDataKeys compares a secret's data keys before and after a mutation
+// and returns sorted lists of the key names that were added, updated, removed,
+// or newly set to an empty value. "emptied" is a subset of added/updated whose
+// new value has zero length, which is the "value replaced with empty string"
+// case. It returns only key names, never the secret values, so the result is
+// safe to log.
+func diffSecretDataKeys(oldData, newData map[string][]byte) (added, updated, removed, emptied []string) {
+	for key, newVal := range newData {
+		oldVal, existed := oldData[key]
+		switch {
+		case !existed:
+			added = append(added, key)
+		case !bytes.Equal(oldVal, newVal):
+			updated = append(updated, key)
+		default:
+			// unchanged key, nothing to report
+			continue
+		}
+		if len(newVal) == 0 {
+			emptied = append(emptied, key)
+		}
+	}
+	for key := range oldData {
+		if _, ok := newData[key]; !ok {
+			removed = append(removed, key)
+		}
+	}
+	sort.Strings(added)
+	sort.Strings(updated)
+	sort.Strings(removed)
+	sort.Strings(emptied)
+	return added, updated, removed, emptied
 }

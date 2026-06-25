@@ -29,7 +29,6 @@ import (
 	grafanasa "github.com/grafana/grafana-openapi-client-go/client/service_accounts"
 	"github.com/grafana/grafana-openapi-client-go/models"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
@@ -67,7 +66,7 @@ func (w *Grafana) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kc
 	if err != nil {
 		return nil, nil, err
 	}
-	state.ServiceAccount.ServiceAccountTokenID = ptr.To(res.Payload.ID)
+	state.ServiceAccount.ServiceAccountTokenID = new(res.Payload.ID)
 	return tokenResponse(state, res.Payload.Key)
 }
 
@@ -151,7 +150,7 @@ func setGrafanaClientCredentials(ctx context.Context, gen *genv1alpha1.Grafana, 
 
 func createOrGetServiceAccount(cl *grafanaclient.GrafanaHTTPAPI, gen *genv1alpha1.Grafana) (*genv1alpha1.GrafanaServiceAccountTokenState, error) {
 	saList, err := cl.ServiceAccounts.SearchOrgServiceAccountsWithPaging(&grafanasa.SearchOrgServiceAccountsWithPagingParams{
-		Query: ptr.To(gen.Spec.ServiceAccount.Name),
+		Query: new(gen.Spec.ServiceAccount.Name),
 	})
 	if err != nil {
 		return nil, err
@@ -179,7 +178,7 @@ func createOrGetServiceAccount(cl *grafanaclient.GrafanaHTTPAPI, gen *genv1alpha
 
 	return &genv1alpha1.GrafanaServiceAccountTokenState{
 		ServiceAccount: genv1alpha1.GrafanaStateServiceAccount{
-			ServiceAccountID:    ptr.To(res.Payload.ID),
+			ServiceAccountID:    new(res.Payload.ID),
 			ServiceAccountLogin: &res.Payload.Login,
 		},
 	}, nil

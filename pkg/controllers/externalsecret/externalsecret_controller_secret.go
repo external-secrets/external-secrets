@@ -17,10 +17,12 @@ limitations under the License.
 package externalsecret
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 
 	v1 "k8s.io/api/core/v1"
@@ -29,6 +31,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
+	"github.com/external-secrets/external-secrets/runtime/decoding"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/statemanager"
@@ -132,9 +135,12 @@ func (r *Reconciler) handleSecretData(ctx context.Context, externalSecret *esv1.
 	}
 
 	// decode the secret if needed
-	secretData, err = esutils.Decode(secretRef.RemoteRef.DecodingStrategy, secretData)
+	secretData, err = decoding.Decode(secretRef.RemoteRef.DecodingStrategy, secretData)
 	if err != nil {
 		return fmt.Errorf(errDecode, secretRef.RemoteRef.DecodingStrategy, err)
+	}
+	if err := validateFetchedSecretValue(secretRef.RemoteRef.NullBytePolicy, secretRef.SecretKey, secretData); err != nil {
+		return err
 	}
 
 	// store the secret data
@@ -242,9 +248,12 @@ func (r *Reconciler) handleExtractSecrets(
 	}
 
 	// decode the secrets if needed
-	secretMap, err = esutils.DecodeMap(remoteRef.Extract.DecodingStrategy, secretMap)
+	secretMap, err = decoding.DecodeMap(remoteRef.Extract.DecodingStrategy, secretMap)
 	if err != nil {
 		return nil, fmt.Errorf(errDecode, remoteRef.Extract.DecodingStrategy, err)
+	}
+	if err := validateFetchedSecretMap(remoteRef.Extract.NullBytePolicy, secretMap); err != nil {
+		return nil, err
 	}
 	if genState != nil {
 		genState.EnqueueFlagLatestStateForGC(generatorStateKey(i))
@@ -290,14 +299,45 @@ func (r *Reconciler) handleFindAllSecrets(
 	}
 
 	// decode the secrets if needed
-	secretMap, err = esutils.DecodeMap(remoteRef.Find.DecodingStrategy, secretMap)
+	secretMap, err = decoding.DecodeMap(remoteRef.Find.DecodingStrategy, secretMap)
 	if err != nil {
 		return nil, fmt.Errorf(errDecode, remoteRef.Find.DecodingStrategy, err)
+	}
+	if err := validateFetchedSecretMap(remoteRef.Find.NullBytePolicy, secretMap); err != nil {
+		return nil, err
 	}
 	if genState != nil {
 		genState.EnqueueFlagLatestStateForGC(generatorStateKey(i))
 	}
 	return secretMap, nil
+}
+
+func validateFetchedSecretValue(policy esv1.ExternalSecretNullBytePolicy, key string, value []byte) error {
+	if policy != esv1.ExternalSecretNullBytePolicyFail || !bytes.Contains(value, []byte{0}) {
+		return nil
+	}
+
+	return fmt.Errorf(`fetched secret value for key %q contains null bytes; use a text-safe format such as PEM/base64 or leave nullBytePolicy unset for intentional binary data`, key)
+}
+
+func validateFetchedSecretMap(policy esv1.ExternalSecretNullBytePolicy, secretMap map[string][]byte) error {
+	if policy != esv1.ExternalSecretNullBytePolicyFail {
+		return nil
+	}
+
+	keys := make([]string, 0, len(secretMap))
+	for key := range secretMap {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+
+	for _, key := range keys {
+		if err := validateFetchedSecretValue(policy, key, secretMap[key]); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func shouldSkipGenerator(r *Reconciler, generatorDef *apiextensions.JSON) (bool, error) {

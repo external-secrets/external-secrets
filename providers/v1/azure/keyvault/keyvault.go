@@ -26,6 +26,7 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"maps"
 	"os"
 	"path"
 	"path/filepath"
@@ -54,7 +55,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	kcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
-	pointer "k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -72,6 +72,11 @@ const (
 	defaultObjType = "secret"
 	objectTypeCert = "cert"
 	objectTypeKey  = "key"
+
+	attributeExpires   = "attribute.expires"
+	attributeCreated   = "attribute.created"
+	attributeUpdated   = "attribute.updated"
+	attributeNotBefore = "attribute.notBefore"
 
 	// AzureDefaultAudience is the default audience used for Azure AD token exchange.
 	AzureDefaultAudience = "api://AzureADTokenExchange"
@@ -149,9 +154,10 @@ type Azure struct {
 }
 
 // PushSecretMetadataSpec defines metadata for pushing secrets to Azure Key Vault,
-// including expiration date and tags.
+// including expiration date, content type, and tags.
 type PushSecretMetadataSpec struct {
 	ExpirationDate string            `json:"expirationDate,omitempty"`
+	ContentType    string            `json:"contentType,omitempty"`
 	Tags           map[string]string `json:"tags,omitempty"`
 }
 
@@ -463,8 +469,7 @@ func (a *Azure) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemot
 
 	err = parseError(err)
 	if err != nil {
-		var noSecretErr esv1.NoSecretError
-		if errors.As(err, &noSecretErr) {
+		if _, ok := errors.AsType[esv1.NoSecretError](err); ok {
 			return false, nil
 		}
 		return false, err
@@ -545,7 +550,31 @@ func canCreate(tags map[string]*string, err error) (bool, error) {
 	return true, nil
 }
 
-func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value []byte, expires *date.UnixTime, tags map[string]string) error {
+func comp[T comparable](a, b *T) bool {
+	return (a == nil && b == nil) || (a != nil && b != nil && *a == *b)
+}
+
+func legacySecretUnchanged(secret keyvault.SecretBundle, value []byte, expires *date.UnixTime, contentType *string) bool {
+	if secret.Value == nil || string(value) != *secret.Value {
+		return false
+	}
+	var existingExpires *date.UnixTime
+	if secret.Attributes != nil {
+		existingExpires = secret.Attributes.Expires
+	}
+	if !comp(existingExpires, expires) {
+		return false
+	}
+	// contentType == nil means the caller did not request any specific
+	// contentType; treat it as "don't care" so we don't reconcile solely
+	// because the existing secret has a contentType set.
+	if contentType == nil {
+		return true
+	}
+	return comp(secret.ContentType, contentType)
+}
+
+func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value []byte, expires *date.UnixTime, contentType *string, tags map[string]string) error {
 	secret, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
 	ok, err := canCreate(secret.Tags, err)
@@ -555,24 +584,25 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 	if !ok {
 		return nil
 	}
-	val := string(value)
-	if secret.Value != nil && val == *secret.Value {
-		if secret.Attributes != nil {
-			if (secret.Attributes.Expires == nil && expires == nil) ||
-				(secret.Attributes.Expires != nil && expires != nil && *secret.Attributes.Expires == *expires) {
-				return nil
-			}
-		}
+	if legacySecretUnchanged(secret, value, expires, contentType) {
+		return nil
 	}
 
+	effectiveContentType := contentType
+	if effectiveContentType == nil {
+		effectiveContentType = secret.ContentType
+	}
+
+	val := string(value)
 	secretParams := keyvault.SecretSetParameters{
 		Value: &val,
 		Tags: map[string]*string{
-			managedBy: pointer.To(managerLabel),
+			managedBy: new(managerLabel),
 		},
 		SecretAttributes: &keyvault.SecretAttributes{
-			Enabled: pointer.To(true),
+			Enabled: new(true),
 		},
+		ContentType: effectiveContentType,
 	}
 
 	for k, v := range tags {
@@ -584,7 +614,7 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 	}
 
 	_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not set secret %v: %w", secretName, err)
 	}
@@ -613,7 +643,7 @@ func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, v
 	params := keyvault.CertificateImportParameters{
 		Base64EncodedCertificate: &val,
 		Tags: map[string]*string{
-			managedBy: pointer.To(managerLabel),
+			managedBy: new(managerLabel),
 		},
 	}
 
@@ -674,7 +704,7 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 		Key:           &azkey,
 		KeyAttributes: &keyvault.KeyAttributes{},
 		Tags: map[string]*string{
-			managedBy: pointer.To(managerLabel),
+			managedBy: new(managerLabel),
 		},
 	}
 
@@ -733,6 +763,12 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 		expires = &unixTime
 	}
 
+	var contentType *string
+	if metadata != nil && metadata.Spec.ContentType != "" {
+		ct := metadata.Spec.ContentType
+		contentType = &ct
+	}
+
 	if metadata != nil && metadata.Spec.Tags != nil {
 		if _, exists := metadata.Spec.Tags[managedBy]; exists {
 			return fmt.Errorf("error parsing tags in metadata: Cannot specify a '%s' tag", managedBy)
@@ -744,9 +780,9 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 	switch objectType {
 	case defaultObjType:
 		if a.useNewSDK() {
-			return a.setKeyVaultSecretWithNewSDK(ctx, secretName, value, nil, tags)
+			return a.setKeyVaultSecretWithNewSDK(ctx, secretName, value, contentType, tags)
 		}
-		return a.setKeyVaultSecret(ctx, secretName, value, expires, tags)
+		return a.setKeyVaultSecret(ctx, secretName, value, expires, contentType, tags)
 	case objectTypeCert:
 		if a.useNewSDK() {
 			return a.setKeyVaultCertificateWithNewSDK(ctx, secretName, value, tags)
@@ -812,16 +848,63 @@ func (a *Azure) getAllSecretsWithLegacySDK(ctx context.Context, ref esv1.Externa
 	return secretsMap, nil
 }
 
+// getSecretAllMetadata merges tags with time-based attributes into a single metadata map.
+// resp must be a keyvault.SecretBundle, CertificateBundle, or KeyBundle.
+func getSecretAllMetadata(resp any) map[string]*string {
+	var tags map[string]*string
+	var expires, created, updated, notBefore *date.UnixTime
+	switch v := resp.(type) {
+	case keyvault.SecretBundle:
+		tags = maps.Clone(v.Tags)
+		if v.Attributes != nil {
+			expires, created, updated, notBefore = v.Attributes.Expires, v.Attributes.Created, v.Attributes.Updated, v.Attributes.NotBefore
+		}
+	case keyvault.CertificateBundle:
+		tags = maps.Clone(v.Tags)
+		if v.Attributes != nil {
+			expires, created, updated, notBefore = v.Attributes.Expires, v.Attributes.Created, v.Attributes.Updated, v.Attributes.NotBefore
+		}
+	case keyvault.KeyBundle:
+		tags = maps.Clone(v.Tags)
+		if v.Attributes != nil {
+			expires, created, updated, notBefore = v.Attributes.Expires, v.Attributes.Created, v.Attributes.Updated, v.Attributes.NotBefore
+		}
+	default:
+		return nil
+	}
+	if tags == nil {
+		tags = make(map[string]*string)
+	}
+	set := func(key string, v *date.UnixTime) {
+		if v == nil {
+			return
+		}
+		tags[key] = new(time.Time(*v).UTC().Format(time.RFC3339))
+	}
+	set(attributeExpires, expires)
+	set(attributeCreated, created)
+	set(attributeUpdated, updated)
+	set(attributeNotBefore, notBefore)
+	return tags
+}
+
 // Retrieves a tag value if specified and all tags in JSON format if not.
 func getSecretTag(tags map[string]*string, property string) ([]byte, error) {
 	if property == "" {
 		secretTagsData := make(map[string]string)
 		for k, v := range tags {
+			if v == nil {
+				continue
+			}
 			secretTagsData[k] = *v
 		}
 		return json.Marshal(secretTagsData)
 	}
 	if val, exist := tags[property]; exist {
+		if val == nil {
+			return nil, nil
+		}
+
 		return []byte(*val), nil
 	}
 
@@ -833,6 +916,9 @@ func getSecretTag(tags map[string]*string, property string) ([]byte, error) {
 	if idx > 0 {
 		tagName := property[0:idx]
 		if val, exist := tags[tagName]; exist {
+			if val == nil {
+				return nil, nil
+			}
 			key := strings.Replace(property, tagName+".", "", 1)
 			return getProperty(*val, key, property)
 		}
@@ -848,8 +934,8 @@ func getProperty(secret, property, key string) ([]byte, error) {
 	}
 	res := gjson.Get(secret, property)
 	if !res.Exists() {
-		idx := strings.Index(property, ".")
-		if idx < 0 {
+		found := strings.Contains(property, ".")
+		if !found {
 			return nil, fmt.Errorf(errPropNotExist, property, key)
 		}
 		escaped := strings.ReplaceAll(property, ".", "\\.")
@@ -900,6 +986,9 @@ func (a *Azure) getSecretTagsWithLegacySDK(ctx context.Context, ref esv1.Externa
 	secretTagsData := make(map[string]*string)
 
 	for tagname, tagval := range secretResp.Tags {
+		if tagval == nil {
+			continue
+		}
 		name := secretName + "_" + tagname
 		kv := make(map[string]string)
 		err = json.Unmarshal([]byte(*tagval), &kv)
@@ -913,6 +1002,21 @@ func (a *Azure) getSecretTagsWithLegacySDK(ctx context.Context, ref esv1.Externa
 			}
 		}
 	}
+
+	if secretResp.Attributes != nil {
+		set := func(key string, v *date.UnixTime) {
+			if v == nil {
+				return
+			}
+			s := time.Time(*v).UTC().Format(time.RFC3339)
+			secretTagsData[secretName+"_"+key] = &s
+		}
+		set(attributeExpires, secretResp.Attributes.Expires)
+		set(attributeCreated, secretResp.Attributes.Created)
+		set(attributeUpdated, secretResp.Attributes.Updated)
+		set(attributeNotBefore, secretResp.Attributes.NotBefore)
+	}
+
 	return secretTagsData, nil
 }
 
@@ -1376,7 +1480,7 @@ func okByName(ref esv1.ExternalSecretFind, secretName string) bool {
 func okByTags(ref esv1.ExternalSecretFind, secret keyvault.SecretItem) bool {
 	tagsFound := true
 	for k, v := range ref.Tags {
-		if val, ok := secret.Tags[k]; !ok || *val != v {
+		if val, ok := secret.Tags[k]; !ok || val == nil || *val != v {
 			tagsFound = false
 			break
 		}
@@ -1399,7 +1503,7 @@ func (a *Azure) getSecretWithLegacySDK(ctx context.Context, ref esv1.ExternalSec
 			return nil, err
 		}
 		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
-			return getSecretTag(secretResp.Tags, ref.Property)
+			return getSecretTag(getSecretAllMetadata(secretResp), ref.Property)
 		}
 		return getProperty(*secretResp.Value, ref.Property, ref.Key)
 
@@ -1413,7 +1517,7 @@ func (a *Azure) getSecretWithLegacySDK(ctx context.Context, ref esv1.ExternalSec
 			return nil, err
 		}
 		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
-			return getSecretTag(certResp.Tags, ref.Property)
+			return getSecretTag(getSecretAllMetadata(certResp), ref.Property)
 		}
 		return *certResp.Cer, nil
 
@@ -1427,7 +1531,7 @@ func (a *Azure) getSecretWithLegacySDK(ctx context.Context, ref esv1.ExternalSec
 			return nil, err
 		}
 		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
-			return getSecretTag(keyResp.Tags, ref.Property)
+			return getSecretTag(getSecretAllMetadata(keyResp), ref.Property)
 		}
 		keyBytes, err := json.Marshal(keyResp.Key)
 		if err != nil {

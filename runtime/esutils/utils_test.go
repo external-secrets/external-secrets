@@ -17,6 +17,7 @@ limitations under the License.
 package esutils
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"reflect"
@@ -29,6 +30,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -36,9 +38,6 @@ import (
 )
 
 const (
-	base64DecodedValue         string = "foo%_?bar"
-	base64EncodedValue         string = "Zm9vJV8/YmFy"
-	base64URLEncodedValue      string = "Zm9vJV8_YmFy"
 	keyWithEmojis              string = "😀foo😁bar😂baz😈bing"
 	keyWithInvalidChars        string = "some-array[0].entity"
 	keyWithEncodedInvalidChars string = "some-array_U005b_0_U005d_.entity"
@@ -316,103 +315,6 @@ func TestReverseKeys(t *testing.T) {
 	}
 }
 
-func TestDecode(t *testing.T) {
-	type args struct {
-		strategy esv1.ExternalSecretDecodingStrategy
-		in       map[string][]byte
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    map[string][]byte
-		wantErr bool
-	}{
-		{
-			name: "base64 decoded",
-			args: args{
-				strategy: esv1.ExternalSecretDecodeBase64,
-				in: map[string][]byte{
-					"foo": []byte("YmFy"),
-				},
-			},
-			want: map[string][]byte{
-				"foo": []byte("bar"),
-			},
-		},
-		{
-			name: "invalid base64",
-			args: args{
-				strategy: esv1.ExternalSecretDecodeBase64,
-				in: map[string][]byte{
-					"foo": []byte("foo"),
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "base64url decoded",
-			args: args{
-				strategy: esv1.ExternalSecretDecodeBase64URL,
-				in: map[string][]byte{
-					"foo": []byte(base64URLEncodedValue),
-				},
-			},
-			want: map[string][]byte{
-				"foo": []byte(base64DecodedValue),
-			},
-		},
-		{
-			name: "invalid base64url",
-			args: args{
-				strategy: esv1.ExternalSecretDecodeBase64URL,
-				in: map[string][]byte{
-					"foo": []byte("foo"),
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "none",
-			args: args{
-				strategy: esv1.ExternalSecretDecodeNone,
-				in: map[string][]byte{
-					"foo": []byte(base64URLEncodedValue),
-				},
-			},
-			want: map[string][]byte{
-				"foo": []byte(base64URLEncodedValue),
-			},
-		},
-		{
-			name: "auto",
-			args: args{
-				strategy: esv1.ExternalSecretDecodeAuto,
-				in: map[string][]byte{
-					"b64":        []byte(base64EncodedValue),
-					"invalidb64": []byte("foo"),
-					"b64url":     []byte(base64URLEncodedValue),
-				},
-			},
-			want: map[string][]byte{
-				"b64":        []byte(base64DecodedValue),
-				"invalidb64": []byte("foo"),
-				"b64url":     []byte(base64DecodedValue),
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := DecodeMap(tt.args.strategy, tt.args.in)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DecodeMap() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("DecodeMap() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 func TestValidate(t *testing.T) {
 	err := NetworkValidate("http://google.com", 10*time.Second)
 	if err != nil {
@@ -779,7 +681,7 @@ func TestRewriteMerge(t *testing.T) {
 				"mongo-credentials": []byte(`{"username": "foz", "password": "baz"}`),
 				"redis-credentials": []byte(`{"host": "redis.example.com", "port": "6379"}`),
 				"credentials": func() []byte {
-					expected := map[string]interface{}{
+					expected := map[string]any{
 						"username": "foz",
 						"password": "baz",
 						"host":     "redis.example.com",
@@ -1144,7 +1046,7 @@ func TestValidateSecretSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.SecretKeySelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1169,7 +1071,7 @@ func TestValidateSecretSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.SecretKeySelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1194,7 +1096,7 @@ func TestValidateSecretSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.SecretKeySelector{
-				Namespace: Ptr("different"),
+				Namespace: new("different"),
 			},
 			expected: errNamespaceNotAllowed,
 		},
@@ -1226,7 +1128,7 @@ func TestValidateReferentSecretSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.SecretKeySelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1251,7 +1153,7 @@ func TestValidateReferentSecretSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.SecretKeySelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1266,7 +1168,7 @@ func TestValidateReferentSecretSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.SecretKeySelector{
-				Namespace: Ptr("different"),
+				Namespace: new("different"),
 			},
 			expected: errNamespaceNotAllowed,
 		},
@@ -1298,7 +1200,7 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.ServiceAccountSelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1323,7 +1225,7 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.ServiceAccountSelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1348,7 +1250,7 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.ServiceAccountSelector{
-				Namespace: Ptr("different"),
+				Namespace: new("different"),
 			},
 			expected: errNamespaceNotAllowed,
 		},
@@ -1380,7 +1282,7 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.ServiceAccountSelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1405,7 +1307,7 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.ServiceAccountSelector{
-				Namespace: Ptr("test"),
+				Namespace: new("test"),
 			},
 			expected: nil,
 		},
@@ -1420,7 +1322,7 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 				},
 			},
 			ref: esmetav1.ServiceAccountSelector{
-				Namespace: Ptr("different"),
+				Namespace: new("different"),
 			},
 			expected: errNamespaceNotAllowed,
 		},
@@ -1435,6 +1337,82 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestFetchCACertFromSourceRejectsCrossNamespaceCAProviderConfigMapForSecretStore(t *testing.T) {
+	fakeClient := clientfake.NewClientBuilder().WithObjects(
+		&v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ca-cm",
+				Namespace: "default",
+			},
+			Data: map[string]string{
+				"ca.crt": "local-cert",
+			},
+		},
+		&v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ca-cm",
+				Namespace: "other",
+			},
+			Data: map[string]string{
+				"ca.crt": "other-cert",
+			},
+		},
+	).Build()
+
+	cert, err := FetchCACertFromSource(context.Background(), CreateCertOpts{
+		CAProvider: &esv1.CAProvider{
+			Type:      esv1.CAProviderTypeConfigMap,
+			Name:      "ca-cm",
+			Key:       "ca.crt",
+			Namespace: Ptr("other"),
+		},
+		StoreKind: esv1.SecretStoreKind,
+		Namespace: "default",
+		Client:    fakeClient,
+	})
+
+	assert.ErrorIs(t, err, errNamespaceNotAllowed)
+	assert.Nil(t, cert)
+}
+
+func TestFetchCACertFromSourceRejectsCrossNamespaceCAProviderSecretForSecretStore(t *testing.T) {
+	fakeClient := clientfake.NewClientBuilder().WithObjects(
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ca-secret",
+				Namespace: "default",
+			},
+			Data: map[string][]byte{
+				"tls.crt": []byte("local-cert"),
+			},
+		},
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "ca-secret",
+				Namespace: "other",
+			},
+			Data: map[string][]byte{
+				"tls.crt": []byte("other-cert"),
+			},
+		},
+	).Build()
+
+	cert, err := FetchCACertFromSource(context.Background(), CreateCertOpts{
+		CAProvider: &esv1.CAProvider{
+			Type:      esv1.CAProviderTypeSecret,
+			Name:      "ca-secret",
+			Key:       "tls.crt",
+			Namespace: Ptr("other"),
+		},
+		StoreKind: esv1.SecretStoreKind,
+		Namespace: "default",
+		Client:    fakeClient,
+	})
+
+	assert.ErrorIs(t, err, errNamespaceNotAllowed)
+	assert.Nil(t, cert)
 }
 
 const mockJWTToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiZXhwIjoxNzAwMDAwMDAwfQ.signature"

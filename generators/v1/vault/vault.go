@@ -116,7 +116,7 @@ func (g *Generator) fetchVaultSecret(ctx context.Context, res *genv1alpha1.Vault
 	)
 
 	if res.Spec.Method == "" || res.Spec.Method == "GET" {
-		result, err = cl.Logical().ReadWithDataWithContext(ctx, res.Spec.Path, nil)
+		result, err = cl.Logical().ReadWithDataWithContext(ctx, res.Spec.Path, res.Spec.GetParameters)
 	} else if res.Spec.Method == "LIST" {
 		result, err = cl.Logical().ListWithContext(ctx, res.Spec.Path)
 	} else if res.Spec.Method == "DELETE" {
@@ -140,7 +140,7 @@ func (g *Generator) prepareResponse(res *genv1alpha1.VaultDynamicSecret, result 
 	data := make(map[string]any)
 	response := make(map[string][]byte)
 	if res.Spec.ResultType == genv1alpha1.VaultDynamicSecretResultTypeAuth {
-		authJSON, err := json.Marshal(result.Auth)
+		authJSON, err := json.Marshal(result.Auth) //nolint:gosec // G117: ClientToken is not a secret leak, it's intentional auth response data
 		if err != nil {
 			return nil, nil, err
 		}

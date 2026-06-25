@@ -19,6 +19,7 @@ package secretmanager
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,12 +36,14 @@ import (
 )
 
 type workloadIdentityFederationTest struct {
-	name              string
-	wifConfig         *esv1.GCPWorkloadIdentityFederation
-	kubeObjects       []client.Object
-	genSAToken        func(context.Context, []string, string, string) (*authv1.TokenRequest, error)
-	expectError       string
-	expectTokenSource bool
+	name                   string
+	wifConfig              *esv1.GCPWorkloadIdentityFederation
+	kubeObjects            []client.Object
+	genSAToken             func(context.Context, []string, string, string) (*authv1.TokenRequest, error)
+	expectError            string
+	expectTokenSource      bool
+	assertImpersonation    bool
+	expectImpersonationURL string
 }
 
 const (
@@ -49,6 +52,9 @@ const (
 	testServiceAccount                 = "test-sa"
 	testAudience                       = "//iam.googleapis.com/projects/123456789/locations/global/workloadIdentityPools/test-pool/providers/test-provider"
 	testServiceAccountImpersonationURL = "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/test@test.iam.gserviceaccount.com:generateAccessToken"
+	testGCPServiceAccountEmail         = "test@test.iam.gserviceaccount.com"
+	testOverrideGCPServiceAccountEmail = "override@override.iam.gserviceaccount.com"
+	testFromCredGCPServiceAccountEmail = "from-cred@cred.iam.gserviceaccount.com"
 	testSAToken                        = "test-sa-token"
 	testAwsRegion                      = "us-west-2"
 	// below values taken from https://docs.aws.amazon.com/sdkref/latest/guide/feature-static-credentials.html
@@ -68,32 +74,70 @@ const (
 )
 
 var (
-	testNamespace = "external-secrets-tests"
+	testNamespace                = "external-secrets-tests"
+	testTokenURL                 = fmt.Sprintf(workloadIdentityTokenURLFormat, defaultUniverseDomain)
+	testTokenInfoURL             = fmt.Sprintf(workloadIdentityTokenInfoURLFormat, defaultUniverseDomain)
+	testOverrideImpersonationURL = fmt.Sprintf(workloadIdentityFederationServiceAccountImpersonationURLFormat, testOverrideGCPServiceAccountEmail)
+	testFromCredImpersonationURL = fmt.Sprintf(workloadIdentityFederationServiceAccountImpersonationURLFormat, testFromCredGCPServiceAccountEmail)
 )
 
 func createValidK8sExternalAccountConfig(audience string) string {
-	config := map[string]interface{}{
+	config := map[string]any{
 		"type":               externalAccountCredentialType,
 		"audience":           audience,
 		"subject_token_type": workloadIdentitySubjectTokenType,
-		"token_url":          workloadIdentityTokenURL,
-		"credential_source": map[string]interface{}{
+		"token_url":          testTokenURL,
+		"credential_source": map[string]any{
 			"file": "/var/run/secrets/oidc_token",
 		},
-		"token_info_url": workloadIdentityTokenInfoURL,
+		"token_info_url": testTokenInfoURL,
+	}
+	data, _ := json.Marshal(config)
+	return string(data)
+}
+
+// createValidK8sExternalAccountConfigOmittedSTSEndpoints omits token_url, token_info_url, and universe_domain
+// in the external_account JSON to test URL derivation using default universe domain value.
+func createValidK8sExternalAccountConfigOmittedSTSEndpoints(audience string) string {
+	config := map[string]any{
+		"type":               externalAccountCredentialType,
+		"audience":           audience,
+		"subject_token_type": workloadIdentitySubjectTokenType,
+		"credential_source": map[string]any{
+			"file": "/var/run/secrets/oidc_token",
+		},
+	}
+	data, _ := json.Marshal(config)
+	return string(data)
+}
+
+// createK8sExternalAccountConfigWithImpersonation includes service_account_impersonation_url in the
+// external_account JSON to test precedence against GCPServiceAccountEmail and annotations.
+func createK8sExternalAccountConfigWithImpersonation(audience, serviceAccountImpersonationURL string) string {
+	config := map[string]any{
+		"type":                              externalAccountCredentialType,
+		"audience":                          audience,
+		"subject_token_type":                workloadIdentitySubjectTokenType,
+		"token_url":                         testTokenURL,
+		"token_info_url":                    testTokenInfoURL,
+		"service_account_impersonation_url": serviceAccountImpersonationURL,
+		"credential_source": map[string]any{
+			"file": "/var/run/secrets/oidc_token",
+		},
 	}
 	data, _ := json.Marshal(config)
 	return string(data)
 }
 
 func createValidAWSExternalAccountConfig(audience string) string {
-	config := map[string]interface{}{
+	config := map[string]any{
 		"type":                              externalAccountCredentialType,
 		"audience":                          audience,
 		"subject_token_type":                workloadIdentitySubjectTokenType,
-		"token_url":                         workloadIdentityTokenURL,
+		"token_url":                         testTokenURL,
+		"token_info_url":                    testTokenInfoURL,
 		"service_account_impersonation_url": testServiceAccountImpersonationURL,
-		"credential_source": map[string]interface{}{
+		"credential_source": map[string]any{
 			"environment_id":           "aws1",
 			"url":                      testAwsTokenIPV4URL,
 			"region_url":               testAwsRegionIPv4URL,
@@ -105,7 +149,7 @@ func createValidAWSExternalAccountConfig(audience string) string {
 }
 
 func createInvalidTypeExternalAccountConfig() string {
-	config := map[string]interface{}{
+	config := map[string]any{
 		"type":     "service_account",
 		"audience": testAudience,
 	}
@@ -114,36 +158,36 @@ func createInvalidTypeExternalAccountConfig() string {
 }
 
 func createInvalidK8sExternalAccountConfigWithUnallowedTokenFilePath(audience string) string {
-	config := map[string]interface{}{
+	config := map[string]any{
 		"type":               externalAccountCredentialType,
 		"audience":           audience,
 		"subject_token_type": workloadIdentitySubjectTokenType,
-		"token_url":          workloadIdentityTokenURL,
-		"credential_source": map[string]interface{}{
+		"token_url":          testTokenURL,
+		"credential_source": map[string]any{
 			"file": autoMountedServiceAccountTokenPath,
 		},
-		"token_info_url": workloadIdentityTokenInfoURL,
+		"token_info_url": testTokenInfoURL,
 	}
 	data, _ := json.Marshal(config)
 	return string(data)
 }
 
 func createInvalidK8sExternalAccountConfigWithUnallowedTokenURL(audience string) string {
-	config := map[string]interface{}{
+	config := map[string]any{
 		"type":               externalAccountCredentialType,
 		"audience":           audience,
 		"subject_token_type": workloadIdentitySubjectTokenType,
 		"token_url":          "https://example.com",
-		"credential_source": map[string]interface{}{
+		"credential_source": map[string]any{
 			"file": "/var/run/secrets/oidc_token",
 		},
-		"token_info_url": workloadIdentityTokenInfoURL,
+		"token_info_url": testTokenInfoURL,
 	}
 	data, _ := json.Marshal(config)
 	return string(data)
 }
 
-func defaultSATokenGenerator(ctx context.Context, idPool []string, namespace, name string) (*authv1.TokenRequest, error) {
+func defaultSATokenGenerator(_ context.Context, _ []string, _, _ string) (*authv1.TokenRequest, error) {
 	return &authv1.TokenRequest{
 		Status: authv1.TokenRequestStatus{
 			Token: testSAToken,
@@ -185,6 +229,28 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 					},
 					Data: map[string]string{
 						testConfigMapKey: createValidK8sExternalAccountConfig(testAudience),
+					},
+				},
+			},
+			expectTokenSource: true,
+		},
+		{
+			name: "successful kubernetes cred config with omitted token_url and token_info_url",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{
+					Name:      testConfigMapName,
+					Key:       testConfigMapKey,
+					Namespace: testNamespace,
+				},
+			},
+			kubeObjects: []client.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testConfigMapName,
+						Namespace: testNamespace,
+					},
+					Data: map[string]string{
+						testConfigMapKey: createValidK8sExternalAccountConfigOmittedSTSEndpoints(testAudience),
 					},
 				},
 			},
@@ -254,7 +320,7 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 					},
 				},
 			},
-			expectError: "invalid external_account config\ntoken_url \"https://example.com\" must match https://sts.googleapis.com/v1/token",
+			expectError: "invalid external_account config\ntoken_url \"https://example.com\" must match \"^https://sts\\.[^/\\s]+/v1/token$\"",
 		},
 		{
 			name: "successful AWS federation with security credentials",
@@ -365,6 +431,12 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 						testConfigMapKey: createInvalidK8sExternalAccountConfigWithUnallowedTokenFilePath(testAudience),
 					},
 				},
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testServiceAccount,
+						Namespace: testNamespace,
+					},
+				},
 			},
 			genSAToken: func(c context.Context, s1 []string, s2, s3 string) (*authv1.TokenRequest, error) {
 				return &authv1.TokenRequest{
@@ -374,6 +446,126 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 				}, nil
 			},
 			expectTokenSource: true,
+		},
+		{
+			name: "fail on missing service account",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{
+					Name:      testServiceAccount,
+					Namespace: &testNamespace,
+					Audiences: []string{testAudience},
+				},
+				Audience: testAudience,
+			},
+			expectError: "failed to fetch serviceaccount \"external-secrets-tests/test-sa\": serviceaccounts \"test-sa\" not found",
+		},
+		{
+			name: "successful kubernetes service account token federation with GCP service account impersonation",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				Audience: testAudience,
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{
+					Name:      testServiceAccount,
+					Namespace: &testNamespace,
+					Audiences: []string{testAudience},
+				},
+			},
+			kubeObjects: []client.Object{
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testServiceAccount,
+						Namespace: testNamespace,
+						Annotations: map[string]string{
+							gcpSAAnnotation: testGCPServiceAccountEmail,
+						},
+					},
+				},
+			},
+			genSAToken: func(c context.Context, s1 []string, s2, s3 string) (*authv1.TokenRequest, error) {
+				return &authv1.TokenRequest{
+					Status: authv1.TokenRequestStatus{
+						Token: testSAToken,
+					},
+				}, nil
+			},
+			assertImpersonation:    true,
+			expectImpersonationURL: testServiceAccountImpersonationURL,
+			expectTokenSource:      true,
+		},
+		{
+			name: "kubernetes service account without gcp annotation has no service account impersonation URL",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				Audience: testAudience,
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{
+					Name:      testServiceAccount,
+					Namespace: &testNamespace,
+					Audiences: []string{testAudience},
+				},
+			},
+			kubeObjects: []client.Object{
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testServiceAccount,
+						Namespace: testNamespace,
+					},
+				},
+			},
+			genSAToken:             defaultSATokenGenerator,
+			assertImpersonation:    true,
+			expectImpersonationURL: "",
+			expectTokenSource:      true,
+		},
+		{
+			name: "GCPServiceAccountEmail on spec overrides service_account_impersonation_url in credConfig JSON",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				Audience:               testAudience,
+				GCPServiceAccountEmail: testOverrideGCPServiceAccountEmail,
+				CredConfig: &esv1.ConfigMapReference{
+					Name:      testConfigMapName,
+					Key:       testConfigMapKey,
+					Namespace: testNamespace,
+				},
+			},
+			kubeObjects: []client.Object{
+				&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testConfigMapName,
+						Namespace: testNamespace,
+					},
+					Data: map[string]string{
+						testConfigMapKey: createK8sExternalAccountConfigWithImpersonation(testAudience, testFromCredImpersonationURL),
+					},
+				},
+			},
+			assertImpersonation:    true,
+			expectImpersonationURL: testOverrideImpersonationURL,
+			expectTokenSource:      true,
+		},
+		{
+			name: "GCPServiceAccountEmail on spec overrides ServiceAccount annotation",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				Audience:               testAudience,
+				GCPServiceAccountEmail: testOverrideGCPServiceAccountEmail,
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{
+					Name:      testServiceAccount,
+					Namespace: &testNamespace,
+					Audiences: []string{testAudience},
+				},
+			},
+			kubeObjects: []client.Object{
+				&corev1.ServiceAccount{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testServiceAccount,
+						Namespace: testNamespace,
+						Annotations: map[string]string{
+							gcpSAAnnotation: testGCPServiceAccountEmail,
+						},
+					},
+				},
+			},
+			genSAToken:             defaultSATokenGenerator,
+			assertImpersonation:    true,
+			expectImpersonationURL: testOverrideImpersonationURL,
+			expectTokenSource:      true,
 		},
 		{
 			name: "valid AWS credentials secret",
@@ -536,6 +728,12 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 				namespace:        testNamespace,
 			}
 
+			if tc.assertImpersonation {
+				cfg, cfgErr := wif.readCredConfig(context.Background())
+				assert.NoError(t, cfgErr)
+				assert.Equal(t, tc.expectImpersonationURL, cfg.ServiceAccountImpersonationURL)
+			}
+
 			ts, err := wif.TokenSource(context.Background())
 			if tc.expectError != "" {
 				assert.Error(t, err)
@@ -563,7 +761,44 @@ func TestValidateCredConfig(t *testing.T) {
 			config: &externalaccount.Config{
 				Audience:                       testAudience,
 				SubjectTokenType:               workloadIdentitySubjectTokenType,
-				TokenURL:                       workloadIdentityTokenURL,
+				TokenURL:                       testTokenURL,
+				TokenInfoURL:                   testTokenInfoURL,
+				ServiceAccountImpersonationURL: testServiceAccountImpersonationURL,
+				CredentialSource: &externalaccount.CredentialSource{
+					File: autoMountedServiceAccountTokenPath,
+				},
+			},
+			wif: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{Name: testConfigMapName},
+			},
+			expectError: "",
+		},
+		{
+			name: "valid kubernetes provider with empty universe domain",
+			config: &externalaccount.Config{
+				Audience:                       testAudience,
+				SubjectTokenType:               workloadIdentitySubjectTokenType,
+				TokenURL:                       testTokenURL,
+				TokenInfoURL:                   testTokenInfoURL,
+				ServiceAccountImpersonationURL: testServiceAccountImpersonationURL,
+				CredentialSource: &externalaccount.CredentialSource{
+					File: autoMountedServiceAccountTokenPath,
+				},
+				UniverseDomain: "",
+			},
+			wif: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{Name: testConfigMapName},
+			},
+			expectError: "",
+		},
+		{
+			name: "valid non-default universe STS URLs",
+			config: &externalaccount.Config{
+				Audience:                       testAudience,
+				SubjectTokenType:               workloadIdentitySubjectTokenType,
+				UniverseDomain:                 "partner.example",
+				TokenURL:                       fmt.Sprintf(workloadIdentityTokenURLFormat, "partner.example"),
+				TokenInfoURL:                   fmt.Sprintf(workloadIdentityTokenInfoURLFormat, "partner.example"),
 				ServiceAccountImpersonationURL: testServiceAccountImpersonationURL,
 				CredentialSource: &externalaccount.CredentialSource{
 					File: autoMountedServiceAccountTokenPath,
@@ -579,7 +814,8 @@ func TestValidateCredConfig(t *testing.T) {
 			config: &externalaccount.Config{
 				Audience:                       testAudience,
 				SubjectTokenType:               workloadIdentitySubjectTokenType,
-				TokenURL:                       workloadIdentityTokenURL,
+				TokenURL:                       testTokenURL,
+				TokenInfoURL:                   testTokenInfoURL,
 				ServiceAccountImpersonationURL: testServiceAccountImpersonationURL,
 				CredentialSource: &externalaccount.CredentialSource{
 					EnvironmentID:         "aws1",
@@ -598,7 +834,8 @@ func TestValidateCredConfig(t *testing.T) {
 			config: &externalaccount.Config{
 				Audience:                       testAudience,
 				SubjectTokenType:               workloadIdentitySubjectTokenType,
-				TokenURL:                       workloadIdentityTokenURL,
+				TokenURL:                       testTokenURL,
+				TokenInfoURL:                   testTokenInfoURL,
 				ServiceAccountImpersonationURL: testServiceAccountImpersonationURL,
 				CredentialSource: &externalaccount.CredentialSource{
 					EnvironmentID:         "aws1",
@@ -616,31 +853,47 @@ func TestValidateCredConfig(t *testing.T) {
 			name: "invalid service account impersonation URL",
 			config: &externalaccount.Config{
 				Audience:                       testAudience,
-				TokenURL:                       workloadIdentityTokenURL,
+				TokenURL:                       testTokenURL,
+				TokenInfoURL:                   testTokenInfoURL,
 				ServiceAccountImpersonationURL: "https://invalid-url.com",
 			},
 			wif: &esv1.GCPWorkloadIdentityFederation{
 				CredConfig: &esv1.ConfigMapReference{Name: testConfigMapName},
 			},
-			expectError: "invalid external_account config\nservice_account_impersonation_url \"https://invalid-url.com\" does not have expected value",
+			expectError: "invalid external_account config\nservice_account_impersonation_url \"https://invalid-url.com\" must match \"^https://iamcredentials\\.(?:[a-z0-9-]+\\.)*googleapis\\.com/v1/projects/[^/]+/serviceAccounts/[a-z0-9-]+@[a-z0-9-]+\\.iam\\.gserviceaccount\\.com:generateAccessToken$\"",
 		},
 		{
 			name: "invalid token URL",
 			config: &externalaccount.Config{
 				Audience:                       testAudience,
 				TokenURL:                       "https://invalid-token-url.com",
+				TokenInfoURL:                   testTokenInfoURL,
 				ServiceAccountImpersonationURL: testServiceAccountImpersonationURL,
 			},
 			wif: &esv1.GCPWorkloadIdentityFederation{
 				CredConfig: &esv1.ConfigMapReference{Name: testConfigMapName},
 			},
-			expectError: "invalid external_account config\ntoken_url \"https://invalid-token-url.com\" must match https://sts.googleapis.com/v1/token",
+			expectError: "invalid external_account config\ntoken_url \"https://invalid-token-url.com\" must match \"^https://sts\\.[^/\\s]+/v1/token$\"",
+		},
+		{
+			name: "invalid token info URL",
+			config: &externalaccount.Config{
+				Audience:                       testAudience,
+				TokenURL:                       testTokenURL,
+				TokenInfoURL:                   "https://example.com/v1/introspect",
+				ServiceAccountImpersonationURL: testServiceAccountImpersonationURL,
+			},
+			wif: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{Name: testConfigMapName},
+			},
+			expectError: "invalid external_account config\ntoken_info_url \"https://example.com/v1/introspect\" must match \"^https://sts\\.[^/\\s]+/v1/introspect$\"",
 		},
 		{
 			name: "executable is configured",
 			config: &externalaccount.Config{
 				Audience:                       testAudience,
-				TokenURL:                       workloadIdentityTokenURL,
+				TokenURL:                       testTokenURL,
+				TokenInfoURL:                   testTokenInfoURL,
 				ServiceAccountImpersonationURL: testServiceAccountImpersonationURL,
 				CredentialSource: &externalaccount.CredentialSource{
 					Executable: &externalaccount.ExecutableConfig{
@@ -656,7 +909,8 @@ func TestValidateCredConfig(t *testing.T) {
 		{
 			name: "invalid config - empty audience",
 			config: &externalaccount.Config{
-				TokenURL:                       workloadIdentityTokenURL,
+				TokenURL:                       testTokenURL,
+				TokenInfoURL:                   testTokenInfoURL,
 				ServiceAccountImpersonationURL: testServiceAccountImpersonationURL,
 				CredentialSource: &externalaccount.CredentialSource{
 					File: "/var/run/secrets/token",
@@ -671,7 +925,8 @@ func TestValidateCredConfig(t *testing.T) {
 			name: "invalid config - invalid URL",
 			config: &externalaccount.Config{
 				Audience:                       testAudience,
-				TokenURL:                       workloadIdentityTokenURL,
+				TokenURL:                       testTokenURL,
+				TokenInfoURL:                   testTokenInfoURL,
 				ServiceAccountImpersonationURL: testServiceAccountImpersonationURL,
 				CredentialSource: &externalaccount.CredentialSource{
 					URL: "https://example.com",
@@ -687,7 +942,8 @@ func TestValidateCredConfig(t *testing.T) {
 			name: "invalid config - invalid AWS config",
 			config: &externalaccount.Config{
 				Audience:                       testAudience,
-				TokenURL:                       workloadIdentityTokenURL,
+				TokenURL:                       testTokenURL,
+				TokenInfoURL:                   testTokenInfoURL,
 				ServiceAccountImpersonationURL: testServiceAccountImpersonationURL,
 				CredentialSource: &externalaccount.CredentialSource{
 					EnvironmentID:         "sample",
@@ -700,7 +956,7 @@ func TestValidateCredConfig(t *testing.T) {
 				CredConfig:            &esv1.ConfigMapReference{Name: testConfigMapName},
 				ExternalTokenEndpoint: "https://mismatch.com",
 			},
-			expectError: "invalid external_account config\ncredential_source.environment_id \"sample\" must start with aws\ncredential_source.aws.url \"https://aws-token.com\" does not have expected value\ncredential_source.aws.region_url \"https://region.com\" does not have expected value\ncredential_source.aws.imdsv2_session_token_url \"https://session-token.com\" does not have expected value",
+			expectError: "invalid external_account config\ncredential_source.environment_id \"sample\" must start with aws\ncredential_source.aws.url \"https://aws-token.com\" must match \"^http://(metadata\\.google\\.internal|169\\.254\\.169\\.254|\\[fd00:ec2::254\\])/latest/meta-data/iam/security-credentials$\"\ncredential_source.aws.region_url \"https://region.com\" must match \"^http://(metadata\\.google\\.internal|169\\.254\\.169\\.254|\\[fd00:ec2::254\\])/latest/meta-data/placement/availability-zone$\"\ncredential_source.aws.imdsv2_session_token_url \"https://session-token.com\" must match \"^http://(metadata\\.google\\.internal|169\\.254\\.169\\.254|\\[fd00:ec2::254\\])/latest/api/token$\"",
 		},
 	}
 
@@ -848,6 +1104,85 @@ func TestReadCredConfig(t *testing.T) {
 	}
 }
 
+// TestUpdateServiceAccountImpersonationURL covers ordering edge cases for impersonation that are not
+// asserted by TestWorkloadIdentityFederation: (1) cred JSON already set a URL and an empty spec does
+// not clear it, (2) annotation replaces a URL from cred, (3) no annotation keeps a URL from cred.
+// Flows also covered by WIF (email vs cred/annotation, annotation-only, missing SA) are tested there only.
+func TestUpdateServiceAccountImpersonationURL(t *testing.T) {
+	annotationURL := testServiceAccountImpersonationURL
+	credImpersonationURL := testFromCredImpersonationURL
+
+	baseSA := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      testServiceAccount,
+			Namespace: testNamespace,
+		},
+	}
+	saWithGcpAnnotation := baseSA.DeepCopy()
+	saWithGcpAnnotation.Annotations = map[string]string{
+		gcpSAAnnotation: testGCPServiceAccountEmail,
+	}
+
+	tests := []struct {
+		name       string
+		wif        *workloadIdentityFederation
+		initialURL string
+		wantURL    string
+	}{
+		{
+			name: "no gcp service account email and no service account ref leaves initial URL unchanged",
+			wif: &workloadIdentityFederation{
+				kubeClient: clientfake.NewClientBuilder().Build(),
+				config:     &esv1.GCPWorkloadIdentityFederation{},
+			},
+			initialURL: credImpersonationURL,
+			wantURL:    credImpersonationURL,
+		},
+		{
+			name: "kubernetes service account annotation overwrites initial impersonation URL from cred",
+			wif: &workloadIdentityFederation{
+				kubeClient: clientfake.NewClientBuilder().WithObjects(saWithGcpAnnotation).Build(),
+				config: &esv1.GCPWorkloadIdentityFederation{
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name:      testServiceAccount,
+						Namespace: &testNamespace,
+					},
+				},
+				namespace:     testNamespace,
+				isClusterKind: true,
+			},
+			initialURL: credImpersonationURL,
+			wantURL:    annotationURL,
+		},
+		{
+			name: "kubernetes service account without gcp annotation leaves initial impersonation URL from cred",
+			wif: &workloadIdentityFederation{
+				kubeClient: clientfake.NewClientBuilder().WithObjects(baseSA).Build(),
+				config: &esv1.GCPWorkloadIdentityFederation{
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name:      testServiceAccount,
+						Namespace: &testNamespace,
+					},
+				},
+				namespace:     testNamespace,
+				isClusterKind: true,
+			},
+			initialURL: credImpersonationURL,
+			wantURL:    credImpersonationURL,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			cfg := &externalaccount.Config{ServiceAccountImpersonationURL: tc.initialURL}
+			err := tc.wif.updateServiceAccountImpersonationURL(context.Background(), cfg)
+			assert.NoError(t, err)
+			assert.Equal(t, tc.wantURL, cfg.ServiceAccountImpersonationURL)
+		})
+	}
+}
+
 func TestGenerateExternalAccountConfig(t *testing.T) {
 	wif := &esv1.GCPWorkloadIdentityFederation{
 		CredConfig: &esv1.ConfigMapReference{
@@ -893,7 +1228,7 @@ func TestGenerateExternalAccountConfig(t *testing.T) {
 		Type:                           externalAccountCredentialType,
 		Audience:                       testAudience,
 		SubjectTokenType:               workloadIdentitySubjectTokenType,
-		TokenURLExternal:               workloadIdentityTokenURL,
+		TokenURLExternal:               testTokenURL,
 		ServiceAccountImpersonationURL: testServiceAccountImpersonationURL,
 	}
 

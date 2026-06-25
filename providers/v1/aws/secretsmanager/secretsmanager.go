@@ -35,7 +35,6 @@ import (
 	"github.com/tidwall/sjson"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	utilpointer "k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -55,6 +54,10 @@ type PushSecretMetadataSpec struct {
 	SecretPushFormat string              `json:"secretPushFormat,omitempty"`
 	KMSKeyID         string              `json:"kmsKeyId,omitempty"`
 	ResourcePolicy   *ResourcePolicySpec `json:"resourcePolicy,omitempty"`
+	// ReplicationLocations defines one or more user-managed replication
+	// locations for the secret. This is useful for High Availability across
+	// regions.
+	ReplicationLocations []string `json:"replicationLocations,omitempty"`
 }
 
 // ResourcePolicySpec defines the resource policy configuration using PolicySourceRef for AWS Secrets Manager.
@@ -109,6 +112,8 @@ type SMInterface interface {
 	PutResourcePolicy(ctx context.Context, params *awssm.PutResourcePolicyInput, optFuncs ...func(*awssm.Options)) (*awssm.PutResourcePolicyOutput, error)
 	GetResourcePolicy(ctx context.Context, params *awssm.GetResourcePolicyInput, optFuncs ...func(*awssm.Options)) (*awssm.GetResourcePolicyOutput, error)
 	DeleteResourcePolicy(ctx context.Context, params *awssm.DeleteResourcePolicyInput, optFuncs ...func(*awssm.Options)) (*awssm.DeleteResourcePolicyOutput, error)
+	ReplicateSecretToRegions(ctx context.Context, params *awssm.ReplicateSecretToRegionsInput, optFuncs ...func(*awssm.Options)) (*awssm.ReplicateSecretToRegionsOutput, error)
+	RemoveRegionsFromReplication(ctx context.Context, params *awssm.RemoveRegionsFromReplicationInput, optFuncs ...func(*awssm.Options)) (*awssm.RemoveRegionsFromReplicationOutput, error)
 }
 
 const (
@@ -269,7 +274,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 		if err != nil {
 			return err
 		}
-		return sm.putSecretValueWithContext(ctx, secretName, nil, psd, finalValue, describeSecretOutput.Tags)
+		return sm.putSecretValueWithContext(ctx, secretName, nil, psd, finalValue, describeSecretOutput)
 	}
 
 	getSecretValueInput := awssm.GetSecretValueInput{SecretId: &secretName}
@@ -283,7 +288,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 	if err != nil {
 		return err
 	}
-	return sm.putSecretValueWithContext(ctx, secretName, getSecretValueOutput, psd, finalValue, describeSecretOutput.Tags)
+	return sm.putSecretValueWithContext(ctx, secretName, getSecretValueOutput, psd, finalValue, describeSecretOutput)
 }
 
 func (sm *SecretsManager) getNewSecretValue(value []byte, property string, existingSecret *awssm.GetSecretValueOutput) ([]byte, error) {
@@ -494,9 +499,9 @@ func (sm *SecretsManager) retrievePayload(secretOut *awssm.GetSecretValueOutput)
 
 func (sm *SecretsManager) escapeDotsIfRequired(currentRefProperty, payload string) string {
 	// We need to search if a given key with a . exists before using gjson operations.
-	idx := strings.Index(currentRefProperty, ".")
+	found := strings.Contains(currentRefProperty, ".")
 	refProperty := currentRefProperty
-	if idx > -1 {
+	if found {
 		refProperty = strings.ReplaceAll(currentRefProperty, ".", "\\.")
 		val := gjson.Get(payload, refProperty)
 		if !val.Exists() {
@@ -566,18 +571,20 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 
 	for k, v := range mdata.Spec.Tags {
 		tags = append(tags, types.Tag{
-			Key:   utilpointer.To(k),
-			Value: utilpointer.To(v),
+			Key:   new(k),
+			Value: new(v),
 		})
 	}
 
+	kmsKeyID := aws.String(mdata.Spec.KMSKeyID)
 	input := &awssm.CreateSecretInput{
 		Name:               &secretName,
 		SecretBinary:       value,
 		Tags:               tags,
-		Description:        utilpointer.To(mdata.Spec.Description),
-		ClientRequestToken: utilpointer.To(initialVersion),
-		KmsKeyId:           utilpointer.To(mdata.Spec.KMSKeyID),
+		Description:        new(mdata.Spec.Description),
+		ClientRequestToken: new(initialVersion),
+		KmsKeyId:           kmsKeyID,
+		AddReplicaRegions:  buildReplicationRegionType(mdata.Spec.ReplicationLocations, kmsKeyID),
 	}
 	if mdata.Spec.SecretPushFormat == SecretPushFormatString {
 		input.SecretBinary = nil
@@ -615,9 +622,16 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 	return nil
 }
 
-func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretArn string, awsSecret *awssm.GetSecretValueOutput, psd esv1.PushSecretData, value []byte, tags []types.Tag) error {
-	currentTags := make(map[string]string, len(tags))
-	for _, tag := range tags {
+func (sm *SecretsManager) putSecretValueWithContext(
+	ctx context.Context,
+	secretArn string,
+	awsSecret *awssm.GetSecretValueOutput,
+	psd esv1.PushSecretData,
+	value []byte,
+	describeSecret *awssm.DescribeSecretOutput,
+) error {
+	currentTags := make(map[string]string, len(describeSecret.Tags))
+	for _, tag := range describeSecret.Tags {
 		currentTags[*tag.Key] = *tag.Value
 	}
 	if err := sm.patchTags(ctx, psd.GetMetadata(), &secretArn, currentTags); err != nil {
@@ -625,6 +639,10 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 	}
 
 	if err := sm.manageResourcePolicy(ctx, psd.GetMetadata(), &secretArn); err != nil {
+		return err
+	}
+
+	if err := sm.manageRegionReplication(ctx, psd.GetMetadata(), &secretArn, describeSecret.KmsKeyId, describeSecret.ReplicationStatus); err != nil {
 		return err
 	}
 
@@ -659,8 +677,16 @@ func (sm *SecretsManager) putSecretValueWithContext(ctx context.Context, secretA
 	return err
 }
 
-func (sm *SecretsManager) patchTags(ctx context.Context, metadata *apiextensionsv1.JSON, secretID *string, tags map[string]string) error {
-	meta, err := sm.constructMetadataWithDefaults(metadata)
+func (sm *SecretsManager) patchTags(ctx context.Context, rawMetadata *apiextensionsv1.JSON, secretID *string, tags map[string]string) error {
+	rawMeta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](rawMetadata)
+	if err != nil {
+		return err
+	}
+	if rawMeta == nil || len(rawMeta.Spec.Tags) == 0 {
+		return nil
+	}
+
+	meta, err := sm.constructMetadataWithDefaults(rawMetadata)
 	if err != nil {
 		return err
 	}
@@ -757,8 +783,8 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, key, ver str
 	}
 
 	var getSecretValueInput *awssm.GetSecretValueInput
-	if strings.HasPrefix(ver, "uuid/") {
-		versionID := strings.TrimPrefix(ver, "uuid/")
+	if after, ok := strings.CutPrefix(ver, "uuid/"); ok {
+		versionID := after
 		getSecretValueInput = &awssm.GetSecretValueInput{
 			SecretId:  &key,
 			VersionId: &versionID,
@@ -867,6 +893,33 @@ func (sm *SecretsManager) resolveResourcePolicy(ctx context.Context, policyRef *
 	}
 }
 
+// unmarshalPolicyJSON parses a JSON policy string into a map.
+// Returns nil map for empty input, allowing comparison with a populated policy.
+func unmarshalPolicyJSON(policy string) (map[string]any, error) {
+	if policy == "" {
+		return nil, nil
+	}
+	var m map[string]any
+	if err := json.Unmarshal([]byte(policy), &m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (sm *SecretsManager) deleteResourcePolicy(ctx context.Context, secretID *string) error {
+	deletePolicyInput := &awssm.DeleteResourcePolicyInput{
+		SecretId: secretID,
+	}
+	_, err := sm.client.DeleteResourcePolicy(ctx, deletePolicyInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteResourcePolicy, err)
+
+	var nf *types.ResourceNotFoundException
+	if err != nil && !errors.As(err, &nf) {
+		return fmt.Errorf("failed to delete resource policy: %w", err)
+	}
+	return nil
+}
+
 // manageResourcePolicy applies or removes the resource policy based on metadata.
 func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *apiextensionsv1.JSON, secretID *string) error {
 	meta, err := sm.constructMetadataWithDefaults(metadata)
@@ -876,24 +929,16 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 
 	// Delete policy if policyRef is nil and the policy exists.
 	if meta.Spec.ResourcePolicy == nil {
-		deletePolicyInput := &awssm.DeleteResourcePolicyInput{
-			SecretId: secretID,
-		}
-		_, err = sm.client.DeleteResourcePolicy(ctx, deletePolicyInput)
-		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteResourcePolicy, err)
-
-		var nf *types.ResourceNotFoundException
-		if err != nil && !errors.As(err, &nf) {
-			return fmt.Errorf("failed to delete resource policy: %w", err)
-		}
-
-		return nil
+		return sm.deleteResourcePolicy(ctx, secretID)
 	}
 
 	// Normal flow, is to create the policy.
 	policyJSON, err := sm.resolveResourcePolicy(ctx, meta.Spec.ResourcePolicy.PolicySourceRef)
 	if err != nil {
 		return fmt.Errorf("failed to resolve resource policy: %w", err)
+	}
+	if policyJSON == "" {
+		return sm.deleteResourcePolicy(ctx, secretID)
 	}
 
 	getCurrentPolicyInput := &awssm.GetResourcePolicyInput{
@@ -912,20 +957,17 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		currentPolicy = *currentPolicyOutput.ResourcePolicy
 	}
 
-	// convert to maps so we can do a stable comparison.
-	var (
-		currentPolicyMap map[string]any
-		policyJSONMaps   map[string]any
-	)
-
-	if err := json.Unmarshal([]byte(currentPolicy), &currentPolicyMap); err != nil {
-		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
-	}
-	if err := json.Unmarshal([]byte(policyJSON), &policyJSONMaps); err != nil {
+	currentPolicyMap, err := unmarshalPolicyJSON(currentPolicy)
+	if err != nil {
 		return fmt.Errorf("failed to unmarshal current resource policy: %w", err)
 	}
 
-	if reflect.DeepEqual(currentPolicyMap, policyJSONMaps) {
+	desiredPolicyMap, err := unmarshalPolicyJSON(policyJSON)
+	if err != nil {
+		return fmt.Errorf("failed to unmarshal desired resource policy: %w", err)
+	}
+
+	if reflect.DeepEqual(currentPolicyMap, desiredPolicyMap) {
 		return nil
 	}
 
@@ -958,9 +1000,113 @@ func computeTagsToUpdate(tags, metaTags map[string]string) ([]types.Tag, bool) {
 			}
 		}
 		result = append(result, types.Tag{
-			Key:   utilpointer.To(k),
-			Value: utilpointer.To(v),
+			Key:   new(k),
+			Value: new(v),
 		})
 	}
 	return result, modified
+}
+
+// manageRegionReplication add or remove regions for secret replication based on
+// desired and live state.
+func (sm *SecretsManager) manageRegionReplication(ctx context.Context, metadata *apiextensionsv1.JSON, secretARN, kmsKeyID *string, existingReplicationStatusType []types.ReplicationStatusType) error {
+	meta, err := sm.constructMetadataWithDefaults(metadata)
+	if err != nil {
+		return err
+	}
+
+	// NOTE: skip replication completely unless explicitly set in the desired state
+	if meta.Spec.ReplicationLocations == nil {
+		return nil
+	}
+
+	existingReplicationRegions := buildExistingReplicationRegionsSlice(existingReplicationStatusType)
+	requiresRegionReplicationRemoval, regionsToBeRemovedFromReplication := sm.getReplicationRegionToBeRemoved(meta.Spec.ReplicationLocations, existingReplicationRegions)
+	if requiresRegionReplicationRemoval {
+		if err := sm.removeRegionsFromReplication(ctx, secretARN, regionsToBeRemovedFromReplication); err != nil {
+			return err
+		}
+	}
+
+	requiresNewRegionReplication, regionsToReplicate := sm.getReplicationRegionsToBeAdded(meta.Spec.ReplicationLocations, existingReplicationRegions)
+	if requiresNewRegionReplication {
+		if err := sm.replicateExistingSecretToRegions(ctx, secretARN, kmsKeyID, regionsToReplicate); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (sm *SecretsManager) replicateExistingSecretToRegions(ctx context.Context, secretID, kmsKeyID *string, regionsToReplicate []string) error {
+	replicateSecretToRegionsInput := &awssm.ReplicateSecretToRegionsInput{
+		AddReplicaRegions: buildReplicationRegionType(regionsToReplicate, kmsKeyID),
+		SecretId:          secretID,
+	}
+	_, err := sm.client.ReplicateSecretToRegions(ctx, replicateSecretToRegionsInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMReplicateSecretToRegions, err)
+	if err != nil {
+		return fmt.Errorf("failed to replicate existing secret to regions: %w", err)
+	}
+	return nil
+}
+
+func (sm *SecretsManager) removeRegionsFromReplication(ctx context.Context, secretID *string, replicationRegionsToBeRemoved []string) error {
+	removeRegionsFromReplicationInput := &awssm.RemoveRegionsFromReplicationInput{
+		RemoveReplicaRegions: replicationRegionsToBeRemoved,
+		SecretId:             secretID,
+	}
+	_, err := sm.client.RemoveRegionsFromReplication(ctx, removeRegionsFromReplicationInput)
+	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMRemoveRegionsFromReplication, err)
+	if err != nil {
+		return fmt.Errorf("failed to remove regions from secret replication: %w", err)
+	}
+	return nil
+}
+
+func (sm *SecretsManager) getReplicationRegionToBeRemoved(desiredReplicationRegions, existingReplicationRegions []string) (bool, []string) {
+	regionsDifference := getDifferenceFromSlices(existingReplicationRegions, desiredReplicationRegions)
+	return len(regionsDifference) > 0, regionsDifference
+}
+
+func (sm *SecretsManager) getReplicationRegionsToBeAdded(desiredReplicationRegions, existingReplicationRegions []string) (bool, []string) {
+	regionsDifference := getDifferenceFromSlices(desiredReplicationRegions, existingReplicationRegions)
+	return len(regionsDifference) > 0, regionsDifference
+}
+
+func buildExistingReplicationRegionsSlice(existingReplicationRegions []types.ReplicationStatusType) []string {
+	replicationRegions := make([]string, 0, len(existingReplicationRegions))
+	for _, replicationStatusType := range existingReplicationRegions {
+		replicationRegions = append(replicationRegions, aws.ToString(replicationStatusType.Region))
+	}
+	return replicationRegions
+}
+
+func buildReplicationRegionType(regions []string, kmsKeyID *string) []types.ReplicaRegionType {
+	replicationRegionsType := make([]types.ReplicaRegionType, 0, len(regions))
+	for _, region := range regions {
+		replicationRegionType := types.ReplicaRegionType{
+			Region:   aws.String(region),
+			KmsKeyId: kmsKeyID,
+		}
+		replicationRegionsType = append(replicationRegionsType, replicationRegionType)
+	}
+	return replicationRegionsType
+}
+
+func getDifferenceFromSlices[T comparable](source, other []T) []T {
+	otherSet := make(map[T]struct{}, len(other))
+	result := make([]T, 0, len(source))
+
+	for _, key := range other {
+		otherSet[key] = struct{}{}
+	}
+
+	for _, key := range source {
+		if _, ok := otherSet[key]; !ok {
+			result = append(result, key)
+		}
+	}
+
+	return result
 }

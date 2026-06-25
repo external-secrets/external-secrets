@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"strings"
 
 	"github.com/tidwall/gjson"
@@ -175,10 +176,11 @@ func (c *Client) mergePushSecretData(remoteRef esv1.PushSecretData, pushMeta *me
 	remoteSecret.ObjectMeta.Labels = targetLabels
 	remoteSecret.ObjectMeta.Annotations = targetAnnotations
 
-	// case 1: push the whole secret
+	// case 1: push the whole secret so remote data is replaced entirely
 	if remoteRef.GetProperty() == "" {
-		for k, v := range localSecret.Data {
-			remoteSecret.Data[k] = v
+		remoteSecret.Data = maps.Clone(localSecret.Data)
+		if remoteSecret.Data == nil {
+			remoteSecret.Data = make(map[string][]byte)
 		}
 		return nil
 	}
@@ -290,8 +292,8 @@ func getPropertyMap(key, property string, tmpMap map[string][]byte) (map[string]
 	var retMap map[string][]byte
 	jsonStr := string(byteArr)
 	// We need to search if a given key with a . exists before using gjson operations.
-	idx := strings.Index(property, ".")
-	if idx > -1 {
+	found := strings.Contains(property, ".")
+	if found {
 		refProperty := strings.ReplaceAll(property, ".", "\\.")
 		retMap, err = getMapFromValues(refProperty, jsonStr)
 		if err != nil {

@@ -18,8 +18,6 @@ package vault
 import (
 	"testing"
 
-	pointer "k8s.io/utils/ptr"
-
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
@@ -50,7 +48,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1.VaultAuth{
 					AppRole: &esv1.VaultAppRole{
 						SecretRef: esmeta.SecretKeySelector{
-							Namespace: pointer.To("invalid"),
+							Namespace: new("invalid"),
 						},
 					},
 				},
@@ -99,7 +97,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1.VaultAuth{
 					Cert: &esv1.VaultCertAuth{
 						ClientCert: esmeta.SecretKeySelector{
-							Namespace: pointer.To("invalid"),
+							Namespace: new("invalid"),
 						},
 					},
 				},
@@ -112,7 +110,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1.VaultAuth{
 					Cert: &esv1.VaultCertAuth{
 						SecretRef: esmeta.SecretKeySelector{
-							Namespace: pointer.To("invalid"),
+							Namespace: new("invalid"),
 						},
 					},
 				},
@@ -125,7 +123,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1.VaultAuth{
 					Jwt: &esv1.VaultJwtAuth{
 						SecretRef: &esmeta.SecretKeySelector{
-							Namespace: pointer.To("invalid"),
+							Namespace: new("invalid"),
 						},
 					},
 				},
@@ -138,7 +136,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1.VaultAuth{
 					Kubernetes: &esv1.VaultKubernetesAuth{
 						ServiceAccountRef: &esmeta.ServiceAccountSelector{
-							Namespace: pointer.To("invalid"),
+							Namespace: new("invalid"),
 						},
 					},
 				},
@@ -151,7 +149,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1.VaultAuth{
 					Kubernetes: &esv1.VaultKubernetesAuth{
 						SecretRef: &esmeta.SecretKeySelector{
-							Namespace: pointer.To("invalid"),
+							Namespace: new("invalid"),
 						},
 					},
 				},
@@ -164,7 +162,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1.VaultAuth{
 					Ldap: &esv1.VaultLdapAuth{
 						SecretRef: esmeta.SecretKeySelector{
-							Namespace: pointer.To("invalid"),
+							Namespace: new("invalid"),
 						},
 					},
 				},
@@ -177,7 +175,7 @@ func TestValidateStore(t *testing.T) {
 				auth: esv1.VaultAuth{
 					UserPass: &esv1.VaultUserPassAuth{
 						SecretRef: esmeta.SecretKeySelector{
-							Namespace: pointer.To("invalid"),
+							Namespace: new("invalid"),
 						},
 					},
 				},
@@ -189,7 +187,7 @@ func TestValidateStore(t *testing.T) {
 			args: args{
 				auth: esv1.VaultAuth{
 					TokenSecretRef: &esmeta.SecretKeySelector{
-						Namespace: pointer.To("invalid"),
+						Namespace: new("invalid"),
 					},
 				},
 			},

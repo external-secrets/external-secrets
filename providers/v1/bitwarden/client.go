@@ -283,7 +283,7 @@ func (p *Provider) parseYamlSecretData(data []byte) (map[string][]byte, error) {
 			}
 			secretData[k] = bytes.TrimSpace(d)
 		default:
-			secretData[k] = []byte(fmt.Sprintf("%v", t)) // Convert to string and then []byte
+			secretData[k] = fmt.Appendf(nil, "%v", t) // Convert to string and then []byte
 		}
 	}
 

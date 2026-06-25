@@ -135,7 +135,7 @@ func (r *Reconciler) updateProvisionedNamespaces(
 	failedNamespaces map[string]error,
 	cps *v1alpha1.ClusterPushSecret,
 ) []string {
-	var provisionedNamespaces []string //nolint:prealloc // I have no idea what the size will be.
+	var provisionedNamespaces []string
 	for _, namespace := range namespaces {
 		var pushSecret v1alpha1.PushSecret
 		err := r.Get(ctx, types.NamespacedName{

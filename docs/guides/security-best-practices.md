@@ -98,7 +98,7 @@ The provided Helm chart is designed for ease of use and may not meet your organi
 
 Here are some examples of how you can harden the Helm chart:
 
-* **Scope RBAC Permissions**: The default chart grants permissions to create service account tokens for any service account. You can restrict this by modifying the `ClusterRole` to only allow token creation for specific, known service accounts. This limits the operator's ability to impersonate other service accounts.
+* **Scope RBAC Permissions**: The default chart grants permissions to create service account tokens for any service account. You can disable this by setting `rbac.serviceAccountTokenCreate: false`. When disabled, you must grant ESO token creation for specific ServiceAccounts via dedicated Role/RoleBinding with a `resourceNames` constraint. This limits the operator's ability to impersonate other service accounts.
 
 * **Use Tightly Scoped Deployments**: If you don't need certain features, disable them. For example, you can prevent the injection of sidecar containers by using a custom appArmor profile, or an admission controller like Kyverno to enforce restrictions on your deployment.
 
@@ -124,6 +124,45 @@ To ensure a secure RBAC configuration, consider the following checklist:
 * If necessary, deploy ESO with scoped RBAC or within a specific namespace.
 
 By carefully managing RBAC permissions and scoping the External Secrets Operator appropriately, you can enhance the security of your Kubernetes cluster.
+
+### Scoping ServiceAccount Token Creation
+
+By default, the ESO controller Role/ClusterRole includes a blanket `serviceaccounts/token: create` permission. This permission is necessary for authentication methods that rely on `serviceAccountRef` — such as Vault Kubernetes auth or Conjur JWT auth — where ESO creates a short-lived token for the referenced ServiceAccount and uses it to authenticate with the external secret provider.
+
+However, this means ESO can create tokens for *any* ServiceAccount within its scope. If the ESO service account is compromised, an attacker could leverage this permission to create tokens for other ServiceAccounts in the cluster (or in the namespace, when using scoped RBAC), effectively impersonating them and escalating privileges beyond ESO's intended scope.
+
+To mitigate this risk, you can set `rbac.serviceAccountTokenCreate: false` in the Helm chart values. This removes the blanket permission from ESO's Role/ClusterRole entirely.
+
+When this permission is disabled, you must explicitly delegate token creation to ESO on a per-ServiceAccount basis. For each ServiceAccount referenced in a SecretStore's `serviceAccountRef`, create a Role and RoleBinding that grants ESO token creation scoped to that specific ServiceAccount using the `resourceNames` constraint:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: eso-token-<sa-name>
+  namespace: <namespace>
+rules:
+  - apiGroups: ['']
+    resources: ['serviceaccounts/token']
+    resourceNames: ['<sa-name>']
+    verbs: ['create']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: eso-token-<sa-name>
+  namespace: <namespace>
+subjects:
+  - kind: ServiceAccount
+    name: <eso-service-account>
+    namespace: <eso-namespace>
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: eso-token-<sa-name>
+```
+
+With this configuration, ESO can only create tokens for ServiceAccounts that have been explicitly granted by the cluster administrator. This follows the principle of least privilege and ensures that a compromised ESO instance cannot be used to impersonate arbitrary ServiceAccounts.
 
 ## Network Traffic and Security
 

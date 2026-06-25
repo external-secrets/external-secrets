@@ -385,7 +385,7 @@ func TestAuth(t *testing.T) {
 			provider: &esv1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.To("mytenant"),
+				TenantID: new("mytenant"),
 			},
 		},
 		{
@@ -395,7 +395,7 @@ func TestAuth(t *testing.T) {
 			provider: &esv1.AzureKVProvider{
 				AuthType:      &authType,
 				VaultURL:      &vaultURL,
-				TenantID:      pointer.To("mytenant"),
+				TenantID:      new("mytenant"),
 				AuthSecretRef: &esv1.AzureKVAuth{},
 			},
 		},
@@ -406,7 +406,7 @@ func TestAuth(t *testing.T) {
 			provider: &esv1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.To("mytenant"),
+				TenantID: new("mytenant"),
 				AuthSecretRef: &esv1.AzureKVAuth{
 					ClientSecret: &v1.SecretKeySelector{Name: "password"},
 					ClientID:     &v1.SecretKeySelector{Name: "password"},
@@ -425,10 +425,10 @@ func TestAuth(t *testing.T) {
 			provider: &esv1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.To("mytenant"),
+				TenantID: new("mytenant"),
 				AuthSecretRef: &esv1.AzureKVAuth{
-					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo")},
-					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo")},
+					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: new("foo")},
+					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: new("foo")},
 				},
 			},
 		},
@@ -453,10 +453,10 @@ func TestAuth(t *testing.T) {
 			provider: &esv1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.To("mytenant"),
+				TenantID: new("mytenant"),
 				AuthSecretRef: &esv1.AzureKVAuth{
-					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo"), Key: "secret"},
-					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo"), Key: "id"},
+					ClientSecret: &v1.SecretKeySelector{Name: "password", Namespace: new("foo"), Key: "secret"},
+					ClientID:     &v1.SecretKeySelector{Name: "password", Namespace: new("foo"), Key: "id"},
 				},
 			},
 		},
@@ -483,11 +483,11 @@ func TestAuth(t *testing.T) {
 			provider: &esv1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.To("mytenant"),
+				TenantID: new("mytenant"),
 				AuthSecretRef: &esv1.AzureKVAuth{
-					ClientID:          &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo"), Key: "id"},
-					ClientCertificate: &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo"), Key: "certificate"},
-					ClientSecret:      &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo"), Key: "secret"},
+					ClientID:          &v1.SecretKeySelector{Name: "password", Namespace: new("foo"), Key: "id"},
+					ClientCertificate: &v1.SecretKeySelector{Name: "password", Namespace: new("foo"), Key: "certificate"},
+					ClientSecret:      &v1.SecretKeySelector{Name: "password", Namespace: new("foo"), Key: "secret"},
 				},
 			},
 		},
@@ -513,10 +513,10 @@ func TestAuth(t *testing.T) {
 			provider: &esv1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.To("mytenant"),
+				TenantID: new("mytenant"),
 				AuthSecretRef: &esv1.AzureKVAuth{
-					ClientID:          &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo"), Key: "id"},
-					ClientCertificate: &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo"), Key: "certificate"},
+					ClientID:          &v1.SecretKeySelector{Name: "password", Namespace: new("foo"), Key: "id"},
+					ClientCertificate: &v1.SecretKeySelector{Name: "password", Namespace: new("foo"), Key: "certificate"},
 				},
 			},
 		},
@@ -541,10 +541,10 @@ func TestAuth(t *testing.T) {
 			provider: &esv1.AzureKVProvider{
 				AuthType: &authType,
 				VaultURL: &vaultURL,
-				TenantID: pointer.To("mytenant"),
+				TenantID: new("mytenant"),
 				AuthSecretRef: &esv1.AzureKVAuth{
-					ClientID:          &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo"), Key: "id"},
-					ClientCertificate: &v1.SecretKeySelector{Name: "password", Namespace: pointer.To("foo"), Key: "certificate"},
+					ClientID:          &v1.SecretKeySelector{Name: "password", Namespace: new("foo"), Key: "id"},
+					ClientCertificate: &v1.SecretKeySelector{Name: "password", Namespace: new("foo"), Key: "certificate"},
 				},
 			},
 		},

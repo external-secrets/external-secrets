@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strings"
 
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -43,12 +44,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 
 	storeKind := store.GetObjectKind().GroupVersionKind().Kind
 
-	dvlsClient, err := NewDVLSClient(ctx, kube, storeKind, namespace, dvlsProvider)
+	credClient, vaultID, err := NewDVLSClient(ctx, kube, storeKind, namespace, dvlsProvider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create DVLS client: %w", err)
 	}
 
-	return NewClient(dvlsClient), nil
+	return NewClient(credClient, vaultID), nil
 }
 
 // ValidateStore validates the SecretStore configuration.
@@ -60,6 +61,11 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 
 	if dvlsProvider.ServerURL == "" {
 		return nil, fmt.Errorf("serverUrl is required")
+	}
+
+	vault := strings.TrimSpace(dvlsProvider.Vault)
+	if vault != dvlsProvider.Vault {
+		return nil, fmt.Errorf("vault must not contain leading or trailing whitespace")
 	}
 
 	parsedURL, err := url.Parse(dvlsProvider.ServerURL)

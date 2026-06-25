@@ -77,8 +77,16 @@ func (c *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1.Va
 	if path == "" {
 		path = "cert"
 	}
+
+	var loginData map[string]any
+	if certAuth.VaultRole != "" {
+		loginData = map[string]any{
+			"name": certAuth.VaultRole,
+		}
+	}
+
 	url := strings.Join([]string{"auth", path, "login"}, "/")
-	vaultResult, err := c.logical.WriteWithContext(ctx, url, nil)
+	vaultResult, err := c.logical.WriteWithContext(ctx, url, loginData)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
 	if err != nil {
 		return fmt.Errorf(errVaultRequest, err)

@@ -158,19 +158,19 @@ type enqueueHandler struct {
 	log            logr.Logger
 }
 
-func (h *enqueueHandler) OnAdd(obj interface{}, _ bool) {
+func (h *enqueueHandler) OnAdd(obj any, _ bool) {
 	h.enqueue(obj)
 }
 
-func (h *enqueueHandler) OnUpdate(_, newObj interface{}) {
+func (h *enqueueHandler) OnUpdate(_, newObj any) {
 	h.enqueue(newObj)
 }
 
-func (h *enqueueHandler) OnDelete(obj interface{}) {
+func (h *enqueueHandler) OnDelete(obj any) {
 	h.enqueue(obj)
 }
 
-func (h *enqueueHandler) enqueue(obj interface{}) {
+func (h *enqueueHandler) enqueue(obj any) {
 	// Extract metadata
 	meta, ok := obj.(metav1.Object)
 	if !ok {

@@ -45,7 +45,7 @@ func newTestClient(t *testing.T, _, pattern string, handler func(w http.Response
 		r.Header.Add(contentType, contentTypeValue)
 		w.Header().Add(contentType, contentTypeValue)
 		w.WriteHeader(http.StatusOK)
-		err := json.NewEncoder(w).Encode(map[string]interface{}{
+		err := json.NewEncoder(w).Encode(map[string]any{
 			"id": "session-id",
 		})
 		require.NoError(t, err)
@@ -73,7 +73,7 @@ func newTestClient(t *testing.T, _, pattern string, handler func(w http.Response
 }
 
 func TestGetSecret(t *testing.T) {
-	testmap := map[string]interface{}{
+	testmap := map[string]any{
 		"b": "world",
 	}
 
@@ -115,7 +115,7 @@ func TestGetSecretMap(t *testing.T) {
 	tests := []struct {
 		name  string
 		ref   esv1.ExternalSecretDataRemoteRef
-		input map[string]interface{}
+		input map[string]any
 
 		want    map[string][]byte
 		wantErr bool
@@ -125,18 +125,18 @@ func TestGetSecretMap(t *testing.T) {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "mysec",
 			},
-			input: map[string]interface{}{
-				"foo": map[string]interface{}{
+			input: map[string]any{
+				"foo": map[string]any{
 					"value": "bar",
-					"trace": map[string]interface{}{
-						"def": map[string]interface{}{
+					"trace": map[string]any{
+						"def": map[string]any{
 							"environment": "bar",
-							"begin": map[string]interface{}{
+							"begin": map[string]any{
 								"line":   3,
 								"column": 9,
 								"byte":   29,
 							},
-							"end": map[string]interface{}{
+							"end": map[string]any{
 								"line":   3,
 								"column": 13,
 								"byte":   33,
@@ -144,17 +144,17 @@ func TestGetSecretMap(t *testing.T) {
 						},
 					},
 				},
-				"foobar": map[string]interface{}{
+				"foobar": map[string]any{
 					"value": "42",
-					"trace": map[string]interface{}{
-						"def": map[string]interface{}{
+					"trace": map[string]any{
+						"def": map[string]any{
 							"environment": "bar",
-							"begin": map[string]interface{}{
+							"begin": map[string]any{
 								"line":   4,
 								"column": 9,
 								"byte":   38,
 							},
-							"end": map[string]interface{}{
+							"end": map[string]any{
 								"line":   4,
 								"column": 13,
 								"byte":   42,
@@ -162,17 +162,17 @@ func TestGetSecretMap(t *testing.T) {
 						},
 					},
 				},
-				"bar": map[string]interface{}{
+				"bar": map[string]any{
 					"value": true,
-					"trace": map[string]interface{}{
-						"def": map[string]interface{}{
+					"trace": map[string]any{
+						"def": map[string]any{
 							"environment": "bar",
-							"begin": map[string]interface{}{
+							"begin": map[string]any{
 								"line":   5,
 								"column": 9,
 								"byte":   47,
 							},
-							"end": map[string]interface{}{
+							"end": map[string]any{
 								"line":   5,
 								"column": 13,
 								"byte":   51,
@@ -193,20 +193,20 @@ func TestGetSecretMap(t *testing.T) {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "mysec",
 			},
-			input: map[string]interface{}{
-				"test22": map[string]interface{}{
-					"value": map[string]interface{}{
-						"my": map[string]interface{}{
+			input: map[string]any{
+				"test22": map[string]any{
+					"value": map[string]any{
+						"my": map[string]any{
 							"value": "hello",
-							"trace": map[string]interface{}{
-								"def": map[string]interface{}{
+							"trace": map[string]any{
+								"def": map[string]any{
 									"environment": "bar",
-									"begin": map[string]interface{}{
+									"begin": map[string]any{
 										"line":   6,
 										"column": 11,
 										"byte":   72,
 									},
-									"end": map[string]interface{}{
+									"end": map[string]any{
 										"line":   6,
 										"column": 16,
 										"byte":   77,
@@ -215,15 +215,15 @@ func TestGetSecretMap(t *testing.T) {
 							},
 						},
 					},
-					"trace": map[string]interface{}{
-						"def": map[string]interface{}{
+					"trace": map[string]any{
+						"def": map[string]any{
 							"environment": "bar",
-							"begin": map[string]interface{}{
+							"begin": map[string]any{
 								"line":   6,
 								"column": 7,
 								"byte":   68,
 							},
-							"end": map[string]interface{}{
+							"end": map[string]any{
 								"line":   6,
 								"column": 16,
 								"byte":   77,
@@ -231,19 +231,19 @@ func TestGetSecretMap(t *testing.T) {
 						},
 					},
 				},
-				"test33": map[string]interface{}{
-					"value": map[string]interface{}{
-						"world": map[string]interface{}{
+				"test33": map[string]any{
+					"value": map[string]any{
+						"world": map[string]any{
 							"value": "hello",
-							"trace": map[string]interface{}{
-								"def": map[string]interface{}{
+							"trace": map[string]any{
+								"def": map[string]any{
 									"environment": "bar",
-									"begin": map[string]interface{}{
+									"begin": map[string]any{
 										"line":   8,
 										"column": 14,
 										"byte":   103,
 									},
-									"end": map[string]interface{}{
+									"end": map[string]any{
 										"line":   8,
 										"column": 19,
 										"byte":   108,
@@ -252,15 +252,15 @@ func TestGetSecretMap(t *testing.T) {
 							},
 						},
 					},
-					"trace": map[string]interface{}{
-						"def": map[string]interface{}{
+					"trace": map[string]any{
+						"def": map[string]any{
 							"environment": "bar",
-							"begin": map[string]interface{}{
+							"begin": map[string]any{
 								"line":   8,
 								"column": 7,
 								"byte":   96,
 							},
-							"end": map[string]interface{}{
+							"end": map[string]any{
 								"line":   8,
 								"column": 19,
 								"byte":   108,
@@ -280,18 +280,18 @@ func TestGetSecretMap(t *testing.T) {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "mysec",
 			},
-			input: map[string]interface{}{
-				"foo": map[string]interface{}{
+			input: map[string]any{
+				"foo": map[string]any{
 					"value": "bar",
-					"trace": map[string]interface{}{
-						"def": map[string]interface{}{
+					"trace": map[string]any{
+						"def": map[string]any{
 							"environment": "bar",
-							"begin": map[string]interface{}{
+							"begin": map[string]any{
 								"line":   3,
 								"column": 9,
 								"byte":   29,
 							},
-							"end": map[string]interface{}{
+							"end": map[string]any{
 								"line":   3,
 								"column": 13,
 								"byte":   33,
@@ -299,19 +299,19 @@ func TestGetSecretMap(t *testing.T) {
 						},
 					},
 				},
-				"test22": map[string]interface{}{
-					"value": map[string]interface{}{
-						"my": map[string]interface{}{
+				"test22": map[string]any{
+					"value": map[string]any{
+						"my": map[string]any{
 							"value": "hello",
-							"trace": map[string]interface{}{
-								"def": map[string]interface{}{
+							"trace": map[string]any{
+								"def": map[string]any{
 									"environment": "bar",
-									"begin": map[string]interface{}{
+									"begin": map[string]any{
 										"line":   6,
 										"column": 11,
 										"byte":   72,
 									},
-									"end": map[string]interface{}{
+									"end": map[string]any{
 										"line":   6,
 										"column": 16,
 										"byte":   77,
@@ -320,15 +320,15 @@ func TestGetSecretMap(t *testing.T) {
 							},
 						},
 					},
-					"trace": map[string]interface{}{
-						"def": map[string]interface{}{
+					"trace": map[string]any{
+						"def": map[string]any{
 							"environment": "bar",
-							"begin": map[string]interface{}{
+							"begin": map[string]any{
 								"line":   6,
 								"column": 7,
 								"byte":   68,
 							},
-							"end": map[string]interface{}{
+							"end": map[string]any{
 								"line":   6,
 								"column": 16,
 								"byte":   77,
@@ -366,16 +366,16 @@ func TestGetSecretMap(t *testing.T) {
 }
 
 func TestCreateSubmaps(t *testing.T) {
-	input := map[string]interface{}{
+	input := map[string]any{
 		"a.b.c": 1,
 		"a.b.d": 2,
 		"a.e":   3,
 		"f":     4,
 	}
 
-	expected := map[string]interface{}{
-		"a": map[string]interface{}{
-			"b": map[string]interface{}{
+	expected := map[string]any{
+		"a": map[string]any{
+			"b": map[string]any{
 				"c": 1,
 				"d": 2,
 			},
@@ -391,12 +391,12 @@ func TestCreateSubmaps(t *testing.T) {
 	}
 
 	// Test nested access
-	a, ok := result["a"].(map[string]interface{})
+	a, ok := result["a"].(map[string]any)
 	if !ok {
 		t.Errorf("Expected 'a' to be a map")
 	}
 
-	b, ok := a["b"].(map[string]interface{})
+	b, ok := a["b"].(map[string]any)
 	if !ok {
 		t.Errorf("Expected 'a.b' to be a map")
 	}

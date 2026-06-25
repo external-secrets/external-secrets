@@ -222,6 +222,12 @@ func rsaEncryptOAEP(t testing.TB, publicKeyPEM []byte, hash, plaintext string) [
 	return ciphertext
 }
 
+func TestFuncMapDoesNotExposeGetHostByName(t *testing.T) {
+	if _, ok := FuncMap()["getHostByName"]; ok {
+		t.Fatalf("getHostByName should not be exposed in the template function map")
+	}
+}
+
 func TestExecute(t *testing.T) {
 	tbl := []struct {
 		name                string
@@ -418,6 +424,18 @@ func TestExecute(t *testing.T) {
 				"example": []byte("iam_no_base64"),
 			},
 			expErr: "", // silent error
+		},
+		{
+			name: "hexdec",
+			tpl: map[string][]byte{
+				"key": []byte(`{{ .example | sha256sum | hexdec | b64enc }}`),
+			},
+			data: map[string][]byte{
+				"example": []byte("example"),
+			},
+			expectedData: map[string][]byte{
+				"key": []byte("UNhY4JhezH9gQYqvDMWrWH9CwlcKiECVqejMrND2VFw="),
+			},
 		},
 		{
 			name: "pkcs12 key wrong password",
@@ -629,6 +647,64 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
+			name: "certSANs extract DNS SANs as comma-separated string",
+			tpl: map[string][]byte{
+				"sans": []byte(`{{ .certificate | certSANs | join "," }}`),
+			},
+			data: map[string][]byte{
+				"certificate": []byte(pkcs12Cert),
+			},
+			expectedData: map[string][]byte{
+				"sans": []byte("gooble.com"),
+			},
+		},
+		{
+			name: "certSANs extract first SAN with index",
+			tpl: map[string][]byte{
+				"primary-domain": []byte(`{{ index (.certificate | certSANs) 0 }}`),
+			},
+			data: map[string][]byte{
+				"certificate": []byte(pkcs12Cert),
+			},
+			expectedData: map[string][]byte{
+				"primary-domain": []byte("gooble.com"),
+			},
+		},
+		{
+			name: "certSANs with toJson",
+			tpl: map[string][]byte{
+				"sans-json": []byte(`{{ .certificate | certSANs | toJson }}`),
+			},
+			data: map[string][]byte{
+				"certificate": []byte(pkcs12Cert),
+			},
+			expectedData: map[string][]byte{
+				"sans-json": []byte(`["gooble.com"]`),
+			},
+		},
+		{
+			name: "certSANs combined with filterPEM pipeline",
+			tpl: map[string][]byte{
+				"sans": []byte(`{{ .secret | filterPEM "CERTIFICATE" | certSANs | join "," }}`),
+			},
+			data: map[string][]byte{
+				"secret": []byte(pkcs12Key + pkcs12Cert),
+			},
+			expectedData: map[string][]byte{
+				"sans": []byte("gooble.com"),
+			},
+		},
+		{
+			name: "certSANs with invalid PEM",
+			tpl: map[string][]byte{
+				"sans": []byte(`{{ .certificate | certSANs }}`),
+			},
+			data: map[string][]byte{
+				"certificate": []byte("not-a-pem"),
+			},
+			expErr: "failed to decode PEM block",
+		},
+		{
 			name: "htpasswd with sha1",
 			tpl: map[string][]byte{
 				".htpasswd": []byte(`{{ htpasswd .username .password "sha" }}`),
@@ -662,15 +738,15 @@ func TestExecute(t *testing.T) {
 				leftDelim = oldLeftDelim
 				rightDelim = oldRightDelim
 			}()
-			err := Execute(tt.tpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetData, sec)
+			err := Execute(tt.tpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetData, sec, esapi.ExternalSecretDecodeNone)
 			if !ErrorContains(err, tt.expErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, tt.expErr)
 			}
-			err = Execute(tt.labelsTpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetLabels, sec)
+			err = Execute(tt.labelsTpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetLabels, sec, esapi.ExternalSecretDecodeNone)
 			if !ErrorContains(err, tt.expLblErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, tt.expErr)
 			}
-			err = Execute(tt.annotationsTpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetAnnotations, sec)
+			err = Execute(tt.annotationsTpl, tt.data, esapi.TemplateScopeValues, esapi.TemplateTargetAnnotations, sec, esapi.ExternalSecretDecodeNone)
 			if !ErrorContains(err, tt.expAnnoErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, tt.expErr)
 			}
@@ -744,7 +820,7 @@ func TestScopeValuesWithSecretFieldsNil(t *testing.T) {
 		row := tbl[i]
 		t.Run(row.name, func(t *testing.T) {
 			sec := &corev1.Secret{}
-			err := Execute(row.tpl, row.data, esapi.TemplateScopeValues, row.target, sec)
+			err := Execute(row.tpl, row.data, esapi.TemplateScopeValues, row.target, sec, esapi.ExternalSecretDecodeNone)
 			if !ErrorContains(err, row.expErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
@@ -768,9 +844,22 @@ func TestScopeValuesWithSecretFieldsNil(t *testing.T) {
 
 func TestExecuteInvalidTemplateScope(t *testing.T) {
 	sec := &corev1.Secret{}
-	err := Execute(map[string][]byte{"foo": []byte("bar")}, nil, "invalid", esapi.TemplateTargetData, sec)
+	err := Execute(map[string][]byte{"foo": []byte("bar")}, nil, "invalid", esapi.TemplateTargetData, sec, esapi.ExternalSecretDecodeNone)
 	require.Error(t, err)
 	assert.ErrorContains(t, err, "expected 'Values' or 'KeysAndValues'")
+}
+
+// Target dispatch is case-insensitive; validators rely on this.
+func TestExecuteTargetCaseInsensitive(t *testing.T) {
+	for _, target := range []string{"Annotations", "annotations", "ANNOTATIONS", "AnNoTaTiOnS"} {
+		t.Run(target, func(t *testing.T) {
+			sec := &corev1.Secret{}
+			require.NoError(t, Execute(map[string][]byte{"foo": []byte("bar")}, nil, esapi.TemplateScopeValues, target, sec, esapi.ExternalSecretDecodeNone))
+			assert.Equal(t, "bar", sec.Annotations["foo"])
+			assert.Empty(t, sec.Labels)
+			assert.Empty(t, sec.Data)
+		})
+	}
 }
 
 func TestScopeKeysAndValues(t *testing.T) {
@@ -834,7 +923,7 @@ func TestScopeKeysAndValues(t *testing.T) {
 				StringData: make(map[string]string),
 				ObjectMeta: v1.ObjectMeta{Labels: make(map[string]string), Annotations: make(map[string]string)},
 			}
-			err := Execute(row.tpl, row.data, esapi.TemplateScopeKeysAndValues, row.target, sec)
+			err := Execute(row.tpl, row.data, esapi.TemplateScopeKeysAndValues, row.target, sec, esapi.ExternalSecretDecodeNone)
 			if !ErrorContains(err, row.expErr) {
 				t.Errorf("unexpected error: %s, expected: %s", err, row.expErr)
 			}
@@ -950,7 +1039,7 @@ func TestComplexYAMLFieldsWithSpec(t *testing.T) {
 				Data: make(map[string][]byte),
 			}
 
-			err := Execute(tt.tpl, tt.data, tt.scope, tt.target, obj)
+			err := Execute(tt.tpl, tt.data, tt.scope, tt.target, obj, esapi.ExternalSecretDecodeNone)
 
 			if tt.expErr != "" {
 				require.Error(t, err)
@@ -1196,7 +1285,7 @@ func TestConfigMapDataNotBase64Encoded(t *testing.T) {
 		"database": []byte("{{ .database }}"),
 	}
 
-	err := Execute(tplMap, data, esapi.TemplateScopeValues, "Data", configMap)
+	err := Execute(tplMap, data, esapi.TemplateScopeValues, "Data", configMap, esapi.ExternalSecretDecodeNone)
 	require.NoError(t, err)
 
 	assert.Equal(t, "localhost", configMap.Data["host"], "host should be plain text, not base64")
@@ -1211,7 +1300,7 @@ func TestNestedPathTargeting(t *testing.T) {
 		scope    esapi.TemplateScope
 		tpl      map[string][]byte
 		data     map[string][]byte
-		verify   func(t *testing.T, obj map[string]interface{})
+		verify   func(t *testing.T, obj map[string]any)
 		wantErr  bool
 		errorMsg string
 	}{
@@ -1229,9 +1318,9 @@ webhook_url: {{ .webhook }}
 				"url":     []byte("https://hooks.slack.com/services/XXX"),
 				"webhook": []byte("https://hooks.slack.com/services/YYY"),
 			},
-			verify: func(t *testing.T, obj map[string]interface{}) {
-				specMap := obj["spec"].(map[string]interface{})
-				slackMap := specMap["slack"].(map[string]interface{})
+			verify: func(t *testing.T, obj map[string]any) {
+				specMap := obj["spec"].(map[string]any)
+				slackMap := specMap["slack"].(map[string]any)
 
 				// Should NOT have spec.slack.api_url.url (the bug with template variables)
 				apiURL := slackMap["api_url"]
@@ -1257,9 +1346,9 @@ api_url: {{ .url }}
 			data: map[string][]byte{
 				"url": []byte("https://hooks.slack.com/services/NEW"),
 			},
-			verify: func(t *testing.T, obj map[string]interface{}) {
-				specMap := obj["spec"].(map[string]interface{})
-				slackMap := specMap["slack"].(map[string]interface{})
+			verify: func(t *testing.T, obj map[string]any) {
+				specMap := obj["spec"].(map[string]any)
+				slackMap := specMap["slack"].(map[string]any)
 
 				// Should have the new field from template
 				assert.Equal(t, "https://hooks.slack.com/services/NEW", slackMap["api_url"], "api_url should be set from template")
@@ -1281,9 +1370,9 @@ channel: {{ .new_channel }}
 			data: map[string][]byte{
 				"new_channel": []byte("alerts"),
 			},
-			verify: func(t *testing.T, obj map[string]interface{}) {
-				specMap := obj["spec"].(map[string]interface{})
-				slackMap := specMap["slack"].(map[string]interface{})
+			verify: func(t *testing.T, obj map[string]any) {
+				specMap := obj["spec"].(map[string]any)
+				slackMap := specMap["slack"].(map[string]any)
 
 				// Should update the existing field
 				assert.Equal(t, "alerts", slackMap["channel"], "channel should be updated")
@@ -1293,16 +1382,208 @@ channel: {{ .new_channel }}
 				assert.Equal(t, "test-value", slackMap["other_field"], "existing other_field should be preserved")
 			},
 		},
+		{
+			name:   "nested path preserves mixed-case segments (issue #6458)",
+			target: "spec.headers.customRequestHeaders",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"header": []byte(`foo: {{ .token }}`),
+			},
+			data: map[string][]byte{
+				"token": []byte("Bearer"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				specMap := obj["spec"].(map[string]any)
+				headersMap := specMap["headers"].(map[string]any)
+
+				// The mixed-case segment must be preserved, not lowercased.
+				crh, ok := headersMap["customRequestHeaders"].(map[string]any)
+				require.True(t, ok, "customRequestHeaders should keep its mixed case")
+				assert.Equal(t, "Bearer", crh["foo"], "foo should be set under the mixed-case path")
+
+				// The lowercased variant must NOT exist.
+				_, lowered := headersMap["customrequestheaders"]
+				assert.False(t, lowered, "path must not be forcibly lowercased")
+			},
+		},
+		{
+			name:   "values scope nested path preserves mixed-case (issue #6458)",
+			target: "spec.headers.customRequestHeaders",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"foo": []byte(`{{ .token }}`),
+			},
+			data: map[string][]byte{
+				"token": []byte("Bearer"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				specMap := obj["spec"].(map[string]any)
+				headersMap := specMap["headers"].(map[string]any)
+
+				// applyToTarget sets the value at the final mixed-case segment.
+				assert.Equal(t, "Bearer", headersMap["customRequestHeaders"], "value should land under the mixed-case key")
+
+				// The lowercased variant must NOT exist.
+				_, lowered := headersMap["customrequestheaders"]
+				assert.False(t, lowered, "path must not be forcibly lowercased")
+			},
+		},
+		{
+			name:   "nested path preserves intermediate mixed-case segment (issue #6458)",
+			target: "spec.tlsConfig.certResolver",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"resolver": []byte(`name: {{ .val }}`),
+			},
+			data: map[string][]byte{
+				"val": []byte("myResolver"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				specMap := obj["spec"].(map[string]any)
+
+				// Both the intermediate and the leaf segment keep their case.
+				tlsConfig, ok := specMap["tlsConfig"].(map[string]any)
+				require.True(t, ok, "intermediate tlsConfig segment should keep its case")
+				certResolver, ok := tlsConfig["certResolver"].(map[string]any)
+				require.True(t, ok, "leaf certResolver segment should keep its case")
+				assert.Equal(t, "myResolver", certResolver["name"])
+
+				// No lowercased intermediate segment should be created.
+				_, lowered := specMap["tlsconfig"]
+				assert.False(t, lowered, "intermediate segment must not be lowercased")
+			},
+		},
+		{
+			name:   "values scope preserves intermediate mixed-case segment (issue #6458)",
+			target: "spec.tlsConfig.certResolver",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"x": []byte(`{{ .val }}`),
+			},
+			data: map[string][]byte{
+				"val": []byte("myResolver"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				specMap := obj["spec"].(map[string]any)
+
+				// The intermediate segment keeps its case and the value lands on it.
+				tlsConfig, ok := specMap["tlsConfig"].(map[string]any)
+				require.True(t, ok, "intermediate tlsConfig segment should keep its case")
+				assert.Equal(t, "myResolver", tlsConfig["certResolver"])
+
+				// No lowercased intermediate segment should be created.
+				_, lowered := specMap["tlsconfig"]
+				assert.False(t, lowered, "intermediate segment must not be lowercased")
+			},
+		},
+		{
+			name:   "slice notation creates nested array path from scratch",
+			target: "spec.rules[0].from[0].source.notRemoteIpBlocks",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"blocks": []byte("- {{ .cidr1 }}\n- {{ .cidr2 }}\n"),
+			},
+			data: map[string][]byte{
+				"cidr1": []byte("10.0.0.0/8"),
+				"cidr2": []byte("192.168.0.0/16"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				rules := obj["spec"].(map[string]any)["rules"].([]any)
+				from := rules[0].(map[string]any)["from"].([]any)
+				source := from[0].(map[string]any)["source"].(map[string]any)
+				assert.Equal(t, []any{"10.0.0.0/8", "192.168.0.0/16"}, source["notRemoteIpBlocks"])
+			},
+		},
+		{
+			name:   "slice notation merges into existing array element",
+			target: "spec.rules[0].to",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"to": []byte("operation:\n  methods:\n    - GET\n"),
+			},
+			data: map[string][]byte{},
+			verify: func(t *testing.T, obj map[string]any) {
+				rules := obj["spec"].(map[string]any)["rules"].([]any)
+				rule := rules[0].(map[string]any)
+				// existing sibling key in the same element is preserved
+				assert.Equal(t, "existing", rule["from"])
+				op := rule["to"].(map[string]any)["operation"].(map[string]any)
+				assert.Equal(t, []any{"GET"}, op["methods"])
+			},
+		},
+		{
+			name:   "slice notation with value scope sets scalar at index",
+			target: "spec.containers[1].image",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"image": []byte("{{ .img }}"),
+			},
+			data: map[string][]byte{
+				"img": []byte("nginx:latest"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				containers := obj["spec"].(map[string]any)["containers"].([]any)
+				// index 0 was grown and left nil, index 1 holds the value
+				assert.Nil(t, containers[0])
+				assert.Equal(t, "nginx:latest", containers[1].(map[string]any)["image"])
+			},
+		},
+		{
+			name:   "slice notation grows existing non-empty array",
+			target: "spec.containers[2].image",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"image": []byte("{{ .img }}"),
+			},
+			data: map[string][]byte{
+				"img": []byte("nginx:latest"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				containers := obj["spec"].(map[string]any)["containers"].([]any)
+				assert.Len(t, containers, 3)
+				// pre-existing element at index 0 is preserved
+				assert.Equal(t, "sidecar:v1", containers[0].(map[string]any)["image"])
+				assert.Nil(t, containers[1])
+				assert.Equal(t, "nginx:latest", containers[2].(map[string]any)["image"])
+			},
+		},
+		{
+			name:     "invalid slice notation reports error",
+			target:   "spec.rules[abc].foo",
+			scope:    esapi.TemplateScopeKeysAndValues,
+			tpl:      map[string][]byte{"x": []byte("y: z")},
+			data:     map[string][]byte{},
+			wantErr:  true,
+			errorMsg: "bad index",
+		},
+		{
+			name:     "bare leading index is rejected",
+			target:   "[0]",
+			scope:    esapi.TemplateScopeKeysAndValues,
+			tpl:      map[string][]byte{"x": []byte("y: z")},
+			data:     map[string][]byte{},
+			wantErr:  true,
+			errorMsg: "must start with a key",
+		},
+		{
+			name:     "leading index followed by key is rejected",
+			target:   "[0].test",
+			scope:    esapi.TemplateScopeKeysAndValues,
+			tpl:      map[string][]byte{"x": []byte("y: z")},
+			data:     map[string][]byte{},
+			wantErr:  true,
+			errorMsg: "must start with a key",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Use an unstructured object to test generic target behavior
 			obj := &unstructured.Unstructured{
-				Object: map[string]interface{}{
+				Object: map[string]any{
 					"apiVersion": "example.com/v1",
 					"kind":       "TestResource",
-					"metadata": map[string]interface{}{
+					"metadata": map[string]any{
 						"name":      "test-resource",
 						"namespace": "default",
 					},
@@ -1311,8 +1592,8 @@ channel: {{ .new_channel }}
 
 			// For merge behavior tests, pre-populate the object with existing content
 			if strings.Contains(tt.name, "merge behavior") {
-				obj.Object["spec"] = map[string]interface{}{
-					"slack": map[string]interface{}{
+				obj.Object["spec"] = map[string]any{
+					"slack": map[string]any{
 						"channel":     "general",
 						"other_field": "test-value",
 					},
@@ -1321,8 +1602,8 @@ channel: {{ .new_channel }}
 
 			// For overwrite field test, pre-populate with different initial values
 			if strings.Contains(tt.name, "overwrite field") {
-				obj.Object["spec"] = map[string]interface{}{
-					"slack": map[string]interface{}{
+				obj.Object["spec"] = map[string]any{
+					"slack": map[string]any{
 						"channel":     "general",
 						"api_url":     "https://hooks.slack.com/existing",
 						"other_field": "test-value",
@@ -1330,7 +1611,25 @@ channel: {{ .new_channel }}
 				}
 			}
 
-			err := Execute(tt.tpl, tt.data, tt.scope, tt.target, obj)
+			// For the slice-merge test, pre-populate an existing array element.
+			if strings.Contains(tt.name, "merges into existing array element") {
+				obj.Object["spec"] = map[string]any{
+					"rules": []any{
+						map[string]any{"from": "existing"},
+					},
+				}
+			}
+
+			// For the slice-grow test, pre-populate a non-empty array.
+			if strings.Contains(tt.name, "grows existing non-empty array") {
+				obj.Object["spec"] = map[string]any{
+					"containers": []any{
+						map[string]any{"image": "sidecar:v1"},
+					},
+				}
+			}
+
+			err := Execute(tt.tpl, tt.data, tt.scope, tt.target, obj, esapi.ExternalSecretDecodeNone)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -1343,6 +1642,196 @@ channel: {{ .new_channel }}
 					tt.verify(t, obj.Object)
 				}
 			}
+		})
+	}
+}
+
+func TestNestedPathTargetingIsIdempotent(t *testing.T) {
+	tests := []struct {
+		name   string
+		target string
+		scope  esapi.TemplateScope
+		tpl    map[string][]byte
+		data   map[string][]byte
+		seed   map[string]any
+		verify func(t *testing.T, obj map[string]any)
+	}{
+		{
+			name:   "deep slice path created from scratch",
+			target: "spec.rules[0].from[0].source.notRemoteIpBlocks",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"blocks": []byte("- {{ .cidr }}\n"),
+			},
+			data: map[string][]byte{
+				"cidr": []byte("10.0.0.0/8"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				rules := obj["spec"].(map[string]any)["rules"].([]any)
+				assert.Len(t, rules, 1, "rules slice must not grow on re-apply")
+				from := rules[0].(map[string]any)["from"].([]any)
+				assert.Len(t, from, 1, "from slice must not grow on re-apply")
+				source := from[0].(map[string]any)["source"].(map[string]any)
+				assert.Equal(t, []any{"10.0.0.0/8"}, source["notRemoteIpBlocks"])
+			},
+		},
+		{
+			name:   "map merge into existing element",
+			target: "spec.slack",
+			scope:  esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"slack-config": []byte("api_url: {{ .url }}\n"),
+			},
+			data: map[string][]byte{
+				"url": []byte("https://hooks.slack.com/services/NEW"),
+			},
+			seed: map[string]any{
+				"slack": map[string]any{
+					"channel": "general",
+				},
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				slack := obj["spec"].(map[string]any)["slack"].(map[string]any)
+				assert.Equal(t, "https://hooks.slack.com/services/NEW", slack["api_url"])
+				assert.Equal(t, "general", slack["channel"], "seeded field must survive every re-apply")
+				_, nested := slack["slack"]
+				assert.False(t, nested, "merge must not nest the target key into itself")
+			},
+		},
+		{
+			name:   "scalar at sparse index",
+			target: "spec.containers[1].image",
+			scope:  esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"image": []byte("{{ .img }}"),
+			},
+			data: map[string][]byte{
+				"img": []byte("nginx:latest"),
+			},
+			verify: func(t *testing.T, obj map[string]any) {
+				containers := obj["spec"].(map[string]any)["containers"].([]any)
+				assert.Len(t, containers, 2, "slice must stay at index+1, not grow per apply")
+				assert.Nil(t, containers[0])
+				assert.Equal(t, "nginx:latest", containers[1].(map[string]any)["image"])
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			obj := &unstructured.Unstructured{
+				Object: map[string]any{
+					"apiVersion": "example.com/v1",
+					"kind":       "TestResource",
+					"metadata": map[string]any{
+						"name":      "test-resource",
+						"namespace": "default",
+					},
+				},
+			}
+			if tt.seed != nil {
+				obj.Object["spec"] = tt.seed
+			}
+
+			var snapshot map[string]any
+			for i := range 3 {
+				require.NoError(t, Execute(tt.tpl, tt.data, tt.scope, tt.target, obj, esapi.ExternalSecretDecodeNone))
+				if i == 0 {
+					snapshot = obj.DeepCopy().Object
+					continue
+				}
+				if diff := cmp.Diff(snapshot, obj.Object); diff != "" {
+					t.Fatalf("apply #%d diverged from the first apply (-first +current):\n%s", i+1, diff)
+				}
+			}
+
+			tt.verify(t, obj.Object)
+		})
+	}
+}
+
+func TestExecuteDecodesRenderedTemplateValues(t *testing.T) {
+	tests := []struct {
+		name             string
+		scope            esapi.TemplateScope
+		tpl              map[string][]byte
+		data             map[string][]byte
+		decodingStrategy esapi.ExternalSecretDecodingStrategy
+		wantData         map[string][]byte
+		wantErr          string
+	}{
+		{
+			name:  "keys and values scope decodes each rendered value",
+			scope: esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"tpl": []byte("service-a: SGVsbG8=\nservice-b: V29ybGQ=\n"),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeBase64,
+			wantData: map[string][]byte{
+				"service-a": []byte("Hello"),
+				"service-b": []byte("World"),
+			},
+		},
+		{
+			name:  "keys are not decoded",
+			scope: esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"tpl": []byte("SGVsbG8=: V29ybGQ=\n"),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeBase64,
+			wantData: map[string][]byte{
+				"SGVsbG8=": []byte("World"),
+			},
+		},
+		{
+			name:  "values scope decodes rendered value",
+			scope: esapi.TemplateScopeValues,
+			tpl: map[string][]byte{
+				"service-a": []byte("{{ .encoded }}"),
+			},
+			data: map[string][]byte{
+				"encoded": []byte("SGVsbG8="),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeBase64,
+			wantData: map[string][]byte{
+				"service-a": []byte("Hello"),
+			},
+		},
+		{
+			name:  "none keeps rendered value unchanged",
+			scope: esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"tpl": []byte("service-a: SGVsbG8=\n"),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeNone,
+			wantData: map[string][]byte{
+				"service-a": []byte("SGVsbG8="),
+			},
+		},
+		{
+			name:  "base64 fails for non base64 rendered value",
+			scope: esapi.TemplateScopeKeysAndValues,
+			tpl: map[string][]byte{
+				"tpl": []byte("service-a: not-base64!\n"),
+			},
+			decodingStrategy: esapi.ExternalSecretDecodeBase64,
+			wantErr:          "failed to decode rendered template value for key service-a",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			secret := &corev1.Secret{}
+
+			err := Execute(tt.tpl, tt.data, tt.scope, esapi.TemplateTargetData, secret, tt.decodingStrategy)
+
+			if tt.wantErr != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantData, secret.Data)
 		})
 	}
 }

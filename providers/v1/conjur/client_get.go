@@ -29,7 +29,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/find"
 )
 
-type conjurResource map[string]interface{}
+type conjurResource map[string]any
 
 // resourceFilterFunc is a function that filters resources.
 // It takes a resource as input and returns the name of the resource if it should be included.
@@ -115,7 +115,7 @@ func (c *Client) findSecretsFromName(ctx context.Context, ref esv1.FindName) (ma
 func (c *Client) findSecretsFromTags(ctx context.Context, tags map[string]string) (map[string][]byte, error) {
 	var resourceFilterFunc = func(candidate conjurResource) (string, error) {
 		name := trimConjurResourceName(candidate["id"].(string))
-		annotations, ok := candidate["annotations"].([]interface{})
+		annotations, ok := candidate["annotations"].([]any)
 		if !ok {
 			// No annotations, skip
 			return "", nil
@@ -210,10 +210,10 @@ func trimConjurResourceName(id string) string {
 
 // Convert annotations from objects with "name", "policy", "value" keys (as returned by the Conjur API)
 // to a key/value map for easier comparison in code.
-func formatAnnotations(annotations []interface{}) (map[string]string, error) {
+func formatAnnotations(annotations []any) (map[string]string, error) {
 	formattedAnnotations := make(map[string]string)
 	for _, annot := range annotations {
-		annot, ok := annot.(map[string]interface{})
+		annot, ok := annot.(map[string]any)
 		if !ok {
 			return nil, fmt.Errorf("could not parse annotation: %v", annot)
 		}

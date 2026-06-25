@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"maps"
 	"testing"
 
 	mbox "github.com/nebius/gosdk/proto/nebius/mysterybox/v1"
@@ -159,9 +160,7 @@ func TestGetSecret(t *testing.T) {
 			}
 
 			expected := make(map[string][]byte, len(tt.expected))
-			for k, v := range tt.expected {
-				expected[k] = v
-			}
+			maps.Copy(expected, tt.expected)
 
 			tassert.Equal(t, len(payload.Entries), len(expected))
 			for _, entry := range payload.Entries {

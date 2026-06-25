@@ -30,7 +30,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 func TestDoesConfigDependOnNamespace(t *testing.T) {
@@ -362,7 +361,7 @@ func makeSecretRefUsingRef(name, key string) *esv1.DelineaProviderSecretRef {
 
 func makeSecretRefUsingNamespacedRef(namespace, name, key string) *esv1.DelineaProviderSecretRef {
 	return &esv1.DelineaProviderSecretRef{
-		SecretRef: &v1.SecretKeySelector{Namespace: esutils.Ptr(namespace), Name: name, Key: key},
+		SecretRef: &v1.SecretKeySelector{Namespace: new(namespace), Name: name, Key: key},
 	}
 }
 

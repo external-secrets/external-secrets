@@ -164,7 +164,19 @@ func makeValidDopplerTestCaseCustom(tweaks ...func(pstc *dopplerTestCase)) *dopp
 	for _, fn := range tweaks {
 		fn(pstc)
 	}
-	pstc.fakeClient.WithValue(pstc.request, pstc.response, pstc.apiErr)
+	pstc.fakeClient.WithSecretFunc(func(req client.SecretRequest) (*client.SecretResponse, error) {
+		if pstc.apiErr != nil {
+			return nil, pstc.apiErr
+		}
+		if pstc.response == nil {
+			return nil, &client.APIError{Message: "secret not found"}
+		}
+		return &client.SecretResponse{
+			Name:     pstc.response.Name,
+			Value:    pstc.response.Value,
+			Modified: true,
+		}, nil
+	})
 	return pstc
 }
 

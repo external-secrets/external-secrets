@@ -87,6 +87,23 @@ var _ = Describe("SecretStore Controller", func() {
 			spc := tc.store.GetSpec()
 			spc.Controller = "something-else"
 			tc.assert = func() {
+				Eventually(func() bool {
+					ss := tc.store.Copy()
+					err := k8sClient.Get(context.Background(), types.NamespacedName{
+						Name:      defaultStoreName,
+						Namespace: ss.GetObjectMeta().Namespace,
+					}, ss)
+					if err != nil {
+						return false
+					}
+					return ss.GetObjectMeta().GetResourceVersion() != "" &&
+						ss.GetSpec().Controller == "something-else" &&
+						len(ss.GetStatus().Conditions) == 0
+				}).
+					WithTimeout(time.Second*10).
+					WithPolling(time.Millisecond*250).
+					Should(BeTrue(), "cache should reflect the new store with no conditions")
+
 				Consistently(func() bool {
 					ss := tc.store.Copy()
 					err := k8sClient.Get(context.Background(), types.NamespacedName{

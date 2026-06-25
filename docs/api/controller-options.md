@@ -29,6 +29,8 @@ reconciler.
 | `--enable-flood-gate`                         | boolean  | true    | Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.                                          |
 | `--enable-extended-metric-labels`             | boolean  | true    | Enable recommended kubernetes annotations as labels in metrics.                                                                                                    |
 | `--enable-leader-election`                    | boolean  | false   | Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.                                              |
+| `--enable-vault-token-cache`                   | boolean  | false   | Enable Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.                                                |
+| `--vault-token-cache-size`                     | int      | 0       | Maximum size of Vault token cache. Only used if --enable-vault-token-cache is set.                                                                                |
 | `--experimental-enable-aws-session-cache`     | boolean  | false   | DEPRECATED: this flag is no longer used and will be removed since aws sdk v2 has its own session cache.                                                            |
 | `--help`                                      |          |         | help for external-secrets                                                                                                                                          |
 | `--loglevel`                                  | string   | info    | loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal                                                                                            |
@@ -38,6 +40,17 @@ reconciler.
 | `--namespace`                                 | string   | -       | watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces |
 | `--store-requeue-interval`                    | duration | 5m0s    | Default Time duration between reconciling (Cluster)SecretStores                                                                                                    |
 | `--enable-http2`                              | boolean  | false   | If set, HTTP/2 will be enabled for the metrics server                                                                                                              |
+
+### Debug-level logging
+
+Setting `--loglevel=debug` (Helm: `log.level: debug`) enables additional log lines that are suppressed at the default `info` level. These include:
+
+- **Secret deletion** -- logged when the controller deletes a managed Secret because the provider returned no data and `DeletionPolicy=Delete` is set. Fields: `secret`, `namespace`, `reason`.
+- **Managed secret cleanup** -- logged when a managed Secret is deleted because its owning ExternalSecret was deleted. Fields: `secret`, `namespace`, `reason`.
+- **Orphaned secret cleanup** -- logged when an orphaned Secret is deleted. Fields: `secret`, `namespace`.
+- **Secret data key diff** -- logged after every update where data keys actually changed (keys added, updated, removed, or emptied). Only key names are logged, never their values. Fields: `secret`, `namespace`, `added`, `updated`, `removed`, `emptied`.
+
+These messages can be used to build alerting rules on destructive operations. The diff computation is skipped entirely when debug logging is not enabled, so there is no performance impact at the default log level.
 
 ## Cert Controller Flags
 

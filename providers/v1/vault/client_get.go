@@ -298,7 +298,8 @@ func (c *client) buildPath(path string) string {
 	}
 	if !strings.Contains(out, "/data/") && c.store.Version == esv1.VaultKVStoreV2 {
 		buildPath := strings.Split(out, "/")
-		buildMount := []string{buildPath[0], "data"}
+		buildMount := make([]string, 0, 1+len(buildPath))
+		buildMount = append(buildMount, buildPath[0], "data")
 		buildMount = append(buildMount, buildPath[1:]...)
 		out = strings.Join(buildMount, "/")
 		return out

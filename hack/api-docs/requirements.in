@@ -1,0 +1,9 @@
+# NOTE(evrardjp): pip-compile can be installed from pip-tools
+# in your own venv to generate the requirements.txt:
+# pip-compile --output-file=requirements.txt requirements.in
+# mkdocs if fetched as deps of mkdocs-material
+mkdocs-material
+# mike version 2.0.0 or above is required for using GIT_COMMITTER_NAME, requested in
+# https://github.com/external-secrets/external-secrets/pull/2421#issuecomment-1593845147
+mike>=2.0.0
+mkdocs-macros-plugin

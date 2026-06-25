@@ -36,7 +36,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -468,8 +467,8 @@ func TestSetSecret(t *testing.T) {
 			Value: &externalSecrets,
 		},
 		{
-			Key:   ptr.To("taname1"),
-			Value: ptr.To("tagvalue1"),
+			Key:   new("taname1"),
+			Value: new("tagvalue1"),
 		},
 	}
 
@@ -1023,14 +1022,14 @@ func TestSetSecret(t *testing.T) {
 						ARN: &arn,
 						Tags: []types.Tag{
 							{Key: &managedBy, Value: &externalSecrets},
-							{Key: ptr.To("team"), Value: ptr.To("paradox")},
+							{Key: new("team"), Value: new("paradox")},
 						},
 					}, nil),
 					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
 					TagResourceFn: fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil, func(input *awssm.TagResourceInput) {
 						assert.Len(t, input.Tags, 2)
 						assert.Contains(t, input.Tags, types.Tag{Key: &managedBy, Value: &externalSecrets})
-						assert.Contains(t, input.Tags, types.Tag{Key: ptr.To("env"), Value: ptr.To("sandbox")})
+						assert.Contains(t, input.Tags, types.Tag{Key: new("env"), Value: new("sandbox")})
 					}),
 					UntagResourceFn: fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil, func(input *awssm.UntagResourceInput) {
 						assert.Len(t, input.TagKeys, 1)
@@ -1050,6 +1049,54 @@ func TestSetSecret(t *testing.T) {
 						}
 					}
 				}`)}},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretWithEmptyExistingResourcePolicy": {
+			reason: "sync a resource policy when no existing policy is present",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueFn:    fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn:    fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn:    fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					TagResourceFn:       fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+					UntagResourceFn:     fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+					GetResourcePolicyFn: fakesm.NewGetResourcePolicyFn(&awssm.GetResourcePolicyOutput{}, nil),
+					PutResourcePolicyFn: fakesm.NewPutResourcePolicyFn(&awssm.PutResourcePolicyOutput{}, nil),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"resourcePolicy": {
+										"blockPublicPolicy": true,
+										"policySourceRef": {
+											"kind": "ConfigMap",
+											"name": "resource-policy",
+											"key": "policy.json"
+									}
+								}
+							}
+						}`),
+					},
+				},
+				kubeclient: clientfake.NewFakeClient(&corev1.ConfigMap{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "resource-policy",
+					},
+					Data: map[string]string{
+						"policy.json": `{"Version":"2012-10-17","Statement":[{"Sid":"DenyAll","Effect":"Deny","Principal":"*","Action":"secretsmanager:GetSecretValue","Resource":"*"}]}`,
+					},
+				}),
 			},
 			want: want{
 				err: nil,
@@ -1206,6 +1253,178 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"SetSecretWithRegionReplication": {
+			reason: "create a new secret with replication to extra regions",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(blankDescribeSecretOutput, &getSecretCorrectErr),
+					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"replicationLocations": [
+									"eu-north-1",
+									"eu-central-1"
+								]
+							}
+						}`),
+					},
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetReplicationOnSecretWhileKeepingExistingReplication": {
+			reason: "sync an existing secret with existing replication region previously setup",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(&awssm.DescribeSecretOutput{
+						ARN:  &arn,
+						Tags: externalSecretsTag,
+						VersionIdsToStages: map[string][]string{
+							defaultVersion: {"AWSCURRENT"},
+						},
+						KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"),
+						ReplicationStatus: []types.ReplicationStatusType{
+							// Existing replication region not part of the desired state (to be removed)
+							{KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"), Region: aws.String("eu-west-3"), Status: types.StatusTypeInSync},
+							// Existing replication region part of the desired state (kept).
+							{KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"), Region: aws.String("eu-north-1"), Status: types.StatusTypeInSync},
+							// Existing replication region not part of the desired state with failed status
+							{KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"), Region: aws.String("sa-east-1"), Status: types.StatusTypeFailed},
+							// Existing replication region not part of the desired state with in-progress status
+							{KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"), Region: aws.String("ap-southeast-2"), Status: types.StatusTypeInProgress},
+						},
+					}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(nil, &types.ResourceNotFoundException{}),
+					ReplicateSecretToRegionsFn: fakesm.NewReplicateSecretToRegionsFn(
+						&awssm.ReplicateSecretToRegionsOutput{},
+						nil,
+						func(got *awssm.ReplicateSecretToRegionsInput) {
+							assert.Len(t, got.AddReplicaRegions, 1)
+							assert.EqualValues(t, got.AddReplicaRegions[0].Region, aws.String("eu-central-1"))
+						},
+					),
+					RemoveRegionsFromReplicationFn: fakesm.NewRemoveRegionsFromReplicationFn(
+						&awssm.RemoveRegionsFromReplicationOutput{},
+						nil,
+						func(got *awssm.RemoveRegionsFromReplicationInput) {
+							assert.ElementsMatch(t, []string{"eu-west-3", "sa-east-1", "ap-southeast-2"}, got.RemoveReplicaRegions)
+						},
+					),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"replicationLocations": [
+									"eu-north-1",
+									"eu-central-1"
+								]
+							}
+						}`),
+					},
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetReplicationOnSecretWithoutPreviousExistingReplications": {
+			reason: "sync an existing secret with no previous replication region previously setup",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueFn:       fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn:       fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn:       fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(nil, &types.ResourceNotFoundException{}),
+					ReplicateSecretToRegionsFn: fakesm.NewReplicateSecretToRegionsFn(
+						&awssm.ReplicateSecretToRegionsOutput{},
+						nil,
+						func(got *awssm.ReplicateSecretToRegionsInput) {
+							assert.EqualValues(t, got.AddReplicaRegions, []types.ReplicaRegionType{{Region: aws.String("eu-north-1")}, {Region: aws.String("eu-central-1")}})
+							assert.Len(t, got.AddReplicaRegions, 2)
+							assert.EqualValues(t, got.AddReplicaRegions[0].Region, aws.String("eu-north-1"))
+							assert.EqualValues(t, got.AddReplicaRegions[1].Region, aws.String("eu-central-1"))
+						},
+					),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"replicationLocations": [
+									"eu-north-1",
+									"eu-central-1"
+								]
+							}
+						}`),
+					},
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetReplicationForInvalidRegionFails": {
+			reason: "sync an existing secret with existing replication region previously setup",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueFn:           fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn:           fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn:           fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					DeleteResourcePolicyFn:     fakesm.NewDeleteResourcePolicyFn(nil, &types.ResourceNotFoundException{}),
+					ReplicateSecretToRegionsFn: fakesm.NewReplicateSecretToRegionsFn(nil, &types.InvalidRequestException{}),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"replicationLocations": [
+									"xx-invalid-1"
+								]
+							}
+						}`),
+					},
+				},
+			},
+			want: want{
+				err: errors.New("failed to replicate existing secret to regions"),
+			},
+		},
 	}
 
 	for name, tc := range tests {
@@ -1299,7 +1518,7 @@ func TestPushSecretTagsUpdatedWhenValueUnchanged(t *testing.T) {
 	require.NotNil(t, capturedTagInput, "TagResourceInput should be captured")
 	assert.Len(t, capturedTagInput.Tags, 2)
 	assert.Contains(t, capturedTagInput.Tags, types.Tag{Key: &managedBy, Value: &externalSecrets})
-	assert.Contains(t, capturedTagInput.Tags, types.Tag{Key: ptr.To("newTag"), Value: ptr.To("newValue")})
+	assert.Contains(t, capturedTagInput.Tags, types.Tag{Key: new("newTag"), Value: new("newValue")})
 }
 
 func TestPushSecretResourcePolicyUpdatedWhenValueUnchanged(t *testing.T) {
@@ -1396,6 +1615,89 @@ func TestPushSecretResourcePolicyUpdatedWhenValueUnchanged(t *testing.T) {
 	require.NotNil(t, capturedPolicyInput, "PutResourcePolicyInput should be captured")
 	assert.Equal(t, fakeKey, *capturedPolicyInput.SecretId)
 	assert.JSONEq(t, newPolicy, *capturedPolicyInput.ResourcePolicy)
+}
+
+func TestPushSecretEmptyExistingResourcePolicy(t *testing.T) {
+	secretKey := fakeSecretKey
+	secretValue := []byte("fake-value")
+	fakeSecret := &corev1.Secret{
+		Data: map[string][]byte{
+			secretKey: secretValue,
+		},
+	}
+	arn := testARN
+	defaultVersion := testDefaultVersion
+	managed := managedBy
+	manager := externalSecrets
+
+	putResourcePolicyCalled := false
+
+	newPolicy := `{"Version":"2012-10-17","Statement":[{"Sid":"DenyAll","Effect":"Deny","Principal":"*","Action":"secretsmanager:GetSecretValue","Resource":"*"}]}`
+
+	client := fakesm.Client{
+		GetSecretValueFn: fakesm.NewGetSecretValueFn(&awssm.GetSecretValueOutput{
+			ARN:          &arn,
+			SecretBinary: secretValue,
+			VersionId:    &defaultVersion,
+		}, nil),
+		DescribeSecretFn: fakesm.NewDescribeSecretFn(&awssm.DescribeSecretOutput{
+			ARN: &arn,
+			Tags: []types.Tag{
+				{Key: &managed, Value: &manager},
+			},
+			VersionIdsToStages: map[string][]string{
+				defaultVersion: {"AWSCURRENT"},
+			},
+		}, nil),
+		PutSecretValueFn:    fakesm.NewPutSecretValueFn(&awssm.PutSecretValueOutput{}, nil),
+		TagResourceFn:       fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+		UntagResourceFn:     fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+		GetResourcePolicyFn: fakesm.NewGetResourcePolicyFn(&awssm.GetResourcePolicyOutput{}, nil),
+		PutResourcePolicyFn: fakesm.NewPutResourcePolicyFn(&awssm.PutResourcePolicyOutput{}, nil, func(input *awssm.PutResourcePolicyInput) {
+			putResourcePolicyCalled = true
+		}),
+	}
+
+	kubeclient := clientfake.NewFakeClient(&corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "resource-policy",
+		},
+		Data: map[string]string{
+			"policy.json": newPolicy,
+		},
+	})
+
+	sm := SecretsManager{
+		client: &client,
+		kube:   kubeclient,
+	}
+
+	pushSecretData := fake.PushSecretData{
+		SecretKey: secretKey,
+		RemoteKey: fakeKey,
+		Property:  "",
+		Metadata: &apiextensionsv1.JSON{
+			Raw: []byte(`{
+				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+				"kind": "PushSecretMetadata",
+				"spec": {
+					"secretPushFormat": "string",
+					"resourcePolicy": {
+						"blockPublicPolicy": true,
+						"policySourceRef": {
+							"kind": "ConfigMap",
+							"name": "resource-policy",
+							"key": "policy.json"
+						}
+					}
+				}
+			}`),
+		},
+	}
+
+	err := sm.PushSecret(context.Background(), fakeSecret, pushSecretData)
+	require.NoError(t, err)
+	assert.True(t, putResourcePolicyCalled, "PutResourcePolicy should be called when existing policy is empty")
 }
 
 func TestDeleteSecret(t *testing.T) {
@@ -1730,7 +2032,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				Name: &esv1.FindName{
 					RegExp: secretName,
 				},
-				Path: ptr.To(secretPath),
+				Path: new(secretPath),
 			},
 			secretName:    secretName,
 			secretVersion: secretVersion,
@@ -1742,7 +2044,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				return &awssm.BatchGetSecretValueOutput{
 					SecretValues: []types.SecretValueEntry{
 						{
-							Name:          ptr.To(secretName),
+							Name:          new(secretName),
 							VersionStages: []string{secretVersion},
 							SecretBinary:  []byte(secretValue),
 						},
@@ -1760,7 +2062,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				Name: &esv1.FindName{
 					RegExp: secretName,
 				},
-				Path: ptr.To(secretPath),
+				Path: new(secretPath),
 			},
 			secretName:    secretName,
 			secretVersion: secretVersion,
@@ -1769,7 +2071,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				return &awssm.BatchGetSecretValueOutput{
 					SecretValues: []types.SecretValueEntry{
 						{
-							Name: ptr.To(secretName),
+							Name: new(secretName),
 						},
 					},
 				}, errBoom
@@ -1801,7 +2103,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				return &awssm.ListSecretsOutput{
 					SecretList: []types.SecretListEntry{
 						{
-							Name: ptr.To("other-secret"),
+							Name: new("other-secret"),
 						},
 					},
 				}, nil
@@ -1810,7 +2112,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				return &awssm.BatchGetSecretValueOutput{
 					SecretValues: []types.SecretValueEntry{
 						{
-							Name: ptr.To("other-secret"),
+							Name: new("other-secret"),
 						},
 					},
 				}, nil
@@ -1846,7 +2148,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				return &awssm.BatchGetSecretValueOutput{
 					SecretValues: []types.SecretValueEntry{
 						{
-							Name:          ptr.To(secretName),
+							Name:          new(secretName),
 							VersionStages: []string{secretVersion},
 							SecretBinary:  []byte(secretValue),
 						},
@@ -1869,18 +2171,18 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			listSecretsFn: func(_ context.Context, input *awssm.ListSecretsInput, _ ...func(*awssm.Options)) (*awssm.ListSecretsOutput, error) {
 				allSecrets := []types.SecretListEntry{
 					{
-						Name: ptr.To(secretName),
+						Name: new(secretName),
 						Tags: []types.Tag{
-							{Key: ptr.To("foo"), Value: ptr.To("bar")},
+							{Key: new("foo"), Value: new("bar")},
 						},
 					},
 					{
-						Name: ptr.To(fmt.Sprintf("%ssomeothertext", secretName)),
+						Name: new(fmt.Sprintf("%ssomeothertext", secretName)),
 					},
 					{
-						Name: ptr.To("unmatched-secret"),
+						Name: new("unmatched-secret"),
 						Tags: []types.Tag{
-							{Key: ptr.To("foo"), Value: ptr.To("bar")},
+							{Key: new("foo"), Value: new("bar")},
 						},
 					},
 				}
@@ -1932,20 +2234,20 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 			getSecretValueFn: func(_ context.Context, input *awssm.GetSecretValueInput, _ ...func(*awssm.Options)) (*awssm.GetSecretValueOutput, error) {
 				if *input.SecretId == secretName {
 					return &awssm.GetSecretValueOutput{
-						Name:          ptr.To(secretName),
+						Name:          new(secretName),
 						VersionStages: []string{secretVersion},
 						SecretBinary:  []byte(secretValue),
 					}, nil
 				}
 				if *input.SecretId == "unmatched-secret" {
 					return &awssm.GetSecretValueOutput{
-						Name:          ptr.To("unmatched-secret"),
+						Name:          new("unmatched-secret"),
 						VersionStages: []string{secretVersion},
 						SecretBinary:  []byte("othervalue"),
 					}, nil
 				}
 				return &awssm.GetSecretValueOutput{
-					Name:          ptr.To(fmt.Sprintf("%ssomeothertext", secretName)),
+					Name:          new(fmt.Sprintf("%ssomeothertext", secretName)),
 					VersionStages: []string{secretVersion},
 					SecretBinary:  []byte("someothervalue"),
 				}, nil
@@ -1967,7 +2269,7 @@ func TestSecretsManagerGetAllSecrets(t *testing.T) {
 				return &awssm.BatchGetSecretValueOutput{
 					SecretValues: []types.SecretValueEntry{
 						{
-							Name:          ptr.To(secretName),
+							Name:          new(secretName),
 							VersionStages: []string{secretVersion},
 							SecretBinary:  []byte(secretValue),
 						},
@@ -2279,8 +2581,8 @@ func TestComputeTagsToUpdate(t *testing.T) {
 				"key2": "value2",
 			},
 			expected: []types.Tag{
-				{Key: ptr.To("key1"), Value: ptr.To("value1")},
-				{Key: ptr.To("key2"), Value: ptr.To("value2")},
+				{Key: new("key1"), Value: new("value1")},
+				{Key: new("key2"), Value: new("value2")},
 			},
 			modified: false,
 		},
@@ -2296,9 +2598,9 @@ func TestComputeTagsToUpdate(t *testing.T) {
 				managedBy: externalSecrets,
 			},
 			expected: []types.Tag{
-				{Key: ptr.To("key1"), Value: ptr.To("value1")},
-				{Key: ptr.To("key2"), Value: ptr.To("value2")},
-				{Key: ptr.To(managedBy), Value: ptr.To(externalSecrets)},
+				{Key: new("key1"), Value: new("value1")},
+				{Key: new("key2"), Value: new("value2")},
+				{Key: new(managedBy), Value: new(externalSecrets)},
 			},
 			modified: false,
 		},
@@ -2312,8 +2614,8 @@ func TestComputeTagsToUpdate(t *testing.T) {
 				"key2": "value2",
 			},
 			expected: []types.Tag{
-				{Key: ptr.To("key1"), Value: ptr.To("value1")},
-				{Key: ptr.To("key2"), Value: ptr.To("value2")},
+				{Key: new("key1"), Value: new("value1")},
+				{Key: new("key2"), Value: new("value2")},
 			},
 			modified: true,
 		},
@@ -2326,7 +2628,7 @@ func TestComputeTagsToUpdate(t *testing.T) {
 				"key1": "newValue",
 			},
 			expected: []types.Tag{
-				{Key: ptr.To("key1"), Value: ptr.To("newValue")},
+				{Key: new("key1"), Value: new("newValue")},
 			},
 			modified: true,
 		},
@@ -2344,7 +2646,7 @@ func TestComputeTagsToUpdate(t *testing.T) {
 				"key1": "value1",
 			},
 			expected: []types.Tag{
-				{Key: ptr.To("key1"), Value: ptr.To("value1")},
+				{Key: new("key1"), Value: new("value1")},
 			},
 			modified: true,
 		},
@@ -2393,8 +2695,8 @@ func TestPatchTags(t *testing.T) {
 			expectUntag:  false,
 			expectTag:    true,
 			assertsTag: func(input *awssm.TagResourceInput) {
-				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To(managedBy), Value: ptr.To(externalSecrets)})
-				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To("a"), Value: ptr.To("2")})
+				assert.Contains(t, input.Tags, types.Tag{Key: new(managedBy), Value: new(externalSecrets)})
+				assert.Contains(t, input.Tags, types.Tag{Key: new("a"), Value: new("2")})
 			},
 			assertsUntag: func(input *awssm.UntagResourceInput) {
 				assert.Fail(t, "Expected UntagResource to not be called")
@@ -2420,9 +2722,9 @@ func TestPatchTags(t *testing.T) {
 			expectUntag:  false,
 			expectTag:    true,
 			assertsTag: func(input *awssm.TagResourceInput) {
-				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To(managedBy), Value: ptr.To(externalSecrets)})
-				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To("a"), Value: ptr.To("1")})
-				assert.Contains(t, input.Tags, types.Tag{Key: ptr.To("b"), Value: ptr.To("2")})
+				assert.Contains(t, input.Tags, types.Tag{Key: new(managedBy), Value: new(externalSecrets)})
+				assert.Contains(t, input.Tags, types.Tag{Key: new("a"), Value: new("1")})
+				assert.Contains(t, input.Tags, types.Tag{Key: new("b"), Value: new("2")})
 			},
 			assertsUntag: func(input *awssm.UntagResourceInput) {
 				assert.Fail(t, "Expected UntagResource to not be called")
@@ -2445,10 +2747,10 @@ func TestPatchTags(t *testing.T) {
 			}
 
 			sm := &SecretsManager{client: fakeClient}
-			metaMap := map[string]interface{}{
+			metaMap := map[string]any{
 				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
 				"kind":       "PushSecretMetadata",
-				"spec": map[string]interface{}{
+				"spec": map[string]any{
 					"description": "adding managed-by tag explicitly",
 					"tags":        tt.metaTags,
 				},

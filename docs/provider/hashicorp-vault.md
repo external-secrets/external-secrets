@@ -378,7 +378,15 @@ set of AWS Programmatic access credentials stored in a `Kind=Secret` and referen
 
 #### TLS certificates authentication
 
-[TLS certificates auth method](https://developer.hashicorp.com/vault/docs/auth/cert)  allows authentication using SSL/TLS client certificates which are either signed by a CA or self-signed. SSL/TLS client certificates are defined as having an ExtKeyUsage extension with the usage set to either ClientAuth or Any.
+[TLS certificates auth method](https://developer.hashicorp.com/vault/docs/auth/cert) allows authentication using SSL/TLS client certificates which are either signed by a CA or self-signed. SSL/TLS client certificates are defined as having an ExtKeyUsage extension with the usage set to either ClientAuth or Any.
+
+To use TLS certificate authentication, create a `kubernetes.io/tls` Secret containing the client certificate and private key, then reference it in the SecretStore. The Secret keys must be `tls.crt` and `tls.key`. If your Vault server uses a custom or private CA, also configure `caProvider` or `caBundle` so that ESO can verify the server certificate.
+
+```yaml
+{% include 'vault-cert-store.yaml' %}
+```
+
+**NOTE:** For a `ClusterSecretStore`, you must specify `namespace` in both `clientCert` and `secretRef` to indicate where the TLS Secret resides.
 
 ### Mutual authentication (mTLS)
 
@@ -537,6 +545,46 @@ spec:
         namespace: "kubernetes-team"
         # ...
 ```
+
+### Token Cache Configuration
+
+The Vault provider supports token caching to improve performance by reusing Vault tokens across multiple requests instead of creating new ones each time. This is particularly useful when using authentication methods that generate short-lived tokens.
+
+#### Configuration Flags
+
+The following command-line flags control the Vault token cache behavior:
+
+- `--enable-vault-token-cache`: Enable Vault token cache (default: `false`)
+- `--vault-token-cache-size`: Maximum size of the Vault token cache (default: `262144`)
+
+#### Usage
+
+To enable token caching, set the `--enable-vault-token-cache` flag to `true`:
+
+```bash
+external-secrets --enable-vault-token-cache --vault-token-cache-size=262144
+```
+
+#### Cache Behavior
+
+- **Cache Key**: The cache uses a combination of the SecretStore name, namespace, and kind as the cache key
+- **Token Validation**: Before using a cached token, the provider validates its TTL to ensure it hasn't expired
+- **Cache Eviction**: When the cache reaches its maximum size, the least recently used tokens are evicted
+- **Token Revocation**: When tokens are evicted from the cache, they are properly revoked from Vault
+
+#### When to Use Token Caching
+
+Token caching is beneficial when:
+
+- Using authentication methods that generate short-lived tokens (e.g., AppRole, Kubernetes auth)
+- Running multiple ExternalSecrets that use the same SecretStore
+- Experiencing high token generation overhead
+
+Token caching should **not** be used when:
+
+- Using static tokens (no performance benefit)
+- Security requirements mandate fresh tokens for each request
+- Memory usage is a concern
 
 #### Read Your Writes
 

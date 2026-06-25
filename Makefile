@@ -106,9 +106,15 @@ go-work:
 	@$(OK) created go workspace
 
 .PHONY: test
-test: generate envtest go-work ## Run tests
+test: generate envtest ## Run tests
 	@$(INFO) go test unit-tests
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" go test -tags $(PROVIDER) work -v -race -coverprofile cover.out
+	@set -e; \
+	snap=$$(mktemp); \
+	./hack/modfiles.sh snapshot "$$snap"; \
+	trap "./hack/modfiles.sh restore $$snap" EXIT INT TERM; \
+	$(MAKE) go-work; \
+	KUBEBUILDER_ASSETS="$$($(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" \
+	    go test -tags $(PROVIDER) work -v -race -coverprofile cover.out
 	@$(OK) go test unit-tests
 
 .PHONY: test.e2e
@@ -153,7 +159,7 @@ lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific mod
 		$(OK) Finished linting $(LINT_TARGET); \
 	else \
 		$(INFO) Running golangci-lint on all modules in parallel; \
-		JOBS=$${LINT_JOBS:-20}; \
+		JOBS=$${LINT_JOBS:-1}; \
 		TMPDIR=$$(mktemp -d); \
 		GOLANGCI=$(GOLANGCI_LINT); \
 		trap "rm -rf $$TMPDIR" EXIT; \
@@ -300,10 +306,6 @@ docs.serve: ## Serve docs
 	$(MAKE) -C ./hack/api-docs serve
 
 DOCS_VERSION ?= $(VERSION)
-.PHONY: docs.check
-docs.check: ## Check docs
-	$(MAKE) -C ./hack/api-docs check DOCS_VERSION=$(DOCS_VERSION)
-
 .PHONY: docs.update
 docs.update: ## Update docs
 	$(MAKE) -C ./hack/api-docs stability-support.update DOCS_VERSION=$(DOCS_VERSION)
@@ -428,7 +430,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 LINT_TARGET ?= ""
 ## Tool Versions
-GOLANGCI_VERSION := 2.4.0
+GOLANGCI_VERSION := 2.11.3
 KUBERNETES_VERSION := 1.33.x
 TILT_VERSION := 0.33.21
 CTY_VERSION := 1.1.3

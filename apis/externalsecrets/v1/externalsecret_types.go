@@ -78,6 +78,18 @@ const (
 	DeletionPolicyRetain ExternalSecretDeletionPolicy = "Retain"
 )
 
+// ExternalSecretNullBytePolicy defines how fetched secret data containing NUL bytes should be handled.
+// +kubebuilder:validation:Enum=Ignore;Fail
+type ExternalSecretNullBytePolicy string
+
+const (
+	// ExternalSecretNullBytePolicyIgnore allows fetched secret data to contain NUL bytes.
+	ExternalSecretNullBytePolicyIgnore ExternalSecretNullBytePolicy = "Ignore"
+
+	// ExternalSecretNullBytePolicyFail fails reconciliation if fetched secret data contains NUL bytes.
+	ExternalSecretNullBytePolicyFail ExternalSecretNullBytePolicy = "Fail"
+)
+
 // ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
 type ExternalSecretTemplateMetadata struct {
 	// +optional
@@ -151,6 +163,11 @@ type TemplateFrom struct {
 
 	// +optional
 	Literal *string `json:"literal,omitempty"`
+
+	// Used to define a decoding Strategy for the rendered template values.
+	// +optional
+	// +kubebuilder:default="None"
+	ValuesDecodingStrategy ExternalSecretDecodingStrategy `json:"valuesDecodingStrategy,omitempty"`
 }
 
 // TemplateScope specifies how the template keys should be interpreted.
@@ -292,6 +309,10 @@ type ExternalSecretDataRemoteRef struct {
 	// Used to define a decoding Strategy
 	// +kubebuilder:default="None"
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
+
+	// +optional
+	// Controls how ESO handles fetched secret data containing NUL bytes for this source.
+	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
 }
 
 // ExternalSecretMetadataPolicy defines policies for fetching metadata from provider secrets.
@@ -477,6 +498,10 @@ type ExternalSecretFind struct {
 	// Used to define a decoding Strategy
 	// +kubebuilder:default="None"
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
+
+	// +optional
+	// Controls how ESO handles fetched secret data containing NUL bytes for this find source.
+	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
 }
 
 // FindName defines criteria for finding secrets by name patterns.
@@ -571,7 +596,7 @@ type GeneratorRef struct {
 	APIVersion string `json:"apiVersion,omitempty"`
 
 	// Specify the Kind of the generator resource
-	// +kubebuilder:validation:Enum=ACRAccessToken;ClusterGenerator;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
+	// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;ClusterGenerator;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
 	Kind string `json:"kind"`
 
 	// Specify the name of the generator resource

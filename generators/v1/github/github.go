@@ -97,7 +97,7 @@ func (g *Generator) generate(
 		return nil, nil, fmt.Errorf("error creating request: %w", err)
 	}
 
-	payload := make(map[string]interface{})
+	payload := make(map[string]any)
 	if gh.Permissions != nil {
 		payload["permissions"] = gh.Permissions
 	}

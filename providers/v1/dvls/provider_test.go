@@ -50,6 +50,7 @@ func TestProvider_ValidateStore(t *testing.T) {
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
 						ServerURL: testServerURL,
+						Vault:     "Default",
 						Auth: esv1.DVLSAuth{
 							SecretRef: esv1.DVLSAuthSecretRef{
 								AppID: esmeta.SecretKeySelector{
@@ -80,6 +81,7 @@ func TestProvider_ValidateStore(t *testing.T) {
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
 						ServerURL: testServerURL,
+						Vault:     "Default",
 						Auth: esv1.DVLSAuth{
 							SecretRef: esv1.DVLSAuthSecretRef{
 								AppID: esmeta.SecretKeySelector{
@@ -113,6 +115,7 @@ func TestProvider_ValidateStore(t *testing.T) {
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
 						ServerURL: testServerURL,
+						Vault:     "Default",
 						Auth: esv1.DVLSAuth{
 							SecretRef: esv1.DVLSAuthSecretRef{
 								AppID: esmeta.SecretKeySelector{
@@ -159,6 +162,7 @@ func TestProvider_ValidateStore(t *testing.T) {
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
 						ServerURL: "http://dvls.example.com",
+						Vault:     "Default",
 						Auth: esv1.DVLSAuth{
 							SecretRef: esv1.DVLSAuthSecretRef{
 								AppID: esmeta.SecretKeySelector{
@@ -190,6 +194,7 @@ func TestProvider_ValidateStore(t *testing.T) {
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
 						ServerURL: "http://dvls.example.com",
+						Vault:     "Default",
 						Insecure:  true,
 						Auth: esv1.DVLSAuth{
 							SecretRef: esv1.DVLSAuthSecretRef{
@@ -242,7 +247,7 @@ func TestProvider_ValidateStore(t *testing.T) {
 		assert.Contains(t, err.Error(), "serverUrl is required")
 	})
 
-	t.Run("case 3b: should return error when appId key is missing", func(t *testing.T) {
+	t.Run("case 3a: should accept empty vault (uses default)", func(t *testing.T) {
 		store := &esv1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "dvls-store",
@@ -252,6 +257,102 @@ func TestProvider_ValidateStore(t *testing.T) {
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
 						ServerURL: testServerURL,
+						Vault:     "",
+						Auth: esv1.DVLSAuth{
+							SecretRef: esv1.DVLSAuthSecretRef{
+								AppID: esmeta.SecretKeySelector{
+									Name: secretName,
+									Key:  appIDKey,
+								},
+								AppSecret: esmeta.SecretKeySelector{
+									Name: secretName,
+									Key:  appSecretKey,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		_, err := p.ValidateStore(store)
+		assert.NoError(t, err)
+	})
+
+	t.Run("case 3b: should return error when vault is whitespace-only", func(t *testing.T) {
+		store := &esv1.SecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "dvls-store",
+				Namespace: testNamespace,
+			},
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					DVLS: &esv1.DVLSProvider{
+						ServerURL: testServerURL,
+						Vault:     "   ",
+						Auth: esv1.DVLSAuth{
+							SecretRef: esv1.DVLSAuthSecretRef{
+								AppID: esmeta.SecretKeySelector{
+									Name: secretName,
+									Key:  appIDKey,
+								},
+								AppSecret: esmeta.SecretKeySelector{
+									Name: secretName,
+									Key:  appSecretKey,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		_, err := p.ValidateStore(store)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "vault must not contain leading or trailing whitespace")
+	})
+
+	t.Run("case 3c: should return error when vault has leading/trailing whitespace", func(t *testing.T) {
+		store := &esv1.SecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "dvls-store",
+				Namespace: testNamespace,
+			},
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					DVLS: &esv1.DVLSProvider{
+						ServerURL: testServerURL,
+						Vault:     " my-vault ",
+						Auth: esv1.DVLSAuth{
+							SecretRef: esv1.DVLSAuthSecretRef{
+								AppID: esmeta.SecretKeySelector{
+									Name: secretName,
+									Key:  appIDKey,
+								},
+								AppSecret: esmeta.SecretKeySelector{
+									Name: secretName,
+									Key:  appSecretKey,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		_, err := p.ValidateStore(store)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "vault must not contain leading or trailing whitespace")
+	})
+
+	t.Run("case 3d: should return error when appId key is missing", func(t *testing.T) {
+		store := &esv1.SecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "dvls-store",
+				Namespace: testNamespace,
+			},
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					DVLS: &esv1.DVLSProvider{
+						ServerURL: testServerURL,
+						Vault:     "Default",
 						Auth: esv1.DVLSAuth{
 							SecretRef: esv1.DVLSAuthSecretRef{
 								AppID: esmeta.SecretKeySelector{
@@ -273,7 +374,7 @@ func TestProvider_ValidateStore(t *testing.T) {
 		assert.Contains(t, err.Error(), "appId secret key is required")
 	})
 
-	t.Run("case 3c: should return error when appSecret name is missing", func(t *testing.T) {
+	t.Run("case 3e: should return error when appSecret name is missing", func(t *testing.T) {
 		store := &esv1.SecretStore{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "dvls-store",
@@ -283,6 +384,7 @@ func TestProvider_ValidateStore(t *testing.T) {
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
 						ServerURL: testServerURL,
+						Vault:     "Default",
 						Auth: esv1.DVLSAuth{
 							SecretRef: esv1.DVLSAuthSecretRef{
 								AppID: esmeta.SecretKeySelector{
@@ -315,6 +417,7 @@ func TestProvider_ValidateStore(t *testing.T) {
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
 						ServerURL: testServerURL,
+						Vault:     "Default",
 						Auth: esv1.DVLSAuth{
 							SecretRef: esv1.DVLSAuthSecretRef{
 								AppID: esmeta.SecretKeySelector{
@@ -348,6 +451,7 @@ func TestProvider_ValidateStore(t *testing.T) {
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
 						ServerURL: testServerURL,
+						Vault:     "Default",
 						Auth: esv1.DVLSAuth{
 							SecretRef: esv1.DVLSAuthSecretRef{
 								AppID: esmeta.SecretKeySelector{
