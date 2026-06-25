@@ -6212,6 +6212,92 @@ spec:
                           description: Auth configures how secret-manager authenticates with the OpenBao server.
                           maxProperties: 1
                           properties:
+                            appRole:
+                              description: |-
+                                AppRole authenticates with OpenBao using the [App Role auth mechanism],
+                                with the role and secret stored in a Kubernetes Secret resource.
+
+                                [App Role auth mechanism]: https://openbao.org/docs/auth/approle/
+                              properties:
+                                path:
+                                  default: approle
+                                  description: |-
+                                    Path where the App Role authentication backend is mounted
+                                    in OpenBao, e.g: "approle"
+                                  type: string
+                                roleId:
+                                  description: |-
+                                    RoleID configured in the App Role authentication backend when setting
+                                    up the authentication backend in OpenBao.
+                                  minLength: 1
+                                  type: string
+                                roleRef:
+                                  description: |-
+                                    Reference to a key in a Secret that contains the App Role ID used
+                                    to authenticate with OpenBao.
+                                    The `key` field must be specified and denotes which entry within the Secret
+                                    resource is used as the app role id.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                secretRef:
+                                  description: |-
+                                    Reference to a key in a Secret that contains the App Role secret used
+                                    to authenticate with OpenBao.
+                                    The `key` field must be specified and denotes which entry within the Secret
+                                    resource is used as the app role secret.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - path
+                                - secretRef
+                              type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of the fields in [roleId roleRef] must be set
+                                  rule: '[has(self.roleId),has(self.roleRef)].filter(x,x==true).size() == 1'
                             tokenSecretRef:
                               description: TokenSecretRef authenticates with OpenBao by presenting a token.
                               properties:
@@ -18841,6 +18927,92 @@ spec:
                           description: Auth configures how secret-manager authenticates with the OpenBao server.
                           maxProperties: 1
                           properties:
+                            appRole:
+                              description: |-
+                                AppRole authenticates with OpenBao using the [App Role auth mechanism],
+                                with the role and secret stored in a Kubernetes Secret resource.
+
+                                [App Role auth mechanism]: https://openbao.org/docs/auth/approle/
+                              properties:
+                                path:
+                                  default: approle
+                                  description: |-
+                                    Path where the App Role authentication backend is mounted
+                                    in OpenBao, e.g: "approle"
+                                  type: string
+                                roleId:
+                                  description: |-
+                                    RoleID configured in the App Role authentication backend when setting
+                                    up the authentication backend in OpenBao.
+                                  minLength: 1
+                                  type: string
+                                roleRef:
+                                  description: |-
+                                    Reference to a key in a Secret that contains the App Role ID used
+                                    to authenticate with OpenBao.
+                                    The `key` field must be specified and denotes which entry within the Secret
+                                    resource is used as the app role id.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                secretRef:
+                                  description: |-
+                                    Reference to a key in a Secret that contains the App Role secret used
+                                    to authenticate with OpenBao.
+                                    The `key` field must be specified and denotes which entry within the Secret
+                                    resource is used as the app role secret.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - path
+                                - secretRef
+                              type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of the fields in [roleId roleRef] must be set
+                                  rule: '[has(self.roleId),has(self.roleRef)].filter(x,x==true).size() == 1'
                             tokenSecretRef:
                               description: TokenSecretRef authenticates with OpenBao by presenting a token.
                               properties:

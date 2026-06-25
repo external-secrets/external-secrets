@@ -857,6 +857,8 @@ github.com/onsi/gomega v1.13.0/go.mod h1:lRk9szgn8TxENtWd0Tp4c3wjlRfMTMH27I+3Je4
 github.com/onsi/gomega v1.39.1 h1:1IJLAad4zjPn2PsnhH70V4DKRFlrCzGBNrNaru+Vf28=
 github.com/onsi/gomega v1.39.1/go.mod h1:hL6yVALoTOxeWudERyfppUcZXjMwIMLnuSfruD2lcfg=
 github.com/op/go-logging v0.0.0-20160315200505-970db520ece7/go.mod h1:HzydrMdWErDVzsI23lYNej1Htcns9BCg93Dk0bBINWk=
+github.com/openbao/openbao/api/auth/approle/v2 v2.5.1 h1:lg6EFF3ToQMITV+Kko773JqOEut9tE+P21dP8pgPaTg=
+github.com/openbao/openbao/api/auth/approle/v2 v2.5.1/go.mod h1:MVa7te0xhx07dldhEvCBxr5GZUUKuDrer60EKHdTmtQ=
 github.com/openbao/openbao/api/auth/userpass/v2 v2.5.1 h1:81YQNOT/0wZJtp6zka9KAdUSADShkhocgb35CJH7r28=
 github.com/openbao/openbao/api/auth/userpass/v2 v2.5.1/go.mod h1:uOtBhWrhgDf++LLD+XtdxKzDFv8cHUurnFz6kRw0+nE=
 github.com/openbao/openbao/api/v2 v2.5.1-0.20260603121413-a08669ff09ec h1:Cka9sTUAqBQBtTYSsOvkG99ojxUp1nlhixAbYl1wRYA=
