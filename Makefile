@@ -72,7 +72,7 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # ====================================================================================
 # Conformance
 
-reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
+reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint markdownlint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
 	@go mod tidy
 	@cd e2e/ && go mod tidy
 	@cd apis/ && go mod tidy
@@ -191,6 +191,17 @@ lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific mod
 generate: ## Generate code and crds
 	@./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
+
+.PHONY: markdownlint
+markdownlint: markdownlint-cli2 ## Run markdownlint-cli2 against Markdown files (set MARKDOWNLINT_FILES to override)
+	@$(INFO) markdownlint-cli2 $(MARKDOWNLINT_FILES)
+	$(MARKDOWNLINT_CLI2) $(MARKDOWNLINT_FILES)
+	@$(OK) markdownlint-cli2
+
+.PHONY: git-hooks
+git-hooks: ## Install project git hooks
+	@git config core.hooksPath .githooks
+	@$(OK) installed project git hooks
 
 # ====================================================================================
 # Local Utility
@@ -428,12 +439,15 @@ TILT ?= $(LOCALBIN)/tilt
 CTY ?= $(LOCALBIN)/cty
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
+MARKDOWNLINT_CLI2 ?= $(LOCALBIN)/markdownlint-cli2/node_modules/.bin/markdownlint-cli2
 LINT_TARGET ?= ""
+MARKDOWNLINT_FILES ?= "**/*.md"
 ## Tool Versions
 GOLANGCI_VERSION := 2.11.3
 KUBERNETES_VERSION := 1.33.x
 TILT_VERSION := 0.33.21
 CTY_VERSION := 1.1.3
+MARKDOWNLINT_CLI2_VERSION := 0.18.1
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
@@ -446,6 +460,14 @@ golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	test -s $(LOCALBIN)/golangci-lint && $(LOCALBIN)/golangci-lint version | grep -q $(GOLANGCI_VERSION) || \
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(LOCALBIN) v$(GOLANGCI_VERSION)
+
+.PHONY: markdownlint-cli2
+.PHONY: $(MARKDOWNLINT_CLI2)
+markdownlint-cli2: $(MARKDOWNLINT_CLI2) ## Download markdownlint-cli2 locally if necessary.
+$(MARKDOWNLINT_CLI2): $(LOCALBIN)
+	@mkdir -p $(LOCALBIN)/npm-cache $(LOCALBIN)/markdownlint-cli2
+	test -x $(MARKDOWNLINT_CLI2) && $(MARKDOWNLINT_CLI2) --version | grep -q "v$(MARKDOWNLINT_CLI2_VERSION)" || \
+	npm_config_cache=$(LOCALBIN)/npm-cache npm install --no-save --package-lock=false --prefix $(LOCALBIN)/markdownlint-cli2 markdownlint-cli2@$(MARKDOWNLINT_CLI2_VERSION)
 
 .PHONY: tilt
 .PHONY: $(TILT)

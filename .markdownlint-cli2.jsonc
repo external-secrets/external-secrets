@@ -1,0 +1,36 @@
+{
+  "config": {
+    "MD007": false,
+    "MD013": false,
+    "MD033": false,
+    "MD046": {
+      "style": "fenced"
+    },
+    "MD060": {
+      "style": "aligned"
+    }
+  },
+  "ignores": [
+    "bin/**",
+    "docs/api/spec.md",
+
+    // Existing documents with pre-existing markdownlint violations.
+    "AGENTS.md",
+    "CLAUDE.md",
+    "CODEOWNERS.md",
+    "CONTRIBUTOR_LADDER.md",
+    "DEPRECATING.md",
+    "GOVERNANCE.md",
+    "MAINTAINERS.md",
+    "OWNERS.md",
+    "README.md",
+    "SECURITY.md",
+    "SECURITY_RESPONSE.md",
+    ".github/CODEOWNERS.md",
+    ".github/ISSUE_TEMPLATE/bug_report.md",
+    ".github/pull_request_template.md",
+    "deploy/charts/external-secrets/README.md",
+    "deploy/charts/external-secrets/templates/crds/README.md",
+    "design/**"
+  ]
+}

@@ -10,6 +10,8 @@ cd external-secrets
 
 _Note: many of the `make` commands use [yq](https://github.com/mikefarah/yq), version 4.2X.X or higher._
 
+Markdown linting uses [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2), installed by `make markdownlint` with `npm`. Install Node.js and npm before running Markdown checks locally.
+
 Our helm chart is tested using `helm-unittest`. You will need it to run tests locally if you modify the helm chart.
 
 ```shell
@@ -32,8 +34,14 @@ make docker.build IMAGE_NAME=external-secrets IMAGE_TAG=latest
 Run tests and lint the code:
 ```shell
 make test
-make lint # OR
-docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.49.0 golangci-lint run
+make lint # Or run an updated version of this command: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.49.0 golangci-lint run
+make markdownlint
+```
+
+Install the project Git hooks if you want to automatically test staged Markdown files before commit (else just run `make markdownlint`):
+
+```shell
+make git-hooks
 ```
 
 Build the documentation:
