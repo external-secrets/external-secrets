@@ -179,6 +179,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/yandex v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.0
+	github.com/robfig/cron/v3 v3.0.1
 	sigs.k8s.io/yaml v1.6.0
 )
 
