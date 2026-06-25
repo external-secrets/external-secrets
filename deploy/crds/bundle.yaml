@@ -493,6 +493,53 @@ spec:
                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                           type: string
                       type: object
+                    syncWindows:
+                      description: |-
+                        SyncWindows optionally restricts when periodic refreshes may occur.
+                        Evaluated in UTC, only for Periodic refresh policy (or when refreshPolicy is unset).
+                      properties:
+                        kind:
+                          description: |-
+                            Kind applies to every window in the list.
+                            "allow" -- syncs are permitted only while at least one window is active;
+                                       all other times are blocked.
+                            "deny"  -- syncs are blocked while any window is active;
+                                       all other times are permitted.
+                          enum:
+                            - allow
+                            - deny
+                          type: string
+                        windows:
+                          description: Windows is the list of schedule+duration pairs.
+                          items:
+                            description: |-
+                              ExternalSecretSyncWindowEntry defines a single cron-schedule + duration pair
+                              within a SyncWindows block.
+                            properties:
+                              duration:
+                                description: |-
+                                  Duration specifies how long the window stays open after each Schedule
+                                  firing. Example: "8h".
+                                type: string
+                              schedule:
+                                description: |-
+                                  Schedule is a standard 5-field cron expression evaluated in UTC, or a
+                                  named shorthand such as @daily or @every 1h. It marks the start time of
+                                  each window occurrence.
+                                  Example: "0 22 * * 1-5" opens a window every weekday at 22:00 UTC.
+                                minLength: 1
+                                pattern: ^(@(annually|yearly|monthly|weekly|daily|midnight|hourly)|@every [^\s]+.*|[^\s]+( [^\s]+){4})$
+                                type: string
+                            required:
+                              - duration
+                              - schedule
+                            type: object
+                          minItems: 1
+                          type: array
+                      required:
+                        - kind
+                        - windows
+                      type: object
                     target:
                       default:
                         creationPolicy: Owner
@@ -676,6 +723,15 @@ spec:
                                       For Secret resources, common values are: "Data", "Annotations", "Labels".
                                       For custom resources (when spec.target.manifest is set), this supports
                                       nested paths like "spec.database.config" or "data".
+                                    type: string
+                                  valuesDecodingStrategy:
+                                    default: None
+                                    description: Used to define a decoding Strategy for the rendered template values.
+                                    enum:
+                                      - Auto
+                                      - Base64
+                                      - Base64URL
+                                      - None
                                     type: string
                                 type: object
                               type: array
@@ -2186,6 +2242,15 @@ spec:
                                   For Secret resources, common values are: "Data", "Annotations", "Labels".
                                   For custom resources (when spec.target.manifest is set), this supports
                                   nested paths like "spec.database.config" or "data".
+                                type: string
+                              valuesDecodingStrategy:
+                                default: None
+                                description: Used to define a decoding Strategy for the rendered template values.
+                                enum:
+                                  - Auto
+                                  - Base64
+                                  - Base64URL
+                                  - None
                                 type: string
                             type: object
                           type: array
@@ -5488,6 +5553,11 @@ spec:
                               default: true
                               description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
                               type: boolean
+                            organizationSlug:
+                              description: |-
+                                OrganizationSlug is the optional slug that identifies the organization that will be used
+                                during authentication. Useful for sub-organization setups
+                              type: string
                             projectSlug:
                               description: ProjectSlug is the required slug identifier for the project.
                               type: string
@@ -6143,7 +6213,94 @@ spec:
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the OpenBao server.
+                          maxProperties: 1
                           properties:
+                            appRole:
+                              description: |-
+                                AppRole authenticates with OpenBao using the [App Role auth mechanism],
+                                with the role and secret stored in a Kubernetes Secret resource.
+
+                                [App Role auth mechanism]: https://openbao.org/docs/auth/approle/
+                              properties:
+                                path:
+                                  default: approle
+                                  description: |-
+                                    Path where the App Role authentication backend is mounted
+                                    in OpenBao, e.g: "approle"
+                                  type: string
+                                roleId:
+                                  description: |-
+                                    RoleID configured in the App Role authentication backend when setting
+                                    up the authentication backend in OpenBao.
+                                  minLength: 1
+                                  type: string
+                                roleRef:
+                                  description: |-
+                                    Reference to a key in a Secret that contains the App Role ID used
+                                    to authenticate with OpenBao.
+                                    The `key` field must be specified and denotes which entry within the Secret
+                                    resource is used as the app role id.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                secretRef:
+                                  description: |-
+                                    Reference to a key in a Secret that contains the App Role secret used
+                                    to authenticate with OpenBao.
+                                    The `key` field must be specified and denotes which entry within the Secret
+                                    resource is used as the app role secret.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - path
+                                - secretRef
+                              type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of the fields in [roleId roleRef] must be set
+                                  rule: '[has(self.roleId),has(self.roleRef)].filter(x,x==true).size() == 1'
                             tokenSecretRef:
                               description: TokenSecretRef authenticates with OpenBao by presenting a token.
                               properties:
@@ -6169,6 +6326,57 @@ spec:
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
+                              type: object
+                            userPass:
+                              description: UserPass authenticates with OpenBao by passing a username/password pair
+                              properties:
+                                path:
+                                  default: userpass
+                                  description: |-
+                                    Path where the UserPassword authentication backend is mounted
+                                    in OpenBao, e.g: "userpass"
+                                  type: string
+                                secretRef:
+                                  description: |-
+                                    SecretRef to a key in a Secret resource containing password for the user
+                                    used to authenticate with OpenBao using the [UserPass authentication
+                                    method]
+
+                                    [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                username:
+                                  description: |-
+                                    Username is a username used to authenticate using the [UserPass
+                                    authentication method]
+
+                                    [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
+                                  type: string
+                              required:
+                                - path
+                                - username
                               type: object
                           type: object
                         caBundle:
@@ -13262,6 +13470,53 @@ spec:
                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                       type: string
                   type: object
+                syncWindows:
+                  description: |-
+                    SyncWindows optionally restricts when periodic refreshes may occur.
+                    Evaluated in UTC, only for Periodic refresh policy (or when refreshPolicy is unset).
+                  properties:
+                    kind:
+                      description: |-
+                        Kind applies to every window in the list.
+                        "allow" -- syncs are permitted only while at least one window is active;
+                                   all other times are blocked.
+                        "deny"  -- syncs are blocked while any window is active;
+                                   all other times are permitted.
+                      enum:
+                        - allow
+                        - deny
+                      type: string
+                    windows:
+                      description: Windows is the list of schedule+duration pairs.
+                      items:
+                        description: |-
+                          ExternalSecretSyncWindowEntry defines a single cron-schedule + duration pair
+                          within a SyncWindows block.
+                        properties:
+                          duration:
+                            description: |-
+                              Duration specifies how long the window stays open after each Schedule
+                              firing. Example: "8h".
+                            type: string
+                          schedule:
+                            description: |-
+                              Schedule is a standard 5-field cron expression evaluated in UTC, or a
+                              named shorthand such as @daily or @every 1h. It marks the start time of
+                              each window occurrence.
+                              Example: "0 22 * * 1-5" opens a window every weekday at 22:00 UTC.
+                            minLength: 1
+                            pattern: ^(@(annually|yearly|monthly|weekly|daily|midnight|hourly)|@every [^\s]+.*|[^\s]+( [^\s]+){4})$
+                            type: string
+                        required:
+                          - duration
+                          - schedule
+                        type: object
+                      minItems: 1
+                      type: array
+                  required:
+                    - kind
+                    - windows
+                  type: object
                 target:
                   default:
                     creationPolicy: Owner
@@ -13445,6 +13700,15 @@ spec:
                                   For Secret resources, common values are: "Data", "Annotations", "Labels".
                                   For custom resources (when spec.target.manifest is set), this supports
                                   nested paths like "spec.database.config" or "data".
+                                type: string
+                              valuesDecodingStrategy:
+                                default: None
+                                description: Used to define a decoding Strategy for the rendered template values.
+                                enum:
+                                  - Auto
+                                  - Base64
+                                  - Base64URL
+                                  - None
                                 type: string
                             type: object
                           type: array
@@ -14668,6 +14932,15 @@ spec:
                               For Secret resources, common values are: "Data", "Annotations", "Labels".
                               For custom resources (when spec.target.manifest is set), this supports
                               nested paths like "spec.database.config" or "data".
+                            type: string
+                          valuesDecodingStrategy:
+                            default: None
+                            description: Used to define a decoding Strategy for the rendered template values.
+                            enum:
+                              - Auto
+                              - Base64
+                              - Base64URL
+                              - None
                             type: string
                         type: object
                       type: array
@@ -17998,6 +18271,11 @@ spec:
                               default: true
                               description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
                               type: boolean
+                            organizationSlug:
+                              description: |-
+                                OrganizationSlug is the optional slug that identifies the organization that will be used
+                                during authentication. Useful for sub-organization setups
+                              type: string
                             projectSlug:
                               description: ProjectSlug is the required slug identifier for the project.
                               type: string
@@ -18653,7 +18931,94 @@ spec:
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the OpenBao server.
+                          maxProperties: 1
                           properties:
+                            appRole:
+                              description: |-
+                                AppRole authenticates with OpenBao using the [App Role auth mechanism],
+                                with the role and secret stored in a Kubernetes Secret resource.
+
+                                [App Role auth mechanism]: https://openbao.org/docs/auth/approle/
+                              properties:
+                                path:
+                                  default: approle
+                                  description: |-
+                                    Path where the App Role authentication backend is mounted
+                                    in OpenBao, e.g: "approle"
+                                  type: string
+                                roleId:
+                                  description: |-
+                                    RoleID configured in the App Role authentication backend when setting
+                                    up the authentication backend in OpenBao.
+                                  minLength: 1
+                                  type: string
+                                roleRef:
+                                  description: |-
+                                    Reference to a key in a Secret that contains the App Role ID used
+                                    to authenticate with OpenBao.
+                                    The `key` field must be specified and denotes which entry within the Secret
+                                    resource is used as the app role id.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                secretRef:
+                                  description: |-
+                                    Reference to a key in a Secret that contains the App Role secret used
+                                    to authenticate with OpenBao.
+                                    The `key` field must be specified and denotes which entry within the Secret
+                                    resource is used as the app role secret.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - path
+                                - secretRef
+                              type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of the fields in [roleId roleRef] must be set
+                                  rule: '[has(self.roleId),has(self.roleRef)].filter(x,x==true).size() == 1'
                             tokenSecretRef:
                               description: TokenSecretRef authenticates with OpenBao by presenting a token.
                               properties:
@@ -18679,6 +19044,57 @@ spec:
                                   minLength: 1
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
+                              type: object
+                            userPass:
+                              description: UserPass authenticates with OpenBao by passing a username/password pair
+                              properties:
+                                path:
+                                  default: userpass
+                                  description: |-
+                                    Path where the UserPassword authentication backend is mounted
+                                    in OpenBao, e.g: "userpass"
+                                  type: string
+                                secretRef:
+                                  description: |-
+                                    SecretRef to a key in a Secret resource containing password for the user
+                                    used to authenticate with OpenBao using the [UserPass authentication
+                                    method]
+
+                                    [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                username:
+                                  description: |-
+                                    Username is a username used to authenticate using the [UserPass
+                                    authentication method]
+
+                                    [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
+                                  type: string
+                              required:
+                                - path
+                                - username
                               type: object
                           type: object
                         caBundle:

@@ -36,12 +36,14 @@ type OpenBaoProvider struct {
 	// PEM encoded CA bundle used to validate the OpenBao server certificate. If
 	// this and `caProvider` are not set the system root certificates are used
 	// to validate the TLS connection.
+	//
 	// +optional
 	CABundle []byte `json:"caBundle,omitempty"`
 
 	// The provider for the CA bundle to use to validate OpenBao server
 	// certificate. If this and `caBundle` are not set the system root
 	// certificates are used to validate the TLS connection.
+	//
 	// +optional
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
 
@@ -52,11 +54,13 @@ type OpenBaoProvider struct {
 	// "secret". The v2 KV secret engine version specific "/data" path suffix
 	// for fetching secrets from OpenBao is optional and will be appended
 	// if not present in specified path.
+	//
 	// +optional
 	Path *string `json:"path,omitempty"`
 
 	// Version is the OpenBao KV secret engine version. This can be either "v1" or
 	// "v2". Version defaults to "v2".
+	//
 	// +kubebuilder:validation:Optional
 	// +kubebuilder:validation:Enum="v1";"v2"
 	// +kubebuilder:default:="v2"
@@ -66,8 +70,87 @@ type OpenBaoProvider struct {
 // OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
 // Currently only token-based authentication is supported via `tokenSecretRef`.
 // Additional authentication methods are planned for future releases.
+//
+// +kubebuilder:validation:MaxProperties=1
 type OpenBaoAuth struct {
+	// AppRole authenticates with OpenBao using the [App Role auth mechanism],
+	// with the role and secret stored in a Kubernetes Secret resource.
+	//
+	// [App Role auth mechanism]: https://openbao.org/docs/auth/approle/
+	//
+	// +optional
+	AppRole *OpenBaoAppRole `json:"appRole,omitempty"`
+
 	// TokenSecretRef authenticates with OpenBao by presenting a token.
+	//
 	// +optional
 	TokenSecretRef *esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`
+
+	// UserPass authenticates with OpenBao by passing a username/password pair
+	//
+	// +optional
+	UserPass *OpenBaoUserPassAuth `json:"userPass,omitempty"`
+}
+
+// OpenBaoUserPassAuth authenticates with OpenBao using [UserPass authentication
+// method], with the username and password stored in a Kubernetes Secret
+// resource.
+//
+// [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
+type OpenBaoUserPassAuth struct {
+	// Path where the UserPassword authentication backend is mounted
+	// in OpenBao, e.g: "userpass"
+	//
+	// +kubebuilder:default=userpass
+	Path string `json:"path"`
+
+	// Username is a username used to authenticate using the [UserPass
+	// authentication method]
+	//
+	// [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
+	Username string `json:"username"`
+
+	// SecretRef to a key in a Secret resource containing password for the user
+	// used to authenticate with OpenBao using the [UserPass authentication
+	// method]
+	//
+	// [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
+	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+}
+
+// OpenBaoAppRole authenticates with OpenBao using the [App Role auth
+// mechanism], with the role and secret stored in a Kubernetes Secret resource.
+// The role ID has to be specified either inline via `roleId` or by referencing
+// a secret via `roleRef`.
+//
+// +kubebuilder:validation:ExactlyOneOf=roleId;roleRef
+//
+// [App Role auth mechanism]: https://openbao.org/docs/auth/approle/
+type OpenBaoAppRole struct {
+	// Path where the App Role authentication backend is mounted
+	// in OpenBao, e.g: "approle"
+	//
+	// +kubebuilder:default=approle
+	Path string `json:"path"`
+
+	// RoleID configured in the App Role authentication backend when setting
+	// up the authentication backend in OpenBao.
+	//
+	// +optional
+	// +kubebuilder:validation:MinLength=1
+	RoleID string `json:"roleId,omitempty"`
+
+	// Reference to a key in a Secret that contains the App Role ID used
+	// to authenticate with OpenBao.
+	// The `key` field must be specified and denotes which entry within the Secret
+	// resource is used as the app role id.
+	//
+	// +optional
+	RoleRef *esmeta.SecretKeySelector `json:"roleRef,omitempty"`
+
+	// Reference to a key in a Secret that contains the App Role secret used
+	// to authenticate with OpenBao.
+	// The `key` field must be specified and denotes which entry within the Secret
+	// resource is used as the app role secret.
+	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
 }

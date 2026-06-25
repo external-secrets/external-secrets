@@ -41,16 +41,20 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/openbao"
+	"github.com/external-secrets/external-secrets/providers/v1/openbao/internal/auth"
 
 	. "github.com/onsi/gomega"
 )
 
 const recordDir = "testdata/http"
+const fakeToken = "s.fakeTOKEN123"
 
 var (
-	requestIdReg = regexp.MustCompile(`id":"[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`)
-	timeReg      = regexp.MustCompile(`_time":"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z"`)
-	accessorReg  = regexp.MustCompile(`accessor":"([a-z]+)_[0-9a-f]+"`)
+	requestIdReg     = regexp.MustCompile(`id":"[0-9a-f]{8}-([0-9a-f]{4}-){3}[0-9a-f]{12}"`)
+	timeReg          = regexp.MustCompile(`_time":"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d+Z"`)
+	namedAccessorReg = regexp.MustCompile(`accessor":"([a-z]+)_[0-9a-f]+"`)
+	accessorReg      = regexp.MustCompile(`accessor":"([A-Za-z0-9]+)"`)
+	tokenReg         = regexp.MustCompile(`client_token":"s\.([A-Za-z0-9]+)"`)
 )
 
 func getRecorder(t *testing.T) *recorder.Recorder {
@@ -60,7 +64,14 @@ func getRecorder(t *testing.T) *recorder.Recorder {
 		i.Response.Duration = 0
 		i.Response.Body = requestIdReg.ReplaceAllString(i.Response.Body, `id":"00000000-0000-0000-0000-000000000000"`)
 		i.Response.Body = timeReg.ReplaceAllString(i.Response.Body, `_time":"2099-09-09T09:09:09.09Z"`)
-		i.Response.Body = accessorReg.ReplaceAllString(i.Response.Body, `accessor":"${1}_01234567"`)
+		i.Response.Body = namedAccessorReg.ReplaceAllString(i.Response.Body, `accessor":"${1}_01234567"`)
+		i.Response.Body = accessorReg.ReplaceAllString(i.Response.Body, `accessor":"AbCdEfGHiJk123"`)
+		i.Response.Body = tokenReg.ReplaceAllString(i.Response.Body, `client_token":"`+fakeToken+`"`)
+
+		token := i.Request.Headers.Get("X-Vault-Token")
+		if token != "" && token != "root" {
+			i.Request.Headers.Set("X-Vault-Token", fakeToken)
+		}
 
 		var body map[string]any
 		err := json.Unmarshal([]byte(i.Response.Body), &body)
@@ -347,10 +358,142 @@ func TestProvider_KVv1(t *testing.T) {
 	})
 }
 
+func TestProvider_Auth(t *testing.T) {
+	RegisterTestingT(t)
+
+	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "shared-secret",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"approle-id":        []byte("dynamic-roleid"),
+			"approle-secret":    []byte("the-secret"),
+			"userpass-password": []byte("the-password"),
+		},
+	}).Build()
+	provider := openbao.NewProvider().(*openbao.Provider)
+
+	cases := []struct {
+		name          string
+		auth          *esv1.OpenBaoAuth
+		expectedCalls []string
+	}{{
+		name: "userpass",
+		auth: &esv1.OpenBaoAuth{
+			UserPass: &esv1.OpenBaoUserPassAuth{
+				Path:     "userpasspath",
+				Username: "the-user",
+				SecretRef: esmeta.SecretKeySelector{
+					Name: "shared-secret",
+					Key:  "userpass-password",
+				},
+			},
+		},
+		expectedCalls: []string{`UserPass("the-user", "the-password", "userpasspath")`},
+	}, {
+		name: "approle static",
+		auth: &esv1.OpenBaoAuth{
+			AppRole: &esv1.OpenBaoAppRole{
+				Path:   "approlepath",
+				RoleID: "static-roleid",
+				SecretRef: esmeta.SecretKeySelector{
+					Name: "shared-secret",
+					Key:  "approle-secret",
+				},
+			},
+		},
+		expectedCalls: []string{`AppRole("static-roleid", "the-secret", "approlepath")`},
+	}, {
+		name: "approle dynamic",
+		auth: &esv1.OpenBaoAuth{
+			AppRole: &esv1.OpenBaoAppRole{
+				Path: "approlepath",
+				RoleRef: &esmeta.SecretKeySelector{
+					Name: "shared-secret",
+					Key:  "approle-id",
+				},
+				SecretRef: esmeta.SecretKeySelector{
+					Name: "shared-secret",
+					Key:  "approle-secret",
+				},
+			},
+		},
+		expectedCalls: []string{`AppRole("dynamic-roleid", "the-secret", "approlepath")`},
+	}}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			RegisterTestingT(t)
+			factory := &auth.MockFactory{}
+			provider.AuthMethodFactory = factory
+
+			store := makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2)
+			store.Spec.Provider.OpenBao.Auth = tc.auth
+
+			client, err := provider.NewClient(t.Context(), store, kube, "default")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(client).NotTo(BeNil())
+			t.Cleanup(func() {
+				client.Close(t.Context())
+			})
+
+			Expect(factory.GetCalls()).To(Equal(tc.expectedCalls))
+		})
+	}
+}
+
+func TestProvider_Auth_UserPass(t *testing.T) {
+	RegisterTestingT(t)
+	kube, provider := setupProvider(t, &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "password-of-alice",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"pw": []byte("bob4ever"),
+		},
+	})
+
+	store := makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2)
+	store.Spec.Provider.OpenBao.Auth = &esv1.OpenBaoAuth{
+		UserPass: &esv1.OpenBaoUserPassAuth{
+			Path:     "customuserpasspath",
+			Username: "alice",
+			SecretRef: esmeta.SecretKeySelector{
+				Name: "password-of-alice",
+				Key:  "pw",
+			},
+		},
+	}
+
+	client, err := provider.NewClient(t.Context(), store, kube, "default")
+	Expect(err).NotTo(HaveOccurred())
+	Expect(client).NotTo(BeNil())
+	t.Cleanup(func() {
+		client.Close(t.Context())
+	})
+
+	data, err := client.GetSecret(t.Context(), esv1.ExternalSecretDataRemoteRef{
+		Key:      "foo",
+		Property: "bar",
+	})
+	Expect(err).NotTo(HaveOccurred())
+	Expect(data).To(BeEquivalentTo("bazz"))
+}
+
 func TestProvider_Validate(t *testing.T) {
 	RegisterTestingT(t)
 
-	kube, provider := setupProvider(t)
+	kube, provider := setupProvider(t, &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bao-token",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"token": []byte("root"),
+		},
+	})
 
 	store := makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV1)
 	client, err := provider.NewClient(t.Context(), store, kube, "default")
@@ -498,7 +641,15 @@ func TestProvider_CustomCA(t *testing.T) {
 }
 
 func setupClient(t *testing.T, v esv1.OpenBaoKVStoreVersion) esv1.SecretsClient {
-	kube, provider := setupProvider(t)
+	kube, provider := setupProvider(t, &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "bao-token",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"token": []byte("root"),
+		},
+	})
 
 	client, err := provider.NewClient(t.Context(), makeValidSecretStoreWithVersion(v), kube, "default")
 	Expect(err).NotTo(HaveOccurred())
@@ -509,18 +660,10 @@ func setupClient(t *testing.T, v esv1.OpenBaoKVStoreVersion) esv1.SecretsClient 
 	return client
 }
 
-func setupProvider(t *testing.T) (client.WithWatch, *openbao.Provider) {
+func setupProvider(t *testing.T, objects ...client.Object) (client.WithWatch, *openbao.Provider) {
 	r := getRecorder(t)
 
-	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "bao-token",
-			Namespace: "default",
-		},
-		Data: map[string][]byte{
-			"token": []byte("root"),
-		},
-	}).Build()
+	kube := clientfake.NewClientBuilder().WithObjects(objects...).Build()
 
 	provider := openbao.NewProvider().(*openbao.Provider)
 	provider.HTTPClientFactory = r.GetDefaultClient
