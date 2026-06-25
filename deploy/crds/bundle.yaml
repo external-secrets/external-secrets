@@ -6210,7 +6210,6 @@ spec:
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the OpenBao server.
-                          maxProperties: 1
                           properties:
                             appRole:
                               description: |-
@@ -6298,6 +6297,16 @@ spec:
                               x-kubernetes-validations:
                                 - message: exactly one of the fields in [roleId roleRef] must be set
                                   rule: '[has(self.roleId),has(self.roleRef)].filter(x,x==true).size() == 1'
+                            namespace:
+                              description: |-
+                                Name of the [OpenBao Namespace] to authenticate to. This can be different
+                                than the namespace your secret is in. Namespaces is a set of features
+                                within OpenBao that allows OpenBao environments to support secure
+                                multi-tenancy. e.g: "ns1". This will default to OpenBao.Namespace field
+                                if set, or empty otherwise
+
+                                [OpenBao Namespace]: https://openbao.org/docs/concepts/namespaces/
+                              type: string
                             tokenSecretRef:
                               description: TokenSecretRef authenticates with OpenBao by presenting a token.
                               properties:
@@ -6376,6 +6385,9 @@ spec:
                                 - username
                               type: object
                           type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of the fields in [appRole tokenSecretRef userPass] must be set
+                              rule: '[has(self.appRole),has(self.tokenSecretRef),has(self.userPass)].filter(x,x==true).size() == 1'
                         caBundle:
                           description: |-
                             PEM encoded CA bundle used to validate the OpenBao server certificate. If
@@ -6419,6 +6431,14 @@ spec:
                             - name
                             - type
                           type: object
+                        namespace:
+                          description: |-
+                            Name of the [OpenBao Namespace]. Namespaces is a set of features within
+                            OpenBao that allows OpenBao environments to support secure multi-tenancy.
+                            e.g: "ns1".
+
+                            [OpenBao Namespace]: https://openbao.org/docs/concepts/namespaces/
+                          type: string
                         path:
                           description: |-
                             Path is the mount path of the OpenBao KV backend endpoint, e.g:
@@ -18925,7 +18945,6 @@ spec:
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the OpenBao server.
-                          maxProperties: 1
                           properties:
                             appRole:
                               description: |-
@@ -19013,6 +19032,16 @@ spec:
                               x-kubernetes-validations:
                                 - message: exactly one of the fields in [roleId roleRef] must be set
                                   rule: '[has(self.roleId),has(self.roleRef)].filter(x,x==true).size() == 1'
+                            namespace:
+                              description: |-
+                                Name of the [OpenBao Namespace] to authenticate to. This can be different
+                                than the namespace your secret is in. Namespaces is a set of features
+                                within OpenBao that allows OpenBao environments to support secure
+                                multi-tenancy. e.g: "ns1". This will default to OpenBao.Namespace field
+                                if set, or empty otherwise
+
+                                [OpenBao Namespace]: https://openbao.org/docs/concepts/namespaces/
+                              type: string
                             tokenSecretRef:
                               description: TokenSecretRef authenticates with OpenBao by presenting a token.
                               properties:
@@ -19091,6 +19120,9 @@ spec:
                                 - username
                               type: object
                           type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of the fields in [appRole tokenSecretRef userPass] must be set
+                              rule: '[has(self.appRole),has(self.tokenSecretRef),has(self.userPass)].filter(x,x==true).size() == 1'
                         caBundle:
                           description: |-
                             PEM encoded CA bundle used to validate the OpenBao server certificate. If
@@ -19134,6 +19166,14 @@ spec:
                             - name
                             - type
                           type: object
+                        namespace:
+                          description: |-
+                            Name of the [OpenBao Namespace]. Namespaces is a set of features within
+                            OpenBao that allows OpenBao environments to support secure multi-tenancy.
+                            e.g: "ns1".
+
+                            [OpenBao Namespace]: https://openbao.org/docs/concepts/namespaces/
+                          type: string
                         path:
                           description: |-
                             Path is the mount path of the OpenBao KV backend endpoint, e.g:
