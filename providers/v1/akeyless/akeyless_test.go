@@ -454,3 +454,10 @@ func TestDeleteSecret(t *testing.T) {
 		})
 	}
 }
+
+func TestCapabilities(t *testing.T) {
+	// The provider implements PushSecret, DeleteSecret, and SecretExists, so it
+	// must advertise ReadWrite; otherwise ESO skips push operations entirely.
+	p := &Provider{}
+	require.Equal(t, esv1.SecretStoreReadWrite, p.Capabilities())
+}

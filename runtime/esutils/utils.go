@@ -55,6 +55,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/decoding"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	estemplate "github.com/external-secrets/external-secrets/runtime/template/v2"
 )
@@ -226,54 +227,6 @@ func RewriteTransform(operation esv1.ExternalSecretRewriteTransform, in map[stri
 	}
 
 	return out, nil
-}
-
-// DecodeMap decodes values from a secretMap.
-func DecodeMap(strategy esv1.ExternalSecretDecodingStrategy, in map[string][]byte) (map[string][]byte, error) {
-	out := make(map[string][]byte, len(in))
-	for k, v := range in {
-		val, err := Decode(strategy, v)
-		if err != nil {
-			return nil, fmt.Errorf("failure decoding key %v: %w", k, err)
-		}
-		out[k] = val
-	}
-	return out, nil
-}
-
-// Decode decodes the input byte slice according to the provided decoding strategy.
-func Decode(strategy esv1.ExternalSecretDecodingStrategy, in []byte) ([]byte, error) {
-	switch strategy {
-	case esv1.ExternalSecretDecodeBase64:
-		out, err := base64.StdEncoding.DecodeString(string(in))
-		if err != nil {
-			return nil, err
-		}
-		return out, nil
-	case esv1.ExternalSecretDecodeBase64URL:
-		out, err := base64.URLEncoding.DecodeString(string(in))
-		if err != nil {
-			return nil, err
-		}
-		return out, nil
-	case esv1.ExternalSecretDecodeNone:
-		return in, nil
-	// default when stored version is v1alpha1
-	case "":
-		return in, nil
-	case esv1.ExternalSecretDecodeAuto:
-		out, err := Decode(esv1.ExternalSecretDecodeBase64, in)
-		if err != nil {
-			out, err := Decode(esv1.ExternalSecretDecodeBase64URL, in)
-			if err != nil {
-				return Decode(esv1.ExternalSecretDecodeNone, in)
-			}
-			return out, nil
-		}
-		return out, nil
-	default:
-		return nil, fmt.Errorf("decoding strategy %v is not supported", strategy)
-	}
 }
 
 // ValidateKeys checks if the keys in the secret map are valid keys for a Kubernetes secret.
@@ -778,7 +731,7 @@ func base64decode(cert []byte) ([]byte, error) {
 	}
 
 	// try decoding and test for validity again...
-	certificate, err := Decode(esv1.ExternalSecretDecodeAuto, cert)
+	certificate, err := decoding.Decode(esv1.ExternalSecretDecodeAuto, cert)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode base64: %w", err)
 	}

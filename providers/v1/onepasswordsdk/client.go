@@ -85,6 +85,13 @@ func (p *SecretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDa
 		return cached, nil
 	}
 
+	// An item cached by GetAllSecrets/GetSecretMap is keyed by item name, not by the
+	// Resolve reference. Serve plain field lookups from it to avoid a Resolve API call.
+	if value, ok := p.resolveFieldFromCachedItem(ref.Key); ok {
+		p.cacheAdd(key, value)
+		return value, nil
+	}
+
 	secret, err := p.client.Secrets().Resolve(ctx, key)
 	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKResolve, err)
 	if err != nil {
@@ -823,6 +830,37 @@ func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.
 	}
 
 	return item, nil
+}
+
+// resolveFieldFromCachedItem satisfies a GetSecret request from an item already cached by
+// GetAllSecrets/GetSecretMap, avoiding a Resolve API call. It only handles plain field
+// lookups; files, sections, and cache misses return false so the caller falls back to Resolve.
+func (p *SecretsClient) resolveFieldFromCachedItem(refKey string) ([]byte, bool) {
+	itemName, property, ok := strings.Cut(refKey, prefixSplitter)
+	if !ok || property == "" {
+		return nil, false
+	}
+
+	cached, ok := p.cacheGet(itemCachePrefix + p.vaultID + ":" + itemName)
+	if !ok {
+		return nil, false
+	}
+	var item onepassword.Item
+	if err := json.Unmarshal(cached, &item); err != nil {
+		return nil, false
+	}
+
+	objType, prop := getObjType(item.Category, property)
+	if objType != fieldPrefix {
+		return nil, false
+	}
+
+	fields, err := p.getFields(item, prop)
+	if err != nil {
+		return nil, false
+	}
+	value, ok := fields[prop]
+	return value, ok
 }
 
 // SecretExists returns true if the item exists, and if a property is specified, if a field with that title exists.
