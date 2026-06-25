@@ -33,7 +33,7 @@ The interval can be changed by the `spec.refreshInterval` in the ExternalSecret.
 
 Every ExternalSecret resource contains a status condition that indicates whether a secret was successfully synchronized, along with the timestamp of the last status change of the ExternalSecret (e.g. from SecretSyncedError to SecretSynced). This can be obtained from the field `lastTransitionTime`:
 
-```yaml
+```bash
 kubectl get es my-external-secret -o yaml | grep condition -A 5
   conditions:
   - lastTransitionTime: "2022-05-21T21:02:47Z"
@@ -52,7 +52,7 @@ Please take a look at this [issue comment here](https://github.com/external-secr
 First, check the status of the ExternalSecret resource using `kubectl describe`. That displays the status conditions as well as recent events.
 You should expect a status condition with `Type=Ready`, `Status=True`. Further you shouldn't see any events with `Type=Warning`. Read carefully if they exist.
 
-```yabashml
+```bash
 kubectl describe es my-external-secret
 [...]
 Status:
