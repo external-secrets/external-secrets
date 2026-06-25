@@ -9523,7 +9523,6 @@ spec:
                             Valid values are:
                             - "ServicePrincipal" (default): Using a service principal (tenantId, clientId, clientSecret)
                             - "ManagedIdentity": Using Managed Identity assigned to the pod (see aad-pod-identity)
-                            - "WorkloadIdentity": Using a Kubernetes ServiceAccount federated with Entra ID
                           enum:
                             - ServicePrincipal
                             - ManagedIdentity
@@ -22240,7 +22239,6 @@ spec:
                             Valid values are:
                             - "ServicePrincipal" (default): Using a service principal (tenantId, clientId, clientSecret)
                             - "ManagedIdentity": Using Managed Identity assigned to the pod (see aad-pod-identity)
-                            - "WorkloadIdentity": Using a Kubernetes ServiceAccount federated with Entra ID
                           enum:
                             - ServicePrincipal
                             - ManagedIdentity
