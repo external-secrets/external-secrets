@@ -72,7 +72,7 @@ To create a kubernetes secret from Keeper Secret Manager secret a `Kind=External
 The operator will fetch the Keeper Secret Manager secret and inject it as a `Kind=Secret`
 
 ```bash
-kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.dev-secret-test}' | base64 -d
+kubectl get secret secret-to-be-created -n $namespace -o jsonpath='{.data.dev-secret-test}' | base64 -d
 ```
 
 ## Limitations with ExternalSecrets

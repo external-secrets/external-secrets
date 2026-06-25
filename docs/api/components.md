@@ -21,4 +21,4 @@ These features are optional but highly recommended. You can disable them with he
 
 Cert-controller is responsible for (1) generating TLS credentials which will be used by the webhook component and (2) injecting the certificate as `caBundle` into `Kind=CustomResourceDefinition` for conversion webhooks and `Kind=ValidatingWebhookConfiguration` for validating admission webhook. The TLS credentials are stored in a `Kind=Secret` which is consumed by the webhook.
 
-![Image](../pictures/eso-threat-model-TLS%20Bootstrap.drawio.png)
+![ESO Threat model for TLS Bootstrap](../pictures/eso-threat-model-TLS%20Bootstrap.drawio.png)

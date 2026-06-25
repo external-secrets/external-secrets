@@ -195,8 +195,8 @@ data:
 ```yaml
 dataFrom:
   - extract:
-    key: "kv/fffff-gggg-iiii-dddd-eeeeee" #mandatory
-    decodingStrategy: Base64 #optional
+      key: "kv/fffff-gggg-iiii-dddd-eeeeee" #mandatory
+      decodingStrategy: Base64 #optional
 ```
 
 ```yaml

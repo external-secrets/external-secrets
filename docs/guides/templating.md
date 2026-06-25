@@ -5,8 +5,8 @@ With External Secrets Operator you can transform the data from the external secr
 Each data value is interpreted as a [Go template](https://golang.org/pkg/text/template/). Please note that referencing a non-existing key in the template will raise an error, instead of being suppressed.
 
 !!! note
-    Consider using camelcase when defining `spec.data.secretkey`, example: serviceAccountToken.
-    If your secret keys contain **`-` (dashes)**, you will need to reference them using **`index`**.
+    Consider using camelcase when defining `spec.data.secretKey`, example: `serviceAccountToken`.
+    If your secret keys contain `-` (**dashes**), you will need to reference them using `index`.
     Example: **`{% raw %}{{ index .data "service-account-token" }}{% endraw %}`**
 
 ## Helm

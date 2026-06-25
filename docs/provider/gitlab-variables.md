@@ -187,6 +187,6 @@ The following restrictions apply when using `find`:
 
 The operator will fetch the project variable and inject it as a `Kind=Secret`.
 
-```yaml
+```bash
 kubectl get secret gitlab-secret-to-create -o jsonpath='{.data.secretKey}' | base64 -d
 ```

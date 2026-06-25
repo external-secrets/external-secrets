@@ -173,7 +173,7 @@ You should see something similar to the following output:
     "Value": "charmander",
     "Version": 4,
     "LastModifiedDate": "2022-09-15T13:04:31.098000-03:00",
-    "ARN": "arn:aws:ssm:us-east-1:1234567890123:parameter/my-first-parameter",
+    "ARN": "arn:aws:ssm:us-east-1:123456789012:parameter/my-first-parameter",
     "DataType": "text"
   }
 }

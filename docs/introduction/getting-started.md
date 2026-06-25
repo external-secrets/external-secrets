@@ -66,7 +66,7 @@ Create a file 'basic-secret-store.yaml' with the following content.
 
 Apply it to create a SecretStore resource.
 
-```yaml
+```bash
 kubectl apply -f "basic-secret-store.yaml"
 ```
 
@@ -80,7 +80,7 @@ Create a file 'basic-external-secret.yaml' with the following content.
 
 Apply it to create an External Secret resource.
 
-```yaml
+```bash
 kubectl apply -f "basic-external-secret.yaml"
 ```
 

@@ -23,7 +23,7 @@ gets a determinable endpoint.
 
 In order to install the service install ESO with the following helm directive:
 
-```yaml
+```bash
 helm install external-secrets \
 external-secrets/external-secrets \
 -n external-secrets \

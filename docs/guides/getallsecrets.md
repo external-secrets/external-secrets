@@ -7,7 +7,7 @@ In some use cases, it might be impractical to bundle all sensitive information i
 
 ## Fetching secrets matching a given name pattern
 
-To fetch multiple secrets matching a name pattern from a common SecretStore you can apply the following manifest:
+Apply the following manifest to fetch multiple secrets matching regular expression (like `key` below) from a `secretstore-sample` SecretStore into a single kubernetes Secret named `secret-to-be-created`:
 
 ```yaml
 {% include 'getallsecrets-find-by-name.yaml' %}
@@ -23,7 +23,7 @@ path_to_keyring: Cg==
 
 ### Fetching secrets matching a set of metadata tags
 
-To fetch multiple secrets matching a name pattern from a common SecretStore you can apply the following manifest:
+Apply the following manifest to fetch multiple secrets matching tags (like `environment` and `application`) from a `secretstore-sample` SecretStore into a single kubernetes Secret named `secret-to-be-created`:
 
 ```yaml
 {% include 'getallsecrets-find-by-tags.yaml' %}

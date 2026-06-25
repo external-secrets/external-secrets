@@ -30,7 +30,7 @@ require (
 
 ## Release ESO
 
-When doing a release it's best to start with with the ["Create Release" issue template](https://github.com/external-secrets/external-secrets/issues/new?assignees=&labels=area%2Frelease&projects=&template=create_release.md&title=Release+x.y), it has a checklist to go over.
+When doing a release it's best to start with the ["Create Release" issue template](https://github.com/external-secrets/external-secrets/issues/new?assignees=&labels=area%2Frelease&projects=&template=create_release.md&title=Release+x.y), it has a checklist to go over.
 
 ⚠️ Note: when releasing multiple versions, make sure to first release the "old" version, then the newer version.
 Otherwise the `latest` documentation will point to the older version. Also avoid to release both versions at the same time to avoid race conditions in the CI pipeline (updating docs, GitHub Release, helm chart release).

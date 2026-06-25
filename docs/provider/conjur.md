@@ -84,7 +84,7 @@ This method uses JWT tokens to authenticate with Secrets Manager. You can use th
 - JWT token from a referenced Kubernetes service account
 - JWT token stored in a Kubernetes secret
 
-##### Step 1: Define an external secret store 2
+##### Step 1: Write the manifest for external secret store with JWT auth
 
 When you use JWT authentication, the following must be specified in the `SecretStore`:
 

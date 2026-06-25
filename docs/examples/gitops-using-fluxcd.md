@@ -170,7 +170,7 @@ for example, a manifest `clusterSecretStore.yaml` to reach your Hashicorp Vault 
 
 At the end, the required files tree is:
 
-```yaml
+```text
   kustomization.yaml
   namespace.yaml
   secret-token.yaml

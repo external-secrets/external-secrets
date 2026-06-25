@@ -40,7 +40,7 @@ Example `ExternalSecret` that references the Password generator:
 
 Which will generate a `Kind=Secret` with a key called 'password' that may look like:
 
-```yaml
+```text
 RMngCHKtZ@@h@3aja$WZDuDVhkCkN48JBa9OF8jH$R
 VB$pX8SSUMIlk9K8g@XxJAhGz$0$ktbJ1ArMukg-bD
 Hi$-aK_3Rrrw1Pj9-sIpPZuk5abvEDJlabUYUcS$9L
@@ -48,7 +48,7 @@ Hi$-aK_3Rrrw1Pj9-sIpPZuk5abvEDJlabUYUcS$9L
 
 With default values you would get something like:
 
-```yaml
+```text
 2Cp=O*&8x6sdwM!<74G_gUz5
 -MS`e#n24K|h5A<&6q9Yv7Cj
 ZRv-k!y6x/V"29:43aErSf$1

@@ -29,7 +29,7 @@ You can scope tokens to a particular repository using `spec.scope`.
 
 First, a Microsoft Entra ID access token is obtained with the desired authentication method.
 This Microsoft Entra ID access token will be used to authenticate against ACR to issue a refresh token or access token.
-If `spec.scope` if it is defined it obtains an ACR access token. If `spec.scope` is missing it obtains an ACR refresh token:
+If `spec.scope` is defined it obtains an ACR access token. If `spec.scope` is missing it obtains an ACR refresh token:
 
 - access tokens are scoped to a specific repository or action (pull,push)
 - refresh tokens can are scoped to whatever policy is attached to the identity that creates the acr refresh token

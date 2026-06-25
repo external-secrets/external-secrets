@@ -91,7 +91,7 @@ Consider installing ESO restricting webhook ciphers. Use the following Helm valu
 ```yaml
 webhook:
   extraArgs:
-  tls-ciphers: "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256"
+    tls-ciphers: "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256"
 ```
 
 ### 6. Harden the Helm Chart

@@ -46,13 +46,13 @@ data:
 
 Then create a simple k/v pair at path `secret/foo`:
 
-```yaml
+```shell
 vault kv put secret/foo my-value=s3cr3t
 ```
 
 Can check kv version using following and check for `Options` column, it should indicate [version:2]:
 
-```yaml
+```shell
 vault secrets list -detailed
 ```
 
@@ -291,8 +291,7 @@ We support five different modes for authentication:
 [userPass](https://www.vaultproject.io/docs/auth/userpass),
 [jwt/oidc](https://www.vaultproject.io/docs/auth/jwt),
 [awsAuth](https://developer.hashicorp.com/vault/docs/auth/aws) and
-[tlsCert](https://developer.hashicorp.com/vault/docs/auth/cert), each one comes with it's own
-trade-offs. Depending on the authentication method you need to adapt your environment.
+[tlsCert](https://developer.hashicorp.com/vault/docs/auth/cert), each one comes with it's own trade-offs. Depending on the authentication method you need to adapt your environment.
 
 If you're using Vault namespaces, you can authenticate into one namespace and use the vault token against a different namespace, if desired.
 

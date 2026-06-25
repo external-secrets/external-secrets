@@ -3,14 +3,14 @@
 You can trigger a secret refresh by using kubectl or any other kubernetes api client.
 You just need to change an annotation, label or the spec of the resource:
 
-```yaml
+```bash
 kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 ```
 
 For ClusterExternalSecrets you can refresh all corresponding ExternalSecrets by changing
 the `external-secrets.io/force-sync` annotation on the ClusterExternalSecret resource:
 
-```yaml
+```bash
 kubectl annotate ces my-ces external-secrets.io/force-sync=$(date +%s) --overwrite
 ```
 
@@ -18,7 +18,7 @@ kubectl annotate ces my-ces external-secrets.io/force-sync=$(date +%s) --overwri
 
 The last synchronization timestamp of an ExternalSecret can be retrieved from the field `refreshTime`.
 
-```yaml
+```bash
 kubectl get es my-external-secret -o yaml | grep refreshTime
   refreshTime: "2022-05-21T23:02:47Z"
 ```
@@ -52,7 +52,7 @@ Please take a look at this [issue comment here](https://github.com/external-secr
 First, check the status of the ExternalSecret resource using `kubectl describe`. That displays the status conditions as well as recent events.
 You should expect a status condition with `Type=Ready`, `Status=True`. Further you shouldn't see any events with `Type=Warning`. Read carefully if they exist.
 
-```yaml
+```yabashml
 kubectl describe es my-external-secret
 [...]
 Status:
@@ -75,7 +75,7 @@ If everything looks good you should check the corresponding secret store resourc
 
 In an ideally, the store should be validated and Ready.
 
-```yaml
+```bash
 kubectl describe css kubernetes
 [...]
 Status:

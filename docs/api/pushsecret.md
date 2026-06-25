@@ -129,7 +129,7 @@ rewrite:
       target: "app/db/" # Replacement string (supports capture groups like $1, $2)
 ```
 
-Transform Rewrite (Go Template)::
+Transform Rewrite (Go Template):
 {% raw %}
 
 ```yaml

@@ -27,7 +27,7 @@ make crds.install
 
 1. Install the external-secrets Helm chart indicating the values file created before:
 
-```yaml
+```shell
 helm install external-secrets external-secrets/external-secrets -f values.yaml
 ```
 

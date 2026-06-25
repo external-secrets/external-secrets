@@ -143,7 +143,7 @@ serviceAccount:
 
 Create a pod association:
 
-```yaml
+```bash
 aws eks create-pod-identity-association --cluster-name my-cluster --role-arn arn:aws:iam::111122223333:role/my-role --namespace external-secrets --service-account external-secrets
 ```
 

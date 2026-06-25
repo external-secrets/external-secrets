@@ -1,6 +1,6 @@
 # Glossary
 
-This glossary includes technologies related to ESO in alphabetic order.
+This glossary includes technologies related to ESO in alphabetical order.
 
  <details>
   <summary>Cluster</summary>

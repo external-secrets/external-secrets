@@ -33,8 +33,7 @@ Run tests and lint the code:
 
 ```shell
 make test
-make lint # OR
-docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.49.0 golangci-lint run
+make lint # Or run an updated version of this command: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.49.0 golangci-lint run
 ```
 
 Build the documentation:

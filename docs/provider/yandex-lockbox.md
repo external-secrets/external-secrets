@@ -107,6 +107,6 @@ spec:
 
 The operator will fetch the Yandex Lockbox secret and inject it as a `Kind=Secret`
 
-```yaml
+```bash
 kubectl get secret k8s-secret -n <namespace> -o jsonpath='{.data.password}' | base64 -d
 ```
