@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
@@ -62,8 +63,16 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if provider.Auth.Username.Value == "" && provider.Auth.Username.SecretRef == nil {
 		return nil, fmt.Errorf(errMissingField, errors.New("auth.username requires either value or secretRef"))
 	}
+	if provider.Auth.Username.SecretRef != nil {
+		if err := esutils.ValidateSecretSelector(store, *provider.Auth.Username.SecretRef); err != nil {
+			return nil, fmt.Errorf(errGeneric, err)
+		}
+	}
 	if provider.Auth.Password.SecretRef == nil {
 		return nil, fmt.Errorf(errMissingField, errors.New("auth.password.secretRef is required"))
+	}
+	if err := esutils.ValidateSecretSelector(store, *provider.Auth.Password.SecretRef); err != nil {
+		return nil, fmt.Errorf(errGeneric, err)
 	}
 	return nil, nil
 }
