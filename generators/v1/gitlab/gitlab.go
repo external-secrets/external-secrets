@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -242,6 +243,10 @@ func deployTokensURL(spec *genv1alpha1.GitlabDeployTokenSpec) (string, error) {
 	if base == "" {
 		base = defaultGitlabAPI
 	}
+	// Trim trailing slashes so a user-supplied url such as
+	// "https://gitlab.example.com/" does not yield a double slash before the
+	// API path.
+	base = strings.TrimRight(base, "/")
 	switch {
 	case spec.ProjectID != "" && spec.GroupID == "":
 		return base + apiPath + "/projects/" + url.PathEscape(spec.ProjectID) + "/deploy_tokens", nil

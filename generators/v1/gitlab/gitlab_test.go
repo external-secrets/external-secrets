@@ -193,6 +193,74 @@ func TestGenerate(t *testing.T) {
 		_, _, err := g.generate(context.Background(), specJSON(t, "https://gitlab.com", "1", ""), kube, testNamespace)
 		require.ErrorContains(t, err, "cannot find secret data for key")
 	})
+
+	t.Run("expires_at is normalized to RFC3339 UTC", func(t *testing.T) {
+		// GitLab's deploy-token API documents an ISO8601 expiry; RFC3339 is a
+		// profile of ISO8601 and the generator always emits a UTC datetime,
+		// regardless of the offset the user supplied. username is left unset
+		// here so this also covers "expiresAt set, other optional field unset".
+		cases := []struct{ in, want string }{
+			{"2025-12-31T23:59:59Z", "2025-12-31T23:59:59Z"},
+			{"2030-01-02T03:04:05Z", "2030-01-02T03:04:05Z"},
+			{"2025-06-30T12:00:00+02:00", "2025-06-30T10:00:00Z"},
+		}
+		for _, tc := range cases {
+			sink := &captured{}
+			srv := newServer(t, http.StatusCreated, createResp, sink)
+
+			raw := fmt.Sprintf(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: GitlabDeployToken
+spec:
+  url: %q
+  projectID: "1"
+  name: "eso-token"
+  scopes:
+  - read_repository
+  expiresAt: %q
+  auth:
+    token:
+      secretRef:
+        name: %q
+        key: %q
+`, srv.URL, tc.in, testSecret, testKey)
+
+			g := &Generator{httpClient: srv.Client()}
+			_, _, err := g.generate(context.Background(), &apiextensions.JSON{Raw: []byte(raw)}, newKube(), testNamespace)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, sink.body["expires_at"])
+			srv.Close()
+		}
+	})
+
+	t.Run("optional fields omitted are not sent", func(t *testing.T) {
+		sink := &captured{}
+		srv := newServer(t, http.StatusCreated, createResp, sink)
+		defer srv.Close()
+
+		raw := fmt.Sprintf(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: GitlabDeployToken
+spec:
+  url: %q
+  projectID: "1"
+  name: "eso-token"
+  scopes:
+  - read_repository
+  auth:
+    token:
+      secretRef:
+        name: %q
+        key: %q
+`, srv.URL, testSecret, testKey)
+
+		g := &Generator{httpClient: srv.Client()}
+		_, _, err := g.generate(context.Background(), &apiextensions.JSON{Raw: []byte(raw)}, newKube(), testNamespace)
+		require.NoError(t, err)
+
+		_, hasUser := sink.body["username"]
+		assert.False(t, hasUser, "username must be omitted from the request when unset")
+		_, hasExp := sink.body["expires_at"]
+		assert.False(t, hasExp, "expires_at must be omitted from the request when unset")
+	})
 }
 
 func TestCleanup(t *testing.T) {
@@ -246,6 +314,12 @@ func TestDeployTokensURL(t *testing.T) {
 		{name: "project default url", spec: genv1alpha1.GitlabDeployTokenSpec{ProjectID: "10"}, want: "https://gitlab.com/api/v4/projects/10/deploy_tokens"},
 		{name: "group custom url", spec: genv1alpha1.GitlabDeployTokenSpec{URL: "https://gl.example.com", GroupID: "5"}, want: "https://gl.example.com/api/v4/groups/5/deploy_tokens"},
 		{name: "path project encoded", spec: genv1alpha1.GitlabDeployTokenSpec{ProjectID: "grp/proj"}, want: "https://gitlab.com/api/v4/projects/grp%2Fproj/deploy_tokens"},
+		{name: "trailing slash trimmed", spec: genv1alpha1.GitlabDeployTokenSpec{URL: "https://gl.example.com/", ProjectID: "10"}, want: "https://gl.example.com/api/v4/projects/10/deploy_tokens"},
+		{
+			name: "multiple trailing slashes trimmed",
+			spec: genv1alpha1.GitlabDeployTokenSpec{URL: "https://gl.example.com///", GroupID: "5"},
+			want: "https://gl.example.com/api/v4/groups/5/deploy_tokens",
+		},
 		{name: "both set", spec: genv1alpha1.GitlabDeployTokenSpec{ProjectID: "1", GroupID: "2"}, wantErr: true},
 		{name: "neither set", spec: genv1alpha1.GitlabDeployTokenSpec{}, wantErr: true},
 	}
