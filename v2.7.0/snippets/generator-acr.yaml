@@ -1,0 +1,40 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ACRAccessToken
+metadata:
+  name: my-azurecr
+spec:
+  tenantId: 11111111-2222-3333-4444-111111111111
+  registry: example.azurecr.io
+
+  # optional; scope token down to a single repository/action
+  # if set, it will generate an access token instead of an refresh token.
+  scope: "repository:foo:pull,push"
+
+  # Specify Azure cloud type, defaults to PublicCloud.
+  # This is used for authenticating with Microsoft Entra ID.
+  # available options: PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
+  environmentType: "PublicCloud"
+
+  # choose one authentication method
+  auth:
+
+    # option 1: point to a secret that contains a client-id and client-secret
+    servicePrincipal:
+      secretRef:
+        clientSecret:
+          name: az-secret
+          key: clientsecret
+        clientId:
+          name: az-secret
+          key: clientid
+
+    # option 2: use a managed identity Client ID
+    managedIdentity:
+      identityId: 11111111-2222-3333-4444-111111111111
+
+    # option 3:
+    workloadIdentity:
+      # note: you can reference service accounts across namespaces.
+      serviceAccountRef:
+        name: "my-service-account"
+        audiences: []
