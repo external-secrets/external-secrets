@@ -5867,7 +5867,8 @@ AzureAuthType
 <p>Auth type defines how to authenticate to the keyvault service.
 Valid values are:
 - &ldquo;ServicePrincipal&rdquo; (default): Using a service principal (tenantId, clientId, clientSecret)
-- &ldquo;ManagedIdentity&rdquo;: Using Managed Identity assigned to the pod (see aad-pod-identity)</p>
+- &ldquo;ManagedIdentity&rdquo;: Using Managed Identity assigned to the pod (see aad-pod-identity)
+- &ldquo;WorkloadIdentity&rdquo;: Using a Kubernetes ServiceAccount federated with Entra ID</p>
 </td>
 </tr>
 <tr>
