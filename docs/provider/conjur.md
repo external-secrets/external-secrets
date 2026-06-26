@@ -244,6 +244,40 @@ For **user-assigned** managed identities you must also set `clientId` to the cli
 kubectl apply -n external-secrets -f conjur-secret-store.yaml
 ```
 
+### Option 6: External secret store with GCP authentication
+
+This method uses the GCP `authn-gcp` authenticator to authenticate with Secrets Manager. The ESO pod presents a GCP identity token; Conjur verifies it against the service account mapped to the Conjur host.
+
+Two sub-modes are supported:
+
+* **Ambient GCP Metadata Service** (recommended on GKE with Workload Identity): no `secretRef` is set. `conjur-api-go` fetches the GCP identity token from the GCP Metadata Service automatically. Use this when the pod runs on GKE with Workload Identity or on a GCE instance.
+* **Kubernetes Secret** (`secretRef`): a pre-obtained GCP identity token is read from a Kubernetes Secret. Use this for local testing or when running outside GCP.
+
+The following must be specified in the `SecretStore`:
+
+* `account` — The Conjur organization account name.
+* `hostId` — The Conjur host mapped to the GCP service account (e.g. `data/myapp/myhost`).
+
+Optionally, you may set `serviceID` to the GCP Authenticator `WebService` ID configured in Conjur policy. This field is reserved for future use; Conjur's authn-gcp authenticator does not include the service ID in the authentication URL.
+
+#### Step 1: Define an external secret store (ambient GCP Metadata Service)
+
+```yaml
+{% include 'conjur-secret-store-gcp-ambient.yaml' %}
+```
+
+#### Step 1 (alternative): Define an external secret store (explicit token from Kubernetes Secret)
+
+```yaml
+{% include 'conjur-secret-store-gcp-secretref.yaml' %}
+```
+
+#### Step 2: Create the external secrets store
+
+```shell
+kubectl apply -n external-secrets -f conjur-secret-store.yaml
+```
+
 ## Define an external secret
 
 After you have configured the Secrets Manager provider secret store, you can fetch secrets from Secrets Manager.

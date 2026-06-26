@@ -180,6 +180,31 @@ func TestValidateStore(t *testing.T) {
 			store: makeAzureSecretStore("", "myorg", "prod", "data/myapp/myhost", false),
 			err:   errors.New("conjur URL cannot be empty"),
 		},
+
+		{
+			store: makeGCPSecretStore(svcURL, "myorg", "prod", "data/myapp/myhost", false),
+			err:   nil,
+		},
+		{
+			store: makeGCPSecretStore(svcURL, "myorg", "prod", "data/myapp/myhost", true),
+			err:   nil,
+		},
+		{
+			store: makeGCPSecretStore(svcURL, "", "prod", "data/myapp/myhost", false),
+			err:   errors.New("missing Auth.Gcp.Account"),
+		},
+		{
+			store: makeGCPSecretStore(svcURL, "myorg", "", "data/myapp/myhost", false),
+			err:   nil,
+		},
+		{
+			store: makeGCPSecretStore(svcURL, "myorg", "prod", "", false),
+			err:   errors.New("missing Auth.Gcp.HostID"),
+		},
+		{
+			store: makeGCPSecretStore("", "myorg", "prod", "data/myapp/myhost", false),
+			err:   errors.New("conjur URL cannot be empty"),
+		},
 	}
 	p := Provider{}
 	for _, tc := range testCases {
@@ -213,6 +238,34 @@ func makeAzureSecretStore(svcURL, account, serviceID, hostID string, withService
 					URL: svcURL,
 					Auth: esv1.ConjurAuth{
 						Azure: azure,
+					},
+				},
+			},
+		},
+	}
+}
+
+func makeGCPSecretStore(svcURL, account, serviceID, hostID string, withSecretRef bool) *esv1.SecretStore {
+	gcp := &esv1.ConjurGCP{
+		Account:   account,
+		ServiceID: serviceID,
+		HostID:    hostID,
+	}
+	if withSecretRef {
+		gcp.SecretRef = &esv1.ConjurGCPSecretRef{
+			JWT: esmeta.SecretKeySelector{
+				Name: "gcp-token-secret",
+				Key:  "token",
+			},
+		}
+	}
+	return &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Conjur: &esv1.ConjurProvider{
+					URL: svcURL,
+					Auth: esv1.ConjurAuth{
+						Gcp: gcp,
 					},
 				},
 			},
