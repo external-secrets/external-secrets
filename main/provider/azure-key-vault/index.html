@@ -5568,7 +5568,7 @@
 </code></pre></div>
 <h4 id="azure-stack-configuration">Azure Stack Configuration</h4>
 <p>For Azure Stack Hub or Azure Stack Edge environments:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azure-stack-backend</span>
@@ -5820,6 +5820,10 @@
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Omitting <code>contentType</code> (or setting it to an empty string) is interpreted as "don't change" rather than "clear": if the secret in Azure Key Vault already has a <code>ContentType</code> set, it will be preserved on update. There is currently no way to clear an existing <code>ContentType</code> via PushSecret — if you need to remove it, delete the secret from Azure Key Vault directly and let PushSecret recreate it.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>expirationDate</code> is applied only when the SecretStore uses the legacy SDK (the default). When <code>useAzureSDK: true</code> is set (required for <code>customCloudConfig</code>, including Azure Stack and Azure China Workload Identity), <code>expirationDate</code> is currently ignored: the secret is pushed without an expiry, and changing <code>expirationDate</code> alone does not trigger an update. If you need an expiry in those environments, set it directly on the secret in Azure Key Vault.</p>
 </div>
 <h4 id="pushing-to-a-key">Pushing to a Key</h4>
 <p>The first step is to generate a valid private key. Supported formats include <code>PRIVATE KEY</code>, <code>RSA PRIVATE KEY</code> AND <code>EC PRIVATE KEY</code> (EC/PKCS1/PKCS8 types). After uploading your key to a Kubernetes Secret, the next step is to create a PushSecret manifest with the following configuration:</p>
