@@ -1011,6 +1011,72 @@ func TestCacheInvalidationPushSecret(t *testing.T) {
 	})
 }
 
+func TestCacheInvalidationStaleItemAfterPush(t *testing.T) {
+	t.Run("push update invalidates the UUID-keyed item cache", func(t *testing.T) {
+		fc := &fakeClient{
+			listAllResult: []onepassword.VaultOverview{
+				{ID: "vault-id", Title: "vault"},
+			},
+		}
+
+		fl := &statefulFakeListerWithCounter{
+			statefulFakeLister: &statefulFakeLister{
+				listAllResult: []onepassword.ItemOverview{
+					{ID: "item-id", Title: "key", Category: "login", VaultID: "vault-id"},
+				},
+				items: map[string]onepassword.Item{
+					"item-id": {
+						ID:       "item-id",
+						Title:    "key",
+						Category: "login",
+						VaultID:  "vault-id",
+						Fields: []onepassword.ItemField{
+							{ID: "password", Title: "password", FieldType: onepassword.ItemFieldTypeConcealed, Value: "old-value"},
+						},
+					},
+				},
+			},
+		}
+
+		p := &SecretsClient{
+			client: &onepassword.Client{
+				SecretsAPI: fc,
+				VaultsAPI:  fc,
+				ItemsAPI:   fl,
+			},
+			vaultPrefix: "op://vault/",
+			vaultID:     "vault-id",
+			cache:       expirable.NewLRU[string, []byte](100, nil, time.Minute),
+		}
+
+		mapRef := v1.ExternalSecretDataRemoteRef{Key: "key", Property: "password"}
+
+		got, err := p.GetSecretMap(t.Context(), mapRef)
+		require.NoError(t, err)
+		assert.Equal(t, []byte("old-value"), got["password"])
+		getsAfterWarm := fl.getCallCount
+
+		pushRef := v1alpha1.PushSecretData{
+			Match: v1alpha1.PushSecretMatch{
+				SecretKey: "key",
+				RemoteRef: v1alpha1.PushSecretRemoteRef{
+					RemoteKey: "key",
+					Property:  "password",
+				},
+			},
+		}
+		secret := &corev1.Secret{
+			Data: map[string][]byte{"key": []byte("new-value")},
+		}
+		require.NoError(t, p.PushSecret(t.Context(), secret, pushRef))
+
+		got2, err := p.GetSecretMap(t.Context(), mapRef)
+		require.NoError(t, err)
+		assert.Equal(t, []byte("new-value"), got2["password"])
+		assert.Greater(t, fl.getCallCount, getsAfterWarm, "second read must hit the backend, not the stale UUID cache")
+	})
+}
+
 func TestCacheInvalidationDeleteSecret(t *testing.T) {
 	t.Run("delete secret invalidates cache", func(t *testing.T) {
 		fcWithCounter := &fakeClientWithCounter{
@@ -1973,9 +2039,6 @@ func TestCachingGetAllSecrets(t *testing.T) {
 	})
 
 	t.Run("item fetched by GetAllSecrets is reused by GetSecret", func(t *testing.T) {
-		t.Skip("TODO: GetSecret and GetSecretMap/GetAllSecrets use different caching formats. " +
-			"See https://github.com/external-secrets/external-secrets/issues/6444")
-
 		fl := createLister(item1)
 		p := newCachedClient(fl)
 		fc := p.client.SecretsAPI.(*fakeClientWithCounter)
