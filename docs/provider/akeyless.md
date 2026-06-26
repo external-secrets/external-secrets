@@ -49,6 +49,8 @@ For namespace-scoped Azure Workload Identity on AKS, set `authSecretRef.serviceA
 {% include 'akeyless-secret-store-azure-ad-wi.yaml' %}
 ```
 
+For `ClusterSecretStore`, set `serviceAccountRef.namespace` to the namespace where the ServiceAccount lives.
+
 For more information see [Akeyless Authentication Methods](https://docs.akeyless.io/docs/access-and-authentication-methods)
 
 #### Creating an Akeyless Credentials Secret
