@@ -96,6 +96,11 @@ func (c *client) setup(ctx context.Context, kube k8sClient.Client, namespace str
 	if err != nil {
 		return err
 	}
+
+	if c.store.Namespace != nil {
+		client.SetNamespace(*c.store.Namespace)
+	}
+
 	c.client = client
 
 	return c.setupAuth(ctx, kube, namespace, provider)
@@ -155,8 +160,19 @@ func (c *client) setupAuth(ctx context.Context, kube k8sClient.Client, namespace
 		return fmt.Errorf("unsupported auth method") // this should not happen, because of CRD validation (unless a case is missing above)
 	}
 
-	_, err := c.client.Auth().Login(ctx, auth)
-	return err
+	authClient := c.client
+	if c.store.Auth.Namespace != nil {
+		authClient = authClient.WithNamespace(*c.store.Auth.Namespace)
+	}
+
+	_, err := authClient.Auth().Login(ctx, auth)
+	if err != nil {
+		return err
+	}
+
+	c.client.SetToken(authClient.Token())
+
+	return nil
 }
 
 func (c *client) Close(_ context.Context) error {
