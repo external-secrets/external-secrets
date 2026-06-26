@@ -491,6 +491,53 @@ spec:
                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                           type: string
                       type: object
+                    syncWindows:
+                      description: |-
+                        SyncWindows optionally restricts when periodic refreshes may occur.
+                        Evaluated in UTC, only for Periodic refresh policy (or when refreshPolicy is unset).
+                      properties:
+                        kind:
+                          description: |-
+                            Kind applies to every window in the list.
+                            "allow" -- syncs are permitted only while at least one window is active;
+                                       all other times are blocked.
+                            "deny"  -- syncs are blocked while any window is active;
+                                       all other times are permitted.
+                          enum:
+                            - allow
+                            - deny
+                          type: string
+                        windows:
+                          description: Windows is the list of schedule+duration pairs.
+                          items:
+                            description: |-
+                              ExternalSecretSyncWindowEntry defines a single cron-schedule + duration pair
+                              within a SyncWindows block.
+                            properties:
+                              duration:
+                                description: |-
+                                  Duration specifies how long the window stays open after each Schedule
+                                  firing. Example: "8h".
+                                type: string
+                              schedule:
+                                description: |-
+                                  Schedule is a standard 5-field cron expression evaluated in UTC, or a
+                                  named shorthand such as @daily or @every 1h. It marks the start time of
+                                  each window occurrence.
+                                  Example: "0 22 * * 1-5" opens a window every weekday at 22:00 UTC.
+                                minLength: 1
+                                pattern: ^(@(annually|yearly|monthly|weekly|daily|midnight|hourly)|@every [^\s]+.*|[^\s]+( [^\s]+){4})$
+                                type: string
+                            required:
+                              - duration
+                              - schedule
+                            type: object
+                          minItems: 1
+                          type: array
+                      required:
+                        - kind
+                        - windows
+                      type: object
                     target:
                       default:
                         creationPolicy: Owner
@@ -2970,6 +3017,7 @@ spec:
                             Valid values are:
                             - "ServicePrincipal" (default): Using a service principal (tenantId, clientId, clientSecret)
                             - "ManagedIdentity": Using Managed Identity assigned to the pod (see aad-pod-identity)
+                            - "WorkloadIdentity": Using a Kubernetes ServiceAccount federated with Entra ID
                           enum:
                             - ServicePrincipal
                             - ManagedIdentity
@@ -6163,7 +6211,6 @@ spec:
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the OpenBao server.
-                          maxProperties: 1
                           properties:
                             appRole:
                               description: |-
@@ -6251,6 +6298,16 @@ spec:
                               x-kubernetes-validations:
                                 - message: exactly one of the fields in [roleId roleRef] must be set
                                   rule: '[has(self.roleId),has(self.roleRef)].filter(x,x==true).size() == 1'
+                            namespace:
+                              description: |-
+                                Name of the [OpenBao Namespace] to authenticate to. This can be different
+                                than the namespace your secret is in. Namespaces is a set of features
+                                within OpenBao that allows OpenBao environments to support secure
+                                multi-tenancy. e.g: "ns1". This will default to OpenBao.Namespace field
+                                if set, or empty otherwise
+
+                                [OpenBao Namespace]: https://openbao.org/docs/concepts/namespaces/
+                              type: string
                             tokenSecretRef:
                               description: TokenSecretRef authenticates with OpenBao by presenting a token.
                               properties:
@@ -6329,6 +6386,9 @@ spec:
                                 - username
                               type: object
                           type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of the fields in [appRole tokenSecretRef userPass] must be set
+                              rule: '[has(self.appRole),has(self.tokenSecretRef),has(self.userPass)].filter(x,x==true).size() == 1'
                         caBundle:
                           description: |-
                             PEM encoded CA bundle used to validate the OpenBao server certificate. If
@@ -6372,6 +6432,14 @@ spec:
                             - name
                             - type
                           type: object
+                        namespace:
+                          description: |-
+                            Name of the [OpenBao Namespace]. Namespaces is a set of features within
+                            OpenBao that allows OpenBao environments to support secure multi-tenancy.
+                            e.g: "ns1".
+
+                            [OpenBao Namespace]: https://openbao.org/docs/concepts/namespaces/
+                          type: string
                         path:
                           description: |-
                             Path is the mount path of the OpenBao KV backend endpoint, e.g:
@@ -13418,6 +13486,53 @@ spec:
                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                       type: string
                   type: object
+                syncWindows:
+                  description: |-
+                    SyncWindows optionally restricts when periodic refreshes may occur.
+                    Evaluated in UTC, only for Periodic refresh policy (or when refreshPolicy is unset).
+                  properties:
+                    kind:
+                      description: |-
+                        Kind applies to every window in the list.
+                        "allow" -- syncs are permitted only while at least one window is active;
+                                   all other times are blocked.
+                        "deny"  -- syncs are blocked while any window is active;
+                                   all other times are permitted.
+                      enum:
+                        - allow
+                        - deny
+                      type: string
+                    windows:
+                      description: Windows is the list of schedule+duration pairs.
+                      items:
+                        description: |-
+                          ExternalSecretSyncWindowEntry defines a single cron-schedule + duration pair
+                          within a SyncWindows block.
+                        properties:
+                          duration:
+                            description: |-
+                              Duration specifies how long the window stays open after each Schedule
+                              firing. Example: "8h".
+                            type: string
+                          schedule:
+                            description: |-
+                              Schedule is a standard 5-field cron expression evaluated in UTC, or a
+                              named shorthand such as @daily or @every 1h. It marks the start time of
+                              each window occurrence.
+                              Example: "0 22 * * 1-5" opens a window every weekday at 22:00 UTC.
+                            minLength: 1
+                            pattern: ^(@(annually|yearly|monthly|weekly|daily|midnight|hourly)|@every [^\s]+.*|[^\s]+( [^\s]+){4})$
+                            type: string
+                        required:
+                          - duration
+                          - schedule
+                        type: object
+                      minItems: 1
+                      type: array
+                  required:
+                    - kind
+                    - windows
+                  type: object
                 target:
                   default:
                     creationPolicy: Owner
@@ -15638,6 +15753,7 @@ spec:
                             Valid values are:
                             - "ServicePrincipal" (default): Using a service principal (tenantId, clientId, clientSecret)
                             - "ManagedIdentity": Using Managed Identity assigned to the pod (see aad-pod-identity)
+                            - "WorkloadIdentity": Using a Kubernetes ServiceAccount federated with Entra ID
                           enum:
                             - ServicePrincipal
                             - ManagedIdentity
@@ -18831,7 +18947,6 @@ spec:
                       properties:
                         auth:
                           description: Auth configures how secret-manager authenticates with the OpenBao server.
-                          maxProperties: 1
                           properties:
                             appRole:
                               description: |-
@@ -18919,6 +19034,16 @@ spec:
                               x-kubernetes-validations:
                                 - message: exactly one of the fields in [roleId roleRef] must be set
                                   rule: '[has(self.roleId),has(self.roleRef)].filter(x,x==true).size() == 1'
+                            namespace:
+                              description: |-
+                                Name of the [OpenBao Namespace] to authenticate to. This can be different
+                                than the namespace your secret is in. Namespaces is a set of features
+                                within OpenBao that allows OpenBao environments to support secure
+                                multi-tenancy. e.g: "ns1". This will default to OpenBao.Namespace field
+                                if set, or empty otherwise
+
+                                [OpenBao Namespace]: https://openbao.org/docs/concepts/namespaces/
+                              type: string
                             tokenSecretRef:
                               description: TokenSecretRef authenticates with OpenBao by presenting a token.
                               properties:
@@ -18997,6 +19122,9 @@ spec:
                                 - username
                               type: object
                           type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of the fields in [appRole tokenSecretRef userPass] must be set
+                              rule: '[has(self.appRole),has(self.tokenSecretRef),has(self.userPass)].filter(x,x==true).size() == 1'
                         caBundle:
                           description: |-
                             PEM encoded CA bundle used to validate the OpenBao server certificate. If
@@ -19040,6 +19168,14 @@ spec:
                             - name
                             - type
                           type: object
+                        namespace:
+                          description: |-
+                            Name of the [OpenBao Namespace]. Namespaces is a set of features within
+                            OpenBao that allows OpenBao environments to support secure multi-tenancy.
+                            e.g: "ns1".
+
+                            [OpenBao Namespace]: https://openbao.org/docs/concepts/namespaces/
+                          type: string
                         path:
                           description: |-
                             Path is the mount path of the OpenBao KV backend endpoint, e.g:
