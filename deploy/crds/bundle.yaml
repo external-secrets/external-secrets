@@ -4004,6 +4004,62 @@ spec:
                                 - hostId
                                 - serviceID
                               type: object
+                            gcp:
+                              description: Gcp enables authentication to Conjur via the authn-gcp authenticator.
+                              properties:
+                                account:
+                                  description: Account is the Conjur organization account name.
+                                  type: string
+                                hostId:
+                                  description: |-
+                                    HostID is the Conjur host mapped to the GCP service account
+                                    (e.g. "data/myapp/myhost").
+                                  type: string
+                                secretRef:
+                                  description: |-
+                                    SecretRef holds a reference to a Kubernetes Secret containing a pre-obtained
+                                    GCP identity token. If omitted, the token is fetched from the GCP Metadata
+                                    Service automatically (requires GKE Workload Identity or a GCE/GKE node).
+                                  properties:
+                                    jwt:
+                                      description: JWT is a reference to the Kubernetes Secret key holding the GCP identity token.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                  required:
+                                    - jwt
+                                  type: object
+                                serviceID:
+                                  description: |-
+                                    ServiceID is the Conjur authn-gcp webservice identifier (e.g. "prod").
+                                    Note: Conjur's authn-gcp authenticator does not include the service ID in the
+                                    authentication URL; this field is reserved for future use.
+                                  type: string
+                              required:
+                                - account
+                                - hostId
+                              type: object
                             iam:
                               description: Iam enables authentication to Conjur via the authn-iam authenticator.
                               properties:
@@ -17476,6 +17532,62 @@ spec:
                                 - account
                                 - hostId
                                 - serviceID
+                              type: object
+                            gcp:
+                              description: Gcp enables authentication to Conjur via the authn-gcp authenticator.
+                              properties:
+                                account:
+                                  description: Account is the Conjur organization account name.
+                                  type: string
+                                hostId:
+                                  description: |-
+                                    HostID is the Conjur host mapped to the GCP service account
+                                    (e.g. "data/myapp/myhost").
+                                  type: string
+                                secretRef:
+                                  description: |-
+                                    SecretRef holds a reference to a Kubernetes Secret containing a pre-obtained
+                                    GCP identity token. If omitted, the token is fetched from the GCP Metadata
+                                    Service automatically (requires GKE Workload Identity or a GCE/GKE node).
+                                  properties:
+                                    jwt:
+                                      description: JWT is a reference to the Kubernetes Secret key holding the GCP identity token.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                  required:
+                                    - jwt
+                                  type: object
+                                serviceID:
+                                  description: |-
+                                    ServiceID is the Conjur authn-gcp webservice identifier (e.g. "prod").
+                                    Note: Conjur's authn-gcp authenticator does not include the service ID in the
+                                    authentication URL; this field is reserved for future use.
+                                  type: string
+                              required:
+                                - account
+                                - hostId
                               type: object
                             iam:
                               description: Iam enables authentication to Conjur via the authn-iam authenticator.

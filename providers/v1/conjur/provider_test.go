@@ -338,6 +338,41 @@ func TestGetSecret(t *testing.T) {
 				value: "secret",
 			},
 		},
+		"GCPAmbientTokenSuccess": {
+			reason: "Should read a secret using GCP auth with ambient GCP Metadata Service token.",
+			args: args{
+				store:      makeGCPSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/myhost", false),
+				kube:       clientfake.NewClientBuilder().Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"GCPSecretRefTokenSuccess": {
+			reason: "Should read a secret using GCP auth with an explicit token from a Kubernetes Secret.",
+			args: args{
+				store: makeGCPSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/myhost", true),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "gcp-token-secret",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"token": []byte(createFakeJwtToken(true)),
+						},
+					}).Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
 	}
 
 	runTest := func(t *testing.T, _ string, tc testCase) {
@@ -1008,6 +1043,10 @@ func (c *ConjurMockAPIClient) NewClientFromIAM(_ conjurapi.Config, _ *authn.IAMC
 }
 
 func (c *ConjurMockAPIClient) NewClientFromAzure(_ conjurapi.Config) (SecretsClient, error) {
+	return &fake.ConjurMockClient{}, nil
+}
+
+func (c *ConjurMockAPIClient) NewClientFromGCP(_ conjurapi.Config) (SecretsClient, error) {
 	return &fake.ConjurMockClient{}, nil
 }
 

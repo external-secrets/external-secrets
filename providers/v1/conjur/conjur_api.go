@@ -35,6 +35,7 @@ type SecretsClientFactory interface {
 	NewClientFromCert(config conjurapi.Config) (SecretsClient, error)
 	NewClientFromIAM(config conjurapi.Config, creds *authn.IAMCredentials) (SecretsClient, error)
 	NewClientFromAzure(config conjurapi.Config) (SecretsClient, error)
+	NewClientFromGCP(config conjurapi.Config) (SecretsClient, error)
 }
 
 // ClientAPIImpl is an implementation of the ClientAPI interface.
@@ -67,4 +68,11 @@ func (c *ClientAPIImpl) NewClientFromCert(config conjurapi.Config) (SecretsClien
 // to fetch a token from the Azure IMDS endpoint automatically.
 func (c *ClientAPIImpl) NewClientFromAzure(config conjurapi.Config) (SecretsClient, error) {
 	return conjurapi.NewClientFromAzureCredentials(config)
+}
+
+// NewClientFromGCP creates a new Conjur client using GCP authn-gcp authentication.
+// The JWT token is set on config.JWTContent before calling; empty string causes conjur-api-go
+// to fetch a token from the GCP Metadata Service automatically.
+func (c *ClientAPIImpl) NewClientFromGCP(config conjurapi.Config) (SecretsClient, error) {
+	return conjurapi.NewClientFromGCPCredentials(config, "")
 }
