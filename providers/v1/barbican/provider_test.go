@@ -69,6 +69,35 @@ func TestValidateStore(t *testing.T) {
 			store:       makeValidSecretStore(),
 			expectError: false,
 		},
+		{
+			name:        "username as value should pass validation",
+			store:       makeSecretStoreWithValueUsername(),
+			expectError: false,
+		},
+		{
+			name:        "nil barbican provider should return error",
+			store:       makeSecretStoreWithNilBarbican(),
+			expectError: true,
+			errorMsg:    "provider barbican is nil",
+		},
+		{
+			name:        "missing authURL should return error",
+			store:       makeSecretStoreWithMissingAuthURL(),
+			expectError: true,
+			errorMsg:    "authURL is required",
+		},
+		{
+			name:        "username without value or secretRef should return error",
+			store:       makeSecretStoreWithEmptyUsername(),
+			expectError: true,
+			errorMsg:    "auth.username",
+		},
+		{
+			name:        "missing password secretRef should return error",
+			store:       makeSecretStoreWithNoPasswordRef(),
+			expectError: true,
+			errorMsg:    "auth.password",
+		},
 	}
 
 	for _, tc := range testCases {
@@ -261,6 +290,18 @@ func makeSecretStoreWithNilBarbican() *esv1.SecretStore {
 func makeSecretStoreWithMissingAuthURL() *esv1.SecretStore {
 	store := makeValidSecretStore()
 	store.Spec.Provider.Barbican.AuthURL = ""
+	return store
+}
+
+func makeSecretStoreWithEmptyUsername() *esv1.SecretStore {
+	store := makeValidSecretStore()
+	store.Spec.Provider.Barbican.Auth.Username = esv1.BarbicanProviderUsernameRef{}
+	return store
+}
+
+func makeSecretStoreWithNoPasswordRef() *esv1.SecretStore {
+	store := makeValidSecretStore()
+	store.Spec.Provider.Barbican.Auth.Password = esv1.BarbicanProviderPasswordRef{}
 	return store
 }
 

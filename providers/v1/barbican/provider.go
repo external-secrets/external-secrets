@@ -52,6 +52,19 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if store == nil {
 		return nil, fmt.Errorf(errGeneric, errors.New("store is nil"))
 	}
+	provider, err := getProvider(store)
+	if err != nil {
+		return nil, err
+	}
+	if provider.AuthURL == "" {
+		return nil, fmt.Errorf(errMissingField, errors.New("authURL is required"))
+	}
+	if provider.Auth.Username.Value == "" && provider.Auth.Username.SecretRef == nil {
+		return nil, fmt.Errorf(errMissingField, errors.New("auth.username requires either value or secretRef"))
+	}
+	if provider.Auth.Password.SecretRef == nil {
+		return nil, fmt.Errorf(errMissingField, errors.New("auth.password.secretRef is required"))
+	}
 	return nil, nil
 }
 
