@@ -78,6 +78,13 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		}
 	}
 
+	if prov.Auth.Gcp != nil {
+		err := validateGCPStore(store, *prov.Auth.Gcp)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return nil, nil
 }
 
@@ -96,6 +103,9 @@ func validateAuthCount(auth esv1.ConjurAuth) error {
 		count++
 	}
 	if auth.Azure != nil {
+		count++
+	}
+	if auth.Gcp != nil {
 		count++
 	}
 	if count != 1 {
@@ -162,6 +172,21 @@ func validateAzureStore(store esv1.GenericStore, auth esv1.ConjurAzure) error {
 	if auth.ServiceAccountRef != nil {
 		if err := esutils.ValidateReferentServiceAccountSelector(store, *auth.ServiceAccountRef); err != nil {
 			return fmt.Errorf("invalid Auth.Azure.ServiceAccountRef: %w", err)
+		}
+	}
+	return nil
+}
+
+func validateGCPStore(store esv1.GenericStore, auth esv1.ConjurGCP) error {
+	if auth.Account == "" {
+		return errors.New("missing Auth.Gcp.Account")
+	}
+	if auth.HostID == "" {
+		return errors.New("missing Auth.Gcp.HostID")
+	}
+	if auth.SecretRef != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, auth.SecretRef.JWT); err != nil {
+			return fmt.Errorf("invalid Auth.Gcp.SecretRef.JWT: %w", err)
 		}
 	}
 	return nil
