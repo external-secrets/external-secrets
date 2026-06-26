@@ -53,10 +53,10 @@ type AkeylessAuth struct {
 	// +optional
 	KubernetesAuth *AkeylessKubernetesAuth `json:"kubernetesAuth,omitempty"`
 
-	// ServiceAccountRef specifies a Kubernetes ServiceAccount for cloud provider
-	// authentication (e.g. azure_ad on AKS Workload Identity). The operator
-	// obtains a federated identity token from this ServiceAccount via the
-	// TokenRequest API instead of using the ESO controller pod identity.
+	// ServiceAccountRef specifies a Kubernetes ServiceAccount used for azure_ad
+	// authentication on AKS Workload Identity. The operator obtains a federated
+	// identity token from this ServiceAccount via the TokenRequest API instead
+	// of using the ESO controller pod identity. Ignored for other access types.
 	// +optional
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }

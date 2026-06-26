@@ -30,6 +30,7 @@ const (
 	errFetchAccessTypeParamSecret = "could not fetch AccessTypeParam secret: %w"
 	errMissingSAK                 = "missing SecretAccessKey"
 	errMissingAKID                = "missing AccessKeyID"
+	errMissingAccessTypeParam     = "missing AccessTypeParam for Akeyless access key auth"
 )
 
 func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
@@ -83,6 +84,9 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 	}
 	if accessType == "" {
 		return "", errors.New(errMissingAKID)
+	}
+	if (accessType == "api_key" || accessType == "access_key") && accessTypeParam == "" {
+		return "", errors.New(errMissingAccessTypeParam)
 	}
 
 	return a.GetToken(ctx, accessID, accessType, accessTypeParam, prov.Auth)

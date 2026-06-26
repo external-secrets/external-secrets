@@ -43,13 +43,13 @@ The supported auth-methods and their parameters are:
 | `access_key`   | The access key (alias for api_key) |
 | `k8s`          | The k8s configuration name         |
 
-For namespace-scoped Azure Workload Identity on AKS, set `authSecretRef.serviceAccountRef` to a ServiceAccount in the target namespace annotated with `azure.workload.identity/client-id` and `azure.workload.identity/tenant-id`:
+For `azure_ad` on AKS Workload Identity, set `authSecretRef.serviceAccountRef` to a ServiceAccount annotated with `azure.workload.identity/client-id` and `azure.workload.identity/tenant-id`. This field is only used when `accessType` is `azure_ad`; other access types ignore it.
 
 ```yaml
 {% include 'akeyless-secret-store-azure-ad-wi.yaml' %}
 ```
 
-For `ClusterSecretStore`, set `serviceAccountRef.namespace` to the namespace where the ServiceAccount lives.
+For `ClusterSecretStore`, set `serviceAccountRef.namespace` when the ServiceAccount is not in the same namespace as the consuming `ExternalSecret`; otherwise the ServiceAccount is resolved from that namespace. Sovereign Azure clouds (US Government, China) are supported when `AZURE_ENVIRONMENT` or `AZURE_CLOUD` is set accordingly, matching the non-WI `GetCloudId` path.
 
 For more information see [Akeyless Authentication Methods](https://docs.akeyless.io/docs/access-and-authentication-methods)
 

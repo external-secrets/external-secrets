@@ -47,6 +47,57 @@ func TestAzureClientID(t *testing.T) {
 	require.Error(t, err)
 }
 
+func TestAzureCloudSettingsFromName(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		env      string
+		expected azureCloudSettings
+		ok       bool
+	}{
+		{
+			name:     "public cloud",
+			env:      "AzurePublicCloud",
+			expected: publicAzureCloudSettings,
+			ok:       true,
+		},
+		{
+			name:     "us gov",
+			env:      "AzureUSGovernment",
+			expected: usGovAzureCloudSettings,
+			ok:       true,
+		},
+		{
+			name:     "china",
+			env:      "AzureChinaCloud",
+			expected: chinaAzureCloudSettings,
+			ok:       true,
+		},
+		{
+			name: "unknown",
+			env:  "UnknownCloud",
+			ok:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, ok := azureCloudSettingsFromName(tt.env)
+			require.Equal(t, tt.ok, ok)
+			if ok {
+				require.Equal(t, tt.expected, got)
+			}
+		})
+	}
+}
+
+func TestAzureCloudSettingsFromEnv(t *testing.T) {
+	t.Setenv("AZURE_ENVIRONMENT", "AzureUSGovernment")
+	require.Equal(t, usGovAzureCloudSettings, azureCloudSettingsFromEnv())
+}
+
 func TestAzureTenantID(t *testing.T) {
 	t.Setenv("AZURE_TENANT_ID", "from-env")
 
