@@ -40,10 +40,6 @@ plugins:
       lang: en
   - macros:
       include_dir: docs/snippets
-# Markdown partials under docs/snippets are include sources, not standalone
-# pages. Keep them out of the rendered site (macros still reads them from disk).
-exclude_docs: |
-  snippets/*.md
 copyright: |
   &copy; 2025 The external-secrets Authors.<br/>
   &copy; 2025 The Linux Foundation. All rights reserved.<br/><br/>
