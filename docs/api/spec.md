@@ -8556,8 +8556,9 @@ resource is used as the app role secret.</p>
 </p>
 <p>
 <p>OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
-Currently only token-based authentication is supported via <code>tokenSecretRef</code>.
-Additional authentication methods are planned for future releases.</p>
+Currently the following authentication methods are supported: <a href="https://openbao.org/docs/auth/approle/">AppRole</a>,
+<a href="https://openbao.org/docs/auth/token/">Token</a> and <a href="https://openbao.org/docs/auth/userpass/">UserPass</a></p>
+<p>Additional authentication methods are planned for future releases.</p>
 </p>
 <table>
 <thead>
@@ -8580,6 +8581,22 @@ OpenBaoAppRole
 <em>(Optional)</em>
 <p>AppRole authenticates with OpenBao using the <a href="https://openbao.org/docs/auth/approle/">App Role auth mechanism</a>,
 with the role and secret stored in a Kubernetes Secret resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name of the <a href="https://openbao.org/docs/concepts/namespaces/">OpenBao Namespace</a> to authenticate to. This can be different
+than the namespace your secret is in. Namespaces is a set of features
+within OpenBao that allows OpenBao environments to support secure
+multi-tenancy. e.g: &ldquo;ns1&rdquo;. This will default to OpenBao.Namespace field
+if set, or empty otherwise</p>
 </td>
 </tr>
 <tr>
@@ -8661,6 +8678,7 @@ OpenBaoAuth
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Auth configures how secret-manager authenticates with the OpenBao server.</p>
 </td>
 </tr>
@@ -8692,6 +8710,20 @@ CAProvider
 <p>The provider for the CA bundle to use to validate OpenBao server
 certificate. If this and <code>caBundle</code> are not set the system root
 certificates are used to validate the TLS connection.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name of the <a href="https://openbao.org/docs/concepts/namespaces/">OpenBao Namespace</a>. Namespaces is a set of features within
+OpenBao that allows OpenBao environments to support secure multi-tenancy.
+e.g: &ldquo;ns1&rdquo;.</p>
 </td>
 </tr>
 <tr>
