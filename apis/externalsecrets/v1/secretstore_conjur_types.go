@@ -62,6 +62,10 @@ type ConjurAuth struct {
 	// Azure enables authentication to Conjur via the authn-azure authenticator.
 	// +optional
 	Azure *ConjurAzure `json:"azure,omitempty"`
+
+	// Gcp enables authentication to Conjur via the authn-gcp authenticator.
+	// +optional
+	Gcp *ConjurGCP `json:"gcp,omitempty"`
 }
 
 // ConjurAPIKey contains references to a Secret resource that holds
@@ -191,4 +195,35 @@ type ConjurAzure struct {
 	// authn-azure. If omitted, the token is fetched from the Azure IMDS endpoint instead.
 	// +optional
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+}
+
+// ConjurGCP configures authentication to Conjur via the authn-gcp authenticator.
+// It uses a GCP identity token to authenticate — either fetched from the GCP Metadata
+// Service automatically (GKE Workload Identity or GCE instance), or sourced from a
+// Kubernetes Secret.
+type ConjurGCP struct {
+	// Account is the Conjur organization account name.
+	Account string `json:"account"`
+
+	// ServiceID is the Conjur authn-gcp webservice identifier (e.g. "prod").
+	// Note: Conjur's authn-gcp authenticator does not include the service ID in the
+	// authentication URL; this field is reserved for future use.
+	// +optional
+	ServiceID string `json:"serviceID,omitempty"`
+
+	// HostID is the Conjur host mapped to the GCP service account
+	// (e.g. "data/myapp/myhost").
+	HostID string `json:"hostId"`
+
+	// SecretRef holds a reference to a Kubernetes Secret containing a pre-obtained
+	// GCP identity token. If omitted, the token is fetched from the GCP Metadata
+	// Service automatically (requires GKE Workload Identity or a GCE/GKE node).
+	// +optional
+	SecretRef *ConjurGCPSecretRef `json:"secretRef,omitempty"`
+}
+
+// ConjurGCPSecretRef holds a reference to a Kubernetes Secret containing a GCP identity token.
+type ConjurGCPSecretRef struct {
+	// JWT is a reference to the Kubernetes Secret key holding the GCP identity token.
+	JWT esmeta.SecretKeySelector `json:"jwt"`
 }
