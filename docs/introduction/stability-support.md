@@ -136,7 +136,7 @@ The following table show the support for features across different providers.
 | Volcengine                |              |              |                      |                         |        x         |             |                             |
 | ngrok                     |              |              |                      |                         |        x         |      x      |                             |
 | Barbican                  |      x       |              |                      |                         |        x         |             |                             |
-| Devolutions Server        |              |              |                      |                         |        x         |      x      |                             |
+| Devolutions Server        |              |              |                      |                         |        x         |      x      |              x              |
 | Nebius Mysterybox         |              |              |                      |                         |        x         |             |                             |
 
 ## Support Policy
