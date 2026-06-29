@@ -5,6 +5,7 @@ go 1.26.4
 replace (
 	github.com/external-secrets/external-secrets/apis => ./apis
 	github.com/external-secrets/external-secrets/generators/v1/acr => ./generators/v1/acr
+	github.com/external-secrets/external-secrets/generators/v1/azure => ./generators/v1/azure
 	github.com/external-secrets/external-secrets/generators/v1/beyondtrustworkloadcredentials => ./generators/v1/beyondtrustworkloadcredentials
 	github.com/external-secrets/external-secrets/generators/v1/cloudsmith => ./generators/v1/cloudsmith
 	github.com/external-secrets/external-secrets/generators/v1/ecr => ./generators/v1/ecr
@@ -121,6 +122,7 @@ require github.com/1Password/connect-sdk-go v1.5.3 // indirect
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/generators/v1/acr v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/azure v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/beyondtrustworkloadcredentials v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/cloudsmith v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/ecr v0.0.0-00010101000000-000000000000
