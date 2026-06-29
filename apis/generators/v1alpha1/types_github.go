@@ -23,11 +23,23 @@ import (
 )
 
 // GithubAccessTokenSpec defines the desired state to generate a GitHub access token.
+// +kubebuilder:validation:XValidation:rule="has(self.appID) != has(self.appIDRef)",message="exactly one of appID or appIDRef must be set"
+// +kubebuilder:validation:XValidation:rule="has(self.installID) != has(self.installIDRef)",message="exactly one of installID or installIDRef must be set"
 type GithubAccessTokenSpec struct {
 	// URL configures the GitHub instance URL. Defaults to https://github.com/.
-	URL       string `json:"url,omitempty"`
-	AppID     string `json:"appID"`
-	InstallID string `json:"installID"`
+	URL string `json:"url,omitempty"`
+	// AppID is the GitHub App ID. Mutually exclusive with AppIDRef.
+	// +optional
+	AppID string `json:"appID,omitempty"`
+	// AppIDRef references a secret key containing the GitHub App ID. Mutually exclusive with AppID.
+	// +optional
+	AppIDRef *esmeta.SecretKeySelector `json:"appIDRef,omitempty"`
+	// InstallID is the GitHub App installation ID. Mutually exclusive with InstallIDRef.
+	// +optional
+	InstallID string `json:"installID,omitempty"`
+	// InstallIDRef references a secret key containing the GitHub App installation ID. Mutually exclusive with InstallID.
+	// +optional
+	InstallIDRef *esmeta.SecretKeySelector `json:"installIDRef,omitempty"`
 	// List of repositories the token will have access to. If omitted, defaults to all repositories the GitHub App
 	// is installed to.
 	Repositories []string `json:"repositories,omitempty"`

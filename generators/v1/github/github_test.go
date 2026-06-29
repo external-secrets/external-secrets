@@ -143,6 +143,115 @@ spec:
 			server: server,
 		},
 		{
+			name: "appIDRef and installIDRef resolved from secret",
+			args: args{
+				ctx:       context.TODO(),
+				namespace: "foo",
+				kube: clientfake.NewClientBuilder().WithObjects(
+					&v1.Secret{
+						ObjectMeta: metav1.ObjectMeta{Name: "testName", Namespace: "foo"},
+						Data:       map[string][]byte{"privateKey": pem},
+					},
+					&v1.Secret{
+						ObjectMeta: metav1.ObjectMeta{Name: "configSecret", Namespace: "foo"},
+						Data: map[string][]byte{
+							"appID":     []byte("0000000"),
+							"installID": []byte("00000000"),
+						},
+					},
+				).Build(),
+				jsonSpec: &apiextensions.JSON{
+					Raw: fmt.Appendf(nil, `apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubAccessToken
+spec:
+  appIDRef:
+    name: "configSecret"
+    key: "appID"
+  installIDRef:
+    name: "configSecret"
+    key: "installID"
+  URL: %q
+  repositories:
+  - "Hello-World"
+  auth:
+    privateKey:
+      secretRef:
+        name: "testName"
+        namespace: "foo"
+        key: "privateKey"`, server.URL),
+				},
+			},
+			want: map[string][]byte{
+				"token": []byte("ghs_16C7e42F292c6912E7710c838347Ae178B4a"),
+			},
+			assertErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+			server: server,
+		},
+		{
+			name: "appIDRef secret not found",
+			args: args{
+				ctx:       context.TODO(),
+				namespace: "foo",
+				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{Name: "testName", Namespace: "foo"},
+					Data:       map[string][]byte{"privateKey": pem},
+				}).Build(),
+				jsonSpec: &apiextensions.JSON{
+					Raw: fmt.Appendf(nil, `apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubAccessToken
+spec:
+  appIDRef:
+    name: "missingSecret"
+    key: "appID"
+  installID: "00000000"
+  URL: %q
+  auth:
+    privateKey:
+      secretRef:
+        name: "testName"
+        namespace: "foo"
+        key: "privateKey"`, server.URL),
+				},
+			},
+			assertErr: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "error getting appID from secret")
+			},
+			server: server,
+		},
+		{
+			name: "installIDRef secret not found",
+			args: args{
+				ctx:       context.TODO(),
+				namespace: "foo",
+				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{Name: "testName", Namespace: "foo"},
+					Data:       map[string][]byte{"privateKey": pem},
+				}).Build(),
+				jsonSpec: &apiextensions.JSON{
+					Raw: fmt.Appendf(nil, `apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubAccessToken
+spec:
+  appID: "0000000"
+  installIDRef:
+    name: "missingSecret"
+    key: "installID"
+  URL: %q
+  auth:
+    privateKey:
+      secretRef:
+        name: "testName"
+        namespace: "foo"
+        key: "privateKey"`, server.URL),
+				},
+			},
+			assertErr: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "error getting installID from secret")
+			},
+			server: server,
+		},
+		{
 			name: "fail on bad request",
 			args: args{
 				ctx:       context.TODO(),

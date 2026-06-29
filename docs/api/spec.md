@@ -28014,6 +28014,22 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>AppID is the GitHub App ID. Mutually exclusive with AppIDRef.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>appIDRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AppIDRef references a secret key containing the GitHub App ID. Mutually exclusive with AppID.</p>
 </td>
 </tr>
 <tr>
@@ -28024,6 +28040,22 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>InstallID is the GitHub App installation ID. Mutually exclusive with InstallIDRef.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>installIDRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>InstallIDRef references a secret key containing the GitHub App installation ID. Mutually exclusive with InstallID.</p>
 </td>
 </tr>
 <tr>
@@ -28104,6 +28136,22 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>AppID is the GitHub App ID. Mutually exclusive with AppIDRef.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>appIDRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AppIDRef references a secret key containing the GitHub App ID. Mutually exclusive with AppID.</p>
 </td>
 </tr>
 <tr>
@@ -28114,6 +28162,22 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>InstallID is the GitHub App installation ID. Mutually exclusive with InstallIDRef.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>installIDRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>InstallIDRef references a secret key containing the GitHub App installation ID. Mutually exclusive with InstallID.</p>
 </td>
 </tr>
 <tr>
