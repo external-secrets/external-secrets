@@ -16,6 +16,7 @@ limitations under the License.
 
 // Package v1 contains resources for external-secrets
 // +kubebuilder:object:generate=true
+// +kubebuilder:ac:generate=true
 // +groupName=external-secrets.io
 // +versionName=v1
 package v1

@@ -11,6 +11,9 @@ cd "${SCRIPT_DIR}"/../
 go run sigs.k8s.io/controller-tools/cmd/controller-gen \
   object:headerFile="hack/boilerplate.go.txt" \
   paths="./apis/..."
+go run sigs.k8s.io/controller-tools/cmd/controller-gen \
+  applyconfiguration:headerFile="hack/boilerplate.go.txt" \
+  paths="./apis/..."
 go run sigs.k8s.io/controller-tools/cmd/controller-gen crd \
   paths="./apis/..." \
   output:crd:artifacts:config="${CRD_DIR}/bases"

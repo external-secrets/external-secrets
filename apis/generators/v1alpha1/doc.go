@@ -16,6 +16,7 @@ limitations under the License.
 
 // Package v1alpha1 contains resources for generators
 // +kubebuilder:object:generate=true
+// +kubebuilder:ac:generate=true
 // +groupName=generators.external-secrets.io
 // +versionName=v1alpha1
 package v1alpha1
