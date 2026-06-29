@@ -60,6 +60,9 @@ type AzureAccessTokenSpec struct {
 }
 
 // AzureAuth defines the authentication methods for minting an Entra access token.
+// Exactly one of the authentication methods must be configured.
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type AzureAuth struct {
 	// ServicePrincipal uses Azure Service Principal credentials (client secret or
 	// client certificate) to authenticate with Microsoft Entra ID.

@@ -26019,6 +26019,8 @@ spec:
               properties:
                 auth:
                   description: Auth configures how ESO authenticates with Microsoft Entra ID.
+                  maxProperties: 1
+                  minProperties: 1
                   properties:
                     managedIdentity:
                       description: ManagedIdentity uses Azure Managed Identity to authenticate with Microsoft Entra ID.
@@ -26722,6 +26724,8 @@ spec:
                       properties:
                         auth:
                           description: Auth configures how ESO authenticates with Microsoft Entra ID.
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             managedIdentity:
                               description: ManagedIdentity uses Azure Managed Identity to authenticate with Microsoft Entra ID.
