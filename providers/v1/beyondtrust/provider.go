@@ -401,21 +401,32 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, fmt.Errorf(errInvalidProvider, store.GetObjectMeta().String())
 	}
 
+	if provider.Server == nil {
+		return nil, errors.New(errInvalidHostURL)
+	}
+
 	apiURL, err := url.Parse(provider.Server.APIURL)
-	if err != nil {
+	if err != nil || apiURL.Host == "" {
 		return nil, errors.New(errInvalidHostURL)
 	}
 
-	if provider.Auth.ClientID.SecretRef != nil {
-		return nil, err
+	if provider.Auth == nil {
+		return nil, fmt.Errorf(errInvalidProvider, store.GetObjectMeta().String())
 	}
 
-	if provider.Auth.ClientSecret.SecretRef != nil {
-		return nil, err
-	}
-
-	if apiURL.Host == "" {
-		return nil, errors.New(errInvalidHostURL)
+	for _, ref := range []*esv1.BeyondTrustProviderSecretRef{
+		provider.Auth.APIKey,
+		provider.Auth.ClientID,
+		provider.Auth.ClientSecret,
+		provider.Auth.Certificate,
+		provider.Auth.CertificateKey,
+	} {
+		if ref == nil {
+			continue
+		}
+		if err := validateSecretRef(ref); err != nil {
+			return nil, err
+		}
 	}
 
 	return nil, nil
