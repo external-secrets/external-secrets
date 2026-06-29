@@ -3060,6 +3060,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#referencing-a-property-within-a-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Referencing a property within a secret
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#finding-secrets-by-name" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5090,6 +5101,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#referencing-a-property-within-a-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Referencing a property within a secret
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#finding-secrets-by-name" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5294,7 +5316,7 @@
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-secret</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-example</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-backend</span>
@@ -5310,9 +5332,45 @@
 <p>The <code>remoteRef.key</code> should be the UUID of the secret in Barbican. You can find this by listing secrets in Barbican:</p>
 <div class="highlight"><pre><span></span><code>openstack<span class="w"> </span>secret<span class="w"> </span>list
 </code></pre></div>
+<h2 id="referencing-a-property-within-a-secret">Referencing a property within a secret</h2>
+<p>If a Barbican secret stores a JSON object as its payload, you can select a single top-level key with <code>remoteRef.property</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-property</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-backend</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret</span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret-uuid&quot;</span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;token&quot;</span><span class="w"> </span><span class="c1"># selects the &quot;token&quot; key from the JSON payload</span>
+</code></pre></div>
+<p>To expand a whole JSON payload into multiple Kubernetes secret keys at once, use <code>dataFrom.extract</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-extract</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-backend</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example-secret</span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-secret-uuid&quot;</span>
+</code></pre></div>
+<p>Both <code>property</code> and <code>extract</code> require the secret payload to be a JSON object. Without <code>property</code>, <code>remoteRef</code> returns the raw payload unchanged.</p>
 <h2 id="finding-secrets-by-name">Finding Secrets by Name</h2>
-<p>You can also retrieve secrets by using the <code>find</code> feature to search by name.</p>
-<p>It doesnt really support regexp, its exact string matching, so you need to provide the exact name of the secret.</p>
+<p>You can retrieve secrets with the <code>find</code> feature, matching on the secret name.</p>
+<p>Despite the field being named <code>regexp</code>, the value is passed to Barbican's secret listing API as a <code>name</code> filter, which performs an exact name match. Regular-expression metacharacters are <strong>not</strong> interpreted, so a value like <code>^db-.*</code> matches only a secret literally named <code>^db-.*</code>. Provide the exact secret name.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5327,9 +5385,9 @@
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">name</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;database&quot;</span>
+<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;database&quot;</span><span class="w"> </span><span class="c1"># exact secret name, not a pattern</span>
 </code></pre></div>
-<p>This will find all secrets in Barbican whose name exactly matches the string.</p>
+<p>Because Barbican allows several secrets to share a name, this can return more than one secret. The keys of the resulting Kubernetes secret are the Barbican secret UUIDs (not the names), and each value is the corresponding payload.</p>
 <h2 id="clustersecretstore">ClusterSecretStore</h2>
 <p>For a ClusterSecretStore, you need to specify the namespace where the credentials secret is located:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
@@ -5472,9 +5530,11 @@
 </table>
 <h2 id="limitations">Limitations</h2>
 <ul>
-<li>The Barbican provider is <strong>read-only</strong>. It does not support creating or updating secrets in Barbican.</li>
-<li>Used credentials has to have access to the provided secret.</li>
-<li>It will retrieve all secret types by default.</li>
+<li>The Barbican provider is <strong>read-only</strong>. Creating, updating, or deleting secrets is not supported (<code>PushSecret</code> and <code>DeletionPolicy: Delete</code> will fail).</li>
+<li>The credentials used must have access to the secrets being retrieved.</li>
+<li><code>find</code> matches the exact secret name only; <code>find.path</code> and <code>find.tags</code> are not supported.</li>
+<li>Barbican secrets are immutable, so <code>remoteRef.version</code> is ignored.</li>
+<li>Secret metadata is not exposed (<code>metadataPolicy: Fetch</code> is not supported); only the payload is returned.</li>
 </ul>
 <h2 id="troubleshooting">Troubleshooting</h2>
 <h3 id="authentication-issues">Authentication Issues</h3>
