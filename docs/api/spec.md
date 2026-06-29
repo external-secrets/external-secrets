@@ -874,7 +874,8 @@ string
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1.AzureKVProvider">AzureKVProvider</a>, 
-<a href="#generators.external-secrets.io/v1alpha1.ACRAccessTokenSpec">ACRAccessTokenSpec</a>)
+<a href="#generators.external-secrets.io/v1alpha1.ACRAccessTokenSpec">ACRAccessTokenSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.AzureAccessTokenSpec">AzureAccessTokenSpec</a>)
 </p>
 <p>
 <p>AzureEnvironmentType specifies the Azure cloud environment endpoints to use for
@@ -26350,6 +26351,420 @@ that should be used when authenticating with WorkloadIdentity.</p>
 </tr>
 </tbody>
 </table>
+<h3 id="generators.external-secrets.io/v1alpha1.AzureAccessToken">AzureAccessToken
+</h3>
+<p>
+<p>AzureAccessToken generates a Microsoft Entra ID access token scoped to a configurable
+resource. The token is returned under the &ldquo;token&rdquo; key and can be remapped (e.g. to
+AZP_TOKEN for Azure DevOps) via the consuming ExternalSecret template.</p>
+<p>See tracking issue: <a href="https://github.com/external-secrets/external-secrets/issues/5113">https://github.com/external-secrets/external-secrets/issues/5113</a></p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureAccessTokenSpec">
+AzureAccessTokenSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureAuth">
+AzureAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how ESO authenticates with Microsoft Entra ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resource</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Resource is the Microsoft Entra resource id (&ldquo;audience&rdquo;) that the issued access
+token targets. The token is requested with the &ldquo;<resource>/.default&rdquo; scope.
+Examples: &ldquo;499b84ac-1321-427f-aa17-267ca6975798&rdquo; (Azure DevOps),
+&ldquo;<a href="https://management.azure.com&quot;">https://management.azure.com&rdquo;</a> (Azure Resource Manager),
+&ldquo;<a href="https://storage.azure.com&quot;">https://storage.azure.com&rdquo;</a> (Azure Storage).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenantId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TenantID configures the Azure Tenant to send requests to. Required for the
+ServicePrincipal auth type.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>environmentType</code></br>
+<em>
+<a href="#external-secrets.io/v1.AzureEnvironmentType">
+AzureEnvironmentType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EnvironmentType specifies the Azure cloud environment endpoints to use for
+connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
+The following endpoints are available, also see here: <a href="https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152">https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152</a>
+PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.AzureAccessTokenSpec">AzureAccessTokenSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureAccessToken">AzureAccessToken</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>)
+</p>
+<p>
+<p>AzureAccessTokenSpec defines how to generate a Microsoft Entra ID access token for a
+given Entra resource.</p>
+<p>All supported authentication methods are app-only (client-credentials) flows, so the
+token is always requested with the &ldquo;<resource>/.default&rdquo; scope. The resource selects
+what the token grants access to &ndash; for example the Azure DevOps application id
+(499b84ac-1321-427f-aa17-267ca6975798), Azure Resource Manager
+(<a href="https://management.azure.com">https://management.azure.com</a>), or any other Entra resource id/URI.</p>
+<p>The Azure DevOps use-case is tracked in
+<a href="https://github.com/external-secrets/external-secrets/issues/5113">https://github.com/external-secrets/external-secrets/issues/5113</a></p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureAuth">
+AzureAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how ESO authenticates with Microsoft Entra ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resource</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Resource is the Microsoft Entra resource id (&ldquo;audience&rdquo;) that the issued access
+token targets. The token is requested with the &ldquo;<resource>/.default&rdquo; scope.
+Examples: &ldquo;499b84ac-1321-427f-aa17-267ca6975798&rdquo; (Azure DevOps),
+&ldquo;<a href="https://management.azure.com&quot;">https://management.azure.com&rdquo;</a> (Azure Resource Manager),
+&ldquo;<a href="https://storage.azure.com&quot;">https://storage.azure.com&rdquo;</a> (Azure Storage).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>tenantId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TenantID configures the Azure Tenant to send requests to. Required for the
+ServicePrincipal auth type.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>environmentType</code></br>
+<em>
+<a href="#external-secrets.io/v1.AzureEnvironmentType">
+AzureEnvironmentType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>EnvironmentType specifies the Azure cloud environment endpoints to use for
+connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
+The following endpoints are available, also see here: <a href="https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152">https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152</a>
+PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.AzureAuth">AzureAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureAccessTokenSpec">AzureAccessTokenSpec</a>)
+</p>
+<p>
+<p>AzureAuth defines the authentication methods for minting an Entra access token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>servicePrincipal</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureServicePrincipalAuth">
+AzureServicePrincipalAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServicePrincipal uses Azure Service Principal credentials (client secret or
+client certificate) to authenticate with Microsoft Entra ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>managedIdentity</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureManagedIdentityAuth">
+AzureManagedIdentityAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ManagedIdentity uses Azure Managed Identity to authenticate with Microsoft Entra ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>workloadIdentity</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureWorkloadIdentityAuth">
+AzureWorkloadIdentityAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>WorkloadIdentity uses Azure Workload Identity to authenticate with Microsoft Entra ID.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.AzureManagedIdentityAuth">AzureManagedIdentityAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureAuth">AzureAuth</a>)
+</p>
+<p>
+<p>AzureManagedIdentityAuth defines the configuration for using Azure Managed Identity authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>identityId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>If multiple Managed Identities are assigned to the pod, you can select the one to be used.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.AzureServicePrincipalAuth">AzureServicePrincipalAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureAuth">AzureAuth</a>)
+</p>
+<p>
+<p>AzureServicePrincipalAuth defines the configuration for using Azure Service
+Principal authentication. Exactly one of ClientSecret or ClientCertificate must be set.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureServicePrincipalAuthSecretRef">
+AzureServicePrincipalAuthSecretRef
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.AzureServicePrincipalAuthSecretRef">AzureServicePrincipalAuthSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureServicePrincipalAuth">AzureServicePrincipalAuth</a>)
+</p>
+<p>
+<p>AzureServicePrincipalAuthSecretRef defines the secret references for Azure Service
+Principal authentication. Provide either a client secret or a client certificate.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clientId</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>The Azure clientId of the service principal used for authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientSecret</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The Azure ClientSecret of the service principal used for authentication.
+Mutually exclusive with ClientCertificate.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientCertificate</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The PEM-encoded certificate (certificate and private key) of the service principal
+used for certificate based authentication. Mutually exclusive with ClientSecret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.AzureWorkloadIdentityAuth">AzureWorkloadIdentityAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureAuth">AzureAuth</a>)
+</p>
+<p>
+<p>AzureWorkloadIdentityAuth defines the configuration for using Azure Workload Identity authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef specifies the service account
+that should be used when authenticating with WorkloadIdentity.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="generators.external-secrets.io/v1alpha1.BeyondtrustWorkloadCredentialsDynamicSecret">BeyondtrustWorkloadCredentialsDynamicSecret
 </h3>
 <p>
@@ -27400,6 +27815,9 @@ string
 <tbody><tr><td><p>&#34;ACRAccessToken&#34;</p></td>
 <td><p>GeneratorKindACRAccessToken represents an Azure Container Registry access token generator.</p>
 </td>
+</tr><tr><td><p>&#34;AzureAccessToken&#34;</p></td>
+<td><p>GeneratorKindAzureAccessToken represents a Microsoft Entra (Azure) access token generator.</p>
+</td>
 </tr><tr><td><p>&#34;BeyondtrustWorkloadCredentialsDynamicSecret&#34;</p></td>
 <td><p>GeneratorKindBeyondtrustWorkloadCredentialsDynamicSecret represents a BeyondTrust Workload Credentials dynamic secret generator.</p>
 </td>
@@ -27478,6 +27896,18 @@ string
 <em>
 <a href="#generators.external-secrets.io/v1alpha1.ACRAccessTokenSpec">
 ACRAccessTokenSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>azureAccessTokenSpec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureAccessTokenSpec">
+AzureAccessTokenSpec
 </a>
 </em>
 </td>
