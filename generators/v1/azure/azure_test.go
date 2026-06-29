@@ -230,6 +230,9 @@ func TestGenerate(t *testing.T) {
 
 func TestScopeForResource(t *testing.T) {
 	assert.Equal(t, adoResource+"/.default", scopeForResource(adoResource))
+	// a trailing slash on a resource URI must not produce a double slash.
+	assert.Equal(t, "https://management.azure.com/.default", scopeForResource("https://management.azure.com/"))
+	assert.Equal(t, "https://management.azure.com/.default", scopeForResource("https://management.azure.com"))
 }
 
 // fakeTokenGetter asserts that the requested scope targets the configured resource.

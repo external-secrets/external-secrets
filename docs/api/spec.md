@@ -26550,7 +26550,8 @@ PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
 <a href="#generators.external-secrets.io/v1alpha1.AzureAccessTokenSpec">AzureAccessTokenSpec</a>)
 </p>
 <p>
-<p>AzureAuth defines the authentication methods for minting an Entra access token.</p>
+<p>AzureAuth defines the authentication methods for minting an Entra access token.
+Exactly one of the authentication methods must be configured.</p>
 </p>
 <table>
 <thead>

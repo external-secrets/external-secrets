@@ -42,6 +42,7 @@ import (
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	smmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/azure/keyvault"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
 // Generator implements Microsoft Entra ID access token generation.
@@ -78,17 +79,6 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	if err != nil {
 		return nil, nil, err
 	}
-	g.clientSecretCreds = func(tenantID, clientID, clientSecret string, options *azidentity.ClientSecretCredentialOptions) (TokenGetter, error) {
-		return azidentity.NewClientSecretCredential(tenantID, clientID, clientSecret, options)
-	}
-	g.clientCertCreds = func(tenantID, clientID string, certData []byte, options *azidentity.ClientCertificateCredentialOptions) (TokenGetter, error) {
-		certs, key, err := azidentity.ParseCertificates(certData, nil)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse service principal certificate: %w", err)
-		}
-		return azidentity.NewClientCertificateCredential(tenantID, clientID, certs, key, options)
-	}
-
 	return g.generate(ctx, jsonSpec, crClient, namespace, kubeClient)
 }
 
@@ -162,7 +152,7 @@ func (g *Generator) generate(
 // The adal/workload-identity path uses the bare resource id instead (see
 // accessTokenForWorkloadIdentity), matching `az account get-access-token --resource <id>`.
 func scopeForResource(resource string) string {
-	return resource + "/.default"
+	return strings.TrimSuffix(resource, "/") + "/.default"
 }
 
 func (g *Generator) accessTokenForServicePrincipal(
@@ -178,7 +168,7 @@ func (g *Generator) accessTokenForServicePrincipal(
 		return "", errors.New("servicePrincipal auth requires exactly one of clientSecret or clientCertificate")
 	}
 
-	clientID, err := secretKeyRef(ctx, crClient, namespace, secretRef.ClientID)
+	clientID, err := secretKeyRef(ctx, crClient, namespace, &secretRef.ClientID)
 	if err != nil {
 		return "", err
 	}
@@ -187,7 +177,7 @@ func (g *Generator) accessTokenForServicePrincipal(
 	var creds TokenGetter
 	if secretRef.ClientSecret != nil {
 		var clientSecret string
-		clientSecret, err = secretKeyRef(ctx, crClient, namespace, *secretRef.ClientSecret)
+		clientSecret, err = secretKeyRef(ctx, crClient, namespace, secretRef.ClientSecret)
 		if err != nil {
 			return "", err
 		}
@@ -196,7 +186,7 @@ func (g *Generator) accessTokenForServicePrincipal(
 		creds, err = g.clientSecretCreds(tenantID, clientID, clientSecret, opts)
 	} else {
 		var certData string
-		certData, err = secretKeyRef(ctx, crClient, namespace, *secretRef.ClientCertificate)
+		certData, err = secretKeyRef(ctx, crClient, namespace, secretRef.ClientCertificate)
 		if err != nil {
 			return "", err
 		}
@@ -304,23 +294,15 @@ func accessTokenForWorkloadIdentity(
 	return tp.OAuthToken(), nil
 }
 
-// secretKeyRef fetches a secret key.
-func secretKeyRef(ctx context.Context, crClient client.Client, namespace string, secretRef smmeta.SecretKeySelector) (string, error) {
-	var secret corev1.Secret
-	ref := types.NamespacedName{
-		Namespace: namespace,
-		Name:      secretRef.Name,
-	}
-	err := crClient.Get(ctx, ref, &secret)
+// secretKeyRef fetches a secret key, honoring the selector namespace where the
+// store kind permits it. Generators are not cluster-scoped, so resolvers.EmptyStoreKind
+// keeps resolution namespace-local.
+func secretKeyRef(ctx context.Context, crClient client.Client, namespace string, secretRef *smmeta.SecretKeySelector) (string, error) {
+	value, err := resolvers.SecretKeyRef(ctx, crClient, resolvers.EmptyStoreKind, namespace, secretRef)
 	if err != nil {
-		return "", fmt.Errorf("unable to find namespace=%q secret=%q %w", ref.Namespace, ref.Name, err)
+		return "", err
 	}
-	keyBytes, ok := secret.Data[secretRef.Key]
-	if !ok {
-		return "", fmt.Errorf("unable to find key=%q secret=%q namespace=%q", secretRef.Key, secretRef.Name, namespace)
-	}
-	value := strings.TrimSpace(string(keyBytes))
-	return value, nil
+	return strings.TrimSpace(value), nil
 }
 
 func parseSpec(data []byte) (*genv1alpha1.AzureAccessToken, error) {
@@ -331,7 +313,18 @@ func parseSpec(data []byte) (*genv1alpha1.AzureAccessToken, error) {
 
 // NewGenerator creates a new Generator instance.
 func NewGenerator() genv1alpha1.Generator {
-	return &Generator{}
+	return &Generator{
+		clientSecretCreds: func(tenantID, clientID, clientSecret string, options *azidentity.ClientSecretCredentialOptions) (TokenGetter, error) {
+			return azidentity.NewClientSecretCredential(tenantID, clientID, clientSecret, options)
+		},
+		clientCertCreds: func(tenantID, clientID string, certData []byte, options *azidentity.ClientCertificateCredentialOptions) (TokenGetter, error) {
+			certs, key, err := azidentity.ParseCertificates(certData, nil)
+			if err != nil {
+				return nil, fmt.Errorf("unable to parse service principal certificate: %w", err)
+			}
+			return azidentity.NewClientCertificateCredential(tenantID, clientID, certs, key, options)
+		},
+	}
 }
 
 // Kind returns the generator kind.
