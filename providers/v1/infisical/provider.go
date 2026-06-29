@@ -111,7 +111,7 @@ func performUniversalAuthLogin(
 		return "", err
 	}
 
-	_, err = sdkClient.Auth().UniversalAuthLogin(clientID, clientSecret)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).UniversalAuthLogin(clientID, clientSecret)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaUniversalAuth, err)
 
 	if err != nil {
@@ -146,7 +146,7 @@ func performAzureAuthLogin(
 		}
 	}
 
-	_, err = sdkClient.Auth().AzureAuthLogin(identityID, resource)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).AzureAuthLogin(identityID, resource)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaAzureAuth, err)
 
 	if err != nil {
@@ -172,7 +172,7 @@ func performGcpIDTokenAuthLogin(
 		return "", fmt.Errorf(errSecretDataFormat, err)
 	}
 
-	_, err = sdkClient.Auth().GcpIdTokenAuthLogin(identityID)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).GcpIdTokenAuthLogin(identityID)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaGCPIDTokenAuth, err)
 
 	if err != nil {
@@ -203,7 +203,7 @@ func performGcpIamAuthLogin(
 		return "", fmt.Errorf("failed to get secret data serviceAccountKeyFilePath %w", err)
 	}
 
-	_, err = sdkClient.Auth().GcpIamAuthLogin(identityID, serviceAccountKeyFilePath)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).GcpIamAuthLogin(identityID, serviceAccountKeyFilePath)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaGcpServiceAccountAuth, err)
 
 	if err != nil {
@@ -234,7 +234,7 @@ func performJwtAuthLogin(
 		return "", fmt.Errorf("failed to get secret data jwt %w", err)
 	}
 
-	_, err = sdkClient.Auth().JwtAuthLogin(identityID, jwt)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).JwtAuthLogin(identityID, jwt)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaJwtAuth, err)
 
 	if err != nil {
@@ -270,7 +270,7 @@ func performLdapAuthLogin(
 		return "", fmt.Errorf("failed to get secret data ldapUsername %w", err)
 	}
 
-	_, err = sdkClient.Auth().LdapAuthLogin(identityID, ldapPassword, ldapUsername)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).LdapAuthLogin(identityID, ldapPassword, ldapUsername)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaLdapAuth, err)
 
 	if err != nil {
@@ -330,7 +330,7 @@ func performOciAuthLogin(
 		return "", fmt.Errorf("failed to get secret data region %w", err)
 	}
 
-	_, err = sdkClient.Auth().OciAuthLogin(infisicalSdk.OciAuthLoginOptions{
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).OciAuthLogin(infisicalSdk.OciAuthLoginOptions{
 		IdentityID:  identityID,
 		PrivateKey:  privateKey,
 		Passphrase:  privateKeyPassphrase,
@@ -373,7 +373,7 @@ func performKubernetesAuthLogin(
 		}
 	}
 
-	_, err = sdkClient.Auth().KubernetesAuthLogin(identityID, serviceAccountTokenPath)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).KubernetesAuthLogin(identityID, serviceAccountTokenPath)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaKubernetesAuth, err)
 
 	if err != nil {
@@ -399,7 +399,7 @@ func performAwsAuthLogin(
 		return "", fmt.Errorf(errSecretDataFormat, err)
 	}
 
-	_, err = sdkClient.Auth().AwsIamAuthLogin(identityID)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).AwsIamAuthLogin(identityID)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaAwsAuth, err)
 
 	if err != nil {
@@ -426,7 +426,7 @@ func performTokenAuthLogin(
 		return "", fmt.Errorf(errSecretDataFormat, err)
 	}
 
-	sdkClient.Auth().SetAccessToken(accessToken)
+	sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).SetAccessToken(accessToken)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaTokenAuth, err)
 
 	return accessToken, nil

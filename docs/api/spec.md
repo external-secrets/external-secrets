@@ -1007,7 +1007,8 @@ AzureAuthType
 <p>Auth type defines how to authenticate to the keyvault service.
 Valid values are:
 - &ldquo;ServicePrincipal&rdquo; (default): Using a service principal (tenantId, clientId, clientSecret)
-- &ldquo;ManagedIdentity&rdquo;: Using Managed Identity assigned to the pod (see aad-pod-identity)</p>
+- &ldquo;ManagedIdentity&rdquo;: Using Managed Identity assigned to the pod (see aad-pod-identity)
+- &ldquo;WorkloadIdentity&rdquo;: Using a Kubernetes ServiceAccount federated with Entra ID</p>
 </td>
 </tr>
 <tr>
@@ -3988,6 +3989,21 @@ May be set to &ldquo;0s&rdquo; to fetch and create it once. Defaults to 1h0m0s.<
 </tr>
 <tr>
 <td>
+<code>syncWindows</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretSyncWindows">
+ExternalSecretSyncWindows
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SyncWindows optionally restricts when periodic refreshes may occur.
+Evaluated in UTC, only for Periodic refresh policy (or when refreshPolicy is unset).</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>data</code></br>
 <em>
 <a href="#external-secrets.io/v1.ExternalSecretData">
@@ -4369,7 +4385,8 @@ ExternalSecretNullBytePolicy
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
-<a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>)
+<a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>, 
+<a href="#external-secrets.io/v1.TemplateFrom">TemplateFrom</a>)
 </p>
 <p>
 <p>ExternalSecretDecodingStrategy defines strategies for decoding secret values.</p>
@@ -5022,6 +5039,21 @@ May be set to &ldquo;0s&rdquo; to fetch and create it once. Defaults to 1h0m0s.<
 </tr>
 <tr>
 <td>
+<code>syncWindows</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretSyncWindows">
+ExternalSecretSyncWindows
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SyncWindows optionally restricts when periodic refreshes may occur.
+Evaluated in UTC, only for Periodic refresh policy (or when refreshPolicy is unset).</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>data</code></br>
 <em>
 <a href="#external-secrets.io/v1.ExternalSecretData">
@@ -5195,6 +5227,131 @@ Kubernetes meta/v1.Time
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretSyncWindowEntry">ExternalSecretSyncWindowEntry
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretSyncWindows">ExternalSecretSyncWindows</a>)
+</p>
+<p>
+<p>ExternalSecretSyncWindowEntry defines a single cron-schedule + duration pair
+within a SyncWindows block.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>schedule</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Schedule is a standard 5-field cron expression evaluated in UTC, or a
+named shorthand such as @daily or @every 1h. It marks the start time of
+each window occurrence.
+Example: &ldquo;0 22 * * 1-5&rdquo; opens a window every weekday at 22:00 UTC.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>duration</code></br>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<p>Duration specifies how long the window stays open after each Schedule
+firing. Example: &ldquo;8h&rdquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretSyncWindowKind">ExternalSecretSyncWindowKind
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretSyncWindows">ExternalSecretSyncWindows</a>)
+</p>
+<p>
+<p>ExternalSecretSyncWindowKind defines whether a SyncWindow permits or
+blocks periodic refreshes.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;allow&#34;</p></td>
+<td><p>SyncWindowAllow allows periodic refreshes only while at least one window
+in the list is active. Refreshes are blocked at all other times.</p>
+</td>
+</tr><tr><td><p>&#34;deny&#34;</p></td>
+<td><p>SyncWindowDeny blocks periodic refreshes while any window in the list is
+active. Refreshes proceed normally at all other times.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretSyncWindows">ExternalSecretSyncWindows
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretSpec">ExternalSecretSpec</a>)
+</p>
+<p>
+<p>ExternalSecretSyncWindows optionally restricts when periodic syncs may occur.
+All windows in the list share the same Kind.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>kind</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretSyncWindowKind">
+ExternalSecretSyncWindowKind
+</a>
+</em>
+</td>
+<td>
+<p>Kind applies to every window in the list.
+&ldquo;allow&rdquo; &ndash; syncs are permitted only while at least one window is active;
+all other times are blocked.
+&ldquo;deny&rdquo;  &ndash; syncs are blocked while any window is active;
+all other times are permitted.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>windows</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretSyncWindowEntry">
+[]ExternalSecretSyncWindowEntry
+</a>
+</em>
+</td>
+<td>
+<p>Windows is the list of schedule+duration pairs.</p>
 </td>
 </tr>
 </tbody>
@@ -7428,6 +7585,18 @@ string
 </tr>
 <tr>
 <td>
+<code>organizationSlug</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>OrganizationSlug is the optional slug that identifies the organization that will be used
+during authentication. Useful for sub-organization setups</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>expandSecretReferences</code></br>
 <em>
 bool
@@ -8299,16 +8468,17 @@ cache: {} is a valid option to set.</p>
 </tr>
 </tbody>
 </table>
-<h3 id="external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth
+<h3 id="external-secrets.io/v1.OpenBaoAppRole">OpenBaoAppRole
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider</a>)
+<a href="#external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth</a>)
 </p>
 <p>
-<p>OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
-Currently only token-based authentication is supported via <code>tokenSecretRef</code>.
-Additional authentication methods are planned for future releases.</p>
+<p>OpenBaoAppRole authenticates with OpenBao using the <a href="https://openbao.org/docs/auth/approle/">App Role auth
+mechanism</a>, with the role and secret stored in a Kubernetes Secret resource.
+The role ID has to be specified either inline via <code>roleId</code> or by referencing
+a secret via <code>roleRef</code>.</p>
 </p>
 <table>
 <thead>
@@ -8318,6 +8488,117 @@ Additional authentication methods are planned for future releases.</p>
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the App Role authentication backend is mounted
+in OpenBao, e.g: &ldquo;approle&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RoleID configured in the App Role authentication backend when setting
+up the authentication backend in OpenBao.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Reference to a key in a Secret that contains the App Role ID used
+to authenticate with OpenBao.
+The <code>key</code> field must be specified and denotes which entry within the Secret
+resource is used as the app role id.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>Reference to a key in a Secret that contains the App Role secret used
+to authenticate with OpenBao.
+The <code>key</code> field must be specified and denotes which entry within the Secret
+resource is used as the app role secret.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider</a>)
+</p>
+<p>
+<p>OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
+Currently the following authentication methods are supported: <a href="https://openbao.org/docs/auth/approle/">AppRole</a>,
+<a href="https://openbao.org/docs/auth/token/">Token</a> and <a href="https://openbao.org/docs/auth/userpass/">UserPass</a></p>
+<p>Additional authentication methods are planned for future releases.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>appRole</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoAppRole">
+OpenBaoAppRole
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AppRole authenticates with OpenBao using the <a href="https://openbao.org/docs/auth/approle/">App Role auth mechanism</a>,
+with the role and secret stored in a Kubernetes Secret resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name of the <a href="https://openbao.org/docs/concepts/namespaces/">OpenBao Namespace</a> to authenticate to. This can be different
+than the namespace your secret is in. Namespaces is a set of features
+within OpenBao that allows OpenBao environments to support secure
+multi-tenancy. e.g: &ldquo;ns1&rdquo;. This will default to OpenBao.Namespace field
+if set, or empty otherwise</p>
+</td>
+</tr>
 <tr>
 <td>
 <code>tokenSecretRef</code></br>
@@ -8397,6 +8678,7 @@ OpenBaoAuth
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Auth configures how secret-manager authenticates with the OpenBao server.</p>
 </td>
 </tr>
@@ -8428,6 +8710,20 @@ CAProvider
 <p>The provider for the CA bundle to use to validate OpenBao server
 certificate. If this and <code>caBundle</code> are not set the system root
 certificates are used to validate the TLS connection.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name of the <a href="https://openbao.org/docs/concepts/namespaces/">OpenBao Namespace</a>. Namespaces is a set of features within
+OpenBao that allows OpenBao environments to support secure multi-tenancy.
+e.g: &ldquo;ns1&rdquo;.</p>
 </td>
 </tr>
 <tr>
@@ -11429,6 +11725,20 @@ string
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>valuesDecodingStrategy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretDecodingStrategy">
+ExternalSecretDecodingStrategy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Used to define a decoding Strategy for the rendered template values.</p>
 </td>
 </tr>
 </tbody>
