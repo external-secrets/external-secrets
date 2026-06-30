@@ -49,6 +49,8 @@ var (
 	GCRAccessTokenKind = reflect.TypeFor[GCRAccessToken]().Name()
 	// ACRAccessTokenKind is the kind name for ACRAccessToken resource.
 	ACRAccessTokenKind = reflect.TypeFor[ACRAccessToken]().Name()
+	// AzureAccessTokenKind is the kind name for AzureAccessToken resource.
+	AzureAccessTokenKind = reflect.TypeFor[AzureAccessToken]().Name()
 	// PasswordKind is the kind name for Password resource.
 	PasswordKind = reflect.TypeFor[Password]().Name()
 	// SSHKeyKind is the kind name for SSHKey resource.
@@ -96,6 +98,7 @@ func init() {
 	*/
 
 	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
+	SchemeBuilder.Register(&AzureAccessToken{}, &AzureAccessTokenList{})
 	SchemeBuilder.Register(&BeyondtrustWorkloadCredentialsDynamicSecret{}, &BeyondtrustWorkloadCredentialsDynamicSecretList{})
 	SchemeBuilder.Register(&ClusterGenerator{}, &ClusterGeneratorList{})
 	SchemeBuilder.Register(&CloudsmithAccessToken{}, &CloudsmithAccessTokenList{})

@@ -30,12 +30,14 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
+// +kubebuilder:validation:Enum=ACRAccessToken;AzureAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
 type GeneratorKind string
 
 const (
 	// GeneratorKindACRAccessToken represents an Azure Container Registry access token generator.
 	GeneratorKindACRAccessToken GeneratorKind = "ACRAccessToken"
+	// GeneratorKindAzureAccessToken represents a Microsoft Entra (Azure) access token generator.
+	GeneratorKindAzureAccessToken GeneratorKind = "AzureAccessToken"
 	// GeneratorKindECRAuthorizationToken represents an AWS ECR authorization token generator.
 	GeneratorKindECRAuthorizationToken GeneratorKind = "ECRAuthorizationToken"
 	// GeneratorKindFake represents a fake generator for testing purposes.
@@ -73,6 +75,7 @@ const (
 // +kubebuilder:validation:MinProperties=1
 type GeneratorSpec struct {
 	ACRAccessTokenSpec                              *ACRAccessTokenSpec                              `json:"acrAccessTokenSpec,omitempty"`
+	AzureAccessTokenSpec                            *AzureAccessTokenSpec                            `json:"azureAccessTokenSpec,omitempty"`
 	BeyondtrustWorkloadCredentialsDynamicSecretSpec *BeyondtrustWorkloadCredentialsDynamicSecretSpec `json:"beyondtrustWorkloadCredentialsDynamicSecretSpec,omitempty"`
 	CloudsmithAccessTokenSpec                       *CloudsmithAccessTokenSpec                       `json:"cloudsmithAccessTokenSpec,omitempty"`
 	ECRAuthorizationTokenSpec                       *ECRAuthorizationTokenSpec                       `json:"ecrAuthorizationTokenSpec,omitempty"`
