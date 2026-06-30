@@ -133,7 +133,7 @@ The following table show the support for features across different providers.
 | Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
 | Previder                  |      x       |              |                      |                         |        x         |             |                             |
 | Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |              x              |
-| Volcengine                |              |              |                      |                         |        x         |             |                             |
+| Volcengine                |              |              |                      |            x            |        x         |             |                             |
 | ngrok                     |              |              |                      |                         |        x         |      x      |                             |
 | Barbican                  |      x       |              |                      |                         |        x         |             |                             |
 | Devolutions Server        |              |              |                      |                         |        x         |      x      |                             |
