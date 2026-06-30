@@ -137,7 +137,7 @@ The following table show the support for features across different providers.
 | ngrok                     |              |              |                      |                         |        x         |      x      |                             |
 | Barbican                  |      x       |              |                      |                         |        x         |             |                             |
 | Devolutions Server        |              |              |                      |                         |        x         |      x      |                             |
-| Nebius Mysterybox         |              |              |                      |                         |        x         |             |                             |
+| Nebius Mysterybox         |              |              |                      |                         |        x         |             |              x              |
 
 ## Support Policy
 
