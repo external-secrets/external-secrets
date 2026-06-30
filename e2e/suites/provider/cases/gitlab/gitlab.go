@@ -46,7 +46,7 @@ var _ = Describe("[gitlab]", Label("gitlab"), func() {
 		Entry(common.SyncWithoutTargetName(f)),
 		Entry(common.JSONDataWithoutTargetName(f)),
 		Entry(emptyVariableValue(f)),
-		Entry(missingVariableWithDeletionPolicy(f)),
+		Entry(common.DeletionPolicyDelete(f)),
 	)
 })
 
@@ -69,41 +69,6 @@ func emptyVariableValue(f *framework.Framework) (string, func(*framework.TestCas
 				SecretKey: secretKey,
 				RemoteRef: esv1.ExternalSecretDataRemoteRef{
 					Key: remoteRefKey,
-				},
-			},
-		}
-	}
-}
-
-// missingVariableWithDeletionPolicy skips a variable missing from GitLab and syncs the rest when deletionPolicy is Delete.
-func missingVariableWithDeletionPolicy(f *framework.Framework) (string, func(*framework.TestCase)) {
-	return "[gitlab] should skip a missing variable and sync the rest with deletionPolicy=Delete", func(tc *framework.TestCase) {
-		presentKey := fmt.Sprintf("%s-%s", f.Namespace.Name, "present")
-		missingKey := fmt.Sprintf("%s-%s", f.Namespace.Name, "missing")
-		remoteRefPresent := f.MakeRemoteRefKey(presentKey)
-		remoteRefMissing := f.MakeRemoteRefKey(missingKey)
-		secretValue := "bar"
-		tc.Secrets = map[string]framework.SecretEntry{
-			remoteRefPresent: {Value: secretValue},
-		}
-		tc.ExpectedSecret = &v1.Secret{
-			Type: v1.SecretTypeOpaque,
-			Data: map[string][]byte{
-				presentKey: []byte(secretValue),
-			},
-		}
-		tc.ExternalSecret.Spec.Target.DeletionPolicy = esv1.DeletionPolicyDelete
-		tc.ExternalSecret.Spec.Data = []esv1.ExternalSecretData{
-			{
-				SecretKey: presentKey,
-				RemoteRef: esv1.ExternalSecretDataRemoteRef{
-					Key: remoteRefPresent,
-				},
-			},
-			{
-				SecretKey: missingKey,
-				RemoteRef: esv1.ExternalSecretDataRemoteRef{
-					Key: remoteRefMissing,
 				},
 			},
 		}
