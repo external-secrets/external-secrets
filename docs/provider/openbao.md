@@ -1,4 +1,4 @@
-## OpenBao
+# OpenBao
 
 External Secrets Operator integrates with [OpenBao](https://openbao.org) for secret management by using the [HashiCorp Vault Provider](./hashicorp-vault.md).
 

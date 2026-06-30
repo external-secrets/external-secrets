@@ -98,6 +98,7 @@ The following table describes the stability level of each provider and who's res
 | [Barbican](https://external-secrets.io/latest/provider/barbican)                                           |     alpha | [@rkferreira](https://github.com/rkferreira)                                                        |
 | [Devolutions Server](https://external-secrets.io/latest/provider/devolutions-server)                       |     alpha | [@rbstp](https://github.com/rbstp)                                                                  |
 | [Nebius MysteryBox](https://external-secrets.io/latest/provider/nebius-mysterybox)                         | alpha     | [@greenmapc](https://github.com/greenmapc)                                                          |
+| [OpenBao](https://external-secrets.io/latest/provider/openbao)                                             |     alpha | [@phil9909](https://github.com/phil9909)                                                            |
 
 ## Provider Feature Support
 
@@ -138,6 +139,7 @@ The following table show the support for features across different providers.
 | Barbican                  |      x       |              |                      |                         |        x         |             |                             |
 | Devolutions Server        |              |              |                      |                         |        x         |      x      |                             |
 | Nebius Mysterybox         |              |              |                      |                         |        x         |             |                             |
+| OpenBao                   |      x       |              |                      |            x            |        x         |             |                             |
 
 ## Support Policy
 
