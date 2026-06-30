@@ -3096,6 +3096,11 @@ func (in *OpenBaoAuth) DeepCopyInto(out *OpenBaoAuth) {
 		*out = new(OpenBaoAppRole)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Namespace != nil {
+		in, out := &in.Namespace, &out.Namespace
+		*out = new(string)
+		**out = **in
+	}
 	if in.TokenSecretRef != nil {
 		in, out := &in.TokenSecretRef, &out.TokenSecretRef
 		*out = new(apismetav1.SecretKeySelector)
@@ -3135,6 +3140,11 @@ func (in *OpenBaoProvider) DeepCopyInto(out *OpenBaoProvider) {
 		in, out := &in.CAProvider, &out.CAProvider
 		*out = new(CAProvider)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.Namespace != nil {
+		in, out := &in.Namespace, &out.Namespace
+		*out = new(string)
+		**out = **in
 	}
 	if in.Path != nil {
 		in, out := &in.Path, &out.Path

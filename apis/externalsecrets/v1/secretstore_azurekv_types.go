@@ -80,6 +80,7 @@ type AzureKVProvider struct {
 	// Valid values are:
 	// - "ServicePrincipal" (default): Using a service principal (tenantId, clientId, clientSecret)
 	// - "ManagedIdentity": Using Managed Identity assigned to the pod (see aad-pod-identity)
+	// - "WorkloadIdentity": Using a Kubernetes ServiceAccount federated with Entra ID
 	// +optional
 	// +kubebuilder:default=ServicePrincipal
 	AuthType *AzureAuthType `json:"authType,omitempty"`
