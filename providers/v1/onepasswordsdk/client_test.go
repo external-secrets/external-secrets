@@ -2039,9 +2039,6 @@ func TestCachingGetAllSecrets(t *testing.T) {
 	})
 
 	t.Run("item fetched by GetAllSecrets is reused by GetSecret", func(t *testing.T) {
-		t.Skip("TODO: GetSecret and GetSecretMap/GetAllSecrets use different caching formats. " +
-			"See https://github.com/external-secrets/external-secrets/issues/6444")
-
 		fl := createLister(item1)
 		p := newCachedClient(fl)
 		fc := p.client.SecretsAPI.(*fakeClientWithCounter)
