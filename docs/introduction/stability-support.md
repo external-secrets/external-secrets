@@ -117,7 +117,7 @@ The following table show the support for features across different providers.
 | Oracle Vault              |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | Akeyless                  |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | 1Password                 |      x       |      x       |                      |                         |        x         |      x      |              x              |
-| 1Password SDK             |              |              |                      |                         |        x         |      x      |              x              |
+| 1Password SDK             |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | Generic Webhook           |              |              |                      |                         |                  |             |              x              |
 | senhasegura DSM           |              |              |                      |                         |        x         |             |                             |
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
