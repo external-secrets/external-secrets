@@ -131,7 +131,7 @@ The following table show the support for features across different providers.
 | Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
 | Infisical                 |      x       |              |                      |            x            |        x         |      x      |              x              |
 | Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
-| Previder                  |      x       |              |                      |                         |        x         |             |                             |
+| Previder                  |              |              |                      |            x            |        x         |             |                             |
 | Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |              x              |
 | Volcengine                |              |              |                      |                         |        x         |             |                             |
 | ngrok                     |              |              |                      |                         |        x         |      x      |                             |
