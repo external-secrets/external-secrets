@@ -9,10 +9,10 @@
       
       
       
-        <link rel="prev" href="../">
+        <link rel="prev" href="../github/">
       
       
-        <link rel="next" href="../ecr/">
+        <link rel="next" href="../uuid/">
       
       
         
@@ -23,7 +23,7 @@
     
     
       
-        <title>Azure Container Registry - External Secrets Operator</title>
+        <title>Gitlab - External Secrets Operator</title>
       
     
     
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#output-keys-and-values" class="md-skip">
+        <a href="#gitlab-deploy-token-generator" class="md-skip">
           Skip to content
         </a>
       
@@ -133,7 +133,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Azure Container Registry
+              Gitlab
             
           </span>
         </div>
@@ -1150,35 +1150,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Azure Container Registry
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../acr/" class="md-nav__link">
         
   
   
@@ -1194,68 +1169,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#output-keys-and-values" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Output Keys and Values
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#authentication" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Authentication
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#scope" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scope
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#example-manifest" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Example Manifest
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1601,10 +1514,35 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../gitlab/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Gitlab
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1620,6 +1558,107 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#gitlab-deploy-token-generator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitLab Deploy Token Generator
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="GitLab Deploy Token Generator">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#target" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Target
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#scopes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Scopes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#example-manifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Manifest
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -4959,17 +4998,18 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#output-keys-and-values" class="md-nav__link">
+  <a href="#gitlab-deploy-token-generator" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Output Keys and Values
+        GitLab Deploy Token Generator
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
+    <nav class="md-nav" aria-label="GitLab Deploy Token Generator">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
   <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4979,19 +5019,41 @@
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#scope" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#target" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Scope
+        Target
       
     </span>
   </a>
   
 </li>
+        
+          <li class="md-nav__item">
+  <a href="#scopes" class="md-nav__link">
+    <span class="md-ellipsis">
       
-        <li class="md-nav__item">
+        Scopes
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#token-lifecycle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Token lifecycle
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#example-manifest" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4999,6 +5061,22 @@
       
     </span>
   </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Notes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
       
@@ -5022,162 +5100,74 @@
   
 
 
-  <h1>Azure Container Registry</h1>
+  <h1>Gitlab</h1>
 
-<p>The Azure Container Registry (ACR) generator creates a short-lived refresh or access token for accessing ACR.
-The token is generated for a particular ACR registry defined in <code>spec.registry</code>.</p>
-<h2 id="output-keys-and-values">Output Keys and Values</h2>
-<table>
-<thead>
-<tr>
-<th>Key</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>username</td>
-<td>username for the <code>docker login</code> command</td>
-</tr>
-<tr>
-<td>password</td>
-<td>password for the <code>docker login</code> command</td>
-</tr>
-</tbody>
-</table>
-<h2 id="authentication">Authentication</h2>
-<p>You must choose one out of three authentication mechanisms:</p>
+<h2 id="gitlab-deploy-token-generator">GitLab Deploy Token Generator</h2>
+<p>The GitLab Deploy Token generator creates <a href="https://docs.gitlab.com/user/project/deploy_tokens/">GitLab deploy tokens</a> for a project or a group. A deploy token gives read or write access to a project's repository, container registry, and package registry, which makes it well suited for pulling images or packages from automation.</p>
+<p>The generated secret contains two keys:</p>
 <ul>
-<li>service principal</li>
-<li>managed identity</li>
-<li>workload identity</li>
+<li><code>username</code>: the deploy token username (the value of <code>spec.username</code>, or the <code>gitlab+deploy-token-{n}</code> value GitLab assigns when <code>username</code> is omitted).</li>
+<li><code>token</code>: the deploy token value.</li>
 </ul>
-<p>The generated token will inherit the permissions from the assigned policy. I.e. when you assign a read-only policy all generated tokens will be read-only.
-You <strong>must</strong> <a href="https://learn.microsoft.com/en-us/azure/role-based-access-control/role-assignments-steps">assign a Azure RBAC role</a>, such as <code>AcrPush</code> or <code>AcrPull</code> to the service principal or managed identity in order to be able to authenticate with the Azure container registry API.</p>
-<p>You can also use a kubelet managed identity with the default <code>AcrPull</code> role to authenticate to the integrated Azure Container Registry.</p>
-<p>You can scope tokens to a particular repository using <code>spec.scope</code>.</p>
-<h2 id="scope">Scope</h2>
-<p>First, a Microsoft Entra ID access token is obtained with the desired authentication method.
-This Microsoft Entra ID access token will be used to authenticate against ACR to issue a refresh token or access token.
-If <code>spec.scope</code> if it is defined it obtains an ACR access token. If  <code>spec.scope</code> is missing it obtains an ACR refresh token:</p>
-<ul>
-<li>access tokens are scoped to a specific repository or action (pull,push)</li>
-<li>refresh tokens can are scoped to whatever policy is attached to the identity that creates the acr refresh token</li>
-</ul>
-<p>The Scope grammar is defined in the <a href="https://docs.docker.com/registry/spec/auth/scope/">Docker Registry spec</a>.
-Note: You <strong>can not</strong> use wildcards in the scope parameter -- you can match exactly one repository and can define multiple actions like <code>pull</code> or <code>push</code>.</p>
-<p>Example scopes:</p>
-<div class="highlight"><pre><span></span><code>repository:my-repository:pull,push
-repository:my-repository:pull
+<h3 id="authentication">Authentication</h3>
+<p>The generator authenticates against the GitLab API with an access token (personal, group, or project) that has the <code>api</code> scope and at least the <strong>Maintainer</strong> role on the target project (or <strong>Owner</strong> on the target group). Store that token in a Kubernetes secret and reference it from <code>spec.auth.token.secretRef</code>.</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>gitlab-api-token<span class="w"> </span>--from-literal<span class="o">=</span><span class="nv">token</span><span class="o">=</span>glpat-xxxxxxxxxxxx
 </code></pre></div>
-<h2 id="example-manifest">Example Manifest</h2>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ACRAccessToken</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-azurecr</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">tenantId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">11111111-2222-3333-4444-111111111111</span>
-<span class="w">  </span><span class="nt">registry</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example.azurecr.io</span>
-
-<span class="w">  </span><span class="c1"># optional; scope token down to a single repository/action</span>
-<span class="w">  </span><span class="c1"># if set, it will generate an access token instead of an refresh token.</span>
-<span class="w">  </span><span class="nt">scope</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;repository:foo:pull,push&quot;</span>
-
-<span class="w">  </span><span class="c1"># Specify Azure cloud type, defaults to PublicCloud.</span>
-<span class="w">  </span><span class="c1"># This is used for authenticating with Microsoft Entra ID.</span>
-<span class="w">  </span><span class="c1"># available options: PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</span>
-<span class="w">  </span><span class="nt">environmentType</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;PublicCloud&quot;</span>
-
-<span class="w">  </span><span class="c1"># choose one authentication method</span>
-<span class="w">  </span><span class="nt">auth</span><span class="p">:</span>
-
-<span class="w">    </span><span class="c1"># option 1: point to a secret that contains a client-id and client-secret</span>
-<span class="w">    </span><span class="nt">servicePrincipal</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">secretRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">clientSecret</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">az-secret</span>
-<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clientsecret</span>
-<span class="w">        </span><span class="nt">clientId</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">az-secret</span>
-<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">clientid</span>
-
-<span class="w">    </span><span class="c1"># option 2: use a managed identity Client ID</span>
-<span class="w">    </span><span class="nt">managedIdentity</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">identityId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">11111111-2222-3333-4444-111111111111</span>
-
-<span class="w">    </span><span class="c1"># option 3:</span>
-<span class="w">    </span><span class="nt">workloadIdentity</span><span class="p">:</span>
-<span class="w">      </span><span class="c1"># note: you can reference service accounts across namespaces.</span>
-<span class="w">      </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-service-account&quot;</span>
-<span class="w">        </span><span class="nt">audiences</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[]</span>
-</code></pre></div>
-<p>Example <code>ExternalSecret</code> that references the ACR generator:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azurecr-credentials</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
-<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sourceRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">generatorRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
-<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ACRAccessToken</span>
-<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-azurecr</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30h0s</span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azurecr-credentials</span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.io/dockerconfigjson</span>
-<span class="w">      </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">.dockerconfigjson</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
-<span class="w">          </span><span class="no">{</span>
-<span class="w">            </span><span class="no">&quot;auths&quot;: {</span>
-<span class="w">              </span><span class="no">&quot;myregistry.azurecr.io&quot;: {</span>
-<span class="w">                </span><span class="no">&quot;username&quot;: &quot;{{ .username }}&quot;,</span>
-<span class="w">                </span><span class="no">&quot;password&quot;: &quot;{{ .password }}&quot;</span>
-<span class="w">              </span><span class="no">}</span>
-<span class="w">            </span><span class="no">}</span>
-<span class="w">          </span><span class="no">}</span>
-</code></pre></div>
-<p>Example using AKS kubelet managed identity to create <a href="https://argo-cd.readthedocs.io/en/latest/operator-manual/declarative-setup/#helm-chart-repositories">Argo CD helm chart repository</a> secret:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
-<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ACRAccessToken</span>
-<span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azurecr</span>
-<span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">tenantId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">11111111-2222-3333-4444-111111111111</span>
-<span class="w">  </span><span class="nt">registry</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">example.azurecr.io</span>
-<span class="w">  </span><span class="nt">auth</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">managedIdentity</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">identityId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">11111111-2222-3333-4444-111111111111</span>
+<h3 id="target">Target</h3>
+<p>Set exactly one of <code>spec.projectID</code> or <code>spec.groupID</code>. Both accept either a numeric ID or an unescaped path such as <code>group/project</code>, the generator URL-escapes paths before calling the API, so do not pre-encode them. Setting both, neither, or an empty string is rejected by the CRD.</p>
+<h3 id="scopes">Scopes</h3>
+<p><code>spec.scopes</code> requires at least one of: <code>read_repository</code>, <code>read_registry</code>, <code>write_registry</code>, <code>read_package_registry</code>, <code>write_package_registry</code>. Projects additionally support <code>read_virtual_registry</code> and <code>write_virtual_registry</code>.</p>
+<h3 id="token-lifecycle">Token lifecycle</h3>
+<p>GitLab deploy tokens are persistent: unlike short-lived tokens they are not garbage-collected by GitLab on their own. This generator therefore records the created token ID in its generator state and <strong>revokes the previous token</strong> whenever the value is regenerated (on refresh) and when the consuming <code>ExternalSecret</code> is deleted. Set <code>spec.expiresAt</code> if you also want GitLab to expire the token server-side as a backstop.</p>
+<h3 id="example-manifest">Example Manifest</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># 1. Create a GitLab access token (personal, group, or project) with the `api`</span>
+<span class="c1">#    scope and at least the Maintainer role on the target project / group.</span>
+<span class="c1">#    https://docs.gitlab.com/api/deploy_tokens/</span>
+<span class="c1"># 2. Store it in a Kubernetes secret, e.g.</span>
+<span class="c1">#    kubectl create secret generic gitlab-api-token --from-literal=token=glpat-xxxx</span>
 <span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GitlabDeployToken</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-deploy-token</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w"> </span><span class="c1"># Optional, defaults to https://gitlab.com</span>
+<span class="w">  </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;42&quot;</span><span class="w"> </span><span class="c1"># Numeric ID or unescaped path e.g. group/project. Mutually exclusive with groupID.</span>
+<span class="w">  </span><span class="c1"># groupID: &quot;7&quot;   # Use instead of projectID to create a group deploy token.</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;eso-managed&quot;</span>
+<span class="w">  </span><span class="nt">scopes</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read_repository</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read_registry</span>
+<span class="w">  </span><span class="nt">expiresAt</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;2027-01-01T00:00:00Z&quot;</span><span class="w"> </span><span class="c1"># Optional</span>
+<span class="w">  </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;eso&quot;</span><span class="w"> </span><span class="c1"># Optional, GitLab defaults to gitlab+deploy-token-{n}</span>
+<span class="w">  </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">token</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-api-token</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
+</code></pre></div>
+<p>Example <code>ExternalSecret</code> that references the generator:</p>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azurecr-credentials</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-deploy-token</span>
 <span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1h&quot;</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-deploy-token</span><span class="w"> </span><span class="c1"># Name for the secret to be created on the cluster</span>
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sourceRef</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">generatorRef</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
-<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ACRAccessToken</span>
-<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azurecr</span>
-<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">30h0s</span>
-<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">azurecr-credentials</span>
-<span class="w">    </span><span class="nt">template</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">labels</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">argocd.argoproj.io/secret-type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">repository</span>
-<span class="w">      </span><span class="nt">data</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;example.azurecr.io&quot;</span>
-<span class="w">        </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;example.azurecr.io&quot;</span>
-<span class="w">        </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.username</span><span class="nv"> </span><span class="s">}}&quot;</span>
-<span class="w">        </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.password</span><span class="nv"> </span><span class="s">}}&quot;</span>
-<span class="w">        </span><span class="nt">enableOCI</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
-<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;helm&quot;</span>
+<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GitlabDeployToken</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gitlab-deploy-token</span>
 </code></pre></div>
+<h3 id="notes">Notes</h3>
+<ul>
+<li>The access token used for authentication is never written to the target secret; only the generated deploy token is.</li>
+<li>Each refresh creates a new deploy token and revokes the prior one, so the token value rotates on every <code>refreshInterval</code>.</li>
+</ul>
 
 
 
