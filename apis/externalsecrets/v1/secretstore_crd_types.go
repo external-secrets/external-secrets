@@ -87,7 +87,7 @@ type CRDProviderWhitelist struct {
 // identifies the SA whose token is used to authenticate against the remote cluster.
 // Optionally, set serviceAccountRef to impersonate a different identity on that remote
 // cluster: the controller will set the Kubernetes Impersonate-User header to
-// "system:serviceaccount/<namespace>/<name>" after connecting.
+// "system:serviceaccount:<namespace>:<name>" after connecting.
 //
 // # Remote reference keys
 //
@@ -99,7 +99,7 @@ type CRDProviderWhitelist struct {
 //     dataFrom Find with a namespaced kind, listing uses all namespaces unless
 //     remoteNamespace is set, and result keys are "namespace/objectName".
 //
-// +kubebuilder:validation:XValidation:rule="!(has(self.auth) && has(self.authRef))",message="auth and authRef are mutually exclusive"
+// +kubebuilder:validation:AtMostOneOf=auth;authRef
 // +kubebuilder:validation:XValidation:rule="has(self.serviceAccountRef) || has(self.auth) || has(self.authRef)",message="one of serviceAccountRef, auth, or authRef is required"
 type CRDProvider struct {
 	// ServiceAccountRef references the ServiceAccount used for authentication.

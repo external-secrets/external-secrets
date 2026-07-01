@@ -178,8 +178,8 @@ func TestClientGetSecret(t *testing.T) {
 			ref: ref("item-a", "spec.foo.bar"), wantStr: "42",
 		},
 		{
-			name: "JMESPath on array", client: func() *Client { return ssClient(makeStore(), "ns1", widget("item-a", "ns1", richSpec)) },
-			ref: ref("item-a", "spec.nested[?key=='fqdn'].val | [0]"), wantStr: "u:p@db",
+			name: "gjson query on array", client: func() *Client { return ssClient(makeStore(), "ns1", widget("item-a", "ns1", richSpec)) },
+			ref: ref("item-a", `spec.nested.#(key=="fqdn").val`), wantStr: "u:p@db",
 		},
 		{
 			name:   "nested object returns JSON",
@@ -278,8 +278,8 @@ func TestExtractValue(t *testing.T) {
 	}{
 		{name: "by property", property: "spec.password", wantStr: "s3cr3t"},
 		{name: "missing property", property: "spec.missing", wantErrMsg: "not found"},
-		{name: "invalid JMESPath", property: "spec.targets[?name=='db'", wantErrMsg: "invalid property expression"},
-		{name: "JMESPath array", property: "spec.targets[?name=='db'].value | [0]", wantStr: "v2"},
+		{name: "query with no match is not found", property: `spec.targets.#(name=="nope").value`, wantErrMsg: "not found"},
+		{name: "gjson array query", property: `spec.targets.#(name=="db").value`, wantStr: "v2"},
 		{
 			name: "selected fields", fields: []string{"spec.password", "spec.meta.a"},
 			checkFn: func(t *testing.T, b []byte) {

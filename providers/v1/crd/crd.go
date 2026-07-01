@@ -25,7 +25,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/jmespath/go-jmespath"
+	"github.com/tidwall/gjson"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -36,7 +36,7 @@ import (
 )
 
 // GetSecret retrieves a single value from a CRD object.
-// ref.Key is interpreted per store kind (see parseRemoteRefKey); ref.Property is an optional JMESPath expression.
+// ref.Key is interpreted per store kind (see parseRemoteRefKey); ref.Property is an optional GJSON path expression.
 func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	obj, err := c.fetchObject(ctx, ref)
 	if err != nil {
@@ -60,10 +60,18 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 
 // fetchObject validates ref.Key, enforces the whitelist, and retrieves the named CRD object.
 func (c *Client) fetchObject(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (*unstructured.Unstructured, error) {
-	if ref.Key == "" {
+	return c.resolveWhitelistedObject(ctx, ref.Key, ref.Property)
+}
+
+// resolveWhitelistedObject validates the key, enforces the whitelist, and
+// retrieves the named CRD object. Shared by GetSecret and SecretExists so both
+// read paths apply the same whitelist gate; without it SecretExists could be
+// used to probe the existence of objects the whitelist does not permit.
+func (c *Client) resolveWhitelistedObject(ctx context.Context, key, property string) (*unstructured.Unstructured, error) {
+	if key == "" {
 		return nil, errors.New("crd: ref.key must not be empty")
 	}
-	objectName, keyNamespace, err := parseRemoteRefKey(c.storeKind, ref.Key)
+	objectName, keyNamespace, err := parseRemoteRefKey(c.storeKind, key)
 	if err != nil {
 		return nil, err
 	}
@@ -72,13 +80,13 @@ func (c *Client) fetchObject(ctx context.Context, ref esv1.ExternalSecretDataRem
 		ns = *keyNamespace
 	}
 	var requestedKeys []string
-	if ref.Property != "" {
-		requestedKeys = []string{ref.Property}
+	if property != "" {
+		requestedKeys = []string{property}
 	}
 	if !c.matchesWhitelistRule(objectName, ns, requestedKeys) {
-		return nil, fmt.Errorf("crd: request for %q denied by whitelist rules", ref.Key)
+		return nil, fmt.Errorf("crd: request for %q denied by whitelist rules", key)
 	}
-	return c.getObject(ctx, ref.Key)
+	return c.getObject(ctx, key)
 }
 
 // GetAllSecrets lists CRD objects whose logical keys match the store Name pattern
@@ -153,9 +161,11 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	return esutils.ConvertKeys(ref.ConversionStrategy, result)
 }
 
-// SecretExists returns true when the named CRD object exists.
+// SecretExists returns true when the named CRD object exists and is permitted
+// by the whitelist. The whitelist is enforced here (not just in GetSecret) so
+// this cannot be used to probe for objects outside the allowed set.
 func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
-	_, err := c.getObject(ctx, ref.GetRemoteKey())
+	_, err := c.resolveWhitelistedObject(ctx, ref.GetRemoteKey(), ref.GetProperty())
 	if err != nil {
 		if errors.Is(err, esv1.NoSecretError{}) {
 			return false, nil
@@ -232,7 +242,10 @@ func (c *Client) getObject(ctx context.Context, remoteKey string) (*unstructured
 }
 
 // extractValue serializes an unstructured object (or a sub-field) to bytes.
-// property is a JMESPath expression taking precedence over fields.
+// property is a GJSON path expression taking precedence over fields; it uses the
+// same syntax as the Kubernetes provider (see
+// https://github.com/tidwall/gjson/blob/master/SYNTAX.md) so the property
+// dialect is consistent across ESO providers.
 // fields is the store-level Properties list restricting which fields are included.
 func extractValue(obj *unstructured.Unstructured, property string, fields []string) ([]byte, error) {
 	raw, err := json.Marshal(obj.Object)
@@ -241,33 +254,24 @@ func extractValue(obj *unstructured.Unstructured, property string, fields []stri
 	}
 
 	if property != "" {
-		val, err := jmespath.Search(property, obj.Object)
-		if err != nil {
-			return nil, fmt.Errorf("crd: invalid property expression %q: %w", property, err)
-		}
-		if val == nil {
+		res := gjson.GetBytes(raw, property)
+		if !res.Exists() {
 			return nil, fmt.Errorf("crd: property %q not found in object %q", property, obj.GetName())
 		}
-		s, ok := val.(string)
-		if ok {
-			return []byte(s), nil
+		// String leaves are returned unwrapped; everything else (objects,
+		// arrays, numbers, booleans) is returned as its raw JSON.
+		if res.Type == gjson.String {
+			return []byte(res.Str), nil
 		}
-		b, err := json.Marshal(val)
-		if err != nil {
-			return nil, fmt.Errorf("crd: failed to marshal property %q in object %q: %w", property, obj.GetName(), err)
-		}
-		return b, nil
+		return []byte(res.Raw), nil
 	}
 
 	if len(fields) > 0 {
 		subset := make(map[string]any, len(fields))
 		for _, f := range fields {
-			val, err := jmespath.Search(f, obj.Object)
-			if err != nil {
-				return nil, fmt.Errorf("crd: invalid property expression %q: %w", f, err)
-			}
-			if val != nil {
-				subset[f] = val
+			res := gjson.GetBytes(raw, f)
+			if res.Exists() {
+				subset[f] = res.Value()
 			}
 		}
 		return esutils.JSONMarshal(subset)

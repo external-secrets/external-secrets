@@ -46,6 +46,7 @@ var (
 	errMissingSA          = errors.New("serviceAccountRef is required in simple mode (set server/auth or authRef for explicit connection)")
 	errKindIsSecret       = errors.New("kind \"Secret\" is not allowed: use the Kubernetes provider to read Kubernetes Secrets")
 	errEmptyWhitelistRule = errors.New("whitelist rule must define name, namespace, or properties")
+	errNotImplemented     = errors.New("not implemented")
 )
 
 const warnNoCAConfigured = "No caBundle or caProvider specified; TLS connections will use system certificate roots."
@@ -319,12 +320,12 @@ func (p *Provider) newClientWithRESTConfig(ctx context.Context, store esv1.Gener
 
 // PushSecret is not supported by the CRD provider (read-only).
 func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
-	return errors.New("crd: PushSecret is not supported")
+	return fmt.Errorf("crd: PushSecret: %w", errNotImplemented)
 }
 
 // DeleteSecret is not supported by the CRD provider (read-only).
 func (c *Client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
-	return errors.New("crd: DeleteSecret is not supported")
+	return fmt.Errorf("crd: DeleteSecret: %w", errNotImplemented)
 }
 
 // discoverResourceFromCluster uses the discovery API (authenticated as the SA)

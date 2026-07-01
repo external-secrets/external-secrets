@@ -135,19 +135,18 @@ A rule with none of `name`, `namespace`, or `properties` is invalid.
 - For requests without a specific property (for example `GetAllSecrets`), only rules that do not require `properties` can match.
 - `namespace` matching is only enforced for `ClusterSecretStore`; `SecretStore` ignores this field.
 
-## Property Expressions (JMESPath)
+## Property Expressions (GJSON)
 
-`remoteRef.property` is evaluated using [JMESPath](https://jmespath.org/).
+`remoteRef.property` is evaluated using [GJSON path syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md), the same syntax used by the Kubernetes provider and the rest of ESO, so the property dialect is consistent across providers.
 
 Examples:
 
 - `spec.user`
 - `spec.password`
-- `status[0].key`
-- `status[?key=='rotationDate'].val | [0]`
+- `status.0.key`
+- `status.#(key=="rotationDate").val`
 
-If an expression is invalid, the provider returns an error.
-If an expression is valid but resolves to no value, the provider returns `property not found`.
+If the expression resolves to no value, the provider returns `property not found`.
 
 ## ExternalSecret examples
 
@@ -326,6 +325,6 @@ If a `ClusterSecretStore` only ever reads from a single fixed namespace (set `re
 
 When using `ClusterSecretStore`:
 
-- for namespaced resources, `remoteRef.key` should be `namespace/objectName`.
+- for namespaced resources, `remoteRef.key` must be `namespace/objectName`.
 - `whitelist.rules[].namespace` can be used to constrain which namespaces are readable.
 - for service account token resolution, if no namespace can be derived the provider defaults to `default`.
