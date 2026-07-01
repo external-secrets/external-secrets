@@ -782,6 +782,65 @@ func makeCertSecretStoreWithMissingRefs(svcURL, certServiceID, conjurAccount str
 	return store
 }
 
+func makeMultiAuthSecretStore(svcURL string) *esv1.SecretStore {
+	return &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Conjur: &esv1.ConjurProvider{
+					URL: svcURL,
+					Auth: esv1.ConjurAuth{
+						APIKey: &esv1.ConjurAPIKey{
+							Account:   svcAccount,
+							UserRef:   &esmeta.SecretKeySelector{Name: svcUser, Key: "username"},
+							APIKeyRef: &esmeta.SecretKeySelector{Name: svcApikey, Key: "apikey"},
+						},
+						Jwt: &esv1.ConjurJWT{
+							Account:           "myconjuraccount",
+							ServiceID:         jwtAuthnService,
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "conjur"},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+func makeCertSecretStoreWithEmptyRefNames(svcURL, certServiceID, conjurAccount string, emptyCertName, emptyKeyName bool) *esv1.SecretStore {
+	certName := certClientCertName
+	if emptyCertName {
+		certName = ""
+	}
+	keyName := certClientKeyName
+	if emptyKeyName {
+		keyName = ""
+	}
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Conjur: &esv1.ConjurProvider{
+					URL: svcURL,
+					Auth: esv1.ConjurAuth{
+						Cert: &esv1.ConjurCert{
+							Account:   conjurAccount,
+							ServiceID: certServiceID,
+							ClientCertRef: &esmeta.SecretKeySelector{
+								Name: certName,
+								Key:  "tls.crt",
+							},
+							ClientKeyRef: &esmeta.SecretKeySelector{
+								Name: keyName,
+								Key:  "tls.key",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	return store
+}
+
 func makeFakeAPIKeySecrets() []kclient.Object {
 	return []kclient.Object{
 		&corev1.Secret{

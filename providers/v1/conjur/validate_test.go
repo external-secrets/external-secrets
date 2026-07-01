@@ -104,6 +104,31 @@ func TestValidateStore(t *testing.T) {
 			store: makeCertSecretStoreWithMissingRefs(svcURL, certServiceID, svcAccount, false, true),
 			err:   errors.New("missing Auth.Cert.ClientCertRef"),
 		},
+		{
+			store: makeCertSecretStoreWithEmptyRefNames(svcURL, certServiceID, svcAccount, true, false),
+			err:   errors.New("missing Auth.Cert.ClientCertRef.Name"),
+		},
+		{
+			store: makeCertSecretStoreWithEmptyRefNames(svcURL, certServiceID, svcAccount, false, true),
+			err:   errors.New("missing Auth.Cert.ClientKeyRef.Name"),
+		},
+		{
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Conjur: &esv1.ConjurProvider{
+							URL:  svcURL,
+							Auth: esv1.ConjurAuth{},
+						},
+					},
+				},
+			},
+			err: errors.New("must specify exactly one Auth.* method"),
+		},
+		{
+			store: makeMultiAuthSecretStore(svcURL),
+			err:   errors.New("must specify exactly one Auth.* method"),
+		},
 	}
 	p := Provider{}
 	for _, tc := range testCases {
