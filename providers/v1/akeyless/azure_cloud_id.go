@@ -39,7 +39,7 @@ import (
 const (
 	azureDefaultAudience = "api://AzureADTokenExchange"
 	annotationClientID   = "azure.workload.identity/client-id"
-	annotationTenantID     = "azure.workload.identity/tenant-id"
+	annotationTenantID   = "azure.workload.identity/tenant-id"
 
 	errMissingAzureClientID = "missing Azure client ID: set accessTypeParam or annotate the service account with %s"
 	errMissingAzureTenantID = "missing Azure tenant ID: annotate the service account with %s or set AZURE_TENANT_ID"
