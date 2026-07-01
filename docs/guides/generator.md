@@ -55,20 +55,21 @@ exactly. The following Spec fields are available:
 
 ```go
 type GeneratorSpec struct {
-	ACRAccessTokenSpec        *ACRAccessTokenSpec        `json:"acrAccessTokenSpec,omitempty"`
-	CloudsmithAccessTokenSpec *CloudsmithAccessTokenSpec `json:"cloudsmithAccessTokenSpec,omitempty"`
-	ECRAuthorizationTokenSpec *ECRAuthorizationTokenSpec `json:"ecrAuthorizationTokenSpec,omitempty"`
-	FakeSpec                  *FakeSpec                  `json:"fakeSpec,omitempty"`
-	GCRAccessTokenSpec        *GCRAccessTokenSpec        `json:"gcrAccessTokenSpec,omitempty"`
-	GithubAccessTokenSpec     *GithubAccessTokenSpec     `json:"githubAccessTokenSpec,omitempty"`
-	QuayAccessTokenSpec       *QuayAccessTokenSpec       `json:"quayAccessTokenSpec,omitempty"`
-	PasswordSpec              *PasswordSpec              `json:"passwordSpec,omitempty"`
-	SSHKeySpec                *SSHKeySpec                `json:"sshKeySpec,omitempty"`
-	STSSessionTokenSpec       *STSSessionTokenSpec       `json:"stsSessionTokenSpec,omitempty"`
-	UUIDSpec                  *UUIDSpec                  `json:"uuidSpec,omitempty"`
-	VaultDynamicSecretSpec    *VaultDynamicSecretSpec    `json:"vaultDynamicSecretSpec,omitempty"`
-	WebhookSpec               *WebhookSpec               `json:"webhookSpec,omitempty"`
-	GrafanaSpec               *GrafanaSpec               `json:"grafanaSpec,omitempty"`
-	MFASpec                   *MFASpec                   `json:"mfaSpec,omitempty"`
+	ACRAccessTokenSpec                 *ACRAccessTokenSpec                 `json:"acrAccessTokenSpec,omitempty"`
+	CloudsmithAccessTokenSpec          *CloudsmithAccessTokenSpec          `json:"cloudsmithAccessTokenSpec,omitempty"`
+	CodeArtifactAuthorizationTokenSpec *CodeArtifactAuthorizationTokenSpec `json:"codeArtifactAuthorizationTokenSpec,omitempty"`
+	ECRAuthorizationTokenSpec          *ECRAuthorizationTokenSpec          `json:"ecrAuthorizationTokenSpec,omitempty"`
+	FakeSpec                           *FakeSpec                           `json:"fakeSpec,omitempty"`
+	GCRAccessTokenSpec                 *GCRAccessTokenSpec                 `json:"gcrAccessTokenSpec,omitempty"`
+	GithubAccessTokenSpec              *GithubAccessTokenSpec              `json:"githubAccessTokenSpec,omitempty"`
+	QuayAccessTokenSpec                *QuayAccessTokenSpec                `json:"quayAccessTokenSpec,omitempty"`
+	PasswordSpec                       *PasswordSpec                       `json:"passwordSpec,omitempty"`
+	SSHKeySpec                         *SSHKeySpec                         `json:"sshKeySpec,omitempty"`
+	STSSessionTokenSpec                *STSSessionTokenSpec                `json:"stsSessionTokenSpec,omitempty"`
+	UUIDSpec                           *UUIDSpec                           `json:"uuidSpec,omitempty"`
+	VaultDynamicSecretSpec             *VaultDynamicSecretSpec             `json:"vaultDynamicSecretSpec,omitempty"`
+	WebhookSpec                        *WebhookSpec                        `json:"webhookSpec,omitempty"`
+	GrafanaSpec                        *GrafanaSpec                        `json:"grafanaSpec,omitempty"`
+	MFASpec                            *MFASpec                            `json:"mfaSpec,omitempty"`
 }
 ```

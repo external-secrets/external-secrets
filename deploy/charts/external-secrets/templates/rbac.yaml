@@ -97,6 +97,7 @@ rules:
     resources:
     - "acraccesstokens"
     - "cloudsmithaccesstokens"
+    - "codeartifactauthorizationtokens"
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
     {{- end }}
@@ -277,6 +278,7 @@ rules:
     - "acraccesstokens"
     - "beyondtrustworkloadcredentialsdynamicsecrets"
     - "cloudsmithaccesstokens"
+    - "codeartifactauthorizationtokens"
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
     {{- end }}
@@ -342,6 +344,7 @@ rules:
     resources:
     - "acraccesstokens"
     - "cloudsmithaccesstokens"
+    - "codeartifactauthorizationtokens"
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
     {{- end }}
