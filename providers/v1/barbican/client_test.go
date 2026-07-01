@@ -140,7 +140,7 @@ func TestUnsupportedOperations(t *testing.T) {
 	exists, err := client.SecretExists(context.Background(), nil)
 	assert.Error(t, err)
 	assert.False(t, exists)
-	assert.Contains(t, err.Error(), "barbican provider does not pushing secrets with update policy IfNotExists")
+	assert.Contains(t, err.Error(), "does not support checking secret existence")
 
 	// Test DeleteSecret
 	err = client.DeleteSecret(context.Background(), nil)

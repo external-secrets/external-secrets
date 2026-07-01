@@ -63,6 +63,8 @@ var (
 	VaultDynamicSecretKind = reflect.TypeFor[VaultDynamicSecret]().Name()
 	// GithubAccessTokenKind is the kind name for GithubAccessToken resource.
 	GithubAccessTokenKind = reflect.TypeFor[GithubAccessToken]().Name()
+	// GitlabDeployTokenKind is the kind name for GitlabDeployToken resource.
+	GitlabDeployTokenKind = reflect.TypeFor[GitlabDeployToken]().Name()
 	// QuayAccessTokenKind is the kind name for QuayAccessToken resource.
 	QuayAccessTokenKind = reflect.TypeFor[QuayAccessToken]().Name()
 	// UUIDKind is the kind name for UUID resource.
@@ -106,6 +108,7 @@ func init() {
 	SchemeBuilder.Register(&Fake{}, &FakeList{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
 	SchemeBuilder.Register(&GithubAccessToken{}, &GithubAccessTokenList{})
+	SchemeBuilder.Register(&GitlabDeployToken{}, &GitlabDeployTokenList{})
 	SchemeBuilder.Register(&QuayAccessToken{}, &QuayAccessTokenList{})
 	SchemeBuilder.Register(&Password{}, &PasswordList{})
 	SchemeBuilder.Register(&SSHKey{}, &SSHKeyList{})

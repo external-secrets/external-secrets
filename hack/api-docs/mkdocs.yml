@@ -86,6 +86,7 @@ nav:
           - Fake: api/generator/fake.md
           - Webhook: api/generator/webhook.md
           - Github: api/generator/github.md
+          - Gitlab: api/generator/gitlab.md
           - UUID: api/generator/uuid.md
           - MFA: api/generator/mfa.md
           - SSHKey: api/generator/sshkey.md

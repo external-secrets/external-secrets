@@ -229,6 +229,17 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			},
 			Spec: *gen.Spec.Generator.GithubAccessTokenSpec,
 		}, nil
+	case genv1alpha1.GeneratorKindGitlabDeployToken:
+		if gen.Spec.Generator.GitlabDeployTokenSpec == nil {
+			return nil, fmt.Errorf("when kind is %s, GitlabDeployTokenSpec must be set", gen.Spec.Kind)
+		}
+		return &genv1alpha1.GitlabDeployToken{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.GitlabDeployTokenKind,
+			},
+			Spec: *gen.Spec.Generator.GitlabDeployTokenSpec,
+		}, nil
 	case genv1alpha1.GeneratorKindQuayAccessToken:
 		if gen.Spec.Generator.QuayAccessTokenSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, QuayAccessTokenSpec must be set", gen.Spec.Kind)
