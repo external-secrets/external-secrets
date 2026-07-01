@@ -2138,7 +2138,7 @@ then used to read CRDs from the local cluster.</p>
 identifies the SA whose token is used to authenticate against the remote cluster.
 Optionally, set serviceAccountRef to impersonate a different identity on that remote
 cluster: the controller will set the Kubernetes Impersonate-User header to
-&ldquo;system:serviceaccount/<namespace>/<name>&rdquo; after connecting.</p>
+&ldquo;system:serviceaccount:<namespace>:<name>&rdquo; after connecting.</p>
 <h1>Remote reference keys</h1>
 <ul>
 <li>SecretStore: the key is the object name only; &lsquo;/&rsquo; is not allowed. The API
