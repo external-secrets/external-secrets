@@ -23,141 +23,61 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
+type MergePolicy string
+
+const (
+	MergePolicyMerge   MergePolicy = "Merge"
+	MergePolicyReplace MergePolicy = "Replace"
+)
+
+const (
+	managedByKey   = "managed-by"
+	managedByValue = "external-secrets"
+)
+
+const customMetadataKey = "custom_metadata"
+
+type PushSecretMetadataSpec struct {
+	CustomMetadata map[string]string `json:"customMetadata,omitempty"`
+	MergePolicy    MergePolicy       `json:"mergePolicy,omitempty"`
+}
+
 func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
-	var (
-		value []byte
-		err   error
-	)
-	key := data.GetSecretKey()
-	if key == "" {
-		// Must convert secret values to string, otherwise data will be sent as base64 to Vault
-		secretStringVal := make(map[string]string)
-		for k, v := range secret.Data {
-			secretStringVal[k] = string(v)
-		}
-		value, err = esutils.JSONMarshal(secretStringVal)
-		if err != nil {
-			return fmt.Errorf("failed to serialize secret content as JSON: %w", err)
-		}
-	} else {
-		value = secret.Data[key]
-	}
-	label := map[string]any{
-		"custom_metadata": map[string]string{
-			"managed-by": "external-secrets",
-		},
-	}
-	secretVal := make(map[string]any)
-	path := c.buildPath(data.GetRemoteKey())
-	metaPath, err := c.buildMetadataPath(data.GetRemoteKey())
+	value, err := esutils.ExtractSecretData(data, secret)
 	if err != nil {
 		return err
 	}
 
-	// Retrieve the secret map from vault and convert the secret value in string form.
-	vaultSecret, err := c.readSecret(ctx, path, "")
-	// If error is not of type secret not found, we should error
-	if err != nil && !errors.Is(err, esv1.NoSecretError{}) {
-		return err
-	}
-
-	secretExists := err == nil
-	// If the secret exists, we should check if it is managed by external-secrets
-	if secretExists {
-		metadata, err := c.readSecretMetadata(ctx, data.GetRemoteKey())
-		if err != nil {
-			return err
-		}
-		manager, ok := metadata["managed-by"]
-		if !ok || manager != "external-secrets" {
-			return errors.New("secret not managed by external-secrets")
-		}
-		// Remove the metadata map to check the reconcile difference
-		if c.store.Version == esv1.VaultKVStoreV1 {
-			delete(vaultSecret, "custom_metadata")
-		}
-		// Only compare the entire secret if we're pushing the whole secret (not a single property)
-		if data.GetProperty() == "" {
-			// Convert incoming value to map for proper JSON comparison
-			var incomingSecretMap map[string]any
-			err = json.Unmarshal(value, &incomingSecretMap)
-			if err != nil {
-				// Do not wrap the original error with %w as json.Unmarshal errors
-				// may contain sensitive secret data in the error message
-				return errors.New("error unmarshalling incoming secret value: invalid JSON format")
-			}
-			// Compare maps instead of raw bytes to handle JSON field ordering and formatting
-			if maps.Equal(vaultSecret, incomingSecretMap) {
-				return nil
-			}
-		}
-	}
-	// If a Push of a property only, we should merge and add/update the property
-	if data.GetProperty() != "" {
-		if _, ok := vaultSecret[data.GetProperty()]; ok {
-			d, ok := vaultSecret[data.GetProperty()].(string)
-			if !ok {
-				return fmt.Errorf("error converting %s to string", data.GetProperty())
-			}
-			// If the property has the same value, don't update the secret
-			if bytes.Equal([]byte(d), value) {
-				return nil
-			}
-		}
-		maps.Insert(secretVal, maps.All(vaultSecret))
-		// Secret got from vault is already on map[string]string format
-		secretVal[data.GetProperty()] = string(value)
-	} else {
-		err = json.Unmarshal(value, &secretVal)
-		if err != nil {
-			// Do not wrap the original error with %w as json.Unmarshal errors
-			// may contain sensitive secret data in the error message
-			return errors.New("error unmarshalling vault secret: invalid JSON format")
-		}
-	}
-	secretToPush := secretVal
-	// Adding custom_metadata to the secret for KV v1
-	if c.store.Version == esv1.VaultKVStoreV1 {
-		secretToPush["custom_metadata"] = label["custom_metadata"]
-	}
-	if c.store.Version == esv1.VaultKVStoreV2 {
-		secretToPush = map[string]any{
-			"data": secretVal,
-		}
-
-		// Add CAS options if required
-		if c.store.CheckAndSet != nil && c.store.CheckAndSet.Required {
-			casVersion, casErr := c.getCASVersion(ctx, data.GetRemoteKey(), secretExists)
-			if casErr != nil {
-				return fmt.Errorf("failed to get CAS version: %w", casErr)
-			}
-
-			secretToPush["options"] = map[string]any{
-				"cas": casVersion,
-			}
-		}
-	}
-	// Secret metadata should be pushed separately only for KV2
-	if c.store.Version == esv1.VaultKVStoreV2 {
-		_, err = c.logical.WriteWithContext(ctx, metaPath, label)
-		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
-		if err != nil {
+	vaultSecret, err := c.readSecret(ctx, data.GetRemoteKey(), "")
+	secretExists := true
+	if err != nil {
+		if errors.Is(err, esv1.NoSecretError{}) {
+			secretExists = false
+		} else {
 			return err
 		}
 	}
-	// Otherwise, create or update the version.
-	_, err = c.logical.WriteWithContext(ctx, path, secretToPush)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
-	return err
+
+	path := c.buildPath(data.GetRemoteKey())
+	switch c.store.Version {
+	case esv1.VaultKVStoreV1:
+		return c.pushSecretKV1(ctx, path, vaultSecret, value, data)
+	case esv1.VaultKVStoreV2:
+		return c.pushSecretKV2(ctx, path, secretExists, vaultSecret, value, data)
+	default:
+		return fmt.Errorf("unsupported vault KV store version: %s", c.store.Version)
+	}
 }
 
 func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
@@ -175,20 +95,22 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	if err != nil {
 		return err
 	}
-	metadata, err := c.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
+	remoteMeta, err := c.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
 	if err != nil {
 		return err
 	}
-	manager, ok := metadata["managed-by"]
-	if !ok || manager != "external-secrets" {
+	manager, ok := remoteMeta[managedByKey]
+	if !ok || manager != managedByValue {
 		return nil
 	}
 	// If Push for a Property, we need to delete the property and update the secret
 	if remoteRef.GetProperty() != "" {
 		delete(secretVal, remoteRef.GetProperty())
 		// If the only key left in the remote secret is the reference of the metadata.
-		if c.store.Version == esv1.VaultKVStoreV1 && len(secretVal) == 1 {
-			delete(secretVal, "custom_metadata")
+		if c.store.Version == esv1.VaultKVStoreV1 {
+			if _, onlyMeta := secretVal[customMetadataKey]; onlyMeta && len(secretVal) == 1 {
+				delete(secretVal, customMetadataKey)
+			}
 		}
 		if len(secretVal) > 0 {
 			secretToPush := secretVal
@@ -214,6 +136,124 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 			return fmt.Errorf("could not delete secret metadata %v: %w", remoteRef.GetRemoteKey(), err)
 		}
 	}
+	return nil
+}
+
+func (c *client) pushSecretKV1(ctx context.Context, path string, vaultSecret map[string]any, value []byte, data esv1.PushSecretData) error {
+	if vaultSecret != nil {
+		// KV1 Metadata verification
+		customMetaRaw, ok := vaultSecret[customMetadataKey]
+		if !ok || customMetaRaw == nil {
+			return errors.New("secret not managed by external-secrets (no custom_metadata found)")
+		}
+
+		cmMap, ok := customMetaRaw.(map[string]any)
+		if !ok || cmMap[managedByKey] != managedByValue {
+			return errors.New("secret not managed by external-secrets")
+		}
+
+		delete(vaultSecret, customMetadataKey)
+	}
+
+	var (
+		mergedData      map[string]any
+		dataNeedsUpdate bool
+		err             error
+	)
+	mergedData, dataNeedsUpdate, err = reconcileData(vaultSecret, value, data.GetProperty())
+	if err != nil {
+		return err
+	}
+
+	if vaultSecret != nil && !dataNeedsUpdate {
+		return nil // secret exists and is already up-to-date
+	}
+
+	// Inject hardcoded KV1 metadata
+	mergedData[customMetadataKey] = map[string]string{
+		managedByKey: managedByValue,
+	}
+
+	_, err = c.logical.WriteWithContext(ctx, path, mergedData)
+	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
+	if err != nil {
+		return fmt.Errorf("failed to write secret data: %w", err)
+	}
+
+	return nil
+}
+
+func (c *client) pushSecretKV2(ctx context.Context, path string, secretExists bool, vaultSecret map[string]any, value []byte, data esv1.PushSecretData) error {
+	metaPath, err := c.buildMetadataPath(data.GetRemoteKey())
+	if err != nil {
+		return err
+	}
+
+	// 1. Resolve Data State
+	var mergedData map[string]any
+	var dataNeedsUpdate bool
+	mergedData, dataNeedsUpdate, err = reconcileData(vaultSecret, value, data.GetProperty())
+	if err != nil {
+		return err
+	}
+
+	// 2. Fetch Remote Metadata (if the secret exists)
+	var remoteMeta map[string]string
+	if secretExists {
+		remoteMeta, err = c.readSecretMetadata(ctx, data.GetRemoteKey())
+		if err != nil {
+			return err
+		}
+	}
+
+	// 3. Resolve Metadata State
+	parsedMetadata, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
+	if err != nil {
+		return fmt.Errorf("failed to parse push secret metadata: %w", err)
+	}
+
+	finalCustomMeta, metadataNeedsUpdate, err := reconcileKV2Metadata(secretExists, remoteMeta, parsedMetadata)
+	if err != nil {
+		return err
+	}
+
+	// 4. Unified Early Exit
+	if !dataNeedsUpdate && !metadataNeedsUpdate {
+		return nil
+	}
+
+	// 5. Execute Writes
+	// Metadata is written before data intentionally: for new secrets this establishes
+	// the "managed-by" ownership tag first. If the data write subsequently fails the
+	// reconciler will retry; because managed-by is already present it will proceed
+	// straight to updating the data without re-checking ownership.
+	if metadataNeedsUpdate {
+		metaPayload := map[string]any{customMetadataKey: finalCustomMeta}
+		_, err = c.logical.WriteWithContext(ctx, metaPath, metaPayload)
+		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
+		if err != nil {
+			return fmt.Errorf("failed to write secret metadata: %w", err)
+		}
+	}
+
+	if dataNeedsUpdate {
+		secretToPush := map[string]any{"data": mergedData}
+
+		if c.store.CheckAndSet != nil && c.store.CheckAndSet.Required {
+			casVersion, casErr := c.getCASVersion(ctx, data.GetRemoteKey(), secretExists)
+			if casErr != nil {
+				return fmt.Errorf("failed to get CAS version: %w", casErr)
+			}
+			secretToPush["options"] = map[string]any{"cas": casVersion}
+		}
+
+		_, err = c.logical.WriteWithContext(ctx, path, secretToPush)
+		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
+		if err != nil {
+			return fmt.Errorf("failed to write secret data: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -249,7 +289,6 @@ func (c *client) getCASVersion(ctx context.Context, remoteKey string, secretExis
 }
 
 func getCurrentVersionFromMetadata(data map[string]any) (int, error) {
-	var err error
 	if currentVersion, ok := data["current_version"]; ok {
 		switch v := currentVersion.(type) {
 		case int:
@@ -257,10 +296,11 @@ func getCurrentVersionFromMetadata(data map[string]any) (int, error) {
 		case float64:
 			return int(v), nil
 		case json.Number:
-			if intVal, err := v.Int64(); err == nil {
-				return int(intVal), nil
+			intVal, err := v.Int64()
+			if err != nil {
+				return 0, fmt.Errorf("failed to convert json.Number to int: %w", err)
 			}
-			return 0, fmt.Errorf("failed to convert json.Number to int: %w", err)
+			return int(intVal), nil
 		default:
 			return 0, fmt.Errorf("unexpected type for current_version: %T", currentVersion)
 		}
@@ -270,4 +310,91 @@ func getCurrentVersionFromMetadata(data map[string]any) (int, error) {
 	// This handles edge cases with legacy secrets or incomplete metadata.
 	// Vault KV v2 secrets start at version 1, so this is the safest assumption.
 	return 1, nil
+}
+
+func reconcileData(vaultSecret map[string]any, value []byte, property string) (map[string]any, bool, error) {
+	if property == "" {
+		return reconcileWholeSecret(vaultSecret, value)
+	}
+	return reconcileSecretProperty(vaultSecret, value, property)
+}
+
+func reconcileWholeSecret(vaultSecret map[string]any, value []byte) (map[string]any, bool, error) {
+	incomingSecretMap := make(map[string]any)
+	if err := json.Unmarshal(value, &incomingSecretMap); err != nil {
+		if vaultSecret == nil {
+			return nil, false, errors.New("error unmarshalling vault secret: invalid JSON format")
+		}
+		return nil, false, errors.New("error unmarshalling incoming secret value: invalid JSON format")
+	}
+
+	needsUpdate := !reflect.DeepEqual(vaultSecret, incomingSecretMap)
+	return incomingSecretMap, needsUpdate, nil
+}
+
+func reconcileSecretProperty(vaultSecret map[string]any, value []byte, property string) (map[string]any, bool, error) {
+	secretVal := make(map[string]any)
+	needsUpdate := true
+
+	if vaultSecret != nil {
+		maps.Copy(secretVal, vaultSecret)
+
+		// Check if the specific property matches to avoid unnecessary writes
+		if existingVal, ok := vaultSecret[property]; ok {
+			if d, isStr := existingVal.(string); isStr && bytes.Equal([]byte(d), value) {
+				needsUpdate = false
+			}
+		}
+	}
+	secretVal[property] = string(value)
+
+	return secretVal, needsUpdate, nil
+}
+
+func reconcileKV2Metadata(secretExists bool, remoteMeta map[string]string, parsedMeta *metadata.PushSecretMetadata[PushSecretMetadataSpec]) (map[string]string, bool, error) {
+	desiredCustomMeta := map[string]string{managedByKey: managedByValue}
+	mergePolicy := MergePolicyMerge // Default Policy
+
+	if parsedMeta != nil {
+		if parsedMeta.Spec.MergePolicy != "" {
+			switch parsedMeta.Spec.MergePolicy {
+			case MergePolicyMerge, MergePolicyReplace:
+				mergePolicy = parsedMeta.Spec.MergePolicy
+			default:
+				return nil, false, fmt.Errorf("unsupported merge policy %q, must be one of: Merge, Replace", parsedMeta.Spec.MergePolicy)
+			}
+		}
+		if parsedMeta.Spec.CustomMetadata != nil {
+			maps.Copy(desiredCustomMeta, parsedMeta.Spec.CustomMetadata)
+		}
+	}
+
+	// The managed-by key is reserved and must never be user-overridable. Re-assert it
+	// here, after user-supplied custom metadata has been merged in, so every downstream
+	// path (the new-secret return below and all merge-policy branches) inherits the
+	// correct ownership tag from this single source.
+	desiredCustomMeta[managedByKey] = managedByValue
+
+	if !secretExists {
+		return desiredCustomMeta, true, nil
+	}
+
+	if manager, ok := remoteMeta[managedByKey]; !ok || manager != managedByValue {
+		return nil, false, errors.New("secret not managed by external-secrets")
+	}
+
+	finalCustomMeta := make(map[string]string)
+	switch mergePolicy {
+	case MergePolicyMerge:
+		if remoteMeta != nil {
+			maps.Copy(finalCustomMeta, remoteMeta)
+		}
+		maps.Copy(finalCustomMeta, desiredCustomMeta)
+	case MergePolicyReplace:
+		maps.Copy(finalCustomMeta, desiredCustomMeta)
+	}
+
+	needsUpdate := !maps.Equal(remoteMeta, finalCustomMeta)
+
+	return finalCustomMeta, needsUpdate, nil
 }
