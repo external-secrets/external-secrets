@@ -57,11 +57,15 @@ func (w *Grafana) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, kc
 	}
 
 	// create new token
+	tokenCmd := &models.AddServiceAccountTokenCommand{
+		Name: uuid.New().String(),
+	}
+	if gen.Spec.ServiceAccount.SecondsToLive != nil {
+		tokenCmd.SecondsToLive = *gen.Spec.ServiceAccount.SecondsToLive
+	}
 	res, err := cl.ServiceAccounts.CreateToken(&grafanasa.CreateTokenParams{
 		ServiceAccountID: *state.ServiceAccount.ServiceAccountID,
-		Body: &models.AddServiceAccountTokenCommand{
-			Name: uuid.New().String(),
-		},
+		Body:             tokenCmd,
 	}, nil)
 	if err != nil {
 		return nil, nil, err
