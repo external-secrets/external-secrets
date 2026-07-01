@@ -23,11 +23,12 @@ import (
 	"context"
 	"net/http"
 
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/providers/v1/openbao/internal/auth"
 	"k8s.io/client-go/kubernetes"
 	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/providers/v1/openbao/internal/auth"
 )
 
 var (
@@ -59,6 +60,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 	clientset, err := kubernetes.NewForConfig(restCfg)
+	if err != nil {
+		return nil, err
+	}
 	client := &client{
 		storeKind: store.GetKind(),
 		store:     spec,
@@ -110,7 +114,6 @@ func isReferentSpec(prov *esv1.OpenBaoProvider) bool {
 				return true
 			}
 		}
-
 	}
 
 	if prov.CAProvider != nil && prov.CAProvider.Namespace == nil {

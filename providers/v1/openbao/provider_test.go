@@ -367,12 +367,30 @@ func TestProvider_Auth(t *testing.T) {
 			Namespace: "default",
 		},
 		Data: map[string][]byte{
-			"approle-id":        []byte("dynamic-roleid"),
-			"approle-secret":    []byte("the-secret"),
-			"userpass-password": []byte("the-password"),
+			"approle-id":           []byte("dynamic-roleid"),
+			"approle-secret":       []byte("the-secret"),
+			"userpass-password":    []byte("the-password"),
+			"serviceaccount-token": []byte("the-jwt"),
+		},
+	}, &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "the-serviceaccount",
+			Namespace: "default",
+		}, Secrets: []corev1.ObjectReference{
+			{Name: "serviceaccount-token"},
+		},
+	}, &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "serviceaccount-token",
+			Namespace: "default",
+		},
+		Type: corev1.SecretTypeServiceAccountToken,
+		Data: map[string][]byte{
+			"token": []byte("the-jwt"),
 		},
 	}).Build()
 	provider := openbao.NewProvider().(*openbao.Provider)
+	namespace := "default"
 
 	cases := []struct {
 		name          string
@@ -426,25 +444,26 @@ func TestProvider_Auth(t *testing.T) {
 			Kubernetes: &esv1.OpenBaoKubernetesAuth{
 				Path: "kubernetespath",
 				SecretRef: &esmeta.SecretKeySelector{
-					Name: "jwt-secret",
-					Key:  "jwt",
+					Name: "shared-secret",
+					Key:  "serviceaccount-token",
 				},
 				Role: "kubernetesrole",
 			},
 		},
-		expectedCalls: []string{`Kubernetes( "kubernetesrole", "the-jwt","kubernetespath")`},
+		expectedCalls: []string{`Kubernetes("kubernetesrole", "the-jwt", "kubernetespath")`},
 	}, {
 		name: "kubernetes jwt from service account",
 		auth: &esv1.OpenBaoAuth{
 			Kubernetes: &esv1.OpenBaoKubernetesAuth{
 				Path: "kubernetespath",
 				ServiceAccountRef: &esmeta.ServiceAccountSelector{
-					Name: "service-account",
+					Name:      "the-service-account",
+					Namespace: &namespace,
 				},
 				Role: "kubernetesrole",
 			},
 		},
-		expectedCalls: []string{`Kubernetes( "kubernetesrole", "the-jwt","kubernetespath")`},
+		expectedCalls: []string{`Kubernetes("kubernetesrole", "the-jwt", "kubernetespath")`},
 	},
 	}
 
