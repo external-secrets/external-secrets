@@ -18,8 +18,8 @@ package auth
 
 import (
 	"github.com/openbao/openbao/api/auth/approle/v2"
-	"github.com/openbao/openbao/api/auth/userpass/v2"
 	"github.com/openbao/openbao/api/auth/kubernetes/v2"
+	"github.com/openbao/openbao/api/auth/userpass/v2"
 	"github.com/openbao/openbao/api/v2"
 )
 

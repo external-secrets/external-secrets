@@ -1,3 +1,19 @@
+/*
+Copyright © The ESO Authors
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 package openbao
 
 import (
@@ -5,25 +21,17 @@ import (
 	"fmt"
 	"os"
 
-	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	authv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
-const (
-	serviceAccTokenPath       = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-	errServiceAccount         = "cannot read Kubernetes service account token from file system: %w"
-	errGetKubeSA              = "cannot get Kubernetes service account %q: %w"
-	errGetKubeSASecrets       = "cannot find secrets bound to service account: %q"
-	errGetKubeSANoToken       = "cannot find token in secrets bound to service account: %q"
-	errServiceAccountNotFound = "serviceaccounts %q not found"
-	errGetKubeSATokenRequest  = "cannot request Kubernetes service account token for service account %q: %w"
-)
-
-func getJwtString(ctx context.Context, c *client, kubernetesAuth *esv1.OpenBaoKubernetesAuth, namespace string) (string, error) {
+func getJwt(ctx context.Context, c *client, kubernetesAuth *esv1.OpenBaoKubernetesAuth, kube k8sClient.Client, namespace string) (string, error) {
 	if kubernetesAuth.ServiceAccountRef != nil {
 		return createServiceAccountToken(
 			ctx,
@@ -41,7 +49,7 @@ func getJwtString(ctx context.Context, c *client, kubernetesAuth *esv1.OpenBaoKu
 			tokenRef = kubernetesAuth.SecretRef.DeepCopy()
 			tokenRef.Key = "token"
 		}
-		jwt, err := resolvers.SecretKeyRef(ctx, c.kubernetesClient, c.storeKind, "", tokenRef)
+		jwt, err := resolvers.SecretKeyRef(ctx, kube, c.storeKind, namespace, tokenRef)
 		if err != nil {
 			return "", err
 		}
@@ -51,12 +59,12 @@ func getJwtString(ctx context.Context, c *client, kubernetesAuth *esv1.OpenBaoKu
 	// Kubernetes authentication is specified, but without a referenced
 	// Kubernetes secret. We check if the file path for in-cluster service account
 	// exists and attempt to use the token for Kubernetes auth.
-	if _, err := os.Stat(serviceAccTokenPath); err != nil {
-		return "", fmt.Errorf(errServiceAccount, err)
+	if _, err := os.Stat("/var/run/secrets/kubernetes.io/serviceaccount/token"); err != nil {
+		return "", fmt.Errorf("cannot read Kubernetes service account token from file system: %w", err)
 	}
-	jwtByte, err := os.ReadFile(serviceAccTokenPath)
+	jwtByte, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/token")
 	if err != nil {
-		return "", fmt.Errorf(errServiceAccount, err)
+		return "", fmt.Errorf("cannot read Kubernetes service account token from file system: %w", err)
 	}
 	return string(jwtByte), nil
 }
@@ -89,7 +97,7 @@ func createServiceAccountToken(
 	tokenResponse, err := corev1Client.ServiceAccounts(tokenRequest.Namespace).
 		CreateToken(ctx, serviceAccountRef.Name, tokenRequest, metav1.CreateOptions{})
 	if err != nil {
-		return "", fmt.Errorf(errGetKubeSATokenRequest, serviceAccountRef.Name, err)
+		return "", fmt.Errorf("cannot request Kubernetes service account token for service account %q: %w", serviceAccountRef.Name, err)
 	}
 	return tokenResponse.Status.Token, nil
 }

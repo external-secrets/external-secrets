@@ -53,7 +53,7 @@ func (a *MockFactory) UserPass(username, password, mount string) (api.AuthMethod
 
 // Kubernetes implements [Factory].
 func (a *MockFactory) Kubernetes(role, jwt, mount string) (api.AuthMethod, error) {
-	a.callf("Kubernetes(%q, %q, %v, %v)", role, jwt, mount)
+	a.callf("Kubernetes(%q, %q, %q)", role, jwt, mount)
 	return mockAuth{}, nil
 }
 

@@ -53,12 +53,11 @@ const (
 )
 
 type client struct {
-	client           *api.Client
-	httpClient       *http.Client
-	store            *esv1.OpenBaoProvider
-	corev1           typedcorev1.CoreV1Interface
-	storeKind        string
-	kubernetesClient k8sClient.Client
+	client     *api.Client
+	httpClient *http.Client
+	store      *esv1.OpenBaoProvider
+	corev1     typedcorev1.CoreV1Interface
+	storeKind  string
 }
 
 func (c *client) setup(ctx context.Context, kube k8sClient.Client, namespace string, provider *Provider) error {
@@ -162,7 +161,7 @@ func (c *client) setupAuth(ctx context.Context, kube k8sClient.Client, namespace
 	case c.store.Auth.Kubernetes != nil:
 		kubernetes := c.store.Auth.Kubernetes
 
-		jwt, err := getJwtString(ctx, c, c.store.Auth.Kubernetes, namespace)
+		jwt, err := getJwt(ctx, c, c.store.Auth.Kubernetes, kube, namespace)
 		if err != nil {
 			return err
 		}
