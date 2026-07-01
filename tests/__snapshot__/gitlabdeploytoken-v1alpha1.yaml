@@ -1,0 +1,17 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: GitlabDeployToken
+metadata: {}
+spec:
+  auth:
+    token:
+      secretRef:
+        key: string
+        name: string
+        namespace: string
+  expiresAt: 2024-10-11T12:48:44Z
+  groupID: string
+  name: string
+  projectID: string
+  scopes: [string] # minItems 1 of type string
+  url: string
+  username: string
