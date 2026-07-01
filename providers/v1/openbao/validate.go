@@ -72,6 +72,18 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 				return nil, fmt.Errorf(errInvalidRef, "Auth.UserPass.SecretRef", err)
 			}
 		}
+		if auth.Kubernetes != nil {
+			if auth.Kubernetes.SecretRef != nil {
+				if err := esutils.ValidateReferentSecretSelector(store, *auth.Kubernetes.SecretRef); err != nil {
+					return nil, fmt.Errorf(errInvalidRef, "Auth.Kubernetes.ServiceAccountRef", err)
+				}
+			}
+			if auth.Kubernetes.ServiceAccountRef != nil {
+				if err := esutils.ValidateReferentServiceAccountSelector(store, *auth.Kubernetes.ServiceAccountRef); err != nil {
+					return nil, fmt.Errorf(errInvalidRef, "Auth.Kubernetes.ServiceAccountRef", err)
+				}
+			}
+		}
 	}
 
 	return nil, nil

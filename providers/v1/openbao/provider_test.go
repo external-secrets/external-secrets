@@ -420,7 +420,33 @@ func TestProvider_Auth(t *testing.T) {
 			},
 		},
 		expectedCalls: []string{`AppRole("dynamic-roleid", "the-secret", "approlepath")`},
-	}}
+	}, {
+		name: "kubernetes jwt from secret",
+		auth: &esv1.OpenBaoAuth{
+			Kubernetes: &esv1.OpenBaoKubernetesAuth{
+				Path: "kubernetespath",
+				SecretRef: &esmeta.SecretKeySelector{
+					Name: "jwt-secret",
+					Key:  "jwt",
+				},
+				Role: "kubernetesrole",
+			},
+		},
+		expectedCalls: []string{`Kubernetes( "kubernetesrole", "the-jwt","kubernetespath")`},
+	}, {
+		name: "kubernetes jwt from service account",
+		auth: &esv1.OpenBaoAuth{
+			Kubernetes: &esv1.OpenBaoKubernetesAuth{
+				Path: "kubernetespath",
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{
+					Name: "service-account",
+				},
+				Role: "kubernetesrole",
+			},
+		},
+		expectedCalls: []string{`Kubernetes( "kubernetesrole", "the-jwt","kubernetespath")`},
+	},
+	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
