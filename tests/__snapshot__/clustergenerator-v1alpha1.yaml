@@ -127,6 +127,20 @@ spec:
       permissions: {}
       repositories: [] # minItems 0 of type string
       url: string
+    gitlabDeployTokenSpec:
+      auth:
+        token:
+          secretRef:
+            key: string
+            name: string
+            namespace: string
+      expiresAt: 2024-10-11T12:48:44Z
+      groupID: string
+      name: string
+      projectID: string
+      scopes: [string] # minItems 1 of type string
+      url: string
+      username: string
     grafanaSpec:
       auth:
         basic:
@@ -377,4 +391,4 @@ spec:
           name: string
       timeout: string
       url: string
-  kind: "ACRAccessToken" # "ACRAccessToken", "BeyondtrustWorkloadCredentialsDynamicSecret", "CloudsmithAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "QuayAccessToken", "Password", "SSHKey", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana", "MFA"
+  kind: "ACRAccessToken" # "ACRAccessToken", "BeyondtrustWorkloadCredentialsDynamicSecret", "CloudsmithAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "GitlabDeployToken", "QuayAccessToken", "Password", "SSHKey", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana", "MFA"

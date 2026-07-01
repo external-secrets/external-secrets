@@ -30,7 +30,7 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
+// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;GitlabDeployToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
 type GeneratorKind string
 
 const (
@@ -44,6 +44,8 @@ const (
 	GeneratorKindGCRAccessToken GeneratorKind = "GCRAccessToken"
 	// GeneratorKindGithubAccessToken represents a GitHub access token generator.
 	GeneratorKindGithubAccessToken GeneratorKind = "GithubAccessToken"
+	// GeneratorKindGitlabDeployToken represents a GitLab deploy token generator.
+	GeneratorKindGitlabDeployToken GeneratorKind = "GitlabDeployToken"
 	// GeneratorKindQuayAccessToken represents a Quay access token generator.
 	GeneratorKindQuayAccessToken GeneratorKind = "QuayAccessToken"
 	// GeneratorKindPassword represents a password generator.
@@ -79,6 +81,7 @@ type GeneratorSpec struct {
 	FakeSpec                                        *FakeSpec                                        `json:"fakeSpec,omitempty"`
 	GCRAccessTokenSpec                              *GCRAccessTokenSpec                              `json:"gcrAccessTokenSpec,omitempty"`
 	GithubAccessTokenSpec                           *GithubAccessTokenSpec                           `json:"githubAccessTokenSpec,omitempty"`
+	GitlabDeployTokenSpec                           *GitlabDeployTokenSpec                           `json:"gitlabDeployTokenSpec,omitempty"`
 	QuayAccessTokenSpec                             *QuayAccessTokenSpec                             `json:"quayAccessTokenSpec,omitempty"`
 	PasswordSpec                                    *PasswordSpec                                    `json:"passwordSpec,omitempty"`
 	SSHKeySpec                                      *SSHKeySpec                                      `json:"sshKeySpec,omitempty"`
