@@ -34,10 +34,14 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
+// MergePolicy controls how user-supplied custom metadata is reconciled with the
+// metadata already present on a remote Vault KV v2 secret.
 type MergePolicy string
 
 const (
-	MergePolicyMerge   MergePolicy = "Merge"
+	// MergePolicyMerge merges the supplied custom metadata into the existing remote metadata.
+	MergePolicyMerge MergePolicy = "Merge"
+	// MergePolicyReplace replaces the existing remote metadata with the supplied custom metadata.
 	MergePolicyReplace MergePolicy = "Replace"
 )
 
@@ -48,6 +52,8 @@ const (
 
 const customMetadataKey = "custom_metadata"
 
+// PushSecretMetadataSpec is the Vault-specific spec carried by a PushSecretMetadata
+// envelope. It defines the custom metadata to push and the policy used to merge it.
 type PushSecretMetadataSpec struct {
 	CustomMetadata map[string]string `json:"customMetadata,omitempty"`
 	MergePolicy    MergePolicy       `json:"mergePolicy,omitempty"`
