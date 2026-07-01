@@ -235,6 +235,14 @@ type SecretStoreProvider struct {
 	// OpenBao configures this store to sync secrets using the OpenBao provider.
 	// +optional
 	OpenBao *OpenBaoProvider `json:"openBao,omitempty"`
+
+	// MWSSecretManager configures this store to sync secrets using the MWS Secret Manager provider.
+	// +optional
+	MWSSecretManager *MWSSecretManagerProvider `json:"mwssecretmanager,omitempty"`
+
+	// MWSCertificateManager configures this store to sync secrets using the MWS Certificate Manager provider.
+	// +optional
+	MWSCertificateManager *MWSCertificateManagerProvider `json:"mwscertificatemanager,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.

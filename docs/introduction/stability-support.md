@@ -98,6 +98,8 @@ The following table describes the stability level of each provider and who's res
 | [Barbican](https://external-secrets.io/latest/provider/barbican)                                           |     alpha | [@rkferreira](https://github.com/rkferreira)                                                        |
 | [Devolutions Server](https://external-secrets.io/latest/provider/devolutions-server)                       |     alpha | [@rbstp](https://github.com/rbstp)                                                                  |
 | [Nebius MysteryBox](https://external-secrets.io/latest/provider/nebius-mysterybox)                         | alpha     | [@greenmapc](https://github.com/greenmapc)                                                          |
+| [MWS Secret Manager](https://external-secrets.io/latest/provider/mws-secret-manager)                       | alpha     | [@keltecc](https://github.com/keltecc)                                                                  |
+| [MWS Certificate Manager](https://external-secrets.io/latest/provider/mws-certificate-manager)                       | alpha     | [@keltecc](https://github.com/keltecc)                                                                  |
 
 ## Provider Feature Support
 
@@ -138,6 +140,8 @@ The following table show the support for features across different providers.
 | Barbican                  |      x       |              |                      |                         |        x         |             |                             |
 | Devolutions Server        |              |              |                      |                         |        x         |      x      |                             |
 | Nebius Mysterybox         |              |              |                      |                         |        x         |             |                             |
+| MWS Secret Manager        |      x       |       x      |                      |            x             |        x         |            |                             |
+| MWS Certificate Manager        |       x      |       x      |                      |            x             |        x         |            |                             |
 
 ## Support Policy
 

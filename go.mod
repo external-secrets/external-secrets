@@ -43,6 +43,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/infisical => ./providers/v1/infisical
 	github.com/external-secrets/external-secrets/providers/v1/keepersecurity => ./providers/v1/keepersecurity
 	github.com/external-secrets/external-secrets/providers/v1/kubernetes => ./providers/v1/kubernetes
+	github.com/external-secrets/external-secrets/providers/v1/mws => ./providers/v1/mws
 	github.com/external-secrets/external-secrets/providers/v1/nebius => ./providers/v1/nebius
 	github.com/external-secrets/external-secrets/providers/v1/ngrok => ./providers/v1/ngrok
 	github.com/external-secrets/external-secrets/providers/v1/onboardbase => ./providers/v1/onboardbase
@@ -160,6 +161,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/infisical v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/keepersecurity v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/kubernetes v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/mws v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/nebius v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/ngrok v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/onboardbase v0.0.0-00010101000000-000000000000
@@ -238,12 +240,16 @@ require (
 	github.com/cloudru-tech/secret-manager-sdk v1.1.1 // indirect
 	github.com/cyberark/conjur-api-go v0.13.8 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
+	github.com/dgraph-io/ristretto/v2 v2.4.0 // indirect
+	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/dylibso/observe-sdk/go v0.0.0-20240828172851-9145d8ad07e1 // indirect
 	github.com/extism/go-sdk v1.7.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fortanix/sdkms-client-go v0.4.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
+	github.com/go-faster/errors v0.7.1 // indirect
+	github.com/go-faster/jx v1.2.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.24.0 // indirect
@@ -270,7 +276,7 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/gofrs/flock v0.13.0 // indirect
-	github.com/golang-jwt/jwt/v5 v5.3.0 // indirect
+	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
 	github.com/google/btree v1.1.3 // indirect
 	github.com/google/cel-go v0.26.1 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
@@ -320,6 +326,8 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/zalando/go-keyring v0.2.6 // indirect
 	gitlab.com/gitlab-org/api/client-go v0.157.1 // indirect
+	go.mws.cloud/go-sdk v0.5.0 // indirect
+	go.mws.cloud/util-toolset v0.15.1 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.63.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 // indirect
