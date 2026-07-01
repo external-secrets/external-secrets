@@ -19,9 +19,11 @@ As of version 0.14.x , this is the only kubernetes version that we will guarante
 
 | ESO Version | Kubernetes Version | Release Date | End of Life    |
 |-------------|--------------------|--------------|----------------|
-| 2.5         | 1.34-1.35          | May 15, 2026 | Release of 2.6 |
+| 2.7         | 1.35               | Jun 26, 2026 | Release of 2.8 |
+| 2.6         | 1.34-1.35          | Jun 05, 2026 | Jun 26, 2026   |
+| 2.5         | 1.34-1.35          | May 15, 2026 | Jun 05, 2026   |
 | 2.4.1       | 1.34-1.35          | Apr 28, 2026 | May 15, 2026   |
-| 2.4         | 1.34-1.35          | Apr 24, 2026 | Release of 2.5 |
+| 2.4         | 1.34-1.35          | Apr 24, 2026 | May 15, 2026   |
 | 2.3         | 1.34-1.35          | Apr 10, 2026 | April 24, 2026 |
 | 2.2         | 1.34-1.35          | Mar 20, 2026 | April 10, 2026 |
 | 2.1         | 1.34-1.35          | Mar 06, 2026 | Mar 20, 2026   |
@@ -123,11 +125,11 @@ The following table show the support for features across different providers.
 | Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | CyberArk Secrets Manager  |      x       |      x       |                      |                         |        x         |             |                             |
 | Delinea                   |      x       |              |                      |                         |        x         |             |                             |
-| Beyondtrust               |      x       |              |                      |                         |        x         |             |                             |
+| Beyondtrust               |              |              |                      |                         |        x         |      x      |                             |
 | SecretServer              |      x       |              |                      |                         |        x         |      x      |              x              |
 | Pulumi ESC                |      x       |              |                      |                         |        x         |             |                             |
 | Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
-| Infisical                 |      x       |              |                      |            x            |        x         |             |                             |
+| Infisical                 |      x       |              |                      |            x            |        x         |      x      |              x              |
 | Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
 | Previder                  |      x       |              |                      |                         |        x         |             |                             |
 | Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |              x              |

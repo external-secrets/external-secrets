@@ -104,6 +104,7 @@ rules:
     - "fakes"
     - "gcraccesstokens"
     - "githubaccesstokens"
+    - "gitlabdeploytokens"
     - "quayaccesstokens"
     - "passwords"
     - "sshkeys"
@@ -113,6 +114,7 @@ rules:
     - "webhooks"
     - "grafanas"
     - "mfas"
+    - "beyondtrustworkloadcredentialsdynamicsecrets"
     verbs:
     - "get"
     - "list"
@@ -273,6 +275,7 @@ rules:
     - "generators.external-secrets.io"
     resources:
     - "acraccesstokens"
+    - "beyondtrustworkloadcredentialsdynamicsecrets"
     - "cloudsmithaccesstokens"
     {{- if .Values.processClusterGenerator }}
     - "clustergenerators"
@@ -281,6 +284,7 @@ rules:
     - "fakes"
     - "gcraccesstokens"
     - "githubaccesstokens"
+    - "gitlabdeploytokens"
     - "quayaccesstokens"
     - "passwords"
     - "sshkeys"
@@ -345,6 +349,7 @@ rules:
     - "fakes"
     - "gcraccesstokens"
     - "githubaccesstokens"
+    - "gitlabdeploytokens"
     - "quayaccesstokens"
     - "passwords"
     - "sshkeys"
@@ -353,6 +358,7 @@ rules:
     - "grafanas"
     - "generatorstates"
     - "mfas"
+    - "beyondtrustworkloadcredentialsdynamicsecrets"
     - "uuids"
     verbs:
       - "create"
