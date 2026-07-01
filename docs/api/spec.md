@@ -3297,6 +3297,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Optional HostID for cert authentication (can be omitted when using &lsquo;spiffe&rsquo; mode).</p>
 </td>
 </tr>
