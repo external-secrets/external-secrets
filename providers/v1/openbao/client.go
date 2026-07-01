@@ -29,6 +29,7 @@ import (
 
 	"github.com/openbao/openbao/api/v2"
 	v1 "k8s.io/api/core/v1"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -52,10 +53,12 @@ const (
 )
 
 type client struct {
-	client     *api.Client
-	httpClient *http.Client
-	store      *esv1.OpenBaoProvider
-	storeKind  string
+	client           *api.Client
+	httpClient       *http.Client
+	store            *esv1.OpenBaoProvider
+	corev1           typedcorev1.CoreV1Interface
+	storeKind        string
+	kubernetesClient k8sClient.Client
 }
 
 func (c *client) setup(ctx context.Context, kube k8sClient.Client, namespace string, provider *Provider) error {
@@ -152,6 +155,19 @@ func (c *client) setupAuth(ctx context.Context, kube k8sClient.Client, namespace
 		}
 
 		auth, err = provider.AuthMethodFactory.AppRole(roleID, secret, appRole.Path)
+		if err != nil {
+			return err
+		}
+
+	case c.store.Auth.Kubernetes != nil:
+		kubernetes := c.store.Auth.Kubernetes
+
+		jwt, err := getJwtString(ctx, c, c.store.Auth.Kubernetes, namespace)
+		if err != nil {
+			return err
+		}
+
+		auth, err = provider.AuthMethodFactory.Kubernetes(kubernetes.Role, jwt, kubernetes.Path)
 		if err != nil {
 			return err
 		}
