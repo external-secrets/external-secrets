@@ -132,6 +132,10 @@ spec:
             failureThreshold: {{ .Values.webhook.readinessProbe.failureThreshold }}
             successThreshold: {{ .Values.webhook.readinessProbe.successThreshold }}
           {{- end }}
+          {{- with .Values.webhook.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.webhook.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}

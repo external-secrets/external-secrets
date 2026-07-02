@@ -171,6 +171,10 @@ spec:
           readinessProbe:
           {{- toYaml .Values.readinessProbe.spec | nindent 12 }}
           {{- end }}
+          {{- with .Values.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}
