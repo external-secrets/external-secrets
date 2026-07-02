@@ -7,3 +7,4 @@ mkdocs-material
 # https://github.com/external-secrets/external-secrets/pull/2421#issuecomment-1593845147
 mike>=2.0.0
 mkdocs-macros-plugin
+mkdocs-redirects
