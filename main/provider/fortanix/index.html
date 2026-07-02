@@ -3899,6 +3899,8 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
@@ -3941,6 +3943,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -3949,18 +3953,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#fortanix-dsm-sdkms" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Fortanix DSM / SDKMS
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Fortanix DSM / SDKMS">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3970,8 +3962,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#creating-a-secretstore" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3981,8 +3973,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#referencing-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3992,9 +3984,15 @@
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
   
 </li>
       
@@ -4957,6 +4955,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -4965,18 +4965,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#fortanix-dsm-sdkms" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Fortanix DSM / SDKMS
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Fortanix DSM / SDKMS">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4986,8 +4974,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#creating-a-secretstore" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4997,8 +4985,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#referencing-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5008,9 +4996,15 @@
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
   
 </li>
       
@@ -5034,13 +5028,11 @@
   
 
 
-  <h1>Fortanix</h1>
-
-<h2 id="fortanix-dsm-sdkms">Fortanix DSM / SDKMS</h2>
+<h1 id="fortanix-dsm-sdkms">Fortanix DSM / SDKMS</h1>
 <p>Populate kubernetes secrets from OPAQUE or SECRET security objects in Fortanix.</p>
-<h3 id="authentication">Authentication</h3>
+<h2 id="authentication">Authentication</h2>
 <p>SDKMS <a href="https://support.fortanix.com/hc/en-us/articles/360015941132-Authentication">Application API Key</a></p>
-<h3 id="creating-a-secretstore">Creating a SecretStore</h3>
+<h2 id="creating-a-secretstore">Creating a SecretStore</h2>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5054,7 +5046,7 @@
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_KUBE_SECRET&gt;</span>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_KUBE_SECRET&gt;</span>
 </code></pre></div>
-<h3 id="referencing-secrets">Referencing Secrets</h3>
+<h2 id="referencing-secrets">Referencing Secrets</h2>
 <div class="highlight"><pre><span></span><code><span class="c1"># Raw stored value</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5100,6 +5092,11 @@
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;SDKMS_SECURITY_OBJECT_NAME&gt;</span>
 </code></pre></div>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li><strong>Custom CA certificates</strong>: connecting to an SDKMS endpoint that uses a self-signed or custom CA certificate is not currently supported (tracked in <a href="https://github.com/external-secrets/external-secrets/issues/6400">issue #6400</a>).</li>
+<li><strong>Read-only</strong>: this provider only reads secrets. Pushing secrets (<code>PushSecret</code>) and discovering secrets (<code>dataFrom.find</code>) are not supported.</li>
+</ul>
 
 
 
