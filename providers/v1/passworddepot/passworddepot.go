@@ -174,6 +174,10 @@ func (p *PasswordDepot) GetSecret(_ context.Context, ref esv1.ExternalSecretData
 	if err != nil {
 		return nil, err
 	}
+	if ref.Property == "" {
+		return esutils.JSONMarshal(data)
+	}
+
 	mappedData := data.ToMap()
 	value, ok := mappedData[ref.Property]
 	if !ok {
@@ -185,6 +189,10 @@ func (p *PasswordDepot) GetSecret(_ context.Context, ref esv1.ExternalSecretData
 
 // GetSecretMap retrieves a secret and returns it as a map of key/value pairs.
 func (p *PasswordDepot) GetSecretMap(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	if esutils.IsNil(p.client) {
+		return nil, errors.New(errUninitalizedPasswordDepotProvider)
+	}
+
 	data, err := p.client.GetSecret(p.database, ref.Key)
 	if err != nil {
 		return nil, fmt.Errorf("error getting secret %s: %w", ref.Key, err)
