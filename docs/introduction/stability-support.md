@@ -122,7 +122,7 @@ The following table show the support for features across different providers.
 | 1Password                 |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | 1Password SDK             |              |              |                      |                         |        x         |      x      |              x              |
 | Generic Webhook           |              |              |                      |                         |                  |             |              x              |
-| senhasegura DSM           |              |              |                      |                         |        x         |             |                             |
+| senhasegura DSM           |              |              |                      |            x            |        x         |             |              x              |
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
 | Keeper Security           |      x       |              |                      |                         |        x         |      x      |                             |
 | Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
