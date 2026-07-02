@@ -23,9 +23,7 @@ import (
 	"context"
 	"net/http"
 
-	"k8s.io/client-go/kubernetes"
 	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/openbao/internal/auth"
@@ -52,21 +50,9 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube k8sClient.Client, namespace string) (esv1.SecretsClient, error) {
 	spec := store.GetSpec().Provider.OpenBao // if this is somehow nil, there is a bug in the framework
 
-	// controller-runtime/client does not support TokenRequest or other subresource APIs
-	// so we need to construct our own client and use it to fetch tokens
-	// (for Kubernetes service account token auth)
-	restCfg, err := ctrlcfg.GetConfig()
-	if err != nil {
-		return nil, err
-	}
-	clientset, err := kubernetes.NewForConfig(restCfg)
-	if err != nil {
-		return nil, err
-	}
 	client := &client{
 		storeKind: store.GetKind(),
 		store:     spec,
-		corev1:    clientset.CoreV1(),
 	}
 
 	if client.storeKind != esv1.ClusterSecretStoreKind || namespace != "" || !isReferentSpec(spec) {
