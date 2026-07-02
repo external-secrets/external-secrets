@@ -19,6 +19,7 @@ package vaultutil
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	vault "github.com/hashicorp/vault/api"
@@ -58,6 +59,7 @@ type Client interface {
 	Namespace() string
 	SetNamespace(namespace string)
 	AddHeader(key, value string)
+	Headers() http.Header
 }
 
 // VaultClient is a wrapper around the HashiCorp Vault API client that provides
@@ -72,11 +74,17 @@ type VaultClient struct {
 	NamespaceFunc    func() string
 	SetNamespaceFunc func(namespace string)
 	AddHeaderFunc    func(key, value string)
+	HeadersFunc      func() http.Header
 }
 
 // AddHeader adds a header to all requests using the provided key, value pair.
 func (v VaultClient) AddHeader(key, value string) {
 	v.AddHeaderFunc(key, value)
+}
+
+// Headers returns the headers currently set on all requests.
+func (v VaultClient) Headers() http.Header {
+	return v.HeadersFunc()
 }
 
 // Namespace returns the current Vault namespace.
