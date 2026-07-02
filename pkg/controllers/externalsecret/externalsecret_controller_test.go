@@ -453,7 +453,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		tc.checkSecret = func(_ *esv1.ExternalSecret, _ *v1.Secret) {
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1.ExternalSecretReady, v1.ConditionFalse, 0.0)).To(BeTrue())
-			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
+			// Consolidated: the {status="True"} Ready series is no longer emitted, so a ready ES reports 0 for it.
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
 			Eventually(func() bool {
 				Expect(testSyncCallsTotal.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metric)).To(Succeed())
 				Expect(testExternalSecretReconcileDuration.WithLabelValues(ExternalSecretName, ExternalSecretNamespace).Write(&metricDuration)).To(Succeed())
@@ -631,7 +632,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				return metric.GetCounter().GetValue() == 0 && metricDuration.GetGauge().GetValue() > 0.0
 			}, timeout, interval).Should(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1.ExternalSecretReady, v1.ConditionFalse, 0.0)).To(BeTrue())
-			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1.ExternalSecretReady, v1.ConditionTrue, 1.0)).To(BeTrue())
+			// Consolidated: the {status="True"} Ready series is no longer emitted, so a ready ES reports 0 for it.
+			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
 		}
 	}
 
