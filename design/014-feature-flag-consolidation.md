@@ -272,7 +272,7 @@ No CRD or API changes.
 - [ ] Linting rule added to prevent `InitializeFlags()` pattern
 
 **Phase 3 (Naming)**:
-- [ ] Naming convention documented in CONTRIBUTING.md or other poolicy document (depending on diataxis progress)
+- [ ] Naming convention documented in CONTRIBUTING.md or other policy document (depending on diataxis progress)
 - [ ] New flags follow convention (enforced in PR review)
 
 **Phase 4 (Documentation)**:

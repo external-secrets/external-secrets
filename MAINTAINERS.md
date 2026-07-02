@@ -1,6 +1,6 @@
 # External Secretes Operator Maintainers
 
-[GOVERNANCE.md](https://github.com/external-secrets/external-secrets/blob/main/GOVERNANCE.md)
+See also our [governance page](https://github.com/external-secrets/external-secrets/blob/main/GOVERNANCE.md)
 describes governance guidelines and maintainer responsibilities.
 
 ## Maintainers

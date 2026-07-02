@@ -585,4 +585,4 @@ kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.status.syncedPushSec
 
 - [PushSecret dataTo Guide](../guides/pushsecret-datato.md)
 - [PushSecret API Reference](../api/pushsecret.md)
-- [Provider Documentation](../provider/)
+- Each provider document in the provider section.

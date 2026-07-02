@@ -1,9 +1,12 @@
+<!-- This is a tutorial. -->
+<!-- In this page, we teach people how to detect and prevent burnout in our team -->
 # Contributor Burnout Mitigation Guide
 
 ## Overview
 
 This document provides a framework for identifying, preventing, and addressing contributor burnout in the External Secrets Operator (ESO) project. Based on lessons learned from past experiences and successful community outreach efforts, this guide aims to help maintain a sustainable project without the need for release pauses or drastic measures.
 It is everyone's responsibility to _identify_ burnout and inform the team at a community meeting. "See it, say it, sorted."
+
 ## Understanding Burnout
 
 ### What is Contributor Burnout?
@@ -29,6 +32,7 @@ ESO is particularly affected because:
 Monitor for these warning signs in team members:
 
 #### Behavioral Changes
+
 - Delayed responses to issues, PRs, or community messages
 - Decreased participation in community meetings or discussions
 - Shorter, more terse communication style
@@ -37,11 +41,13 @@ Monitor for these warning signs in team members:
 - Change in behavior and borderline violating the code of conduct during responses and user interactions
 
 #### Workload Indicators
+
 - One person handling multiple critical areas (releases, security, CI, support)
 - Working outside normal hours consistently to keep up
 - Expressing frustration about repetitive or mundane tasks
 
 #### Quality Signals
+
 - Rushing through reviews to clear backlog
 - Postponing or skipping testing for expedience
 - Technical debt accumulation due to time pressure
@@ -69,10 +75,12 @@ None of these things will guaranteed solutions, however, they might help.
 ### Workload Distribution
 
 #### Create Ownership Areas
+
 - Certain areas could be covered by the same maintainer (e.g., specific providers, testing, documentation)
 - Keep release and support roles on a rotation so people don't think they are in a rut
 - Document tribal knowledge to make it accessible to others
 - Take over other contributor's work by extending your own ownership area when something goes wrong.
+
 #### Automate Repetitive Tasks
 
 CI/CD pipelines can help a lot in taking away some of the menial tasks while working on the project.
@@ -103,7 +111,7 @@ Add more templates here if required for Issues ( a pinned issue on external-secr
 ~~~markdown
 # 🔄 ESO Community Update: Growing Our Maintainer Team
 
-Hey r/kubernetes community! 
+Hey r/kubernetes community!
 
 We're reaching out with an update on External Secrets Operator (ESO) and an opportunity for the community to get involved.
 
@@ -128,7 +136,7 @@ We're looking for contributors who can help with:
 ## How to Get Involved
 1. Fill out our [contributor interest form](https://github.com/external-secrets/external-secrets/blob/636ce0578dda4a623a681066def8998a68b051a6/CONTRIBUTOR_LADDER.md)
 2. Join our [next community meeting](https://zoom-lfx.platform.linuxfoundation.org/meetings/externalsecretsoperator?view=month)
-3. Check out our [contributor guide](https://external-secrets.io/latest/contributing/devguide/)
+3. Check out our [contributor guide](https://external-secrets.io/latest/contributing/contributing/)
 4. Start with a [good first issue](https://github.com/orgs/external-secrets/projects/2/views/9)
 
 ## Questions?
@@ -142,8 +150,10 @@ Thanks for being part of this community! 🚀
 
 ## Conclusion
 
-This document sums up various procedures and things that we can do and we can start on. The important part is publication,
-visibility and outreach. There are many channel on which ESO can communicate but the most important ones are:
+This document sums up our various actionable procedures. The important part is publication,
+visibility and outreach.
+
+There are many channel on which ESO can communicate but the most important ones are:
 
 - Slack ( [external-secrets](https://kubernetes.slack.com/archives/C017BF84G2Y), [external-secrets-dev](https://kubernetes.slack.com/archives/C047LA9MUPJ) channels )
 - Reddit [Kubernetes Subreddit](https://www.reddit.com/r/kubernetes/) ( this was particulalry helpful in the past )
@@ -154,7 +164,6 @@ visibility and outreach. There are many channel on which ESO can communicate but
 
 Whatever we do the most important part is visibility _BEFORE_ we get to this point. Before all of this, the most important part is
 monitoring the maintainers health and general well being. Prevention instead of escalation.
-
 
 ## Our reaction when things do not go as planned
 
