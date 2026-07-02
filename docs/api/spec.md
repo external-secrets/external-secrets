@@ -13565,6 +13565,56 @@ string
 </td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1.WebhookClientTLS">WebhookClientTLS
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.WebhookProvider">WebhookProvider</a>)
+</p>
+<p>
+<p>WebhookClientTLS is the configuration used for client side related TLS communication,
+when the remote Webhook server requires mutual authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>CertSecretRef is a certificate added to the transport layer
+when communicating with the remote Webhook server.
+If no key for the Secret is specified, external-secret will default to &lsquo;tls.crt&rsquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>keySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>KeySecretRef to a key in a Secret resource containing client private key
+added to the transport layer when communicating with the remote Webhook server.
+If no key for the Secret is specified, external-secret will default to &lsquo;tls.key&rsquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.WebhookProvider">WebhookProvider
 </h3>
 <p>
@@ -13712,6 +13762,25 @@ WebhookCAProvider
 <td>
 <em>(Optional)</em>
 <p>The provider for the CA bundle to use to validate webhook server certificate.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientTLS</code></br>
+<em>
+<a href="#external-secrets.io/v1.WebhookClientTLS">
+WebhookClientTLS
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The configuration used for client side related TLS communication, when the Webhook server
+requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+This parameter is ignored for plain HTTP protocol connection.
+Requires caBundle or caProvider to also be configured.
+It&rsquo;s worth noting this configuration is different from the &ldquo;TLS certificates auth method&rdquo;,
+which is available under the <code>auth.cert</code> section.</p>
 </td>
 </tr>
 </tbody>
@@ -25289,6 +25358,56 @@ string
 </td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1beta1.WebhookClientTLS">WebhookClientTLS
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1beta1.WebhookProvider">WebhookProvider</a>)
+</p>
+<p>
+<p>WebhookClientTLS is the configuration used for client side related TLS communication,
+when the remote Webhook server requires mutual authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>CertSecretRef is a certificate added to the transport layer
+when communicating with the remote Webhook server.
+If no key for the Secret is specified, external-secret will default to &lsquo;tls.crt&rsquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>keySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>KeySecretRef to a key in a Secret resource containing client private key
+added to the transport layer when communicating with the remote Webhook server.
+If no key for the Secret is specified, external-secret will default to &lsquo;tls.key&rsquo;.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1beta1.WebhookProvider">WebhookProvider
 </h3>
 <p>
@@ -25435,6 +25554,25 @@ WebhookCAProvider
 <td>
 <em>(Optional)</em>
 <p>The provider for the CA bundle to use to validate webhook server certificate.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientTLS</code></br>
+<em>
+<a href="#external-secrets.io/v1beta1.WebhookClientTLS">
+WebhookClientTLS
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The configuration used for client side related TLS communication, when the Webhook server
+requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+This parameter is ignored for plain HTTP protocol connection.
+Requires caBundle or caProvider to also be configured.
+It&rsquo;s worth noting this configuration is different from the &ldquo;TLS certificates auth method&rdquo;,
+which is available under the <code>auth.cert</code> section.</p>
 </td>
 </tr>
 </tbody>
@@ -30581,6 +30719,25 @@ WebhookCAProvider
 <p>The provider for the CA bundle to use to validate webhook server certificate.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>clientTLS</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.WebhookClientTLS">
+WebhookClientTLS
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The configuration used for client side related TLS communication, when the Webhook server
+requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+This parameter is ignored for plain HTTP protocol connection.
+Requires caBundle or caProvider to also be configured.
+It&rsquo;s worth noting this configuration is different from the &ldquo;TLS certificates auth method&rdquo;,
+which is available under the <code>auth.cert</code> section.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -30675,6 +30832,56 @@ string
 <td><p>WebhookCAProviderTypeSecret indicates the CA provider is a Secret resource.</p>
 </td>
 </tr></tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.WebhookClientTLS">WebhookClientTLS
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.WebhookSpec">WebhookSpec</a>)
+</p>
+<p>
+<p>WebhookClientTLS is the configuration used for client side related TLS communication,
+when the remote Webhook server requires mutual authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>CertSecretRef is a certificate added to the transport layer
+when communicating with the remote Webhook server.
+If no key for the Secret is specified, external-secret will default to &lsquo;tls.crt&rsquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>keySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>KeySecretRef to a key in a Secret resource containing client private key
+added to the transport layer when communicating with the remote Webhook server.
+If no key for the Secret is specified, external-secret will default to &lsquo;tls.key&rsquo;.</p>
+</td>
+</tr>
+</tbody>
 </table>
 <h3 id="generators.external-secrets.io/v1alpha1.WebhookResult">WebhookResult
 </h3>
@@ -30897,6 +31104,25 @@ WebhookCAProvider
 <td>
 <em>(Optional)</em>
 <p>The provider for the CA bundle to use to validate webhook server certificate.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientTLS</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.WebhookClientTLS">
+WebhookClientTLS
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>The configuration used for client side related TLS communication, when the Webhook server
+requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+This parameter is ignored for plain HTTP protocol connection.
+Requires caBundle or caProvider to also be configured.
+It&rsquo;s worth noting this configuration is different from the &ldquo;TLS certificates auth method&rdquo;,
+which is available under the <code>auth.cert</code> section.</p>
 </td>
 </tr>
 </tbody>

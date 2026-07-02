@@ -8516,6 +8516,77 @@ spec:
                             - name
                             - type
                           type: object
+                        clientTLS:
+                          description: |-
+                            The configuration used for client side related TLS communication, when the Webhook server
+                            requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+                            This parameter is ignored for plain HTTP protocol connection.
+                            Requires caBundle or caProvider to also be configured.
+                            It's worth noting this configuration is different from the "TLS certificates auth method",
+                            which is available under the `auth.cert` section.
+                          properties:
+                            certSecretRef:
+                              description: |-
+                                CertSecretRef is a certificate added to the transport layer
+                                when communicating with the remote Webhook server.
+                                If no key for the Secret is specified, external-secret will default to 'tls.crt'.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                            keySecretRef:
+                              description: |-
+                                KeySecretRef to a key in a Secret resource containing client private key
+                                added to the transport layer when communicating with the remote Webhook server.
+                                If no key for the Secret is specified, external-secret will default to 'tls.key'.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - certSecretRef
+                            - keySecretRef
+                          type: object
                         headers:
                           additionalProperties:
                             type: string
@@ -8581,6 +8652,9 @@ spec:
                       required:
                         - url
                       type: object
+                      x-kubernetes-validations:
+                        - message: clientTLS requires caBundle or caProvider to be configured
+                          rule: '!has(self.clientTLS) || has(self.caBundle) || has(self.caProvider)'
                     yandexcertificatemanager:
                       description: YandexCertificateManager configures this store to sync secrets using Yandex Certificate Manager provider
                       properties:
@@ -12748,6 +12822,77 @@ spec:
                             - name
                             - type
                           type: object
+                        clientTLS:
+                          description: |-
+                            The configuration used for client side related TLS communication, when the Webhook server
+                            requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+                            This parameter is ignored for plain HTTP protocol connection.
+                            Requires caBundle or caProvider to also be configured.
+                            It's worth noting this configuration is different from the "TLS certificates auth method",
+                            which is available under the `auth.cert` section.
+                          properties:
+                            certSecretRef:
+                              description: |-
+                                CertSecretRef is a certificate added to the transport layer
+                                when communicating with the remote Webhook server.
+                                If no key for the Secret is specified, external-secret will default to 'tls.crt'.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                            keySecretRef:
+                              description: |-
+                                KeySecretRef to a key in a Secret resource containing client private key
+                                added to the transport layer when communicating with the remote Webhook server.
+                                If no key for the Secret is specified, external-secret will default to 'tls.key'.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - certSecretRef
+                            - keySecretRef
+                          type: object
                         headers:
                           additionalProperties:
                             type: string
@@ -12814,6 +12959,9 @@ spec:
                         - result
                         - url
                       type: object
+                      x-kubernetes-validations:
+                        - message: clientTLS requires caBundle or caProvider to be configured
+                          rule: '!has(self.clientTLS) || has(self.caBundle) || has(self.caProvider)'
                     yandexcertificatemanager:
                       description: YandexCertificateManager configures this store to sync secrets using Yandex Certificate Manager provider
                       properties:
@@ -21255,6 +21403,77 @@ spec:
                             - name
                             - type
                           type: object
+                        clientTLS:
+                          description: |-
+                            The configuration used for client side related TLS communication, when the Webhook server
+                            requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+                            This parameter is ignored for plain HTTP protocol connection.
+                            Requires caBundle or caProvider to also be configured.
+                            It's worth noting this configuration is different from the "TLS certificates auth method",
+                            which is available under the `auth.cert` section.
+                          properties:
+                            certSecretRef:
+                              description: |-
+                                CertSecretRef is a certificate added to the transport layer
+                                when communicating with the remote Webhook server.
+                                If no key for the Secret is specified, external-secret will default to 'tls.crt'.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                            keySecretRef:
+                              description: |-
+                                KeySecretRef to a key in a Secret resource containing client private key
+                                added to the transport layer when communicating with the remote Webhook server.
+                                If no key for the Secret is specified, external-secret will default to 'tls.key'.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - certSecretRef
+                            - keySecretRef
+                          type: object
                         headers:
                           additionalProperties:
                             type: string
@@ -21320,6 +21539,9 @@ spec:
                       required:
                         - url
                       type: object
+                      x-kubernetes-validations:
+                        - message: clientTLS requires caBundle or caProvider to be configured
+                          rule: '!has(self.clientTLS) || has(self.caBundle) || has(self.caProvider)'
                     yandexcertificatemanager:
                       description: YandexCertificateManager configures this store to sync secrets using Yandex Certificate Manager provider
                       properties:
@@ -25487,6 +25709,77 @@ spec:
                             - name
                             - type
                           type: object
+                        clientTLS:
+                          description: |-
+                            The configuration used for client side related TLS communication, when the Webhook server
+                            requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+                            This parameter is ignored for plain HTTP protocol connection.
+                            Requires caBundle or caProvider to also be configured.
+                            It's worth noting this configuration is different from the "TLS certificates auth method",
+                            which is available under the `auth.cert` section.
+                          properties:
+                            certSecretRef:
+                              description: |-
+                                CertSecretRef is a certificate added to the transport layer
+                                when communicating with the remote Webhook server.
+                                If no key for the Secret is specified, external-secret will default to 'tls.crt'.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                            keySecretRef:
+                              description: |-
+                                KeySecretRef to a key in a Secret resource containing client private key
+                                added to the transport layer when communicating with the remote Webhook server.
+                                If no key for the Secret is specified, external-secret will default to 'tls.key'.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - certSecretRef
+                            - keySecretRef
+                          type: object
                         headers:
                           additionalProperties:
                             type: string
@@ -25553,6 +25846,9 @@ spec:
                         - result
                         - url
                       type: object
+                      x-kubernetes-validations:
+                        - message: clientTLS requires caBundle or caProvider to be configured
+                          rule: '!has(self.clientTLS) || has(self.caBundle) || has(self.caProvider)'
                     yandexcertificatemanager:
                       description: YandexCertificateManager configures this store to sync secrets using Yandex Certificate Manager provider
                       properties:
@@ -28711,6 +29007,77 @@ spec:
                             - name
                             - type
                           type: object
+                        clientTLS:
+                          description: |-
+                            The configuration used for client side related TLS communication, when the Webhook server
+                            requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+                            This parameter is ignored for plain HTTP protocol connection.
+                            Requires caBundle or caProvider to also be configured.
+                            It's worth noting this configuration is different from the "TLS certificates auth method",
+                            which is available under the `auth.cert` section.
+                          properties:
+                            certSecretRef:
+                              description: |-
+                                CertSecretRef is a certificate added to the transport layer
+                                when communicating with the remote Webhook server.
+                                If no key for the Secret is specified, external-secret will default to 'tls.crt'.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                            keySecretRef:
+                              description: |-
+                                KeySecretRef to a key in a Secret resource containing client private key
+                                added to the transport layer when communicating with the remote Webhook server.
+                                If no key for the Secret is specified, external-secret will default to 'tls.key'.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - certSecretRef
+                            - keySecretRef
+                          type: object
                         headers:
                           additionalProperties:
                             type: string
@@ -28767,6 +29134,9 @@ spec:
                         - result
                         - url
                       type: object
+                      x-kubernetes-validations:
+                        - message: clientTLS requires caBundle or caProvider to be configured
+                          rule: '!has(self.clientTLS) || has(self.caBundle) || has(self.caProvider)'
                   type: object
                 kind:
                   description: Kind the kind of this generator.
@@ -31634,6 +32004,77 @@ spec:
                     - name
                     - type
                   type: object
+                clientTLS:
+                  description: |-
+                    The configuration used for client side related TLS communication, when the Webhook server
+                    requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+                    This parameter is ignored for plain HTTP protocol connection.
+                    Requires caBundle or caProvider to also be configured.
+                    It's worth noting this configuration is different from the "TLS certificates auth method",
+                    which is available under the `auth.cert` section.
+                  properties:
+                    certSecretRef:
+                      description: |-
+                        CertSecretRef is a certificate added to the transport layer
+                        when communicating with the remote Webhook server.
+                        If no key for the Secret is specified, external-secret will default to 'tls.crt'.
+                      properties:
+                        key:
+                          description: |-
+                            A key in the referenced Secret.
+                            Some instances of this field may be defaulted, in others it may be required.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[-._a-zA-Z0-9]+$
+                          type: string
+                        name:
+                          description: The name of the Secret resource being referred to.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                          type: string
+                        namespace:
+                          description: |-
+                            The namespace of the Secret resource being referred to.
+                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                          maxLength: 63
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                          type: string
+                      type: object
+                    keySecretRef:
+                      description: |-
+                        KeySecretRef to a key in a Secret resource containing client private key
+                        added to the transport layer when communicating with the remote Webhook server.
+                        If no key for the Secret is specified, external-secret will default to 'tls.key'.
+                      properties:
+                        key:
+                          description: |-
+                            A key in the referenced Secret.
+                            Some instances of this field may be defaulted, in others it may be required.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[-._a-zA-Z0-9]+$
+                          type: string
+                        name:
+                          description: The name of the Secret resource being referred to.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                          type: string
+                        namespace:
+                          description: |-
+                            The namespace of the Secret resource being referred to.
+                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                          maxLength: 63
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                          type: string
+                      type: object
+                  required:
+                    - certSecretRef
+                    - keySecretRef
+                  type: object
                 headers:
                   additionalProperties:
                     type: string
@@ -31690,6 +32131,9 @@ spec:
                 - result
                 - url
               type: object
+              x-kubernetes-validations:
+                - message: clientTLS requires caBundle or caProvider to be configured
+                  rule: '!has(self.clientTLS) || has(self.caBundle) || has(self.caProvider)'
           type: object
       served: true
       storage: true

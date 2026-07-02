@@ -210,6 +210,18 @@ spec:
         name: <name of secret or configmap>
         namespace: <namespace> # Only used in ClusterSecretStores
         key: <key inside secret>
+      # Add a client certificate and key for mutual TLS (mTLS).
+      # Only used when caBundle or caProvider is also set, i.e. when TLS
+      # is already configured. Defaults: tls.crt for cert, tls.key for key.
+      clientTLS:
+        certSecretRef:
+          name: <name of secret containing the client cert>
+          namespace: <namespace> # Only used in ClusterSecretStores
+          key: tls.crt
+        keySecretRef:
+          name: <name of secret containing the client key>
+          namespace: <namespace> # Only used in ClusterSecretStores
+          key: tls.key
 ```
 
 ### Webhook as generators
