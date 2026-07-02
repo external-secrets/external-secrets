@@ -95,9 +95,12 @@ type AzureManagedIdentityAuth struct {
 }
 
 // AzureWorkloadIdentityAuth defines the configuration for using Azure Workload Identity authentication.
+// +kubebuilder:validation:XValidation:rule="!has(self.serviceAccountRef) || !has(self.serviceAccountRef.__namespace__)",message="serviceAccountRef.namespace is not supported: the service account must be in the same namespace as the generator"
 type AzureWorkloadIdentityAuth struct {
 	// ServiceAccountRef specifies the service account
 	// that should be used when authenticating with WorkloadIdentity.
+	// The referenced service account must live in the same namespace as the generator;
+	// a namespace set on the reference is rejected.
 	// +optional
 	ServiceAccountRef *smmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
