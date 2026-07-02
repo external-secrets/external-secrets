@@ -330,5 +330,26 @@ spec:
       key: "production/api-key"
       version: "uuid/123e4567-e89b-12d3-a456-426614174000"
 ```
+### Common version selection mistakes
+
+When referencing AWS Secrets Manager versions, the `version` field can point to either a `VersionStage` or a `VersionId`.
+Use `AWSCURRENT` or `AWSPREVIOUS` when you want External Secrets Operator to follow the current or previous staged version of the secret.
+Use `uuid/<version-id>` only when you need to pin the `ExternalSecret` to a specific immutable Secrets Manager version ID.
+
+For example:
+
+```yaml
+remoteRef:
+  key: production/database/password
+  version: AWSCURRENT
+```
+To reference an immutable version ID:
+
+```yaml
+remoteRef:
+  key: production/database/password
+  version: uuid/00000000-0000-0000-0000-000000000000
+```
+Avoid passing a raw Secrets Manager version ID without the `uuid/` prefix, because the value is otherwise treated as a version stage.
 
 --8<-- "snippets/provider-aws-access.md"
