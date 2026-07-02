@@ -84,11 +84,13 @@ type OpenBaoProvider struct {
 //
 // Additional authentication methods are planned for future releases.
 //
-// +kubebuilder:validation:ExactlyOneOf=appRole;tokenSecretRef;userPass
+// +kubebuilder:validation:ExactlyOneOf=appRole;tokenSecretRef;userPass;kubernetes
 //
 // [AppRole]: https://openbao.org/docs/auth/approle/
 // [Token]: https://openbao.org/docs/auth/token/
 // [UserPass]: https://openbao.org/docs/auth/userpass/
+//
+// [Kubernetes]: https://openbao.org/docs/auth/kubernetes/
 type OpenBaoAuth struct {
 	// AppRole authenticates with OpenBao using the [App Role auth mechanism],
 	// with the role and secret stored in a Kubernetes Secret resource.
@@ -97,6 +99,14 @@ type OpenBaoAuth struct {
 	//
 	// +optional
 	AppRole *OpenBaoAppRole `json:"appRole,omitempty"`
+
+	// Kubernetes authenticates with OpenBao by passing a ServiceAccount
+	// token.
+	//
+	// +optional
+	//
+	// [Kubernetes auth]: https://openbao.org/docs/auth/kubernetes/
+	Kubernetes *OpenBaoKubernetesAuth `json:"kubernetes,omitempty"`
 
 	// Name of the [OpenBao Namespace] to authenticate to. This can be different
 	// than the namespace your secret is in. Namespaces is a set of features
@@ -181,4 +191,36 @@ type OpenBaoAppRole struct {
 	// The `key` field must be specified and denotes which entry within the Secret
 	// resource is used as the app role secret.
 	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
+}
+
+// OpenBaoKubernetesAuth authenticates against OpenBao using a Kubernetes
+// ServiceAccount token. The ServiceAccount token can be sourced from a ServiceAcount
+// via `ServiceAccountRef` or from a secret via `SecretRef`.
+//
+// +kubebuilder:validation:ExactlyOneOf=serviceAccountRef;secretRef
+//
+// [Kubernetes auth]: https://openbao.org/docs/auth/kubernetes/
+type OpenBaoKubernetesAuth struct {
+	// Path where the Kubernetes authentication backend is mounted in OpenBao, e.g:
+	// "kubernetes"
+	// +kubebuilder:default=kubernetes
+	Path string `json:"mountPath"`
+
+	// Optional service account field containing the name of a kubernetes ServiceAccount.
+	// If the service account is specified, the service account secret token JWT will be used
+	// for authenticating with OpenBao.
+	//
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+
+	// Optional secret field containing a Kubernetes ServiceAccount JWT used
+	// for authenticating with OpenBao. If a name is specified without a key,
+	// `token` is the default.
+	//
+	// +optional
+	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+
+	// A required field containing the OpenBao Role to assume. A Role binds a
+	// Kubernetes ServiceAccount with a set of OpenBao policies.
+	Role string `json:"role"`
 }

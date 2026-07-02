@@ -17,6 +17,7 @@ limitations under the License.
 package openbao_test
 
 import (
+	"context"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
@@ -33,10 +34,12 @@ import (
 	"github.com/go-viper/mapstructure/v2"
 	"gopkg.in/dnaeon/go-vcr.v4/pkg/cassette"
 	"gopkg.in/dnaeon/go-vcr.v4/pkg/recorder"
+	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -367,11 +370,28 @@ func TestProvider_Auth(t *testing.T) {
 			Namespace: "default",
 		},
 		Data: map[string][]byte{
-			"approle-id":        []byte("dynamic-roleid"),
-			"approle-secret":    []byte("the-secret"),
-			"userpass-password": []byte("the-password"),
+			"approle-id":           []byte("dynamic-roleid"),
+			"approle-secret":       []byte("the-secret"),
+			"userpass-password":    []byte("the-password"),
+			"serviceaccount-token": []byte("the-jwt"),
 		},
-	}).Build()
+	}, &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "the-serviceaccount",
+			Namespace: "default",
+		},
+	}).
+		// clientfake won't create service account token on its own. We use an interceptor to fake
+		// the jwt creation.
+		WithInterceptorFuncs(interceptor.Funcs{
+			SubResourceCreate: func(ctx context.Context, c client.Client, subResourceName string,
+				obj client.Object, subResource client.Object, _ ...client.SubResourceCreateOption) error {
+				tr := subResource.(*authv1.TokenRequest)
+				tr.Status.Token = "the-serviceaccount-jwt"
+				return nil
+			},
+		}).Build()
+
 	provider := openbao.NewProvider().(*openbao.Provider)
 
 	cases := []struct {
@@ -420,7 +440,33 @@ func TestProvider_Auth(t *testing.T) {
 			},
 		},
 		expectedCalls: []string{`AppRole("dynamic-roleid", "the-secret", "approlepath")`},
-	}}
+	}, {
+		name: "kubernetes jwt from secret",
+		auth: &esv1.OpenBaoAuth{
+			Kubernetes: &esv1.OpenBaoKubernetesAuth{
+				Path: "kubernetespath",
+				SecretRef: &esmeta.SecretKeySelector{
+					Name: "shared-secret",
+					Key:  "serviceaccount-token",
+				},
+				Role: "kubernetesrole",
+			},
+		},
+		expectedCalls: []string{`Kubernetes("kubernetesrole", "the-jwt", "kubernetespath")`},
+	}, {
+		name: "kubernetes jwt from service account",
+		auth: &esv1.OpenBaoAuth{
+			Kubernetes: &esv1.OpenBaoKubernetesAuth{
+				Path: "kubernetespath",
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{
+					Name: "the-serviceaccount",
+				},
+				Role: "kubernetesrole",
+			},
+		},
+		expectedCalls: []string{`Kubernetes("kubernetesrole", "the-serviceaccount-jwt", "kubernetespath")`},
+	},
+	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

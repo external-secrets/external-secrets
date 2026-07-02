@@ -51,6 +51,12 @@ func (a *MockFactory) UserPass(username, password, mount string) (api.AuthMethod
 	return mockAuth{}, nil
 }
 
+// Kubernetes implements [Factory].
+func (a *MockFactory) Kubernetes(role, jwt, mount string) (api.AuthMethod, error) {
+	a.callf("Kubernetes(%q, %q, %q)", role, jwt, mount)
+	return mockAuth{}, nil
+}
+
 // GetCalls returns a list of all calls made to the mock (serialized as string), e.g.:
 //
 //	UserPass("user", "password", "mount")
