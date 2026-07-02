@@ -154,6 +154,7 @@ spec:
       serviceAccount:
         name: string
         role: string
+        secondsToLive: 1
       url: string
     mfaSpec:
       algorithm: string
