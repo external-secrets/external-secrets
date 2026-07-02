@@ -99,6 +99,7 @@ The following table describes the stability level of each provider and who's res
 | [Devolutions Server](https://external-secrets.io/latest/provider/devolutions-server)                       |     alpha | [@rbstp](https://github.com/rbstp)                                                                  |
 | [Nebius MysteryBox](https://external-secrets.io/latest/provider/nebius-mysterybox)                         | alpha     | [@greenmapc](https://github.com/greenmapc)                                                          |
 | [Fortanix](https://external-secrets.io/latest/provider/fortanix)                                           |     alpha | [@RecuencoJones](https://github.com/RecuencoJones)                                                  |
+| [GitHub Actions Secrets](https://external-secrets.io/latest/provider/github)                               |     alpha | [@gusfcarvalho](https://github.com/gusfcarvalho)                                                    |
 
 ## Provider Feature Support
 
@@ -140,6 +141,7 @@ The following table show the support for features across different providers.
 | Devolutions Server        |              |              |                      |                         |        x         |      x      |                             |
 | Nebius Mysterybox         |              |              |                      |                         |        x         |             |                             |
 | Fortanix                  |              |              |                      |            x            |        x         |             |                             |
+| GitHub Actions Secrets    |              |              |                      |            x            |                  |      x      |                             |
 
 ## Support Policy
 
