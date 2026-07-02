@@ -73,6 +73,7 @@ The following table describes the stability level of each provider and who's res
 | [IBM Cloud Secrets Manager](https://external-secrets.io/latest/provider/ibm-secrets-manager/)              |    stable | [@IdanAdar](https://github.com/IdanAdar)                                                            |
 | [Kubernetes](https://external-secrets.io/latest/provider/kubernetes)                                       |      beta | [external-secrets](https://github.com/external-secrets)                                             |
 | [Yandex Lockbox](https://external-secrets.io/latest/provider/yandex-lockbox/)                              |     alpha | [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
+| [Yandex Certificate Manager](https://external-secrets.io/latest/provider/yandex-certificate-manager/)      |     alpha | [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
 | [GitLab Variables](https://external-secrets.io/latest/provider/gitlab-variables/)                          |     alpha | [@Jabray5](https://github.com/Jabray5)                                                              |
 | [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                   |    stable | [@anders-swanson](https://github.com/anders-swanson)                                                                                    |
 | [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                           |    stable | [external-secrets](https://github.com/external-secrets)                                             |
@@ -113,7 +114,8 @@ The following table show the support for features across different providers.
 | Azure Keyvault            |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Kubernetes                |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | IBM Cloud Secrets Manager |      x       |              |          x           |                         |        x         |             |                             |
-| Yandex Lockbox            |              |              |                      |                         |        x         |             |                             |
+| Yandex Lockbox            |              |              |                      |            x            |        x         |             |                             |
+| Yandex Certificate Manager |              |              |                      |            x            |        x         |             |                             |
 | GitLab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
 | Oracle Vault              |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | Akeyless                  |      x       |      x       |                      |            x            |        x         |      x      |              x              |
