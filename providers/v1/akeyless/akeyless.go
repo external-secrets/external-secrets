@@ -180,9 +180,17 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	accessTypeParam := akeylessSpec.Auth.SecretRef.AccessTypeParam
-	err = esutils.ValidateSecretSelector(store, accessTypeParam)
-	if err != nil {
-		return nil, err
+	if accessTypeParam.Name != "" {
+		err = esutils.ValidateSecretSelector(store, accessTypeParam)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if akeylessSpec.Auth.ServiceAccountRef != nil {
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *akeylessSpec.Auth.ServiceAccountRef); err != nil {
+			return nil, fmt.Errorf("invalid Auth.ServiceAccountRef: %w", err)
+		}
 	}
 
 	return nil, nil
