@@ -15,7 +15,7 @@ Anyone making contributions of any kind (code, docs, tests, CI configs, security
 
 **Requirements**:
 
-- Sign the CNCF CLA.
+- Sign off commits with the Developer Certificate of Origin when contributing code or documentation.
 - Follow the ESO Code of Conduct.
 
 **Privileges**:

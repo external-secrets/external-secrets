@@ -136,7 +136,7 @@ We're looking for contributors who can help with:
 ## How to Get Involved
 1. Fill out our [contributor interest form](https://github.com/external-secrets/external-secrets/blob/636ce0578dda4a623a681066def8998a68b051a6/CONTRIBUTOR_LADDER.md)
 2. Join our [next community meeting](https://zoom-lfx.platform.linuxfoundation.org/meetings/externalsecretsoperator?view=month)
-3. Check out our [contributor guide](https://external-secrets.io/latest/contributing/devguide/)
+3. Check out our [contributor guide](https://external-secrets.io/latest/contributing/contributing/)
 4. Start with a [good first issue](https://github.com/orgs/external-secrets/projects/2/views/9)
 
 ## Questions?

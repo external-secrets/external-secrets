@@ -1,1 +1,1 @@
-See our docs page "HOW-TO deal with impactful removals" (deprecating_in_practice.md)
+See our docs page [HOW-TO deal with impactful removals](docs/contributing/deprecating_in_practice.md).

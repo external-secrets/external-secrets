@@ -30,7 +30,7 @@ External Secrets Operator guides and reference documentation is available at [ex
 
 ## Contributing
 
-We welcome and encourage contributions to this project! Please read the [Developer](https://www.external-secrets.io/latest/contributing/devguide/) and [Contribution process](https://www.external-secrets.io/latest/contributing/process/) guides. Also make sure to check the [Code of Conduct](https://www.external-secrets.io/latest/contributing/coc/) and adhere to its guidelines.
+We welcome and encourage contributions to this project! Please read the [contributing guide](docs/contributing/contributing.md) and [contribution policy](docs/contributing/governance.md). Also make sure to check the [Code of Conduct](docs/contributing/code_of_conduct.md) and adhere to its guidelines.
 
 Also, please take a look our [Contribution Ladder](docs/contributing/contributor_ladder.md) for a _very_ detailed explanation of what roles and tracks are available for people to try and help this project.
 
@@ -47,7 +47,7 @@ Anyone is welcome to join. Feel free to ask questions, request feedback, raise a
 
 ## Security
 
-Please report vulnerabilities by email to cncf-ExternalSecretsOp-maintainers@lists.cncf.io. Also see our [SECURITY reporting documentation](security_reporting.md) for details.
+Please report vulnerabilities by email to cncf-ExternalSecretsOp-maintainers@lists.cncf.io. Also see our [security reporting documentation](docs/contributing/security_reporting.md) for details.
 
 ## Software bill of materials
 We attach SBOM and provenance file to our GitHub release. Also, they are attached to container images.
@@ -58,7 +58,7 @@ Please create a PR and add your company or project to our [ADOPTERS.md file](ADO
 
 ## Roadmap
 
-You can find the roadmap in our documentation: https://external-secrets.io/latest/contributing/roadmap/
+You can find the roadmap in our [GitHub project board](https://github.com/orgs/external-secrets/projects/2/views/1).
 
 ## Kicked off by
 

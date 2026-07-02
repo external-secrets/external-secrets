@@ -1,1 +1,1 @@
-Follow our docs for reporting security issues in docs/contributing/security_reporting.md
+Follow our docs for [reporting security issues](docs/contributing/security_reporting.md).

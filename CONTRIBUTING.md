@@ -1,1 +1,1 @@
-See our contributing page in our documentation.
+See our [contributing guide](docs/contributing/contributing.md) in our documentation.

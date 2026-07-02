@@ -6,7 +6,7 @@ We use the following labels to organize the issues (this is not an exhaustive li
 
 | Label              | Purpose                                                                                                                                                    |
 |--------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `kind/*`           | Classifies the type of work (e.g. `chore`, `bug`, `cleanup`, `dependency`, `design`, `doc`, `feature`, `initiative`, `performance`, `refactor`, `testing`) |
+| `kind/*`           | Classifies the type of work (e.g. `chore`, `bug`, `cleanup`, `dependency`, `design`, `documentation`, `feature`, `initiative`, `performance`, `refactor`, `testing`) |
 | `area/*`           | Identifies the subsystem or provider involved (e.g., `area/aws`, `area/azure`, `area/gcp`, `area/vault`)                                                   |
 | `size/*`           | Indicates estimated effort/complexity (e.g., `size/xs`, `size/s`, `size/m`, `size/l`, `size/xl`)                                                           |
 | `track/*`          | Groups work by roadmap/board (e.g., `track/ci`, `track/core`, `track/providers`, `track/test`)                                                             |

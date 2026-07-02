@@ -2,7 +2,7 @@
 <!-- It is not the "tutorial/learning the contributor journey", (docs/contributing/journey.md) -->
 <!-- It is not a place to clarify/explain the why of our processes (governance.md) -->
 
-# Contributing
+# Contributing How-to
 
 Start with the [Contributing journey](journey.md) to learn how to help us in general.
 Read the [Contribution Policy](governance.md) to understand why our contribution guidelines are the way they are
@@ -11,10 +11,19 @@ Get the ball rolling by realizing the actions described in this document.
 
 ## Accept the legal requirements
 
-You will be blocked by the CI bot if you do not sign the CNCF CLA.
+All commits must be signed off to certify compliance with the [Developer Certificate of Origin](https://developercertificate.org/).
+Use `git commit --signoff` (or `git commit -s`) when creating commits.
 
-Read why in our [Contribution Policy](governance.md#contributor-license-agreement).
-All contributors must follow our Code of Conduct, the CNCF Code of Conduct, and sign the CNCF CLA (where applicable) before we accept any contributions.
+If you already pushed commits without a sign-off, add it before updating your pull request:
+
+```shell
+git rebase --signoff origin/main
+```
+
+If your branch needs a more careful rebase, use `git rebase -i origin/main` and amend each commit with `git commit --amend --signoff --no-edit`.
+Then force-push with `git push --force-with-lease`.
+
+All contributors must follow our Code of Conduct and the CNCF Code of Conduct before we accept any contributions.
 
 ## Making sure you are not working on something already fixed
 
@@ -112,10 +121,10 @@ Once the proposal is merged as "accepted" and contains work packages, proceed wi
 [Tilt](https://tilt.dev) can be used to develop external-secrets. Tilt will hot-reload changes to the code and replace
 the running binary in the container using a process manager of its own.
 
-To run tilt, download the utility for your operating system and run `make tilt-up`. This will do two things:
+To run tilt, download the utility for your operating system and run `make tilt-up`. This will do three things:
 - downloads tilt for the current OS and ARCH under `bin/tilt`
 - make manifest files of your current changes and place them under `./bin/deploy/manifests/external-secrets.yaml`
-- run tilt with `tilt run`
+- run tilt with `tilt up`
 
 Hit `space` and you can observe all the pods starting up and track their output in the tilt UI.
 
@@ -133,7 +142,7 @@ make docker.build IMAGE_NAME=external-secrets IMAGE_TAG=latest
 
 Run tests and lint the code:
 ```shell
-make lint # Alternatively you run your own `golangci-lint run` command either directly or in a container: docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.49.0 golangci-lint run
+make lint # This runs the repository-pinned golangci-lint version.
 make test # This will run the unittests, but not the e2e/managed tests
 ```
 
@@ -157,6 +166,7 @@ make crds.uninstall
 
 Make sure you have read the [Contribution Policy](governance.md) before submitting your PR.
 It explains our expectations regarding commit messages, PR descriptions, LLM usage, and other important aspects of contributing.
+Before requesting review, run `make reviewable` to execute the standard pre-review checks.
 
 This project uses the pull request process from GitHub. To submit a pull request,
 fork the repository and push any changes to a branch on "your fork".
@@ -206,7 +216,8 @@ This is necessary to test the authentication integration
 ([GCP Workload Identity](https://cloud.google.com/kubernetes-engine/docs/how-to/workload-identity),
 [EKS IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html)...).
 
-TODO(evrardjp): Please do not hesitate to complete this section! (moolen is our expert)
+!!! note
+    Contributions welcome. Complete this section for each e2e test that needs a manual setup.
 
 #### Executing Managed Kubernetes e2e tests locally
 
@@ -292,7 +303,8 @@ helm upgrade --install external-secrets ./deploy/charts/external-secrets/ \
 
 ## Setting up the development environment for infrastructure maintenance contributions
 
-TODO(evrardjp): Please do not hesitate to fix this section! (moolen is our expert)
+!!! note
+    Contributions welcome. Complete this section for each infrastructure maintenance task that needs a manual setup.
 
 
 ## Setting up the development environment for documentation contributions

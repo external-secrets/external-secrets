@@ -108,8 +108,7 @@ It also contains a link to our project board, explaining where we are headed and
 
 ### Reviewing pull requests and giving feedback
 
-... note:
-    Please do not hesitate to complete this section!
+Reviewing pull requests is a valuable contribution. Share concrete feedback, ask clarifying questions, and help contributors understand the project expectations documented in our [Contribution Policy](governance.md).
 
 ### Improving our documentation
 
