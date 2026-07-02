@@ -43,11 +43,14 @@ require (
 
 When doing a release it's best to start with the ["Create Release" issue template](https://github.com/external-secrets/external-secrets/issues/new?assignees=&labels=area%2Frelease&projects=&template=create_release.md&title=Release+x.y), it has a checklist to go over.
 
-⚠️ Note: when releasing multiple versions, make sure to first release the "old" version, then the newer version.
-Otherwise, the `latest` documentation will point to the older version.
+... note:
+    When releasing multiple versions, make sure to first release the "old" version, then the newer version. Otherwise, the `latest` documentation will point to the older version.
 
-⚠️ CAUTION: Avoid to release both versions at the same time to avoid race conditions in the CI pipeline (updating docs, GitHub Release, helm chart release), while we do not have an exclusive semaphore on those pipelines.
+... note:
+    ⚠️ CAUTION: Avoid to release both versions at the same time to avoid race conditions in the CI pipeline (updating docs, GitHub Release, helm chart release), while we do not have an exclusive semaphore on those pipelines.
 
+1. Make sure the [stability & support page](https://external-secrets.io/latest/introduction/stability-support/) is up to date. The new version should be listed in the version table before proceeding with the release.
+1. Make sure there is no pending CI jobs running. This is to avoid promoting a stale image to a new version (we need to rely on _existing_ pushed images for release).
 1. Run `Create Release` Action to create a new release, pass in the desired version number to release.
     1. choose the right `branch` to execute the action: use `main` when creating a new release.
     2. ⚠️ make sure that CI on the relevant branch has completed the docker build/push jobs. Otherwise an old image will be promoted.
