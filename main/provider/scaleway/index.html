@@ -3703,6 +3703,8 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
@@ -3745,6 +3747,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -3753,18 +3757,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#scaleway-secret-manager" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scaleway Secret Manager
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Scaleway Secret Manager">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#creating-a-secretstore" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3774,8 +3766,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#referencing-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3785,8 +3777,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#json-secret-values" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3794,11 +3786,6 @@
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -4957,6 +4944,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -4965,18 +4954,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#scaleway-secret-manager" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Scaleway Secret Manager
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Scaleway Secret Manager">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#creating-a-secretstore" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4986,8 +4963,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#referencing-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4997,8 +4974,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#json-secret-values" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5006,11 +4983,6 @@
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -5034,11 +5006,9 @@
   
 
 
-  <h1>Scaleway</h1>
-
-<h2 id="scaleway-secret-manager">Scaleway Secret Manager</h2>
+<h1 id="scaleway-secret-manager">Scaleway Secret Manager</h1>
 <p>External Secrets Operator integrates with <a href="https://developers.scaleway.com/en/products/secret_manager/api/v1alpha1/">Scaleway's Secret Manager</a>.</p>
-<h3 id="creating-a-secretstore">Creating a SecretStore</h3>
+<h2 id="creating-a-secretstore">Creating a SecretStore</h2>
 <p>You need an api key (access key + secret key) to authenticate with the secret manager.
 Both access and secret keys can be specified either directly in the config, or by referencing
 a kubernetes secret.</p>
@@ -5058,7 +5028,7 @@ a kubernetes secret.</p>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_KUBE_SECRET&gt;</span>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_KUBE_SECRET&gt;</span>
 </code></pre></div>
-<h3 id="referencing-secrets">Referencing Secrets</h3>
+<h2 id="referencing-secrets">Referencing Secrets</h2>
 <p>Secrets can be referenced by name, id or path, using the prefixes <code>"name:"</code>, <code>"id:"</code> and <code>"path:"</code> respectively.</p>
 <p>A PushSecret resource can only use a name reference.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
@@ -5076,7 +5046,7 @@ a kubernetes secret.</p>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">id:&lt;SECRET_UUID&gt;</span>
 <span class="w">          </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">latest_enabled</span>
 </code></pre></div>
-<h3 id="json-secret-values">JSON Secret Values</h3>
+<h2 id="json-secret-values">JSON Secret Values</h2>
 <p>Scaleway Secret Manager supports storing JSON objects as secrets. You can access values using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>:</p>
 <p>Consider the following JSON object that is stored in a Scaleway secret:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
