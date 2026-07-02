@@ -451,6 +451,23 @@ func TestGetSecret(t *testing.T) {
 		smtc.expectedSecret = smtc.groupAPIOutput.Value
 	}
 
+	// a missing variable in both project and group must surface as NoSecretErr
+	variableNotFound := func(smtc *secretManagerTestCase) {
+		smtc.projectAPIOutput = nil
+		smtc.projectAPIOutputs = make404ProjectAPIOutput()
+		smtc.groupAPIResponse = nil
+		smtc.groupAPIOutput = nil
+		smtc.expectError = esv1.NoSecretErr.Error()
+	}
+
+	// an existing variable with an empty value is a valid empty secret
+	emptyVariableValue := func(smtc *secretManagerTestCase) {
+		smtc.projectAPIOutput.Value = ""
+		smtc.groupAPIResponse = nil
+		smtc.groupAPIOutput = nil
+		smtc.expectedSecret = ""
+	}
+
 	successCases := []*secretManagerTestCase{
 		makeValidSecretManagerTestCaseCustom(onlyProjectSecret),
 		makeValidSecretManagerTestCaseCustom(groupSecretProjectOverride),
@@ -460,6 +477,8 @@ func TestGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setGroupWildcardVariableNotFoundThenFound),
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
+		makeValidSecretManagerTestCaseCustom(variableNotFound),
+		makeValidSecretManagerTestCaseCustom(emptyVariableValue),
 	}
 
 	sm := gitlabBase{}
