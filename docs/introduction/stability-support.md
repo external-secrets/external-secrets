@@ -87,6 +87,7 @@ The following table describes the stability level of each provider and who's res
 | [CyberArk Secrets Manager](https://external-secrets.io/latest/provider/conjur)                             |    stable | [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh)              |
 | [Delinea](https://external-secrets.io/latest/provider/delinea)                                             |     alpha | [@michaelsauter](https://github.com/michaelsauter/)                                                 |
 | [Beyondtrust](https://external-secrets.io/latest/provider/beyondtrust)                                     |     alpha | [@btfhernandez](https://github.com/btfhernandez/)                                                   |
+| [Beyondtrust Workload Credentials](https://external-secrets.io/latest/provider/beyondtrustworkloadcredentials) | alpha | [@sdahal-bt](https://github.com/sdahal-bt/) |
 | [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                   |      beta | [@gmurugezan](https://github.com/gmurugezan)                                                    |
 | [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                           |     alpha | [@dirien](https://github.com/dirien)                                                                |
 | [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           |     alpha | [@stripthis](https://github.com/stripthis)                                                                                  |
@@ -100,6 +101,11 @@ The following table describes the stability level of each provider and who's res
 | [Devolutions Server](https://external-secrets.io/latest/provider/devolutions-server)                       |     alpha | [@rbstp](https://github.com/rbstp)                                                                  |
 | [Nebius MysteryBox](https://external-secrets.io/latest/provider/nebius-mysterybox)                         | alpha     | [@greenmapc](https://github.com/greenmapc)                                                          |
 | [Fortanix](https://external-secrets.io/latest/provider/fortanix)                                           |     alpha | [@RecuencoJones](https://github.com/RecuencoJones)                                                  |
+| [Chef](https://external-secrets.io/latest/provider/chef)                                                   |     alpha | [@sourav977](https://github.com/sourav977)                                                          |
+| [Onboardbase](https://external-secrets.io/latest/provider/onboardbase)                                     |     alpha | [@limistah](https://github.com/limistah)                                                            |
+| [OpenBao](https://external-secrets.io/latest/provider/openbao)                                             |     alpha | [@phil9909](https://github.com/phil9909)                                                            |
+| [OVHcloud](https://external-secrets.io/latest/provider/ovhcloud)                                           |     alpha | [@ldesauw](https://github.com/ldesauw)                                                              |
+| [Password Depot](https://external-secrets.io/latest/provider-passworddepot)                                |     alpha | [@Sulfixx](https://github.com/Sulfixx)                                                              |
 
 ## Provider Feature Support
 
@@ -126,12 +132,13 @@ The following table show the support for features across different providers.
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
 | Keeper Security           |      x       |              |                      |                         |        x         |      x      |                             |
 | Scaleway                  |      x       |      x       |                      |            x            |        x         |      x      |              x              |
-| CyberArk Secrets Manager  |      x       |      x       |                      |                         |        x         |             |                             |
-| Delinea                   |      x       |              |                      |                         |        x         |             |                             |
+| CyberArk Secrets Manager  |      x       |      x       |                      |            x            |        x         |             |                             |
+| Delinea                   |              |              |                      |                         |        x         |             |                             |
 | Beyondtrust               |              |              |                      |                         |        x         |      x      |                             |
-| SecretServer              |      x       |              |                      |                         |        x         |      x      |              x              |
+| Beyondtrust Workload Credentials |      x       |      x       |                      |                         |        x         |             |                             |
+| SecretServer              |              |              |                      |            x            |        x         |      x      |              x              |
 | Pulumi ESC                |              |              |                      |            x            |        x         |             |                             |
-| Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
+| Passbolt                  |      x       |              |                      |            x            |        x         |             |                             |
 | Infisical                 |      x       |              |                      |            x            |        x         |      x      |              x              |
 | Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
 | Previder                  |              |              |                      |            x            |        x         |             |                             |
@@ -140,8 +147,13 @@ The following table show the support for features across different providers.
 | ngrok                     |              |              |                      |                         |        x         |      x      |                             |
 | Barbican                  |      x       |              |                      |                         |        x         |             |                             |
 | Devolutions Server        |              |              |                      |                         |        x         |      x      |                             |
-| Nebius Mysterybox         |              |              |                      |                         |        x         |             |                             |
+| Nebius Mysterybox         |              |              |                      |                         |        x         |             |              x              |
 | Fortanix                  |              |              |                      |            x            |        x         |             |                             |
+| Chef                      |              |              |                      |                         |        x         |             |                             |
+| Onboardbase               |      x       |              |                      |                         |        x         |             |                             |
+| OpenBao                   |      x       |              |                      |            x            |        x         |             |                             |
+| OVHcloud                  |      x       |              |                      |            x            |        x         |      x      |              x              |
+| Password Depot            |              |              |                      |                         |                  |             |                             |
 
 ## Support Policy
 
