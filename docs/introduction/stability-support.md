@@ -125,7 +125,7 @@ The following table show the support for features across different providers.
 | senhasegura DSM           |              |              |                      |            x            |        x         |             |              x              |
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
 | Keeper Security           |      x       |              |                      |                         |        x         |      x      |                             |
-| Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
+| Scaleway                  |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | CyberArk Secrets Manager  |      x       |      x       |                      |                         |        x         |             |                             |
 | Delinea                   |      x       |              |                      |                         |        x         |             |                             |
 | Beyondtrust               |              |              |                      |                         |        x         |      x      |                             |
