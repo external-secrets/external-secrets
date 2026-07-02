@@ -73,6 +73,7 @@ The following table describes the stability level of each provider and who's res
 | [IBM Cloud Secrets Manager](https://external-secrets.io/latest/provider/ibm-secrets-manager/)              |    stable | [@IdanAdar](https://github.com/IdanAdar)                                                            |
 | [Kubernetes](https://external-secrets.io/latest/provider/kubernetes)                                       |      beta | [external-secrets](https://github.com/external-secrets)                                             |
 | [Yandex Lockbox](https://external-secrets.io/latest/provider/yandex-lockbox/)                              |     alpha | [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
+| [Yandex Certificate Manager](https://external-secrets.io/latest/provider/yandex-certificate-manager/)      |     alpha | [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
 | [GitLab Variables](https://external-secrets.io/latest/provider/gitlab-variables/)                          |     alpha | [@Jabray5](https://github.com/Jabray5)                                                              |
 | [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                   |    stable | [@anders-swanson](https://github.com/anders-swanson)                                                                                    |
 | [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                           |    stable | [external-secrets](https://github.com/external-secrets)                                             |
@@ -98,6 +99,7 @@ The following table describes the stability level of each provider and who's res
 | [Barbican](https://external-secrets.io/latest/provider/barbican)                                           |     alpha | [@rkferreira](https://github.com/rkferreira)                                                        |
 | [Devolutions Server](https://external-secrets.io/latest/provider/devolutions-server)                       |     alpha | [@rbstp](https://github.com/rbstp)                                                                  |
 | [Nebius MysteryBox](https://external-secrets.io/latest/provider/nebius-mysterybox)                         | alpha     | [@greenmapc](https://github.com/greenmapc)                                                          |
+| [Fortanix](https://external-secrets.io/latest/provider/fortanix)                                           |     alpha | [@RecuencoJones](https://github.com/RecuencoJones)                                                  |
 
 ## Provider Feature Support
 
@@ -112,32 +114,34 @@ The following table show the support for features across different providers.
 | Azure Keyvault            |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Kubernetes                |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | IBM Cloud Secrets Manager |      x       |              |          x           |                         |        x         |             |                             |
-| Yandex Lockbox            |              |              |                      |                         |        x         |             |                             |
+| Yandex Lockbox            |              |              |                      |            x            |        x         |             |                             |
+| Yandex Certificate Manager |              |              |                      |            x            |        x         |             |                             |
 | GitLab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
 | Oracle Vault              |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | Akeyless                  |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | 1Password                 |      x       |      x       |                      |                         |        x         |      x      |              x              |
-| 1Password SDK             |              |              |                      |                         |        x         |      x      |              x              |
+| 1Password SDK             |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | Generic Webhook           |              |              |                      |                         |                  |             |              x              |
-| senhasegura DSM           |              |              |                      |                         |        x         |             |                             |
+| senhasegura DSM           |              |              |                      |            x            |        x         |             |              x              |
 | Doppler                   |      x       |              |                      |                         |        x         |             |                             |
 | Keeper Security           |      x       |              |                      |                         |        x         |      x      |                             |
-| Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
+| Scaleway                  |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | CyberArk Secrets Manager  |      x       |      x       |                      |                         |        x         |             |                             |
 | Delinea                   |      x       |              |                      |                         |        x         |             |                             |
 | Beyondtrust               |              |              |                      |                         |        x         |      x      |                             |
 | SecretServer              |      x       |              |                      |                         |        x         |      x      |              x              |
-| Pulumi ESC                |      x       |              |                      |                         |        x         |             |                             |
+| Pulumi ESC                |              |              |                      |            x            |        x         |             |                             |
 | Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
 | Infisical                 |      x       |              |                      |            x            |        x         |      x      |              x              |
 | Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
-| Previder                  |      x       |              |                      |                         |        x         |             |                             |
+| Previder                  |              |              |                      |            x            |        x         |             |                             |
 | Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |              x              |
-| Volcengine                |              |              |                      |                         |        x         |             |                             |
+| Volcengine                |              |              |                      |            x            |        x         |             |                             |
 | ngrok                     |              |              |                      |                         |        x         |      x      |                             |
 | Barbican                  |      x       |              |                      |                         |        x         |             |                             |
 | Devolutions Server        |              |              |                      |                         |        x         |      x      |                             |
 | Nebius Mysterybox         |              |              |                      |                         |        x         |             |                             |
+| Fortanix                  |              |              |                      |            x            |        x         |             |                             |
 
 ## Support Policy
 
