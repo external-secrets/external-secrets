@@ -34,6 +34,8 @@ import (
 //
 // The Azure DevOps use-case is tracked in
 // https://github.com/external-secrets/external-secrets/issues/5113
+//
+// +kubebuilder:validation:XValidation:rule="!has(self.auth.servicePrincipal) || (has(self.tenantId) && size(self.tenantId) > 0)",message="tenantId is required when servicePrincipal auth is used"
 type AzureAccessTokenSpec struct {
 	// Auth configures how ESO authenticates with Microsoft Entra ID.
 	Auth AzureAuth `json:"auth"`
@@ -43,6 +45,7 @@ type AzureAccessTokenSpec struct {
 	// Examples: "499b84ac-1321-427f-aa17-267ca6975798" (Azure DevOps),
 	// "https://management.azure.com" (Azure Resource Manager),
 	// "https://storage.azure.com" (Azure Storage).
+	// +kubebuilder:validation:MinLength=1
 	Resource string `json:"resource"`
 
 	// TenantID configures the Azure Tenant to send requests to. Required for the
@@ -101,6 +104,7 @@ type AzureWorkloadIdentityAuth struct {
 
 // AzureServicePrincipalAuthSecretRef defines the secret references for Azure Service
 // Principal authentication. Provide either a client secret or a client certificate.
+// +kubebuilder:validation:XValidation:rule="has(self.clientSecret) != has(self.clientCertificate)",message="exactly one of clientSecret or clientCertificate must be set"
 type AzureServicePrincipalAuthSecretRef struct {
 	// The Azure clientId of the service principal used for authentication.
 	ClientID smmeta.SecretKeySelector `json:"clientId"`

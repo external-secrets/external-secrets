@@ -42,7 +42,7 @@ spec:
 
     # option 3: workload identity
     # workloadIdentity:
-    #   # note: you can reference service accounts across namespaces.
+    #   # note: the service account must live in the same namespace as this generator.
     #   serviceAccountRef:
     #     name: "my-service-account"
     #     audiences: []

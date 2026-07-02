@@ -264,6 +264,10 @@ func accessTokenForWorkloadIdentity(
 		return tp.OAuthToken(), nil
 	}
 	var sa corev1.ServiceAccount
+	// Generators are namespaced and, like resolvers.SecretKeyRef with EmptyStoreKind,
+	// resolve references only within their own namespace. The serviceAccountRef is
+	// therefore looked up in the generator namespace; a selector namespace does not
+	// grant cross-namespace access.
 	err := crClient.Get(ctx, types.NamespacedName{
 		Name:      serviceAccountRef.Name,
 		Namespace: namespace,

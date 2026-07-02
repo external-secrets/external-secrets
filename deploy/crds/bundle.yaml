@@ -156,6 +156,7 @@ spec:
                                     description: Specify the Kind of the generator resource
                                     enum:
                                       - ACRAccessToken
+                                      - AzureAccessToken
                                       - BeyondtrustWorkloadCredentialsDynamicSecret
                                       - ClusterGenerator
                                       - CloudsmithAccessToken
@@ -405,6 +406,7 @@ spec:
                                     description: Specify the Kind of the generator resource
                                     enum:
                                       - ACRAccessToken
+                                      - AzureAccessToken
                                       - BeyondtrustWorkloadCredentialsDynamicSecret
                                       - ClusterGenerator
                                       - CloudsmithAccessToken
@@ -2033,6 +2035,7 @@ spec:
                               description: Specify the Kind of the generator resource
                               enum:
                                 - ACRAccessToken
+                                - AzureAccessToken
                                 - BeyondtrustWorkloadCredentialsDynamicSecret
                                 - ClusterGenerator
                                 - CloudsmithAccessToken
@@ -13154,6 +13157,7 @@ spec:
                                 description: Specify the Kind of the generator resource
                                 enum:
                                   - ACRAccessToken
+                                  - AzureAccessToken
                                   - BeyondtrustWorkloadCredentialsDynamicSecret
                                   - ClusterGenerator
                                   - CloudsmithAccessToken
@@ -13403,6 +13407,7 @@ spec:
                                 description: Specify the Kind of the generator resource
                                 enum:
                                   - ACRAccessToken
+                                  - AzureAccessToken
                                   - BeyondtrustWorkloadCredentialsDynamicSecret
                                   - ClusterGenerator
                                   - CloudsmithAccessToken
@@ -14744,6 +14749,7 @@ spec:
                           description: Specify the Kind of the generator resource
                           enum:
                             - ACRAccessToken
+                            - AzureAccessToken
                             - BeyondtrustWorkloadCredentialsDynamicSecret
                             - ClusterGenerator
                             - CloudsmithAccessToken
@@ -26124,6 +26130,9 @@ spec:
                           required:
                             - clientId
                           type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of clientSecret or clientCertificate must be set
+                              rule: has(self.clientSecret) != has(self.clientCertificate)
                       required:
                         - secretRef
                       type: object
@@ -26183,6 +26192,7 @@ spec:
                     Examples: "499b84ac-1321-427f-aa17-267ca6975798" (Azure DevOps),
                     "https://management.azure.com" (Azure Resource Manager),
                     "https://storage.azure.com" (Azure Storage).
+                  minLength: 1
                   type: string
                 tenantId:
                   description: |-
@@ -26193,6 +26203,9 @@ spec:
                 - auth
                 - resource
               type: object
+              x-kubernetes-validations:
+                - message: tenantId is required when servicePrincipal auth is used
+                  rule: '!has(self.auth.servicePrincipal) || (has(self.tenantId) && size(self.tenantId) > 0)'
           type: object
       served: true
       storage: true
@@ -26829,6 +26842,9 @@ spec:
                                   required:
                                     - clientId
                                   type: object
+                                  x-kubernetes-validations:
+                                    - message: exactly one of clientSecret or clientCertificate must be set
+                                      rule: has(self.clientSecret) != has(self.clientCertificate)
                               required:
                                 - secretRef
                               type: object
@@ -26888,6 +26904,7 @@ spec:
                             Examples: "499b84ac-1321-427f-aa17-267ca6975798" (Azure DevOps),
                             "https://management.azure.com" (Azure Resource Manager),
                             "https://storage.azure.com" (Azure Storage).
+                          minLength: 1
                           type: string
                         tenantId:
                           description: |-
@@ -26898,6 +26915,9 @@ spec:
                         - auth
                         - resource
                       type: object
+                      x-kubernetes-validations:
+                        - message: tenantId is required when servicePrincipal auth is used
+                          rule: '!has(self.auth.servicePrincipal) || (has(self.tenantId) && size(self.tenantId) > 0)'
                     beyondtrustWorkloadCredentialsDynamicSecretSpec:
                       description: |-
                         BeyondtrustWorkloadCredentialsDynamicSecretSpec defines the desired spec for BeyondtrustWorkloadCredentials dynamic generator.
