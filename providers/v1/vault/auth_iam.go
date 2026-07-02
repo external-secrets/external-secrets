@@ -22,12 +22,15 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	awsv1creds "github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/golang-jwt/jwt/v5"
-	authaws "github.com/hashicorp/vault/api/auth/aws"
+	"github.com/hashicorp/go-hclog"
+	"github.com/hashicorp/go-secure-stdlib/awsutil"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -36,6 +39,10 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
+
+// iamServerIDHeader is the Vault request header used to carry the
+// X-Vault-AWS-IAM-Server-ID value for AWS IAM auth replay-attack mitigation.
+const iamServerIDHeader = "iam_server_id_header_value"
 
 const (
 	defaultAWSRegion              = "us-east-1"
@@ -122,40 +129,59 @@ func (c *client) requestTokenWithIamAuth(
 		}
 	}
 
+	// Resolve the AWS credentials fresh on every login. For Pod Identity the
+	// underlying aws-sdk-go-v2 container provider auto-refreshes here, so we
+	// always sign the Vault login with non-expired credentials.
 	getCreds, err := cfg.Credentials.Retrieve(ctx)
 	if err != nil {
 		return err
 	}
-	// Set environment variables. These would be fetched by Login
-	_ = os.Setenv("AWS_ACCESS_KEY_ID", getCreds.AccessKeyID)
-	_ = os.Setenv("AWS_SECRET_ACCESS_KEY", getCreds.SecretAccessKey)
-	_ = os.Setenv("AWS_SESSION_TOKEN", getCreds.SessionToken)
 
-	var awsAuthClient *authaws.AWSAuth
+	// Sign the Vault login request directly from the freshly-resolved v2
+	// credentials rather than routing them through the vault/api/auth/aws
+	// helper. That helper reads AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY/
+	// AWS_SESSION_TOKEN from the process environment into an aws-sdk-go-v1
+	// StaticProvider whose IsExpired() is always false, which pins the very
+	// first session token for the pod's lifetime and breaks Pod Identity
+	// (STS ExpiredToken once the ~6h Pod Identity credential rotates). Building
+	// the login data ourselves keeps the v2 credentials authoritative and
+	// avoids mutating process-global environment variables.
+	return c.loginWithIamCreds(ctx, getCreds, iamAuth, awsAuthMountPath, regionAWS)
+}
 
-	if iamAuth.VaultAWSIAMServerID != "" {
-		awsAuthClient, err = authaws.NewAWSAuth(
-			authaws.WithRegion(regionAWS),
-			authaws.WithIAMAuth(),
-			authaws.WithRole(iamAuth.Role),
-			authaws.WithMountPath(awsAuthMountPath),
-			authaws.WithIAMServerIDHeader(iamAuth.VaultAWSIAMServerID),
-		)
-		if err != nil {
-			return err
-		}
-	} else {
-		awsAuthClient, err = authaws.NewAWSAuth(authaws.WithRegion(regionAWS), authaws.WithIAMAuth(), authaws.WithRole(iamAuth.Role), authaws.WithMountPath(awsAuthMountPath))
-		if err != nil {
-			return err
-		}
+// loginWithIamCreds signs an STS GetCallerIdentity request with the supplied
+// AWS credentials and posts the resulting login data to Vault's AWS IAM auth
+// login endpoint, then stores the returned client token on the Vault client.
+func (c *client) loginWithIamCreds(ctx context.Context, creds aws.Credentials, iamAuth *esv1.VaultIamAuth, awsAuthMountPath, regionAWS string) error {
+	v1creds := awsv1creds.NewStaticCredentials(creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+
+	loginData, err := awsutil.GenerateLoginData(v1creds, iamAuth.VaultAWSIAMServerID, regionAWS, hclog.NewNullLogger())
+	if err != nil {
+		return err
+	}
+	loginData["role"] = iamAuth.Role
+
+	// The server-ID header is signed into the STS request above; Vault also
+	// expects it on the login request itself, matching the behavior of the
+	// vault/api/auth/aws helper. AddHeader appends, and the underlying client
+	// is cached and re-used across token-expiry re-logins, so guard against
+	// accumulating duplicate headers by only adding it when absent.
+	if iamAuth.VaultAWSIAMServerID != "" && c.client.Headers().Get(iamServerIDHeader) == "" {
+		c.client.AddHeader(iamServerIDHeader, iamAuth.VaultAWSIAMServerID)
 	}
 
-	_, err = c.auth.Login(ctx, awsAuthClient)
+	url := strings.Join([]string{"auth", awsAuthMountPath, "login"}, "/")
+	vaultResult, err := c.logical.WriteWithContext(ctx, url, loginData)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
 	if err != nil {
 		return err
 	}
+
+	token, err := vaultResult.TokenID()
+	if err != nil {
+		return fmt.Errorf(errVaultToken, err)
+	}
+	c.client.SetToken(token)
 	return nil
 }
 
