@@ -1,7 +1,7 @@
 <!-- This is a tutorial. -->
 <!-- An introduction to the contribution journey, a teaching experience on contributions to ES -->
-<!-- It is not a replacement on how do I contribute (CONTRIBUTING.md) -->
-<!-- It is not a place to clarify/explain the why of our processes (GOVERNANCE.md) -->
+<!-- It is not a replacement on how do I contribute (contributing.md) -->
+<!-- It is not a place to clarify/explain the why of our processes (governance.md) -->
 <!-- It is not a reference of WHAT IS each process (cf separate processes document) -->
 
 <!-- If you want to contribute to this page: -->
@@ -46,7 +46,7 @@ On top of that, we value code contributions:
 - Provider contributions (setting up accounts, maintaining controllers, etc.)
 - Release management
 
-Financial contributions are welcomed and documented in our [financial contributions policy](GOVERNANCE.md#financial-contributions)
+Financial contributions are welcomed and documented in our [financial contributions policy](governance.md#financial-contributions)
 
 ## The value of triaging issues
 
@@ -60,7 +60,7 @@ If you want to help in triaging issues, you can start by commenting on them with
 
 Do not hesitate to ask questions if you need more context about an issue.
 We strongly suggest you to not use an AI generation tool at this point, except to format your comments.
-If you want to understand why, please read our [LLM Policies](GOVERNANCE.md#llm-policies).
+If you want to understand why, please read our [LLM Policies](governance.md#llm-policies).
 
 ### Helping others on other communication channels
 
@@ -76,7 +76,7 @@ We sadly do not have a "boilerplate" community event/marketing information or go
 This is an open-source project :)
 
 If you are willing to talk about ESO in a community meeting,
-please read our [Community events policy](GOVERNANCE.md#handling-community-events)
+please read our [Community events policy](governance.md#handling-community-events)
 
 ### Giving feedback in community meetings
 
@@ -103,12 +103,13 @@ With a two-side conversation, we are building a long term ecosystem, not just re
 
 ### Before you work on code
 
-Make sure you follow our CONTRIBUTING.md guide explaining how to contribute.
+Make sure you follow our [contributing guide](contributing.md) explaining how to contribute.
 It also contains a link to our project board, explaining where we are headed and whether your code seems aligned or not.
 
 ### Reviewing pull requests and giving feedback
 
-TODO(evrardjp): Please do not hesitate to complete this section!
+... note:
+    Please do not hesitate to complete this section!
 
 ### Improving our documentation
 
@@ -119,13 +120,11 @@ Code is only as good as its documentation. Having good documentation:
 - increase community size
 
 You can help us improve our documentation in the `/docs` folder.
-Our docs aim to follow the [diataxis](https://diataxis.fr) framework.
-We are in the process of migrating our docs to this framework.
 
 Come help us and get started by:
 
 - getting acquainted with the framework
-- reading the `Setting up the development environment for documentation contributions` section in CONTRIBUTING.md
+- reading the `Setting up the development environment for documentation contributions` section in contributing.md
 - propose your first changes!
 
 ### Helm charts

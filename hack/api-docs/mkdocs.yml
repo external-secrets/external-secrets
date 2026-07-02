@@ -171,10 +171,11 @@ nav:
   - Community:
       - Contributing:
           - HOW-TO Guides:
-              - Contribute to ESO: contributing/CONTRIBUTING.md
+              - Contribute to ESO: contributing/contributing.md
               - Releasing ESO: contributing/release_howto.md
-              - Report security incidents: contributing/SECURITY.md
-              - Reacting to a security incident: contributing/SECURITY_RESPONSE.md
+              - Report security incidents: contributing/security_reporting.md
+              - Reacting to a security incident: contributing/security_response.md
+              - Deprecating in practice: contributing/deprecating_in_practice.md
           - Tutorials:
               - Contributor journey: contributing/journey.md
               - Contributor Burnout Prevention: contributing/burnout_mitigation_tutorial.md
@@ -183,9 +184,9 @@ nav:
               - Security policy: contributing/security_policy.md
               - Labels policy: contributing/labels_reference.md
               - Contributor ladder policy: contributing/contributor_ladder.md
-              - Code of Conduct: contributing/CODE_OF_CONDUCT.md
+              - Code of Conduct: contributing/code_of_conduct.md
           - Deep dive explanations:
-              - Our policy: contributing/GOVERNANCE.md
+              - Our policy: contributing/governance.md
       - External Resources:
           - Talks: eso-talks.md
           - Demos: eso-demos.md

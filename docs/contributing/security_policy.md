@@ -1,15 +1,16 @@
 <!-- Reference. We explain WHAT is the content of our policy, verbatim -->
 <!-- If you want to contribute to this page: -->
-<!-- If you are looking for "HOW DO I follow ESO process to report security issue", look for the SECURITY.md page -->
-<!-- If you are looking for "HOW DO I follow ESI process to work on a security issue", look for SECURITY_RESPONSE page) -->
+<!-- If you are looking for "HOW DO I follow ESO process to report security issue", look for the security_reporting.md page -->
+<!-- If you are looking for "HOW DO I follow ESI process to work on a security issue", look for security_response.md page) -->
 <!-- If you are looking for WHY we have security process x, look for our general policy -->
+
 ## Vulnerability Management
 ### Responsible disclosure policy
 
 ESO follows responsible disclosure practices.
 
-Security-impacting issues should be reported via our documented security contact channels (see `SECURITY.md`).
-Security fixes may be handled privately until a coordinated disclosure and release are ready (see `SECURITY_RESPONSE.md`)
+Security-impacting issues should be reported via our documented security contact channels (see our [security reporting page](security_reporting.md)).
+Security fixes may be handled privately until a coordinated disclosure and release are ready (see our [security response page](security_response.md)).
 
 ### Critical Updates And Security Notices
 

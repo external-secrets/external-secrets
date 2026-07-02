@@ -326,6 +326,6 @@ Voting rights vary by decision type:
 
 ## Cross-References
 
-- Project governance and decision-making: see [policy](GOVERNANCE.md)
+- Project governance and decision-making: see [policy](governance.md)
 - Proposal process and template: `design/000-template.md`
 - Specialty ownership: GitHub teams

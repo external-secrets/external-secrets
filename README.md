@@ -47,7 +47,7 @@ Anyone is welcome to join. Feel free to ask questions, request feedback, raise a
 
 ## Security
 
-Please report vulnerabilities by email to cncf-ExternalSecretsOp-maintainers@lists.cncf.io. Also see our [SECURITY.md file](SECURITY.md) for details.
+Please report vulnerabilities by email to cncf-ExternalSecretsOp-maintainers@lists.cncf.io. Also see our [SECURITY reporting documentation](security_reporting.md) for details.
 
 ## Software bill of materials
 We attach SBOM and provenance file to our GitHub release. Also, they are attached to container images.

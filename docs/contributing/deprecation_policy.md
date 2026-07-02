@@ -1,13 +1,14 @@
 <!-- Reference. We explain WHAT is the content of our deprecation policy, verbatim -->
 <!-- If you want to contribute to this page: -->
 <!-- If you are looking for WHY we have security process x, look for our general policy (policy.md) -->
-<!-- If you are looking for "HOW DO I deprecate code x", just do it. look for the DEPRECATING.md page -->
+<!-- If you are looking for "HOW DO I deprecate code x", just do it. look for the deprecating.md page -->
 # Deprecation policy
 
 We follow the 9 rules of the [Kubernetes Deprecation Policy](https://kubernetes.io/docs/reference/using-api/deprecation-policy/) and [API Versioning Scheme](https://kubernetes.io/docs/reference/using-api/#api-versioning): alpha, beta, GA.
 On top of that, we have our own deprecation policy explained here.
 
-(Note: Please read the `DEPRECATING.md` at the base of our repository to know how-to technically deprecate a feature)
+!!! note
+    Please read the [deprecating in practice](deprecating_in_practice.md) to know how-to technically deprecate a feature
 
 ## Scope
 * API Objects and fields: `.Spec`, `.Status` and `.Status.Conditions[]`
@@ -19,7 +20,7 @@ On top of that, we have our own deprecation policy explained here.
 
 ### Deprecations follow our general policy and are considered as impactful
 
-A quick reminder: Our [general policy](GOVERNANCE.md#deprecations-are-considered-impactful) considers deprecations and removals are impactful.
+A quick reminder: Our [general policy](governance.md#deprecations-are-considered-impactful) considers deprecations and removals are impactful.
 They require a proposal.
 
 ### Deprecation notices in release management
