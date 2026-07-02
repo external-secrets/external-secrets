@@ -50,6 +50,46 @@ var (
 	ErrTokenNotExists = errors.New("token does not exist")
 )
 
+// isAccessDeniedError reports whether an Akeyless API error body indicates an
+// authorization failure rather than a missing item.
+func isAccessDeniedError(errBody string) bool {
+	lower := strings.ToLower(errBody)
+	accessDeniedPatterns := []string{
+		"unauthorized",
+		"forbidden",
+		"not allowed",
+		"not_allowed",
+		"access denied",
+		"access_denied",
+		"permission denied",
+		"permission_denied",
+		"no access",
+		"not authorized",
+		"authorization failed",
+		"you don't have permission",
+	}
+	for _, pattern := range accessDeniedPatterns {
+		if strings.Contains(lower, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+// describeItemAPIError maps DescribeItem SDK API errors while preserving the
+// legacy not-found behaviour relied on by PushSecret and SecretExists.
+func describeItemAPIError(itemName string, errBody []byte) error {
+	body := string(errBody)
+	if isAccessDeniedError(body) {
+		return fmt.Errorf("can't describe item: %v, error: %v", itemName, body)
+	}
+	var item *Item
+	if err := json.Unmarshal(errBody, &item); err == nil {
+		return ErrItemNotExists
+	}
+	return fmt.Errorf("can't describe item: %v, error: %v", itemName, body)
+}
+
 // DefServiceAccountFile is the default path to the Kubernetes service account token.
 const DefServiceAccountFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
@@ -148,19 +188,17 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName string) (*akey
 	}
 	gsvOut, res, err := a.RestAPI.DescribeItem(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDescribeItem, err)
+	if res != nil {
+		defer func() {
+			_ = res.Body.Close()
+		}()
+	}
 	if errors.As(err, &apiErr) {
-		var item *Item
-		err = json.Unmarshal(apiErr.Body(), &item)
-		if err != nil {
-			return nil, fmt.Errorf("can't describe item: %v, error: %v", itemName, string(apiErr.Body()))
-		}
+		return nil, describeItemAPIError(itemName, apiErr.Body())
 	}
 	if err != nil {
 		return nil, fmt.Errorf("can't describe item: %w", err)
 	}
-	defer func() {
-		_ = res.Body.Close()
-	}()
 
 	return &gsvOut, nil
 }
