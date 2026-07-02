@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 
@@ -462,42 +463,50 @@ func TestCapabilities(t *testing.T) {
 	require.Equal(t, esv1.SecretStoreReadWrite, p.Capabilities())
 }
 
-func TestIsAccessDeniedError(t *testing.T) {
+func TestIsItemNotFoundMessage(t *testing.T) {
 	tests := []struct {
 		name     string
-		errBody  string
+		message  string
 		expected bool
 	}{
-		{name: "permission denied", errBody: `{"error":"permission denied for namespace tester-ns2"}`, expected: true},
-		{name: "access denied", errBody: `{"error":"access denied"}`, expected: true},
-		{name: "unauthorized", errBody: `{"message":"Unauthorized"}`, expected: true},
-		{name: "item not found", errBody: `{"error":"failed to get secret: item not found"}`, expected: false},
-		{name: "internal error", errBody: `{"error":"internal server error"}`, expected: false},
-		{name: "empty body", errBody: "", expected: false},
+		{name: "item not found", message: "failed to get secret: item not found", expected: true},
+		{name: "does not exist", message: "secret does not exist", expected: true},
+		{name: "permission denied", message: "permission denied for namespace tester-ns2", expected: false},
+		{name: "internal error", message: "internal server error", expected: false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			require.Equal(t, tt.expected, isAccessDeniedError(tt.errBody))
+			require.Equal(t, tt.expected, isItemNotFoundMessage(tt.message))
 		})
 	}
 }
 
 func TestDescribeItemAPIError(t *testing.T) {
+	t.Run("HTTP 404 maps to ErrItemNotExists", func(t *testing.T) {
+		err := describeItemAPIError("secret/foo", http.StatusNotFound, []byte(`{"error":"failed"}`))
+		require.ErrorIs(t, err, ErrItemNotExists)
+	})
+
 	t.Run("access denied is surfaced", func(t *testing.T) {
-		err := describeItemAPIError("secret/foo", []byte(`{"error":"permission denied for namespace tester-ns2"}`))
+		err := describeItemAPIError("secret/foo", http.StatusForbidden, []byte(`{"error":"permission denied for namespace tester-ns2"}`))
 		require.Error(t, err)
 		require.False(t, errors.Is(err, ErrItemNotExists))
 		require.Contains(t, err.Error(), "permission denied")
 	})
 
-	t.Run("not found maps to ErrItemNotExists", func(t *testing.T) {
-		err := describeItemAPIError("secret/foo", []byte(`{"error":"failed to get secret: item not found"}`))
+	t.Run("not found message maps to ErrItemNotExists", func(t *testing.T) {
+		err := describeItemAPIError("secret/foo", http.StatusBadRequest, []byte(`{"error":"failed to get secret: item not found"}`))
+		require.ErrorIs(t, err, ErrItemNotExists)
+	})
+
+	t.Run("legacy unmarshalable JSON maps to ErrItemNotExists", func(t *testing.T) {
+		err := describeItemAPIError("secret/foo", 0, []byte(`{}`))
 		require.ErrorIs(t, err, ErrItemNotExists)
 	})
 
 	t.Run("unparseable body is surfaced", func(t *testing.T) {
-		err := describeItemAPIError("secret/foo", []byte(`not-json`))
+		err := describeItemAPIError("secret/foo", 0, []byte(`not-json`))
 		require.Error(t, err)
 		require.False(t, errors.Is(err, ErrItemNotExists))
 		require.Contains(t, err.Error(), "not-json")

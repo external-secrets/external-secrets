@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
@@ -50,44 +51,47 @@ var (
 	ErrTokenNotExists = errors.New("token does not exist")
 )
 
-// isAccessDeniedError reports whether an Akeyless API error body indicates an
-// authorization failure rather than a missing item.
-func isAccessDeniedError(errBody string) bool {
-	lower := strings.ToLower(errBody)
-	accessDeniedPatterns := []string{
-		"unauthorized",
-		"forbidden",
-		"not allowed",
-		"not_allowed",
-		"access denied",
-		"access_denied",
-		"permission denied",
-		"permission_denied",
-		"no access",
-		"not authorized",
-		"authorization failed",
-		"you don't have permission",
+// extractAkeylessAPIErrorMessage reads the documented JSONError.error field from
+// an Akeyless API error response body.
+func extractAkeylessAPIErrorMessage(errBody []byte) string {
+	var jsonErr akeyless.JSONError
+	if err := json.Unmarshal(errBody, &jsonErr); err == nil && jsonErr.Error != nil {
+		return *jsonErr.Error
 	}
-	for _, pattern := range accessDeniedPatterns {
-		if strings.Contains(lower, pattern) {
-			return true
-		}
-	}
-	return false
+	return ""
+}
+
+// isItemNotFoundMessage reports whether an Akeyless API error message indicates
+// a missing item rather than another failure mode.
+func isItemNotFoundMessage(msg string) bool {
+	lower := strings.ToLower(msg)
+	return strings.Contains(lower, "not found") ||
+		strings.Contains(lower, "does not exist") ||
+		strings.Contains(lower, "doesn't exist")
 }
 
 // describeItemAPIError maps DescribeItem SDK API errors while preserving the
 // legacy not-found behaviour relied on by PushSecret and SecretExists.
-func describeItemAPIError(itemName string, errBody []byte) error {
-	body := string(errBody)
-	if isAccessDeniedError(body) {
-		return fmt.Errorf("can't describe item: %v, error: %v", itemName, body)
+func describeItemAPIError(itemName string, statusCode int, errBody []byte) error {
+	if statusCode == http.StatusNotFound {
+		return ErrItemNotExists
 	}
+
+	if msg := extractAkeylessAPIErrorMessage(errBody); msg != "" {
+		if isItemNotFoundMessage(msg) {
+			return ErrItemNotExists
+		}
+		return fmt.Errorf("can't describe item: %v, error: %v", itemName, msg)
+	}
+
+	// Legacy: DescribeItem used to unmarshal error bodies into Item; a successful
+	// unmarshal with no structured error message was treated as not-found upstream.
 	var item *Item
 	if err := json.Unmarshal(errBody, &item); err == nil {
 		return ErrItemNotExists
 	}
-	return fmt.Errorf("can't describe item: %v, error: %v", itemName, body)
+
+	return fmt.Errorf("can't describe item: %v, error: %v", itemName, string(errBody))
 }
 
 // DefServiceAccountFile is the default path to the Kubernetes service account token.
@@ -194,7 +198,11 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName string) (*akey
 		}()
 	}
 	if errors.As(err, &apiErr) {
-		return nil, describeItemAPIError(itemName, apiErr.Body())
+		statusCode := 0
+		if res != nil {
+			statusCode = res.StatusCode
+		}
+		return nil, describeItemAPIError(itemName, statusCode, apiErr.Body())
 	}
 	if err != nil {
 		return nil, fmt.Errorf("can't describe item: %w", err)
