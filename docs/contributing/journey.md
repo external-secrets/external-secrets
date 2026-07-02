@@ -1,6 +1,6 @@
 <!-- This is a tutorial. -->
 <!-- An introduction to the contribution journey, a teaching experience on contributions to ES -->
-<!-- It is not a replacement on how do I contribute (contributing.md) -->
+<!-- It is not a replacement on how do I contribute (howto.md) -->
 <!-- It is not a place to clarify/explain the why of our processes (governance.md) -->
 <!-- It is not a reference of WHAT IS each process (cf separate processes document) -->
 
@@ -103,7 +103,7 @@ With a two-side conversation, we are building a long term ecosystem, not just re
 
 ### Before you work on code
 
-Make sure you follow our [contributing guide](contributing.md) explaining how to contribute.
+Make sure you follow our [contributing guide](howto.md) explaining how to contribute.
 It also contains a link to our project board, explaining where we are headed and whether your code seems aligned or not.
 
 ### Reviewing pull requests and giving feedback
@@ -123,7 +123,7 @@ You can help us improve our documentation in the `/docs` folder.
 Come help us and get started by:
 
 - getting acquainted with the framework
-- reading the `Setting up the development environment for documentation contributions` section in contributing.md
+- reading the `Setting up the development environment for documentation contributions` section in howto.md
 - propose your first changes!
 
 ### Helm charts

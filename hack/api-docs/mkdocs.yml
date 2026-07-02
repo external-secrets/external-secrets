@@ -171,7 +171,7 @@ nav:
   - Community:
       - Contributing:
           - HOW-TO Guides:
-              - Contribute to ESO: contributing/contributing.md
+              - Contribute to ESO: contributing/howto.md
               - Releasing ESO: contributing/release_howto.md
               - Report security incidents: contributing/security_reporting.md
               - Reacting to a security incident: contributing/security_response.md

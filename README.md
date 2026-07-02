@@ -30,7 +30,7 @@ External Secrets Operator guides and reference documentation is available at [ex
 
 ## Contributing
 
-We welcome and encourage contributions to this project! Please read the [contributing guide](docs/contributing/contributing.md) and [contribution policy](docs/contributing/governance.md). Also make sure to check the [Code of Conduct](docs/contributing/code_of_conduct.md) and adhere to its guidelines.
+We welcome and encourage contributions to this project! Please read the [contributing guide](docs/contributing/howto.md) and [contribution policy](docs/contributing/governance.md). Also make sure to check the [Code of Conduct](docs/contributing/code_of_conduct.md) and adhere to its guidelines.
 
 Also, please take a look our [Contribution Ladder](docs/contributing/contributor_ladder.md) for a _very_ detailed explanation of what roles and tracks are available for people to try and help this project.
 

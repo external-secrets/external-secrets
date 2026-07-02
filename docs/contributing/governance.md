@@ -38,7 +38,7 @@ Feel free to reopen if you want to get back on it.
 ## Code contributions must include documentation updates where applicable
 
 Because docs quality is as important as code quality, it is expected to maintain documentation in `/docs` when contributing features or changing existing behavior.
-Read the `Setting up the development environment for documentation contributions` section in `contributing.md` for more information.
+Read the `Setting up the development environment for documentation contributions` section in `howto.md` for more information.
 
 ## Long term impact of each code contribution
 
@@ -162,7 +162,7 @@ ESO uses [Lazy Consensus](https://community.apache.org/committers/decisionMaking
 The external-secrets project is released on an as-needed basis.
 Nobody is entitled to new releases. Our community work is best-effort.
 Feel free to open an issue to request a release and help on such release.
-Details on how to cut a release can be found in the [Contributing](contributing.md#releasing) page.
+Details on how to cut a release can be found in the [Contributing](howto.md#releasing) page.
 
 ## Handling community events
 
