@@ -3815,6 +3815,8 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
@@ -3857,6 +3859,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -3865,18 +3869,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#pulumi-esc" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pulumi ESC
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Pulumi ESC">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3886,8 +3878,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#creating-a-secretstore" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3925,8 +3917,8 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#creating-a-clustersecretstore" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3964,8 +3956,8 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#referencing-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3992,8 +3984,8 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#pushsecrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4003,8 +3995,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#limitations" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4012,11 +4004,6 @@
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -5063,6 +5050,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -5071,18 +5060,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#pulumi-esc" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Pulumi ESC
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Pulumi ESC">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5092,8 +5069,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#creating-a-secretstore" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5131,8 +5108,8 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#creating-a-clustersecretstore" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5170,8 +5147,8 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#referencing-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5198,8 +5175,8 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#pushsecrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5209,8 +5186,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#limitations" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5218,11 +5195,6 @@
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -5246,20 +5218,18 @@
   
 
 
-  <h1>Pulumi ESC</h1>
-
-<h2 id="pulumi-esc">Pulumi ESC</h2>
+<h1 id="pulumi-esc">Pulumi ESC</h1>
 <p>Sync environments, configs and secrets from <a href="https://www.pulumi.com/product/esc/">Pulumi ESC</a> to Kubernetes using the External Secrets Operator.</p>
 <p><img alt="Pulumi ESC" src="../../pictures/pulumi-esc.png" /></p>
 <p>More information about setting up <a href="https://www.pulumi.com/">Pulumi</a> ESC can be found in the <a href="https://www.pulumi.com/docs/esc/">Pulumi ESC documentation</a>.</p>
-<h3 id="authentication">Authentication</h3>
+<h2 id="authentication">Authentication</h2>
 <p>The Pulumi provider supports two authentication methods:</p>
 <ol>
 <li><strong>Access Token</strong> (recommended for most use cases): Use Pulumi <a href="https://www.pulumi.com/docs/pulumi-cloud/access-management/access-tokens/">Access Tokens</a> stored in Kubernetes secrets.</li>
 <li><strong>OIDC</strong> (recommended for workload identity): Use Kubernetes ServiceAccount tokens to authenticate via OIDC, eliminating the need to store static credentials.</li>
 </ol>
-<h3 id="creating-a-secretstore">Creating a SecretStore</h3>
-<h4 id="using-access-token">Using Access Token</h4>
+<h2 id="creating-a-secretstore">Creating a SecretStore</h2>
+<h3 id="using-access-token">Using Access Token</h3>
 <p>A Pulumi <code>SecretStore</code> can be created by specifying the <code>organization</code>, <code>project</code> and <code>environment</code> and referencing a Kubernetes secret containing the <code>accessToken</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
@@ -5278,7 +5248,7 @@
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_KUBE_SECRET&gt;</span>
 </code></pre></div>
 <p><strong>Note:</strong> The deprecated <code>accessToken</code> field at the root level is still supported for backward compatibility, but using <code>auth.accessToken</code> is recommended.</p>
-<h4 id="using-oidc">Using OIDC</h4>
+<h3 id="using-oidc">Using OIDC</h3>
 <p>Alternatively, you can use OIDC authentication with Kubernetes ServiceAccount tokens. This method eliminates the need to store static credentials.</p>
 <p>First, configure OIDC in your Pulumi organization by following the <a href="https://www.pulumi.com/docs/pulumi-cloud/access-management/oidc/">Pulumi OIDC documentation</a>.</p>
 <p>Then create a ServiceAccount and SecretStore:</p>
@@ -5308,8 +5278,8 @@
 </code></pre></div>
 <p>The <code>expirationSeconds</code> field is optional and defaults to 600 seconds (10 minutes).</p>
 <p>If required, the API URL (<code>apiUrl</code>) can be customized as well. If not specified, the default value is <code>https://api.pulumi.com/api/esc</code>.</p>
-<h3 id="creating-a-clustersecretstore">Creating a ClusterSecretStore</h3>
-<h4 id="using-access-token_1">Using Access Token</h4>
+<h2 id="creating-a-clustersecretstore">Creating a ClusterSecretStore</h2>
+<h3 id="using-access-token_1">Using Access Token</h3>
 <p>Similarly, a <code>ClusterSecretStore</code> can be created by specifying the <code>namespace</code> and referencing a Kubernetes secret containing the <code>accessToken</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
@@ -5328,7 +5298,7 @@
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_KUBE_SECRET&gt;</span>
 <span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAMESPACE&gt;</span>
 </code></pre></div>
-<h4 id="using-oidc_1">Using OIDC</h4>
+<h3 id="using-oidc_1">Using OIDC</h3>
 <p>For ClusterSecretStore with OIDC, you need to specify the ServiceAccount namespace:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ServiceAccount</span>
@@ -5354,7 +5324,7 @@
 <span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
 <span class="w">          </span><span class="nt">expirationSeconds</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">600</span>
 </code></pre></div>
-<h3 id="referencing-secrets">Referencing Secrets</h3>
+<h2 id="referencing-secrets">Referencing Secrets</h2>
 <p>Secrets can be referenced by defining the <code>key</code> containing the JSON path to the secret. Pulumi ESC secrets are internally organized as a JSON object.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5371,7 +5341,7 @@
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;PULUMI_PATH_SYNTAX&gt;</span>
 </code></pre></div>
 <p><strong>Note:</strong> <code>key</code> is not following the JSON Path syntax, but rather the Pulumi path syntax.</p>
-<h4 id="examples">Examples</h4>
+<h3 id="examples">Examples</h3>
 <ul>
 <li>root</li>
 <li>root.nested</li>
@@ -5392,7 +5362,7 @@
 <li>root.array["*"].field</li>
 </ul>
 <p>See <a href="https://www.pulumi.com/docs/concepts/options/ignorechanges/">Pulumi's documentation</a> for more information.</p>
-<h3 id="pushsecrets">PushSecrets</h3>
+<h2 id="pushsecrets">PushSecrets</h2>
 <p>With the latest release of Pulumi ESC, secrets can be pushed to the Pulumi service. This can be done by creating a <code>PushSecrets</code> object.</p>
 <p>Here is a basic example of how to define a <code>PushSecret</code> object:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
@@ -5414,7 +5384,7 @@
 <span class="w">        </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;PULUMI_PATH_SYNTAX&gt;</span>
 </code></pre></div>
 <p>This will then push the secret to the Pulumi service. If the secret already exists, it will be updated.</p>
-<h3 id="limitations">Limitations</h3>
+<h2 id="limitations">Limitations</h2>
 <p>Currently, the Pulumi provider only supports nested objects up to a depth of 1. Any nested objects beyond this depth will be stored as a string with the JSON representation.</p>
 <p>This Pulumi ESC example:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">values</span><span class="p">:</span>
