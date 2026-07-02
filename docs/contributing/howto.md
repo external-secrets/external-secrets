@@ -9,22 +9,6 @@ Read the [Contribution Policy](governance.md) to understand why our contribution
 (code of conduct, LLM policy, PR message conventions, etc.).
 Get the ball rolling by realizing the actions described in this document.
 
-## Accept the legal requirements
-
-All commits must be signed off to certify compliance with the [Developer Certificate of Origin](https://developercertificate.org/).
-Use `git commit --signoff` (or `git commit -s`) when creating commits.
-
-If you already pushed commits without a sign-off, add it before updating your pull request:
-
-```shell
-git rebase --signoff origin/main
-```
-
-If your branch needs a more careful rebase, use `git rebase -i origin/main` and amend each commit with `git commit --amend --signoff --no-edit`.
-Then force-push with `git push --force-with-lease`.
-
-All contributors must follow our Code of Conduct and the CNCF Code of Conduct before we accept any contributions.
-
 ## Making sure you are not working on something already fixed
 
 If you found an issue, others might have too.
@@ -164,12 +148,33 @@ make crds.uninstall
 
 ### Commit your work and propose a PR
 
+#### Accept the legal requirements
+
+All commits must be signed off to certify compliance with the [Developer Certificate of Origin](https://developercertificate.org/).
+Use `git commit --signoff` (or `git commit -s`) when creating commits.
+
+If you already pushed commits without a sign-off, add it before updating your pull request:
+
+```shell
+git rebase --signoff origin/main
+```
+
+If your branch needs a more careful rebase, use `git rebase -i origin/main` and amend each commit with `git commit --amend --signoff --no-edit`.
+Then force-push with `git push --force-with-lease`.
+
+All contributors must follow our Code of Conduct and the CNCF Code of Conduct before we accept any contributions.
+
+#### Check your code matches our policy and test practices
+
 Make sure you have read the [Contribution Policy](governance.md) before submitting your PR.
 It explains our expectations regarding commit messages, PR descriptions, LLM usage, and other important aspects of contributing.
-Before requesting review, run `make reviewable` to execute the standard pre-review checks.
+Before requesting review, run `make check-diff` to execute the standard checks.
+
+#### Create the Pull Request
 
 This project uses the pull request process from GitHub. To submit a pull request,
 fork the repository and push any changes to a branch on "your fork".
+
 From there, propose a pull request in the external-secrets repository, targeting our main branch.
 
 You do not have to worry about /ok-to-test, maintainers will execute it when necessary.
