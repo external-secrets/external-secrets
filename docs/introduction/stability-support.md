@@ -98,6 +98,7 @@ The following table describes the stability level of each provider and who's res
 | [Barbican](https://external-secrets.io/latest/provider/barbican)                                           |     alpha | [@rkferreira](https://github.com/rkferreira)                                                        |
 | [Devolutions Server](https://external-secrets.io/latest/provider/devolutions-server)                       |     alpha | [@rbstp](https://github.com/rbstp)                                                                  |
 | [Nebius MysteryBox](https://external-secrets.io/latest/provider/nebius-mysterybox)                         | alpha     | [@greenmapc](https://github.com/greenmapc)                                                          |
+| [Fortanix](https://external-secrets.io/latest/provider/fortanix)                                           |     alpha | [@RecuencoJones](https://github.com/RecuencoJones)                                                  |
 | [GitHub Actions Secrets](https://external-secrets.io/latest/provider/github)                               |     alpha | [@gusfcarvalho](https://github.com/gusfcarvalho)                                                    |
 
 ## Provider Feature Support
@@ -126,7 +127,7 @@ The following table show the support for features across different providers.
 | Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | CyberArk Secrets Manager  |      x       |      x       |                      |                         |        x         |             |                             |
 | Delinea                   |      x       |              |                      |                         |        x         |             |                             |
-| Beyondtrust               |      x       |              |                      |                         |        x         |             |                             |
+| Beyondtrust               |              |              |                      |                         |        x         |      x      |                             |
 | SecretServer              |      x       |              |                      |                         |        x         |      x      |              x              |
 | Pulumi ESC                |      x       |              |                      |                         |        x         |             |                             |
 | Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
@@ -139,6 +140,7 @@ The following table show the support for features across different providers.
 | Barbican                  |      x       |              |                      |                         |        x         |             |                             |
 | Devolutions Server        |              |              |                      |                         |        x         |      x      |                             |
 | Nebius Mysterybox         |              |              |                      |                         |        x         |             |                             |
+| Fortanix                  |              |              |                      |            x            |        x         |             |                             |
 | GitHub Actions Secrets    |              |              |                      |            x            |                  |      x      |                             |
 
 ## Support Policy

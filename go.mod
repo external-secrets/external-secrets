@@ -11,6 +11,7 @@ replace (
 	github.com/external-secrets/external-secrets/generators/v1/fake => ./generators/v1/fake
 	github.com/external-secrets/external-secrets/generators/v1/gcr => ./generators/v1/gcr
 	github.com/external-secrets/external-secrets/generators/v1/github => ./generators/v1/github
+	github.com/external-secrets/external-secrets/generators/v1/gitlab => ./generators/v1/gitlab
 	github.com/external-secrets/external-secrets/generators/v1/grafana => ./generators/v1/grafana
 	github.com/external-secrets/external-secrets/generators/v1/mfa => ./generators/v1/mfa
 	github.com/external-secrets/external-secrets/generators/v1/password => ./generators/v1/password
@@ -127,6 +128,7 @@ require (
 	github.com/external-secrets/external-secrets/generators/v1/fake v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/gcr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/github v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/gitlab v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/grafana v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/mfa v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/password v0.0.0-00010101000000-000000000000
