@@ -33,6 +33,9 @@ func TestSecretStoreSpecGetRefreshInterval(t *testing.T) {
 	fromBadString := intstr.FromString("nonsense")
 	fromNegInt := intstr.FromInt32(-5)
 	fromNegString := intstr.FromString("-5m")
+	// A quoted, unitless number ("10") is a string, not the legacy integer 10.
+	// It has no duration unit, so it is rejected (whereas the bare int 10 is 10s).
+	fromNumericString := intstr.FromString("10")
 
 	tests := []struct {
 		name    string
@@ -48,6 +51,7 @@ func TestSecretStoreSpecGetRefreshInterval(t *testing.T) {
 		{name: "invalid duration string errors", in: &fromBadString, wantErr: true},
 		{name: "negative integer errors", in: &fromNegInt, wantErr: true},
 		{name: "negative duration string errors", in: &fromNegString, wantErr: true},
+		{name: "unitless numeric string is rejected", in: &fromNumericString, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
