@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"time"
 
@@ -206,8 +207,8 @@ func (c *client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) err
 }
 
 func (c *client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	if ref.Tags != nil {
-		return nil, errors.New("tag based search is not implemented")
+	if c.useV1() && ref.Tags != nil {
+		return nil, errors.New(errKVv1MetadataUnsupported)
 	}
 
 	listPath := ""
@@ -219,7 +220,11 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	if c.useV1() {
 		list = c.client.KVv1(c.path()).List
 	} else {
-		list = c.client.KVv2(c.path()).List
+		if ref.Tags != nil {
+			list = c.client.KVv2(c.path()).ListWithDetails
+		} else {
+			list = c.client.KVv2(c.path()).List
+		}
 	}
 
 	meta, err := list(ctx, listPath)
@@ -231,30 +236,66 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 		return nil, nil
 	}
 
-	return c.findSecretsFromName(ctx, meta.Keys, *ref.Name)
+	keys := meta.Keys
+	if ref.Tags != nil {
+		keys = filterKeys(meta, ref.Tags)
+	}
+
+	return c.findSecretsFromName(ctx, keys, ref.Name)
 }
 
-func (c *client) findSecretsFromName(ctx context.Context, candidates []string, ref esv1.FindName) (map[string][]byte, error) {
-	secrets := make(map[string][]byte)
-	matcher, err := find.New(ref)
-	if err != nil {
-		return nil, err
-	}
-	for _, name := range candidates {
-		ok := matcher.MatchName(name)
-		if ok {
-			secret, err := c.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: name})
-			if errors.Is(err, esv1.NoSecretError{}) {
-				continue
-			}
-			if err != nil {
-				return nil, err
-			}
-			if secret != nil {
-				secrets[name] = secret
+func filterKeys(meta *api.KVList, tags map[string]string) []string {
+	keys := []string{}
+	for key, metadata := range meta.Metadata {
+		match := true
+		for tk, tv := range tags {
+			if metadata.CustomMetadata[tk] != tv {
+				match = false
+				break
 			}
 		}
+		if !match {
+			continue
+		}
+
+		keys = append(keys, key)
 	}
+
+	slices.Sort(keys) // make result deterministic
+	return keys
+}
+
+func (c *client) findSecretsFromName(ctx context.Context, candidates []string, ref *esv1.FindName) (map[string][]byte, error) {
+	secrets := make(map[string][]byte)
+
+	match := func(_ string) bool {
+		return true
+	}
+	if ref != nil {
+		matcher, err := find.New(*ref)
+		if err != nil {
+			return nil, err
+		}
+		match = matcher.MatchName
+	}
+
+	for _, name := range candidates {
+		if !match(name) {
+			continue
+		}
+
+		secret, err := c.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: name})
+		if errors.Is(err, esv1.NoSecretError{}) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if secret != nil {
+			secrets[name] = secret
+		}
+	}
+
 	return secrets, nil
 }
 
