@@ -80,7 +80,7 @@ type OpenBaoProvider struct {
 
 // OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
 // Currently the following authentication methods are supported: [AppRole],
-// [Token] and [UserPass]
+// [Kubernetes], [Token] and [UserPass]
 //
 // Additional authentication methods are planned for future releases.
 //
@@ -100,11 +100,11 @@ type OpenBaoAuth struct {
 	AppRole *OpenBaoAppRole `json:"appRole,omitempty"`
 
 	// Kubernetes authenticates with OpenBao by passing a ServiceAccount
-	// token.
+	// token to the [Kubernetes auth mechanism].
 	//
 	// +optional
 	//
-	// [Kubernetes auth]: https://openbao.org/docs/auth/kubernetes/
+	// [Kubernetes auth mechanism]: https://openbao.org/docs/auth/kubernetes/
 	Kubernetes *OpenBaoKubernetesAuth `json:"kubernetes,omitempty"`
 
 	// Name of the [OpenBao Namespace] to authenticate to. This can be different
