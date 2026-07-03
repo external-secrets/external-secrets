@@ -200,6 +200,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | processClusterStore | bool | `true` | if true, the operator will process cluster store. Else, it will ignore them. |
 | processPushSecret | bool | `true` | if true, the operator will process push secret. Else, it will ignore them. |
 | processSecretStore | bool | `true` | if true, the operator will process secret store. Else, it will ignore them. |
+| rbac.aggregateToAdmin | bool | `true` | Specifies whether permissions are aggregated to the admin ClusterRole |
 | rbac.aggregateToEdit | bool | `true` | Specifies whether permissions are aggregated to the edit ClusterRole |
 | rbac.aggregateToView | bool | `true` | Specifies whether permissions are aggregated to the view ClusterRole |
 | rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
