@@ -81,7 +81,7 @@ interactions:
         proto: HTTP/1.1
         proto_major: 1
         proto_minor: 1
-        content_length: 330
+        content_length: 340
         body: |-
             {
               "auth": null,
@@ -92,7 +92,9 @@ interactions:
                 },
                 "metadata": {
                   "created_time": "2099-09-09T09:09:09.09Z",
-                  "custom_metadata": null,
+                  "custom_metadata": {
+                    "bar": "meta"
+                  },
                   "deletion_time": "",
                   "destroyed": false,
                   "version": 2
@@ -109,7 +111,7 @@ interactions:
             Cache-Control:
                 - no-store
             Content-Length:
-                - "330"
+                - "340"
             Content-Type:
                 - application/json
             Strict-Transport-Security:
