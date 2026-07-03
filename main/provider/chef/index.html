@@ -1089,6 +1089,8 @@
       
         
       
+        
+      
     
     
     
@@ -1382,6 +1384,34 @@
     
   
     Vault Dynamic Secret
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/beyondtrustworkloadcredentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BeyondTrust Workload Credentials
   
 
     
@@ -2832,6 +2862,8 @@
       
         
       
+        
+      
     
     
     
@@ -3053,6 +3085,34 @@
   
   
     <li class="md-nav__item">
+      <a href="../beyondtrustworkloadcredentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BeyondTrust Workload Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../bitwarden-secrets-manager/" class="md-nav__link">
         
   
@@ -3086,6 +3146,8 @@
       
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
+      
+        
       
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
@@ -3129,6 +3191,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -3137,18 +3201,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#chef" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Chef
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Chef">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3158,8 +3210,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#create-a-secret-containing-your-private-key" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3169,8 +3221,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#creating-clustersecretstore" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3180,8 +3232,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#creating-secretstore" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3191,8 +3243,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#creating-externalsecret" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3200,11 +3252,6 @@
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -4979,6 +5026,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -4987,18 +5036,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#chef" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Chef
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Chef">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5008,8 +5045,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#create-a-secret-containing-your-private-key" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5019,8 +5056,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#creating-clustersecretstore" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5030,8 +5067,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#creating-secretstore" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5041,8 +5078,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#creating-externalsecret" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5050,11 +5087,6 @@
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -5078,24 +5110,22 @@
   
 
 
-  <h1>Chef</h1>
-
-<h2 id="chef">Chef</h2>
+<h1 id="chef">Chef</h1>
 <p><code>Chef External Secrets provider</code> will enable users to seamlessly integrate their Chef-based secret management with Kubernetes through the existing External Secrets framework.</p>
 <p>In many enterprises, legacy applications and infrastructure are still tightly integrated with the Chef/Chef Infra Server/Chef Server Cluster for configuration and secrets management. Teams often rely on <a href="https://docs.chef.io/data_bags/">Chef data bags</a> to securely store sensitive information such as application secrets and infrastructure configurations. These data bags serve as a centralized repository for managing and distributing sensitive data across the Chef ecosystem.</p>
 <p><strong>NOTE:</strong> <code>Chef External Secrets provider</code> is designed only to fetch data from the Chef data bags into Kubernetes secrets, it won't update/delete any item in the data bags.</p>
-<h3 id="authentication">Authentication</h3>
+<h2 id="authentication">Authentication</h2>
 <p>Every request made to the Chef Infra server needs to be authenticated. <a href="https://docs.chef.io/server/auth/">Authentication</a> is done using the Private keys of the Chef Users.  The User needs to have appropriate <a href="https://docs.chef.io/server/server_orgs/#permissions">Permissions</a> to the data bags containing the data that they want to fetch using the External Secrets Operator.</p>
 <p>The following command can be used to create Chef Users:
 <div class="highlight"><pre><span></span><code>chef-server-ctl<span class="w"> </span>user-create<span class="w"> </span>USER_NAME<span class="w"> </span>FIRST_NAME<span class="w"> </span><span class="o">[</span>MIDDLE_NAME<span class="o">]</span><span class="w"> </span>LAST_NAME<span class="w"> </span>EMAIL<span class="w"> </span><span class="s1">&#39;PASSWORD&#39;</span><span class="w"> </span><span class="o">(</span>options<span class="o">)</span>
 </code></pre></div></p>
 <p>More details on the above command are available here <a href="https://docs.chef.io/server/server_users/#user-create">Chef User Create Option</a>. The above command will return the default private key (PRIVATE_KEY_VALUE), which we will use for authentication. Additionally, a Chef User with access to specific data bags, a private key pair with an expiration date can be created with the help of the  <a href="https://docs.chef.io/server/auth/#knife-user-key">knife user key</a> command.</p>
-<h3 id="create-a-secret-containing-your-private-key">Create a secret containing your private key</h3>
+<h2 id="create-a-secret-containing-your-private-key">Create a secret containing your private key</h2>
 <p>We need to store the above User's API key into a secret resource.
 Example:
 <div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>chef-user-secret<span class="w"> </span>-n<span class="w"> </span>vivid<span class="w"> </span>--from-literal<span class="o">=</span>user-private-key<span class="o">=</span><span class="s1">&#39;PRIVATE_KEY_VALUE&#39;</span>
 </code></pre></div></p>
-<h3 id="creating-clustersecretstore">Creating ClusterSecretStore</h3>
+<h2 id="creating-clustersecretstore">Creating ClusterSecretStore</h2>
 <p>The Chef <code>ClusterSecretStore</code> is a cluster-scoped SecretStore that can be referenced by all Chef <code>ExternalSecrets</code> from all namespaces. You can follow the below example to create a <code>ClusterSecretStore</code> resource.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
@@ -5113,7 +5143,7 @@ Example:
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">chef-user-secret</span><span class="w"> </span><span class="c1"># name of Kubernetes Secret resource containing the Chef User&#39;s private key</span>
 <span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vivid</span><span class="w"> </span><span class="c1"># the namespace in which the above Secret resource resides</span>
 </code></pre></div>
-<h3 id="creating-secretstore">Creating SecretStore</h3>
+<h2 id="creating-secretstore">Creating SecretStore</h2>
 <p>Chef <code>SecretStores</code> are bound to a namespace and can not reference resources across namespaces. For cross-namespace SecretStores, you must use Chef <code>ClusterSecretStores</code>.</p>
 <p>You can follow the below example to create a <code>SecretStore</code> resource.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
@@ -5133,7 +5163,7 @@ Example:
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user-private-key</span><span class="w"> </span><span class="c1"># name of the key inside Secret resource</span>
 <span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vivid</span><span class="w"> </span><span class="c1"># the ns where the k8s secret resource containing Chef User&#39;s private key resides</span>
 </code></pre></div>
-<h3 id="creating-externalsecret">Creating ExternalSecret</h3>
+<h2 id="creating-externalsecret">Creating ExternalSecret</h2>
 <p>The Chef <code>ExternalSecret</code> describes what data should be fetched from Chef Data bags, and how the data should be transformed and saved as a Kind=Secret.</p>
 <p>You can follow the below example to create an <code>ExternalSecret</code> resource.
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
@@ -5182,7 +5212,7 @@ Example:
 <span class="w">            </span><span class="no">&quot;app_properties&quot;: &quot;{{ .APP_PROPERTIES }}&quot;</span>
 <span class="w">          </span><span class="no">}</span>
 </code></pre></div></p>
-<p>When the above <code>ClusterSecretStore</code> and <code>ExternalSecret</code> resources are created, the <code>ExternalSecret</code> will connect to the Chef Server using the private key and will fetch the data bags contained in the <code>vivid-credentials</code> secret resource.</p>
+<p>When the above <code>ClusterSecretStore</code> and <code>ExternalSecret</code> resources are created, the <code>ExternalSecret</code> will connect to the Chef Server using the private key, fetch the requested data bag items, and store them in the <code>vivid_global_all_cred</code> Kubernetes Secret.</p>
 <p>To get all data items inside the data bag, you can use the <code>dataFrom</code> directive:
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5206,7 +5236,7 @@ Example:
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">vivid_global_all_cred</span><span class="w"> </span><span class="c1"># name of Kubernetes Secret resource that will be created and will contain the obtained secrets</span>
 <span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
 </code></pre></div></p>
-<p>follow : <a href="https://github.com/external-secrets/external-secrets/blob/main/apis/externalsecrets/v1beta1/secretstore_chef_types.go">this file</a> for more info</p>
+<p>follow : <a href="https://github.com/external-secrets/external-secrets/blob/main/apis/externalsecrets/v1/secretstore_chef_types.go">this file</a> for more info</p>
 
 
 

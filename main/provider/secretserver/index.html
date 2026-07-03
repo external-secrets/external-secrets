@@ -1089,6 +1089,8 @@
       
         
       
+        
+      
     
     
     
@@ -1382,6 +1384,34 @@
     
   
     Vault Dynamic Secret
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/beyondtrustworkloadcredentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BeyondTrust Workload Credentials
   
 
     
@@ -2832,6 +2862,8 @@
       
         
       
+        
+      
     
     
     
@@ -3033,6 +3065,34 @@
     
   
     BeyondTrust
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../beyondtrustworkloadcredentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BeyondTrust Workload Credentials
   
 
     
@@ -5376,7 +5436,7 @@
 
 <h1 id="delinea-secret-serverplatform">Delinea Secret-Server/Platform</h1>
 <p>For detailed information about configuring  Kubernetes ESO with Secret Server and the Delinea Platform, see the https://docs.delinea.com/online-help/integrations/external-secrets/kubernetes-eso-secret-server.htm</p>
-<h3 id="creating-a-secretstore">Creating a SecretStore</h3>
+<h2 id="creating-a-secretstore">Creating a SecretStore</h2>
 <p>You need a username, password and a fully qualified Secret-Server/Platform tenant URL to authenticate
 i.e. <code>https://yourTenantName.secretservercloud.com</code> or <code>https://yourtenantname.delinea.app</code>.</p>
 <p>Both username and password can be specified either directly in your <code>SecretStore</code> yaml config, or by referencing a kubernetes secret.</p>
@@ -5402,7 +5462,7 @@ spec.provider.secretserver.password.value: "yourpassword" <br /></p>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_K8S_SECRET&gt;</span>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_K8S_SECRET&gt;</span>
 </code></pre></div></p>
-<h3 id="referencing-secrets">Referencing Secrets</h3>
+<h2 id="referencing-secrets">Referencing Secrets</h2>
 <p>Secrets can be referenced using four different key formats in the <code>remoteRef.key</code> field:</p>
 <table>
 <thead>
@@ -5459,11 +5519,11 @@ You can access nested values or arrays using <a href="https://github.com/tidwall
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;52622&quot;</span><span class="w"> </span><span class="c1">#&lt;SECRET_ID&gt;</span>
 <span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;array.0.value&quot;</span><span class="w"> </span><span class="c1">#&lt;GJSON_PROPERTY&gt; * an empty property will return the entire secret</span>
 </code></pre></div>
-<h3 id="working-with-plain-text-itemvalue-fields">Working with Plain Text ItemValue Fields</h3>
+<h2 id="working-with-plain-text-itemvalue-fields">Working with Plain Text ItemValue Fields</h2>
 <p>While Secret-Server/Platform always returns secrets in JSON format with an <code>Items</code> array structure, individual field values (stored in <code>ItemValue</code>) may contain plain text, passwords, URLs, or other non-JSON content.</p>
 <p>When retrieving fields that contain plain text values, you can reference them directly by their <code>FieldName</code> or <code>Slug</code> without needing additional JSON parsing within the <code>ItemValue</code>.</p>
-<h4 id="example-with-plain-text-password-field">Example with Plain Text Password Field</h4>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<h3 id="example-with-plain-text-password-field">Example with Plain Text Password Field</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-external-secret</span>
@@ -5480,14 +5540,14 @@ You can access nested values or arrays using <a href="https://github.com/tidwall
 </code></pre></div>
 <p>In this example, if the secret contains an Item with <code>FieldName: "Password"</code> or <code>Slug: "password"</code>, the plain text value stored in <code>ItemValue</code> is retrieved directly and stored under the key <code>password</code> in the Kubernetes Secret.</p>
 <p>This approach works for any field type (text, password, URL, etc.) where the <code>ItemValue</code> contains simple content rather than nested JSON structures.</p>
-<h3 id="support-for-fetching-secrets-by-path">Support for Fetching Secrets by Path</h3>
+<h2 id="support-for-fetching-secrets-by-path">Support for Fetching Secrets by Path</h2>
 <p>In addition to retrieving secrets by ID or Name, the Secret-Server/Platform provider now supports fetching secrets by <strong>path</strong>.
 This allows you to specify a secret’s folder hierarchy and name in the format:</p>
 <blockquote>
 <p>/FolderName/SecretName</p>
 </blockquote>
-<h4 id="example">Example</h4>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1beta1</span>
+<h3 id="example">Example</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-external-secret</span>
@@ -5502,15 +5562,15 @@ This allows you to specify a secret’s folder hierarchy and name in the format:
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/secretFolder/secretname&quot;</span><span class="w">  </span><span class="c1"># Path format: /&lt;Folder&gt;/&lt;SecretName&gt;</span>
 <span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                    </span><span class="c1"># Optional: matched against field Slug/FieldName first, then gjson on Items.0.ItemValue as fallback</span>
 </code></pre></div>
-<h4 id="notes">Notes:</h4>
+<h3 id="notes">Notes:</h3>
 <p>The path must exactly match the folder and secret name in Secret-Server/Platform.
 If multiple secrets with the same name exist in different folders, the path helps to uniquely identify the correct one.
 You can still use property to match fields by Slug/FieldName, extract values from JSON-formatted secrets via gjson, or omit it to retrieve the entire secret.</p>
-<h3 id="preparing-your-secret">Preparing your secret</h3>
+<h2 id="preparing-your-secret">Preparing your secret</h2>
 <p>You can either retrieve your entire secret, match a field by its Slug or FieldName, or use a JSON formatted string
 stored in your secret located at Items[0].ItemValue to retrieve a specific value using gjson syntax.<br />
 See example JSON secret below.</p>
-<h4 id="examples">Examples</h4>
+<h3 id="examples">Examples</h3>
 <p>Using the json formatted secret below:</p>
 <ul>
 <li>Lookup a single top level property using secret ID.</li>
@@ -5575,9 +5635,9 @@ returns: The entire secret in JSON format as displayed below</p>
 <span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
 </code></pre></div>
-<h3 id="referencing-secrets-by-field-name-or-slug">Referencing Secrets by Field Name or Slug</h3>
+<h2 id="referencing-secrets-by-field-name-or-slug">Referencing Secrets by Field Name or Slug</h2>
 <p>When <code>property</code> is set, the provider first tries to match it against each field's <code>Slug</code> or <code>FieldName</code> and returns the corresponding <code>ItemValue</code>. This works for secrets with any number of fields. If no field matches, it falls back to treating the first field's <code>ItemValue</code> as JSON and extracting the property using gjson syntax (supporting nested paths like <code>"books.1"</code>).</p>
-<h4 id="examples_1">Examples</h4>
+<h3 id="examples_1">Examples</h3>
 <p>Using the json formatted secret below:</p>
 <ul>
 <li>Lookup a single top level property using secret ID.</li>
@@ -5652,9 +5712,9 @@ returns: The entire secret in JSON format as displayed below</p>
 <span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
 </code></pre></div>
-<h3 id="pushing-secrets">Pushing Secrets</h3>
+<h2 id="pushing-secrets">Pushing Secrets</h2>
 <p>The Delinea Secret-Server/Platform provider supports pushing secrets from Kubernetes back to your Secret Server instance using the <code>PushSecret</code> resource. You can both create new secrets and update existing ones.</p>
-<h4 id="remote-key-formats-for-pushsecret">Remote Key Formats for PushSecret</h4>
+<h3 id="remote-key-formats-for-pushsecret">Remote Key Formats for PushSecret</h3>
 <p>When using <code>PushSecret</code>, the <code>remoteRef.remoteKey</code> field determines how the provider identifies
 the target secret in Secret Server. The same key formats described in <a href="#referencing-secrets">Referencing Secrets</a> apply here:</p>
 <table>
@@ -5702,7 +5762,7 @@ encoded directly in the key and is available to <strong>all</strong> operations,
 specified, the value from the <code>remoteKey</code> takes precedence for lookups. The metadata <code>folderId</code> and
 <code>secretTemplateId</code> are still required when <strong>creating</strong> a new secret (they tell the API which folder
 and template to use for the new secret).</p>
-<h4 id="requirements-for-creating-new-secrets">Requirements for Creating New Secrets</h4>
+<h3 id="requirements-for-creating-new-secrets">Requirements for Creating New Secrets</h3>
 <p>When creating a <strong>new</strong> secret in Secret Server, you must provide a <code>folderId</code> and a <code>secretTemplateId</code>. These are passed as <code>metadata</code> in the <code>PushSecret</code> spec:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
@@ -5745,12 +5805,12 @@ and template to use for the new secret).</p>
 secret (for push, delete, and existence checks). The <code>folderId</code> and <code>secretTemplateId</code> in
 <code>metadata</code> are used when <strong>creating</strong> a new secret via the Secret Server API.</p>
 </blockquote>
-<h4 id="updating-existing-secrets">Updating Existing Secrets</h4>
+<h3 id="updating-existing-secrets">Updating Existing Secrets</h3>
 <p>When updating an existing secret, you do not strictly need the <code>folderId</code> or <code>secretTemplateId</code> metadata, as the provider will fetch the existing secret by its name or ID to update the corresponding fields.</p>
 <p>However, if multiple secrets share the same name across different folders, you should use either the
 <code>folderId:&lt;id&gt;/&lt;name&gt;</code> format, a path-based key, or a numeric ID to ensure the correct secret is
 updated. Using a plain name will update the <strong>first match</strong> returned by the API.</p>
-<h4 id="deletion-behavior">Deletion Behavior</h4>
+<h3 id="deletion-behavior">Deletion Behavior</h3>
 <p>The <code>PushSecret</code> resource allows you to configure what happens to the remote secret in Secret Server when the <code>PushSecret</code> itself is deleted, via the <code>PushSecret.spec.deletionPolicy</code> field. Supported values are:</p>
 <ul>
 <li><code>Retain</code>: (Default) The remote secret is left intact in Secret Server when the <code>PushSecret</code> is deleted.</li>
@@ -5762,7 +5822,7 @@ has multiple secrets with the same name in different folders and you use <code>d
 you <strong>must</strong> use a key format that uniquely identifies the secret — either <code>folderId:&lt;id&gt;/&lt;name&gt;</code>,
 a full path (<code>/Folder/SecretName</code>), or a numeric ID. Using a plain name risks deleting the wrong
 secret.</p>
-<h4 id="pushing-without-a-property">Pushing Without a Property</h4>
+<h3 id="pushing-without-a-property">Pushing Without a Property</h3>
 <p>If you omit <code>property</code> from the <code>remoteRef</code>, the provider writes the value selected by <code>data.match.secretKey</code> (e.g., the content stored under the <code>config</code> key in your Kubernetes Secret) into the <strong>first</strong> field of the Secret Server secret. This is useful when your secret value is a single JSON payload that you want to store in a text field like <code>Data</code> or <code>Notes</code>.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>

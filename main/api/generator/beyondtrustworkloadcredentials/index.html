@@ -9,6 +9,10 @@
       
       
       
+        <link rel="prev" href="../vault/">
+      
+      
+        <link rel="next" href="../password/">
       
       
         
@@ -19,7 +23,7 @@
     
     
       
-        <title>Beyondtrustworkloadcredentials - External Secrets Operator</title>
+        <title>BeyondTrust Workload Credentials - External Secrets Operator</title>
       
     
     
@@ -129,7 +133,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Beyondtrustworkloadcredentials
+              BeyondTrust Workload Credentials
             
           </span>
         </div>
@@ -260,10 +264,12 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../../components/" class="md-tabs__link">
           
   
@@ -708,8 +714,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -725,19 +733,20 @@
     
     
       
+        
+        
+      
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
-        
-          
-          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
             
   
   
@@ -755,7 +764,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1040,6 +1049,8 @@
                 
   
   
+    
+  
   
   
     
@@ -1083,6 +1094,8 @@
       
         
       
+        
+      
     
     
     
@@ -1090,13 +1103,11 @@
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" checked>
         
           
           <div class="md-nav__link md-nav__container">
@@ -1124,7 +1135,7 @@
             
           </div>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2_3">
             <span class="md-nav__icon md-icon"></span>
             
@@ -1384,6 +1395,293 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BeyondTrust Workload Credentials
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BeyondTrust Workload Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example-manifest" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example manifest
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#folder-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Folder Path
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generated-secret-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generated Secret Fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credential-refresh-and-expiration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Credential Refresh and Expiration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Credential Refresh and Expiration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#setting-refresh-interval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setting Refresh Interval
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-happens-if-refreshinterval-credential-expiration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What happens if refreshInterval &gt; credential expiration?
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-happens-if-refreshinterval-credential-expiration_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What happens if refreshInterval &lt;&lt; credential expiration?
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#generator-reusability" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Generator Reusability
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#certificate-trust" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Certificate Trust
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#server-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#complete-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Complete Example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#troubleshooting" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Troubleshooting
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Troubleshooting">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#empty-credential-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Empty Credential Fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#authentication-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#timeout-errors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Timeout Errors
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#credential-expiration-issues" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Credential Expiration Issues
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2824,6 +3122,8 @@
       
         
       
+        
+      
     
     
     
@@ -3024,6 +3324,34 @@
     
   
     BeyondTrust
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../provider/beyondtrustworkloadcredentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BeyondTrust Workload Credentials
   
 
     
@@ -4905,23 +5233,6 @@
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Generated Secret Fields">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#aws-dynamic-secrets" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        AWS Dynamic Secrets
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
 </li>
         
           <li class="md-nav__item">
@@ -5115,7 +5426,7 @@
   
 
 
-  <h1>Beyondtrustworkloadcredentials</h1>
+  <h1>BeyondTrust Workload Credentials</h1>
 
 <p>The <code>BeyondtrustWorkloadCredentialsDynamicSecret</code> Generator provides an interface to BeyondTrust Workload Credentials's
 dynamic secret generation capabilities. This enables obtaining temporary, short-lived credentials.</p>
@@ -5172,16 +5483,15 @@ each time it is invoked.</p>
 <span class="w">    </span><span class="nt">folderPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my/dynamic&quot;</span>
 </code></pre></div>
 <h3 id="generated-secret-fields">Generated Secret Fields</h3>
-<p>The generator returns different fields depending on the type of dynamic secret:</p>
-<h4 id="aws-dynamic-secrets">AWS Dynamic Secrets</h4>
-<p><div class="highlight"><pre><span></span><code><span class="nt">stringData</span><span class="p">:</span>
+<p>The generator maps the AWS-style fields returned by the BeyondTrust Workload Credentials dynamic-secret endpoint. The target Kubernetes secret always receives <code>accessKeyId</code>, <code>secretAccessKey</code>, <code>leaseId</code>, and <code>expiration</code>, plus <code>sessionToken</code> when the response includes one:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">stringData</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">accessKeyId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ASIAIOSFODNN7EXAMPLE</span>
 <span class="w">  </span><span class="nt">secretAccessKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wJal...YEKY</span>
 <span class="w">  </span><span class="nt">sessionToken</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">IQoJ...Ek8=</span>
 <span class="w">  </span><span class="nt">leaseId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">84038398-ec0f-417d-9a0f-02494fd7d22c</span>
 <span class="w">  </span><span class="nt">expiration</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2025-12-29T22:35:29Z</span>
 </code></pre></div>
-All fields are automatically populated in the target Kubernetes secret.</p>
+<p>Only these fields are populated. Dynamic-secret definitions that return a different shape are not yet mapped to additional keys.</p>
 <h3 id="credential-refresh-and-expiration">Credential Refresh and Expiration</h3>
 <p><strong>Important:</strong> External Secrets Operator does NOT automatically handle credential expiration/TTL from BeyondTrust Workload Credentials. The refresh is controlled solely by the <code>refreshInterval</code> specified in the ExternalSecret spec.</p>
 <h4 id="setting-refresh-interval">Setting Refresh Interval</h4>

@@ -9,6 +9,10 @@
       
       
       
+        <link rel="prev" href="../beyondtrust/">
+      
+      
+        <link rel="next" href="../bitwarden-secrets-manager/">
       
       
         
@@ -19,7 +23,7 @@
     
     
       
-        <title>Beyondtrustworkloadcredentials - External Secrets Operator</title>
+        <title>BeyondTrust Workload Credentials - External Secrets Operator</title>
       
     
     
@@ -129,7 +133,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Beyondtrustworkloadcredentials
+              BeyondTrust Workload Credentials
             
           </span>
         </div>
@@ -304,10 +308,12 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
+      <li class="md-tabs__item md-tabs__item--active">
         <a href="../aws-secrets-manager/" class="md-tabs__link">
           
   
@@ -1083,6 +1089,8 @@
       
         
       
+        
+      
     
     
     
@@ -1376,6 +1384,34 @@
     
   
     Vault Dynamic Secret
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../api/generator/beyondtrustworkloadcredentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BeyondTrust Workload Credentials
   
 
     
@@ -2731,8 +2767,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -2824,23 +2862,26 @@
       
         
       
-    
-    
-    
-      
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    
       
         
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
         
           
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_4" >
-        
-          
-          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
             
   
   
@@ -2858,7 +2899,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_4">
             <span class="md-nav__icon md-icon"></span>
             
@@ -3032,6 +3073,319 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BeyondTrust Workload Credentials
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BeyondTrust Workload Credentials
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#fetching-secret-properties" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fetching Secret Properties
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Fetching Secret Properties">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#single-property-retrieval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Single Property Retrieval
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fetching-all-properties-as-json" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fetching All Properties as JSON
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#extracting-all-properties-as-separate-keys" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Extracting All Properties as Separate Keys
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#getting-multiple-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Getting Multiple Secrets
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Getting Multiple Secrets">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#fetch-all-secrets-in-folder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fetch All Secrets in Folder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#regex-pattern-filtering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Regex Pattern Filtering
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#filtering-by-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filtering by Tags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#specifying-a-different-folder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Specifying a Different Folder
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#handling-source-secret-deletion" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Handling Source Secret Deletion
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#server-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Server Configuration
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#certificate-trust" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Certificate Trust
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Certificate Trust">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#using-caprovider-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using caProvider (Recommended)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#using-cabundle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using caBundle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#folder-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Folder Path
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#refresh-interval" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Refresh Interval
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#clustersecretstore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ClusterSecretStore
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -4855,6 +5209,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -4863,18 +5219,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#beyondtrust-workload-credentials" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        BeyondTrust Workload Credentials
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="BeyondTrust Workload Credentials">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#example" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4884,8 +5228,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#fetching-secret-properties" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4934,8 +5278,8 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#getting-multiple-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4970,6 +5314,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#filtering-by-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Filtering by Tags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#specifying-a-different-folder" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4984,8 +5339,8 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#handling-source-secret-deletion" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4995,8 +5350,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5006,8 +5361,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#server-configuration" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5017,8 +5372,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#certificate-trust" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5056,8 +5411,8 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#folder-path" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5067,8 +5422,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#refresh-interval" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5078,8 +5433,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#clustersecretstore" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5089,9 +5444,15 @@
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
+      
+        <li class="md-nav__item">
+  <a href="#limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Limitations
+      
+    </span>
+  </a>
   
 </li>
       
@@ -5115,13 +5476,11 @@
   
 
 
-  <h1>Beyondtrustworkloadcredentials</h1>
-
-<h2 id="beyondtrust-workload-credentials">BeyondTrust Workload Credentials</h2>
+<h1 id="beyondtrust-workload-credentials">BeyondTrust Workload Credentials</h1>
 <p>External Secrets Operator integrates with <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api">BeyondTrust Workload Credentials</a> for secret management.</p>
 <p>The provider supports static key-value secrets stored in folders. For dynamic secret generation (e.g., temporary AWS credentials), refer to the <a href="../../api/generator/beyondtrustworkloadcredentials/">BeyondTrust Workload Credentials Generator</a>.</p>
 <p>For complete BeyondTrust Workload Credentials API documentation, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api">https://docs.beyondtrust.com/bt-docs/docs/secrets-api</a></p>
-<h3 id="example">Example</h3>
+<h2 id="example">Example</h2>
 <p>First, create a SecretStore with a BeyondTrust Workload Credentials backend. You'll need an API token and the server configuration:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
@@ -5171,8 +5530,8 @@
 <span class="w">          </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;.*&quot;</span>
 </code></pre></div>
 <p>This will automatically create a Kubernetes Secret with the synced data.</p>
-<h3 id="fetching-secret-properties">Fetching Secret Properties</h3>
-<h4 id="single-property-retrieval">Single Property Retrieval</h4>
+<h2 id="fetching-secret-properties">Fetching Secret Properties</h2>
+<h3 id="single-property-retrieval">Single Property Retrieval</h3>
 <p>You can fetch a specific property from a secret by specifying the <code>property</code> field:</p>
 <p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5197,7 +5556,7 @@
 <span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
 </code></pre></div>
 This creates a secret with individual keys for <code>username</code> and <code>password</code>.</p>
-<h4 id="fetching-all-properties-as-json">Fetching All Properties as JSON</h4>
+<h3 id="fetching-all-properties-as-json">Fetching All Properties as JSON</h3>
 <p>If you omit the <code>property</code> field, you'll get all key-value pairs as a single JSON string:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5217,7 +5576,7 @@ This creates a secret with individual keys for <code>username</code> and <code>p
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">postgresCreds</span>
 </code></pre></div>
 <p>This returns: <code>{"username":"user","password":"pass"}</code> as the value of <code>credentials</code>.</p>
-<h4 id="extracting-all-properties-as-separate-keys">Extracting All Properties as Separate Keys</h4>
+<h3 id="extracting-all-properties-as-separate-keys">Extracting All Properties as Separate Keys</h3>
 <p>To sync all properties of a secret as individual keys in the target Kubernetes secret, use <code>dataFrom</code> with <code>extract</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5240,13 +5599,13 @@ This creates a secret with individual keys for <code>username</code> and <code>p
 <span class="w">  </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dXNlcg==</span><span class="w">     </span><span class="c1"># base64(&quot;user&quot;)</span>
 <span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cGFzcw==</span><span class="w">     </span><span class="c1"># base64(&quot;pass&quot;)</span>
 </code></pre></div></p>
-<h3 id="getting-multiple-secrets">Getting Multiple Secrets</h3>
+<h2 id="getting-multiple-secrets">Getting Multiple Secrets</h2>
 <p>You can extract multiple secrets from a folder by using <code>dataFrom.find</code>.</p>
 <p>Given a folder <code>eso/static</code> with these secrets:
 - <code>anotherSecret</code>: <code>{"someKey": "value1"}</code>
 - <code>mySecret</code>: <code>{"myKey": "value2", "someKey": "value3"}</code>
 - <code>postgresCreds</code>: <code>{"username": "user", "password": "pass"}</code></p>
-<h4 id="fetch-all-secrets-in-folder">Fetch All Secrets in Folder</h4>
+<h3 id="fetch-all-secrets-in-folder">Fetch All Secrets in Folder</h3>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5264,8 +5623,8 @@ This creates a secret with individual keys for <code>username</code> and <code>p
 <span class="w">        </span><span class="nt">name</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;.*&quot;</span>
 </code></pre></div>
-<p>This merges all key-value pairs from all secrets in the folder into a single Kubernetes secret.</p>
-<h4 id="regex-pattern-filtering">Regex Pattern Filtering</h4>
+<p>This merges the matching secrets in the folder into a single Kubernetes secret. Each resulting key is the secret's full path joined with its property name (for example <code>eso/static/postgresCreds/username</code>). Because <code>/</code> is not valid in a Kubernetes secret key, ESO rewrites it through the ExternalSecret <code>find.conversionStrategy</code> (the default replaces invalid characters with <code>_</code>), so the example above becomes <code>eso_static_postgresCreds_username</code>.</p>
+<h3 id="regex-pattern-filtering">Regex Pattern Filtering</h3>
 <p>To sync only secrets matching a specific pattern:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5285,7 +5644,28 @@ This creates a secret with individual keys for <code>username</code> and <code>p
 <span class="w">          </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Secret$&quot;</span>
 </code></pre></div>
 <p>This will only sync secrets whose names end with "Secret" (e.g., <code>anotherSecret</code>, <code>mySecret</code>).</p>
-<h4 id="specifying-a-different-folder">Specifying a Different Folder</h4>
+<h3 id="filtering-by-tags">Filtering by Tags</h3>
+<p>You can also filter by the tags attached to each secret in BeyondTrust Workload Credentials using <code>find.tags</code>. A secret is synced only if its metadata contains every key/value pair listed:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tagged-secrets</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1m</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">beyondtrustworkloadcredentials-ss</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tagged-folder-secrets</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">tags</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">env</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">production</span>
+<span class="w">          </span><span class="nt">team</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">platform</span>
+</code></pre></div>
+<p>When both <code>name.regexp</code> and <code>tags</code> are set, a secret must satisfy both to be synced.</p>
+<h3 id="specifying-a-different-folder">Specifying a Different Folder</h3>
 <p>By default, <code>find</code> uses the <code>folderPath</code> from the SecretStore. To search a different folder, use the <code>path</code> field:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5307,7 +5687,7 @@ This creates a secret with individual keys for <code>username</code> and <code>p
 </code></pre></div>
 <p>This will list all secrets in the <code>eso/production</code> folder, regardless of the <code>folderPath</code> configured in the SecretStore.</p>
 <p><strong>Note:</strong> The <code>path</code> field specifies a folder path, not a path to a specific secret. To fetch a single secret, use <code>data</code> with <code>extract</code> or individual <code>remoteRef</code> entries.</p>
-<h3 id="handling-source-secret-deletion">Handling Source Secret Deletion</h3>
+<h2 id="handling-source-secret-deletion">Handling Source Secret Deletion</h2>
 <p>By default, when a source secret is deleted from BeyondTrust Workload Credentials, the managed Kubernetes secret is retained. You can change this behavior using <code>deletionPolicy</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5330,7 +5710,7 @@ This creates a secret with individual keys for <code>username</code> and <code>p
 <p>Valid values:
 - <code>Retain</code> (default): Keep the Kubernetes secret even if the source is deleted
 - <code>Delete</code>: Remove the Kubernetes secret when the source is deleted</p>
-<h3 id="authentication">Authentication</h3>
+<h2 id="authentication">Authentication</h2>
 <p>BeyondTrust Workload Credentials uses API key authentication. The API key is stored in a Kubernetes Secret and referenced in the SecretStore:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
@@ -5356,15 +5736,15 @@ This creates a secret with individual keys for <code>username</code> and <code>p
 <span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-token</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
 </code></pre></div>
-<h3 id="server-configuration">Server Configuration</h3>
+<h2 id="server-configuration">Server Configuration</h2>
 <p>The server configuration consists of:
 - <code>apiUrl</code>: The base URL of your BeyondTrust Workload Credentials API
 - <code>siteId</code>: Your BeyondTrust site identifier (UUID format)</p>
 <p>The provider automatically constructs the full API endpoint as: <code>{apiUrl}/{siteId}/secrets</code></p>
-<h3 id="certificate-trust">Certificate Trust</h3>
+<h2 id="certificate-trust">Certificate Trust</h2>
 <p>BeyondTrust Workload Credentials typically uses certificates signed by public CAs, requiring no additional configuration.</p>
 <p>If using self-signed certificates, configure trust using either <code>caBundle</code> or <code>caProvider</code>:</p>
-<h4 id="using-caprovider-recommended">Using caProvider (Recommended)</h4>
+<h3 id="using-caprovider-recommended">Using caProvider (Recommended)</h3>
 <div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">beyondtrustworkloadcredentials</span><span class="p">:</span>
@@ -5380,7 +5760,7 @@ This creates a secret with individual keys for <code>username</code> and <code>p
 <span class="w">  </span>--from-file<span class="o">=</span>ca.crt<span class="o">=</span><span class="s2">&quot;/path/to/ca.crt&quot;</span><span class="w"> </span><span class="se">\</span>
 <span class="w">  </span>-n<span class="w"> </span>external-secrets
 </code></pre></div></p>
-<h4 id="using-cabundle">Using caBundle</h4>
+<h3 id="using-cabundle">Using caBundle</h3>
 <p>Alternatively, embed the base64-encoded PEM certificate directly:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
@@ -5394,7 +5774,7 @@ This creates a secret with individual keys for <code>username</code> and <code>p
 <p>To generate the base64 string:
 <div class="highlight"><pre><span></span><code>cat<span class="w"> </span>/path/to/ca.crt<span class="w"> </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>-w<span class="w"> </span><span class="m">0</span>
 </code></pre></div></p>
-<h3 id="folder-path">Folder Path</h3>
+<h2 id="folder-path">Folder Path</h2>
 <p>The <code>folderPath</code> specifies the default folder containing your secrets. This should be a folder path, not the full path to a specific secret.</p>
 <p>For example, if your secrets are stored at:
 - <code>eso/static/secret1</code>
@@ -5402,14 +5782,14 @@ This creates a secret with individual keys for <code>username</code> and <code>p
 - <code>eso/static/secret3</code></p>
 <p>Set <code>folderPath: "eso/static"</code> in your SecretStore.</p>
 <p>When using <code>data</code> or <code>dataFrom.extract</code>, secret names are relative to this folder. When using <code>dataFrom.find</code>, this folder is searched by default (unless overridden with the <code>path</code> field).</p>
-<h3 id="refresh-interval">Refresh Interval</h3>
+<h2 id="refresh-interval">Refresh Interval</h2>
 <p>The <code>refreshInterval</code> controls how often the ExternalSecret checks for updates:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5m</span><span class="w">  </span><span class="c1"># Check every 5 minutes</span>
 </code></pre></div>
 <p>Supported units: <code>s</code> (seconds), <code>m</code> (minutes), <code>h</code> (hours).</p>
 <p><strong>Best Practice:</strong> Balance between keeping secrets up-to-date and minimizing API calls. For most use cases, <code>1m</code> to <code>15m</code> is appropriate.</p>
-<h3 id="clustersecretstore">ClusterSecretStore</h3>
+<h2 id="clustersecretstore">ClusterSecretStore</h2>
 <p>To use a ClusterSecretStore (accessible across all namespaces):</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
@@ -5441,6 +5821,12 @@ This creates a secret with individual keys for <code>username</code> and <code>p
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span><span class="w">  </span><span class="c1"># Specify ClusterSecretStore</span>
 <span class="w">  </span><span class="c1"># ... rest of spec</span>
 </code></pre></div></p>
+<h2 id="limitations">Limitations</h2>
+<ul>
+<li>This provider is <strong>read-only</strong>. It reads secrets via <code>data[].remoteRef</code> and <code>dataFrom</code> (both <code>extract</code> and <code>find</code>), but does not implement <code>PushSecret</code>, <code>DeleteSecret</code>, or secret-existence checks, so it cannot create, update, or delete secrets in BeyondTrust Workload Credentials.</li>
+<li>The <code>target.deletionPolicy: Delete</code> shown above removes the <strong>Kubernetes</strong> secret when the source secret no longer exists in BeyondTrust; it never deletes anything in BeyondTrust itself.</li>
+<li>For dynamic, short-lived credentials (such as temporary AWS credentials), use the <a href="../../api/generator/beyondtrustworkloadcredentials/">BeyondTrust Workload Credentials Generator</a> instead.</li>
+</ul>
 
 
 

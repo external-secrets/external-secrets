@@ -1089,6 +1089,8 @@
       
         
       
+        
+      
     
     
     
@@ -1382,6 +1384,34 @@
     
   
     Vault Dynamic Secret
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api/generator/beyondtrustworkloadcredentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BeyondTrust Workload Credentials
   
 
     
@@ -2832,6 +2862,8 @@
       
         
       
+        
+      
     
     
     
@@ -3033,6 +3065,34 @@
     
   
     BeyondTrust
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../provider/beyondtrustworkloadcredentials/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    BeyondTrust Workload Credentials
   
 
     
@@ -5059,7 +5119,7 @@
   <h1>Password Depot</h1>
 
 <p>External Secrets Operator integrates with <a href="https://www.password-depot.de/">Password Depot API</a> to sync Password Depot to secrets held on the Kubernetes cluster.</p>
-<h3 id="authentication">Authentication</h3>
+<h2 id="authentication">Authentication</h2>
 <p>The API requires a username and password. </p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
@@ -5072,7 +5132,7 @@
 <span class="w">  </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">the-username-for-password-depot</span>
 <span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">the secret password</span>
 </code></pre></div>
-<h3 id="update-secret-store">Update secret store</h3>
+<h2 id="update-secret-store">Update secret store</h2>
 <p>Be sure the <code>passworddepot</code> provider is listed in the <code>Kind=SecretStore</code> and host and database are set.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
@@ -5093,7 +5153,7 @@
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password-depot-secret</span>
 <span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
 </code></pre></div>
-<h3 id="creating-external-secret">Creating external secret</h3>
+<h2 id="creating-external-secret">Creating external secret</h2>
 <p>To sync a Password Depot variable to a secret on the Kubernetes cluster, a <code>Kind=ExternalSecret</code> is needed.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5116,7 +5176,7 @@
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Production.mySecret</span>
 <span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">login</span><span class="w"> </span><span class="c1"># field named in passworddepot</span>
 </code></pre></div>
-<h4 id="using-datafrom">Using DataFrom</h4>
+<h3 id="using-datafrom">Using DataFrom</h3>
 <p>DataFrom can be used to get a variable as a JSON string and attempt to parse it.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5137,7 +5197,7 @@
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Production.mySecret&quot;</span><span class="w"> </span><span class="c1"># Key of the secret</span>
 </code></pre></div>
-<h3 id="getting-the-kubernetes-secret">Getting the Kubernetes secret</h3>
+<h2 id="getting-the-kubernetes-secret">Getting the Kubernetes secret</h2>
 <p>The operator will fetch the project variable and inject it as a <code>Kind=Secret</code>.
 <div class="highlight"><pre><span></span><code>kubectl get secret passworddepot-secret-to-create -o jsonpath=&#39;{.data.secretKey}&#39; | base64 -d
 </code></pre></div></p>
