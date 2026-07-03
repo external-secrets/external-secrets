@@ -228,6 +228,20 @@ func TestProvider_KVv2(t *testing.T) {
 		Expect(data).To(BeNil())
 	})
 
+	t.Run("GetSecret_Metadata", func(t *testing.T) {
+		RegisterTestingT(t)
+		client := setupClient(t, v)
+
+		data, err := client.GetSecret(t.Context(), esv1.ExternalSecretDataRemoteRef{
+			Key:            "foo",
+			MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(data).To(MatchJSON(`{
+			"bar": "meta"
+		}`))
+	})
+
 	t.Run("GetSecret_Full", func(t *testing.T) {
 		RegisterTestingT(t)
 		client := setupClient(t, v)
@@ -312,6 +326,19 @@ func TestProvider_KVv1(t *testing.T) {
 			Version:  "1",
 		})
 		Expect(err).To(MatchError("OpenBao KVv1 secrets do not support versioning (use KVv2)"))
+		Expect(data).To(BeNil())
+	})
+
+	t.Run("GetSecret_Metadata", func(t *testing.T) {
+		RegisterTestingT(t)
+		client := setupClient(t, v)
+
+		data, err := client.GetSecret(t.Context(), esv1.ExternalSecretDataRemoteRef{
+			Key:            "foo",
+			Property:       "bar",
+			MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
+		})
+		Expect(err).To(MatchError("OpenBao KVv1 secrets do not support metadata (use KVv2)"))
 		Expect(data).To(BeNil())
 	})
 

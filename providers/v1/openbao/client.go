@@ -44,13 +44,14 @@ var (
 )
 
 const (
-	errInvalidRevVersion      = "invalid Ref.Version: %w"
-	errSecretKeyNotFound      = "cannot find secret data for key: %q"
-	errFetchMount             = "error while validating %q: %w"
-	errInvalidMountType       = `expected mount type "kv" found %q`
-	errInvalidMountVersion    = "expected kv engine version %s found version %s"
-	errKVv1VersionUnsupported = "OpenBao KVv1 secrets do not support versioning (use KVv2)"
-	errCustomCA               = "cannot set OpenBao CA certificate: %w"
+	errInvalidRevVersion       = "invalid Ref.Version: %w"
+	errSecretKeyNotFound       = "cannot find secret data for key: %q"
+	errFetchMount              = "error while validating %q: %w"
+	errInvalidMountType        = `expected mount type "kv" found %q`
+	errInvalidMountVersion     = "expected kv engine version %s found version %s"
+	errKVv1VersionUnsupported  = "OpenBao KVv1 secrets do not support versioning (use KVv2)"
+	errKVv1MetadataUnsupported = "OpenBao KVv1 secrets do not support metadata (use KVv2)"
+	errCustomCA                = "cannot set OpenBao CA certificate: %w"
 )
 
 type client struct {
@@ -269,7 +270,7 @@ func (c *client) path() string {
 }
 
 func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	var data *api.KVSecret
+	var res *api.KVSecret
 	var err error
 
 	if c.useV1() {
@@ -277,8 +278,12 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 			return nil, errors.New(errKVv1VersionUnsupported)
 		}
 
+		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
+			return nil, errors.New(errKVv1MetadataUnsupported)
+		}
+
 		kv := c.client.KVv1(c.path())
-		data, err = kv.Get(ctx, ref.Key)
+		res, err = kv.Get(ctx, ref.Key)
 		if err != nil {
 			return nil, err
 		}
@@ -290,23 +295,28 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 				return nil, fmt.Errorf(errInvalidRevVersion, err)
 			}
 
-			data, err = kv.GetVersion(ctx, ref.Key, version)
+			res, err = kv.GetVersion(ctx, ref.Key, version)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			data, err = kv.Get(ctx, ref.Key)
+			res, err = kv.Get(ctx, ref.Key)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	if ref.Property == "" {
-		return json.Marshal(data.Data)
+	data := res.Data
+	if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
+		data = res.CustomMetadata
 	}
 
-	property, ok := data.Data[ref.Property]
+	if ref.Property == "" {
+		return json.Marshal(data)
+	}
+
+	property, ok := data[ref.Property]
 	if !ok {
 		return nil, fmt.Errorf(errSecretKeyNotFound, ref.Property)
 	}
