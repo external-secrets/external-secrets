@@ -34,6 +34,9 @@
                 "extraEnv": {
                     "type": "array"
                 },
+                "extraEnvFrom": {
+                    "type": "array"
+                },
                 "extraInitContainers": {
                     "type": "array"
                 },
@@ -411,6 +414,9 @@
             "type": "array"
         },
         "extraEnv": {
+            "type": "array"
+        },
+        "extraEnvFrom": {
             "type": "array"
         },
         "extraInitContainers": {
@@ -1017,6 +1023,9 @@
                     "type": "object"
                 },
                 "extraEnv": {
+                    "type": "array"
+                },
+                "extraEnvFrom": {
                     "type": "array"
                 },
                 "extraInitContainers": {
