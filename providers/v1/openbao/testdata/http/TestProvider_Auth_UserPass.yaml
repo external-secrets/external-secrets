@@ -18,7 +18,7 @@ interactions:
         proto: HTTP/1.1
         proto_major: 1
         proto_minor: 1
-        content_length: 511
+        content_length: 647
         body: |-
             {
               "auth": {
@@ -55,7 +55,7 @@ interactions:
             Cache-Control:
                 - no-store
             Content-Length:
-                - "511"
+                - "647"
             Content-Type:
                 - application/json
             Strict-Transport-Security:
@@ -81,7 +81,7 @@ interactions:
         proto: HTTP/1.1
         proto_major: 1
         proto_minor: 1
-        content_length: 340
+        content_length: 463
         body: |-
             {
               "auth": null,
@@ -111,7 +111,7 @@ interactions:
             Cache-Control:
                 - no-store
             Content-Length:
-                - "340"
+                - "463"
             Content-Type:
                 - application/json
             Strict-Transport-Security:
