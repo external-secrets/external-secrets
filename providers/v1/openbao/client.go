@@ -161,7 +161,7 @@ func (c *client) setupAuth(ctx context.Context, kube k8sClient.Client, namespace
 	case c.store.Auth.Kubernetes != nil:
 		kubernetes := c.store.Auth.Kubernetes
 
-		jwt, err := getJwt(ctx, c, c.store.Auth.Kubernetes, kube, namespace)
+		jwt, err := getJwt(ctx, c, kubernetes, kube, namespace)
 		if err != nil {
 			return err
 		}
@@ -374,7 +374,10 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 }
 
 // getJwt retrieves a JWT token from the given Kubernetes ServiceAccount (`serviceAccountRef`) or Kubernetes secret (`secretRef`).
-func getJwt(ctx context.Context, c *client, kubernetesAuth *esv1.OpenBaoKubernetesAuth, kube k8sClient.Client, namespace string) (string, error) {
+func (c *client) getJwt(ctx context.Context, kube k8sClient.Client, namespace string) (string, error) {
+
+	kubernetesAuth := c.store.Auth.Kubernetes
+
 	if kubernetesAuth.ServiceAccountRef != nil {
 		var expirationSeconds int64 = 600
 
