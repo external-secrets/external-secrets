@@ -82,7 +82,7 @@ You can follow the below example to create an `ExternalSecret` resource.
 {% include 'chef-external-secret.yaml' %}
 ```
 
-When the above `ClusterSecretStore` and `ExternalSecret` resources are created, the `ExternalSecret` will connect to the Chef Server using the private key, fetch the requested data bag items, and store them in the `vivid-credentials` Kubernetes Secret.
+When the above `ClusterSecretStore` and `ExternalSecret` resources are created, the `ExternalSecret` will connect to the Chef Server using the private key, fetch the requested data bag items, and store them in the `vivid_global_all_cred` Kubernetes Secret.
 
 To get all data items inside the data bag, you can use the `dataFrom` directive:
 ```yaml
