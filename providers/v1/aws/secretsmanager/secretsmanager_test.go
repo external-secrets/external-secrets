@@ -751,6 +751,23 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"SetSecretWithNewSecretWithoutReplicationLocations": {
+			reason: "create a new secret without replica regions when replication locations are not set",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(blankDescribeSecretOutput, &getSecretCorrectErr),
+					CreateSecretFn: func(_ context.Context, input *awssm.CreateSecretInput, _ ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error) {
+						assert.Nil(t, input.AddReplicaRegions)
+						return secretOutput, nil
+					},
+				},
+				pushSecretData: pushSecretDataWithMetadata,
+			},
+			want: want{
+				err: nil,
+			},
+		},
 		"SetSecretWithPropertySucceedsWithExistingSecretAndNewPropertyBinary": {
 			reason: "when a pushSecretData property is specified, this property will be added to the sm secret if it is currently absent (sm secret is binary)",
 			args: args{

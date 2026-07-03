@@ -584,7 +584,9 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		Description:        new(mdata.Spec.Description),
 		ClientRequestToken: new(initialVersion),
 		KmsKeyId:           kmsKeyID,
-		AddReplicaRegions:  buildReplicationRegionType(mdata.Spec.ReplicationLocations, kmsKeyID),
+	}
+	if replicaRegions := buildReplicationRegionType(mdata.Spec.ReplicationLocations, kmsKeyID); len(replicaRegions) > 0 {
+		input.AddReplicaRegions = replicaRegions
 	}
 	if mdata.Spec.SecretPushFormat == SecretPushFormatString {
 		input.SecretBinary = nil
