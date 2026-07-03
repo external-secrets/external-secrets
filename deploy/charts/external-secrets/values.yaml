@@ -215,6 +215,9 @@ rbac:
   # -- Specifies whether permissions are aggregated to the edit ClusterRole
   aggregateToEdit: true
 
+  # -- Specifies whether permissions are aggregated to the admin ClusterRole
+  aggregateToAdmin: true
+
 ## -- Extra environment variables to add to container.
 extraEnv: []
 
