@@ -203,7 +203,7 @@ type OpenBaoKubernetesAuth struct {
 	// Path where the Kubernetes authentication backend is mounted in OpenBao, e.g:
 	// "kubernetes"
 	// +kubebuilder:default=kubernetes
-	Path string `json:"mountPath"`
+	Path string `json:"path"`
 
 	// Optional service account field containing the name of a kubernetes ServiceAccount.
 	// If the service account is specified, the service account secret token JWT will be used
