@@ -89,7 +89,6 @@ type OpenBaoProvider struct {
 // [AppRole]: https://openbao.org/docs/auth/approle/
 // [Token]: https://openbao.org/docs/auth/token/
 // [UserPass]: https://openbao.org/docs/auth/userpass/
-//
 // [Kubernetes]: https://openbao.org/docs/auth/kubernetes/
 type OpenBaoAuth struct {
 	// AppRole authenticates with OpenBao using the [App Role auth mechanism],
