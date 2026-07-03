@@ -8959,7 +8959,7 @@ resource is used as the app role secret.</p>
 <p>
 <p>OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
 Currently the following authentication methods are supported: <a href="https://openbao.org/docs/auth/approle/">AppRole</a>,
-<a href="https://openbao.org/docs/auth/token/">Token</a> and <a href="https://openbao.org/docs/auth/userpass/">UserPass</a></p>
+<a href="https://openbao.org/docs/auth/kubernetes/">Kubernetes</a>, <a href="https://openbao.org/docs/auth/token/">Token</a> and <a href="https://openbao.org/docs/auth/userpass/">UserPass</a></p>
 <p>Additional authentication methods are planned for future releases.</p>
 </p>
 <table>
@@ -8997,7 +8997,7 @@ OpenBaoKubernetesAuth
 <td>
 <em>(Optional)</em>
 <p>Kubernetes authenticates with OpenBao by passing a ServiceAccount
-token.</p>
+token to the <a href="https://openbao.org/docs/auth/kubernetes/">Kubernetes auth mechanism</a>.</p>
 </td>
 </tr>
 <tr>
@@ -9089,7 +9089,7 @@ via <code>ServiceAccountRef</code> or from a secret via <code>SecretRef</code>.<
 <tbody>
 <tr>
 <td>
-<code>mountPath</code></br>
+<code>path</code></br>
 <em>
 string
 </em>

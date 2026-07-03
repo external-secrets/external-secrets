@@ -6706,11 +6706,11 @@ spec:
                             kubernetes:
                               description: |-
                                 Kubernetes authenticates with OpenBao by passing a ServiceAccount
-                                token.
+                                token to the [Kubernetes auth mechanism].
 
-                                [Kubernetes auth]: https://openbao.org/docs/auth/kubernetes/
+                                [Kubernetes auth mechanism]: https://openbao.org/docs/auth/kubernetes/
                               properties:
-                                mountPath:
+                                path:
                                   default: kubernetes
                                   description: |-
                                     Path where the Kubernetes authentication backend is mounted in OpenBao, e.g:
@@ -6782,7 +6782,7 @@ spec:
                                     - name
                                   type: object
                               required:
-                                - mountPath
+                                - path
                                 - role
                               type: object
                               x-kubernetes-validations:
@@ -19991,11 +19991,11 @@ spec:
                             kubernetes:
                               description: |-
                                 Kubernetes authenticates with OpenBao by passing a ServiceAccount
-                                token.
+                                token to the [Kubernetes auth mechanism].
 
-                                [Kubernetes auth]: https://openbao.org/docs/auth/kubernetes/
+                                [Kubernetes auth mechanism]: https://openbao.org/docs/auth/kubernetes/
                               properties:
-                                mountPath:
+                                path:
                                   default: kubernetes
                                   description: |-
                                     Path where the Kubernetes authentication backend is mounted in OpenBao, e.g:
@@ -20067,7 +20067,7 @@ spec:
                                     - name
                                   type: object
                               required:
-                                - mountPath
+                                - path
                                 - role
                               type: object
                               x-kubernetes-validations:
