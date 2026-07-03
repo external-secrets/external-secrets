@@ -130,7 +130,7 @@ The following table show the support for features across different providers.
 | Doppler                          |      x       |              |                      |                         |        x         |             |                             |
 | Fortanix                         |              |              |                      |            x            |        x         |             |                             |
 | GCP Secret Manager               |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| GitHub Actions Secrets    |              |              |                      |            x            |                  |      x      |                             |
+| GitHub Actions Secrets           |              |              |                      |            x            |                  |      x      |                             |
 | GitLab Variables                 |      x       |      x       |                      |                         |        x         |             |                             |
 | Generic Webhook                  |              |              |                      |                         |                  |             |              x              |
 | Hashicorp Vault                  |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
