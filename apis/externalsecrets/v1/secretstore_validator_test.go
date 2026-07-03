@@ -131,6 +131,23 @@ func TestValidateSecretStore(t *testing.T) {
 			},
 		},
 		{
+			name: "negative refreshInterval is rejected",
+			obj: &SecretStore{
+				Spec: SecretStoreSpec{
+					RefreshInterval: new(intstr.FromInt32(-5)),
+					Provider: &SecretStoreProvider{
+						AWS: &AWSProvider{},
+					},
+				},
+			},
+			assertErr: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "must not be negative")
+			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
+			},
+		},
+		{
 			name: "invalid regex",
 			obj: &SecretStore{
 				Spec: SecretStoreSpec{

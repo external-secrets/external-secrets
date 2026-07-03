@@ -54,7 +54,8 @@ type SecretStoreSpec struct {
 // GetRefreshInterval resolves the refresh interval to a time.Duration. The field
 // accepts either an integer number of seconds (legacy) or a Go duration string
 // such as "1h" or "5m". A nil value (unset) returns 0, meaning the controller
-// default should be used. A string that is not a valid duration returns an error.
+// default should be used. A negative value, or a string that is not a valid
+// duration, returns an error.
 //
 // TODO(v2): the int-or-string form is a non-breaking shim to accept duration
 // strings without changing the v1 field type. In the next major API version,
@@ -66,11 +67,18 @@ func (s *SecretStoreSpec) GetRefreshInterval() (time.Duration, error) {
 	}
 	switch s.RefreshInterval.Type {
 	case intstr.Int:
-		return time.Duration(s.RefreshInterval.IntValue()) * time.Second, nil
+		secs := s.RefreshInterval.IntValue()
+		if secs < 0 {
+			return 0, fmt.Errorf("invalid refreshInterval %d: must not be negative", secs)
+		}
+		return time.Duration(secs) * time.Second, nil
 	case intstr.String:
 		d, err := time.ParseDuration(s.RefreshInterval.StrVal)
 		if err != nil {
 			return 0, fmt.Errorf("invalid refreshInterval %q: %w", s.RefreshInterval.StrVal, err)
+		}
+		if d < 0 {
+			return 0, fmt.Errorf("invalid refreshInterval %q: must not be negative", s.RefreshInterval.StrVal)
 		}
 		return d, nil
 	default:

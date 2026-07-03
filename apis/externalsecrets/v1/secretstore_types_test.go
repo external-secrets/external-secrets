@@ -27,9 +27,12 @@ import (
 
 func TestSecretStoreSpecGetRefreshInterval(t *testing.T) {
 	fromInt := intstr.FromInt32(300)
+	fromZero := intstr.FromInt32(0)
 	fromDuration := intstr.FromString("1h")
 	fromSecondsString := intstr.FromString("90s")
 	fromBadString := intstr.FromString("nonsense")
+	fromNegInt := intstr.FromInt32(-5)
+	fromNegString := intstr.FromString("-5m")
 
 	tests := []struct {
 		name    string
@@ -38,10 +41,13 @@ func TestSecretStoreSpecGetRefreshInterval(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "nil defaults to zero", in: nil, want: 0},
+		{name: "zero is unset (uses default)", in: &fromZero, want: 0},
 		{name: "legacy integer is seconds", in: &fromInt, want: 300 * time.Second},
 		{name: "duration string", in: &fromDuration, want: time.Hour},
 		{name: "seconds as duration string", in: &fromSecondsString, want: 90 * time.Second},
 		{name: "invalid duration string errors", in: &fromBadString, wantErr: true},
+		{name: "negative integer errors", in: &fromNegInt, wantErr: true},
+		{name: "negative duration string errors", in: &fromNegString, wantErr: true},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
