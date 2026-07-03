@@ -2981,12 +2981,14 @@ SecretStoreRetrySettings
 <td>
 <code>refreshInterval</code></br>
 <em>
-int
+k8s.io/apimachinery/pkg/util/intstr.IntOrString
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
+<p>Used to configure store refresh interval. Accepts either an integer number
+of seconds (legacy) or a Go duration string such as &ldquo;1h&rdquo; or &ldquo;5m&rdquo;. Empty or
+0 will default to the controller config.</p>
 </td>
 </tr>
 <tr>
@@ -10270,12 +10272,14 @@ SecretStoreRetrySettings
 <td>
 <code>refreshInterval</code></br>
 <em>
-int
+k8s.io/apimachinery/pkg/util/intstr.IntOrString
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
+<p>Used to configure store refresh interval. Accepts either an integer number
+of seconds (legacy) or a Go duration string such as &ldquo;1h&rdquo; or &ldquo;5m&rdquo;. Empty or
+0 will default to the controller config.</p>
 </td>
 </tr>
 <tr>
@@ -11113,12 +11117,14 @@ SecretStoreRetrySettings
 <td>
 <code>refreshInterval</code></br>
 <em>
-int
+k8s.io/apimachinery/pkg/util/intstr.IntOrString
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
+<p>Used to configure store refresh interval. Accepts either an integer number
+of seconds (legacy) or a Go duration string such as &ldquo;1h&rdquo; or &ldquo;5m&rdquo;. Empty or
+0 will default to the controller config.</p>
 </td>
 </tr>
 <tr>

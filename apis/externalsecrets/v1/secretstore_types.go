@@ -17,8 +17,12 @@ limitations under the License.
 package v1
 
 import (
+	"fmt"
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // SecretStoreSpec defines the desired state of SecretStore.
@@ -35,13 +39,43 @@ type SecretStoreSpec struct {
 	// +optional
 	RetrySettings *SecretStoreRetrySettings `json:"retrySettings,omitempty"`
 
-	// Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
+	// Used to configure store refresh interval. Accepts either an integer number
+	// of seconds (legacy) or a Go duration string such as "1h" or "5m". Empty or
+	// 0 will default to the controller config.
 	// +optional
-	RefreshInterval int `json:"refreshInterval,omitempty"`
+	// +kubebuilder:validation:XIntOrString
+	RefreshInterval *intstr.IntOrString `json:"refreshInterval,omitempty"`
 
 	// Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.
 	// +optional
 	Conditions []ClusterSecretStoreCondition `json:"conditions,omitempty"`
+}
+
+// GetRefreshInterval resolves the refresh interval to a time.Duration. The field
+// accepts either an integer number of seconds (legacy) or a Go duration string
+// such as "1h" or "5m". A nil value (unset) returns 0, meaning the controller
+// default should be used. A string that is not a valid duration returns an error.
+//
+// TODO(v2): the int-or-string form is a non-breaking shim to accept duration
+// strings without changing the v1 field type. In the next major API version,
+// change RefreshInterval to a first-class *metav1.Duration and drop this
+// accessor. See issue #2977.
+func (s *SecretStoreSpec) GetRefreshInterval() (time.Duration, error) {
+	if s.RefreshInterval == nil {
+		return 0, nil
+	}
+	switch s.RefreshInterval.Type {
+	case intstr.Int:
+		return time.Duration(s.RefreshInterval.IntValue()) * time.Second, nil
+	case intstr.String:
+		d, err := time.ParseDuration(s.RefreshInterval.StrVal)
+		if err != nil {
+			return 0, fmt.Errorf("invalid refreshInterval %q: %w", s.RefreshInterval.StrVal, err)
+		}
+		return d, nil
+	default:
+		return 0, fmt.Errorf("unsupported refreshInterval type %d", s.RefreshInterval.Type)
+	}
 }
 
 // ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in

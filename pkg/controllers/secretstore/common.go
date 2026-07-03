@@ -90,8 +90,12 @@ func reconcile(ctx context.Context, req ctrl.Request, ss esapi.GenericStore, cl 
 
 	requeueInterval := opts.RequeueInterval
 
-	if ss.GetSpec().RefreshInterval != 0 {
-		requeueInterval = time.Second * time.Duration(ss.GetSpec().RefreshInterval)
+	refreshInterval, refreshErr := ss.GetSpec().GetRefreshInterval()
+	if refreshErr != nil {
+		return ctrl.Result{}, fmt.Errorf("invalid refreshInterval: %w", refreshErr)
+	}
+	if refreshInterval > 0 {
+		requeueInterval = refreshInterval
 	}
 
 	// patch status when done processing
