@@ -375,7 +375,6 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 
 // getJwt retrieves a JWT token from the given Kubernetes ServiceAccount (`serviceAccountRef`) or Kubernetes secret (`secretRef`).
 func (c *client) getJwt(ctx context.Context, kube k8sClient.Client, namespace string) (string, error) {
-
 	kubernetesAuth := c.store.Auth.Kubernetes
 
 	if kubernetesAuth.ServiceAccountRef != nil {
