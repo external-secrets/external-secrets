@@ -1065,9 +1065,10 @@ func TestValidateStore(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		store   esv1.GenericStore
-		wantErr bool
+		name     string
+		store    esv1.GenericStore
+		wantErr  bool
+		wantWarn bool
 	}{
 		{
 			name: "api key auth validates without panicking",
@@ -1107,15 +1108,61 @@ func TestValidateStore(t *testing.T) {
 			}),
 			wantErr: true,
 		},
+		{
+			name: "auth without any method is rejected",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Auth:   &esv1.BeyondtrustAuth{},
+			}),
+			wantErr: true,
+		},
+		{
+			name: "client id without client secret is rejected",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Auth:   &esv1.BeyondtrustAuth{ClientID: validRef},
+			}),
+			wantErr: true,
+		},
+		{
+			name: "auth ref without secretRef or value is rejected",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Auth:   &esv1.BeyondtrustAuth{APIKey: &esv1.BeyondTrustProviderSecretRef{}},
+			}),
+			wantErr: true,
+		},
+		{
+			name: "certificate without key warns but validates",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Auth:   &esv1.BeyondtrustAuth{APIKey: validRef, Certificate: validRef},
+			}),
+			wantErr:  false,
+			wantWarn: true,
+		},
+		{
+			name: "complete certificate pair validates without warning",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Auth:   &esv1.BeyondtrustAuth{APIKey: validRef, Certificate: validRef, CertificateKey: validRef},
+			}),
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := p.ValidateStore(tt.store)
+			warnings, err := p.ValidateStore(tt.store)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
+			}
+			if tt.wantWarn {
+				require.NotEmpty(t, warnings)
+			} else {
+				require.Empty(t, warnings)
 			}
 		})
 	}

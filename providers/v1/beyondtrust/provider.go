@@ -49,6 +49,8 @@ const (
 	errMissingProvider      = "storeSpec is missing provider"
 	errInvalidProvider      = "invalid provider spec. Missing field in store %s"
 	errInvalidHostURL       = "invalid host URL"
+	errMissingAuthMethod    = "no authentication method configured: set auth.apiKey, or auth.clientId and auth.clientSecret"
+	errIncompleteOAuth      = "both clientId and clientSecret must be set for OAuth authentication"
 	errNoSuchKeyFmt         = "no such key in secret: %q"
 	errInvalidRetrievalPath = "invalid retrieval path. Provide one path, separator and name"
 	errNotImplemented       = "not implemented"
@@ -411,25 +413,58 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	if provider.Auth == nil {
-		return nil, fmt.Errorf(errInvalidProvider, store.GetObjectMeta().String())
+		return nil, errors.New(errMissingAuthMethod)
 	}
 
-	for _, ref := range []*esv1.BeyondTrustProviderSecretRef{
-		provider.Auth.APIKey,
-		provider.Auth.ClientID,
-		provider.Auth.ClientSecret,
-		provider.Auth.Certificate,
-		provider.Auth.CertificateKey,
-	} {
-		if ref == nil {
-			continue
-		}
-		if err := validateSecretRef(ref); err != nil {
+	// Auth method requirements must stay in sync with loadCredentialsFromConfig.
+	switch {
+	case provider.Auth.APIKey != nil:
+		if err := validateAuthRef("apiKey", provider.Auth.APIKey); err != nil {
 			return nil, err
 		}
+	case provider.Auth.ClientID != nil && provider.Auth.ClientSecret != nil:
+		if err := validateAuthRef("clientId", provider.Auth.ClientID); err != nil {
+			return nil, err
+		}
+		if err := validateAuthRef("clientSecret", provider.Auth.ClientSecret); err != nil {
+			return nil, err
+		}
+	case provider.Auth.ClientID != nil || provider.Auth.ClientSecret != nil:
+		return nil, errors.New(errIncompleteOAuth)
+	default:
+		return nil, errors.New(errMissingAuthMethod)
 	}
 
-	return nil, nil
+	// loadCertificateFromConfig silently ignores an incomplete certificate pair,
+	// so warn instead of rejecting the store.
+	var warnings admission.Warnings
+	hasCertificate := provider.Auth.Certificate != nil
+	hasCertificateKey := provider.Auth.CertificateKey != nil
+	if hasCertificate != hasCertificateKey {
+		warnings = append(warnings, "certificate and certificateKey must both be set for client-certificate authentication; the incomplete pair is ignored")
+	}
+	if hasCertificate {
+		if err := validateAuthRef("certificate", provider.Auth.Certificate); err != nil {
+			return warnings, err
+		}
+	}
+	if hasCertificateKey {
+		if err := validateAuthRef("certificateKey", provider.Auth.CertificateKey); err != nil {
+			return warnings, err
+		}
+	}
+
+	return warnings, nil
+}
+
+func validateAuthRef(field string, ref *esv1.BeyondTrustProviderSecretRef) error {
+	if ref.SecretRef == nil && ref.Value == "" {
+		return fmt.Errorf("%s: either secretRef or value must be set", field)
+	}
+	if err := validateSecretRef(ref); err != nil {
+		return fmt.Errorf("%s: %w", field, err)
+	}
+	return nil
 }
 
 // NewProvider creates a new Provider instance.
