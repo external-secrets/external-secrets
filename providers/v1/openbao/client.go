@@ -161,7 +161,7 @@ func (c *client) setupAuth(ctx context.Context, kube k8sClient.Client, namespace
 	case c.store.Auth.Kubernetes != nil:
 		kubernetes := c.store.Auth.Kubernetes
 
-		jwt, err := getJwt(ctx, c, kubernetes, kube, namespace)
+		jwt, err := c.getJwt(ctx, kube, namespace)
 		if err != nil {
 			return err
 		}
