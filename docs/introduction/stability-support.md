@@ -145,7 +145,7 @@ The following table show the support for features across different providers.
 | Passbolt                         |      x       |              |                      |            x            |        x         |             |                             |
 | Password Depot                   |              |              |                      |                         |                  |             |                             |
 | Previder                         |              |              |                      |            x            |        x         |             |                             |
-| Pulumi ESC                       |              |              |                      |            x            |        x         |             |                             |
+| Pulumi ESC                       |              |              |                      |            x            |        x         |      x      |                             |
 | Scaleway                         |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | SecretServer                     |              |              |                      |            x            |        x         |      x      |              x              |
 | Senhasegura DSM                  |              |              |                      |            x            |        x         |             |              x              |

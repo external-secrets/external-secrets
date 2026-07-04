@@ -59,3 +59,9 @@ func TestValidateStore(t *testing.T) {
 		})
 	}
 }
+
+func TestCapabilities(t *testing.T) {
+	// Pulumi ESC implements read (GetSecret/GetSecretMap) and per-key write
+	// (PushSecret), so it must advertise ReadWrite. See issue #6579.
+	assert.Equal(t, esv1.SecretStoreReadWrite, (&Provider{}).Capabilities())
+}
