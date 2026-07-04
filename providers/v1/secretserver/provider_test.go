@@ -63,6 +63,20 @@ func TestDoesConfigDependOnNamespace(t *testing.T) {
 			},
 			want: false,
 		},
+		"true when Token references a secret without explicit namespace": {
+			cfg: esv1.SecretServerProvider{
+				Token: &esv1.SecretServerProviderRef{
+					SecretRef: &v1.SecretKeySelector{Name: "foo"},
+				},
+			},
+			want: true,
+		},
+		"false when Token uses a direct value": {
+			cfg: esv1.SecretServerProvider{
+				Token: &esv1.SecretServerProviderRef{Value: "foo"},
+			},
+			want: false,
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -147,6 +161,34 @@ func TestValidateStore(t *testing.T) {
 			},
 			want: nil,
 		},
+		"valid with token and no username/password": {
+			cfg: esv1.SecretServerProvider{
+				Token:     validSecretRefUsingValue,
+				ServerURL: testURL,
+			},
+			want: nil,
+		},
+		"invalid without serverURL when using token": {
+			cfg: esv1.SecretServerProvider{
+				Token: validSecretRefUsingValue,
+				/*ServerURL: testURL,*/
+			},
+			want: errEmptyServerURL,
+		},
+		"invalid with ambiguous token": {
+			cfg: esv1.SecretServerProvider{
+				Token:     ambiguousSecretRef,
+				ServerURL: testURL,
+			},
+			want: errSecretRefAndValueConflict,
+		},
+		"invalid with invalid token": {
+			cfg: esv1.SecretServerProvider{
+				Token:     makeSecretRefUsingValue(""),
+				ServerURL: testURL,
+			},
+			want: errSecretRefAndValueMissing,
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -170,12 +212,21 @@ func TestNewClient(t *testing.T) {
 	passwordKey := passwordSlug
 	passwordValue := generateRandomString()
 	domain := "domain1"
+	tokenKey := "token"
+	tokenValue := generateRandomString()
 
 	clientSecret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
 		Data: map[string][]byte{
 			userNameKey: []byte(userNameValue),
 			passwordKey: []byte(passwordValue),
+		},
+	}
+
+	tokenSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "token-secret", Namespace: "default"},
+		Data: map[string][]byte{
+			tokenKey: []byte(tokenValue),
 		},
 	}
 
@@ -331,6 +382,30 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 				ServerURL: validProvider.ServerURL,
 			},
 			kube: clientfake.NewClientBuilder().WithObjects(clientSecret).Build(),
+		},
+		"valid token via value": {
+			provider: &esv1.SecretServerProvider{
+				Token:     makeSecretRefUsingValue(tokenValue),
+				ServerURL: validProvider.ServerURL,
+			},
+			kube: clientfake.NewClientBuilder().Build(),
+		},
+		"valid token via secret ref": {
+			provider: &esv1.SecretServerProvider{
+				Token:     makeSecretRefUsingRef(tokenSecret.Name, tokenKey),
+				ServerURL: validProvider.ServerURL,
+			},
+			kube: clientfake.NewClientBuilder().WithObjects(tokenSecret).Build(),
+		},
+		"dangling token ref": {
+			provider: &esv1.SecretServerProvider{
+				Token:     makeSecretRefUsingRef("typo", tokenKey),
+				ServerURL: validProvider.ServerURL,
+			},
+			kube: clientfake.NewClientBuilder().WithObjects(tokenSecret).Build(),
+			errCheck: func(t *testing.T, err error) {
+				assert.True(t, kubeErrors.IsNotFound(err))
+			},
 		},
 		"cluster secret store": {
 			store: &esv1.ClusterSecretStore{
@@ -508,8 +583,11 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 					Username: userNameValue,
 					Password: passwordValue,
 				}
-				if name == "cluster secret store with domain" {
+				switch name {
+				case "cluster secret store with domain":
 					expectedCredentials.Domain = domain
+				case "valid token via value", "valid token via secret ref":
+					expectedCredentials = server.UserCredential{Token: tokenValue}
 				}
 				assert.Equal(t, expectedCredentials, secretServerClient.Configuration.Credentials)
 			} else {

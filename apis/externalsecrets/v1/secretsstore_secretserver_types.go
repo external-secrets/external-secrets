@@ -35,12 +35,20 @@ type SecretServerProviderRef struct {
 // See: https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go.
 type SecretServerProvider struct {
 	// Username is the secret server account username.
-	// +required
-	Username *SecretServerProviderRef `json:"username"`
+	// Required unless Token is set.
+	// +optional
+	Username *SecretServerProviderRef `json:"username,omitempty"`
 
 	// Password is the secret server account password.
-	// +required
-	Password *SecretServerProviderRef `json:"password"`
+	// Required unless Token is set.
+	// +optional
+	Password *SecretServerProviderRef `json:"password,omitempty"`
+
+	// Token is an access token used to authenticate to the secret server,
+	// as an alternative to Username and Password. When set, Username and
+	// Password are not required and are ignored.
+	// +optional
+	Token *SecretServerProviderRef `json:"token,omitempty"`
 
 	// Domain is the secret server domain.
 	// +optional
