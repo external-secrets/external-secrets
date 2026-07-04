@@ -416,4 +416,3 @@ spec:
       timeout: string
       url: string
   kind: "ACRAccessToken" # "ACRAccessToken", "BeyondtrustWorkloadCredentialsDynamicSecret", "CloudsmithAccessToken", "CodeArtifactAuthorizationToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "GitlabDeployToken", "QuayAccessToken", "Password", "SSHKey", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana", "MFA"
-
