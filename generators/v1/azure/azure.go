@@ -33,7 +33,6 @@ import (
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
-	kcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/yaml"
@@ -68,18 +67,21 @@ const (
 	errParseSpec = "unable to parse spec: %w"
 )
 
+// kubeClientFunc lazily builds a Kubernetes clientset. It is only invoked by the
+// workload-identity-with-serviceAccountRef path, so the other auth methods never pay
+// the cost of loading the in-cluster config or constructing a client.
+type kubeClientFunc func() (kubernetes.Interface, error)
+
 // Generate mints a Microsoft Entra ID access token scoped to the configured resource
 // using the desired authentication method.
 func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, crClient client.Client, namespace string) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
-	cfg, err := ctrlcfg.GetConfig()
-	if err != nil {
-		return nil, nil, err
-	}
-	kubeClient, err := kubernetes.NewForConfig(cfg)
-	if err != nil {
-		return nil, nil, err
-	}
-	return g.generate(ctx, jsonSpec, crClient, namespace, kubeClient)
+	return g.generate(ctx, jsonSpec, crClient, namespace, func() (kubernetes.Interface, error) {
+		cfg, err := ctrlcfg.GetConfig()
+		if err != nil {
+			return nil, err
+		}
+		return kubernetes.NewForConfig(cfg)
+	})
 }
 
 // Cleanup performs any necessary cleanup after token generation. The generator is
@@ -93,7 +95,7 @@ func (g *Generator) generate(
 	jsonSpec *apiextensions.JSON,
 	crClient client.Client,
 	namespace string,
-	kubeClient kubernetes.Interface,
+	kubeClientFn kubeClientFunc,
 ) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	if jsonSpec == nil {
 		return nil, nil, errors.New(errNoSpec)
@@ -107,6 +109,11 @@ func (g *Generator) generate(
 	if resource == "" {
 		return nil, nil, errors.New("spec.resource is required")
 	}
+	// Normalize once so every auth path builds a single-slash "<resource>/.default"
+	// scope. The workload-identity path forwards the bare resource to
+	// keyvault.NewTokenProvider, which would otherwise turn "https://x/" into
+	// "https://x//.default" and be rejected by Entra.
+	resource = strings.TrimSuffix(resource, "/")
 
 	var accessToken string
 	switch {
@@ -123,14 +130,16 @@ func (g *Generator) generate(
 	case res.Spec.Auth.ManagedIdentity != nil:
 		accessToken, err = accessTokenForManagedIdentity(
 			ctx,
+			res.Spec.EnvironmentType,
 			resource,
 			res.Spec.Auth.ManagedIdentity.IdentityID,
+			res.Spec.Auth.ManagedIdentity.IdentityType,
 		)
 	case res.Spec.Auth.WorkloadIdentity != nil:
 		accessToken, err = accessTokenForWorkloadIdentity(
 			ctx,
 			crClient,
-			kubeClient.CoreV1(),
+			kubeClientFn,
 			res.Spec.EnvironmentType,
 			resource,
 			res.Spec.Auth.WorkloadIdentity.ServiceAccountRef,
@@ -207,18 +216,31 @@ func (g *Generator) accessTokenForServicePrincipal(
 	return accessToken.Token, nil
 }
 
-func accessTokenForManagedIdentity(ctx context.Context, resource, identityID string) (string, error) {
-	var opts *azidentity.ManagedIdentityCredentialOptions
-	if strings.Contains(identityID, "/") {
-		opts = &azidentity.ManagedIdentityCredentialOptions{
-			ID: azidentity.ResourceID(identityID),
+func accessTokenForManagedIdentity(ctx context.Context, envType esv1.AzureEnvironmentType, resource, identityID string, identityType genv1alpha1.AzureManagedIdentityIDType) (string, error) {
+	opts := &azidentity.ManagedIdentityCredentialOptions{}
+	// Honor the requested sovereign cloud, consistent with the service-principal and
+	// workload-identity paths and with the Key Vault provider's managed-identity flow.
+	opts.Cloud.ActiveDirectoryAuthorityHost = keyvault.AadEndpointForType(envType)
+
+	switch identityType {
+	case genv1alpha1.AzureManagedIdentityClientID:
+		opts.ID = azidentity.ClientID(identityID)
+	case genv1alpha1.AzureManagedIdentityObjectID:
+		opts.ID = azidentity.ObjectID(identityID)
+	case genv1alpha1.AzureManagedIdentityResourceID:
+		opts.ID = azidentity.ResourceID(identityID)
+	default:
+		// No explicit type: infer from the value for backwards compatibility. A
+		// resource id always contains slashes; a bare GUID is treated as a client id.
+		// An object id can only be requested via the explicit identityType field.
+		switch {
+		case strings.Contains(identityID, "/"):
+			opts.ID = azidentity.ResourceID(identityID)
+		case identityID != "":
+			opts.ID = azidentity.ClientID(identityID)
 		}
-	} else if identityID != "" {
-		opts = &azidentity.ManagedIdentityCredentialOptions{
-			ID: azidentity.ClientID(identityID),
-		}
+		// lacking an ID, az will default to the system-assigned identity.
 	}
-	// lacking option ID, az will default to the system-assigned identity.
 	creds, err := azidentity.NewManagedIdentityCredential(opts)
 	if err != nil {
 		return "", err
@@ -235,7 +257,7 @@ func accessTokenForManagedIdentity(ctx context.Context, resource, identityID str
 func accessTokenForWorkloadIdentity(
 	ctx context.Context,
 	crClient client.Client,
-	kubeClient kcorev1.CoreV1Interface,
+	kubeClientFn kubeClientFunc,
 	envType esv1.AzureEnvironmentType,
 	resource string,
 	serviceAccountRef *smmeta.ServiceAccountSelector,
@@ -256,6 +278,11 @@ func accessTokenForWorkloadIdentity(
 		token, err := os.ReadFile(filepath.Clean(tokenFilePath))
 		if err != nil {
 			return "", fmt.Errorf("unable to read token file %s: %w", tokenFilePath, err)
+		}
+		if len(token) == 0 {
+			// The webhook may momentarily truncate the file during rotation; fail
+			// with a clear message instead of sending an empty client assertion.
+			return "", fmt.Errorf("federated token file %s is empty", tokenFilePath)
 		}
 		tp, err := keyvault.NewTokenProvider(ctx, string(token), clientID, tenantID, aadEndpoint, resource)
 		if err != nil {
@@ -281,13 +308,22 @@ func accessTokenForWorkloadIdentity(
 	}
 	tenantID, ok := sa.ObjectMeta.Annotations[keyvault.AnnotationTenantID]
 	if !ok {
-		return "", fmt.Errorf("service account is missing annotation: %s", keyvault.AnnotationTenantID)
+		// Fall back to the webhook-injected AZURE_TENANT_ID, mirroring the Key Vault
+		// provider so a service account annotated only with client-id keeps working.
+		tenantID = os.Getenv("AZURE_TENANT_ID")
+		if tenantID == "" {
+			return "", fmt.Errorf("service account is missing annotation %s and AZURE_TENANT_ID is not set", keyvault.AnnotationTenantID)
+		}
 	}
 	audiences := []string{keyvault.AzureDefaultAudience}
 	if len(serviceAccountRef.Audiences) > 0 {
 		audiences = append(audiences, serviceAccountRef.Audiences...)
 	}
-	token, err := keyvault.FetchSAToken(ctx, namespace, serviceAccountRef.Name, audiences, kubeClient)
+	kubeClient, err := kubeClientFn()
+	if err != nil {
+		return "", err
+	}
+	token, err := keyvault.FetchSAToken(ctx, namespace, serviceAccountRef.Name, audiences, kubeClient.CoreV1())
 	if err != nil {
 		return "", err
 	}

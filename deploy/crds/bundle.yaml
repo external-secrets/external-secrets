@@ -26034,7 +26034,20 @@ spec:
                         identityId:
                           description: If multiple Managed Identities are assigned to the pod, you can select the one to be used.
                           type: string
+                        identityType:
+                          description: |-
+                            IdentityType selects how IdentityID is interpreted: as the managed identity's
+                            ClientID, ObjectID or ResourceID. When empty, ESO infers ResourceID if IdentityID
+                            contains a "/" and ClientID otherwise; an ObjectID can only be selected explicitly.
+                          enum:
+                            - ClientID
+                            - ObjectID
+                            - ResourceID
+                          type: string
                       type: object
+                      x-kubernetes-validations:
+                        - message: identityId is required when identityType is set
+                          rule: '!has(self.identityType) || (has(self.identityId) && size(self.identityId) > 0)'
                     servicePrincipal:
                       description: |-
                         ServicePrincipal uses Azure Service Principal credentials (client secret or
@@ -26177,18 +26190,26 @@ spec:
                           rule: '!has(self.serviceAccountRef) || !has(self.serviceAccountRef.__namespace__)'
                   type: object
                 environmentType:
+                  allOf:
+                    - enum:
+                        - PublicCloud
+                        - USGovernmentCloud
+                        - ChinaCloud
+                        - GermanCloud
+                        - AzureStackCloud
+                    - enum:
+                        - PublicCloud
+                        - USGovernmentCloud
+                        - ChinaCloud
+                        - GermanCloud
                   default: PublicCloud
                   description: |-
                     EnvironmentType specifies the Azure cloud environment endpoints to use for
                     connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
                     The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
-                    PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
-                  enum:
-                    - PublicCloud
-                    - USGovernmentCloud
-                    - ChinaCloud
-                    - GermanCloud
-                    - AzureStackCloud
+                    PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud.
+                    AzureStackCloud is intentionally not accepted: this generator cannot resolve its
+                    AAD authority host and would otherwise silently authenticate against the public cloud.
                   type: string
                 resource:
                   description: |-
@@ -26751,7 +26772,20 @@ spec:
                                 identityId:
                                   description: If multiple Managed Identities are assigned to the pod, you can select the one to be used.
                                   type: string
+                                identityType:
+                                  description: |-
+                                    IdentityType selects how IdentityID is interpreted: as the managed identity's
+                                    ClientID, ObjectID or ResourceID. When empty, ESO infers ResourceID if IdentityID
+                                    contains a "/" and ClientID otherwise; an ObjectID can only be selected explicitly.
+                                  enum:
+                                    - ClientID
+                                    - ObjectID
+                                    - ResourceID
+                                  type: string
                               type: object
+                              x-kubernetes-validations:
+                                - message: identityId is required when identityType is set
+                                  rule: '!has(self.identityType) || (has(self.identityId) && size(self.identityId) > 0)'
                             servicePrincipal:
                               description: |-
                                 ServicePrincipal uses Azure Service Principal credentials (client secret or
@@ -26894,18 +26928,26 @@ spec:
                                   rule: '!has(self.serviceAccountRef) || !has(self.serviceAccountRef.__namespace__)'
                           type: object
                         environmentType:
+                          allOf:
+                            - enum:
+                                - PublicCloud
+                                - USGovernmentCloud
+                                - ChinaCloud
+                                - GermanCloud
+                                - AzureStackCloud
+                            - enum:
+                                - PublicCloud
+                                - USGovernmentCloud
+                                - ChinaCloud
+                                - GermanCloud
                           default: PublicCloud
                           description: |-
                             EnvironmentType specifies the Azure cloud environment endpoints to use for
                             connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
                             The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
-                            PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
-                          enum:
-                            - PublicCloud
-                            - USGovernmentCloud
-                            - ChinaCloud
-                            - GermanCloud
-                            - AzureStackCloud
+                            PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud.
+                            AzureStackCloud is intentionally not accepted: this generator cannot resolve its
+                            AAD authority host and would otherwise silently authenticate against the public cloud.
                           type: string
                         resource:
                           description: |-

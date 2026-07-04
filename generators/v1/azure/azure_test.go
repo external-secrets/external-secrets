@@ -43,6 +43,10 @@ const (
 )
 
 func spSecretSpec() *apiextensions.JSON {
+	return spSecretSpecResource(adoResource)
+}
+
+func spSecretSpecResource(resource string) *apiextensions.JSON {
 	return &apiextensions.JSON{
 		Raw: fmt.Appendf(nil, `apiVersion: generators.external-secrets.io/v1alpha1
 kind: AzureAccessToken
@@ -58,7 +62,7 @@ spec:
           key: clientid
         clientSecret:
           name: az-secret
-          key: clientsecret`, testTenant, adoResource),
+          key: clientsecret`, testTenant, resource),
 	}
 }
 
@@ -193,7 +197,19 @@ func TestGenerate(t *testing.T) {
 				assert.Equal(t, testTenant, tenantID)
 				assert.Equal(t, "the-client-id", clientID)
 				assert.Equal(t, "the-client-secret", clientSecret)
-				return &fakeTokenGetter{t: t, token: azcore.AccessToken{Token: testToken}}, nil
+				return &fakeTokenGetter{t: t, wantScope: adoResource + "/.default", token: azcore.AccessToken{Token: testToken}}, nil
+			},
+			want: map[string][]byte{tokenKey: []byte(testToken)},
+		},
+		{
+			// A resource URI carrying a trailing slash must still yield a
+			// single-slash "<resource>/.default" scope (regression for the
+			// double-slash bug on the workload-identity path).
+			name:     "service principal trailing-slash resource",
+			jsonSpec: spSecretSpecResource("https://management.azure.com/"),
+			crClient: secretFixture(),
+			clientSecretCreds: func(_, _, _ string, _ *azidentity.ClientSecretCredentialOptions) (TokenGetter, error) {
+				return &fakeTokenGetter{t: t, wantScope: "https://management.azure.com/.default", token: azcore.AccessToken{Token: testToken}}, nil
 			},
 			want: map[string][]byte{tokenKey: []byte(testToken)},
 		},
@@ -205,7 +221,7 @@ func TestGenerate(t *testing.T) {
 				assert.Equal(t, testTenant, tenantID)
 				assert.Equal(t, "the-client-id", clientID)
 				assert.NotEmpty(t, certData)
-				return &fakeTokenGetter{t: t, token: azcore.AccessToken{Token: testToken}}, nil
+				return &fakeTokenGetter{t: t, wantScope: adoResource + "/.default", token: azcore.AccessToken{Token: testToken}}, nil
 			},
 			want: map[string][]byte{tokenKey: []byte(testToken)},
 		},
@@ -216,7 +232,10 @@ func TestGenerate(t *testing.T) {
 				clientSecretCreds: tt.clientSecretCreds,
 				clientCertCreds:   tt.clientCertCreds,
 			}
-			got, _, err := g.generate(context.Background(), tt.jsonSpec, tt.crClient, "foobar", tt.kubeClient)
+			kubeClientFn := func() (kubernetes.Interface, error) {
+				return tt.kubeClient, nil
+			}
+			got, _, err := g.generate(context.Background(), tt.jsonSpec, tt.crClient, "foobar", kubeClientFn)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("generate() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -235,14 +254,17 @@ func TestScopeForResource(t *testing.T) {
 	assert.Equal(t, "https://management.azure.com/.default", scopeForResource("https://management.azure.com"))
 }
 
-// fakeTokenGetter asserts that the requested scope targets the configured resource.
+// fakeTokenGetter asserts that the requested scope matches the expected value.
 type fakeTokenGetter struct {
-	t     *testing.T
-	token azcore.AccessToken
-	err   error
+	t         *testing.T
+	wantScope string
+	token     azcore.AccessToken
+	err       error
 }
 
 func (f *fakeTokenGetter) GetToken(_ context.Context, opts policy.TokenRequestOptions) (azcore.AccessToken, error) {
-	assert.Equal(f.t, []string{adoResource + "/.default"}, opts.Scopes)
+	if f.wantScope != "" {
+		assert.Equal(f.t, []string{f.wantScope}, opts.Scopes)
+	}
 	return f.token, f.err
 }

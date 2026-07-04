@@ -30,6 +30,7 @@ spec:
       auth:
         managedIdentity:
           identityId: string
+          identityType: "ClientID" # "ClientID", "ObjectID", "ResourceID"
         servicePrincipal:
           secretRef:
             clientCertificate:

@@ -26449,7 +26449,9 @@ AzureEnvironmentType
 <p>EnvironmentType specifies the Azure cloud environment endpoints to use for
 connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
 The following endpoints are available, also see here: <a href="https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152">https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152</a>
-PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
+PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud.
+AzureStackCloud is intentionally not accepted: this generator cannot resolve its
+AAD authority host and would otherwise silently authenticate against the public cloud.</p>
 </td>
 </tr>
 </table>
@@ -26538,7 +26540,9 @@ AzureEnvironmentType
 <p>EnvironmentType specifies the Azure cloud environment endpoints to use for
 connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
 The following endpoints are available, also see here: <a href="https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152">https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152</a>
-PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
+PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud.
+AzureStackCloud is intentionally not accepted: this generator cannot resolve its
+AAD authority host and would otherwise silently authenticate against the public cloud.</p>
 </td>
 </tr>
 </tbody>
@@ -26635,7 +26639,51 @@ string
 <p>If multiple Managed Identities are assigned to the pod, you can select the one to be used.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>identityType</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureManagedIdentityIDType">
+AzureManagedIdentityIDType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IdentityType selects how IdentityID is interpreted: as the managed identity&rsquo;s
+ClientID, ObjectID or ResourceID. When empty, ESO infers ResourceID if IdentityID
+contains a &ldquo;/&rdquo; and ClientID otherwise; an ObjectID can only be selected explicitly.</p>
+</td>
+</tr>
 </tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.AzureManagedIdentityIDType">AzureManagedIdentityIDType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.AzureManagedIdentityAuth">AzureManagedIdentityAuth</a>)
+</p>
+<p>
+<p>AzureManagedIdentityIDType selects how AzureManagedIdentityAuth.IdentityID is
+interpreted by the managed identity credential.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;ClientID&#34;</p></td>
+<td><p>AzureManagedIdentityClientID treats IdentityID as a managed identity client id.</p>
+</td>
+</tr><tr><td><p>&#34;ObjectID&#34;</p></td>
+<td><p>AzureManagedIdentityObjectID treats IdentityID as a managed identity object (principal) id.</p>
+</td>
+</tr><tr><td><p>&#34;ResourceID&#34;</p></td>
+<td><p>AzureManagedIdentityResourceID treats IdentityID as a managed identity resource id.</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="generators.external-secrets.io/v1alpha1.AzureServicePrincipalAuth">AzureServicePrincipalAuth
 </h3>
@@ -26761,7 +26809,9 @@ External Secrets meta/v1.ServiceAccountSelector
 <td>
 <em>(Optional)</em>
 <p>ServiceAccountRef specifies the service account
-that should be used when authenticating with WorkloadIdentity.</p>
+that should be used when authenticating with WorkloadIdentity.
+The referenced service account must live in the same namespace as the generator;
+a namespace set on the reference is rejected.</p>
 </td>
 </tr>
 </tbody>

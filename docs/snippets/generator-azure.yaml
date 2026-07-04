@@ -36,9 +36,13 @@ spec:
         #   name: az-secret
         #   key: cert.pem
 
-    # option 2: use a managed identity Client ID
+    # option 2: use a managed identity.
     # managedIdentity:
     #   identityId: 11111111-2222-3333-4444-111111111111
+    #   # identityType selects how identityId is interpreted: ClientID, ObjectID or ResourceID.
+    #   # when omitted, a value containing "/" is treated as a ResourceID and a bare GUID as a ClientID.
+    #   # set it explicitly (e.g. ObjectID) when the inference is wrong.
+    #   identityType: ClientID
 
     # option 3: workload identity
     # workloadIdentity:

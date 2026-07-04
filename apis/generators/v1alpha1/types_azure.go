@@ -56,8 +56,11 @@ type AzureAccessTokenSpec struct {
 	// EnvironmentType specifies the Azure cloud environment endpoints to use for
 	// connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
 	// The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
-	// PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
+	// PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud.
+	// AzureStackCloud is intentionally not accepted: this generator cannot resolve its
+	// AAD authority host and would otherwise silently authenticate against the public cloud.
 	// +kubebuilder:default=PublicCloud
+	// +kubebuilder:validation:Enum=PublicCloud;USGovernmentCloud;ChinaCloud;GermanCloud
 	// +optional
 	EnvironmentType esv1.AzureEnvironmentType `json:"environmentType,omitempty"`
 }
@@ -87,11 +90,32 @@ type AzureServicePrincipalAuth struct {
 	SecretRef AzureServicePrincipalAuthSecretRef `json:"secretRef"`
 }
 
+// AzureManagedIdentityIDType selects how AzureManagedIdentityAuth.IdentityID is
+// interpreted by the managed identity credential.
+// +kubebuilder:validation:Enum=ClientID;ObjectID;ResourceID
+type AzureManagedIdentityIDType string
+
+const (
+	// AzureManagedIdentityClientID treats IdentityID as a managed identity client id.
+	AzureManagedIdentityClientID AzureManagedIdentityIDType = "ClientID"
+	// AzureManagedIdentityObjectID treats IdentityID as a managed identity object (principal) id.
+	AzureManagedIdentityObjectID AzureManagedIdentityIDType = "ObjectID"
+	// AzureManagedIdentityResourceID treats IdentityID as a managed identity resource id.
+	AzureManagedIdentityResourceID AzureManagedIdentityIDType = "ResourceID"
+)
+
 // AzureManagedIdentityAuth defines the configuration for using Azure Managed Identity authentication.
+// +kubebuilder:validation:XValidation:rule="!has(self.identityType) || (has(self.identityId) && size(self.identityId) > 0)",message="identityId is required when identityType is set"
 type AzureManagedIdentityAuth struct {
 	// If multiple Managed Identities are assigned to the pod, you can select the one to be used.
 	// +optional
 	IdentityID string `json:"identityId,omitempty"`
+
+	// IdentityType selects how IdentityID is interpreted: as the managed identity's
+	// ClientID, ObjectID or ResourceID. When empty, ESO infers ResourceID if IdentityID
+	// contains a "/" and ClientID otherwise; an ObjectID can only be selected explicitly.
+	// +optional
+	IdentityType AzureManagedIdentityIDType `json:"identityType,omitempty"`
 }
 
 // AzureWorkloadIdentityAuth defines the configuration for using Azure Workload Identity authentication.
