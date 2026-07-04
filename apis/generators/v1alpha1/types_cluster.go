@@ -31,6 +31,8 @@ type ClusterGeneratorSpec struct {
 
 // GeneratorKind represents a kind of generator.
 // +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;CloudsmithAccessToken;CodeArtifactAuthorizationToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;GitlabDeployToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
+//
+//nolint:lll // kubebuilder Enum markers must fit on a single line
 type GeneratorKind string
 
 const (
