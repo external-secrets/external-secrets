@@ -584,9 +584,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		Description:        new(mdata.Spec.Description),
 		ClientRequestToken: new(initialVersion),
 		KmsKeyId:           kmsKeyID,
-	}
-	if replicaRegions := buildReplicationRegionType(mdata.Spec.ReplicationLocations, kmsKeyID); len(replicaRegions) > 0 {
-		input.AddReplicaRegions = replicaRegions
+		AddReplicaRegions:  buildReplicationRegionType(mdata.Spec.ReplicationLocations, kmsKeyID),
 	}
 	if mdata.Spec.SecretPushFormat == SecretPushFormatString {
 		input.SecretBinary = nil
@@ -1085,6 +1083,10 @@ func buildExistingReplicationRegionsSlice(existingReplicationRegions []types.Rep
 }
 
 func buildReplicationRegionType(regions []string, kmsKeyID *string) []types.ReplicaRegionType {
+	if len(regions) == 0 {
+		return nil
+	}
+
 	replicationRegionsType := make([]types.ReplicaRegionType, 0, len(regions))
 	for _, region := range regions {
 		replicationRegionType := types.ReplicaRegionType{
