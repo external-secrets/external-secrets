@@ -31,8 +31,10 @@ import (
 )
 
 const (
-	remoteID = "d8f29773-3019-4973-9bbc-66327d077fe2"
-	testKey  = "this-is-a-name"
+	remoteID      = "d8f29773-3019-4973-9bbc-66327d077fe2"
+	remoteIDTwo   = "91bfaa90-c11b-4fe8-840a-3a0aae8455e3"
+	remoteIDThree = "990cf31a-f707-4233-ba3d-2e79f1f8c504"
+	testKey       = "this-is-a-name"
 )
 
 var projectID = "e8fc8f9c-2208-446e-9e89-9bc358f39b47"
@@ -238,8 +240,13 @@ func TestProviderGetAllSecrets(t *testing.T) {
 								OrganizationID: "orgid",
 							},
 							{
-								ID:             "7c0d21ec-10d9-4972-bdf8-ec52df99cc86",
+								ID:             remoteIDTwo,
 								Key:            "key2",
+								OrganizationID: "orgid",
+							},
+							{
+								ID:             remoteIDThree,
+								Key:            "notAMatch",
 								OrganizationID: "orgid",
 							},
 						},
@@ -251,7 +258,7 @@ func TestProviderGetAllSecrets(t *testing.T) {
 						Value: "value1",
 					})
 					c.GetSecretReturnsOnCallN(1, &SecretResponse{
-						ID:    "7c0d21ec-10d9-4972-bdf8-ec52df99cc86",
+						ID:    remoteIDTwo,
 						Key:   "key2",
 						Value: "value2",
 					})
@@ -259,11 +266,15 @@ func TestProviderGetAllSecrets(t *testing.T) {
 			},
 			args: args{
 				ctx: context.TODO(),
-				ref: esv1.ExternalSecretFind{},
+				ref: esv1.ExternalSecretFind{
+					Name: &esv1.FindName{
+						RegExp: "key",
+					},
+				},
 			},
 			want: map[string][]byte{
-				remoteID:                               []byte("value1"),
-				"7c0d21ec-10d9-4972-bdf8-ec52df99cc86": []byte("value2"),
+				remoteID:    []byte("value1"),
+				remoteIDTwo: []byte("value2"),
 			},
 		},
 	}
