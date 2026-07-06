@@ -111,6 +111,9 @@ spec:
               protocol: TCP
               name: ready
             {{- if and .Values.webhook.startupProbe.enabled (not .Values.webhook.startupProbe.useReadinessProbePort) }}
+            {{- if not .Values.webhook.startupProbe.port }}
+            {{- fail "webhook.startupProbe.port must be set when webhook.startupProbe.useReadinessProbePort is false" }}
+            {{- end }}
             - containerPort: {{ .Values.webhook.startupProbe.port }}
               protocol: TCP
               name: startup
@@ -146,8 +149,9 @@ spec:
               port: startup
               {{- end }}
               path: /readyz
-            initialDelaySeconds: 20
-            periodSeconds: 5
+            initialDelaySeconds: {{ .Values.webhook.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.webhook.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.webhook.startupProbe.failureThreshold }}
           {{- end }}
           {{- with .Values.webhook.extraEnv }}
           env:
