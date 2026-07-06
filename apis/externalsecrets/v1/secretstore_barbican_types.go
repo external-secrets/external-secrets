@@ -20,6 +20,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// BarbicanAuthType defines the authentication method used by the Barbican provider.
 // +kubebuilder:validation:Enum=password;applicationCredential
 type BarbicanAuthType string
 

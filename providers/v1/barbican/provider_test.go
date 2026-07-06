@@ -119,6 +119,18 @@ func TestValidateStore(t *testing.T) {
 			errorMsg:    "password secretRef is required",
 		},
 		{
+			name:        "password auth username present but empty should return error",
+			store:       makeSecretStoreWithEmptyUsername(),
+			expectError: true,
+			errorMsg:    "username must specify either value or secretRef",
+		},
+		{
+			name:        "password auth password present with nil secretRef should return error",
+			store:       makeSecretStoreWithNoPasswordRef(),
+			expectError: true,
+			errorMsg:    "password secretRef is required",
+		},
+		{
 			name:        "appCredential auth missing ID should return error",
 			store:       makeSecretStoreAppCredNoID(),
 			expectError: true,
@@ -211,6 +223,7 @@ func TestNewClient(t *testing.T) {
 		name        string
 		store       esv1.GenericStore
 		kube        *clientfake.ClientBuilder
+		namespace   string
 		expectError bool
 		errorMsg    string
 	}{
@@ -309,6 +322,20 @@ func TestNewClient(t *testing.T) {
 			expectError: true,
 			errorMsg:    "unsupported auth type",
 		},
+		{
+			name:        "cluster secret store without explicit secretRef namespace should use the ExternalSecret namespace",
+			store:       makeClusterSecretStoreNoNamespace(),
+			kube:        clientfake.NewClientBuilder().WithObjects(makeValidSecret()),
+			namespace:   testNamespace,
+			expectError: false,
+		},
+		{
+			name:        "cluster secret store with explicit secretRef namespace should use that namespace instead of the ExternalSecret namespace",
+			store:       makeClusterSecretStoreWithNamespace(),
+			kube:        clientfake.NewClientBuilder().WithObjects(makeValidSecret()),
+			namespace:   "some-other-namespace",
+			expectError: false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -328,9 +355,14 @@ func TestNewClient(t *testing.T) {
 				newKeyManagerV1 = origKeyManager
 			})
 
+			namespace := tc.namespace
+			if namespace == "" {
+				namespace = testNamespace
+			}
+
 			provider := &Provider{}
 			fakeClient := tc.kube.Build()
-			_, err := provider.NewClient(context.Background(), tc.store, fakeClient, testNamespace)
+			_, err := provider.NewClient(context.Background(), tc.store, fakeClient, namespace)
 
 			if tc.expectError {
 				assert.Error(t, err)
@@ -469,13 +501,13 @@ func makeSecretStoreWithMissingAuthURL() *esv1.SecretStore {
 
 func makeSecretStoreWithEmptyUsername() *esv1.SecretStore {
 	store := makeValidSecretStore()
-	store.Spec.Provider.Barbican.Auth.Username = esv1.BarbicanProviderUsernameRef{}
+	store.Spec.Provider.Barbican.Auth.Username = &esv1.BarbicanProviderUsernameRef{}
 	return store
 }
 
 func makeSecretStoreWithNoPasswordRef() *esv1.SecretStore {
 	store := makeValidSecretStore()
-	store.Spec.Provider.Barbican.Auth.Password = esv1.BarbicanProviderPasswordRef{}
+	store.Spec.Provider.Barbican.Auth.Password = &esv1.BarbicanProviderPasswordRef{}
 	return store
 }
 
@@ -535,7 +567,7 @@ func makeSecretWithMissingPassword() *corev1.Secret {
 
 // Helper: returns a pointer to a BarbicanAuthType.
 func barbicanAuthTypePtr(t esv1.BarbicanAuthType) *esv1.BarbicanAuthType {
-	return &t
+	return new(t)
 }
 
 // Helper: password auth store with explicit authType=password.

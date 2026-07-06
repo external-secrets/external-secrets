@@ -1155,6 +1155,10 @@ BarbicanAuthType
 </td>
 <td>
 <em>(Optional)</em>
+<p>AuthType selects how Barbican authenticates.
+- &ldquo;password&rdquo;: use username and password.
+- &ldquo;applicationCredential&rdquo;: use application credential ID and secret.
+Defaults to &ldquo;password&rdquo;.</p>
 </td>
 </tr>
 <tr>
@@ -1195,7 +1199,7 @@ BarbicanProviderAppCredIDRef
 </td>
 <td>
 <em>(Optional)</em>
-<p>Application Credential authentication fields.</p>
+<p>ID of the application credential used for authentication.</p>
 </td>
 </tr>
 <tr>
@@ -1220,6 +1224,7 @@ BarbicanProviderAppCredSecretRef
 <a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
 </p>
 <p>
+<p>BarbicanAuthType defines the authentication method used by the Barbican provider.</p>
 </p>
 <table>
 <thead>
