@@ -238,7 +238,7 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1.Exter
 		Stage:      secrets.GetSecretBundleByNameStageEnum(ref.Version),
 	})
 	if err != nil {
-		return nil, sanitizeOCISDKErr(err)
+		return nil, sanitizeGetSecretErr(err)
 	}
 
 	payload, err := decodeBundle(sec)
@@ -273,7 +273,7 @@ func decodeBundle(sec secrets.GetSecretBundleByNameResponse) ([]byte, error) {
 func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := vms.GetSecret(ctx, ref)
 	if err != nil {
-		return nil, sanitizeOCISDKErr(err)
+		return nil, err
 	}
 	kv := make(map[string]string)
 	err = json.Unmarshal(data, &kv)
@@ -697,6 +697,16 @@ func (vms *VaultManagementService) configureRetryPolicy(
 	})
 
 	return err
+}
+
+// sanitizeGetSecretErr maps an OCI "not found" (HTTP 404) response to the ESO
+// sentinel NoSecretErr so the ExternalSecret controller can honor
+// spec.target.deletionPolicy, and sanitizes every other OCI SDK error.
+func sanitizeGetSecretErr(err error) error {
+	if serviceErr, ok := err.(common.ServiceError); ok && serviceErr.GetHTTPStatusCode() == 404 {
+		return esv1.NoSecretErr
+	}
+	return sanitizeOCISDKErr(err)
 }
 
 func sanitizeOCISDKErr(err error) error {

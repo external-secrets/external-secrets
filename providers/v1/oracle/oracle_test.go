@@ -158,6 +158,26 @@ func TestOracleVaultGetSecret(t *testing.T) {
 	}
 }
 
+func TestOracleVaultGetSecretNotFound(t *testing.T) {
+	set404 := func(smtc *vaultTestCase) {
+		smtc.apiErr = &fakeoracle.ServiceError{Code: 404}
+	}
+
+	sm := VaultManagementService{}
+
+	tc := makeValidVaultTestCaseCustom(set404)
+	sm.Client = tc.mockClient
+	if _, err := sm.GetSecret(context.Background(), *tc.ref); !errors.Is(err, esv1.NoSecretErr) {
+		t.Errorf("GetSecret on a 404 should return NoSecretErr, got: %v", err)
+	}
+
+	tc = makeValidVaultTestCaseCustom(set404)
+	sm.Client = tc.mockClient
+	if _, err := sm.GetSecretMap(context.Background(), *tc.ref); !errors.Is(err, esv1.NoSecretErr) {
+		t.Errorf("GetSecretMap on a 404 should return NoSecretErr, got: %v", err)
+	}
+}
+
 func TestGetSecretMap(t *testing.T) {
 	// good case: default version & deserialization
 	setDeserialization := func(smtc *vaultTestCase) {
