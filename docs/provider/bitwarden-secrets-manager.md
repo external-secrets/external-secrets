@@ -122,6 +122,10 @@ When using dataFrom like this:
         regexp: db_
 ```
 
+Bitwarden Secrets Manager only supports finding secrets by `name.regexp`.
+It has no concept of tags or paths, so setting `find.tags` or `find.path` results in an error.
+A `find` block without a `name.regexp` also errors.
+
 Note that the secrets in the map will end up something like this:
 
 ```
