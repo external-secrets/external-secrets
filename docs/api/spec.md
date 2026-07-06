@@ -9075,9 +9075,11 @@ OpenBaoUserPassAuth
 <a href="#external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth</a>)
 </p>
 <p>
-<p>OpenBaoKubernetesAuth authenticates against OpenBao using a Kubernetes
-ServiceAccount token. The ServiceAccount token can be sourced from a ServiceAcount
-via <code>ServiceAccountRef</code> or from a secret via <code>SecretRef</code>.</p>
+<p>OpenBaoKubernetesAuth authenticates with OpenBao using the <a href="https://openbao.org/docs/auth/kubernetes/">Kubernetes
+auth mechanism</a> with a ServiceAccount token. The ServiceAccount token can be
+sourced from a ServiceAccount via <code>ServiceAccountRef</code> or from a secret
+via <code>SecretRef</code>.
+Using the controller pod&rsquo;s ServiceAccount token is not supported.</p>
 </p>
 <table>
 <thead>

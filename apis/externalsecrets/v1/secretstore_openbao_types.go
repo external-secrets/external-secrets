@@ -192,13 +192,15 @@ type OpenBaoAppRole struct {
 	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
 }
 
-// OpenBaoKubernetesAuth authenticates against OpenBao using a Kubernetes
-// ServiceAccount token. The ServiceAccount token can be sourced from a ServiceAcount
-// via `ServiceAccountRef` or from a secret via `SecretRef`.
+// OpenBaoKubernetesAuth authenticates with OpenBao using the [Kubernetes
+// auth mechanism] with a ServiceAccount token. The ServiceAccount token can be
+// sourced from a ServiceAccount via `ServiceAccountRef` or from a secret
+// via `SecretRef`.
+// Using the controller pod's ServiceAccount token is not supported.
 //
 // +kubebuilder:validation:ExactlyOneOf=serviceAccountRef;secretRef
 //
-// [Kubernetes auth]: https://openbao.org/docs/auth/kubernetes/
+// [Kubernetes auth mechanism]: https://openbao.org/docs/auth/kubernetes/
 type OpenBaoKubernetesAuth struct {
 	// Path where the Kubernetes authentication backend is mounted in OpenBao, e.g:
 	// "kubernetes"
