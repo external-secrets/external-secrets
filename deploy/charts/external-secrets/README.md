@@ -337,6 +337,9 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | webhook.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | webhook.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
+| webhook.startupProbe.enabled | bool | `false` | Enabled determines if the startup probe should be used or not. By default it's disabled. |
+| webhook.startupProbe.port | string | `""` | Port for startup probe. |
+| webhook.startupProbe.useReadinessProbePort | bool | `true` | whether to use the readiness probe port for startup probe. |
 | webhook.strategy | object | `{}` | Set deployment strategy |
 | webhook.tolerations | list | `[]` |  |
 | webhook.topologySpreadConstraints | list | `[]` |  |

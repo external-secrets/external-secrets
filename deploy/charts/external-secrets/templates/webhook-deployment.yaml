@@ -110,6 +110,11 @@ spec:
             - containerPort: {{ .Values.webhook.readinessProbe.port }}
               protocol: TCP
               name: ready
+            {{- if and .Values.webhook.startupProbe.enabled (not .Values.webhook.startupProbe.useReadinessProbePort) }}
+            - containerPort: {{ .Values.webhook.startupProbe.port }}
+              protocol: TCP
+              name: startup
+            {{- end }}
           {{- if .Values.webhook.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
@@ -131,6 +136,18 @@ spec:
             timeoutSeconds: {{ .Values.webhook.readinessProbe.timeoutSeconds }}
             failureThreshold: {{ .Values.webhook.readinessProbe.failureThreshold }}
             successThreshold: {{ .Values.webhook.readinessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.webhook.startupProbe.enabled }}
+          startupProbe:
+            httpGet:
+              {{- if .Values.webhook.startupProbe.useReadinessProbePort }}
+              port: ready
+              {{- else }}
+              port: startup
+              {{- end }}
+              path: /readyz
+            initialDelaySeconds: 20
+            periodSeconds: 5
           {{- end }}
           {{- with .Values.webhook.extraEnv }}
           env:
