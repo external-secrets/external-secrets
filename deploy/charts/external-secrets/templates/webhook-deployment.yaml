@@ -110,14 +110,6 @@ spec:
             - containerPort: {{ .Values.webhook.readinessProbe.port }}
               protocol: TCP
               name: ready
-            {{- if and .Values.webhook.startupProbe.enabled (not .Values.webhook.startupProbe.useReadinessProbePort) }}
-            {{- if not .Values.webhook.startupProbe.port }}
-            {{- fail "webhook.startupProbe.port must be set when webhook.startupProbe.useReadinessProbePort is false" }}
-            {{- end }}
-            - containerPort: {{ .Values.webhook.startupProbe.port }}
-              protocol: TCP
-              name: startup
-            {{- end }}
           {{- if .Values.webhook.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
@@ -143,11 +135,7 @@ spec:
           {{- if .Values.webhook.startupProbe.enabled }}
           startupProbe:
             httpGet:
-              {{- if .Values.webhook.startupProbe.useReadinessProbePort }}
               port: ready
-              {{- else }}
-              port: startup
-              {{- end }}
               path: /readyz
             initialDelaySeconds: {{ .Values.webhook.startupProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.webhook.startupProbe.periodSeconds }}

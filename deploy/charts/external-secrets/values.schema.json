@@ -321,11 +321,14 @@
                         "enabled": {
                             "type": "boolean"
                         },
-                        "port": {
-                            "type": "string"
+                        "failureThreshold": {
+                            "type": "integer"
                         },
-                        "useReadinessProbePort": {
-                            "type": "boolean"
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
                         }
                     }
                 },
@@ -1335,12 +1338,6 @@
                         },
                         "periodSeconds": {
                             "type": "integer"
-                        },
-                        "port": {
-                            "type": "string"
-                        },
-                        "useReadinessProbePort": {
-                            "type": "boolean"
                         }
                     }
                 },

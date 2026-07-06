@@ -560,7 +560,7 @@ tests:
             - ip: "192.168.1.100"
               hostnames:
                 - "webhook.example.com"
-  - it: should have startup probe if enabled
+  - it: should have startup probe on the readiness port when enabled
     set:
       webhook.startupProbe.enabled: true
     templates:
@@ -580,32 +580,6 @@ tests:
           value: ready
       - notExists:
           path: spec.template.spec.containers[0].ports[3]
-  - it: should override the startup probe port
-    set:
-      webhook.startupProbe.enabled: true
-      webhook.startupProbe.useReadinessProbePort: false
-      webhook.startupProbe.port: "8082"
-    templates:
-      - webhook-deployment.yaml
-    asserts:
-      - equal:
-          path: spec.template.spec.containers[0].ports[3]
-          value:
-            containerPort: 8082
-            protocol: TCP
-            name: startup
-      - equal:
-          path: spec.template.spec.containers[0].startupProbe
-          value:
-            httpGet:
-              port: startup
-              path: /readyz
-            initialDelaySeconds: 10
-            periodSeconds: 10
-            failureThreshold: 30
-      - equal:
-          path: spec.template.spec.containers[0].ports[3].name
-          value: startup
   - it: should override the startup probe timing
     set:
       webhook.startupProbe.enabled: true
@@ -624,12 +598,3 @@ tests:
             initialDelaySeconds: 5
             periodSeconds: 15
             failureThreshold: 40
-  - it: should fail when startup probe uses a dedicated port with no port set
-    set:
-      webhook.startupProbe.enabled: true
-      webhook.startupProbe.useReadinessProbePort: false
-    templates:
-      - webhook-deployment.yaml
-    asserts:
-      - failedTemplate:
-          errorMessage: webhook.startupProbe.port must be set when webhook.startupProbe.useReadinessProbePort is false
