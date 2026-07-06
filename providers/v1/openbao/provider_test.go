@@ -482,6 +482,74 @@ func TestProvider_Auth_UserPass(t *testing.T) {
 	Expect(data).To(BeEquivalentTo("bazz"))
 }
 
+func TestProvider_BaoNamespaces(t *testing.T) {
+	v := esv1.OpenBaoKVStoreV2
+
+	kube, provider := setupProvider(t, &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "auth",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"token":    []byte("root"),
+			"password": []byte("bob4ever"),
+		},
+	})
+
+	store := makeValidSecretStoreWithVersion(v)
+	store.Spec.Provider.OpenBao.Namespace = new("my-namespace")
+	store.Spec.Provider.OpenBao.Path = nil
+	store.Spec.Provider.OpenBao.Auth.TokenSecretRef.Name = "auth"
+
+	t.Run("WithToken", func(t *testing.T) {
+		RegisterTestingT(t)
+
+		client, err := provider.NewClient(t.Context(), store, kube, "default")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(client).NotTo(BeNil())
+		t.Cleanup(func() {
+			client.Close(t.Context())
+		})
+
+		data, err := client.GetSecret(t.Context(), esv1.ExternalSecretDataRemoteRef{
+			Key:      "foo",
+			Property: "namespaced-bar",
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(data).To(BeEquivalentTo("namespaced-bazz"))
+	})
+
+	store.Spec.Provider.OpenBao.Auth = &esv1.OpenBaoAuth{
+		UserPass: &esv1.OpenBaoUserPassAuth{
+			Path:     "customuserpasspath",
+			Username: "alice",
+			SecretRef: esmeta.SecretKeySelector{
+				Name: "auth",
+				Key:  "password",
+			},
+		},
+		Namespace: new(""),
+	}
+
+	t.Run("WithUserPass", func(t *testing.T) {
+		RegisterTestingT(t)
+
+		client, err := provider.NewClient(t.Context(), store, kube, "default")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(client).NotTo(BeNil())
+		t.Cleanup(func() {
+			client.Close(t.Context())
+		})
+
+		data, err := client.GetSecret(t.Context(), esv1.ExternalSecretDataRemoteRef{
+			Key:      "foo",
+			Property: "namespaced-bar",
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(data).To(BeEquivalentTo("namespaced-bazz"))
+	})
+}
+
 func TestProvider_Validate(t *testing.T) {
 	RegisterTestingT(t)
 

@@ -467,6 +467,34 @@ func makeSecretStoreWithMissingAuthURL() *esv1.SecretStore {
 	return store
 }
 
+func makeSecretStoreWithEmptyUsername() *esv1.SecretStore {
+	store := makeValidSecretStore()
+	store.Spec.Provider.Barbican.Auth.Username = esv1.BarbicanProviderUsernameRef{}
+	return store
+}
+
+func makeSecretStoreWithNoPasswordRef() *esv1.SecretStore {
+	store := makeValidSecretStore()
+	store.Spec.Provider.Barbican.Auth.Password = esv1.BarbicanProviderPasswordRef{}
+	return store
+}
+
+func makeClusterSecretStoreNoNamespace() *esv1.ClusterSecretStore {
+	return &esv1.ClusterSecretStore{
+		TypeMeta:   metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-cluster-store"},
+		Spec:       makeValidSecretStore().Spec,
+	}
+}
+
+func makeClusterSecretStoreWithNamespace() *esv1.ClusterSecretStore {
+	store := makeClusterSecretStoreNoNamespace()
+	ns := testNamespace
+	store.Spec.Provider.Barbican.Auth.Username.SecretRef.Namespace = &ns
+	store.Spec.Provider.Barbican.Auth.Password.SecretRef.Namespace = &ns
+	return store
+}
+
 func makeValidSecret() *corev1.Secret {
 	return &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
