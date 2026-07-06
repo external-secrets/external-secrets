@@ -102,7 +102,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | certController.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
 | certController.startupProbe.enabled | bool | `false` | Enabled determines if the startup probe should be used or not. By default it's disabled. |
-| certController.startupProbe.failureThreshold | int | `30` | Number of consecutive failures before the container is restarted. While the startup probe runs, kubelet suppresses the liveness and readiness probes, so this block defines the whole startup grace period; the total window (initialDelaySeconds + failureThreshold * periodSeconds, ~310s by default) should be at least the liveness window it replaces so a slow serving-cert provisioning or rotation does not restart the container prematurely. |
+| certController.startupProbe.failureThreshold | int | `30` | Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds. |
 | certController.startupProbe.initialDelaySeconds | int | `10` | Number of seconds after the container has started before the startup probe is initiated. |
 | certController.startupProbe.periodSeconds | int | `10` | How often (in seconds) to perform the startup probe. |
 | certController.strategy | object | `{}` | Set deployment strategy |
@@ -339,7 +339,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | webhook.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
 | webhook.startupProbe.enabled | bool | `false` | Enabled determines if the startup probe should be used or not. By default it's disabled. |
-| webhook.startupProbe.failureThreshold | int | `30` | Number of consecutive failures before the container is restarted. While the startup probe runs, kubelet suppresses the liveness and readiness probes, so this block defines the whole startup grace period; the total window (initialDelaySeconds + failureThreshold * periodSeconds, ~310s by default) should be at least the liveness window it replaces so a slow serving-cert provisioning or rotation does not restart the container prematurely. |
+| webhook.startupProbe.failureThreshold | int | `30` | Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds. |
 | webhook.startupProbe.initialDelaySeconds | int | `10` | Number of seconds after the container has started before the startup probe is initiated. |
 | webhook.startupProbe.periodSeconds | int | `10` | How often (in seconds) to perform the startup probe. |
 | webhook.strategy | object | `{}` | Set deployment strategy |

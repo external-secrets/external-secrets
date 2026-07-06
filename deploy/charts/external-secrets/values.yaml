@@ -619,11 +619,7 @@ webhook:
     initialDelaySeconds: 10
     # -- How often (in seconds) to perform the startup probe.
     periodSeconds: 10
-    # -- Number of consecutive failures before the container is restarted. While the startup
-    # probe runs, kubelet suppresses the liveness and readiness probes, so this block defines
-    # the whole startup grace period; the total window (initialDelaySeconds + failureThreshold
-    # * periodSeconds, ~310s by default) should be at least the liveness window it replaces so
-    # a slow serving-cert provisioning or rotation does not restart the container prematurely.
+    # -- Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds.
     failureThreshold: 30
 
 
@@ -808,11 +804,7 @@ certController:
     initialDelaySeconds: 10
     # -- How often (in seconds) to perform the startup probe.
     periodSeconds: 10
-    # -- Number of consecutive failures before the container is restarted. While the startup
-    # probe runs, kubelet suppresses the liveness and readiness probes, so this block defines
-    # the whole startup grace period; the total window (initialDelaySeconds + failureThreshold
-    # * periodSeconds, ~310s by default) should be at least the liveness window it replaces so
-    # a slow serving-cert provisioning or rotation does not restart the container prematurely.
+    # -- Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds.
     failureThreshold: 30
 
     ## -- Extra environment variables to add to container.
