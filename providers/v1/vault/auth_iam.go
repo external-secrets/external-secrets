@@ -40,13 +40,10 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
-// iamServerIDHeader is the Vault request header used to carry the
-// X-Vault-AWS-IAM-Server-ID value for AWS IAM auth replay-attack mitigation.
-const iamServerIDHeader = "iam_server_id_header_value"
-
 const (
 	defaultAWSRegion              = "us-east-1"
 	defaultAWSAuthMountPath       = "aws"
+	errAWSCredentialsRetrieve     = "could not retrieve AWS credentials for IAM auth: %w"
 	errNoAWSAuthMethodFound       = "no AWS authentication method found: expected either IRSA or Pod Identity"
 	errIrsaTokenFileNotFoundOnPod = "web identity token file not found at %s location: %w"
 	errIrsaTokenFileNotReadable   = "could not read the web identity token from the file %s: %w"
@@ -134,7 +131,7 @@ func (c *client) requestTokenWithIamAuth(
 	// always sign the Vault login with non-expired credentials.
 	getCreds, err := cfg.Credentials.Retrieve(ctx)
 	if err != nil {
-		return err
+		return fmt.Errorf(errAWSCredentialsRetrieve, err)
 	}
 
 	// Sign the Vault login request directly from the freshly-resolved v2
@@ -161,14 +158,12 @@ func (c *client) loginWithIamCreds(ctx context.Context, creds aws.Credentials, i
 	}
 	loginData["role"] = iamAuth.Role
 
-	// The server-ID header is signed into the STS request above; Vault also
-	// expects it on the login request itself, matching the behavior of the
-	// vault/api/auth/aws helper. AddHeader appends, and the underlying client
-	// is cached and re-used across token-expiry re-logins, so guard against
-	// accumulating duplicate headers by only adding it when absent.
-	if iamAuth.VaultAWSIAMServerID != "" && c.client.Headers().Get(iamServerIDHeader) == "" {
-		c.client.AddHeader(iamServerIDHeader, iamAuth.VaultAWSIAMServerID)
-	}
+	// No X-Vault-AWS-IAM-Server-ID header is needed on the login request
+	// itself: Vault validates the server ID against the signed copy inside
+	// the iam_request_headers login-data field, which GenerateLoginData
+	// embedded above. (The old vault/api/auth/aws helper also set a client
+	// header, under the config-key name iam_server_id_header_value, but the
+	// server never reads it.)
 
 	url := strings.Join([]string{"auth", awsAuthMountPath, "login"}, "/")
 	vaultResult, err := c.logical.WriteWithContext(ctx, url, loginData)
