@@ -1,0 +1,25 @@
+# 1. Create a GitLab access token (personal, group, or project) with the `api`
+#    scope and at least the Maintainer role on the target project / group.
+#    https://docs.gitlab.com/api/deploy_tokens/
+# 2. Store it in a Kubernetes secret, e.g.
+#    kubectl create secret generic gitlab-api-token --from-literal=token=glpat-xxxx
+---
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: GitlabDeployToken
+metadata:
+  name: gitlab-deploy-token
+spec:
+  url: "" # Optional, defaults to https://gitlab.com
+  projectID: "42" # Numeric ID or unescaped path e.g. group/project. Mutually exclusive with groupID.
+  # groupID: "7"   # Use instead of projectID to create a group deploy token.
+  name: "eso-managed"
+  scopes:
+    - read_repository
+    - read_registry
+  expiresAt: "2027-01-01T00:00:00Z" # Optional
+  username: "eso" # Optional, GitLab defaults to gitlab+deploy-token-{n}
+  auth:
+    token:
+      secretRef:
+        name: gitlab-api-token
+        key: token

@@ -726,6 +726,9 @@
         "rbac": {
             "type": "object",
             "properties": {
+                "aggregateToAdmin": {
+                    "type": "boolean"
+                },
                 "aggregateToEdit": {
                     "type": "boolean"
                 },
