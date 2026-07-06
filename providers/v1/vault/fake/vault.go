@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 	"reflect"
 	"strings"
 	"sync"
@@ -196,9 +195,6 @@ type MockSetNamespaceFn func(namespace string)
 // MockAddHeaderFn is a function type that represents adding a header to the Vault client requests.
 type MockAddHeaderFn func(key, value string)
 
-// MockHeadersFn is a function type that represents reading the headers set on the Vault client requests.
-type MockHeadersFn func() http.Header
-
 // VaultListResponse is a struct to represent the response from a Vault list operation.
 type VaultListResponse struct {
 	Metadata *vault.Response
@@ -239,10 +235,8 @@ type VaultClient struct {
 	MockNamespace    MockNamespaceFn
 	MockSetNamespace MockSetNamespaceFn
 	MockAddHeader    MockAddHeaderFn
-	MockHeaders      MockHeadersFn
 
 	namespace string
-	headers   http.Header
 	lock      sync.RWMutex
 }
 
@@ -317,30 +311,9 @@ func (c *VaultClient) SetNamespace(namespace string) {
 	c.namespace = namespace
 }
 
-// AddHeader adds a header to the Vault client requests. When no MockAddHeader
-// override is set it appends to an in-memory header store, mirroring the real
-// client's append semantics so Headers() reflects prior AddHeader calls.
+// AddHeader adds a header to the Vault client requests.
 func (c *VaultClient) AddHeader(key, value string) {
-	if c.MockAddHeader != nil {
-		c.MockAddHeader(key, value)
-		return
-	}
-	c.lock.Lock()
-	defer c.lock.Unlock()
-	if c.headers == nil {
-		c.headers = http.Header{}
-	}
-	c.headers.Add(key, value)
-}
-
-// Headers returns the headers currently set on the Vault client requests.
-func (c *VaultClient) Headers() http.Header {
-	if c.MockHeaders != nil {
-		return c.MockHeaders()
-	}
-	c.lock.RLock()
-	defer c.lock.RUnlock()
-	return c.headers
+	c.MockAddHeader(key, value)
 }
 
 // ClientWithLoginMock returns a client with mocked login functionality.
@@ -378,6 +351,5 @@ func clientWithLoginMockOptions(_ *vault.Config, opts ...func(cl *VaultClient)) 
 		NamespaceFunc:    cl.Namespace,
 		SetNamespaceFunc: cl.SetNamespace,
 		AddHeaderFunc:    cl.AddHeader,
-		HeadersFunc:      cl.Headers,
 	}, nil
 }
