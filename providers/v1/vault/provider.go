@@ -79,7 +79,6 @@ func NewVaultClient(config *vault.Config) (vaultutil.Client, error) {
 		NamespaceFunc:    vaultClient.Namespace,
 		SetNamespaceFunc: vaultClient.SetNamespace,
 		AddHeaderFunc:    vaultClient.AddHeader,
-		HeadersFunc:      vaultClient.Headers,
 	}, nil
 }
 

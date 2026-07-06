@@ -18,6 +18,8 @@ package vault
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"testing"
@@ -28,6 +30,13 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/vault/fake"
 	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
+)
+
+const (
+	testLoginMountPath = "aws-mount"
+	testLoginPath      = "auth/aws-mount/login"
+	testLoginRole      = "my-role"
+	testLoginToken     = "hvs.token-abc"
 )
 
 // staticCreds returns a fixed set of AWS credentials for signing, standing in
@@ -41,21 +50,18 @@ func staticCreds() awssdk.Credentials {
 }
 
 // iamTestClient bundles a client under test with the state its mocked Vault
-// client records: the login write's path/data, the set token, and the
-// request headers with real (append) semantics so the server-ID header guard
-// can be exercised.
+// client records: the login write's path/data and the token set on the client.
 type iamTestClient struct {
-	client  *client
-	path    string
-	data    map[string]any
-	token   string
-	headers http.Header
+	client *client
+	path   string
+	data   map[string]any
+	token  string
 }
 
 // newIamTestClient builds an iamTestClient whose login write returns writeErr,
 // or a successful login otherwise.
 func newIamTestClient(writeErr error) *iamTestClient {
-	tc := &iamTestClient{headers: http.Header{}}
+	tc := &iamTestClient{}
 
 	logical := fake.Logical{
 		WriteWithContextFn: func(_ context.Context, path string, d map[string]any) (*vault.Secret, error) {
@@ -64,15 +70,11 @@ func newIamTestClient(writeErr error) *iamTestClient {
 			if writeErr != nil {
 				return nil, writeErr
 			}
-			return &vault.Secret{Auth: &vault.SecretAuth{ClientToken: "hvs.token-abc"}}, nil
+			return &vault.Secret{Auth: &vault.SecretAuth{ClientToken: testLoginToken}}, nil
 		},
 	}
 	vc := &vaultutil.VaultClient{
 		SetTokenFunc: func(v string) { tc.token = v },
-		AddHeaderFunc: func(key, value string) {
-			tc.headers.Add(key, value)
-		},
-		HeadersFunc:  func() http.Header { return tc.headers },
 		LogicalField: logical,
 	}
 
@@ -83,43 +85,75 @@ func newIamTestClient(writeErr error) *iamTestClient {
 	return tc
 }
 
+// assertLoginRequest verifies the login write hit the expected mount path with
+// the signed GetCallerIdentity fields and the role, and that the returned
+// client token was set on the Vault client.
+func assertLoginRequest(t *testing.T, tc *iamTestClient) {
+	t.Helper()
+	if tc.path != testLoginPath {
+		t.Errorf("login path: got %q, want %q", tc.path, testLoginPath)
+	}
+	if role, _ := tc.data["role"].(string); role != testLoginRole {
+		t.Errorf("role: got %q, want %q", role, testLoginRole)
+	}
+	// GenerateLoginData must have produced the signed STS request fields.
+	for _, k := range []string{"iam_http_request_method", "iam_request_url", "iam_request_headers", "iam_request_body"} {
+		if _, ok := tc.data[k]; !ok {
+			t.Errorf("login data missing expected key %q", k)
+		}
+	}
+	if tc.token != testLoginToken {
+		t.Errorf("token: got %q, want %q", tc.token, testLoginToken)
+	}
+}
+
+// stsRequestHeaders decodes the signed STS request headers that
+// GenerateLoginData embedded in the login data. Vault validates the
+// X-Vault-AWS-IAM-Server-ID value against these, not against the login
+// request's own HTTP headers.
+func stsRequestHeaders(t *testing.T, data map[string]any) http.Header {
+	t.Helper()
+	enc, ok := data["iam_request_headers"].(string)
+	if !ok {
+		t.Fatalf("login data iam_request_headers is %T, want base64 string", data["iam_request_headers"])
+	}
+	raw, err := base64.StdEncoding.DecodeString(enc)
+	if err != nil {
+		t.Fatalf("decoding iam_request_headers: %v", err)
+	}
+	var h http.Header
+	if err := json.Unmarshal(raw, &h); err != nil {
+		t.Fatalf("unmarshaling iam_request_headers: %v", err)
+	}
+	return h
+}
+
 func TestLoginWithIamCreds(t *testing.T) {
 	tests := []struct {
-		name          string
-		iamAuth       *esv1.VaultIamAuth
-		writeErr      error
-		wantPath      string
-		wantRole      string
-		wantHeader    bool
-		wantHeaderVal string
-		wantToken     string
-		wantErr       bool
+		name         string
+		iamAuth      *esv1.VaultIamAuth
+		writeErr     error
+		wantServerID string
+		wantErr      bool
 	}{
 		{
 			name: "posts signed login data to the configured mount",
 			iamAuth: &esv1.VaultIamAuth{
-				Role: "my-role",
+				Role: testLoginRole,
 			},
-			wantPath:  "auth/aws-mount/login",
-			wantRole:  "my-role",
-			wantToken: "hvs.token-abc",
 		},
 		{
-			name: "adds the server-id header when configured",
+			name: "signs the server-id into the STS request headers when configured",
 			iamAuth: &esv1.VaultIamAuth{
-				Role:                "my-role",
+				Role:                testLoginRole,
 				VaultAWSIAMServerID: "vault.example.com",
 			},
-			wantPath:      "auth/aws-mount/login",
-			wantRole:      "my-role",
-			wantHeader:    true,
-			wantHeaderVal: "vault.example.com",
-			wantToken:     "hvs.token-abc",
+			wantServerID: "vault.example.com",
 		},
 		{
 			name: "returns error when the login write fails",
 			iamAuth: &esv1.VaultIamAuth{
-				Role: "my-role",
+				Role: testLoginRole,
 			},
 			writeErr: errors.New("vault unreachable"),
 			wantErr:  true,
@@ -130,7 +164,7 @@ func TestLoginWithIamCreds(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tc := newIamTestClient(tt.writeErr)
 
-			err := tc.client.loginWithIamCreds(context.Background(), staticCreds(), tt.iamAuth, "aws-mount", "us-east-1")
+			err := tc.client.loginWithIamCreds(context.Background(), staticCreds(), tt.iamAuth, testLoginMountPath, "us-east-1")
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("expected error, got nil")
@@ -141,49 +175,10 @@ func TestLoginWithIamCreds(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			if tc.path != tt.wantPath {
-				t.Errorf("login path: got %q, want %q", tc.path, tt.wantPath)
-			}
-			if role, _ := tc.data["role"].(string); role != tt.wantRole {
-				t.Errorf("role: got %q, want %q", role, tt.wantRole)
-			}
-			// GenerateLoginData must have produced the signed STS request fields.
-			for _, k := range []string{"iam_http_request_method", "iam_request_url", "iam_request_headers", "iam_request_body"} {
-				if _, ok := tc.data[k]; !ok {
-					t.Errorf("login data missing expected key %q", k)
-				}
-			}
-			if tc.token != tt.wantToken {
-				t.Errorf("token: got %q, want %q", tc.token, tt.wantToken)
-			}
-			if tt.wantHeader {
-				if got := tc.headers.Get(iamServerIDHeader); got != tt.wantHeaderVal {
-					t.Errorf("server-id header: got %q, want %q", got, tt.wantHeaderVal)
-				}
-			} else if got := tc.headers.Values(iamServerIDHeader); len(got) != 0 {
-				t.Errorf("server-id header set unexpectedly: %q", got)
+			assertLoginRequest(t, tc)
+			if got := stsRequestHeaders(t, tc.data).Get("X-Vault-AWS-IAM-Server-ID"); got != tt.wantServerID {
+				t.Errorf("signed server-id header: got %q, want %q", got, tt.wantServerID)
 			}
 		})
-	}
-}
-
-// TestLoginWithIamCredsHeaderNotDuplicated verifies that re-logging in on the
-// same (cached) Vault client does not accumulate duplicate server-id headers,
-// which the underlying append-only AddHeader would otherwise cause.
-func TestLoginWithIamCredsHeaderNotDuplicated(t *testing.T) {
-	tc := newIamTestClient(nil)
-	iamAuth := &esv1.VaultIamAuth{
-		Role:                "my-role",
-		VaultAWSIAMServerID: "vault.example.com",
-	}
-
-	for i := range 3 {
-		if err := tc.client.loginWithIamCreds(context.Background(), staticCreds(), iamAuth, "aws-mount", "us-east-1"); err != nil {
-			t.Fatalf("login %d: unexpected error: %v", i, err)
-		}
-	}
-
-	if got := tc.headers.Values(iamServerIDHeader); len(got) != 1 {
-		t.Errorf("server-id header count after repeated logins: got %d (%q), want 1", len(got), got)
 	}
 }
