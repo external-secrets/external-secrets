@@ -312,6 +312,14 @@ func (r *Reconciler) handleFindAllSecrets(
 	return secretMap, nil
 }
 
+// shouldIgnoreEmptyResult reports whether an empty or absent provider result,
+// signaled via esv1.NoSecretErr, should be tolerated for a reference based on
+// its emptyResultPolicy. Only an explicit Ignore tolerates the error; unset and
+// Fail preserve the historical error behavior.
+func shouldIgnoreEmptyResult(policy esv1.ExternalSecretEmptyResultPolicy, err error) bool {
+	return policy == esv1.ExternalSecretEmptyResultPolicyIgnore && errors.Is(err, esv1.NoSecretErr)
+}
+
 func validateFetchedSecretValue(policy esv1.ExternalSecretNullBytePolicy, key string, value []byte) error {
 	if policy != esv1.ExternalSecretNullBytePolicyFail || !bytes.Contains(value, []byte{0}) {
 		return nil
