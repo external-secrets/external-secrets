@@ -32,7 +32,7 @@ Some providers support filtering out a find operation only to a given path, inst
 
 ### Tolerating empty or missing paths
 
-By default, if a `find` (or `extract`) operation resolves to nothing - for example a Vault path that does not exist yet - the ExternalSecret fails to reconcile. When you merge several `dataFrom` entries and some paths may legitimately be absent, set `emptyResultPolicy: Ignore` on that entry so ESO treats an empty result as contributing nothing instead of failing:
+By default (with `deletionPolicy: Retain`), if a `find` (or `extract`) operation resolves to nothing - for example a Vault path that does not exist yet - the ExternalSecret fails to reconcile. When you merge several `dataFrom` entries and some paths may legitimately be absent, set `emptyResultPolicy: Ignore` on that entry so ESO treats an empty result as contributing nothing instead of failing:
 
 ```yaml
 dataFrom:
