@@ -2244,6 +2244,41 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			Expect(secret.Data).To(HaveLen(1))
 		}
 	}
+	// emptyResultPolicy=Ignore must tolerate NoSecretErr independently of
+	// deletionPolicy. Same merge scenario as above but with deletionPolicy=Delete:
+	// the absent find is still skipped, the present find still syncs, no error.
+	ignoreEmptyFindDeletionPolicyDelete := func(tc *testCase) {
+		expVal := []byte("1234")
+		present := "present"
+		absent := "absent"
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.Target.DeletionPolicy = esv1.DeletionPolicyDelete
+		tc.externalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esv1.ExternalSecretFind{
+					Path: &present,
+					Name: &esv1.FindName{RegExp: ".*"},
+				},
+			},
+			{
+				Find: &esv1.ExternalSecretFind{
+					Path:              &absent,
+					Name:              &esv1.FindName{RegExp: ".*"},
+					EmptyResultPolicy: esv1.ExternalSecretEmptyResultPolicyIgnore,
+				},
+			},
+		}
+		fakeProvider.WithGetAllSecretsFn(func(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+			if ref.Path != nil && *ref.Path == present {
+				return map[string][]byte{"foo": expVal}, nil
+			}
+			return nil, esv1.NoSecretErr
+		})
+		tc.checkSecret = func(_ *esv1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.Data["foo"]).To(Equal(expVal))
+			Expect(secret.Data).To(HaveLen(1))
+		}
+	}
 	// A find that returns NoSecretErr with the policy unset (Fail) errors, as today.
 	failWhenFindEmptyAndPolicyUnset := func(tc *testCase) {
 		tc.externalSecret.Spec.Data = nil
@@ -2618,6 +2653,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Entry("should fail when extracted secret data contains null bytes and extract.nullBytePolicy=Fail", failWhenExtractedSecretContainsNullBytes),
 		Entry("should fail when found secret data contains null bytes and find.nullBytePolicy=Fail", failWhenFoundSecretContainsNullBytes),
 		Entry("should ignore an empty find and merge remaining data when emptyResultPolicy=Ignore", ignoreEmptyFindMergesRemaining),
+		Entry("should ignore an empty find under deletionPolicy=Delete when emptyResultPolicy=Ignore", ignoreEmptyFindDeletionPolicyDelete),
 		Entry("should fail on an empty find when emptyResultPolicy is unset", failWhenFindEmptyAndPolicyUnset),
 		Entry("should ignore an empty extract when emptyResultPolicy=Ignore", ignoreEmptyExtract),
 		Entry("should fail on an empty extract when emptyResultPolicy is unset", failWhenExtractEmptyAndPolicyUnset),
