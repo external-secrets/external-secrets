@@ -460,6 +460,29 @@ Here is an example of how to set up `PushSecret`:
 
 Note that in this example, we are generating two secrets in the target vault with the same structure but using different input formats.
 
+#### Custom metadata for PushSecret
+
+With Vault KV v2 stores, PushSecret can manage the [custom metadata](https://developer.hashicorp.com/vault/docs/secrets/kv/kv-v2#custom-metadata) of the pushed secret. Define the metadata in the `spec.data[].metadata` field of the PushSecret resource:
+
+```yaml
+{% include 'vault-pushsecret-metadata.yaml' %}
+```
+
+The `spec` supports two fields:
+
+| Field | Type | Description |
+| ----- | ---- | ----------- |
+| `mergePolicy` | string: `Merge`, `Replace` | `Merge` (default) merges `customMetadata` into the custom metadata already present on the Vault secret, keeping existing keys that are not part of the spec. `Replace` replaces the entire custom metadata with `customMetadata`. |
+| `customMetadata` | `map[string]string` | Key/value pairs written to the `custom_metadata` of the Vault secret. |
+
+For example, if a secret currently has the custom metadata `managed-by: external-secrets, team: payments` and you push `customMetadata: {environment: dev}`, the result is:
+
+- `Merge`: `managed-by: external-secrets, team: payments, environment: dev`
+- `Replace`: `managed-by: external-secrets, environment: dev` (the `team` key is dropped)
+
+!!! note
+    If the referenced store uses a KV v1 engine, the `metadata` field is silently ignored and the secret data is still pushed.
+
 #### Check-And-Set (CAS) for PushSecret
 
 Vault KV v2 supports Check-And-Set operations to prevent unintentional overwrites when multiple clients modify the same secret. When CAS is enabled in your Vault configuration, External Secrets Operator can be configured to include the required version parameter in write operations.
