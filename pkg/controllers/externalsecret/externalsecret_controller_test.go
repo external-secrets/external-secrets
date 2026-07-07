@@ -2260,6 +2260,40 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			return cond != nil && cond.Status == v1.ConditionFalse && cond.Reason == esv1.ConditionReasonSecretSyncedError
 		}
 	}
+	// An extract that returns NoSecretErr with emptyResultPolicy=Ignore contributes
+	// nothing and reconciliation succeeds.
+	ignoreEmptyExtract := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1.ExternalSecretDataRemoteRef{
+					Key:               "does/not/exist",
+					EmptyResultPolicy: esv1.ExternalSecretEmptyResultPolicyIgnore,
+				},
+			},
+		}
+		fakeProvider.WithGetSecretMap(nil, esv1.NoSecretErr)
+		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			return cond != nil && cond.Status == v1.ConditionTrue && cond.Reason == esv1.ConditionReasonSecretSynced
+		}
+	}
+	// An extract that returns NoSecretErr with the policy unset (Fail) errors.
+	failWhenExtractEmptyAndPolicyUnset := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1.ExternalSecretDataRemoteRef{
+					Key: "does/not/exist",
+				},
+			},
+		}
+		fakeProvider.WithGetSecretMap(nil, esv1.NoSecretErr)
+		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			return cond != nil && cond.Status == v1.ConditionFalse && cond.Reason == esv1.ConditionReasonSecretSyncedError
+		}
+	}
 	useClusterSecretStore := func(tc *testCase) {
 		tc.secretStore = &esv1.ClusterSecretStore{
 			ObjectMeta: metav1.ObjectMeta{
@@ -2538,6 +2572,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Entry("should fail when found secret data contains null bytes and find.nullBytePolicy=Fail", failWhenFoundSecretContainsNullBytes),
 		Entry("should ignore an empty find and merge remaining data when emptyResultPolicy=Ignore", ignoreEmptyFindMergesRemaining),
 		Entry("should fail on an empty find when emptyResultPolicy is unset", failWhenFindEmptyAndPolicyUnset),
+		Entry("should ignore an empty extract when emptyResultPolicy=Ignore", ignoreEmptyExtract),
+		Entry("should fail on an empty extract when emptyResultPolicy is unset", failWhenExtractEmptyAndPolicyUnset),
 		Entry("should update template if ExternalSecret is updated", templateShouldRewrite),
 		Entry("should keep data with templates if MergePolicy=Merge", templateShouldMerge),
 		Entry("should refresh secret from template", refreshWithTemplate),

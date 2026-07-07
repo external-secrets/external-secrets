@@ -226,6 +226,10 @@ func (r *Reconciler) handleExtractSecrets(
 	// get multiple secrets from the store
 	secretMap, err := client.GetSecretMap(ctx, *remoteRef.Extract)
 	if err != nil {
+		if shouldIgnoreEmptyResult(remoteRef.Extract.EmptyResultPolicy, err) {
+			r.Log.V(1).Info("extract returned no secret; ignoring per emptyResultPolicy", "dataFrom", i)
+			return map[string][]byte{}, nil
+		}
 		return nil, err
 	}
 
