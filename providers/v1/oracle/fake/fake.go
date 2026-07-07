@@ -63,7 +63,7 @@ func (mc *OracleMockClient) GetSecretBundleByName(ctx context.Context, request s
 				SecretBundle: bundle,
 			}, nil
 		}
-		return secrets.GetSecretBundleByNameResponse{}, &ServiceError{Code: 404}
+		return secrets.GetSecretBundleByNameResponse{}, &ServiceError{Code: 404, ServiceCode: "NotAuthorizedOrNotFound"}
 	}
 	return mc.getSecret(ctx, request)
 }
@@ -77,7 +77,8 @@ func (mc *OracleMockClient) WithValue(_ secrets.GetSecretBundleByNameRequest, ou
 }
 
 type ServiceError struct {
-	Code int
+	Code        int
+	ServiceCode string
 }
 
 func (s *ServiceError) Error() string {
@@ -92,7 +93,7 @@ func (s *ServiceError) GetMessage() string {
 }
 
 func (s *ServiceError) GetCode() string {
-	return ""
+	return s.ServiceCode
 }
 
 func (s *ServiceError) GetOpcRequestID() string {

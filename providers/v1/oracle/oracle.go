@@ -63,6 +63,11 @@ const (
 	errMissingKey                 = "missing Key in secret: %s"
 	errUnexpectedContent          = "unexpected secret bundle content"
 	errSettingOCIEnvVariables     = "unable to set OCI SDK environment variable %s: %w"
+
+	// codeNotAuthorizedOrNotFound is the OCI SDK service error code returned when
+	// the caller is not authorized to access a resource or the resource does not
+	// exist. OCI does not distinguish the two to avoid leaking existence.
+	codeNotAuthorizedOrNotFound = "NotAuthorizedOrNotFound"
 )
 
 const (
@@ -497,7 +502,7 @@ func (vms *VaultManagementService) Validate() (esv1.ValidationResult, error) {
 			switch code {
 			case "NotAuthenticated":
 				return esv1.ValidationResultError, sanitizeOCISDKErr(err)
-			case "NotAuthorizedOrNotFound":
+			case codeNotAuthorizedOrNotFound:
 				// User authentication was successful, but user might not have a permission like:
 				//
 				// Allow group external_secrets to read vaults in tenancy
@@ -703,7 +708,9 @@ func (vms *VaultManagementService) configureRetryPolicy(
 // sentinel NoSecretErr so the ExternalSecret controller can honor
 // spec.target.deletionPolicy, and sanitizes every other OCI SDK error.
 func sanitizeGetSecretErr(err error) error {
-	if serviceErr, ok := err.(common.ServiceError); ok && serviceErr.GetHTTPStatusCode() == 404 {
+	if svcErr, ok := common.IsServiceError(err); ok &&
+		svcErr.GetHTTPStatusCode() == 404 &&
+		svcErr.GetCode() == codeNotAuthorizedOrNotFound {
 		return esv1.NoSecretErr
 	}
 	return sanitizeOCISDKErr(err)

@@ -160,7 +160,7 @@ func TestOracleVaultGetSecret(t *testing.T) {
 
 func TestOracleVaultGetSecretNotFound(t *testing.T) {
 	set404 := func(smtc *vaultTestCase) {
-		smtc.apiErr = &fakeoracle.ServiceError{Code: 404}
+		smtc.apiErr = &fakeoracle.ServiceError{Code: 404, ServiceCode: "NotAuthorizedOrNotFound"}
 	}
 
 	sm := VaultManagementService{}
@@ -175,6 +175,19 @@ func TestOracleVaultGetSecretNotFound(t *testing.T) {
 	sm.Client = tc.mockClient
 	if _, err := sm.GetSecretMap(context.Background(), *tc.ref); !errors.Is(err, esv1.NoSecretErr) {
 		t.Errorf("GetSecretMap on a 404 should return NoSecretErr, got: %v", err)
+	}
+
+	// A 404 with a different service code (for example a transient routing 404)
+	// must not be treated as a missing secret, matching how Validate() switches
+	// on GetCode().
+	setOther404 := func(smtc *vaultTestCase) {
+		smtc.apiErr = &fakeoracle.ServiceError{Code: 404, ServiceCode: "SomeOtherCode"}
+	}
+
+	tc = makeValidVaultTestCaseCustom(setOther404)
+	sm.Client = tc.mockClient
+	if _, err := sm.GetSecret(context.Background(), *tc.ref); errors.Is(err, esv1.NoSecretErr) {
+		t.Errorf("GetSecret on a 404 with a non NotAuthorizedOrNotFound code should not return NoSecretErr, got: %v", err)
 	}
 }
 
