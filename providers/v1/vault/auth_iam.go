@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -165,7 +164,7 @@ func (c *client) loginWithIamCreds(ctx context.Context, creds aws.Credentials, i
 	// header, under the config-key name iam_server_id_header_value, but the
 	// server never reads it.)
 
-	url := strings.Join([]string{"auth", awsAuthMountPath, "login"}, "/")
+	url := fmt.Sprintf("auth/%s/login", awsAuthMountPath)
 	vaultResult, err := c.logical.WriteWithContext(ctx, url, loginData)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
 	if err != nil {
