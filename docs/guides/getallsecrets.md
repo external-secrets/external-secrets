@@ -30,6 +30,23 @@ This will match any secrets containing all of the metadata labels in the `tags` 
 ### Searching only in a given path
 Some providers support filtering out a find operation only to a given path, instead of the root path. In order to use this feature, you can pass `find.path` to filter out these secrets into only this path, instead of the root path.
 
+### Tolerating empty or missing paths
+
+By default, if a `find` (or `extract`) operation resolves to nothing - for example a Vault path that does not exist yet - the ExternalSecret fails to reconcile. When you merge several `dataFrom` entries and some paths may legitimately be absent, set `emptyResultPolicy: Ignore` on that entry so ESO treats an empty result as contributing nothing instead of failing:
+
+```yaml
+dataFrom:
+  - find:
+      path: infra/configuration
+      name: {regexp: ".*"}
+  - find:
+      path: infra/secrets
+      name: {regexp: ".*"}
+      emptyResultPolicy: Ignore   # OK if nothing exists at this path
+```
+
+`emptyResultPolicy` accepts `Fail` (the default when unset - error on empty) or `Ignore`. It only affects providers that report absence via the standard "no secret" signal (for example HashiCorp Vault); providers that return a generic error on a missing path are unaffected. The same field is available on `dataFrom.extract` and `spec.data[].remoteRef`.
+
 ### Avoiding name conflicts
 By default, kubernetes Secrets accepts only a given range of characters. `Find` operations will automatically replace any not allowed character with a `_`. So if we have a given secret `a_c` and `a/c` would lead to a naming conflict.
 
