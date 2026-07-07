@@ -131,6 +131,10 @@ func (r *Reconciler) handleSecretData(ctx context.Context, externalSecret *esv1.
 	// get a single secret from the store
 	secretData, err := client.GetSecret(ctx, secretRef.RemoteRef)
 	if err != nil {
+		if shouldIgnoreEmptyResult(secretRef.RemoteRef.EmptyResultPolicy, err) {
+			r.Log.V(1).Info("data secret not found; ignoring per emptyResultPolicy", "key", secretRef.RemoteRef.Key)
+			return nil
+		}
 		return err
 	}
 

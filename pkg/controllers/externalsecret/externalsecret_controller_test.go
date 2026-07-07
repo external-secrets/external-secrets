@@ -2294,6 +2294,53 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			return cond != nil && cond.Status == v1.ConditionFalse && cond.Reason == esv1.ConditionReasonSecretSyncedError
 		}
 	}
+	// A single data ref whose secret is missing (NoSecretErr) with
+	// emptyResultPolicy=Ignore is skipped; reconciliation succeeds and the key is
+	// simply absent.
+	ignoreMissingSingleData := func(tc *testCase) {
+		tc.externalSecret.Spec.DataFrom = nil
+		tc.externalSecret.Spec.Data = []esv1.ExternalSecretData{
+			{
+				SecretKey: "present-key",
+				RemoteRef: esv1.ExternalSecretDataRemoteRef{Key: "present"},
+			},
+			{
+				SecretKey: "missing-key",
+				RemoteRef: esv1.ExternalSecretDataRemoteRef{
+					Key:               "missing",
+					EmptyResultPolicy: esv1.ExternalSecretEmptyResultPolicyIgnore,
+				},
+			},
+		}
+		fakeProvider.WithGetSecretFn(func(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+			if ref.Key == "present" {
+				return []byte("1234"), nil
+			}
+			return nil, esv1.NoSecretErr
+		})
+		tc.checkSecret = func(_ *esv1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.Data["present-key"]).To(Equal([]byte("1234")))
+			_, ok := secret.Data["missing-key"]
+			Expect(ok).To(BeFalse())
+		}
+	}
+	// A single data ref whose secret is missing with policy unset errors when
+	// deletionPolicy=Retain (current behavior).
+	failWhenSingleDataMissingAndPolicyUnset := func(tc *testCase) {
+		tc.externalSecret.Spec.DataFrom = nil
+		tc.externalSecret.Spec.Target.DeletionPolicy = esv1.DeletionPolicyRetain
+		tc.externalSecret.Spec.Data = []esv1.ExternalSecretData{
+			{
+				SecretKey: "missing-key",
+				RemoteRef: esv1.ExternalSecretDataRemoteRef{Key: "missing"},
+			},
+		}
+		fakeProvider.WithGetSecret(nil, esv1.NoSecretErr)
+		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			return cond != nil && cond.Status == v1.ConditionFalse && cond.Reason == esv1.ConditionReasonSecretSyncedError
+		}
+	}
 	useClusterSecretStore := func(tc *testCase) {
 		tc.secretStore = &esv1.ClusterSecretStore{
 			ObjectMeta: metav1.ObjectMeta{
@@ -2574,6 +2621,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Entry("should fail on an empty find when emptyResultPolicy is unset", failWhenFindEmptyAndPolicyUnset),
 		Entry("should ignore an empty extract when emptyResultPolicy=Ignore", ignoreEmptyExtract),
 		Entry("should fail on an empty extract when emptyResultPolicy is unset", failWhenExtractEmptyAndPolicyUnset),
+		Entry("should ignore a missing single data key when emptyResultPolicy=Ignore", ignoreMissingSingleData),
+		Entry("should fail on a missing single data key when emptyResultPolicy is unset and deletionPolicy=Retain", failWhenSingleDataMissingAndPolicyUnset),
 		Entry("should update template if ExternalSecret is updated", templateShouldRewrite),
 		Entry("should keep data with templates if MergePolicy=Merge", templateShouldMerge),
 		Entry("should refresh secret from template", refreshWithTemplate),

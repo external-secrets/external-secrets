@@ -122,6 +122,14 @@ func (v *Client) WithGetSecret(secData []byte, err error) *Client {
 	return v
 }
 
+// WithGetSecretFn installs a custom GetSecret function under the client lock.
+func (v *Client) WithGetSecretFn(fn func(context.Context, esv1.ExternalSecretDataRemoteRef) ([]byte, error)) *Client {
+	v.mu.Lock()
+	v.GetSecretFn = fn
+	v.mu.Unlock()
+	return v
+}
+
 // GetSecretMap implements the provider.Provider interface.
 func (v *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	v.mu.RLock()
