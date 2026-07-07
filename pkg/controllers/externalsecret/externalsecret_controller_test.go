@@ -2211,6 +2211,55 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			}, time.Second, interval).Should(BeTrue())
 		}
 	}
+	// A find that returns NoSecretErr with emptyResultPolicy=Ignore contributes
+	// nothing; a second find that returns data is still synced (the merge case).
+	ignoreEmptyFindMergesRemaining := func(tc *testCase) {
+		expVal := []byte("1234")
+		present := "present"
+		absent := "absent"
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esv1.ExternalSecretFind{
+					Path: &present,
+					Name: &esv1.FindName{RegExp: ".*"},
+				},
+			},
+			{
+				Find: &esv1.ExternalSecretFind{
+					Path:              &absent,
+					Name:              &esv1.FindName{RegExp: ".*"},
+					EmptyResultPolicy: esv1.ExternalSecretEmptyResultPolicyIgnore,
+				},
+			},
+		}
+		fakeProvider.WithGetAllSecretsFn(func(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+			if ref.Path != nil && *ref.Path == present {
+				return map[string][]byte{"foo": expVal}, nil
+			}
+			return nil, esv1.NoSecretErr
+		})
+		tc.checkSecret = func(_ *esv1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.Data["foo"]).To(Equal(expVal))
+			Expect(secret.Data).To(HaveLen(1))
+		}
+	}
+	// A find that returns NoSecretErr with the policy unset (Fail) errors, as today.
+	failWhenFindEmptyAndPolicyUnset := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esv1.ExternalSecretFind{
+					Name: &esv1.FindName{RegExp: ".*"},
+				},
+			},
+		}
+		fakeProvider.WithGetAllSecrets(map[string][]byte{}, esv1.NoSecretErr)
+		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			return cond != nil && cond.Status == v1.ConditionFalse && cond.Reason == esv1.ConditionReasonSecretSyncedError
+		}
+	}
 	useClusterSecretStore := func(tc *testCase) {
 		tc.secretStore = &esv1.ClusterSecretStore{
 			ObjectMeta: metav1.ObjectMeta{
@@ -2487,6 +2536,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Entry("should fail when fetched secret data contains null bytes and remoteRef.nullBytePolicy=Fail", failWhenFetchedSecretContainsNullBytes),
 		Entry("should fail when extracted secret data contains null bytes and extract.nullBytePolicy=Fail", failWhenExtractedSecretContainsNullBytes),
 		Entry("should fail when found secret data contains null bytes and find.nullBytePolicy=Fail", failWhenFoundSecretContainsNullBytes),
+		Entry("should ignore an empty find and merge remaining data when emptyResultPolicy=Ignore", ignoreEmptyFindMergesRemaining),
+		Entry("should fail on an empty find when emptyResultPolicy is unset", failWhenFindEmptyAndPolicyUnset),
 		Entry("should update template if ExternalSecret is updated", templateShouldRewrite),
 		Entry("should keep data with templates if MergePolicy=Merge", templateShouldMerge),
 		Entry("should refresh secret from template", refreshWithTemplate),

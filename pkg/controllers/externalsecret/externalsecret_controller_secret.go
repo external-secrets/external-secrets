@@ -277,6 +277,10 @@ func (r *Reconciler) handleFindAllSecrets(
 	// get all secrets from the store that match the selector
 	secretMap, err := client.GetAllSecrets(ctx, *remoteRef.Find)
 	if err != nil {
+		if shouldIgnoreEmptyResult(remoteRef.Find.EmptyResultPolicy, err) {
+			r.Log.V(1).Info("find returned no secrets; ignoring per emptyResultPolicy", "dataFrom", i)
+			return map[string][]byte{}, nil
+		}
 		return nil, fmt.Errorf("error getting all secrets: %w", err)
 	}
 

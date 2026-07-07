@@ -162,6 +162,14 @@ func (v *Client) WithGetAllSecrets(secData map[string][]byte, err error) *Client
 	return v
 }
 
+// WithGetAllSecretsFn installs a custom GetAllSecrets function under the client lock.
+func (v *Client) WithGetAllSecretsFn(fn func(context.Context, esv1.ExternalSecretFind) (map[string][]byte, error)) *Client {
+	v.mu.Lock()
+	v.GetAllSecretsFn = fn
+	v.mu.Unlock()
+	return v
+}
+
 // WithSetSecretFn installs a custom SetSecret function under the client lock.
 func (v *Client) WithSetSecretFn(fn func() error) *Client {
 	v.mu.Lock()
