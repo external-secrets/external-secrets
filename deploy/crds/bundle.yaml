@@ -103,6 +103,15 @@ spec:
                                   - Base64URL
                                   - None
                                 type: string
+                              emptyResultPolicy:
+                                description: |-
+                                  Controls how ESO handles an empty or absent result for this reference.
+                                  Ignore skips it silently; Fail (default when unset) fails reconciliation.
+                                  Only applies to providers that report absence via NoSecretErr.
+                                enum:
+                                  - Ignore
+                                  - Fail
+                                type: string
                               key:
                                 description: Key is the key used in the Provider, mandatory
                                 type: string
@@ -238,6 +247,15 @@ spec:
                                   - Base64URL
                                   - None
                                 type: string
+                              emptyResultPolicy:
+                                description: |-
+                                  Controls how ESO handles an empty or absent result for this reference.
+                                  Ignore skips it silently; Fail (default when unset) fails reconciliation.
+                                  Only applies to providers that report absence via NoSecretErr.
+                                enum:
+                                  - Ignore
+                                  - Fail
+                                type: string
                               key:
                                 description: Key is the key used in the Provider, mandatory
                                 type: string
@@ -283,6 +301,15 @@ spec:
                                   - Base64
                                   - Base64URL
                                   - None
+                                type: string
+                              emptyResultPolicy:
+                                description: |-
+                                  Controls how ESO handles a find that returns no secrets.
+                                  Ignore skips it silently; Fail (default when unset) fails reconciliation.
+                                  Only applies to providers that report absence via NoSecretErr.
+                                enum:
+                                  - Ignore
+                                  - Fail
                                 type: string
                               name:
                                 description: Finds secrets based on the name.
@@ -13101,6 +13128,15 @@ spec:
                               - Base64URL
                               - None
                             type: string
+                          emptyResultPolicy:
+                            description: |-
+                              Controls how ESO handles an empty or absent result for this reference.
+                              Ignore skips it silently; Fail (default when unset) fails reconciliation.
+                              Only applies to providers that report absence via NoSecretErr.
+                            enum:
+                              - Ignore
+                              - Fail
+                            type: string
                           key:
                             description: Key is the key used in the Provider, mandatory
                             type: string
@@ -13236,6 +13272,15 @@ spec:
                               - Base64URL
                               - None
                             type: string
+                          emptyResultPolicy:
+                            description: |-
+                              Controls how ESO handles an empty or absent result for this reference.
+                              Ignore skips it silently; Fail (default when unset) fails reconciliation.
+                              Only applies to providers that report absence via NoSecretErr.
+                            enum:
+                              - Ignore
+                              - Fail
+                            type: string
                           key:
                             description: Key is the key used in the Provider, mandatory
                             type: string
@@ -13281,6 +13326,15 @@ spec:
                               - Base64
                               - Base64URL
                               - None
+                            type: string
+                          emptyResultPolicy:
+                            description: |-
+                              Controls how ESO handles a find that returns no secrets.
+                              Ignore skips it silently; Fail (default when unset) fails reconciliation.
+                              Only applies to providers that report absence via NoSecretErr.
+                            enum:
+                              - Ignore
+                              - Fail
                             type: string
                           name:
                             description: Finds secrets based on the name.
