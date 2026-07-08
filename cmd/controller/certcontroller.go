@@ -18,7 +18,6 @@ limitations under the License.
 package controller
 
 import (
-	"crypto/tls"
 	"os"
 	"time"
 
@@ -95,10 +94,12 @@ var certcontrollerCmd = &cobra.Command{
 			setupLog.Error(nil, "--metrics-auth requires --metrics-secure; bearer tokens over plaintext HTTP is not allowed")
 			os.Exit(1)
 		}
-		// Disable HTTP/2 if not explicitly enabled
-		if !enableHTTP2 {
-			metricsServerOpts.TLSOpts = []func(*tls.Config){disableHTTP2}
+		metricsTLSOpts, err := buildTLSConfigFuncs(tlsCiphers, tlsMinVersion, tlsCurvePreferences, enableHTTP2)
+		if err != nil {
+			setupLog.Error(err, "unable to configure TLS for certcontroller metrics server")
+			os.Exit(1)
 		}
+		metricsServerOpts.TLSOpts = metricsTLSOpts
 
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:  scheme,
@@ -221,6 +222,14 @@ func init() {
 	certcontrollerCmd.Flags().StringVar(&loglevel, "loglevel", "info", "loglevel to use, one of: debug, info, warn, error, dpanic, panic, fatal")
 	certcontrollerCmd.Flags().StringVar(&zapTimeEncoding, "zap-time-encoding", "epoch", "Zap time encoding (one of 'epoch', 'millis', 'nano', 'iso8601', 'rfc3339' or 'rfc3339nano')")
 	certcontrollerCmd.Flags().DurationVar(&crdRequeueInterval, "crd-requeue-interval", time.Minute*5, "Time duration between reconciling CRDs for new certs")
+	certcontrollerCmd.Flags().StringVar(&tlsCiphers, "tls-ciphers", "", "comma separated list of tls ciphers allowed for the metrics server. "+
+		"This does not apply to TLS 1.3 as the ciphers are selected automatically. "+
+		"Full lists of available ciphers can be found at https://pkg.go.dev/crypto/tls#pkg-constants")
+	certcontrollerCmd.Flags().StringVar(&tlsMinVersion, "tls-min-version", "1.2", "minimum version of TLS supported for the metrics server")
+	certcontrollerCmd.Flags().StringSliceVar(&tlsCurvePreferences, "tls-curve-preferences", nil,
+		"ordered list of TLS key exchange curves for the metrics server "+
+			"(for example X25519,CurveP256, or decimal tls.CurveID values supported by this Go toolchain). "+
+			"If omitted, Go defaults are used.")
 	certcontrollerCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics server")
 }
