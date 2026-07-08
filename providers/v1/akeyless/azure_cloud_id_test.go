@@ -94,8 +94,17 @@ func TestAzureCloudSettingsFromName(t *testing.T) {
 }
 
 func TestAzureCloudSettingsFromEnv(t *testing.T) {
-	t.Setenv("AZURE_ENVIRONMENT", "AzureUSGovernment")
-	require.Equal(t, usGovAzureCloudSettings, azureCloudSettingsFromEnv())
+	t.Run("AZURE_ENVIRONMENT", func(t *testing.T) {
+		t.Setenv("AZURE_ENVIRONMENT", "AzureUSGovernment")
+		t.Setenv("AZURE_CLOUD", "")
+		require.Equal(t, usGovAzureCloudSettings, azureCloudSettingsFromEnv())
+	})
+
+	t.Run("AZURE_CLOUD fallback", func(t *testing.T) {
+		t.Setenv("AZURE_ENVIRONMENT", "")
+		t.Setenv("AZURE_CLOUD", "AzureChinaCloud")
+		require.Equal(t, chinaAzureCloudSettings, azureCloudSettingsFromEnv())
+	})
 }
 
 func TestAzureTenantID(t *testing.T) {
