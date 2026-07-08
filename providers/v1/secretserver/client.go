@@ -443,8 +443,8 @@ func jsonObjectToByteMap(value string) (map[string][]byte, bool, error) {
 	}
 
 	data := make(map[string][]byte)
-	for k, v := range secretData {
-		data[k], err = esutils.GetByteValue(v)
+	for k := range secretData {
+		data[k], err = esutils.GetByteValueFromMap(secretData, k)
 		if err != nil {
 			return nil, true, err
 		}
