@@ -17,7 +17,10 @@ package conjur
 
 import (
 	"bytes"
+	"fmt"
 	"text/template"
+
+	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 )
 
 const createVariablePolicyTemplate = `- !variable
@@ -45,7 +48,7 @@ const createVariablePolicyTemplate = `- !variable
   resource: !variable {{ .Key }}
 
 - !permit
-  role: !host vm-spiffe
+  role: !host {{ .SpiffeHostID }}
   privilege: [ read, execute ]
   resource: !variable {{ .Key }}`
 
@@ -62,31 +65,41 @@ const jwtHostPolicyTemplate = `- !host
   privilege: [ read, authenticate ]
   resource: !webservice conjur/authn-jwt/{{ .ServiceID }}`
 
-const certHostPolicyTemplate = `- !host
+// certHostIDPolicyTemplate creates the host authenticated by CreateCertHostIDStore, which
+// supplies an explicit HostID in the authentication request (request mode). Request mode
+// requires at least one certificate-matching restriction annotation; 'cn' is used here to
+// match the client certificate's Common Name.
+const certHostIDPolicyTemplate = `- !host
   id: vm-01
   annotations:
-    authn-cert/{{ .ServiceID }}/sub: "vm-01"
+    authn-cert/{{ .ServiceID }}/cn: "vm-01"
 
 - !permit
   role: !host vm-01
   privilege: [ read, authenticate ]
-  resource: !webservice conjur/authn-cert/{{ .ServiceID }}
+  resource: !webservice conjur/authn-cert/{{ .ServiceID }}`
 
-- !host
-  id: vm-spiffe
-  annotations:
-    authn-cert/{{ .ServiceID }}/sub: "vm-spiffe"
+// certSpiffePolicyTemplate creates the host authenticated by CreateCertStore, which omits
+// HostID so the authn-cert authenticator derives the role from the SPIFFE URI SAN in the
+// client certificate (spiffe mode). The host must exist at IdentityPath/WorkloadID to match
+// the identity the authenticator derives from the certificate; no restriction annotation is
+// required or checked in spiffe mode.
+const certSpiffePolicyTemplate = `- !policy
+  id: {{ .IdentityPath }}
+  body:
+    - !host {{ .WorkloadID }}
 
 - !permit
-  role: !host vm-spiffe
+  role: !host {{ .IdentityPath }}/{{ .WorkloadID }}
   privilege: [ read, authenticate ]
   resource: !webservice conjur/authn-cert/{{ .ServiceID }}`
 
 func createVariablePolicy(key, namespace string, tags map[string]string) string {
 	return renderTemplate(createVariablePolicyTemplate, map[string]interface{}{
-		"Key":       key,
-		"Namespace": namespace,
-		"Tags":      tags,
+		"Key":          key,
+		"Namespace":    namespace,
+		"Tags":         tags,
+		"SpiffeHostID": fmt.Sprintf("%s/%s", addon.SpiffeIdentityPath, addon.SpiffeWorkloadID),
 	})
 }
 
@@ -103,9 +116,17 @@ func createJwtHostPolicy(hostID, serviceID string) string {
 	})
 }
 
-func createCertHostPolicy(serviceID string) string {
-	return renderTemplate(certHostPolicyTemplate, map[string]interface{}{
+func createCertHostIDPolicy(serviceID string) string {
+	return renderTemplate(certHostIDPolicyTemplate, map[string]interface{}{
 		"ServiceID": serviceID,
+	})
+}
+
+func createCertSpiffePolicy(serviceID, identityPath, workloadID string) string {
+	return renderTemplate(certSpiffePolicyTemplate, map[string]interface{}{
+		"ServiceID":    serviceID,
+		"IdentityPath": identityPath,
+		"WorkloadID":   workloadID,
 	})
 }
 

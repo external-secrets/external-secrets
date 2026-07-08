@@ -95,8 +95,15 @@ func (s *conjurProvider) BeforeEach() {
 	_, err = s.addon.ConjurClient.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
 	Expect(err).ToNot(HaveOccurred())
 
-	// setup policy
-	policy = createCertHostPolicy("eso-tests")
+	// setup policy for the authn-cert authenticator's 'request' host mode
+	// (used by CreateCertHostIDStore, which supplies an explicit HostID)
+	policy = createCertHostIDPolicy("eso-tests-hostid")
+	_, err = s.addon.ConjurClient.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
+	Expect(err).ToNot(HaveOccurred())
+
+	// setup policy for the authn-cert authenticator's 'spiffe' host mode
+	// (used by CreateCertStore, which omits HostID)
+	policy = createCertSpiffePolicy("eso-tests", addon.SpiffeIdentityPath, addon.SpiffeWorkloadID)
 	_, err = s.addon.ConjurClient.LoadPolicy(conjurapi.PolicyModePost, "root", strings.NewReader(policy))
 	Expect(err).ToNot(HaveOccurred())
 }
@@ -214,6 +221,9 @@ func (s conjurProvider) CreateJWTK8sHostIDStore() {
 }
 
 func (s conjurProvider) CreateCertStore() {
+	// This store omits HostID, so the authn-cert authenticator operates in 'spiffe' host
+	// mode and derives the authenticated host's identity from the SPIFFE URI SAN in the
+	// certificate rather than from a role identifier supplied by the client.
 	By("creating a conjur client cert secret")
 	certSecret := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -221,8 +231,8 @@ func (s conjurProvider) CreateCertStore() {
 			Namespace: s.framework.Namespace.Name,
 		},
 		Data: map[string][]byte{
-			"clientCert": s.addon.ClientCert,
-			"clientKey":  s.addon.ClientKey,
+			"clientCert": s.addon.SpiffeCert,
+			"clientKey":  s.addon.SpiffeKey,
 		},
 	}
 	err := s.framework.CRClient.Create(GinkgoT().Context(), certSecret)
@@ -269,7 +279,7 @@ func (s conjurProvider) CreateCertHostIDStore() {
 		Cert: &esv1.ConjurCert{
 			Account:   "default",
 			HostID:    "vm-01",
-			ServiceID: "eso-tests",
+			ServiceID: "eso-tests-hostid",
 			ClientCertRef: &esmeta.SecretKeySelector{
 				Name: certHostIDSecretName,
 				Key:  "clientCert",
