@@ -38,7 +38,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
-	"k8s.io/utils/ptr"
 	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -1141,7 +1140,7 @@ func TestValidateStore(t *testing.T) {
 					SecretRef: &esmeta.SecretKeySelector{
 						Name:      "creds",
 						Key:       "apikey",
-						Namespace: ptr.To("other-namespace"),
+						Namespace: new("other-namespace"),
 					},
 				}},
 			}),
