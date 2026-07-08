@@ -5358,6 +5358,23 @@ AkeylessKubernetesAuth
 token stored in the named Secret resource.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef specifies a Kubernetes ServiceAccount used for azure_ad
+authentication on AKS Workload Identity. The operator obtains a federated
+identity token from this ServiceAccount via the TokenRequest API instead
+of using the ESO controller pod identity. Ignored for other access types.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.AkeylessAuthSecretRef">AkeylessAuthSecretRef
