@@ -427,7 +427,11 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 
 func jsonObjectToByteMap(value string) (map[string][]byte, bool, error) {
 	trimmed := strings.TrimSpace(value)
-	if !strings.HasPrefix(trimmed, "{") {
+	// Require a valid JSON object: gating on validity (not just a leading "{")
+	// means a value that merely starts with "{" but is not valid JSON falls
+	// through to the plain-text/field-map path instead of hard-failing, so the
+	// json.Unmarshal error below is effectively defensive only.
+	if !strings.HasPrefix(trimmed, "{") || !gjson.Valid(trimmed) {
 		return nil, false, nil
 	}
 

@@ -1006,17 +1006,20 @@ func TestGetSecretMapWithProperty(t *testing.T) {
 	})
 }
 
-// TestGetSecretMapInvalidJSON tests GetSecretMap with invalid JSON in secret.
+// TestGetSecretMapInvalidJSON verifies that a first field whose value starts
+// with "{" but is not valid JSON is treated as a plain field value (mapped by
+// slug) rather than causing GetSecretMap to fail.
 func TestGetSecretMapInvalidJSON(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient(t)
 
-	// Overwrite one secret's value with invalid JSON
+	// Overwrite one secret's value with something that looks like JSON but isn't.
 	fake := c.(*client).api.(*fakeAPI)
 	fake.secrets[0].Fields[0].ItemValue = "{invalid-json"
 
-	_, err := c.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{Key: "1000"})
-	assert.Error(t, err)
+	got, err := c.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{Key: "1000"})
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("{invalid-json"), got["data"])
 }
 
 // TestGetSecretMapValidJSON tests GetSecretMap with valid JSON data succeeds.
