@@ -181,8 +181,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 
 	accessTypeParam := akeylessSpec.Auth.SecretRef.AccessTypeParam
 	if accessTypeParam.Name != "" {
-		err = esutils.ValidateSecretSelector(store, accessTypeParam)
-		if err != nil {
+		if err := esutils.ValidateSecretSelector(store, accessTypeParam); err != nil {
 			return nil, err
 		}
 	}

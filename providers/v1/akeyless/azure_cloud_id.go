@@ -41,6 +41,8 @@ const (
 	annotationClientID   = "azure.workload.identity/client-id"
 	annotationTenantID   = "azure.workload.identity/tenant-id"
 
+	serviceAccountTokenExpirationSeconds int64 = 600
+
 	errMissingAzureClientID = "missing Azure client ID: set accessTypeParam or annotate the service account with %s"
 	errMissingAzureTenantID = "missing Azure tenant ID: annotate the service account with %s or set AZURE_TENANT_ID"
 )
@@ -81,7 +83,7 @@ func (a *akeylessBase) getAzureCloudIDFromServiceAccount(ctx context.Context, re
 	}
 
 	getAssertion := func(ctx context.Context) (string, error) {
-		return a.getJWTfromServiceAccountToken(ctx, *ref, []string{azureDefaultAudience}, 600)
+		return a.getJWTfromServiceAccountToken(ctx, *ref, []string{azureDefaultAudience}, serviceAccountTokenExpirationSeconds)
 	}
 
 	azureCloud := azureCloudSettingsFromEnv()

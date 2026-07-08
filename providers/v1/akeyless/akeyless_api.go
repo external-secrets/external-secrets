@@ -297,11 +297,9 @@ func (a *akeylessBase) getCloudID(ctx context.Context, provider, accTypeParam st
 	case "azure_ad":
 		return a.getAzureCloudID(ctx, accTypeParam, auth)
 	case "aws_iam":
-		cloudID, err := aws_cloud_id.GetCloudId()
-		return cloudID, err
+		return aws_cloud_id.GetCloudId()
 	case "gcp":
-		cloudID, err := gcp_cloud_id.GetCloudID(accTypeParam)
-		return cloudID, err
+		return gcp_cloud_id.GetCloudID(accTypeParam)
 	default:
 		return "", fmt.Errorf("unable to determine provider: %s", provider)
 	}
