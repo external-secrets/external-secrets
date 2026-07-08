@@ -383,10 +383,9 @@ func (c *client) SecretExists(_ context.Context, ref esv1.PushSecretRemoteRef) (
 
 func (c *client) Validate() (esv1.ValidationResult, error) {
 	if c.api == nil {
-		return esv1.ValidationResultError, errors.New("Secret Server API client is not initialized")
+		return esv1.ValidationResultError, errors.New("secret server API client is not initialized")
 	}
-	_, err := c.api.Secrets(validateSearchText, "Name")
-	if err != nil {
+	if _, err := c.api.Secrets(validateSearchText, "Name"); err != nil {
 		return esv1.ValidationResultError, fmt.Errorf("failed to validate Secret Server credentials: %w", err)
 	}
 	return esv1.ValidationResultReady, nil
