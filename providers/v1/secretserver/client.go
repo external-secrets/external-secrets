@@ -395,15 +395,9 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 // GetSecretMap retrieves the secret referenced by ref from the Secret Server API
 // and returns it as a map of byte slices.
 func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	secret, err := c.getSecret(ctx, ref)
-	if err != nil {
-		return nil, err
-	}
-	// Ensure secret has fields before indexing into them
-	if len(secret.Fields) == 0 {
-		return nil, errors.New("secret contains no fields")
-	}
-
+	// When a property is requested, GetSecret already fetches the secret and
+	// applies its own empty-fields guard, so resolve it here and avoid the
+	// second round-trip a separate getSecret call would incur.
 	if ref.Property != "" {
 		value, err := c.GetSecret(ctx, ref)
 		if err != nil {
@@ -413,6 +407,15 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 			return data, err
 		}
 		return map[string][]byte{ref.Property: value}, nil
+	}
+
+	secret, err := c.getSecret(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+	// Ensure secret has fields before indexing into them
+	if len(secret.Fields) == 0 {
+		return nil, errors.New("secret contains no fields")
 	}
 
 	if data, ok, err := jsonObjectToByteMap(secret.Fields[0].ItemValue); ok || err != nil {
