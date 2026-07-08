@@ -101,9 +101,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | certController.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | certController.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
-| certController.startupProbe.enabled | bool | `false` | Enabled determines if the startup probe should be used or not. By default it's enabled |
-| certController.startupProbe.port | string | `""` | Port for startup probe. |
-| certController.startupProbe.useReadinessProbePort | bool | `true` | whether to use the readiness probe port for startup probe. |
+| certController.startupProbe.enabled | bool | `false` | Enabled determines if the startup probe should be used or not. By default it's disabled. |
+| certController.startupProbe.failureThreshold | int | `30` | Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds. |
+| certController.startupProbe.initialDelaySeconds | int | `10` | Number of seconds after the container has started before the startup probe is initiated. |
+| certController.startupProbe.periodSeconds | int | `10` | How often (in seconds) to perform the startup probe. |
 | certController.strategy | object | `{}` | Set deployment strategy |
 | certController.tolerations | list | `[]` |  |
 | certController.topologySpreadConstraints | list | `[]` |  |
@@ -337,6 +338,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | webhook.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | webhook.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
+| webhook.startupProbe.enabled | bool | `false` | Enabled determines if the startup probe should be used or not. By default it's disabled. |
+| webhook.startupProbe.failureThreshold | int | `30` | Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds. |
+| webhook.startupProbe.initialDelaySeconds | int | `10` | Number of seconds after the container has started before the startup probe is initiated. |
+| webhook.startupProbe.periodSeconds | int | `10` | How often (in seconds) to perform the startup probe. |
 | webhook.strategy | object | `{}` | Set deployment strategy |
 | webhook.tolerations | list | `[]` |  |
 | webhook.topologySpreadConstraints | list | `[]` |  |

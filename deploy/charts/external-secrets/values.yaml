@@ -612,6 +612,16 @@ webhook:
     successThreshold: 1
     initialDelaySeconds: 20
 
+  startupProbe:
+    # -- Enabled determines if the startup probe should be used or not. By default it's disabled.
+    enabled: false
+    # -- Number of seconds after the container has started before the startup probe is initiated.
+    initialDelaySeconds: 10
+    # -- How often (in seconds) to perform the startup probe.
+    periodSeconds: 10
+    # -- Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds.
+    failureThreshold: 30
+
 
     ## -- Extra environment variables to add to container.
   extraEnv: []
@@ -788,12 +798,14 @@ certController:
     initialDelaySeconds: 20
 
   startupProbe:
-    # -- Enabled determines if the startup probe should be used or not. By default it's enabled
+    # -- Enabled determines if the startup probe should be used or not. By default it's disabled.
     enabled: false
-    # -- whether to use the readiness probe port for startup probe.
-    useReadinessProbePort: true
-    # -- Port for startup probe.
-    port: ""
+    # -- Number of seconds after the container has started before the startup probe is initiated.
+    initialDelaySeconds: 10
+    # -- How often (in seconds) to perform the startup probe.
+    periodSeconds: 10
+    # -- Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds.
+    failureThreshold: 30
 
     ## -- Extra environment variables to add to container.
   extraEnv: []
