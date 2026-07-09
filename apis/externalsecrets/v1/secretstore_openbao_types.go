@@ -223,5 +223,7 @@ type OpenBaoKubernetesAuth struct {
 
 	// A required field containing the OpenBao Role to assume. A Role binds a
 	// Kubernetes ServiceAccount with a set of OpenBao policies.
+	//
+	// +kubebuilder:validation:MinLength=1
 	Role string `json:"role"`
 }
