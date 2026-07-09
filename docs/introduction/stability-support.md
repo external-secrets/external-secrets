@@ -125,7 +125,7 @@ The following table show the support for features across different providers.
 | Chef                             |              |              |                      |                         |        x         |             |                             |
 | Cloud.ru                         |      x       |      x       |                      |            x            |        x         |             |              x              |
 | Delinea                          |              |              |                      |                         |        x         |             |                             |
-| Devolutions Server               |              |              |                      |                         |        x         |      x      |                             |
+| Devolutions Server               |              |              |                      |                         |        x         |      x      |              x              |
 | CyberArk Secrets Manager         |      x       |      x       |                      |            x            |        x         |             |                             |
 | Doppler                          |      x       |              |                      |                         |        x         |             |                             |
 | Fortanix                         |              |              |                      |            x            |        x         |             |                             |
