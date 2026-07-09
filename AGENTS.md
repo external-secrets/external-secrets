@@ -6,6 +6,8 @@ Kubernetes operator that synchronizes secrets from external providers (AWS Secre
 
 Use `make` targets — refer to the Makefile for available commands. Do not run `go test`, `golangci-lint`, or `helm` directly.
 
+You must run `make check-diff` before the PR is ready. (See also section Non-Obvious patterns for more explanations about the tests)
+
 ## Project Layout
 
 Single binary built from `main.go`. The **controller** reconciles ExternalSecrets into K8s Secrets. The **webhook** (validates and defaults CRDs) and **certcontroller** (manages webhook TLS) are subcommands registered via `rootCmd.AddCommand()`.
@@ -23,6 +25,7 @@ Multi-module repo: `apis/`, `runtime/`, `e2e/`, and each `providers/v1/*/` have 
 - If you discover a non-obvious pattern while implementing, add it here before the PR is merged. Keep entries general — applicable across the codebase, not specific to one provider or feature.
 - Never edit `zz_generated.*` files by hand. They are owned by controller-gen. Modify the source types and run `make generate` (included in `make reviewable`).
 - After everything is committed - **ALWAYS RUN `make check-diff`** - this is the first step where PRs fall apart that LLMs forget - there are a lot of generated code outside of the main `make reviewable` spec like helm chart tests, docs, etc.
+- 
 
 ## Adding a Provider
 
@@ -221,3 +224,52 @@ pattern, but expect to be the first.
 - Docs page + snippets.
 - mkdocs nav entry.
 - After adding the module to `go.work`, run `go work use` to reconcile the `go` directive version.
+
+## Allowed agent actions
+
+Agents may:
+
+- inspect the repository,
+- explain code,
+- propose changes,
+- edit local files,
+- write tests,
+- update documentation,
+- run checks,
+- prepare a local diff for human review,
+- ...
+
+in order to assist humans.
+
+## Blocked actions
+
+Agents must not:
+
+- create issues,
+- create pull requests,
+- push branches,
+- publish releases,
+- upload packages,
+- change repository settings,
+- change permissions,
+- rotate credentials,
+- modify secrets,
+- perform external write actions.
+
+If asked to perform a blocked action, do not perform it. Instead, create a local file named AGENT_BLOCKED_ACTION.md containing:
+
+1. the requested action,
+2. why the action is blocked,
+3. the local work that was completed, if any,
+4. the recommended manual steps a human maintainer should take next.
+
+## Work verification checklist
+
+Before presenting work as complete, verify:
+
+- [ ] the intent is documented,
+- [ ] the diff is minimal,
+- [ ] the relevant tests were run (see build and test section),
+- [ ] the documentation was updated where needed.
+
+If validation could not be completed, state it explicitly and explain why.

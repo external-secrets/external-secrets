@@ -9,3 +9,76 @@ If you use an LLM to help with your contribution, that's fine. Just make sure yo
 The same goes for issues. Don't submit LLM-generated bug reports or feature requests that are verbose, generic, and obviously haven't been thought through. If an AI helped you articulate something, great, but the issue should still sound like it came from someone who actually encountered a problem or has a real use case.
 
 We value contributions from humans who understand what they're submitting, even if they had some algorithmic assistance along the way. The goal is quality and genuine engagement with the project, not quantity of AI-generated content.
+
+## Liability
+
+However, contributors remain fully responsible for anything they submit. Do not submit generated content that you have not reviewed, understood, adapted to this project, and verified.
+
+## Disclosure Required
+
+All AI assistance must be disclosed in issues, discussions, and pull requests.
+
+For pull requests, include:
+
+* the tool or tools used,
+* what the tool helped with,
+* which parts were generated, edited, or reviewed with AI assistance,
+* and what validation you performed yourself.
+
+For issues and discussions, disclose AI assistance if an LLM helped draft, structure, summarize, or rewrite the content.
+
+## Human Ownership
+
+You must understand your contribution well enough to explain it without using an AI tool.
+
+For code changes, you should be able to explain:
+
+* what changed,
+* why the change is needed,
+* how it interacts with nearby code,
+* what alternatives you considered,
+* and how you verified correctness.
+
+If you cannot explain the change, do not submit it.
+
+## Quality Expectations
+
+LLM-assisted contributions must follow the same quality bar as any other contribution.
+
+Do not submit:
+
+* generic or speculative issues that do not come from a real use case,
+* verbose bug reports that obscure the actual problem,
+* boilerplate comments that do not add useful information,
+* code that ignores existing project patterns,
+* tests that assert implementation details without proving behavior,
+* documentation that restates obvious facts,
+* or changes that shift basic validation work onto maintainers.
+
+Before submitting, check the existing codebase conventions (check other providers for example), run our tests (we documented them in `AGENTS.md`).
+
+## Issues and Discussions
+
+AI-assisted issues and discussions are allowed, but **they must be human-reviewed and edited before submission**.
+
+A good issue should describe a real bug, use case, regression, limitation, or design problem, with the code base version and a full context.
+The context is required for maintainers to evaluate the issue without having to reconstruct the problem from generic AI-generated text.
+
+This is also necessary to avoid the [XY Problem](https://en.wikipedia.org/wiki/XY_problem).
+
+## Enforcement
+
+Maintainers may close issues, discussions, or pull requests that appear to be unreviewed AI-generated output, omit required AI disclosure, lies about AI disclosure, ignore project conventions, or create unnecessary review burden.
+
+Violations may result in a temporary contribution ban, documented in our code of conduct document.
+
+Examples of violations that may lead to a temporary ban include:
+
+* repeatedly submitting undisclosed AI-generated content,
+* submitting large unreviewed AI-generated pull requests,
+* using autonomous agents to open issues or pull requests without human review,
+* resubmitting closed AI-generated content without addressing maintainer feedback,
+* or misrepresenting generated work as personally authored and verified.
+
+The goal of enforcement is to protect maintainer time, project quality, and respect of the spirit of the DCO. It is not meant to prohibit responsible AI use.
+

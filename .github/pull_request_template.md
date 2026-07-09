@@ -32,6 +32,23 @@ Where `scope` is _optionally_ one of:
 - security
 - templating
 
+## AI Assistance disclosure
+
+Did you use an script, LLM, or AI assisted development tool for this contribution?
+
+[ ] No
+[ ] Yes
+
+If yes provide details:
+
+Tool(s) used:
+
+Purpose of assistance:
+
+Parts of the contribution affected:
+
+Human validation performed:
+
 ## Checklist
 
 - [ ] I have read the [contribution guidelines](https://external-secrets.io/latest/contributing/process/#submitting-a-pull-request)
@@ -39,3 +56,4 @@ Where `scope` is _optionally_ one of:
 - [ ] My changes have reasonable test coverage
 - [ ] All tests pass with `make test`
 - [ ] I ensured my PR is ready for review with `make reviewable`
+- [ ] I confirm that I understand the submitted changes and can explain them without relying on an AI tool.
