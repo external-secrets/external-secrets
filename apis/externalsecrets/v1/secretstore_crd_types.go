@@ -92,12 +92,11 @@ type CRDProviderWhitelist struct {
 // # Remote reference keys
 //
 //   - SecretStore: the key is the object name only; '/' is not allowed. The API
-//     namespace is always the store namespace (ExternalSecret namespace, or
-//     remoteNamespace when set), never part of the key.
+//     namespace is always the store namespace, never part of the key.
 //   - ClusterSecretStore: use "namespace/objectName" to read a namespaced CR;
 //     a key without '/' addresses a cluster-scoped CR by object name. For
-//     dataFrom Find with a namespaced kind, listing uses all namespaces unless
-//     remoteNamespace is set, and result keys are "namespace/objectName".
+//     dataFrom Find with a namespaced kind, listing spans all namespaces and
+//     result keys are "namespace/objectName".
 //
 // +kubebuilder:validation:AtMostOneOf=auth;authRef
 // +kubebuilder:validation:XValidation:rule="has(self.serviceAccountRef) || has(self.auth) || has(self.authRef)",message="one of serviceAccountRef, auth, or authRef is required"
@@ -136,17 +135,6 @@ type CRDProvider struct {
 	// Kubernetes provider.
 	// +optional
 	AuthRef *esmeta.SecretKeySelector `json:"authRef,omitempty"`
-
-	// RemoteNamespace is the default namespace for namespaced API calls on SecretStore.
-	// For ClusterSecretStore with a namespaced resource, when set it limits dataFrom
-	// List to that namespace (keys in the result map are object names only). When
-	// empty, List spans all namespaces and keys are namespace/objectName. Per-entry
-	// namespace for Get uses remoteRef.key namespace/objectName for ClusterSecretStore.
-	// +optional
-	// +kubebuilder:validation:MinLength=1
-	// +kubebuilder:validation:MaxLength=63
-	// +kubebuilder:validation:Pattern=^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
-	RemoteNamespace string `json:"remoteNamespace,omitempty"`
 
 	// Resource identifies the CRD by its API group, version and kind.
 	// +kubebuilder:validation:Required

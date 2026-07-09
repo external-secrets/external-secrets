@@ -92,8 +92,8 @@ func (c *Client) resolveWhitelistedObject(ctx context.Context, key, property str
 // GetAllSecrets lists CRD objects whose logical keys match the store Name pattern
 // (regex) and returns a map of logicalKey to serialized value.
 // For SecretStore (namespaced kind), listing is limited to the store namespace and keys are object names.
-// For ClusterSecretStore with a namespaced kind, listing is all namespaces unless remoteNamespace is set;
-// keys are namespace/name. Cluster-scoped kinds use object names only.
+// For ClusterSecretStore with a namespaced kind, listing spans all namespaces and keys are
+// namespace/name. Cluster-scoped kinds use object names only.
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	// Verify the caller actually has "list" permission. The preflight at store
 	// bootstrap only checks "get" — moving "list" here means a SA that only
@@ -112,13 +112,12 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 		err  error
 	)
 	resourceInterface := c.dynClient.Resource(gvr)
-	if !c.namespaced || (c.storeKind == esv1.ClusterSecretStoreKind && c.store.RemoteNamespace == "") {
+	if !c.namespaced || c.storeKind == esv1.ClusterSecretStoreKind {
+		// Cluster-scoped kinds, and a ClusterSecretStore over a namespaced kind,
+		// list across all namespaces. A SecretStore lists within its own namespace.
 		list, err = resourceInterface.List(ctx, metav1.ListOptions{})
 	} else {
 		ns := c.namespace
-		if c.storeKind == esv1.ClusterSecretStoreKind {
-			ns = c.store.RemoteNamespace
-		}
 		if ns == "" {
 			return nil, fmt.Errorf("crd: namespace is required for namespaced resource kind %q", c.store.Resource.Kind)
 		}
@@ -142,7 +141,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 		objName := item.GetName()
 		objNS := item.GetNamespace()
 		logicalKey := objName
-		if c.namespaced && c.storeKind == esv1.ClusterSecretStoreKind && c.store.RemoteNamespace == "" {
+		if c.namespaced && c.storeKind == esv1.ClusterSecretStoreKind {
 			logicalKey = objNS + "/" + objName
 		}
 		if re != nil && !re.MatchString(logicalKey) {

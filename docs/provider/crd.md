@@ -102,7 +102,6 @@ spec:
 
 - `serviceAccountRef`: ServiceAccount used for API access.
 - `server` + `auth`/`authRef` (optional): explicit Kubernetes API connection/authentication.
-- `remoteNamespace` (optional): for `SecretStore`, overrides the store namespace as the default namespace for all namespaced Get and List operations. For `ClusterSecretStore`, limits `dataFrom` Find (list) to that namespace only (keys become bare object names instead of `namespace/objectName`); it does **not** replace the required `namespace/objectName` key format when calling `GetSecret` on a namespaced resource.
 - `resource.group`: API group of the resource (empty for core API resources).
 - `resource.version`: API version of the resource.
 - `resource.kind`: Kind of the resource.
@@ -251,7 +250,7 @@ At minimum, grant `get` on the selected resource. The `list` verb is only requir
 The right scope depends on which kind of store you are using:
 
 - **`SecretStore` (namespaced)** — a namespace-scoped `Role` + `RoleBinding` is enough; the controller only reads from the store's own namespace.
-- **`ClusterSecretStore`** — the controller may read across namespaces. When `remoteRef.key` is in the `namespace/objectName` form, or when `dataFrom.find` is used without `remoteNamespace`, `GetAllSecrets()` lists the target resource cluster-wide. That requires a `ClusterRole` + `ClusterRoleBinding`.
+- **`ClusterSecretStore`**: the controller may read across namespaces. `dataFrom.find` lists the target resource across all namespaces, and `remoteRef.key` uses the `namespace/objectName` form, so a `ClusterRole` + `ClusterRoleBinding` is required.
 
 ### SecretStore (namespace-scoped) example
 
@@ -318,8 +317,6 @@ roleRef:
   kind: ClusterRole
   name: crd-reader
 ```
-
-If a `ClusterSecretStore` only ever reads from a single fixed namespace (set `remoteNamespace` on the store), a namespace-scoped `Role` + `RoleBinding` in that namespace is sufficient and the `ClusterRole` is not required.
 
 ## ClusterSecretStore note
 

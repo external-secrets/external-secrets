@@ -75,15 +75,6 @@ func usesExplicitCRDConnection(prov *esv1.CRDProvider) bool {
 	return prov.Server.URL != ""
 }
 
-// resolveCRDTargetNamespace returns the namespace used for namespaced API calls.
-// It prefers remoteNamespace when set, otherwise falls back to the store namespace.
-func resolveCRDTargetNamespace(prov *esv1.CRDProvider, storeNamespace string) string {
-	if prov.RemoteNamespace != "" {
-		return prov.RemoteNamespace
-	}
-	return storeNamespace
-}
-
 // resolveSimpleSANamespace returns the namespace in which the SA token is minted for
 // simple (in-cluster) mode. For SecretStore the namespace is always the store's own
 // namespace. For ClusterSecretStore it is serviceAccountRef.namespace when set;
@@ -160,7 +151,6 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	storeKind := store.GetKind()
-	targetNS := resolveCRDTargetNamespace(provSpec, namespace)
 
 	if usesExplicitCRDConnection(provSpec) {
 		cfg, err := esutils.BuildRESTConfigFromKubernetesConnection(
@@ -197,7 +187,7 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube 
 				},
 			}
 		}
-		return p.newClientWithRESTConfig(ctx, store, cfg, targetNS)
+		return p.newClientWithRESTConfig(ctx, store, cfg, namespace)
 	}
 
 	// Simple mode: in-cluster API server + short-lived token for serviceAccountRef.
@@ -233,7 +223,7 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube 
 	authedCfg.ExecProvider = nil
 	authedCfg.Impersonate = rest.ImpersonationConfig{}
 
-	return p.newClientWithRESTConfig(ctx, store, authedCfg, targetNS)
+	return p.newClientWithRESTConfig(ctx, store, authedCfg, namespace)
 }
 
 // Client holds the runtime state for a single SecretStore/ClusterSecretStore.
@@ -279,14 +269,14 @@ func (p *Provider) newClientWithRESTConfig(ctx context.Context, store esv1.Gener
 		return nil, err
 	}
 	// accessNS is the namespace passed to SelfSubjectAccessReview. For a
-	// ClusterSecretStore listing a namespaced resource with no remoteNamespace,
-	// the controller operates across all namespaces; falsely scoping the SSAR
-	// to the controller's own namespace would let a SA with only-local access
-	// pass preflight and then fail at request time. Use "" (cluster-wide).
+	// ClusterSecretStore listing a namespaced resource the controller operates
+	// across all namespaces; falsely scoping the SSAR to the controller's own
+	// namespace would let a SA with only-local access pass preflight and then
+	// fail at request time. Use "" (cluster-wide).
 	accessNS := targetNamespace
 	if !resourceNamespaced {
 		accessNS = ""
-	} else if store.GetKind() == esv1.ClusterSecretStoreKind && provSpec.RemoteNamespace == "" {
+	} else if store.GetKind() == esv1.ClusterSecretStoreKind {
 		accessNS = ""
 	}
 	if p.accessCheckFn != nil {

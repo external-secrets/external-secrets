@@ -565,21 +565,6 @@ func TestNewClientInternal(t *testing.T) {
 		}
 	})
 
-	t.Run("remoteNamespace overrides store namespace on client", func(t *testing.T) {
-		prov := &esv1.CRDProvider{
-			ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-			Resource:          widgetResource,
-			RemoteNamespace:   "remote-ns",
-		}
-		client, err := providerWithFakeDiscover("widgets").newClientWithRESTConfig(context.Background(), makeStoreWithCRDProvider(prov), defaultRESTCfg(), resolveCRDTargetNamespace(prov, "es-ns"))
-		if err != nil {
-			t.Fatalf("newClientWithRESTConfig() unexpected error: %v", err)
-		}
-		if client.(*Client).namespace != "remote-ns" {
-			t.Fatalf("client namespace = %q, want %q", client.(*Client).namespace, "remote-ns")
-		}
-	})
-
 	t.Run("cluster-scoped discovery sets namespaced false on client", func(t *testing.T) {
 		client, err := providerWithFakeDiscover("clusterdbspecs", false).newClientWithRESTConfig(context.Background(), store, defaultRESTCfg(), "default")
 		if err != nil {
