@@ -408,6 +408,23 @@ AkeylessKubernetesAuth
 token stored in the named Secret resource.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef specifies a Kubernetes ServiceAccount used for azure_ad
+authentication on AKS Workload Identity. The operator obtains a federated
+identity token from this ServiceAccount via the TokenRequest API instead
+of using the ESO controller pod identity. Ignored for other access types.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.AkeylessAuthSecretRef">AkeylessAuthSecretRef
@@ -27418,6 +27435,9 @@ string
 </tr><tr><td><p>&#34;GithubAccessToken&#34;</p></td>
 <td><p>GeneratorKindGithubAccessToken represents a GitHub access token generator.</p>
 </td>
+</tr><tr><td><p>&#34;GitlabDeployToken&#34;</p></td>
+<td><p>GeneratorKindGitlabDeployToken represents a GitLab deploy token generator.</p>
+</td>
 </tr><tr><td><p>&#34;Grafana&#34;</p></td>
 <td><p>GeneratorKindGrafana represents a Grafana token generator.</p>
 </td>
@@ -27547,6 +27567,18 @@ GCRAccessTokenSpec
 <em>
 <a href="#generators.external-secrets.io/v1alpha1.GithubAccessTokenSpec">
 GithubAccessTokenSpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>gitlabDeployTokenSpec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.GitlabDeployTokenSpec">
+GitlabDeployTokenSpec
 </a>
 </em>
 </td>
@@ -28216,6 +28248,386 @@ External Secrets meta/v1.SecretKeySelector
 </tr>
 </tbody>
 </table>
+<h3 id="generators.external-secrets.io/v1alpha1.GitlabDeployToken">GitlabDeployToken
+</h3>
+<p>
+<p>GitlabDeployToken generates a GitLab deploy token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.GitlabDeployTokenSpec">
+GitlabDeployTokenSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>url</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>URL configures the GitLab instance URL. Defaults to <a href="https://gitlab.com">https://gitlab.com</a>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProjectID is the numeric ID or unescaped path (e.g. group/project) of the
+project to create the deploy token in. The generator URL-escapes paths before
+calling the GitLab API, so do not pre-encode. Mutually exclusive with groupID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>groupID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GroupID is the numeric ID or unescaped path (e.g. parent/group) of the group to
+create the deploy token in. The generator URL-escapes paths before calling the
+GitLab API, so do not pre-encode. Mutually exclusive with projectID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the deploy token.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>scopes</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.GitlabDeployTokenScope">
+[]GitlabDeployTokenScope
+</a>
+</em>
+</td>
+<td>
+<p>Scopes granted to the deploy token. At least one scope is required.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expiresAt</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#time-v1-meta">
+Kubernetes meta/v1.Time
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExpiresAt is an optional expiry for the deploy token. If omitted the token does
+not expire on the GitLab side and is revoked only when the generator state is
+cleaned up (on regeneration or when the consuming ExternalSecret is deleted).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Username is an optional username for the deploy token. GitLab defaults it to
+gitlab+deploy-token-{n} when omitted.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.GitlabDeployTokenAuth">
+GitlabDeployTokenAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how ESO authenticates with the GitLab API.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.GitlabDeployTokenAuth">GitlabDeployTokenAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.GitlabDeployTokenSpec">GitlabDeployTokenSpec</a>)
+</p>
+<p>
+<p>GitlabDeployTokenAuth defines the authentication configuration for the GitLab API.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>token</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.GitlabDeployTokenSecretRef">
+GitlabDeployTokenSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>Token references a secret containing a GitLab access token (personal, group, or
+project) with the api scope and at least the Maintainer role on the target.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.GitlabDeployTokenScope">GitlabDeployTokenScope
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.GitlabDeployTokenSpec">GitlabDeployTokenSpec</a>)
+</p>
+<p>
+<p>GitlabDeployTokenScope is a scope that can be granted to a GitLab deploy token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;read_package_registry&#34;</p></td>
+<td><p>GitlabDeployTokenScopeReadPackageRegistry allows read access to the package registry.</p>
+</td>
+</tr><tr><td><p>&#34;read_registry&#34;</p></td>
+<td><p>GitlabDeployTokenScopeReadRegistry allows read access to the container registry.</p>
+</td>
+</tr><tr><td><p>&#34;read_repository&#34;</p></td>
+<td><p>GitlabDeployTokenScopeReadRepository allows read access to the repository.</p>
+</td>
+</tr><tr><td><p>&#34;read_virtual_registry&#34;</p></td>
+<td><p>GitlabDeployTokenScopeReadVirtualRegistry allows read access to the virtual registry (projects only).</p>
+</td>
+</tr><tr><td><p>&#34;write_package_registry&#34;</p></td>
+<td><p>GitlabDeployTokenScopeWritePackageRegistry allows write access to the package registry.</p>
+</td>
+</tr><tr><td><p>&#34;write_registry&#34;</p></td>
+<td><p>GitlabDeployTokenScopeWriteRegistry allows write access to the container registry.</p>
+</td>
+</tr><tr><td><p>&#34;write_virtual_registry&#34;</p></td>
+<td><p>GitlabDeployTokenScopeWriteVirtualRegistry allows write access to the virtual registry (projects only).</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.GitlabDeployTokenSecretRef">GitlabDeployTokenSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.GitlabDeployTokenAuth">GitlabDeployTokenAuth</a>)
+</p>
+<p>
+<p>GitlabDeployTokenSecretRef references a secret containing a GitLab access token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.GitlabDeployTokenSpec">GitlabDeployTokenSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GitlabDeployToken">GitlabDeployToken</a>)
+</p>
+<p>
+<p>GitlabDeployTokenSpec defines the desired state to generate a GitLab deploy token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>url</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>URL configures the GitLab instance URL. Defaults to <a href="https://gitlab.com">https://gitlab.com</a>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>projectID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProjectID is the numeric ID or unescaped path (e.g. group/project) of the
+project to create the deploy token in. The generator URL-escapes paths before
+calling the GitLab API, so do not pre-encode. Mutually exclusive with groupID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>groupID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GroupID is the numeric ID or unescaped path (e.g. parent/group) of the group to
+create the deploy token in. The generator URL-escapes paths before calling the
+GitLab API, so do not pre-encode. Mutually exclusive with projectID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name of the deploy token.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>scopes</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.GitlabDeployTokenScope">
+[]GitlabDeployTokenScope
+</a>
+</em>
+</td>
+<td>
+<p>Scopes granted to the deploy token. At least one scope is required.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expiresAt</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#time-v1-meta">
+Kubernetes meta/v1.Time
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExpiresAt is an optional expiry for the deploy token. If omitted the token does
+not expire on the GitLab side and is revoked only when the generator state is
+cleaned up (on regeneration or when the consuming ExternalSecret is deleted).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>username</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Username is an optional username for the deploy token. GitLab defaults it to
+gitlab+deploy-token-{n} when omitted.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.GitlabDeployTokenAuth">
+GitlabDeployTokenAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures how ESO authenticates with the GitLab API.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="generators.external-secrets.io/v1alpha1.Grafana">Grafana
 </h3>
 <p>
@@ -28435,6 +28847,19 @@ string
 <p>Role is the role of the service account.
 See here for the documentation on basic roles offered by Grafana:
 <a href="https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/">https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secondsToLive</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecondsToLive is the number of seconds before the generated service account token will expire.
+Some Grafana deployments (e.g. AWS Managed Grafana) require this value to be set.</p>
 </td>
 </tr>
 </tbody>
