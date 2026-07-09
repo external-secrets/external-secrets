@@ -114,7 +114,6 @@ spec:
                                   - Fetch
                                 type: string
                               nullBytePolicy:
-                                default: Ignore
                                 description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
                                 enum:
                                   - Ignore
@@ -157,12 +156,14 @@ spec:
                                     description: Specify the Kind of the generator resource
                                     enum:
                                       - ACRAccessToken
+                                      - BeyondtrustWorkloadCredentialsDynamicSecret
                                       - ClusterGenerator
                                       - CloudsmithAccessToken
                                       - ECRAuthorizationToken
                                       - Fake
                                       - GCRAccessToken
                                       - GithubAccessToken
+                                      - GitlabDeployToken
                                       - QuayAccessToken
                                       - Password
                                       - SSHKey
@@ -248,7 +249,6 @@ spec:
                                   - Fetch
                                 type: string
                               nullBytePolicy:
-                                default: Ignore
                                 description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
                                 enum:
                                   - Ignore
@@ -292,7 +292,6 @@ spec:
                                     type: string
                                 type: object
                               nullBytePolicy:
-                                default: Ignore
                                 description: Controls how ESO handles fetched secret data containing NUL bytes for this find source.
                                 enum:
                                   - Ignore
@@ -406,12 +405,14 @@ spec:
                                     description: Specify the Kind of the generator resource
                                     enum:
                                       - ACRAccessToken
+                                      - BeyondtrustWorkloadCredentialsDynamicSecret
                                       - ClusterGenerator
                                       - CloudsmithAccessToken
                                       - ECRAuthorizationToken
                                       - Fake
                                       - GCRAccessToken
                                       - GithubAccessToken
+                                      - GitlabDeployToken
                                       - QuayAccessToken
                                       - Password
                                       - SSHKey
@@ -491,6 +492,53 @@ spec:
                           minLength: 1
                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                           type: string
+                      type: object
+                    syncWindows:
+                      description: |-
+                        SyncWindows optionally restricts when periodic refreshes may occur.
+                        Evaluated in UTC, only for Periodic refresh policy (or when refreshPolicy is unset).
+                      properties:
+                        kind:
+                          description: |-
+                            Kind applies to every window in the list.
+                            "allow" -- syncs are permitted only while at least one window is active;
+                                       all other times are blocked.
+                            "deny"  -- syncs are blocked while any window is active;
+                                       all other times are permitted.
+                          enum:
+                            - allow
+                            - deny
+                          type: string
+                        windows:
+                          description: Windows is the list of schedule+duration pairs.
+                          items:
+                            description: |-
+                              ExternalSecretSyncWindowEntry defines a single cron-schedule + duration pair
+                              within a SyncWindows block.
+                            properties:
+                              duration:
+                                description: |-
+                                  Duration specifies how long the window stays open after each Schedule
+                                  firing. Example: "8h".
+                                type: string
+                              schedule:
+                                description: |-
+                                  Schedule is a standard 5-field cron expression evaluated in UTC, or a
+                                  named shorthand such as @daily or @every 1h. It marks the start time of
+                                  each window occurrence.
+                                  Example: "0 22 * * 1-5" opens a window every weekday at 22:00 UTC.
+                                minLength: 1
+                                pattern: ^(@(annually|yearly|monthly|weekly|daily|midnight|hourly)|@every [^\s]+.*|[^\s]+( [^\s]+){4})$
+                                type: string
+                            required:
+                              - duration
+                              - schedule
+                            type: object
+                          minItems: 1
+                          type: array
+                      required:
+                        - kind
+                        - windows
                       type: object
                     target:
                       default:
@@ -675,6 +723,15 @@ spec:
                                       For Secret resources, common values are: "Data", "Annotations", "Labels".
                                       For custom resources (when spec.target.manifest is set), this supports
                                       nested paths like "spec.database.config" or "data".
+                                    type: string
+                                  valuesDecodingStrategy:
+                                    default: None
+                                    description: Used to define a decoding Strategy for the rendered template values.
+                                    enum:
+                                      - Auto
+                                      - Base64
+                                      - Base64URL
+                                      - None
                                     type: string
                                 type: object
                               type: array
@@ -1976,12 +2033,14 @@ spec:
                               description: Specify the Kind of the generator resource
                               enum:
                                 - ACRAccessToken
+                                - BeyondtrustWorkloadCredentialsDynamicSecret
                                 - ClusterGenerator
                                 - CloudsmithAccessToken
                                 - ECRAuthorizationToken
                                 - Fake
                                 - GCRAccessToken
                                 - GithubAccessToken
+                                - GitlabDeployToken
                                 - QuayAccessToken
                                 - Password
                                 - SSHKey
@@ -2183,6 +2242,15 @@ spec:
                                   For Secret resources, common values are: "Data", "Annotations", "Labels".
                                   For custom resources (when spec.target.manifest is set), this supports
                                   nested paths like "spec.database.config" or "data".
+                                type: string
+                              valuesDecodingStrategy:
+                                default: None
+                                description: Used to define a decoding Strategy for the rendered template values.
+                                enum:
+                                  - Auto
+                                  - Base64
+                                  - Base64URL
+                                  - None
                                 type: string
                             type: object
                           type: array
@@ -2568,6 +2636,38 @@ spec:
                                       type: string
                                   type: object
                               type: object
+                            serviceAccountRef:
+                              description: |-
+                                ServiceAccountRef specifies a Kubernetes ServiceAccount used for azure_ad
+                                authentication on AKS Workload Identity. The operator obtains a federated
+                                identity token from this ServiceAccount via the TokenRequest API instead
+                                of using the ESO controller pod identity. Ignored for other access types.
+                              properties:
+                                audiences:
+                                  description: |-
+                                    Audience specifies the `aud` claim for the service account token
+                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                    then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
+                                name:
+                                  description: The name of the ServiceAccount resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              required:
+                                - name
+                              type: object
                           type: object
                         caBundle:
                           description: |-
@@ -2747,6 +2847,16 @@ spec:
                                   type: object
                               type: object
                           type: object
+                        customSessionTags:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            CustomSessionTags defines additional STS session tags to include when SessionTagsPolicy is Custom.
+                            These are merged with the automatically injected esoNamespace, esoStoreName, and esoStoreKind tags.
+                          type: object
+                          x-kubernetes-validations:
+                            - message: 'customSessionTags cannot contain automatically injected reserved keys: esoNamespace, esoStoreName, esoStoreKind'
+                              rule: '!(''esoNamespace'' in self) && !(''esoStoreName'' in self) && !(''esoStoreKind'' in self)'
                         externalID:
                           description: AWS External ID set on assumed IAM roles
                           type: string
@@ -2802,6 +2912,19 @@ spec:
                               - value
                             type: object
                           type: array
+                        sessionTagsPolicy:
+                          default: None
+                          description: |-
+                            SessionTagsPolicy controls whether and how STS session tags are added when assuming roles.
+                            None (default): no tags are added.
+                            Simple: automatically adds esoNamespace (from the ExternalSecret), esoStoreName, and esoStoreKind tags.
+                            Custom: adds esoNamespace, esoStoreName, and esoStoreKind plus any tags defined in CustomSessionTags.
+                            Note: the IAM role must have sts:TagSession permission when using Simple or Custom.
+                          enum:
+                            - None
+                            - Simple
+                            - Custom
+                          type: string
                         transitiveTagKeys:
                           description: AWS STS assume role transitive session tags. Required when multiple rules are used with the provider
                           items:
@@ -2929,6 +3052,7 @@ spec:
                             Valid values are:
                             - "ServicePrincipal" (default): Using a service principal (tenantId, clientId, clientSecret)
                             - "ManagedIdentity": Using Managed Identity assigned to the pod (see aad-pod-identity)
+                            - "WorkloadIdentity": Using a Kubernetes ServiceAccount federated with Entra ID
                           enum:
                             - ServicePrincipal
                             - ManagedIdentity
@@ -3312,6 +3436,136 @@ spec:
                           required:
                             - apiUrl
                             - verifyCA
+                          type: object
+                      required:
+                        - auth
+                        - server
+                      type: object
+                    beyondtrustworkloadcredentials:
+                      description: BeyondtrustWorkloadCredentials configures this store to sync secrets using the BeyondTrust Workload Credentials provider.
+                      properties:
+                        auth:
+                          description: |-
+                            Auth configures how the Operator authenticates with the BeyondTrust Workload Credentials API.
+                            Currently supports API key authentication via Kubernetes secret reference.
+                            For authentication setup, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
+                          properties:
+                            apikey:
+                              description: |-
+                                APIKey configures API token authentication for BeyondTrust Workload Credentials.
+                                The token is retrieved from a Kubernetes secret and used as a Bearer token for API requests.
+                              properties:
+                                token:
+                                  description: |-
+                                    Token references the Kubernetes secret containing the BeyondTrust Workload Credentials API token.
+                                    The secret should contain the API key used to authenticate with BeyondTrust Workload Credentials.
+                                    Create an API token in your BeyondTrust Workload Credentials console and store it in a Kubernetes secret.
+                                    For details on creating API tokens, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - token
+                              type: object
+                          required:
+                            - apikey
+                          type: object
+                        caBundle:
+                          description: |-
+                            CABundle is a base64-encoded CA certificate used to validate the BeyondTrust Workload Credentials API TLS certificate.
+                            Use this when your BeyondTrust instance uses a self-signed certificate or internal CA.
+                            If not set, the system's trusted root certificates are used.
+                          format: byte
+                          type: string
+                        caProvider:
+                          description: |-
+                            CAProvider points to a Secret or ConfigMap containing a PEM-encoded CA certificate.
+                            This is used to validate the BeyondTrust Workload Credentials API TLS certificate.
+                            Use this as an alternative to CABundle when you want to reference an existing Kubernetes resource.
+                          properties:
+                            key:
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the object located at the provider type.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace the Provider type is in.
+                                Can only be defined when used in a ClusterSecretStore.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                            type:
+                              description: The type of provider to use such as "Secret", or "ConfigMap".
+                              enum:
+                                - Secret
+                                - ConfigMap
+                              type: string
+                          required:
+                            - name
+                            - type
+                          type: object
+                        folderPath:
+                          description: |-
+                            FolderPath specifies the default folder path for secret retrieval.
+                            Secrets will be fetched from this folder unless overridden in the ExternalSecret spec.
+                            Example: "production/database" or "dev/api-keys"
+                            Leave empty to retrieve secrets from the root folder.
+                            For folder organization, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#folders
+                          type: string
+                        server:
+                          description: |-
+                            Server configures the BeyondTrust Workload Credentials server connection details.
+                            Includes the API URL and Site ID for your BeyondTrust instance.
+                            For API reference, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
+                          properties:
+                            apiUrl:
+                              description: |-
+                                APIURL is the base URL of your BeyondTrust Workload Credentials API server.
+                                This should be the full URL to your BeyondTrust instance.
+                                Example: https://api.beyondtrust.io/siie
+                                For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#base-url
+                              type: string
+                            siteId:
+                              description: |-
+                                SiteID is your BeyondTrust Workload Credentials site identifier (UUID format).
+                                This identifier is unique to your BeyondTrust Workload Credentials instance.
+                                You can find your Site ID in the BeyondTrust Workload Credentials admin console.
+                                Example: a1b2c3d4-e5f6-4890-abcd-ef1234567890
+                                For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
+                              type: string
+                          required:
+                            - apiUrl
+                            - siteId
                           type: object
                       required:
                         - auth
@@ -4255,6 +4509,18 @@ spec:
                                     externalTokenEndpoint is the endpoint explicitly set up to provide tokens, which will be matched against the
                                     credential_source.url in the provided credConfig. This field is merely to double-check the external token source
                                     URL is having the expected value.
+                                  type: string
+                                gcpServiceAccountEmail:
+                                  description: |-
+                                    GCPServiceAccountEmail is the email of the Google Cloud service account to impersonate
+                                    after Workload Identity Federation. Use this to grant access through the service account's
+                                    IAM bindings (for example roles/secretmanager.secretAccessor). When set, it overrides
+                                    service_account_impersonation_url in the external account JSON from credConfig;
+                                    when serviceAccountRef is set, it also overrides the "iam.gke.io/gcp-service-account" annotation
+                                    on that ServiceAccount.
+                                  example: my-gsa@my-project.iam.gserviceaccount.com
+                                  minLength: 1
+                                  pattern: ^.*@.*\.iam\.gserviceaccount\.com$
                                   type: string
                                 serviceAccountRef:
                                   description: |-
@@ -5320,6 +5586,11 @@ spec:
                               default: true
                               description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
                               type: boolean
+                            organizationSlug:
+                              description: |-
+                                OrganizationSlug is the optional slug that identifies the organization that will be used
+                                during authentication. Useful for sub-organization setups
+                              type: string
                             projectSlug:
                               description: ProjectSlug is the required slug identifier for the project.
                               type: string
@@ -5970,6 +6241,265 @@ spec:
                         - auth
                         - vault
                       type: object
+                    openBao:
+                      description: OpenBao configures this store to sync secrets using the OpenBao provider.
+                      properties:
+                        auth:
+                          description: Auth configures how secret-manager authenticates with the OpenBao server.
+                          properties:
+                            appRole:
+                              description: |-
+                                AppRole authenticates with OpenBao using the [App Role auth mechanism],
+                                with the role and secret stored in a Kubernetes Secret resource.
+
+                                [App Role auth mechanism]: https://openbao.org/docs/auth/approle/
+                              properties:
+                                path:
+                                  default: approle
+                                  description: |-
+                                    Path where the App Role authentication backend is mounted
+                                    in OpenBao, e.g: "approle"
+                                  type: string
+                                roleId:
+                                  description: |-
+                                    RoleID configured in the App Role authentication backend when setting
+                                    up the authentication backend in OpenBao.
+                                  minLength: 1
+                                  type: string
+                                roleRef:
+                                  description: |-
+                                    Reference to a key in a Secret that contains the App Role ID used
+                                    to authenticate with OpenBao.
+                                    The `key` field must be specified and denotes which entry within the Secret
+                                    resource is used as the app role id.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                secretRef:
+                                  description: |-
+                                    Reference to a key in a Secret that contains the App Role secret used
+                                    to authenticate with OpenBao.
+                                    The `key` field must be specified and denotes which entry within the Secret
+                                    resource is used as the app role secret.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - path
+                                - secretRef
+                              type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of the fields in [roleId roleRef] must be set
+                                  rule: '[has(self.roleId),has(self.roleRef)].filter(x,x==true).size() == 1'
+                            namespace:
+                              description: |-
+                                Name of the [OpenBao Namespace] to authenticate to. This can be different
+                                than the namespace your secret is in. Namespaces is a set of features
+                                within OpenBao that allows OpenBao environments to support secure
+                                multi-tenancy. e.g: "ns1". This will default to OpenBao.Namespace field
+                                if set, or empty otherwise
+
+                                [OpenBao Namespace]: https://openbao.org/docs/concepts/namespaces/
+                              type: string
+                            tokenSecretRef:
+                              description: TokenSecretRef authenticates with OpenBao by presenting a token.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                            userPass:
+                              description: UserPass authenticates with OpenBao by passing a username/password pair
+                              properties:
+                                path:
+                                  default: userpass
+                                  description: |-
+                                    Path where the UserPassword authentication backend is mounted
+                                    in OpenBao, e.g: "userpass"
+                                  type: string
+                                secretRef:
+                                  description: |-
+                                    SecretRef to a key in a Secret resource containing password for the user
+                                    used to authenticate with OpenBao using the [UserPass authentication
+                                    method]
+
+                                    [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                username:
+                                  description: |-
+                                    Username is a username used to authenticate using the [UserPass
+                                    authentication method]
+
+                                    [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
+                                  type: string
+                              required:
+                                - path
+                                - username
+                              type: object
+                          type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of the fields in [appRole tokenSecretRef userPass] must be set
+                              rule: '[has(self.appRole),has(self.tokenSecretRef),has(self.userPass)].filter(x,x==true).size() == 1'
+                        caBundle:
+                          description: |-
+                            PEM encoded CA bundle used to validate the OpenBao server certificate. If
+                            this and `caProvider` are not set the system root certificates are used
+                            to validate the TLS connection.
+                          format: byte
+                          type: string
+                        caProvider:
+                          description: |-
+                            The provider for the CA bundle to use to validate OpenBao server
+                            certificate. If this and `caBundle` are not set the system root
+                            certificates are used to validate the TLS connection.
+                          properties:
+                            key:
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the object located at the provider type.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace the Provider type is in.
+                                Can only be defined when used in a ClusterSecretStore.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                            type:
+                              description: The type of provider to use such as "Secret", or "ConfigMap".
+                              enum:
+                                - Secret
+                                - ConfigMap
+                              type: string
+                          required:
+                            - name
+                            - type
+                          type: object
+                        namespace:
+                          description: |-
+                            Name of the [OpenBao Namespace]. Namespaces is a set of features within
+                            OpenBao that allows OpenBao environments to support secure multi-tenancy.
+                            e.g: "ns1".
+
+                            [OpenBao Namespace]: https://openbao.org/docs/concepts/namespaces/
+                          type: string
+                        path:
+                          description: |-
+                            Path is the mount path of the OpenBao KV backend endpoint, e.g:
+                            "secret". The v2 KV secret engine version specific "/data" path suffix
+                            for fetching secrets from OpenBao is optional and will be appended
+                            if not present in specified path.
+                          type: string
+                        server:
+                          description: 'Server is the connection address for the OpenBao server, e.g: `https://openbao.example.com:8200`.'
+                          type: string
+                        version:
+                          default: v2
+                          description: |-
+                            Version is the OpenBao KV secret engine version. This can be either "v1" or
+                            "v2". Version defaults to "v2".
+                          enum:
+                            - v1
+                            - v2
+                          type: string
+                      required:
+                        - server
+                      type: object
+                      x-kubernetes-validations:
+                        - message: at most one of the fields in [caBundle caProvider] may be set
+                          rule: '[has(self.caBundle),has(self.caProvider)].filter(x,x==true).size() <= 1'
                     oracle:
                       description: Oracle configures this store to sync secrets using Oracle Vault provider
                       properties:
@@ -12722,7 +13252,6 @@ spec:
                               - Fetch
                             type: string
                           nullBytePolicy:
-                            default: Ignore
                             description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
                             enum:
                               - Ignore
@@ -12765,12 +13294,14 @@ spec:
                                 description: Specify the Kind of the generator resource
                                 enum:
                                   - ACRAccessToken
+                                  - BeyondtrustWorkloadCredentialsDynamicSecret
                                   - ClusterGenerator
                                   - CloudsmithAccessToken
                                   - ECRAuthorizationToken
                                   - Fake
                                   - GCRAccessToken
                                   - GithubAccessToken
+                                  - GitlabDeployToken
                                   - QuayAccessToken
                                   - Password
                                   - SSHKey
@@ -12856,7 +13387,6 @@ spec:
                               - Fetch
                             type: string
                           nullBytePolicy:
-                            default: Ignore
                             description: Controls how ESO handles fetched secret data containing NUL bytes for this source.
                             enum:
                               - Ignore
@@ -12900,7 +13430,6 @@ spec:
                                 type: string
                             type: object
                           nullBytePolicy:
-                            default: Ignore
                             description: Controls how ESO handles fetched secret data containing NUL bytes for this find source.
                             enum:
                               - Ignore
@@ -13014,12 +13543,14 @@ spec:
                                 description: Specify the Kind of the generator resource
                                 enum:
                                   - ACRAccessToken
+                                  - BeyondtrustWorkloadCredentialsDynamicSecret
                                   - ClusterGenerator
                                   - CloudsmithAccessToken
                                   - ECRAuthorizationToken
                                   - Fake
                                   - GCRAccessToken
                                   - GithubAccessToken
+                                  - GitlabDeployToken
                                   - QuayAccessToken
                                   - Password
                                   - SSHKey
@@ -13099,6 +13630,53 @@ spec:
                       minLength: 1
                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
                       type: string
+                  type: object
+                syncWindows:
+                  description: |-
+                    SyncWindows optionally restricts when periodic refreshes may occur.
+                    Evaluated in UTC, only for Periodic refresh policy (or when refreshPolicy is unset).
+                  properties:
+                    kind:
+                      description: |-
+                        Kind applies to every window in the list.
+                        "allow" -- syncs are permitted only while at least one window is active;
+                                   all other times are blocked.
+                        "deny"  -- syncs are blocked while any window is active;
+                                   all other times are permitted.
+                      enum:
+                        - allow
+                        - deny
+                      type: string
+                    windows:
+                      description: Windows is the list of schedule+duration pairs.
+                      items:
+                        description: |-
+                          ExternalSecretSyncWindowEntry defines a single cron-schedule + duration pair
+                          within a SyncWindows block.
+                        properties:
+                          duration:
+                            description: |-
+                              Duration specifies how long the window stays open after each Schedule
+                              firing. Example: "8h".
+                            type: string
+                          schedule:
+                            description: |-
+                              Schedule is a standard 5-field cron expression evaluated in UTC, or a
+                              named shorthand such as @daily or @every 1h. It marks the start time of
+                              each window occurrence.
+                              Example: "0 22 * * 1-5" opens a window every weekday at 22:00 UTC.
+                            minLength: 1
+                            pattern: ^(@(annually|yearly|monthly|weekly|daily|midnight|hourly)|@every [^\s]+.*|[^\s]+( [^\s]+){4})$
+                            type: string
+                        required:
+                          - duration
+                          - schedule
+                        type: object
+                      minItems: 1
+                      type: array
+                  required:
+                    - kind
+                    - windows
                   type: object
                 target:
                   default:
@@ -13283,6 +13861,15 @@ spec:
                                   For Secret resources, common values are: "Data", "Annotations", "Labels".
                                   For custom resources (when spec.target.manifest is set), this supports
                                   nested paths like "spec.database.config" or "data".
+                                type: string
+                              valuesDecodingStrategy:
+                                default: None
+                                description: Used to define a decoding Strategy for the rendered template values.
+                                enum:
+                                  - Auto
+                                  - Base64
+                                  - Base64URL
+                                  - None
                                 type: string
                             type: object
                           type: array
@@ -14297,12 +14884,14 @@ spec:
                           description: Specify the Kind of the generator resource
                           enum:
                             - ACRAccessToken
+                            - BeyondtrustWorkloadCredentialsDynamicSecret
                             - ClusterGenerator
                             - CloudsmithAccessToken
                             - ECRAuthorizationToken
                             - Fake
                             - GCRAccessToken
                             - GithubAccessToken
+                            - GitlabDeployToken
                             - QuayAccessToken
                             - Password
                             - SSHKey
@@ -14504,6 +15093,15 @@ spec:
                               For Secret resources, common values are: "Data", "Annotations", "Labels".
                               For custom resources (when spec.target.manifest is set), this supports
                               nested paths like "spec.database.config" or "data".
+                            type: string
+                          valuesDecodingStrategy:
+                            default: None
+                            description: Used to define a decoding Strategy for the rendered template values.
+                            enum:
+                              - Auto
+                              - Base64
+                              - Base64URL
+                              - None
                             type: string
                         type: object
                       type: array
@@ -14917,6 +15515,38 @@ spec:
                                       type: string
                                   type: object
                               type: object
+                            serviceAccountRef:
+                              description: |-
+                                ServiceAccountRef specifies a Kubernetes ServiceAccount used for azure_ad
+                                authentication on AKS Workload Identity. The operator obtains a federated
+                                identity token from this ServiceAccount via the TokenRequest API instead
+                                of using the ESO controller pod identity. Ignored for other access types.
+                              properties:
+                                audiences:
+                                  description: |-
+                                    Audience specifies the `aud` claim for the service account token
+                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                    then this audiences will be appended to the list
+                                  items:
+                                    type: string
+                                  type: array
+                                name:
+                                  description: The name of the ServiceAccount resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              required:
+                                - name
+                              type: object
                           type: object
                         caBundle:
                           description: |-
@@ -15096,6 +15726,16 @@ spec:
                                   type: object
                               type: object
                           type: object
+                        customSessionTags:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            CustomSessionTags defines additional STS session tags to include when SessionTagsPolicy is Custom.
+                            These are merged with the automatically injected esoNamespace, esoStoreName, and esoStoreKind tags.
+                          type: object
+                          x-kubernetes-validations:
+                            - message: 'customSessionTags cannot contain automatically injected reserved keys: esoNamespace, esoStoreName, esoStoreKind'
+                              rule: '!(''esoNamespace'' in self) && !(''esoStoreName'' in self) && !(''esoStoreKind'' in self)'
                         externalID:
                           description: AWS External ID set on assumed IAM roles
                           type: string
@@ -15151,6 +15791,19 @@ spec:
                               - value
                             type: object
                           type: array
+                        sessionTagsPolicy:
+                          default: None
+                          description: |-
+                            SessionTagsPolicy controls whether and how STS session tags are added when assuming roles.
+                            None (default): no tags are added.
+                            Simple: automatically adds esoNamespace (from the ExternalSecret), esoStoreName, and esoStoreKind tags.
+                            Custom: adds esoNamespace, esoStoreName, and esoStoreKind plus any tags defined in CustomSessionTags.
+                            Note: the IAM role must have sts:TagSession permission when using Simple or Custom.
+                          enum:
+                            - None
+                            - Simple
+                            - Custom
+                          type: string
                         transitiveTagKeys:
                           description: AWS STS assume role transitive session tags. Required when multiple rules are used with the provider
                           items:
@@ -15278,6 +15931,7 @@ spec:
                             Valid values are:
                             - "ServicePrincipal" (default): Using a service principal (tenantId, clientId, clientSecret)
                             - "ManagedIdentity": Using Managed Identity assigned to the pod (see aad-pod-identity)
+                            - "WorkloadIdentity": Using a Kubernetes ServiceAccount federated with Entra ID
                           enum:
                             - ServicePrincipal
                             - ManagedIdentity
@@ -15661,6 +16315,136 @@ spec:
                           required:
                             - apiUrl
                             - verifyCA
+                          type: object
+                      required:
+                        - auth
+                        - server
+                      type: object
+                    beyondtrustworkloadcredentials:
+                      description: BeyondtrustWorkloadCredentials configures this store to sync secrets using the BeyondTrust Workload Credentials provider.
+                      properties:
+                        auth:
+                          description: |-
+                            Auth configures how the Operator authenticates with the BeyondTrust Workload Credentials API.
+                            Currently supports API key authentication via Kubernetes secret reference.
+                            For authentication setup, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
+                          properties:
+                            apikey:
+                              description: |-
+                                APIKey configures API token authentication for BeyondTrust Workload Credentials.
+                                The token is retrieved from a Kubernetes secret and used as a Bearer token for API requests.
+                              properties:
+                                token:
+                                  description: |-
+                                    Token references the Kubernetes secret containing the BeyondTrust Workload Credentials API token.
+                                    The secret should contain the API key used to authenticate with BeyondTrust Workload Credentials.
+                                    Create an API token in your BeyondTrust Workload Credentials console and store it in a Kubernetes secret.
+                                    For details on creating API tokens, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - token
+                              type: object
+                          required:
+                            - apikey
+                          type: object
+                        caBundle:
+                          description: |-
+                            CABundle is a base64-encoded CA certificate used to validate the BeyondTrust Workload Credentials API TLS certificate.
+                            Use this when your BeyondTrust instance uses a self-signed certificate or internal CA.
+                            If not set, the system's trusted root certificates are used.
+                          format: byte
+                          type: string
+                        caProvider:
+                          description: |-
+                            CAProvider points to a Secret or ConfigMap containing a PEM-encoded CA certificate.
+                            This is used to validate the BeyondTrust Workload Credentials API TLS certificate.
+                            Use this as an alternative to CABundle when you want to reference an existing Kubernetes resource.
+                          properties:
+                            key:
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the object located at the provider type.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace the Provider type is in.
+                                Can only be defined when used in a ClusterSecretStore.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                            type:
+                              description: The type of provider to use such as "Secret", or "ConfigMap".
+                              enum:
+                                - Secret
+                                - ConfigMap
+                              type: string
+                          required:
+                            - name
+                            - type
+                          type: object
+                        folderPath:
+                          description: |-
+                            FolderPath specifies the default folder path for secret retrieval.
+                            Secrets will be fetched from this folder unless overridden in the ExternalSecret spec.
+                            Example: "production/database" or "dev/api-keys"
+                            Leave empty to retrieve secrets from the root folder.
+                            For folder organization, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#folders
+                          type: string
+                        server:
+                          description: |-
+                            Server configures the BeyondTrust Workload Credentials server connection details.
+                            Includes the API URL and Site ID for your BeyondTrust instance.
+                            For API reference, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
+                          properties:
+                            apiUrl:
+                              description: |-
+                                APIURL is the base URL of your BeyondTrust Workload Credentials API server.
+                                This should be the full URL to your BeyondTrust instance.
+                                Example: https://api.beyondtrust.io/siie
+                                For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#base-url
+                              type: string
+                            siteId:
+                              description: |-
+                                SiteID is your BeyondTrust Workload Credentials site identifier (UUID format).
+                                This identifier is unique to your BeyondTrust Workload Credentials instance.
+                                You can find your Site ID in the BeyondTrust Workload Credentials admin console.
+                                Example: a1b2c3d4-e5f6-4890-abcd-ef1234567890
+                                For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
+                              type: string
+                          required:
+                            - apiUrl
+                            - siteId
                           type: object
                       required:
                         - auth
@@ -16604,6 +17388,18 @@ spec:
                                     externalTokenEndpoint is the endpoint explicitly set up to provide tokens, which will be matched against the
                                     credential_source.url in the provided credConfig. This field is merely to double-check the external token source
                                     URL is having the expected value.
+                                  type: string
+                                gcpServiceAccountEmail:
+                                  description: |-
+                                    GCPServiceAccountEmail is the email of the Google Cloud service account to impersonate
+                                    after Workload Identity Federation. Use this to grant access through the service account's
+                                    IAM bindings (for example roles/secretmanager.secretAccessor). When set, it overrides
+                                    service_account_impersonation_url in the external account JSON from credConfig;
+                                    when serviceAccountRef is set, it also overrides the "iam.gke.io/gcp-service-account" annotation
+                                    on that ServiceAccount.
+                                  example: my-gsa@my-project.iam.gserviceaccount.com
+                                  minLength: 1
+                                  pattern: ^.*@.*\.iam\.gserviceaccount\.com$
                                   type: string
                                 serviceAccountRef:
                                   description: |-
@@ -17669,6 +18465,11 @@ spec:
                               default: true
                               description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
                               type: boolean
+                            organizationSlug:
+                              description: |-
+                                OrganizationSlug is the optional slug that identifies the organization that will be used
+                                during authentication. Useful for sub-organization setups
+                              type: string
                             projectSlug:
                               description: ProjectSlug is the required slug identifier for the project.
                               type: string
@@ -18319,6 +19120,265 @@ spec:
                         - auth
                         - vault
                       type: object
+                    openBao:
+                      description: OpenBao configures this store to sync secrets using the OpenBao provider.
+                      properties:
+                        auth:
+                          description: Auth configures how secret-manager authenticates with the OpenBao server.
+                          properties:
+                            appRole:
+                              description: |-
+                                AppRole authenticates with OpenBao using the [App Role auth mechanism],
+                                with the role and secret stored in a Kubernetes Secret resource.
+
+                                [App Role auth mechanism]: https://openbao.org/docs/auth/approle/
+                              properties:
+                                path:
+                                  default: approle
+                                  description: |-
+                                    Path where the App Role authentication backend is mounted
+                                    in OpenBao, e.g: "approle"
+                                  type: string
+                                roleId:
+                                  description: |-
+                                    RoleID configured in the App Role authentication backend when setting
+                                    up the authentication backend in OpenBao.
+                                  minLength: 1
+                                  type: string
+                                roleRef:
+                                  description: |-
+                                    Reference to a key in a Secret that contains the App Role ID used
+                                    to authenticate with OpenBao.
+                                    The `key` field must be specified and denotes which entry within the Secret
+                                    resource is used as the app role id.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                secretRef:
+                                  description: |-
+                                    Reference to a key in a Secret that contains the App Role secret used
+                                    to authenticate with OpenBao.
+                                    The `key` field must be specified and denotes which entry within the Secret
+                                    resource is used as the app role secret.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - path
+                                - secretRef
+                              type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of the fields in [roleId roleRef] must be set
+                                  rule: '[has(self.roleId),has(self.roleRef)].filter(x,x==true).size() == 1'
+                            namespace:
+                              description: |-
+                                Name of the [OpenBao Namespace] to authenticate to. This can be different
+                                than the namespace your secret is in. Namespaces is a set of features
+                                within OpenBao that allows OpenBao environments to support secure
+                                multi-tenancy. e.g: "ns1". This will default to OpenBao.Namespace field
+                                if set, or empty otherwise
+
+                                [OpenBao Namespace]: https://openbao.org/docs/concepts/namespaces/
+                              type: string
+                            tokenSecretRef:
+                              description: TokenSecretRef authenticates with OpenBao by presenting a token.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                            userPass:
+                              description: UserPass authenticates with OpenBao by passing a username/password pair
+                              properties:
+                                path:
+                                  default: userpass
+                                  description: |-
+                                    Path where the UserPassword authentication backend is mounted
+                                    in OpenBao, e.g: "userpass"
+                                  type: string
+                                secretRef:
+                                  description: |-
+                                    SecretRef to a key in a Secret resource containing password for the user
+                                    used to authenticate with OpenBao using the [UserPass authentication
+                                    method]
+
+                                    [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                username:
+                                  description: |-
+                                    Username is a username used to authenticate using the [UserPass
+                                    authentication method]
+
+                                    [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
+                                  type: string
+                              required:
+                                - path
+                                - username
+                              type: object
+                          type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of the fields in [appRole tokenSecretRef userPass] must be set
+                              rule: '[has(self.appRole),has(self.tokenSecretRef),has(self.userPass)].filter(x,x==true).size() == 1'
+                        caBundle:
+                          description: |-
+                            PEM encoded CA bundle used to validate the OpenBao server certificate. If
+                            this and `caProvider` are not set the system root certificates are used
+                            to validate the TLS connection.
+                          format: byte
+                          type: string
+                        caProvider:
+                          description: |-
+                            The provider for the CA bundle to use to validate OpenBao server
+                            certificate. If this and `caBundle` are not set the system root
+                            certificates are used to validate the TLS connection.
+                          properties:
+                            key:
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the object located at the provider type.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace the Provider type is in.
+                                Can only be defined when used in a ClusterSecretStore.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                            type:
+                              description: The type of provider to use such as "Secret", or "ConfigMap".
+                              enum:
+                                - Secret
+                                - ConfigMap
+                              type: string
+                          required:
+                            - name
+                            - type
+                          type: object
+                        namespace:
+                          description: |-
+                            Name of the [OpenBao Namespace]. Namespaces is a set of features within
+                            OpenBao that allows OpenBao environments to support secure multi-tenancy.
+                            e.g: "ns1".
+
+                            [OpenBao Namespace]: https://openbao.org/docs/concepts/namespaces/
+                          type: string
+                        path:
+                          description: |-
+                            Path is the mount path of the OpenBao KV backend endpoint, e.g:
+                            "secret". The v2 KV secret engine version specific "/data" path suffix
+                            for fetching secrets from OpenBao is optional and will be appended
+                            if not present in specified path.
+                          type: string
+                        server:
+                          description: 'Server is the connection address for the OpenBao server, e.g: `https://openbao.example.com:8200`.'
+                          type: string
+                        version:
+                          default: v2
+                          description: |-
+                            Version is the OpenBao KV secret engine version. This can be either "v1" or
+                            "v2". Version defaults to "v2".
+                          enum:
+                            - v1
+                            - v2
+                          type: string
+                      required:
+                        - server
+                      type: object
+                      x-kubernetes-validations:
+                        - message: at most one of the fields in [caBundle caProvider] may be set
+                          rule: '[has(self.caBundle),has(self.caProvider)].filter(x,x==true).size() <= 1'
                     oracle:
                       description: Oracle configures this store to sync secrets using Oracle Vault provider
                       properties:
@@ -25183,6 +26243,219 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
+  name: beyondtrustworkloadcredentialsdynamicsecrets.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: BeyondtrustWorkloadCredentialsDynamicSecret
+    listKind: BeyondtrustWorkloadCredentialsDynamicSecretList
+    plural: beyondtrustworkloadcredentialsdynamicsecrets
+    singular: beyondtrustworkloadcredentialsdynamicsecret
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: |-
+            BeyondtrustWorkloadCredentialsDynamicSecret represents a generator that requests dynamic credentials from BeyondTrust Workload Credentials.
+            This generator calls the BeyondTrust Workload Credentials API to generate fresh, temporary credentials
+            (such as AWS STS credentials) each time an ExternalSecret is refreshed.
+            Dynamic secret definitions must be created in BeyondTrust Workload Credentials before they can be referenced.
+            For complete documentation, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: |-
+                BeyondtrustWorkloadCredentialsDynamicSecretSpec defines the desired spec for BeyondtrustWorkloadCredentials dynamic generator.
+                This generator enables obtaining temporary, short-lived credentials from BeyondTrust Workload Credentials.
+                For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
+              properties:
+                controller:
+                  description: |-
+                    Controller selects the controller that should handle this generator.
+                    Leave empty to use the default controller.
+                  type: string
+                provider:
+                  description: |-
+                    Provider contains the BeyondtrustWorkloadCredentials provider configuration including authentication,
+                    server connection details, and the folder path to the dynamic secret definition.
+                    The folderPath should point to a dynamic secret definition that has been created in
+                    BeyondTrust Workload Credentials (e.g., "production/aws-temp").
+                    For setup details, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
+                  properties:
+                    auth:
+                      description: |-
+                        Auth configures how the Operator authenticates with the BeyondTrust Workload Credentials API.
+                        Currently supports API key authentication via Kubernetes secret reference.
+                        For authentication setup, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
+                      properties:
+                        apikey:
+                          description: |-
+                            APIKey configures API token authentication for BeyondTrust Workload Credentials.
+                            The token is retrieved from a Kubernetes secret and used as a Bearer token for API requests.
+                          properties:
+                            token:
+                              description: |-
+                                Token references the Kubernetes secret containing the BeyondTrust Workload Credentials API token.
+                                The secret should contain the API key used to authenticate with BeyondTrust Workload Credentials.
+                                Create an API token in your BeyondTrust Workload Credentials console and store it in a Kubernetes secret.
+                                For details on creating API tokens, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - token
+                          type: object
+                      required:
+                        - apikey
+                      type: object
+                    caBundle:
+                      description: |-
+                        CABundle is a base64-encoded CA certificate used to validate the BeyondTrust Workload Credentials API TLS certificate.
+                        Use this when your BeyondTrust instance uses a self-signed certificate or internal CA.
+                        If not set, the system's trusted root certificates are used.
+                      format: byte
+                      type: string
+                    caProvider:
+                      description: |-
+                        CAProvider points to a Secret or ConfigMap containing a PEM-encoded CA certificate.
+                        This is used to validate the BeyondTrust Workload Credentials API TLS certificate.
+                        Use this as an alternative to CABundle when you want to reference an existing Kubernetes resource.
+                      properties:
+                        key:
+                          description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[-._a-zA-Z0-9]+$
+                          type: string
+                        name:
+                          description: The name of the object located at the provider type.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                          type: string
+                        namespace:
+                          description: |-
+                            The namespace the Provider type is in.
+                            Can only be defined when used in a ClusterSecretStore.
+                          maxLength: 63
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                          type: string
+                        type:
+                          description: The type of provider to use such as "Secret", or "ConfigMap".
+                          enum:
+                            - Secret
+                            - ConfigMap
+                          type: string
+                      required:
+                        - name
+                        - type
+                      type: object
+                    folderPath:
+                      description: |-
+                        FolderPath specifies the default folder path for secret retrieval.
+                        Secrets will be fetched from this folder unless overridden in the ExternalSecret spec.
+                        Example: "production/database" or "dev/api-keys"
+                        Leave empty to retrieve secrets from the root folder.
+                        For folder organization, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#folders
+                      type: string
+                    server:
+                      description: |-
+                        Server configures the BeyondTrust Workload Credentials server connection details.
+                        Includes the API URL and Site ID for your BeyondTrust instance.
+                        For API reference, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
+                      properties:
+                        apiUrl:
+                          description: |-
+                            APIURL is the base URL of your BeyondTrust Workload Credentials API server.
+                            This should be the full URL to your BeyondTrust instance.
+                            Example: https://api.beyondtrust.io/siie
+                            For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#base-url
+                          type: string
+                        siteId:
+                          description: |-
+                            SiteID is your BeyondTrust Workload Credentials site identifier (UUID format).
+                            This identifier is unique to your BeyondTrust Workload Credentials instance.
+                            You can find your Site ID in the BeyondTrust Workload Credentials admin console.
+                            Example: a1b2c3d4-e5f6-4890-abcd-ef1234567890
+                            For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
+                          type: string
+                      required:
+                        - apiUrl
+                        - siteId
+                      type: object
+                  required:
+                    - auth
+                    - server
+                  type: object
+                retrySettings:
+                  description: |-
+                    RetrySettings configures exponential backoff for failed API requests.
+                    If not specified, uses the default retry settings.
+                  properties:
+                    maxRetries:
+                      format: int32
+                      type: integer
+                    retryInterval:
+                      type: string
+                  type: object
+              required:
+                - provider
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+    external-secrets.io/component: controller
   name: cloudsmithaccesstokens.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -25471,6 +26744,166 @@ spec:
                       required:
                         - auth
                         - registry
+                      type: object
+                    beyondtrustWorkloadCredentialsDynamicSecretSpec:
+                      description: |-
+                        BeyondtrustWorkloadCredentialsDynamicSecretSpec defines the desired spec for BeyondtrustWorkloadCredentials dynamic generator.
+                        This generator enables obtaining temporary, short-lived credentials from BeyondTrust Workload Credentials.
+                        For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
+                      properties:
+                        controller:
+                          description: |-
+                            Controller selects the controller that should handle this generator.
+                            Leave empty to use the default controller.
+                          type: string
+                        provider:
+                          description: |-
+                            Provider contains the BeyondtrustWorkloadCredentials provider configuration including authentication,
+                            server connection details, and the folder path to the dynamic secret definition.
+                            The folderPath should point to a dynamic secret definition that has been created in
+                            BeyondTrust Workload Credentials (e.g., "production/aws-temp").
+                            For setup details, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
+                          properties:
+                            auth:
+                              description: |-
+                                Auth configures how the Operator authenticates with the BeyondTrust Workload Credentials API.
+                                Currently supports API key authentication via Kubernetes secret reference.
+                                For authentication setup, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
+                              properties:
+                                apikey:
+                                  description: |-
+                                    APIKey configures API token authentication for BeyondTrust Workload Credentials.
+                                    The token is retrieved from a Kubernetes secret and used as a Bearer token for API requests.
+                                  properties:
+                                    token:
+                                      description: |-
+                                        Token references the Kubernetes secret containing the BeyondTrust Workload Credentials API token.
+                                        The secret should contain the API key used to authenticate with BeyondTrust Workload Credentials.
+                                        Create an API token in your BeyondTrust Workload Credentials console and store it in a Kubernetes secret.
+                                        For details on creating API tokens, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                  required:
+                                    - token
+                                  type: object
+                              required:
+                                - apikey
+                              type: object
+                            caBundle:
+                              description: |-
+                                CABundle is a base64-encoded CA certificate used to validate the BeyondTrust Workload Credentials API TLS certificate.
+                                Use this when your BeyondTrust instance uses a self-signed certificate or internal CA.
+                                If not set, the system's trusted root certificates are used.
+                              format: byte
+                              type: string
+                            caProvider:
+                              description: |-
+                                CAProvider points to a Secret or ConfigMap containing a PEM-encoded CA certificate.
+                                This is used to validate the BeyondTrust Workload Credentials API TLS certificate.
+                                Use this as an alternative to CABundle when you want to reference an existing Kubernetes resource.
+                              properties:
+                                key:
+                                  description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the object located at the provider type.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace the Provider type is in.
+                                    Can only be defined when used in a ClusterSecretStore.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                                type:
+                                  description: The type of provider to use such as "Secret", or "ConfigMap".
+                                  enum:
+                                    - Secret
+                                    - ConfigMap
+                                  type: string
+                              required:
+                                - name
+                                - type
+                              type: object
+                            folderPath:
+                              description: |-
+                                FolderPath specifies the default folder path for secret retrieval.
+                                Secrets will be fetched from this folder unless overridden in the ExternalSecret spec.
+                                Example: "production/database" or "dev/api-keys"
+                                Leave empty to retrieve secrets from the root folder.
+                                For folder organization, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#folders
+                              type: string
+                            server:
+                              description: |-
+                                Server configures the BeyondTrust Workload Credentials server connection details.
+                                Includes the API URL and Site ID for your BeyondTrust instance.
+                                For API reference, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
+                              properties:
+                                apiUrl:
+                                  description: |-
+                                    APIURL is the base URL of your BeyondTrust Workload Credentials API server.
+                                    This should be the full URL to your BeyondTrust instance.
+                                    Example: https://api.beyondtrust.io/siie
+                                    For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#base-url
+                                  type: string
+                                siteId:
+                                  description: |-
+                                    SiteID is your BeyondTrust Workload Credentials site identifier (UUID format).
+                                    This identifier is unique to your BeyondTrust Workload Credentials instance.
+                                    You can find your Site ID in the BeyondTrust Workload Credentials admin console.
+                                    Example: a1b2c3d4-e5f6-4890-abcd-ef1234567890
+                                    For more information, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
+                                  type: string
+                              required:
+                                - apiUrl
+                                - siteId
+                              type: object
+                          required:
+                            - auth
+                            - server
+                          type: object
+                        retrySettings:
+                          description: |-
+                            RetrySettings configures exponential backoff for failed API requests.
+                            If not specified, uses the default retry settings.
+                          properties:
+                            maxRetries:
+                              format: int32
+                              type: integer
+                            retryInterval:
+                              type: string
+                          type: object
+                      required:
+                        - provider
                       type: object
                     cloudsmithAccessTokenSpec:
                       description: CloudsmithAccessTokenSpec defines the configuration for generating a Cloudsmith access token using OIDC authentication.
@@ -25835,6 +27268,18 @@ spec:
                                     credential_source.url in the provided credConfig. This field is merely to double-check the external token source
                                     URL is having the expected value.
                                   type: string
+                                gcpServiceAccountEmail:
+                                  description: |-
+                                    GCPServiceAccountEmail is the email of the Google Cloud service account to impersonate
+                                    after Workload Identity Federation. Use this to grant access through the service account's
+                                    IAM bindings (for example roles/secretmanager.secretAccessor). When set, it overrides
+                                    service_account_impersonation_url in the external account JSON from credConfig;
+                                    when serviceAccountRef is set, it also overrides the "iam.gke.io/gcp-service-account" annotation
+                                    on that ServiceAccount.
+                                  example: my-gsa@my-project.iam.gserviceaccount.com
+                                  minLength: 1
+                                  pattern: ^.*@.*\.iam\.gserviceaccount\.com$
+                                  type: string
                                 serviceAccountRef:
                                   description: |-
                                     serviceAccountRef is the reference to the kubernetes ServiceAccount to be used for obtaining the tokens,
@@ -25941,6 +27386,107 @@ spec:
                         - auth
                         - installID
                       type: object
+                    gitlabDeployTokenSpec:
+                      description: GitlabDeployTokenSpec defines the desired state to generate a GitLab deploy token.
+                      properties:
+                        auth:
+                          description: Auth configures how ESO authenticates with the GitLab API.
+                          properties:
+                            token:
+                              description: |-
+                                Token references a secret containing a GitLab access token (personal, group, or
+                                project) with the api scope and at least the Maintainer role on the target.
+                              properties:
+                                secretRef:
+                                  description: |-
+                                    SecretKeySelector is a reference to a specific 'key' within a Secret resource.
+                                    In some instances, `key` is a required field.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - secretRef
+                              type: object
+                          required:
+                            - token
+                          type: object
+                        expiresAt:
+                          description: |-
+                            ExpiresAt is an optional expiry for the deploy token. If omitted the token does
+                            not expire on the GitLab side and is revoked only when the generator state is
+                            cleaned up (on regeneration or when the consuming ExternalSecret is deleted).
+                          format: date-time
+                          type: string
+                        groupID:
+                          description: |-
+                            GroupID is the numeric ID or unescaped path (e.g. parent/group) of the group to
+                            create the deploy token in. The generator URL-escapes paths before calling the
+                            GitLab API, so do not pre-encode. Mutually exclusive with projectID.
+                          minLength: 1
+                          type: string
+                        name:
+                          description: Name of the deploy token.
+                          minLength: 1
+                          type: string
+                        projectID:
+                          description: |-
+                            ProjectID is the numeric ID or unescaped path (e.g. group/project) of the
+                            project to create the deploy token in. The generator URL-escapes paths before
+                            calling the GitLab API, so do not pre-encode. Mutually exclusive with groupID.
+                          minLength: 1
+                          type: string
+                        scopes:
+                          description: Scopes granted to the deploy token. At least one scope is required.
+                          items:
+                            description: GitlabDeployTokenScope is a scope that can be granted to a GitLab deploy token.
+                            enum:
+                              - read_repository
+                              - read_registry
+                              - write_registry
+                              - read_package_registry
+                              - write_package_registry
+                              - read_virtual_registry
+                              - write_virtual_registry
+                            type: string
+                          minItems: 1
+                          type: array
+                        url:
+                          description: URL configures the GitLab instance URL. Defaults to https://gitlab.com.
+                          type: string
+                        username:
+                          description: |-
+                            Username is an optional username for the deploy token. GitLab defaults it to
+                            gitlab+deploy-token-{n} when omitted.
+                          type: string
+                      required:
+                        - auth
+                        - name
+                        - scopes
+                      type: object
+                      x-kubernetes-validations:
+                        - message: exactly one of projectID or groupID must be set
+                          rule: has(self.projectID) != has(self.groupID)
                     grafanaSpec:
                       description: GrafanaSpec controls the behavior of the grafana generator.
                       properties:
@@ -26014,6 +27560,13 @@ spec:
                                 See here for the documentation on basic roles offered by Grafana:
                                 https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
                               type: string
+                            secondsToLive:
+                              description: |-
+                                SecondsToLive is the number of seconds before the generated service account token will expire.
+                                Some Grafana deployments (e.g. AWS Managed Grafana) require this value to be set.
+                              format: int64
+                              minimum: 1
+                              type: integer
                           required:
                             - name
                             - role
@@ -27499,11 +29052,13 @@ spec:
                   description: Kind the kind of this generator.
                   enum:
                     - ACRAccessToken
+                    - BeyondtrustWorkloadCredentialsDynamicSecret
                     - CloudsmithAccessToken
                     - ECRAuthorizationToken
                     - Fake
                     - GCRAccessToken
                     - GithubAccessToken
+                    - GitlabDeployToken
                     - QuayAccessToken
                     - Password
                     - SSHKey
@@ -27512,6 +29067,7 @@ spec:
                     - VaultDynamicSecret
                     - Webhook
                     - Grafana
+                    - MFA
                   type: string
               required:
                 - generator
@@ -27988,6 +29544,18 @@ spec:
                             credential_source.url in the provided credConfig. This field is merely to double-check the external token source
                             URL is having the expected value.
                           type: string
+                        gcpServiceAccountEmail:
+                          description: |-
+                            GCPServiceAccountEmail is the email of the Google Cloud service account to impersonate
+                            after Workload Identity Federation. Use this to grant access through the service account's
+                            IAM bindings (for example roles/secretmanager.secretAccessor). When set, it overrides
+                            service_account_impersonation_url in the external account JSON from credConfig;
+                            when serviceAccountRef is set, it also overrides the "iam.gke.io/gcp-service-account" annotation
+                            on that ServiceAccount.
+                          example: my-gsa@my-project.iam.gserviceaccount.com
+                          minLength: 1
+                          pattern: ^.*@.*\.iam\.gserviceaccount\.com$
+                          type: string
                         serviceAccountRef:
                           description: |-
                             serviceAccountRef is the reference to the kubernetes ServiceAccount to be used for obtaining the tokens,
@@ -28263,6 +29831,155 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
+  name: gitlabdeploytokens.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: GitlabDeployToken
+    listKind: GitlabDeployTokenList
+    plural: gitlabdeploytokens
+    singular: gitlabdeploytoken
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: GitlabDeployToken generates a GitLab deploy token.
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: GitlabDeployTokenSpec defines the desired state to generate a GitLab deploy token.
+              properties:
+                auth:
+                  description: Auth configures how ESO authenticates with the GitLab API.
+                  properties:
+                    token:
+                      description: |-
+                        Token references a secret containing a GitLab access token (personal, group, or
+                        project) with the api scope and at least the Maintainer role on the target.
+                      properties:
+                        secretRef:
+                          description: |-
+                            SecretKeySelector is a reference to a specific 'key' within a Secret resource.
+                            In some instances, `key` is a required field.
+                          properties:
+                            key:
+                              description: |-
+                                A key in the referenced Secret.
+                                Some instances of this field may be defaulted, in others it may be required.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace of the Secret resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          type: object
+                      required:
+                        - secretRef
+                      type: object
+                  required:
+                    - token
+                  type: object
+                expiresAt:
+                  description: |-
+                    ExpiresAt is an optional expiry for the deploy token. If omitted the token does
+                    not expire on the GitLab side and is revoked only when the generator state is
+                    cleaned up (on regeneration or when the consuming ExternalSecret is deleted).
+                  format: date-time
+                  type: string
+                groupID:
+                  description: |-
+                    GroupID is the numeric ID or unescaped path (e.g. parent/group) of the group to
+                    create the deploy token in. The generator URL-escapes paths before calling the
+                    GitLab API, so do not pre-encode. Mutually exclusive with projectID.
+                  minLength: 1
+                  type: string
+                name:
+                  description: Name of the deploy token.
+                  minLength: 1
+                  type: string
+                projectID:
+                  description: |-
+                    ProjectID is the numeric ID or unescaped path (e.g. group/project) of the
+                    project to create the deploy token in. The generator URL-escapes paths before
+                    calling the GitLab API, so do not pre-encode. Mutually exclusive with groupID.
+                  minLength: 1
+                  type: string
+                scopes:
+                  description: Scopes granted to the deploy token. At least one scope is required.
+                  items:
+                    description: GitlabDeployTokenScope is a scope that can be granted to a GitLab deploy token.
+                    enum:
+                      - read_repository
+                      - read_registry
+                      - write_registry
+                      - read_package_registry
+                      - write_package_registry
+                      - read_virtual_registry
+                      - write_virtual_registry
+                    type: string
+                  minItems: 1
+                  type: array
+                url:
+                  description: URL configures the GitLab instance URL. Defaults to https://gitlab.com.
+                  type: string
+                username:
+                  description: |-
+                    Username is an optional username for the deploy token. GitLab defaults it to
+                    gitlab+deploy-token-{n} when omitted.
+                  type: string
+              required:
+                - auth
+                - name
+                - scopes
+              type: object
+              x-kubernetes-validations:
+                - message: exactly one of projectID or groupID must be set
+                  rule: has(self.projectID) != has(self.groupID)
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+    external-secrets.io/component: controller
   name: grafanas.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -28371,6 +30088,13 @@ spec:
                         See here for the documentation on basic roles offered by Grafana:
                         https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/
                       type: string
+                    secondsToLive:
+                      description: |-
+                        SecondsToLive is the number of seconds before the generated service account token will expire.
+                        Some Grafana deployments (e.g. AWS Managed Grafana) require this value to be set.
+                      format: int64
+                      minimum: 1
+                      type: integer
                   required:
                     - name
                     - role

@@ -71,7 +71,7 @@ spec:
           args:
           - webhook
           - --port={{ .Values.webhook.port }}
-          - --dns-name={{ include "external-secrets.fullname" . }}-webhook.{{ template "external-secrets.namespace" . }}.svc
+          - --dns-name={{ include "external-secrets.componentName" (list . "-webhook") }}.{{ template "external-secrets.namespace" . }}.svc
           - --cert-dir={{ .Values.webhook.certDir }}
           - --check-interval={{ .Values.webhook.certCheckInterval }}
           - --metrics-addr=:{{ .Values.webhook.metrics.listen.port }}
@@ -90,6 +90,15 @@ spec:
             {{- else }}
           - --{{ $key }}
             {{- end }}
+          {{- end }}
+          {{- if .Values.webhook.metrics.listen.secure.enabled }}
+          - --metrics-secure=true
+          - --metrics-cert-dir={{ .Values.webhook.metrics.listen.secure.certDir }}
+          - --metrics-cert-name={{ .Values.webhook.metrics.listen.secure.certFile }}
+          - --metrics-key-name={{ .Values.webhook.metrics.listen.secure.keyFile }}
+          {{- end }}
+          {{- if .Values.webhook.metrics.listen.auth.enabled }}
+          - --metrics-auth=true
           {{- end }}
           ports:
             - containerPort: {{ .Values.webhook.metrics.listen.port }}
@@ -122,6 +131,15 @@ spec:
             timeoutSeconds: {{ .Values.webhook.readinessProbe.timeoutSeconds }}
             failureThreshold: {{ .Values.webhook.readinessProbe.failureThreshold }}
             successThreshold: {{ .Values.webhook.readinessProbe.successThreshold }}
+          {{- end }}
+          {{- if .Values.webhook.startupProbe.enabled }}
+          startupProbe:
+            httpGet:
+              port: ready
+              path: /readyz
+            initialDelaySeconds: {{ .Values.webhook.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.webhook.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.webhook.startupProbe.failureThreshold }}
           {{- end }}
           {{- with .Values.webhook.extraEnv }}
           env:

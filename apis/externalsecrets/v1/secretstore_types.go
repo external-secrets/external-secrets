@@ -212,6 +212,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Beyondtrust *BeyondtrustProvider `json:"beyondtrust,omitempty"`
 
+	// BeyondtrustWorkloadCredentials configures this store to sync secrets using the BeyondTrust Workload Credentials provider.
+	// +optional
+	BeyondtrustWorkloadCredentials *BeyondtrustWorkloadCredentialsProvider `json:"beyondtrustworkloadcredentials,omitempty"`
+
 	// CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
 	// +optional
 	CloudruSM *CloudruSMProvider `json:"cloudrusm,omitempty"`
@@ -231,6 +235,10 @@ type SecretStoreProvider struct {
 	// NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider
 	// +optional
 	NebiusMysterybox *NebiusMysteryboxProvider `json:"nebiusmysterybox,omitempty"`
+
+	// OpenBao configures this store to sync secrets using the OpenBao provider.
+	// +optional
+	OpenBao *OpenBaoProvider `json:"openBao,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.

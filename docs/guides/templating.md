@@ -57,7 +57,102 @@ You do not have to define your templates inline in an ExternalSecret but you can
 
 Lastly, `TemplateFrom` also supports adding `Literal` blocks for quick templating. These `Literal` blocks differ from `Template.Data` as they are rendered as a a `key:value` pair (while the `Template.Data`, you can only template the value).
 
-See an example, how to produce a `htpasswd` file that can be used by an ingress-controller (for example: https://kubernetes.github.io/ingress-nginx/examples/auth/basic/) where the contents of the `htpasswd` file needs to be presented via the `auth` key. We use the `htpasswd` function to create a `bcrytped` hash of the password.
+#### ValuesDecodingStrategy example
+
+`TemplateFrom` entries can also decode rendered values with `ValuesDecodingStrategy`. This is useful when the template selects Base64-encoded values from structured provider data and the final Kubernetes Secret must contain the decoded bytes.
+
+For example, imagine several remote secrets matched by `dataFrom.find` contain JSON values like this:
+
+```json
+{
+  "cert": "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCg==",
+  "description": "certificate encoded as base64"
+}
+```
+
+And let's imagine an ExternalSecret definition as this one:
+
+```yaml
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: nginx-certs
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-secretsmanager
+  dataFrom:
+  - find:
+      name:
+        regexp: ^productA/nginx/.*
+    rewrite:
+    - regexp:
+        source: ^productA/nginx/(.*)
+        target: $1
+  target:
+    name: nginx-certs
+    template:
+      engineVersion: v2
+      templateFrom:
+      - literal: |-
+          {{- range $key, $val := . }}
+          {{- $json := $val | fromJson }}
+          {{ $key }}: {{ $json.cert }}
+          {{- end }}
+{% endraw %}
+```
+Without `templateFrom[0].ValuesDecodingStrategy`, the template will select the `cert` property, and get the base64 text. The resulting Kubernetes Secret value will be stored as Base64 text.
+
+Alternatively, you can use the `templateFrom[0].valuesDecodingStrategy: Base64` as following:
+
+```yaml
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: nginx-certs
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: aws-secretsmanager
+  dataFrom:
+  - find:
+      name:
+        regexp: ^productA/nginx/.*
+    rewrite:
+    - regexp:
+        source: ^productA/nginx/(.*)
+        target: $1
+  target:
+    name: nginx-certs
+    template:
+      engineVersion: v2
+      templateFrom:
+      - valuesDecodingStrategy: Base64
+        literal: |-
+          {{- range $key, $val := . }}
+          {{- $json := $val | fromJson }}
+          {{ $key }}: {{ $json.cert }}
+          {{- end }}
+{% endraw %}
+```
+
+This way, the template still renders safe Base64 text internally.
+ESO then decodes the value and writes the decoded bytes in the Kubernetes Secret's data.
+Only rendered values are decoded; rendered keys are left unchanged.
+
+In other words, use `valuesDecodingStrategy` to `None` when values are not encoded, and our usual strategies like `Base64`, `Base64URL` (or even `Auto`) when values may be either Base64/Base64URL encoded.
+
+!!! note
+
+    This is safer for binary data than decoding inside the template with `{% raw %}{{ $json.cert | b64dec }}{% endraw %}`, because `b64dec` injects raw bytes into the intermediate rendered YAML.
+
+#### htpasswd example
+
+See an example, how to produce a `htpasswd` file that can be used by an ingress-controller (for example: https://kubernetes.github.io/ingress-nginx/examples/auth/basic/) where the contents of the `htpasswd` file needs to be presented via the `auth` key. We use the `htpasswd` function to create a `bcrypted` hash of the password.
 
 Suppose you have multiple key-value pairs within your provider secret like
 
@@ -154,10 +249,12 @@ When a provider returns RSA-encrypted values, you can decrypt them directly in t
 `rsaDecrypt` performs decryption with the private key passed through the pipeline: `<privateKeyPEM | rsaDecrypt "<SCHEME>" "<HASH>" <ciphertext> >`. `SCHEME` and `HASH` are strings (for example, `"RSA-OAEP"` and `"SHA1"`). The third argument must be the ciphertext in binary form.
 
 Base64 handling: providers often return ciphertext as Base64. You can either:
+
 - decode in the template with `b64dec` (for example: `(.password_encrypted_base64 | b64dec)`), or
 - set `decodingStrategy: Base64` on the corresponding `spec.data.remoteRef` so the template receives binary data.
 
 Prerequisites
+
 - `spec.target.template.engineVersion: v2`.
 - A valid RSA private key in PEM format without passphrase (from another reference in the same ExternalSecret).
 - Ciphertext must match the key pair and the chosen algorithm/hash.
@@ -169,10 +266,12 @@ Full example:
 ```
 
 Useful variations (included as comments in the example):
+
 - Base64 decode in the template with `b64dec` or via `decodingStrategy: Base64` on `spec.data`.
 - Use a private key available in the same ExternalSecret (for example: `( .private_key | rsaDecrypt ... )`).
 
 Error notes
+
 - Referencing a missing key in the template will fail rendering.
 - If key/algorithm/hash do not match the ciphertext, decryption will fail and reconciliation will retry.
 
@@ -218,6 +317,7 @@ In addition to that you can use over 200+ [sprig functions](http://masterminds.g
 | rsaDecrypt | Decrypts RSA ciphertext using a PEM private key. Usage: ``<rsaDecrypt "SCHEME" "HASH" ciphertext privateKeyPEM>`` or ``<privateKeyPEM \| rsaDecrypt "SCHEME" "HASH" ciphertext>``. **SCHEME**: supported values are `"None"` and `"RSA-OAEP"`. **HASH**: supported values are `"SHA1"` and `"SHA256"`. **Ciphertext** must be binary — use `b64dec` or `decodingStrategy: Base64` to convert Base64 payloads. |
 | toYaml           | Takes an interface, marshals it to yaml. It returns a string, even on marshal error (empty string).                                                                                                                          |
 | fromYaml         | Function converts a YAML document into a map[string]any.                                                                                                                                                             |
+| hexdec           | decodes hexadecimal values                                                                                                                                                                                                   |
 
 ## Migrating from v1
 

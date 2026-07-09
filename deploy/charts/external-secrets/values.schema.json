@@ -121,8 +121,33 @@
                         "listen": {
                             "type": "object",
                             "properties": {
+                                "auth": {
+                                    "type": "object",
+                                    "properties": {
+                                        "enabled": {
+                                            "type": "boolean"
+                                        }
+                                    }
+                                },
                                 "port": {
                                     "type": "integer"
+                                },
+                                "secure": {
+                                    "type": "object",
+                                    "properties": {
+                                        "certDir": {
+                                            "type": "string"
+                                        },
+                                        "certFile": {
+                                            "type": "string"
+                                        },
+                                        "enabled": {
+                                            "type": "boolean"
+                                        },
+                                        "keyFile": {
+                                            "type": "string"
+                                        }
+                                    }
                                 }
                             }
                         },
@@ -296,11 +321,14 @@
                         "enabled": {
                             "type": "boolean"
                         },
-                        "port": {
-                            "type": "string"
+                        "failureThreshold": {
+                            "type": "integer"
                         },
-                        "useReadinessProbePort": {
-                            "type": "boolean"
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
                         }
                     }
                 },
@@ -585,6 +613,14 @@
                 "listen": {
                     "type": "object",
                     "properties": {
+                        "auth": {
+                            "type": "object",
+                            "properties": {
+                                "enabled": {
+                                    "type": "boolean"
+                                }
+                            }
+                        },
                         "port": {
                             "type": "integer"
                         },
@@ -693,6 +729,9 @@
         "rbac": {
             "type": "object",
             "properties": {
+                "aggregateToAdmin": {
+                    "type": "boolean"
+                },
                 "aggregateToEdit": {
                     "type": "boolean"
                 },
@@ -878,6 +917,9 @@
                     "type": "string"
                 }
             }
+        },
+        "storeRequeueInterval": {
+            "type": "string"
         },
         "strategy": {
             "type": "object"
@@ -1073,8 +1115,33 @@
                         "listen": {
                             "type": "object",
                             "properties": {
+                                "auth": {
+                                    "type": "object",
+                                    "properties": {
+                                        "enabled": {
+                                            "type": "boolean"
+                                        }
+                                    }
+                                },
                                 "port": {
                                     "type": "integer"
+                                },
+                                "secure": {
+                                    "type": "object",
+                                    "properties": {
+                                        "certDir": {
+                                            "type": "string"
+                                        },
+                                        "certFile": {
+                                            "type": "string"
+                                        },
+                                        "enabled": {
+                                            "type": "boolean"
+                                        },
+                                        "keyFile": {
+                                            "type": "string"
+                                        }
+                                    }
                                 }
                             }
                         },
@@ -1254,6 +1321,23 @@
                         },
                         "name": {
                             "type": "string"
+                        }
+                    }
+                },
+                "startupProbe": {
+                    "type": "object",
+                    "properties": {
+                        "enabled": {
+                            "type": "boolean"
+                        },
+                        "failureThreshold": {
+                            "type": "integer"
+                        },
+                        "initialDelaySeconds": {
+                            "type": "integer"
+                        },
+                        "periodSeconds": {
+                            "type": "integer"
                         }
                     }
                 },

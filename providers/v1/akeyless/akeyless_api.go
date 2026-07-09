@@ -27,7 +27,6 @@ import (
 	"strings"
 
 	aws_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/aws"
-	azure_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/azure"
 	gcp_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/gcp"
 	"github.com/akeylesslabs/akeyless-go/v4"
 	authenticationv1 "k8s.io/api/authentication/v1"
@@ -62,13 +61,16 @@ type Tokener interface {
 // GetToken retrieves an authentication token from Akeyless Gateway.
 // It supports various authentication methods including API key, access key,
 // Kubernetes service account token, and cloud provider-specific methods.
-func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeParam string, k8sAuth *esv1.AkeylessKubernetesAuth) (string, error) {
+func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeParam string, auth *esv1.AkeylessAuth) (string, error) {
 	authBody := akeyless.NewAuthWithDefaults()
 	authBody.AccessId = new(accessID)
 	if accType == "api_key" || accType == "access_key" {
 		authBody.AccessKey = new(accTypeParam)
 	} else if accType == "k8s" {
-		jwtString, err := a.getK8SServiceAccountJWT(ctx, k8sAuth)
+		if auth == nil || auth.KubernetesAuth == nil {
+			return "", errors.New("kubernetes auth configuration is required")
+		}
+		jwtString, err := a.getK8SServiceAccountJWT(ctx, auth.KubernetesAuth)
 		if err != nil {
 			return "", fmt.Errorf("failed to read JWT with Kubernetes Auth from %v. error: %w", DefServiceAccountFile, err)
 		}
@@ -78,7 +80,7 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 		authBody.K8sServiceAccountToken = new(jwtStringBase64)
 		authBody.K8sAuthConfigName = new(K8SAuthConfigName)
 	} else {
-		cloudID, err := a.getCloudID(accType, accTypeParam)
+		cloudID, err := a.getCloudID(ctx, accType, accTypeParam, auth)
 		if err != nil {
 			return "", errors.New("Require Cloud ID " + err.Error())
 		}
@@ -290,21 +292,17 @@ func (a *akeylessBase) GetStaticSecret(ctx context.Context, secretName string, v
 	return valStr, nil
 }
 
-func (a *akeylessBase) getCloudID(provider, accTypeParam string) (string, error) {
-	var cloudID string
-	var err error
-
+func (a *akeylessBase) getCloudID(ctx context.Context, provider, accTypeParam string, auth *esv1.AkeylessAuth) (string, error) {
 	switch provider {
 	case "azure_ad":
-		cloudID, err = azure_cloud_id.GetCloudId(accTypeParam)
+		return a.getAzureCloudID(ctx, accTypeParam, auth)
 	case "aws_iam":
-		cloudID, err = aws_cloud_id.GetCloudId()
+		return aws_cloud_id.GetCloudId()
 	case "gcp":
-		cloudID, err = gcp_cloud_id.GetCloudID(accTypeParam)
+		return gcp_cloud_id.GetCloudID(accTypeParam)
 	default:
 		return "", fmt.Errorf("unable to determine provider: %s", provider)
 	}
-	return cloudID, err
 }
 
 func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag string) ([]string, error) {

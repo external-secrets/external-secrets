@@ -47,7 +47,7 @@ ESO supports multiple authentication methods to connect to Azure Key Vault:
 
 Regardless of which authentication method is used to authenticate to Azure Key Vault, the identity which is assigned to External Secrets Operator needs to have proper permissions to access the Key Vault. Both [RBAC](https://learn.microsoft.com/en-us/azure/key-vault/general/rbac-guide) and legacy [Access Policy](https://learn.microsoft.com/en-us/azure/key-vault/general/assign-access-policy) based Key Vaults are supported.
 
-The required permissions depend on the type of objects you want to manage (secrets, keys, certificates) and the operations you want to perform (read, write, delete, etc.). For example, to grant External Secrets Operator permissions to synchronize secrets and certificates using an `ExternalSecret`, the minimum required permissions are either the [Key Vault Secrets User](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-secrets-user) and [Key Vault Certificates User](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-certificates-user) RBAC roles, alternatively for Access Policy based Key Vaults, the `Get` permission over secrets and certificates.
+The required permissions depend on the type of objects you want to manage (secrets, keys, certificates) and the operations you want to perform (read, write, delete, etc.). For example, to grant External Secrets Operator permissions to synchronize secrets and certificates using an `ExternalSecret`, the minimum required permissions are either the [Key Vault Secrets User](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-secrets-user) and [Key Vault Certificate User](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-certificate-user) RBAC roles, or alternatively for Access Policy based Key Vaults, the `Get` permission over secrets and certificates.
 
 #### Service Principal
 
@@ -165,7 +165,7 @@ spec:
 For Azure Stack Hub or Azure Stack Edge environments:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: azure-stack-backend
@@ -263,6 +263,9 @@ You can optionally attach metadata to the secret via the `spec.data[].metadata` 
 
 !!! note
     Omitting `contentType` (or setting it to an empty string) is interpreted as "don't change" rather than "clear": if the secret in Azure Key Vault already has a `ContentType` set, it will be preserved on update. There is currently no way to clear an existing `ContentType` via PushSecret — if you need to remove it, delete the secret from Azure Key Vault directly and let PushSecret recreate it.
+
+!!! note
+    `expirationDate` is applied only when the SecretStore uses the legacy SDK (the default). When `useAzureSDK: true` is set (required for `customCloudConfig`, including Azure Stack and Azure China Workload Identity), `expirationDate` is currently ignored: the secret is pushed without an expiry, and changing `expirationDate` alone does not trigger an update. If you need an expiry in those environments, set it directly on the secret in Azure Key Vault.
 
 #### Pushing to a Key
 The first step is to generate a valid private key. Supported formats include `PRIVATE KEY`, `RSA PRIVATE KEY` AND `EC PRIVATE KEY` (EC/PKCS1/PKCS8 types). After uploading your key to a Kubernetes Secret, the next step is to create a PushSecret manifest with the following configuration:

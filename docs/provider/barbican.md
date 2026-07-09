@@ -65,7 +65,7 @@ Now you can create an ExternalSecret that uses the Barbican provider to retrieve
 apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: barbican-secret
+  name: barbican-example
 spec:
   secretStoreRef:
     name: barbican-backend
@@ -85,11 +85,55 @@ The `remoteRef.key` should be the UUID of the secret in Barbican. You can find t
 openstack secret list
 ```
 
+## Referencing a property within a secret
+
+If a Barbican secret stores a JSON object as its payload, you can select a single top-level key with `remoteRef.property`:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: barbican-property
+spec:
+  secretStoreRef:
+    name: barbican-backend
+    kind: SecretStore
+  target:
+    name: example-secret
+    creationPolicy: Owner
+  data:
+  - secretKey: token
+    remoteRef:
+      key: "my-secret-uuid"
+      property: "token" # selects the "token" key from the JSON payload
+```
+
+To expand a whole JSON payload into multiple Kubernetes secret keys at once, use `dataFrom.extract`:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: barbican-extract
+spec:
+  secretStoreRef:
+    name: barbican-backend
+    kind: SecretStore
+  target:
+    name: example-secret
+    creationPolicy: Owner
+  dataFrom:
+  - extract:
+      key: "my-secret-uuid"
+```
+
+Both `property` and `extract` require the secret payload to be a JSON object. Without `property`, `remoteRef` returns the raw payload unchanged.
+
 ## Finding Secrets by Name
 
-You can also retrieve secrets by using the `find` feature to search by name.
+You can retrieve secrets with the `find` feature, matching on the secret name.
 
-It doesnt really support regexp, its exact string matching, so you need to provide the exact name of the secret.
+Despite the field being named `regexp`, the value is passed to Barbican's secret listing API as a `name` filter, which performs an exact name match. Regular-expression metacharacters are **not** interpreted, so a value like `^db-.*` matches only a secret literally named `^db-.*`. Provide the exact secret name.
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -106,10 +150,10 @@ spec:
   dataFrom:
   - find:
       name:
-        regexp: "database"
+        regexp: "database" # exact secret name, not a pattern
 ```
 
-This will find all secrets in Barbican whose name exactly matches the string.
+Because Barbican allows several secrets to share a name, this can return more than one secret. The keys of the resulting Kubernetes secret are the Barbican secret UUIDs (not the names), and each value is the corresponding payload.
 
 ## ClusterSecretStore
 
@@ -178,9 +222,11 @@ The `BarbicanProviderPasswordRef` type requires a reference to a Kubernetes secr
 
 ## Limitations
 
-- The Barbican provider is **read-only**. It does not support creating or updating secrets in Barbican.
-- Used credentials has to have access to the provided secret.
-- It will retrieve all secret types by default.
+- The Barbican provider is **read-only**. Creating, updating, or deleting secrets is not supported (`PushSecret` and `DeletionPolicy: Delete` will fail).
+- The credentials used must have access to the secrets being retrieved.
+- `find` matches the exact secret name only; `find.path` and `find.tags` are not supported.
+- Barbican secrets are immutable, so `remoteRef.version` is ignored.
+- Secret metadata is not exposed (`metadataPolicy: Fetch` is not supported); only the payload is returned.
 
 ## Troubleshooting
 
@@ -204,6 +250,7 @@ If a secret cannot be found:
 ### Network Connectivity
 
 Ensure your Kubernetes cluster can reach:
+
 - The OpenStack Keystone endpoint (for authentication)
 - The Barbican service endpoint (for secret retrieval)
 

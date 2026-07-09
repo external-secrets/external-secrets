@@ -108,8 +108,8 @@ extendedMetricLabels: false
 # provided namespace
 scopedNamespace: ""
 
-# -- Must be used with scopedNamespace. If true, create scoped RBAC roles under the scoped namespace
-# and implicitly disable cluster stores and cluster external secrets
+# -- If true, create scoped RBAC roles and implicitly disable cluster-scoped
+# controllers. Scoped to scopedNamespace if set, otherwise to .Release.Namespace.
 scopedRBAC: false
 
 # -- If true the OpenShift finalizer permissions will be added to RBAC
@@ -131,6 +131,9 @@ processClusterStore: true
 
 # -- if true, the operator will process secret store. Else, it will ignore them.
 processSecretStore: true
+
+# -- Default time duration between reconciling (Cluster)SecretStores.
+storeRequeueInterval: ""
 
 # -- if true, the operator will process cluster generator. Else, it will ignore them.
 processClusterGenerator: true
@@ -211,6 +214,9 @@ rbac:
 
   # -- Specifies whether permissions are aggregated to the edit ClusterRole
   aggregateToEdit: true
+
+  # -- Specifies whether permissions are aggregated to the admin ClusterRole
+  aggregateToAdmin: true
 
 ## -- Extra environment variables to add to container.
 extraEnv: []
@@ -321,6 +327,9 @@ metrics:
 
   listen:
     port: 8080
+    auth:
+      # -- Enable Kubernetes RBAC-based authentication for metrics endpoint. Requires metrics.listen.secure to be true. Default value is false.
+      enabled: false
     secure:
       enabled: false
       # -- if those are not set or invalid, self-signed certs will be generated
@@ -556,6 +565,18 @@ webhook:
 
     listen:
       port: 8080
+      auth:
+        # -- Enable Kubernetes RBAC-based authentication for webhook's metrics endpoint. Requires webhook.metrics.listen.secure to be true. Default value is false.
+        enabled: false
+      secure:
+        enabled: false
+        # -- if those are not set or invalid, self-signed certs will be generated
+        # -- TLS cert directory path
+        certDir: /etc/tls
+        # -- TLS cert file path
+        certFile: /etc/tls/tls.crt
+        # -- TLS key file path
+        keyFile: /etc/tls/tls.key
 
     service:
       # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
@@ -590,6 +611,16 @@ webhook:
     periodSeconds: 5
     successThreshold: 1
     initialDelaySeconds: 20
+
+  startupProbe:
+    # -- Enabled determines if the startup probe should be used or not. By default it's disabled.
+    enabled: false
+    # -- Number of seconds after the container has started before the startup probe is initiated.
+    initialDelaySeconds: 10
+    # -- How often (in seconds) to perform the startup probe.
+    periodSeconds: 10
+    # -- Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds.
+    failureThreshold: 30
 
 
     ## -- Extra environment variables to add to container.
@@ -720,6 +751,18 @@ certController:
 
     listen:
       port: 8080
+      auth:
+        # -- Enable Kubernetes RBAC-based authentication for certController's metrics endpoint. Requires certController.metrics.listen.secure to be true. Default value is false.
+        enabled: false
+      secure:
+        enabled: false
+        # -- if those are not set or invalid, self-signed certs will be generated
+        # -- TLS cert directory path
+        certDir: /etc/tls
+        # -- TLS cert file path
+        certFile: /etc/tls/tls.crt
+        # -- TLS key file path
+        keyFile: /etc/tls/tls.key
 
     service:
       # -- Enable if you use another monitoring tool than Prometheus to scrape the metrics
@@ -755,12 +798,14 @@ certController:
     initialDelaySeconds: 20
 
   startupProbe:
-    # -- Enabled determines if the startup probe should be used or not. By default it's enabled
+    # -- Enabled determines if the startup probe should be used or not. By default it's disabled.
     enabled: false
-    # -- whether to use the readiness probe port for startup probe.
-    useReadinessProbePort: true
-    # -- Port for startup probe.
-    port: ""
+    # -- Number of seconds after the container has started before the startup probe is initiated.
+    initialDelaySeconds: 10
+    # -- How often (in seconds) to perform the startup probe.
+    periodSeconds: 10
+    # -- Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds.
+    failureThreshold: 30
 
     ## -- Extra environment variables to add to container.
   extraEnv: []

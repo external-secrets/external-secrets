@@ -18,6 +18,7 @@ You can control how and when the `ExternalSecret` is refreshed by setting the `s
 ### CreatedOnce
 
 With `refreshPolicy: CreatedOnce`, the controller will:
+
 - Create the `Kind=Secret` only if it does not exist yet
 - Never update the `Kind=Secret` afterwards if the source data changes
 - Update/ Recreate the `Kind=Secret` if it gets changed/Deleted
@@ -37,6 +38,7 @@ spec:
 ### Periodic
 
 With `refreshPolicy: Periodic` (the default behavior), the controller will:
+
 - Create the `Kind=Secret` if it doesn't exist
 - Update the `Kind=Secret` regularly based on the `spec.refreshInterval` duration
 - When `spec.refreshInterval` is set to zero, it will only create the secret once and not update it afterward
@@ -57,6 +59,7 @@ spec:
 ### OnChange
 
 With `refreshPolicy: OnChange`, the controller will:
+
 - Create the `Kind=Secret` if it doesn't exist
 - Update the `Kind=Secret` only when the `ExternalSecret`'s metadata or specification changes
 - This policy is independent of the `refreshInterval` value
@@ -80,6 +83,57 @@ If supported by the configured `refreshPolicy`, you can manually trigger a refre
 ```
 kubectl annotate es my-es force-sync=$(date +%s) --overwrite
 ```
+
+## SyncWindows
+
+`syncWindows` restricts **when** periodic refreshes may occur. It is evaluated in UTC and applies only to the `Periodic` refresh policy (or when `refreshPolicy` is unset). `OnChange` and `CreatedOnce` policies are unaffected.
+
+A sync-windows block carries a shared `kind` and a list of `schedule + duration` entries:
+
+- `kind: allow` -- periodic syncs are permitted **only** while at least one window is active; all other times are blocked.
+- `kind: deny` -- periodic syncs are **blocked** while any window is active; all other times proceed normally.
+
+Each entry in `windows` uses a standard 5-field cron `schedule` (UTC) and a `duration` string (e.g. `8h`, `30m`). The window stays open for `duration` after each schedule firing. A window entry with an unparseable `schedule` is silently ignored and treated as inactive, so a typo does not permanently block syncs.
+
+### Example: allow syncs only during business hours (Mon-Fri 09:00-17:00 UTC)
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 1h
+  syncWindows:
+    kind: allow
+    windows:
+      - schedule: "0 9 * * 1-5"  # weekdays at 09:00 UTC
+        duration: 8h              # window open until 17:00 UTC
+```
+
+### Example: block syncs during a Saturday maintenance window (02:00-04:00 UTC)
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: example
+spec:
+  refreshInterval: 30m
+  syncWindows:
+    kind: deny
+    windows:
+      - schedule: "0 2 * * 6"  # Saturdays at 02:00 UTC
+        duration: 2h            # block until 04:00 UTC
+```
+
+### Multiple windows
+
+You can list several entries under `windows`. For `kind: allow`, the sync is permitted when **any** window is active. For `kind: deny`, the sync is blocked when **any** window is active.
+
+### Interaction with refreshInterval
+
+`syncWindows` only suppresses sync operations -- it does not change how often the controller checks. The controller still requeues at `refreshInterval` regardless of whether a sync was blocked. This means that if `refreshInterval` is longer than `window.duration`, a window could open and close entirely between two consecutive checks and the sync would be missed for that occurrence. This is by design: `refreshInterval` is the primary driver; `syncWindows` is a gate on top of it. To ensure no window occurrence is missed, set `refreshInterval` to a value shorter than the smallest `window.duration`.
 
 ## Features
 
