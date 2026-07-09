@@ -1,4 +1,4 @@
-## Bitwarden Secrets Manager Provider
+# Bitwarden Secrets Manager Provider
 
 This section describes how to set up the Bitwarden Secrets Manager provider for External Secrets Operator (ESO).
 
@@ -9,14 +9,14 @@ This section describes how to set up the Bitwarden Secrets Manager provider for 
     This is different from [Bitwarden Password Manager](https://bitwarden.com/products/personal/).
     To integrate with Bitwarden **Password Manager**, reference the [example documentation](../examples/bitwarden.md).
 
-### Prerequisites
+## Prerequisites
 
 In order for the Bitwarden provider to work, we need a second service. This service is the [Bitwarden SDK Server](https://github.com/external-secrets/bitwarden-sdk-server).
 The Bitwarden SDK is Rust based and requires CGO enabled. In order to not restrict the capabilities of ESO, and the image
 size ( the bitwarden Rust SDK libraries are over 150MB in size ) it has been decided to create a soft wrapper
 around the SDK that runs as a separate service providing ESO with a light REST API to pull secrets through.
 
-#### Bitwarden SDK server
+### Bitwarden SDK server
 
 The server itself can be installed together with ESO. The ESO Helm Chart packages this service as a dependency.
 The Bitwarden SDK Server's full name is hardcoded to bitwarden-sdk-server. This is so that the exposed service URL
@@ -32,7 +32,7 @@ helm install external-secrets \
     --set bitwarden-sdk-server.enabled=true
 ```
 
-##### Certificate
+#### Certificate
 
 The Bitwarden SDK Server _NEEDS_ to run as an HTTPS service. That means that any installation that wants to communicate with the Bitwarden
 provider will need to generate a certificate. The best approach for that is to use cert-manager. It's easy to set up
@@ -41,7 +41,7 @@ and can generate a certificate that the store can use to connect with the server
 For a sample set up look at the bitwarden sdk server's test setup. It contains a self-signed certificate issuer for
 cert-manager.
 
-### External secret store
+## External secret store
 
 With that out of the way, let's take a look at how a secret store would look like.
 
@@ -51,18 +51,20 @@ With that out of the way, let's take a look at how a secret store would look lik
 
 The api url and identity url are optional. The secret should contain the token for the Machine account for bitwarden.
 
-!!! note inline end
-Make sure that the machine account has Read-Write access to the Project that the secrets are in.
+!!! note
 
-!!! note inline end
-A secret store is organization/project dependent. Meaning a 1 store == 1 organization/project. This is so that we ensure
-that no other project's secrets can be modified accidentally _or_ intentionally.
+    Make sure that the machine account has Read-Write access to the Project that the secrets are in.
 
-### External Secrets
+!!! note
+
+    A secret store is organization/project dependent. Meaning a 1 store == 1 organization/project. This is so that we ensure
+    that no other project's secrets can be modified accidentally _or_ intentionally.
+
+## External Secrets
 
 There are two ways to fetch secrets from the provider.
 
-#### Find by UUID
+### Find by UUID
 
 In order to fetch a secret by using its UUID simply provide that as remote key in the external secrets like this:
 
@@ -83,14 +85,14 @@ spec:
       key: "339062b8-a5a1-4303-bf1d-b1920146a622"
 ```
 
-#### Find by Name
+### Find by Name
 
 To find a secret using its name, we need a bit more information. Mainly, these are the rules to find a secret:
 
-- if name is a UUID get the secret
-- if name is NOT a UUID Property is mandatory that defines the projectID to look for
-- if name + projectID + organizationID matches, we return that secret
-- if more than one name exists for the same projectID within the same organization we error
+- if the key is a UUID, the secret is fetched directly by that ID.
+- if the key is not a UUID, it is treated as a secret name. The provider lists the organization's secrets and matches by name within the `projectID` and `organizationID` configured on the `SecretStore`. The project and organization come from the store, not from the `ExternalSecret`.
+- if exactly one secret matches that name in that project, its value is returned.
+- if more than one secret with the same name exists in that project, the provider errors.
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -109,18 +111,20 @@ spec:
       key: "secret-name"
 ```
 
-#### DataFrom
+### DataFrom
 
-When using dataFrom like this:
+`dataFrom.find` returns every secret in the organization, keyed by secret ID:
 
 ```yaml
   dataFrom:
   - find:
       conversionStrategy: Default
       decodingStrategy: None
-      name:
-        regexp: db_
 ```
+
+!!! warning
+
+    The provider does not currently filter by the `find` selector: the `name.regexp`, `tags`, and `path` fields are ignored and every secret in the organization is returned (see [issue #6550](https://github.com/external-secrets/external-secrets/issues/6550)). Use a `rewrite` rule, or individual `data` entries, if you need a subset.
 
 Note that the secrets in the map will end up something like this:
 
@@ -140,7 +144,7 @@ Hence, the ID of the secret is used when listing all secrets. This is inconvenie
 refer to these secrets anymore from code. Hence, it is advised to use a rewrite rule with templates or
 to avoid using dataFrom field.
 
-### Push Secret
+## Push Secret
 
 Pushing a secret is also implemented. Pushing a secret requires even more restrictions because Bitwarden Secrets Manager
 allows creating the same secret with the same key multiple times. In order to avoid overwriting, or potentially, returning
