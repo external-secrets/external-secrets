@@ -345,9 +345,14 @@ func (l *Conjur) initConjur() error {
 	return nil
 }
 
+// conjurReleaseVersion is the pinned cyberark/conjur GitHub release used to fetch the
+// authenticator-service binary. Bump this when a newer release is needed.
+const conjurReleaseVersion = "v1.27.0"
+
 // authenticatorServiceInitScript downloads the authenticator-service binary matching the
-// node's architecture from the latest cyberark/conjur GitHub release, and writes its
-// minimal config file, into a shared emptyDir volume mounted by the sidecar container.
+// node's architecture from the pinned cyberark/conjur GitHub release (see
+// conjurReleaseVersion), and writes its minimal config file, into a shared emptyDir volume
+// mounted by the sidecar container.
 //
 // The authenticator-service is not distributed as a container image, only as raw
 // per-architecture binaries attached to GitHub releases (see AUTHENTICATOR_SERVICE.md in
@@ -359,7 +364,7 @@ case "$ARCH" in
   aarch64|arm64) BIN_ARCH=arm64 ;;
   *) echo "unsupported architecture: $ARCH" >&2; exit 1 ;;
 esac
-DOWNLOAD_URL=$(curl -s https://api.github.com/repos/cyberark/conjur/releases/latest \
+DOWNLOAD_URL=$(curl -s https://api.github.com/repos/cyberark/conjur/releases/tags/` + conjurReleaseVersion + `\
   | grep -o "\"browser_download_url\": *\"[^\"]*authenticator_linux_[0-9]*_${BIN_ARCH}\"" \
   | head -1 | sed -E 's/.*"(https:[^"]+)".*/\1/')
 if [ -z "$DOWNLOAD_URL" ]; then
