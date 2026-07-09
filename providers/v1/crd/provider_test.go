@@ -268,6 +268,27 @@ func TestValidateStore(t *testing.T) {
 			}),
 		},
 		{
+			name: "auth without server.url is rejected",
+			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
+				Resource: widgetResource,
+				Auth: &esv1.KubernetesAuth{
+					Token: &esv1.TokenAuth{
+						BearerToken: esmeta.SecretKeySelector{Name: "t", Key: "k"},
+					},
+				},
+			}),
+			wantMsg: "auth requires server.url",
+		},
+		{
+			// authRef embeds a kubeconfig with the server address, so a
+			// separate server.url is not required.
+			name: "authRef without server.url is allowed",
+			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
+				Resource: widgetResource,
+				AuthRef:  &esmeta.SecretKeySelector{Name: "kubeconfig", Key: "config"},
+			}),
+		},
+		{
 			name: "explicit connection TLS CA warning",
 			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
 				Resource: widgetResource,

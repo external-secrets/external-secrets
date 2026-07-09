@@ -407,11 +407,13 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	var warnings admission.Warnings
 
 	if usesExplicitCRDConnection(prov) {
-		// Reject the misconfiguration of setting Server.URL without any
-		// credentials (CEL XValidation catches this at admission, but admission
-		// can be bypassed for cluster-side validation; defend in depth here).
+		// Reject the misconfiguration of setting Server.URL without any credentials
 		if prov.Server.URL != "" && prov.Auth == nil && prov.AuthRef == nil {
 			return warnings, errors.New("server.url requires auth or authRef when set")
+		}
+		// Symmetric guard: inline auth needs a server URL to connect to.
+		if prov.Auth != nil && prov.Server.URL == "" {
+			return warnings, errors.New("auth requires server.url to be set")
 		}
 		if prov.AuthRef == nil && prov.Server.CABundle == nil && prov.Server.CAProvider == nil {
 			warnings = append(warnings, warnNoCAConfigured)
