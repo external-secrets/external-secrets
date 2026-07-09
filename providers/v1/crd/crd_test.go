@@ -24,9 +24,12 @@ import (
 	"testing"
 
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	dynfake "k8s.io/client-go/dynamic/fake"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	crfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -87,11 +90,32 @@ func widget(name, namespace string, spec map[string]any) *unstructured.Unstructu
 	}}
 }
 
+// testWidgetGVK is the GroupVersionKind of the Widget test resource.
+var testWidgetGVK = schema.GroupVersionKind{Group: "example.io", Version: "v1alpha1", Kind: "Widget"}
+
+// fakeCRDClient builds a controller-runtime fake client that serves the Widget
+// test resource as unstructured objects, with a RESTMapper carrying the given
+// scope so List/Get behave like the production controller-runtime client.
+func fakeCRDClient(namespaced bool, objs ...kclient.Object) kclient.Client {
+	scheme := runtime.NewScheme()
+	scheme.AddKnownTypeWithName(testWidgetGVK, &unstructured.Unstructured{})
+	scheme.AddKnownTypeWithName(testWidgetGVK.GroupVersion().WithKind(testWidgetGVK.Kind+"List"), &unstructured.UnstructuredList{})
+
+	scope := meta.RESTScopeNamespace
+	if !namespaced {
+		scope = meta.RESTScopeRoot
+	}
+	mapper := meta.NewDefaultRESTMapper([]schema.GroupVersion{testWidgetGVK.GroupVersion()})
+	mapper.Add(testWidgetGVK, scope)
+
+	return crfake.NewClientBuilder().WithScheme(scheme).WithRESTMapper(mapper).WithObjects(objs...).Build()
+}
+
 // newTestClient builds a Client for use in unit tests.
 // storeKind must be esv1.SecretStoreKind or esv1.ClusterSecretStoreKind.
 // Whitelist regexes must be valid: invalid patterns are caught at admission
 // (ValidateStore) and are not reachable via the Client constructor in production.
-func newTestClient(store *esv1.CRDProvider, storeKind, namespace string, namespaced bool, objs ...runtime.Object) *Client {
+func newTestClient(store *esv1.CRDProvider, storeKind, namespace string, namespaced bool, objs ...kclient.Object) *Client {
 	rules, err := compileWhitelistRules(store.Whitelist)
 	if err != nil {
 		panic("newTestClient: invalid whitelist in test fixture: " + err.Error())
@@ -99,20 +123,19 @@ func newTestClient(store *esv1.CRDProvider, storeKind, namespace string, namespa
 	return &Client{
 		store:          store,
 		namespace:      namespace,
-		plural:         "widgets",
 		namespaced:     namespaced,
 		storeKind:      storeKind,
-		dynClient:      dynfake.NewSimpleDynamicClient(runtime.NewScheme(), objs...),
+		kube:           fakeCRDClient(namespaced, objs...),
 		whitelistRules: rules,
 	}
 }
 
 // Shorthands for the two most common configurations.
-func ssClient(store *esv1.CRDProvider, ns string, objs ...runtime.Object) *Client {
+func ssClient(store *esv1.CRDProvider, ns string, objs ...kclient.Object) *Client {
 	return newTestClient(store, esv1.SecretStoreKind, ns, true, objs...)
 }
 
-func cssClient(store *esv1.CRDProvider, objs ...runtime.Object) *Client {
+func cssClient(store *esv1.CRDProvider, objs ...kclient.Object) *Client {
 	return newTestClient(store, esv1.ClusterSecretStoreKind, "", true, objs...)
 }
 
@@ -132,11 +155,11 @@ func assertJSON[T any](t *testing.T, b []byte, check func(*testing.T, T)) {
 
 // ── tests ────────────────────────────────────────────────────────────────────
 
-func TestClientBuildGVR(t *testing.T) {
+func TestClientBuildGVK(t *testing.T) {
 	c := newTestClient(makeStore(), esv1.SecretStoreKind, "", true)
-	gvr := c.buildGVR()
-	if gvr.Group != "example.io" || gvr.Version != "v1alpha1" || gvr.Resource != "widgets" {
-		t.Fatalf("unexpected GVR: %+v", gvr)
+	gvk := c.buildGVK()
+	if gvk.Group != "example.io" || gvk.Version != "v1alpha1" || gvk.Kind != "Widget" {
+		t.Fatalf("unexpected GVK: %+v", gvk)
 	}
 }
 

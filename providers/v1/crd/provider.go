@@ -24,12 +24,13 @@ import (
 
 	authv1 "k8s.io/api/authorization/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/discovery"
-	"k8s.io/client-go/dynamic"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -103,10 +104,11 @@ func resolveImpersonationNamespace(storeKind, storeNamespace string, ref *esmeta
 
 // Provider is the top-level CRD provider that implements esv1.Provider.
 type Provider struct {
-	// discoverFn resolves the plural resource name and whether the kind is
-	// namespaced (vs cluster-scoped) via the cluster discovery API.
-	// Overridable in tests without a live cluster.
-	discoverFn func(cfg *rest.Config, res esv1.CRDProviderResource) (plural string, namespaced bool, err error)
+	// buildClientFn builds a controller-runtime client from the authenticated
+	// config and resolves the target resource's plural name and scope (namespaced
+	// vs cluster-scoped) via a RESTMapper. Overridable in tests without a live
+	// cluster.
+	buildClientFn func(cfg *rest.Config, res esv1.CRDProviderResource) (kclient.Client, string, bool, error)
 	// accessCheckFn verifies that the caller can perform the requested verbs
 	// on the resolved resource (used for SSAR-based preflight + per-call list
 	// checks).
@@ -115,10 +117,10 @@ type Provider struct {
 
 var _ esv1.Provider = &Provider{}
 
-// newProvider returns a Provider with the default (real) discovery function.
+// newProvider returns a Provider with the default (real) client builder.
 func newProvider() *Provider {
 	return &Provider{
-		discoverFn:    discoverResourceFromCluster,
+		buildClientFn: buildClientFromCluster,
 		accessCheckFn: ensureResourceAccess,
 	}
 }
@@ -228,12 +230,13 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube 
 
 // Client holds the runtime state for a single SecretStore/ClusterSecretStore.
 type Client struct {
-	store     *esv1.CRDProvider
-	dynClient dynamic.Interface
+	store *esv1.CRDProvider
+	// kube is a controller-runtime client bound to the store's authenticated
+	// connection. Reads target arbitrary CRs as unstructured objects; the client's
+	// RESTMapper resolves GroupVersionKind to the correct resource and scope.
+	kube      kclient.Client
 	namespace string
-	// plural is the server-discovered plural resource name (e.g. "widgets").
-	plural string
-	// namespaced is true when the API resource is namespace-scoped (from discovery).
+	// namespaced is true when the API resource is namespace-scoped (from the RESTMapper).
 	namespaced bool
 	// storeKind is SecretStore or ClusterSecretStore (controls remoteRef.key parsing).
 	storeKind string
@@ -247,7 +250,7 @@ type Client struct {
 	listAccessCheck func(ctx context.Context) error
 	// referent marks a stub client returned at store-validation time for a
 	// referent ClusterSecretStore (no explicit SA namespace). It has no
-	// dynClient and only answers Validate() with an "unknown" result; the
+	// kube client and only answers Validate() with an "unknown" result; the
 	// operational client is rebuilt per-ExternalSecret at reconcile.
 	referent bool
 }
@@ -262,9 +265,10 @@ func (p *Provider) newClientWithRESTConfig(ctx context.Context, store esv1.Gener
 		return nil, err
 	}
 
-	// Validate that the requested group/version/kind is actually registered in
-	// the cluster before building the dynamic client.
-	plural, resourceNamespaced, err := p.discoverFn(authedCfg, provSpec.Resource)
+	// Build the controller-runtime client and resolve the requested
+	// group/version/kind to its plural resource name and scope via a RESTMapper.
+	// A mapping error means the kind is not registered in the target cluster.
+	kubeClient, plural, resourceNamespaced, err := p.buildClientFn(authedCfg, provSpec.Resource)
 	if err != nil {
 		return nil, err
 	}
@@ -288,10 +292,6 @@ func (p *Provider) newClientWithRESTConfig(ctx context.Context, store esv1.Gener
 		}
 	}
 
-	dynClient, err := dynamic.NewForConfig(authedCfg)
-	if err != nil {
-		return nil, fmt.Errorf("crd: failed to create dynamic client: %w", err)
-	}
 	whitelistRules, err := compileWhitelistRules(provSpec.Whitelist)
 	if err != nil {
 		return nil, err
@@ -310,9 +310,8 @@ func (p *Provider) newClientWithRESTConfig(ctx context.Context, store esv1.Gener
 
 	return &Client{
 		store:           provSpec,
-		dynClient:       dynClient,
+		kube:            kubeClient,
 		namespace:       targetNamespace,
-		plural:          plural,
 		namespaced:      resourceNamespaced,
 		storeKind:       store.GetKind(),
 		whitelistRules:  whitelistRules,
@@ -330,38 +329,31 @@ func (c *Client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) err
 	return fmt.Errorf("crd: DeleteSecret: %w", errNotImplemented)
 }
 
-// discoverResourceFromCluster uses the discovery API (authenticated as the SA)
-// to verify that the requested group/version/kind is registered in the cluster
-// and to resolve the correct plural resource name and scope (namespaced vs cluster).
-func discoverResourceFromCluster(cfg *rest.Config, res esv1.CRDProviderResource) (string, bool, error) {
-	dc, err := discovery.NewDiscoveryClientForConfig(cfg)
+// buildClientFromCluster builds a controller-runtime client bound to the
+// authenticated connection and resolves the requested group/version/kind to its
+// plural resource name and scope via a dynamic RESTMapper. The RESTMapping also
+// serves as registration validation: an unregistered kind yields an error. This
+// matches how the rest of ESO reads arbitrary custom resources (unstructured
+// objects through a controller-runtime client) rather than a raw dynamic client.
+func buildClientFromCluster(cfg *rest.Config, res esv1.CRDProviderResource) (kclient.Client, string, bool, error) {
+	httpClient, err := rest.HTTPClientFor(cfg)
 	if err != nil {
-		return "", false, fmt.Errorf("crd: failed to create discovery client: %w", err)
+		return nil, "", false, fmt.Errorf("crd: failed to create http client: %w", err)
 	}
-
-	// ServerResourcesForGroupVersion returns the full resource list for the
-	// requested group/version, or a not-found error if it is unregistered.
-	groupVersion := res.Version
-	if res.Group != "" {
-		groupVersion = res.Group + "/" + res.Version
-	}
-
-	resList, err := dc.ServerResourcesForGroupVersion(groupVersion)
+	mapper, err := apiutil.NewDynamicRESTMapper(cfg, httpClient)
 	if err != nil {
-		return "", false, fmt.Errorf("crd: group/version %q is not registered in the cluster: %w", groupVersion, err)
+		return nil, "", false, fmt.Errorf("crd: failed to create rest mapper: %w", err)
 	}
-
-	for _, r := range resList.APIResources {
-		// Skip sub-resources (e.g. "widgets/status").
-		if strings.Contains(r.Name, "/") {
-			continue
-		}
-		if strings.EqualFold(r.Kind, res.Kind) {
-			return r.Name, r.Namespaced, nil
-		}
+	mapping, err := mapper.RESTMapping(schema.GroupKind{Group: res.Group, Kind: res.Kind}, res.Version)
+	if err != nil {
+		return nil, "", false, fmt.Errorf("crd: group %q version %q kind %q is not registered in the cluster: %w", res.Group, res.Version, res.Kind, err)
 	}
-
-	return "", false, fmt.Errorf("crd: kind %q not found in group/version %q", res.Kind, groupVersion)
+	c, err := kclient.New(cfg, kclient.Options{Mapper: mapper, HTTPClient: httpClient})
+	if err != nil {
+		return nil, "", false, fmt.Errorf("crd: failed to create client: %w", err)
+	}
+	namespaced := mapping.Scope.Name() == meta.RESTScopeNameNamespace
+	return c, mapping.Resource.Resource, namespaced, nil
 }
 
 // ensureResourceAccess performs a SelfSubjectAccessReview for each of the

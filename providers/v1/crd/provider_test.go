@@ -24,34 +24,37 @@ import (
 	"testing"
 
 	"k8s.io/client-go/rest"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-// fakeDiscover returns a discoverFn that always succeeds with the given plural and scope.
-func fakeDiscover(plural string, namespaced bool) func(*rest.Config, esv1.CRDProviderResource) (string, bool, error) {
-	return func(_ *rest.Config, _ esv1.CRDProviderResource) (string, bool, error) {
-		return plural, namespaced, nil
+// fakeBuildClient returns a buildClientFn that succeeds with the given plural and
+// scope, backed by a controller-runtime fake client (no objects). This bypasses
+// both the RESTMapper and the real cluster.
+func fakeBuildClient(plural string, namespaced bool) func(*rest.Config, esv1.CRDProviderResource) (kclient.Client, string, bool, error) {
+	return func(_ *rest.Config, _ esv1.CRDProviderResource) (kclient.Client, string, bool, error) {
+		return fakeCRDClient(namespaced), plural, namespaced, nil
 	}
 }
 
-// fakeDiscoverErr returns a discoverFn that always fails with the given error.
-func fakeDiscoverErr(err error) func(*rest.Config, esv1.CRDProviderResource) (string, bool, error) {
-	return func(_ *rest.Config, _ esv1.CRDProviderResource) (string, bool, error) {
-		return "", true, err
+// fakeBuildClientErr returns a buildClientFn that always fails with the given error.
+func fakeBuildClientErr(err error) func(*rest.Config, esv1.CRDProviderResource) (kclient.Client, string, bool, error) {
+	return func(_ *rest.Config, _ esv1.CRDProviderResource) (kclient.Client, string, bool, error) {
+		return nil, "", true, err
 	}
 }
 
-// providerWithFakeDiscover returns a Provider with a fake discovery function
-// and a fake dynamic client injected, bypassing both token fetch and the real cluster.
+// providerWithFakeClient returns a Provider with a fake client builder injected,
+// bypassing both token fetch and the real cluster.
 // namespaced defaults to true when omitted (namespace-scoped CRD).
-func providerWithFakeDiscover(plural string, namespaced ...bool) *Provider {
+func providerWithFakeClient(plural string, namespaced ...bool) *Provider {
 	ns := true
 	if len(namespaced) > 0 {
 		ns = namespaced[0]
 	}
-	return &Provider{discoverFn: fakeDiscover(plural, ns)}
+	return &Provider{buildClientFn: fakeBuildClient(plural, ns)}
 }
 
 func makeStoreWithCRDProvider(prov *esv1.CRDProvider) esv1.GenericStore {
@@ -452,7 +455,7 @@ func TestNewClientInternal(t *testing.T) {
 	store := makeStoreWithCRDProvider(&esv1.CRDProvider{ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"}, Resource: widgetResource})
 
 	t.Run("newClient returns getProvider error on nil store", func(t *testing.T) {
-		_, err := providerWithFakeDiscover("widgets").newClient(ctx, nil, nil, &rest.Config{Host: "https://example.com"}, nil, "default")
+		_, err := providerWithFakeClient("widgets").newClient(ctx, nil, nil, &rest.Config{Host: "https://example.com"}, nil, "default")
 		if !errors.Is(err, errMissingStore) {
 			t.Fatalf("newClient() error = %v, want %v", err, errMissingStore)
 		}
@@ -463,7 +466,7 @@ func TestNewClientInternal(t *testing.T) {
 			// No Server/Auth/AuthRef → simple mode; no ServiceAccountRef → should error.
 			Resource: widgetResource,
 		})
-		_, err := providerWithFakeDiscover("widgets").newClient(ctx, simpleStore, nil, defaultRESTCfg(), nil, "default")
+		_, err := providerWithFakeClient("widgets").newClient(ctx, simpleStore, nil, defaultRESTCfg(), nil, "default")
 		if !errors.Is(err, errMissingSA) {
 			t.Fatalf("newClient() error = %v, want %v", err, errMissingSA)
 		}
@@ -489,8 +492,8 @@ func TestNewClientInternal(t *testing.T) {
 		if !c.referent {
 			t.Fatalf("expected a referent stub client")
 		}
-		if c.dynClient != nil {
-			t.Fatalf("referent stub must not carry a dynamic client")
+		if c.kube != nil {
+			t.Fatalf("referent stub must not carry a client")
 		}
 		res, err := c.Validate()
 		if err != nil {
@@ -502,29 +505,22 @@ func TestNewClientInternal(t *testing.T) {
 	})
 
 	t.Run("newClientWithRESTConfig returns getProvider error on nil store", func(t *testing.T) {
-		_, err := providerWithFakeDiscover("widgets").newClientWithRESTConfig(context.Background(), nil, defaultRESTCfg(), "default")
+		_, err := providerWithFakeClient("widgets").newClientWithRESTConfig(context.Background(), nil, defaultRESTCfg(), "default")
 		if !errors.Is(err, errMissingStore) {
 			t.Fatalf("newClientWithRESTConfig() error = %v, want %v", err, errMissingStore)
 		}
 	})
 
-	t.Run("discovery error is propagated", func(t *testing.T) {
-		discErr := fmt.Errorf("group/version not registered")
-		_, err := (&Provider{discoverFn: fakeDiscoverErr(discErr)}).newClientWithRESTConfig(context.Background(), store, defaultRESTCfg(), "default")
-		if !errors.Is(err, discErr) {
-			t.Fatalf("newClientWithRESTConfig() error = %v, want %v", err, discErr)
+	t.Run("resource resolution error is propagated", func(t *testing.T) {
+		mapErr := fmt.Errorf("group/version/kind not registered")
+		_, err := (&Provider{buildClientFn: fakeBuildClientErr(mapErr)}).newClientWithRESTConfig(context.Background(), store, defaultRESTCfg(), "default")
+		if !errors.Is(err, mapErr) {
+			t.Fatalf("newClientWithRESTConfig() error = %v, want %v", err, mapErr)
 		}
 	})
 
-	t.Run("returns dynamic client creation error on bad host", func(t *testing.T) {
-		_, err := providerWithFakeDiscover("widgets").newClientWithRESTConfig(context.Background(), store, &rest.Config{Host: "://bad-host", BearerToken: "tok"}, "default")
-		if err == nil || !strings.Contains(err.Error(), "failed to create dynamic client") {
-			t.Fatalf("newClientWithRESTConfig() error = %v, want dynamic client creation error", err)
-		}
-	})
-
-	t.Run("creates client for namespaced store with discovered plural", func(t *testing.T) {
-		client, err := providerWithFakeDiscover("widgets").newClientWithRESTConfig(context.Background(), store, defaultRESTCfg(), "app-ns")
+	t.Run("creates client for namespaced store", func(t *testing.T) {
+		client, err := providerWithFakeClient("widgets").newClientWithRESTConfig(context.Background(), store, defaultRESTCfg(), "app-ns")
 		if err != nil {
 			t.Fatalf("newClientWithRESTConfig() unexpected error: %v", err)
 		}
@@ -535,13 +531,13 @@ func TestNewClientInternal(t *testing.T) {
 		if c.store.ServiceAccountRef.Name != "reader" {
 			t.Fatalf("client SA = %q, want %q", c.store.ServiceAccountRef.Name, "reader")
 		}
-		if c.namespace != "app-ns" || c.plural != "widgets" || c.dynClient == nil {
-			t.Fatalf("client: ns=%q plural=%q dynClient=%v", c.namespace, c.plural, c.dynClient)
+		if c.namespace != "app-ns" || c.kube == nil {
+			t.Fatalf("client: ns=%q kube=%v", c.namespace, c.kube)
 		}
 	})
 
 	t.Run("creates client for cluster store (empty namespace)", func(t *testing.T) {
-		client, err := providerWithFakeDiscover("widgets").newClientWithRESTConfig(context.Background(), store, defaultRESTCfg(), "")
+		client, err := providerWithFakeClient("widgets").newClientWithRESTConfig(context.Background(), store, defaultRESTCfg(), "")
 		if err != nil {
 			t.Fatalf("newClientWithRESTConfig() unexpected error: %v", err)
 		}
@@ -554,19 +550,8 @@ func TestNewClientInternal(t *testing.T) {
 		}
 	})
 
-	t.Run("plural from discovery is used in GVR", func(t *testing.T) {
-		client, err := providerWithFakeDiscover("mycustomwidgets").newClientWithRESTConfig(context.Background(), store, defaultRESTCfg(), "default")
-		if err != nil {
-			t.Fatalf("newClientWithRESTConfig() unexpected error: %v", err)
-		}
-		gvr := client.(*Client).buildGVR()
-		if gvr.Resource != "mycustomwidgets" || gvr.Group != widgetResource.Group || gvr.Version != widgetResource.Version {
-			t.Fatalf("buildGVR() = %+v, want resource=%q group=%q version=%q", gvr, "mycustomwidgets", widgetResource.Group, widgetResource.Version)
-		}
-	})
-
-	t.Run("cluster-scoped discovery sets namespaced false on client", func(t *testing.T) {
-		client, err := providerWithFakeDiscover("clusterdbspecs", false).newClientWithRESTConfig(context.Background(), store, defaultRESTCfg(), "default")
+	t.Run("cluster-scoped resource sets namespaced false on client", func(t *testing.T) {
+		client, err := providerWithFakeClient("clusterdbspecs", false).newClientWithRESTConfig(context.Background(), store, defaultRESTCfg(), "default")
 		if err != nil {
 			t.Fatalf("newClientWithRESTConfig() unexpected error: %v", err)
 		}
@@ -689,7 +674,7 @@ func TestResolveImpersonationNamespace(t *testing.T) {
 
 func TestImpersonationWiring(t *testing.T) {
 	t.Run("impersonation config set when serviceAccountRef present in explicit mode", func(t *testing.T) {
-		p := providerWithFakeDiscover("widgets")
+		p := providerWithFakeClient("widgets")
 		store := makeStoreWithCRDProvider(&esv1.CRDProvider{
 			Resource: widgetResource,
 			Server:   esv1.KubernetesServer{URL: "https://remote.example"},
@@ -716,8 +701,8 @@ func TestImpersonationWiring(t *testing.T) {
 			t.Fatalf("newClientWithRESTConfig() unexpected error: %v", err)
 		}
 		c := client.(*Client)
-		if c.dynClient == nil {
-			t.Fatalf("client dynClient is nil")
+		if c.kube == nil {
+			t.Fatalf("client kube is nil")
 		}
 	})
 

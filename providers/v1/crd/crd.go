@@ -27,9 +27,9 @@ import (
 
 	"github.com/tidwall/gjson"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
@@ -105,34 +105,31 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 		}
 	}
 
-	gvr := c.buildGVR()
+	list := &unstructured.UnstructuredList{}
+	gvk := c.buildGVK()
+	list.SetGroupVersionKind(gvk.GroupVersion().WithKind(gvk.Kind + "List"))
 
-	var (
-		list *unstructured.UnstructuredList
-		err  error
-	)
-	resourceInterface := c.dynClient.Resource(gvr)
-	if !c.namespaced || c.storeKind == esv1.ClusterSecretStoreKind {
+	var opts []kclient.ListOption
+	if c.namespaced && c.storeKind != esv1.ClusterSecretStoreKind {
+		// SecretStore over a namespaced kind lists within its own namespace.
 		// Cluster-scoped kinds, and a ClusterSecretStore over a namespaced kind,
-		// list across all namespaces. A SecretStore lists within its own namespace.
-		list, err = resourceInterface.List(ctx, metav1.ListOptions{})
-	} else {
-		ns := c.namespace
-		if ns == "" {
+		// list across all namespaces (no namespace option).
+		if c.namespace == "" {
 			return nil, fmt.Errorf("crd: namespace is required for namespaced resource kind %q", c.store.Resource.Kind)
 		}
-		list, err = resourceInterface.Namespace(ns).List(ctx, metav1.ListOptions{})
+		opts = append(opts, kclient.InNamespace(c.namespace))
 	}
-	if err != nil {
+	if err := c.kube.List(ctx, list, opts...); err != nil {
 		return nil, fmt.Errorf("crd: failed to list %s: %w", c.store.Resource.Kind, err)
 	}
 
 	var re *regexp.Regexp
 	if ref.Name != nil && ref.Name.RegExp != "" {
-		re, err = regexp.Compile(ref.Name.RegExp)
+		compiled, err := regexp.Compile(ref.Name.RegExp)
 		if err != nil {
 			return nil, fmt.Errorf("crd: invalid name pattern %q: %w", ref.Name.RegExp, err)
 		}
+		re = compiled
 	}
 
 	result := make(map[string][]byte, len(list.Items))
@@ -190,13 +187,14 @@ func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
-// buildGVR returns the GroupVersionResource using the plural name resolved
-// at client construction time via server-side discovery.
-func (c *Client) buildGVR() schema.GroupVersionResource {
-	return schema.GroupVersionResource{
-		Group:    c.store.Resource.Group,
-		Version:  c.store.Resource.Version,
-		Resource: c.plural,
+// buildGVK returns the GroupVersionKind of the configured target resource. The
+// controller-runtime client's RESTMapper resolves this to the correct resource
+// and scope at request time.
+func (c *Client) buildGVK() schema.GroupVersionKind {
+	return schema.GroupVersionKind{
+		Group:   c.store.Resource.Group,
+		Version: c.store.Resource.Version,
+		Kind:    c.store.Resource.Kind,
 	}
 }
 
@@ -207,8 +205,8 @@ func (c *Client) getObject(ctx context.Context, remoteKey string) (*unstructured
 		return nil, err
 	}
 
-	gvr := c.buildGVR()
-	ri := c.dynClient.Resource(gvr)
+	obj := &unstructured.Unstructured{}
+	obj.SetGroupVersionKind(c.buildGVK())
 
 	if c.namespaced {
 		var requestNS string
@@ -223,8 +221,7 @@ func (c *Client) getObject(ctx context.Context, remoteKey string) (*unstructured
 		if requestNS == "" {
 			return nil, fmt.Errorf("crd: namespace is required for namespaced resource kind %q", c.store.Resource.Kind)
 		}
-		obj, err := ri.Namespace(requestNS).Get(ctx, objName, metav1.GetOptions{})
-		if err != nil {
+		if err := c.kube.Get(ctx, kclient.ObjectKey{Namespace: requestNS, Name: objName}, obj); err != nil {
 			if apierrors.IsNotFound(err) {
 				return nil, esv1.NoSecretError{}
 			}
@@ -236,8 +233,7 @@ func (c *Client) getObject(ctx context.Context, remoteKey string) (*unstructured
 	if keyNS != nil {
 		return nil, fmt.Errorf("crd: cluster-scoped resource kind %q does not allow '/' in remoteRef.key (use object name only)", c.store.Resource.Kind)
 	}
-	obj, err := ri.Get(ctx, objName, metav1.GetOptions{})
-	if err != nil {
+	if err := c.kube.Get(ctx, kclient.ObjectKey{Name: objName}, obj); err != nil {
 		if apierrors.IsNotFound(err) {
 			return nil, esv1.NoSecretError{}
 		}
