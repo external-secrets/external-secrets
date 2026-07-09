@@ -177,6 +177,12 @@ func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 
 // Validate checks that the provider is correctly configured.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
+	// A referent ClusterSecretStore cannot be validated at store-creation time:
+	// the ServiceAccount namespace is only known once an ExternalSecret consumes
+	// the store. Report "unknown" rather than a false "ready".
+	if c.referent {
+		return esv1.ValidationResultUnknown, nil
+	}
 	return esv1.ValidationResultReady, nil
 }
 

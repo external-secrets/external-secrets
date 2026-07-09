@@ -327,4 +327,8 @@ When using `ClusterSecretStore`:
 
 - for namespaced resources, `remoteRef.key` must be `namespace/objectName`.
 - `whitelist.rules[].namespace` can be used to constrain which namespaces are readable.
-- for service account token resolution, if no namespace can be derived the provider defaults to `default`.
+- in simple mode, `serviceAccountRef.namespace` is optional. When omitted, the ServiceAccount is resolved in the consuming `ExternalSecret`'s own namespace (referent authentication), so a single store can serve many namespaces, each authenticating as its local ServiceAccount. Set `serviceAccountRef.namespace` to pin one fixed namespace instead.
+
+### Referent authentication and RBAC
+
+With referent authentication (no `serviceAccountRef.namespace`), the named ServiceAccount must exist in **every** namespace that consumes the store, and each must be granted `get` (plus `list` for `dataFrom.find`) on the target resource. Grant this with a `ClusterRole` plus a `RoleBinding` per consuming namespace, or a `ClusterRoleBinding` if the same access is acceptable cluster-wide. When you instead pin `serviceAccountRef.namespace`, only that one ServiceAccount needs the binding.

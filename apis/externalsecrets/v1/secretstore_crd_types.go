@@ -108,8 +108,9 @@ type CRDProvider struct {
 	// token for this SA and uses it against the local cluster.
 	//   - SecretStore: the SA must be in the store's own namespace; the
 	//     serviceAccountRef.namespace field is ignored.
-	//   - ClusterSecretStore: serviceAccountRef.namespace is optional and
-	//     defaults to "default" when omitted.
+	//   - ClusterSecretStore: serviceAccountRef.namespace is optional. When
+	//     omitted, the SA is resolved in the consuming ExternalSecret's own
+	//     namespace (referent authentication); set it to pin a fixed namespace.
 	//
 	// Explicit mode (server + auth or authRef): serviceAccountRef itself is
 	// optional. When set, the controller impersonates this SA on the remote

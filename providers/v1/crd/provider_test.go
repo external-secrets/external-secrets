@@ -64,6 +64,16 @@ func makeStoreWithCRDProvider(prov *esv1.CRDProvider) esv1.GenericStore {
 	}
 }
 
+func makeClusterStoreWithCRDProvider(prov *esv1.CRDProvider) esv1.GenericStore {
+	return &esv1.ClusterSecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				CRD: prov,
+			},
+		},
+	}
+}
+
 // widgetResource is a valid CRDProviderResource used across tests.
 var widgetResource = esv1.CRDProviderResource{
 	Group:   "example.io",
@@ -459,6 +469,38 @@ func TestNewClientInternal(t *testing.T) {
 		}
 	})
 
+	t.Run("referent ClusterSecretStore returns a validation stub at store bootstrap", func(t *testing.T) {
+		// ClusterSecretStore, no explicit serviceAccountRef.namespace, and an
+		// empty namespace (the store-validation call). newClient must short
+		// circuit before any token fetch and return a referent stub whose
+		// Validate() reports "unknown".
+		clusterStore := makeClusterStoreWithCRDProvider(&esv1.CRDProvider{
+			ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
+			Resource:          widgetResource,
+		})
+		client, err := (&Provider{}).newClient(ctx, clusterStore, nil, defaultRESTCfg(), nil, "")
+		if err != nil {
+			t.Fatalf("newClient() unexpected error: %v", err)
+		}
+		c, ok := client.(*Client)
+		if !ok {
+			t.Fatalf("returned %T, want *Client", client)
+		}
+		if !c.referent {
+			t.Fatalf("expected a referent stub client")
+		}
+		if c.dynClient != nil {
+			t.Fatalf("referent stub must not carry a dynamic client")
+		}
+		res, err := c.Validate()
+		if err != nil {
+			t.Fatalf("Validate() unexpected error: %v", err)
+		}
+		if res != esv1.ValidationResultUnknown {
+			t.Fatalf("Validate() = %v, want %v", res, esv1.ValidationResultUnknown)
+		}
+	})
+
 	t.Run("newClientWithRESTConfig returns getProvider error on nil store", func(t *testing.T) {
 		_, err := providerWithFakeDiscover("widgets").newClientWithRESTConfig(context.Background(), nil, defaultRESTCfg(), "default")
 		if !errors.Is(err, errMissingStore) {
@@ -579,11 +621,18 @@ func TestResolveSimpleSANamespace(t *testing.T) {
 			wantNS:    "ops",
 		},
 		{
-			name:      "ClusterSecretStore falls back to default when namespace nil",
+			name:      "ClusterSecretStore referent: nil namespace uses the ES namespace",
+			storeKind: esv1.ClusterSecretStoreKind,
+			storeNS:   "team-a",
+			ref:       &esmeta.ServiceAccountSelector{Name: "sa"},
+			wantNS:    "team-a",
+		},
+		{
+			name:      "ClusterSecretStore referent: empty ES namespace stays empty",
 			storeKind: esv1.ClusterSecretStoreKind,
 			storeNS:   "",
 			ref:       &esmeta.ServiceAccountSelector{Name: "sa"},
-			wantNS:    "default",
+			wantNS:    "",
 		},
 	}
 	for _, tt := range tests {

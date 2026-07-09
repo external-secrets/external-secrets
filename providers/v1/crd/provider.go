@@ -86,14 +86,12 @@ func resolveCRDTargetNamespace(prov *esv1.CRDProvider, storeNamespace string) st
 
 // resolveSimpleSANamespace returns the namespace in which the SA token is minted for
 // simple (in-cluster) mode. For SecretStore the namespace is always the store's own
-// namespace. For ClusterSecretStore it comes from serviceAccountRef.namespace when set,
-// falling back to "default".
+// namespace. For ClusterSecretStore it is serviceAccountRef.namespace when set;
+// otherwise it falls back to the consuming ExternalSecret's namespace (referent
+// authentication), which is passed in as storeNamespace.
 func resolveSimpleSANamespace(storeKind, storeNamespace string, ref *esmeta.ServiceAccountSelector) string {
-	if storeKind == esv1.ClusterSecretStoreKind {
-		if ref.Namespace != nil {
-			return *ref.Namespace
-		}
-		return "default"
+	if storeKind == esv1.ClusterSecretStoreKind && ref.Namespace != nil {
+		return *ref.Namespace
 	}
 	return storeNamespace
 }
@@ -206,6 +204,15 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube 
 	if provSpec.ServiceAccountRef == nil {
 		return nil, errMissingSA
 	}
+	// Referent authentication: for a ClusterSecretStore without an explicit
+	// serviceAccountRef.namespace, the SA lives in the consuming ExternalSecret's
+	// namespace, which is unknown ("") at store-validation time. Return a stub so
+	// store validation passes; the operational client is rebuilt per-ExternalSecret
+	// at reconcile, when the namespace is known.
+	if storeKind == esv1.ClusterSecretStoreKind && namespace == "" &&
+		provSpec.ServiceAccountRef.Namespace == nil {
+		return &Client{store: provSpec, storeKind: storeKind, referent: true}, nil
+	}
 	saNamespace := resolveSimpleSANamespace(storeKind, namespace, provSpec.ServiceAccountRef)
 	token, err := esutils.FetchServiceAccountToken(ctx, *provSpec.ServiceAccountRef, saNamespace)
 	if err != nil {
@@ -248,6 +255,11 @@ type Client struct {
 	// "list" permission is only required when listing is actually used.
 	// nil when no access check is configured (test/no-op).
 	listAccessCheck func(ctx context.Context) error
+	// referent marks a stub client returned at store-validation time for a
+	// referent ClusterSecretStore (no explicit SA namespace). It has no
+	// dynClient and only answers Validate() with an "unknown" result; the
+	// operational client is rebuilt per-ExternalSecret at reconcile.
+	referent bool
 }
 
 var _ esv1.SecretsClient = &Client{}
