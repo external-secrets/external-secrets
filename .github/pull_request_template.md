@@ -36,8 +36,7 @@ Where `scope` is _optionally_ one of:
 
 Did you use an script, LLM, or AI assisted development tool for this contribution?
 
-[ ] No
-[ ] Yes
+AI assistance used: Yes / No
 
 If yes provide details:
 
@@ -57,3 +56,4 @@ Human validation performed:
 - [ ] All tests pass with `make test`
 - [ ] I ensured my PR is ready for review with `make reviewable`
 - [ ] I confirm that I understand the submitted changes and can explain them without relying on an AI tool.
+- [ ] I have tested my changes on a live environment to confirm they are working

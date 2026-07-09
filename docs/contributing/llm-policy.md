@@ -59,7 +59,7 @@ Before submitting, check the existing codebase conventions (check other provider
 
 ## Issues and Discussions
 
-AI-assisted issues and discussions are allowed, but **they must be human-reviewed and edited before submission**.
+AI-assisted issues and discussions are allowed, but **they must be human-reviewed and edited if needed before submission**.
 
 A good issue should describe a real bug, use case, regression, limitation, or design problem, with the code base version and a full context.
 The context is required for maintainers to evaluate the issue without having to reconstruct the problem from generic AI-generated text.

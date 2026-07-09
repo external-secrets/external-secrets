@@ -6,7 +6,7 @@ Kubernetes operator that synchronizes secrets from external providers (AWS Secre
 
 Use `make` targets — refer to the Makefile for available commands. Do not run `go test`, `golangci-lint`, or `helm` directly.
 
-You must run `make check-diff` before the PR is ready. (See also section Non-Obvious patterns for more explanations about the tests)
+You must run `make test && make check-diff` before the PR is ready. (See also section Non-Obvious patterns for more explanations about the tests)
 
 ## Project Layout
 
@@ -245,7 +245,6 @@ in order to assist humans.
 
 Agents must not:
 
-- create issues,
 - create pull requests,
 - push branches,
 - publish releases,
@@ -261,15 +260,15 @@ If asked to perform a blocked action, do not perform it. Instead, create a local
 1. the requested action,
 2. why the action is blocked,
 3. the local work that was completed, if any,
-4. the recommended manual steps a human maintainer should take next.
+4. the recommended manual steps a human contributor should take next.
 
 ## Work verification checklist
 
 Before presenting work as complete, verify:
 
 - [ ] the intent is documented,
-- [ ] the diff is minimal,
+- [ ] the diff is minimal and surgical (must not touch adjacent comments or code unrelated to the work),
 - [ ] the relevant tests were run (see build and test section),
-- [ ] the documentation was updated where needed.
+- [ ] the documentation was updated.
 
 If validation could not be completed, state it explicitly and explain why.
