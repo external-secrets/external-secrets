@@ -3119,6 +3119,8 @@
       <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
       
       
+        
+      
       
         <label class="md-nav__link md-nav__link--active" for="__toc">
           
@@ -3161,6 +3163,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -3169,18 +3173,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#bitwarden-secrets-manager-provider" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Bitwarden Secrets Manager Provider
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Bitwarden Secrets Manager Provider">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3224,8 +3216,8 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#external-secret-store" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3235,8 +3227,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#external-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3285,8 +3277,8 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#push-secret" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3294,11 +3286,6 @@
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -5101,6 +5088,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -5109,18 +5098,6 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#bitwarden-secrets-manager-provider" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Bitwarden Secrets Manager Provider
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Bitwarden Secrets Manager Provider">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
   <a href="#prerequisites" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5164,8 +5141,8 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#external-secret-store" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5175,8 +5152,8 @@
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#external-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5225,8 +5202,8 @@
     </nav>
   
 </li>
-        
-          <li class="md-nav__item">
+      
+        <li class="md-nav__item">
   <a href="#push-secret" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5234,11 +5211,6 @@
       
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -5262,9 +5234,7 @@
   
 
 
-  <h1>Bitwarden Secrets Manager</h1>
-
-<h2 id="bitwarden-secrets-manager-provider">Bitwarden Secrets Manager Provider</h2>
+<h1 id="bitwarden-secrets-manager-provider">Bitwarden Secrets Manager Provider</h1>
 <p>This section describes how to set up the Bitwarden Secrets Manager provider for External Secrets Operator (ESO).</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
@@ -5273,12 +5243,12 @@ enables developers, DevOps, and cybersecurity teams to centrally store, manage, 
 This is different from <a href="https://bitwarden.com/products/personal/">Bitwarden Password Manager</a>.
 To integrate with Bitwarden <strong>Password Manager</strong>, reference the <a href="../../examples/bitwarden/">example documentation</a>.</p>
 </div>
-<h3 id="prerequisites">Prerequisites</h3>
+<h2 id="prerequisites">Prerequisites</h2>
 <p>In order for the Bitwarden provider to work, we need a second service. This service is the <a href="https://github.com/external-secrets/bitwarden-sdk-server">Bitwarden SDK Server</a>.
 The Bitwarden SDK is Rust based and requires CGO enabled. In order to not restrict the capabilities of ESO, and the image
 size ( the bitwarden Rust SDK libraries are over 150MB in size ) it has been decided to create a soft wrapper
 around the SDK that runs as a separate service providing ESO with a light REST API to pull secrets through.</p>
-<h4 id="bitwarden-sdk-server">Bitwarden SDK server</h4>
+<h3 id="bitwarden-sdk-server">Bitwarden SDK server</h3>
 <p>The server itself can be installed together with ESO. The ESO Helm Chart packages this service as a dependency.
 The Bitwarden SDK Server's full name is hardcoded to bitwarden-sdk-server. This is so that the exposed service URL
 gets a determinable endpoint.</p>
@@ -5289,13 +5259,13 @@ gets a determinable endpoint.</p>
     --create-namespace \
     --set bitwarden-sdk-server.enabled=true
 </code></pre></div>
-<h5 id="certificate">Certificate</h5>
+<h4 id="certificate">Certificate</h4>
 <p>The Bitwarden SDK Server <em>NEEDS</em> to run as an HTTPS service. That means that any installation that wants to communicate with the Bitwarden
 provider will need to generate a certificate. The best approach for that is to use cert-manager. It's easy to set up
 and can generate a certificate that the store can use to connect with the server.</p>
 <p>For a sample set up look at the bitwarden sdk server's test setup. It contains a self-signed certificate issuer for
 cert-manager.</p>
-<h3 id="external-secret-store">External secret store</h3>
+<h2 id="external-secret-store">External secret store</h2>
 <p>With that out of the way, let's take a look at how a secret store would look like.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
@@ -5317,18 +5287,18 @@ cert-manager.</p>
 <span class="w">      </span><span class="nt">projectID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">9c713cd6-728c-437a-a783-252b0773a0bb</span>
 </code></pre></div>
 <p>The api url and identity url are optional. The secret should contain the token for the Machine account for bitwarden.</p>
-<div class="admonition note inline end">
+<div class="admonition note">
 <p class="admonition-title">Note</p>
-</div>
 <p>Make sure that the machine account has Read-Write access to the Project that the secrets are in.</p>
-<div class="admonition note inline end">
-<p class="admonition-title">Note</p>
 </div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
 <p>A secret store is organization/project dependent. Meaning a 1 store == 1 organization/project. This is so that we ensure
 that no other project's secrets can be modified accidentally <em>or</em> intentionally.</p>
-<h3 id="external-secrets">External Secrets</h3>
+</div>
+<h2 id="external-secrets">External Secrets</h2>
 <p>There are two ways to fetch secrets from the provider.</p>
-<h4 id="find-by-uuid">Find by UUID</h4>
+<h3 id="find-by-uuid">Find by UUID</h3>
 <p>In order to fetch a secret by using its UUID simply provide that as remote key in the external secrets like this:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5345,13 +5315,13 @@ that no other project's secrets can be modified accidentally <em>or</em> intenti
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;339062b8-a5a1-4303-bf1d-b1920146a622&quot;</span>
 </code></pre></div>
-<h4 id="find-by-name">Find by Name</h4>
+<h3 id="find-by-name">Find by Name</h3>
 <p>To find a secret using its name, we need a bit more information. Mainly, these are the rules to find a secret:</p>
 <ul>
-<li>if name is a UUID get the secret</li>
-<li>if name is NOT a UUID Property is mandatory that defines the projectID to look for</li>
-<li>if name + projectID + organizationID matches, we return that secret</li>
-<li>if more than one name exists for the same projectID within the same organization we error</li>
+<li>if the key is a UUID, the secret is fetched directly by that ID.</li>
+<li>if the key is not a UUID, it is treated as a secret name. The provider lists the organization's secrets and matches by name within the <code>projectID</code> and <code>organizationID</code> configured on the <code>SecretStore</code>. The project and organization come from the store, not from the <code>ExternalSecret</code>.</li>
+<li>if exactly one secret matches that name in that project, its value is returned.</li>
+<li>if more than one secret with the same name exists in that project, the provider errors.</li>
 </ul>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5368,15 +5338,17 @@ that no other project's secrets can be modified accidentally <em>or</em> intenti
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;secret-name&quot;</span>
 </code></pre></div>
-<h4 id="datafrom">DataFrom</h4>
-<p>When using dataFrom like this:</p>
+<h3 id="datafrom">DataFrom</h3>
+<p><code>dataFrom.find</code> returns every secret in the organization, keyed by secret ID:</p>
 <div class="highlight"><pre><span></span><code><span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">find</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">conversionStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Default</span>
 <span class="w">      </span><span class="nt">decodingStrategy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">None</span>
-<span class="w">      </span><span class="nt">name</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db_</span>
 </code></pre></div>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The provider does not currently filter by the <code>find</code> selector: the <code>name.regexp</code>, <code>tags</code>, and <code>path</code> fields are ignored and every secret in the organization is returned (see <a href="https://github.com/external-secrets/external-secrets/issues/6550">issue #6550</a>). Use a <code>rewrite</code> rule, or individual <code>data</code> entries, if you need a subset.</p>
+</div>
 <p>Note that the secrets in the map will end up something like this:</p>
 <div class="highlight"><pre><span></span><code>$ kubectl get secret secret-to-be-created -o jsonpath=&#39;{.data}&#39;|jq
 {
@@ -5390,7 +5362,7 @@ is a <em>VALID</em> option. Meaning, potentially, a secret could overwrite anoth
 <p>Hence, the ID of the secret is used when listing all secrets. This is inconvenient because now we can hardly
 refer to these secrets anymore from code. Hence, it is advised to use a rewrite rule with templates or
 to avoid using dataFrom field.</p>
-<h3 id="push-secret">Push Secret</h3>
+<h2 id="push-secret">Push Secret</h2>
 <p>Pushing a secret is also implemented. Pushing a secret requires even more restrictions because Bitwarden Secrets Manager
 allows creating the same secret with the same key multiple times. In order to avoid overwriting, or potentially, returning
 the wrong secret, we restrict push secret with the following rules:</p>
