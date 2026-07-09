@@ -408,6 +408,23 @@ AkeylessKubernetesAuth
 token stored in the named Secret resource.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef specifies a Kubernetes ServiceAccount used for azure_ad
+authentication on AKS Workload Identity. The operator obtains a federated
+identity token from this ServiceAccount via the TokenRequest API instead
+of using the ESO controller pod identity. Ignored for other access types.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.AkeylessAuthSecretRef">AkeylessAuthSecretRef
@@ -28830,6 +28847,19 @@ string
 <p>Role is the role of the service account.
 See here for the documentation on basic roles offered by Grafana:
 <a href="https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/">https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secondsToLive</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecondsToLive is the number of seconds before the generated service account token will expire.
+Some Grafana deployments (e.g. AWS Managed Grafana) require this value to be set.</p>
 </td>
 </tr>
 </tbody>

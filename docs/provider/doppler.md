@@ -1,6 +1,6 @@
 ![Doppler External Secrets Provider](../pictures/doppler-provider-header.jpg)
 
-## Doppler SecretOps Platform
+# Doppler SecretOps Platform
 
 Sync secrets from the [Doppler SecretOps Platform](https://www.doppler.com/) to Kubernetes using the External Secrets Operator.
 
@@ -141,15 +141,15 @@ Then an `ExternalSecret` referencing the `SecretStore`:
 
 ![Doppler name transformer](../pictures/doppler-name-transformer.png)
 
-### 6. Download
+## 6. Download
 
 A single `DOPPLER_SECRETS_FILE` key is set where the value is the secrets downloaded in one of the following formats:
 
 - json
 - dotnet-json
 - env
-- env-no-quotes
 - yaml
+- docker
 
 Downloading secrets requires a specifically configured `SecretStore`:
 
