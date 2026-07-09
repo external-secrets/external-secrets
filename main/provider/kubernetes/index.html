@@ -5277,7 +5277,7 @@
 <p>External Secrets Operator allows to retrieve secrets from a Kubernetes Cluster - this can be either a remote cluster or the local one where the operator runs in.</p>
 <p>A <code>SecretStore</code> points to a <strong>specific namespace</strong> in the target Kubernetes Cluster. You are able to retrieve all secrets from that particular namespace given you have the correct set of RBAC permissions.</p>
 <p>The <code>SecretStore</code> reconciler checks if you have read access for secrets in that namespace using <code>SelfSubjectRulesReview</code> and will fallback to <code>SelfSubjectAccessReview</code> when that fails. See below on how to set that up properly.</p>
-<h3 id="external-secret-spec">External Secret Spec</h3>
+<h2 id="external-secret-spec">External Secret Spec</h2>
 <p>This provider supports the use of the <code>Property</code> field. With it you point to the key of the remote secret. If you leave it empty it will json encode all key/value pairs.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5321,7 +5321,7 @@
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
 <span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">labels.dev</span>
 </code></pre></div>
-<h4 id="find-by-tag-name">find by tag &amp; name</h4>
+<h3 id="find-by-tag-name">find by tag &amp; name</h3>
 <p>You can fetch secrets based on labels or names matching a regexp:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5344,7 +5344,7 @@
 <span class="w">        </span><span class="c1"># fetch secrets based on label combination</span>
 <span class="w">        </span><span class="nt">app</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;nginx&quot;</span>
 </code></pre></div>
-<h3 id="target-api-server-configuration">Target API-Server Configuration</h3>
+<h2 id="target-api-server-configuration">Target API-Server Configuration</h2>
 <p>The servers <code>url</code> can be omitted and defaults to <code>kubernetes.default</code>. If no <code>caBundle</code> or <code>caProvider</code> is specified, the operator uses the system certificate roots from the container image. Both the default (<code>distroless/static</code>) and UBI images include standard CA certificates, so connections to servers using well-known CAs (e.g., Let's Encrypt) work without explicit CA configuration.
 For your convenience, each namespace has a ConfigMap <code>kube-root-ca.crt</code> that contains the CA certificate of the internal API Server (see <code>RootCAConfigMap</code> <a href="https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/">feature gate</a>).
 Use that if you want to connect to the same API server.
@@ -5388,7 +5388,7 @@ You may also define it inline as base64 encoded value using the <code>caBundle</
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-token</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
 </code></pre></div>
-<h3 id="authentication">Authentication</h3>
+<h2 id="authentication">Authentication</h2>
 <p>It's possible to authenticate against the Kubernetes API using client certificates, a bearer token or service account. The operator enforces that exactly one authentication method is used. You can not use the service account that is mounted inside the operator, this is by design to avoid reading secrets across namespaces.</p>
 <p><strong>NOTE:</strong> <code>SelfSubjectRulesReview</code> permission is required in order to validation work properly. Please use the following role as reference:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">rbac.authorization.k8s.io/v1</span>
@@ -5411,7 +5411,7 @@ You may also define it inline as base64 encoded value using the <code>caBundle</
 <span class="w">  </span><span class="nt">verbs</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">create</span>
 </code></pre></div>
-<h4 id="authenticating-with-bearertoken">Authenticating with BearerToken</h4>
+<h3 id="authenticating-with-bearertoken">Authenticating with BearerToken</h3>
 <p>Create a Kubernetes secret with a client token. There are many ways to acquire such a token, please refer to the <a href="https://kubernetes.io/docs/reference/access-authn-authz/authentication/#authentication-strategies">Kubernetes Authentication docs</a>.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
@@ -5438,7 +5438,7 @@ You may also define it inline as base64 encoded value using the <code>caBundle</
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-token</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
 </code></pre></div>
-<h4 id="authenticating-with-serviceaccount">Authenticating with ServiceAccount</h4>
+<h3 id="authenticating-with-serviceaccount">Authenticating with ServiceAccount</h3>
 <p>Create a Kubernetes Service Account, please refer to the <a href="https://kubernetes.io/docs/reference/access-authn-authz/authentication/#service-account-tokens">Service Account Tokens Documentation</a> on how they work and how to create them.</p>
 <div class="highlight"><pre><span></span><code>$ kubectl create serviceaccount my-store
 </code></pre></div>
@@ -5461,7 +5461,7 @@ You may also define it inline as base64 encoded value using the <code>caBundle</
 <span class="w">        </span><span class="nt">serviceAccount</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-store&quot;</span>
 </code></pre></div>
-<h4 id="authenticating-with-client-certificates">Authenticating with Client Certificates</h4>
+<h3 id="authenticating-with-client-certificates">Authenticating with Client Certificates</h3>
 <p>Create a Kubernetes secret which contains the client key and certificate. See <a href="https://kubernetes.io/docs/tasks/administer-cluster/certificates/">Generate Certificates Documentations</a> on how to create them.</p>
 <div class="highlight"><pre><span></span><code>$ kubectl create secret tls tls-secret --cert=path/to/tls.cert --key=path/to/tls.key
 </code></pre></div>
@@ -5486,7 +5486,7 @@ You may also define it inline as base64 encoded value using the <code>caBundle</
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tls-secret&quot;</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;tls.key&quot;</span>
 </code></pre></div>
-<h3 id="access-from-different-namespace-in-same-cluster">Access from different namespace in same cluster</h3>
+<h2 id="access-from-different-namespace-in-same-cluster">Access from different namespace in same cluster</h2>
 <p>If you don't have cluster wide access to create a <code>ClusterExternalSecret</code>, you can still access a secret from a dedicated namespace via a bearer token to a service connection within that namespace:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># shared-secrets.yaml</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
@@ -5586,7 +5586,7 @@ You may also define it inline as base64 encoded value using the <code>caBundle</
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">user-credentials</span>
 <span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
 </code></pre></div>
-<h3 id="pushsecret">PushSecret</h3>
+<h2 id="pushsecret">PushSecret</h2>
 <p>The PushSecret functionality facilitates the replication of a Kubernetes Secret from one namespace or cluster to another. This feature proves useful in scenarios where you need to share sensitive information, such as credentials or configuration data, across different parts of your infrastructure.</p>
 <p>To configure the PushSecret resource, you need to specify the following parameters:</p>
 <ul>
@@ -5667,7 +5667,7 @@ You may also define it inline as base64 encoded value using the <code>caBundle</
 <span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">remote-dockerconfigjson</span>
 <span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;.dockerconfigjson&quot;</span>
 </code></pre></div>
-<h4 id="pushsecret-metadata">PushSecret Metadata</h4>
+<h3 id="pushsecret-metadata">PushSecret Metadata</h3>
 <p>The Kubernetes provider is able to manage both <code>metadata.labels</code> and <code>metadata.annotations</code> of the secret on the target cluster.</p>
 <p>Users have different preferences on what metadata should be pushed. ESO, by default, pushes both labels and annotations to the target secret and merges them with the existing metadata.</p>
 <p>You can specify the metadata in the <code>spec.template.metadata</code> section if you want to decouple it from the existing secret.</p>
@@ -5751,7 +5751,7 @@ You may also define it inline as base64 encoded value using the <code>caBundle</
 </tr>
 </tbody>
 </table>
-<h4 id="implementation-considerations">Implementation Considerations</h4>
+<h3 id="implementation-considerations">Implementation Considerations</h3>
 <p>When using the PushSecret feature and configuring the permissions for the SecretStore, consider the following:</p>
 <ul>
 <li>
