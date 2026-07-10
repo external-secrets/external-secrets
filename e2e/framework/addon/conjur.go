@@ -145,8 +145,8 @@ func NewConjur() *Conjur {
 			Namespace:   "conjur",
 			ReleaseName: "conjur-conjur",
 			Chart:       fmt.Sprintf("%s/conjur-oss", repo),
-			// Use latest version of Conjur OSS. To pin to a specific version, uncomment the following line.
-			// ChartVersion: "2.0.7",
+			// Pinned to the current latest conjur-oss chart release. Bump alongside conjurReleaseVersion.
+			ChartVersion: "2.1.1",
 			Repo: ChartRepo{
 				Name: repo,
 				URL:  "https://cyberark.github.io/helm-charts",
