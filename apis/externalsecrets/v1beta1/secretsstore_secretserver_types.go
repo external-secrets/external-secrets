@@ -35,20 +35,12 @@ type SecretServerProviderRef struct {
 type SecretServerProvider struct {
 
 	// Username is the secret server account username.
-	// Required unless Token is set.
-	// +optional
-	Username *SecretServerProviderRef `json:"username,omitempty"`
+	// +required
+	Username *SecretServerProviderRef `json:"username"`
 
 	// Password is the secret server account password.
-	// Required unless Token is set.
-	// +optional
-	Password *SecretServerProviderRef `json:"password,omitempty"`
-
-	// Token is an access token used to authenticate to the secret server,
-	// as an alternative to Username and Password. When set, Username and
-	// Password are not required and are ignored.
-	// +optional
-	Token *SecretServerProviderRef `json:"token,omitempty"`
+	// +required
+	Password *SecretServerProviderRef `json:"password"`
 
 	// ServerURL
 	// URL to your secret server installation

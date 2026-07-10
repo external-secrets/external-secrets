@@ -77,6 +77,30 @@ func TestDoesConfigDependOnNamespace(t *testing.T) {
 			},
 			want: false,
 		},
+		"false when Token has explicit namespace even if Username ref lacks one": {
+			// Token takes precedence, so the ignored Username ref must not
+			// introduce a namespace dependency.
+			cfg: esv1.SecretServerProvider{
+				Token: &esv1.SecretServerProviderRef{
+					SecretRef: &v1.SecretKeySelector{Name: "foo", Namespace: new("ns")},
+				},
+				Username: &esv1.SecretServerProviderRef{
+					SecretRef: &v1.SecretKeySelector{Name: "bar"},
+				},
+			},
+			want: false,
+		},
+		"true when Token ref lacks a namespace even if Username has one": {
+			cfg: esv1.SecretServerProvider{
+				Token: &esv1.SecretServerProviderRef{
+					SecretRef: &v1.SecretKeySelector{Name: "foo"},
+				},
+				Username: &esv1.SecretServerProviderRef{
+					SecretRef: &v1.SecretKeySelector{Name: "bar", Namespace: new("ns")},
+				},
+			},
+			want: true,
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {

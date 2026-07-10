@@ -66,7 +66,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, errClusterStoreRequiresNamespace
 	}
 
-	credentials, err := loadCredentials(ctx, store.GetKind(), cfg, kube, namespace)
+	credentials, err := loadCredentials(ctx, store, cfg, kube, namespace)
 	if err != nil {
 		return nil, err
 	}
@@ -111,33 +111,33 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 
 func loadConfigSecret(
 	ctx context.Context,
-	storeKind string,
+	store esv1.GenericStore,
 	ref *esv1.SecretServerProviderRef,
 	kube kubeClient.Client,
 	namespace string) (string, error) {
 	if ref.SecretRef == nil {
 		return ref.Value, nil
 	}
-	if err := validateSecretRef(ref); err != nil {
+	if err := validateStoreSecretRef(store, ref); err != nil {
 		return "", err
 	}
-	return resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, ref.SecretRef)
+	return resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, ref.SecretRef)
 }
 
-func loadCredentials(ctx context.Context, storeKind string, cfg *esv1.SecretServerProvider, kube kubeClient.Client, namespace string) (server.UserCredential, error) {
+func loadCredentials(ctx context.Context, store esv1.GenericStore, cfg *esv1.SecretServerProvider, kube kubeClient.Client, namespace string) (server.UserCredential, error) {
 	if cfg.Token != nil {
-		token, err := loadConfigSecret(ctx, storeKind, cfg.Token, kube, namespace)
+		token, err := loadConfigSecret(ctx, store, cfg.Token, kube, namespace)
 		if err != nil {
 			return server.UserCredential{}, err
 		}
 		return server.UserCredential{Token: token}, nil
 	}
 
-	username, err := loadConfigSecret(ctx, storeKind, cfg.Username, kube, namespace)
+	username, err := loadConfigSecret(ctx, store, cfg.Username, kube, namespace)
 	if err != nil {
 		return server.UserCredential{}, err
 	}
-	password, err := loadConfigSecret(ctx, storeKind, cfg.Password, kube, namespace)
+	password, err := loadConfigSecret(ctx, store, cfg.Password, kube, namespace)
 	if err != nil {
 		return server.UserCredential{}, err
 	}
@@ -175,8 +175,10 @@ func validateSecretRef(ref *esv1.SecretServerProviderRef) error {
 }
 
 func doesConfigDependOnNamespace(cfg *esv1.SecretServerProvider) bool {
-	if cfg.Token != nil && cfg.Token.SecretRef != nil && cfg.Token.SecretRef.Namespace == nil {
-		return true
+	// Mirror getConfig's precedence: when Token is set, username/password are
+	// ignored, so only the token ref can introduce a namespace dependency.
+	if cfg.Token != nil {
+		return cfg.Token.SecretRef != nil && cfg.Token.SecretRef.Namespace == nil
 	}
 	if cfg.Username != nil && cfg.Username.SecretRef != nil && cfg.Username.SecretRef.Namespace == nil {
 		return true
