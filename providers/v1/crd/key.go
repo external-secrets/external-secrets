@@ -25,9 +25,8 @@ import (
 
 // parseRemoteRefKey interprets ExternalSecret remoteRef.key (and PushSecret remote key).
 //
-// SecretStore: '/' is not allowed; the object name is the full key. The API namespace
-// comes only from the store (ExternalSecret / service account namespace and optional
-// remoteNamespace), never from the key.
+// SecretStore: '/' is not allowed; the object name is the full key. The API
+// namespace comes only from the store namespace, never from the key.
 //
 // ClusterSecretStore: if the key contains '/', it must be namespace/objectName (first
 // slash separates). If there is no '/', the key is the object name for a cluster-scoped
