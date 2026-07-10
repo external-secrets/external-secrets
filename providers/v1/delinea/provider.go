@@ -34,8 +34,6 @@ var (
 	errEmptyTenant                   = errors.New("tenant must not be empty")
 	errEmptyClientID                 = errors.New("clientID must be set")
 	errEmptyClientSecret             = errors.New("clientSecret must be set")
-	errSecretRefAndValueConflict     = errors.New("cannot specify both secret reference and value")
-	errSecretRefAndValueMissing      = errors.New("must specify either secret reference or direct value")
 	errMissingStore                  = errors.New("missing store specification")
 	errInvalidSpec                   = errors.New("invalid specification for delinea provider")
 	errMissingSecretName             = errors.New("must specify a secret name")
@@ -109,15 +107,9 @@ func loadConfigSecret(
 	return resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, ref.SecretRef)
 }
 
-func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.DelineaProviderSecretRef) error {
-	return esutils.ValidateValueOrRef(ref.Value, ref.SecretRef, delineaCredentialRefPolicy(store))
-}
-
 func delineaCredentialRefPolicy(store esv1.GenericStore) esutils.ValueOrRefPolicy[esmeta.SecretKeySelector] {
 	return esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
 		Presence:           esutils.RequireValueOrRef,
-		ErrValueAndRefSet:  errSecretRefAndValueConflict,
-		ErrValueOrRefUnset: errSecretRefAndValueMissing,
 		ValidateRef:        validateDelineaCredentialSecretRef(store),
 	}
 }
@@ -172,13 +164,11 @@ func getConfig(store esv1.GenericStore) (*esv1.DelineaProvider, error) {
 		return nil, errEmptyClientSecret
 	}
 
-	err := validateStoreSecretRef(store, cfg.ClientID)
-	if err != nil {
+	if err := esutils.ValidateValueOrRef(cfg.ClientID.Value, cfg.ClientID.SecretRef, delineaCredentialRefPolicy(store)); err != nil {
 		return nil, err
 	}
 
-	err = validateStoreSecretRef(store, cfg.ClientSecret)
-	if err != nil {
+	if err := esutils.ValidateValueOrRef(cfg.ClientSecret.Value, cfg.ClientSecret.SecretRef, delineaCredentialRefPolicy(store)); err != nil {
 		return nil, err
 	}
 

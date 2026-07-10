@@ -36,8 +36,6 @@ var (
 	errEmptyUserName                 = errors.New("username must not be empty")
 	errEmptyPassword                 = errors.New("password must be set")
 	errEmptyServerURL                = errors.New("serverURL must be set")
-	errSecretRefAndValueConflict     = errors.New("cannot specify both secret reference and value")
-	errSecretRefAndValueMissing      = errors.New("must specify either secret reference or direct value")
 	errMissingStore                  = errors.New("missing store specification")
 	errInvalidSpec                   = errors.New("invalid specification for secret server provider")
 	errClusterStoreRequiresNamespace = errors.New("when using a ClusterSecretStore, namespaces must be explicitly set")
@@ -149,15 +147,9 @@ func loadCredentials(ctx context.Context, store esv1.GenericStore, cfg *esv1.Sec
 	}, nil
 }
 
-func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.SecretServerProviderRef) error {
-	return esutils.ValidateValueOrRef(ref.Value, ref.SecretRef, secretServerCredentialRefPolicy(store))
-}
-
 func secretServerCredentialRefPolicy(store esv1.GenericStore) esutils.ValueOrRefPolicy[esmeta.SecretKeySelector] {
 	return esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
 		Presence:           esutils.RequireValueOrRef,
-		ErrValueAndRefSet:  errSecretRefAndValueConflict,
-		ErrValueOrRefUnset: errSecretRefAndValueMissing,
 		ValidateRef:        validateSecretServerCredentialSecretRef(store),
 	}
 }
@@ -222,12 +214,10 @@ func getConfig(store esv1.GenericStore) (*esv1.SecretServerProvider, error) {
 		return nil, errEmptyPassword
 	}
 
-	err := validateStoreSecretRef(store, cfg.Username)
-	if err != nil {
+	if err := esutils.ValidateValueOrRef(cfg.Username.Value, cfg.Username.SecretRef, secretServerCredentialRefPolicy(store)); err != nil {
 		return nil, err
 	}
-	err = validateStoreSecretRef(store, cfg.Password)
-	if err != nil {
+	if err := esutils.ValidateValueOrRef(cfg.Password.Value, cfg.Password.SecretRef, secretServerCredentialRefPolicy(store)); err != nil {
 		return nil, err
 	}
 	return cfg, nil

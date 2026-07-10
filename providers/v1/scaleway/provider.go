@@ -109,8 +109,6 @@ func validateSecretRef(store esv1.GenericStore, ref *esv1.ScalewayProviderSecret
 func scalewaySecretRefPolicy(store esv1.GenericStore) esutils.ValueOrRefPolicy[esmeta.SecretKeySelector] {
 	return esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
 		Presence:           esutils.RequireValueOrRef,
-		ErrValueAndRefSet:  errors.New("cannot specify both secret reference and value"),
-		ErrValueOrRefUnset: errors.New("must specify either secret reference or direct value"),
 		ValidateRef: func(ref esmeta.SecretKeySelector) error {
 			return esutils.ValidateReferentSecretSelector(store, ref)
 		},
