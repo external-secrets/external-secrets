@@ -202,10 +202,12 @@ func TestValidateKubernetesConnection(t *testing.T) {
 			// ClientCert has a cross-namespace selector on a SecretStore, which
 			// the delegated ValidateSecretSelector rejects. Exercises the cert
 			// selector error-propagation path.
-			name:    "cert selector namespace mismatch is rejected",
-			kind:    esv1.SecretStoreKind,
-			server:  esv1.KubernetesServer{CABundle: []byte("ca")},
-			auth:    &esv1.KubernetesAuth{Cert: &esv1.CertAuth{ClientCert: esmeta.SecretKeySelector{Name: "c", Key: "tls.crt", Namespace: new("other")}, ClientKey: esmeta.SecretKeySelector{Name: "c", Key: "tls.key"}}},
+			name:   "cert selector namespace mismatch is rejected",
+			kind:   esv1.SecretStoreKind,
+			server: esv1.KubernetesServer{CABundle: []byte("ca")},
+			auth: &esv1.KubernetesAuth{
+				Cert: &esv1.CertAuth{ClientCert: esmeta.SecretKeySelector{Name: "c", Key: "tls.crt", Namespace: new("other")}, ClientKey: esmeta.SecretKeySelector{Name: "c", Key: "tls.key"}},
+			},
 			wantErr: true,
 		},
 		{

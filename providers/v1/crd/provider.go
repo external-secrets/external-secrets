@@ -310,17 +310,15 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, nil
 	}
 	prov := spec.Provider.CRD
-	var warnings admission.Warnings
 
 	// server.url requires credentials (auth or authRef) to connect with.
 	if prov.Server.URL != "" && prov.Auth == nil && prov.AuthRef == nil {
-		return warnings, errors.New("server.url requires auth or authRef when set")
+		return nil, errors.New("server.url requires auth or authRef when set")
 	}
 
 	// The server/auth/authRef fields reuse the Kubernetes provider's connection
 	// types, so their validation is shared via esutils rather than duplicated.
-	connWarnings, err := esutils.ValidateKubernetesConnection(store, prov.Server, prov.Auth, prov.AuthRef)
-	warnings = append(warnings, connWarnings...)
+	warnings, err := esutils.ValidateKubernetesConnection(store, prov.Server, prov.Auth, prov.AuthRef)
 	if err != nil {
 		return warnings, err
 	}
