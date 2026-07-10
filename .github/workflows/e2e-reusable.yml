@@ -176,6 +176,11 @@ jobs:
     permissions:
       id-token: write # for oidc auth with aws/gcp/azure
       contents: read  # for checkout
+    env:
+      # Role ARN (an identifier, not a credential) lives at job level so the AWS
+      # step can be skipped when it is absent, e.g. fork runs without secrets.
+      # The actual provider credentials stay scoped to the Run e2e step below.
+      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
     steps:
       - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
         with:
@@ -188,9 +193,8 @@ jobs:
           persist-credentials: false
 
       - name: Configure AWS Credentials
+        if: env.AWS_OIDC_ROLE_ARN != ''
         uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
-        env:
-          AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
         with:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
