@@ -1110,8 +1110,6 @@ func TestCompareStringAndByteSlices(t *testing.T) {
 }
 
 func TestValidateValueOrRef(t *testing.T) {
-	errBoth := errors.New("both")
-	errMissing := errors.New("missing")
 	errRef := errors.New("ref")
 	ref := "ref"
 
@@ -1141,18 +1139,16 @@ func TestValidateValueOrRef(t *testing.T) {
 			value: "value",
 			ref:   &ref,
 			policy: ValueOrRefPolicy[string]{
-				Presence:          RequireValueOrRef,
-				ErrValueAndRefSet: errBoth,
+				Presence: RequireValueOrRef,
 			},
-			wantErr: errBoth,
+			wantErr: errors.New("cannot specify both value and reference"),
 		},
 		{
 			name: "requires exactly one: rejects missing both",
 			policy: ValueOrRefPolicy[string]{
-				Presence:           RequireValueOrRef,
-				ErrValueOrRefUnset: errMissing,
+				Presence: RequireValueOrRef,
 			},
-			wantErr: errMissing,
+			wantErr: errors.New("must specify either value or reference"),
 		},
 		{
 			name: "validates ref when present",
@@ -1192,7 +1188,10 @@ func TestValidateValueOrRef(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ValidateValueOrRef(tt.value, tt.ref, tt.policy)
-			if !errors.Is(got, tt.wantErr) {
+			if got == nil && tt.wantErr == nil {
+				return
+			}
+			if got == nil || tt.wantErr == nil || got.Error() != tt.wantErr.Error() {
 				t.Errorf("ValidateValueOrRef() got = %v, want = %v", got, tt.wantErr)
 			}
 		})
