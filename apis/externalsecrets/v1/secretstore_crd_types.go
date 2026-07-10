@@ -75,19 +75,16 @@ type CRDProviderWhitelist struct {
 // CRDProvider configures a store to fetch data from arbitrary Kubernetes
 // resources, including both custom resources (CRDs) and core API resources
 // (e.g. ConfigMap, addressed by setting resource.group to ""). Kubernetes
-// Secrets are intentionally blocked — use the Kubernetes provider for those.
+// Secrets are intentionally blocked; use the Kubernetes provider for those.
 //
 // # Authentication modes
 //
-// Legacy (in-cluster): set serviceAccountRef only. The controller uses in-cluster
-// config and mints a short-lived token for the referenced ServiceAccount, which is
-// then used to read CRDs from the local cluster.
+// In-cluster: set auth.serviceAccount and omit server. The server URL defaults
+// to the in-cluster API (kubernetes.default) and the controller mints a
+// short-lived token for the referenced ServiceAccount to read CRDs locally.
 //
-// Explicit (remote cluster): set server + auth (or authRef). The auth.serviceAccount
-// identifies the SA whose token is used to authenticate against the remote cluster.
-// Optionally, set serviceAccountRef to impersonate a different identity on that remote
-// cluster: the controller will set the Kubernetes Impersonate-User header to
-// "system:serviceaccount:<namespace>:<name>" after connecting.
+// Remote cluster: set server plus auth (serviceAccount, token, or cert) or
+// authRef (a kubeconfig Secret), exactly like the Kubernetes provider.
 //
 // # Remote reference keys
 //
@@ -99,30 +96,10 @@ type CRDProviderWhitelist struct {
 //     result keys are "namespace/objectName".
 //
 // +kubebuilder:validation:AtMostOneOf=auth;authRef
-// +kubebuilder:validation:XValidation:rule="has(self.serviceAccountRef) || has(self.auth) || has(self.authRef)",message="one of serviceAccountRef, auth, or authRef is required"
+// +kubebuilder:validation:XValidation:rule="has(self.auth) || has(self.authRef)",message="one of auth or authRef is required"
 type CRDProvider struct {
-	// ServiceAccountRef references the ServiceAccount used for authentication.
-	//
-	// Legacy mode (no server/auth/authRef): the controller mints a short-lived
-	// token for this SA and uses it against the local cluster.
-	//   - SecretStore: the SA must be in the store's own namespace; the
-	//     serviceAccountRef.namespace field is ignored.
-	//   - ClusterSecretStore: serviceAccountRef.namespace is optional. When
-	//     omitted, the SA is resolved in the consuming ExternalSecret's own
-	//     namespace (referent authentication); set it to pin a fixed namespace.
-	//
-	// Explicit mode (server + auth or authRef): serviceAccountRef itself is
-	// optional. When set, the controller impersonates this SA on the remote
-	// cluster after connecting via auth/authRef.
-	//   - SecretStore: the SA namespace is the store's own namespace; the
-	//     serviceAccountRef.namespace field is ignored.
-	//   - ClusterSecretStore: serviceAccountRef.namespace is required; there
-	//     is no default.
-	// +optional
-	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
-
 	// Server configures the Kubernetes API address and TLS trust, same as the
-	// Kubernetes provider.
+	// Kubernetes provider. When omitted, the URL defaults to the in-cluster API.
 	// +optional
 	Server KubernetesServer `json:"server,omitempty"`
 

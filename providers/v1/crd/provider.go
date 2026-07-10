@@ -35,7 +35,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
@@ -44,13 +43,10 @@ var (
 	errMissingCRDProvider = errors.New("missing CRD provider configuration")
 	errMissingKind        = errors.New("resource.kind is required")
 	errMissingVersion     = errors.New("resource.version is required")
-	errMissingSA          = errors.New("serviceAccountRef is required in simple mode (set server/auth or authRef for explicit connection)")
 	errKindIsSecret       = errors.New("kind \"Secret\" is not allowed: use the Kubernetes provider to read Kubernetes Secrets")
 	errEmptyWhitelistRule = errors.New("whitelist rule must define name, namespace, or properties")
 	errNotImplemented     = errors.New("not implemented")
 )
-
-const warnNoCAConfigured = "No caBundle or caProvider specified; TLS connections will use system certificate roots."
 
 // isCoreV1Secret reports whether the configured resource is the core
 // Kubernetes Secret (group "" or "core", version "v1", kind "Secret"). The
@@ -65,41 +61,6 @@ func isCoreV1Secret(res esv1.CRDProviderResource) bool {
 		return false
 	}
 	return res.Group == "" || res.Group == "core"
-}
-
-// usesExplicitCRDConnection is true when the store uses the same connection
-// model as the Kubernetes provider (server URL, auth, or kubeconfig secret).
-func usesExplicitCRDConnection(prov *esv1.CRDProvider) bool {
-	if prov.AuthRef != nil || prov.Auth != nil {
-		return true
-	}
-	return prov.Server.URL != ""
-}
-
-// resolveSimpleSANamespace returns the namespace in which the SA token is minted for
-// simple (in-cluster) mode. For SecretStore the namespace is always the store's own
-// namespace. For ClusterSecretStore it is serviceAccountRef.namespace when set;
-// otherwise it falls back to the consuming ExternalSecret's namespace (referent
-// authentication), which is passed in as storeNamespace.
-func resolveSimpleSANamespace(storeKind, storeNamespace string, ref *esmeta.ServiceAccountSelector) string {
-	if storeKind == esv1.ClusterSecretStoreKind && ref.Namespace != nil {
-		return *ref.Namespace
-	}
-	return storeNamespace
-}
-
-// resolveImpersonationNamespace returns the SA namespace to use when building the
-// Impersonate-User header for explicit (remote cluster) mode. For SecretStore the store
-// namespace is authoritative; for ClusterSecretStore the ref must carry an explicit
-// namespace.
-func resolveImpersonationNamespace(storeKind, storeNamespace string, ref *esmeta.ServiceAccountSelector) (string, error) {
-	if storeKind == esv1.ClusterSecretStoreKind {
-		if ref.Namespace == nil || *ref.Namespace == "" {
-			return "", fmt.Errorf("crd: serviceAccountRef.namespace is required for impersonation with ClusterSecretStore")
-		}
-		return *ref.Namespace, nil
-	}
-	return storeNamespace, nil
 }
 
 // Provider is the top-level CRD provider that implements esv1.Provider.
@@ -140,13 +101,14 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	if err != nil {
 		return nil, fmt.Errorf("crd: failed to create kubernetes clientset: %w", err)
 	}
-	return p.newClient(ctx, store, kube, ctrlCfg, clientset, namespace)
+	return p.newClient(ctx, store, kube, clientset, namespace)
 }
 
-// newClient builds the CRD provider client for both simple (in-cluster SA token)
-// and explicit (remote cluster) authentication modes. It resolves credentials,
-// optionally configures impersonation, and delegates to newClientWithRESTConfig.
-func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, ctrlCfg *rest.Config, clientset kubernetes.Interface, namespace string) (esv1.SecretsClient, error) {
+// newClient builds the CRD provider client. Every store authenticates the same
+// way as the Kubernetes provider: via server + auth (serviceAccount, token, or
+// cert) or a kubeconfig authRef. In-cluster stores omit server (the URL defaults
+// to kubernetes.default) and set auth.serviceAccount.
+func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, clientset kubernetes.Interface, namespace string) (esv1.SecretsClient, error) {
 	provSpec, err := getProvider(store)
 	if err != nil {
 		return nil, err
@@ -154,78 +116,28 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube 
 
 	storeKind := store.GetKind()
 
-	if usesExplicitCRDConnection(provSpec) {
-		cfg, err := esutils.BuildRESTConfigFromKubernetesConnection(
-			ctx,
-			kube,
-			clientset.CoreV1(),
-			storeKind,
-			namespace,
-			provSpec.Server,
-			provSpec.Auth,
-			provSpec.AuthRef,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("crd: failed to prepare api connection: %w", err)
-		}
-		// Optional impersonation: if serviceAccountRef is set, impersonate that
-		// SA on the remote cluster after connecting via auth/authRef.
-		if provSpec.ServiceAccountRef != nil {
-			impersonateNS, err := resolveImpersonationNamespace(storeKind, namespace, provSpec.ServiceAccountRef)
-			if err != nil {
-				return nil, err
-			}
-			cfg.Impersonate = rest.ImpersonationConfig{
-				UserName: fmt.Sprintf("system:serviceaccount:%s:%s", impersonateNS, provSpec.ServiceAccountRef.Name),
-				// Populate the standard ServiceAccount groups so RBAC checks
-				// against the remote cluster behave the same as a real SA token
-				// would: bindings to "system:serviceaccounts" or
-				// "system:serviceaccounts:<ns>" apply, and the request is
-				// considered authenticated.
-				Groups: []string{
-					"system:serviceaccounts",
-					fmt.Sprintf("system:serviceaccounts:%s", impersonateNS),
-					"system:authenticated",
-				},
-			}
-		}
-		return p.newClientWithRESTConfig(ctx, store, cfg, namespace)
-	}
-
-	// Simple mode: in-cluster API server + short-lived token for serviceAccountRef.
-	if provSpec.ServiceAccountRef == nil {
-		return nil, errMissingSA
-	}
-	// Referent authentication: for a ClusterSecretStore without an explicit
-	// serviceAccountRef.namespace, the SA lives in the consuming ExternalSecret's
-	// namespace, which is unknown ("") at store-validation time. Return a stub so
-	// store validation passes; the operational client is rebuilt per-ExternalSecret
-	// at reconcile, when the namespace is known.
-	if storeKind == esv1.ClusterSecretStoreKind && namespace == "" &&
-		provSpec.ServiceAccountRef.Namespace == nil {
+	// A referent ClusterSecretStore (auth without an explicit namespace) resolves
+	// its ServiceAccount in the consuming ExternalSecret's namespace, unknown ("")
+	// at store-validation time. Return a stub so validation passes; the operational
+	// client is rebuilt per-ExternalSecret at reconcile, when the namespace is known.
+	if storeKind == esv1.ClusterSecretStoreKind && namespace == "" && esutils.IsReferentKubernetesAuth(provSpec.Auth) {
 		return &Client{store: provSpec, storeKind: storeKind, referent: true}, nil
 	}
-	saNamespace := resolveSimpleSANamespace(storeKind, namespace, provSpec.ServiceAccountRef)
-	token, err := esutils.FetchServiceAccountToken(ctx, *provSpec.ServiceAccountRef, saNamespace)
+
+	cfg, err := esutils.BuildRESTConfigFromKubernetesConnection(
+		ctx,
+		kube,
+		clientset.CoreV1(),
+		storeKind,
+		namespace,
+		provSpec.Server,
+		provSpec.Auth,
+		provSpec.AuthRef,
+	)
 	if err != nil {
-		return nil, fmt.Errorf("crd: failed to fetch token for serviceaccount %s/%s: %w",
-			saNamespace, provSpec.ServiceAccountRef.Name, err)
+		return nil, fmt.Errorf("crd: failed to prepare api connection: %w", err)
 	}
-
-	authedCfg := rest.CopyConfig(ctrlCfg)
-	authedCfg.BearerToken = token
-	authedCfg.BearerTokenFile = ""
-	authedCfg.Username = ""
-	authedCfg.Password = ""
-	authedCfg.CertFile = ""
-	authedCfg.KeyFile = ""
-	authedCfg.CertData = nil
-	authedCfg.KeyData = nil
-	authedCfg.AuthProvider = nil
-	authedCfg.ExecProvider = nil
-	authedCfg.Impersonate = rest.ImpersonationConfig{}
-
-	return p.newClientWithRESTConfig(ctx, store, authedCfg, namespace)
+	return p.newClientWithRESTConfig(ctx, store, cfg, namespace)
 }
 
 // Client holds the runtime state for a single SecretStore/ClusterSecretStore.
@@ -400,72 +312,17 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	prov := spec.Provider.CRD
 	var warnings admission.Warnings
 
-	if usesExplicitCRDConnection(prov) {
-		// Reject the misconfiguration of setting Server.URL without any credentials
-		if prov.Server.URL != "" && prov.Auth == nil && prov.AuthRef == nil {
-			return warnings, errors.New("server.url requires auth or authRef when set")
-		}
-		// Symmetric guard: inline auth needs a server URL to connect to.
-		if prov.Auth != nil && prov.Server.URL == "" {
-			return warnings, errors.New("auth requires server.url to be set")
-		}
-		if prov.AuthRef == nil && prov.Server.CABundle == nil && prov.Server.CAProvider == nil {
-			warnings = append(warnings, warnNoCAConfigured)
-		}
-		if store.GetKind() == esv1.ClusterSecretStoreKind &&
-			prov.Server.CAProvider != nil &&
-			prov.Server.CAProvider.Namespace == nil {
-			return warnings, errors.New("CAProvider.namespace must not be empty with ClusterSecretStore")
-		}
-		if store.GetKind() == esv1.SecretStoreKind &&
-			prov.Server.CAProvider != nil &&
-			prov.Server.CAProvider.Namespace != nil {
-			return warnings, errors.New("CAProvider.namespace must be empty with SecretStore")
-		}
-		if prov.Auth != nil && prov.Auth.Cert != nil {
-			if prov.Auth.Cert.ClientCert.Name == "" {
-				return warnings, errors.New("ClientCert.Name cannot be empty")
-			}
-			if prov.Auth.Cert.ClientCert.Key == "" {
-				return warnings, errors.New("ClientCert.Key cannot be empty")
-			}
-			if err := esutils.ValidateSecretSelector(store, prov.Auth.Cert.ClientCert); err != nil {
-				return warnings, err
-			}
-		}
-		if prov.Auth != nil && prov.Auth.Token != nil {
-			if prov.Auth.Token.BearerToken.Name == "" {
-				return warnings, errors.New("BearerToken.Name cannot be empty")
-			}
-			if prov.Auth.Token.BearerToken.Key == "" {
-				return warnings, errors.New("BearerToken.Key cannot be empty")
-			}
-			if err := esutils.ValidateSecretSelector(store, prov.Auth.Token.BearerToken); err != nil {
-				return warnings, err
-			}
-		}
-		if prov.Auth != nil && prov.Auth.ServiceAccount != nil {
-			if err := esutils.ValidateReferentServiceAccountSelector(store, *prov.Auth.ServiceAccount); err != nil {
-				return warnings, err
-			}
-		}
-		// Optional impersonation ref in explicit mode.
-		if prov.ServiceAccountRef != nil {
-			if prov.ServiceAccountRef.Name == "" {
-				return warnings, errors.New("serviceAccountRef.name must not be empty")
-			}
-			if err := esutils.ValidateReferentServiceAccountSelector(store, *prov.ServiceAccountRef); err != nil {
-				return warnings, err
-			}
-		}
-	} else {
-		// Simple mode: serviceAccountRef is required.
-		if prov.ServiceAccountRef == nil || prov.ServiceAccountRef.Name == "" {
-			return nil, errMissingSA
-		}
-		if err := esutils.ValidateReferentServiceAccountSelector(store, *prov.ServiceAccountRef); err != nil {
-			return nil, err
-		}
+	// server.url requires credentials (auth or authRef) to connect with.
+	if prov.Server.URL != "" && prov.Auth == nil && prov.AuthRef == nil {
+		return warnings, errors.New("server.url requires auth or authRef when set")
+	}
+
+	// The server/auth/authRef fields reuse the Kubernetes provider's connection
+	// types, so their validation is shared via esutils rather than duplicated.
+	connWarnings, err := esutils.ValidateKubernetesConnection(store, prov.Server, prov.Auth, prov.AuthRef)
+	warnings = append(warnings, connWarnings...)
+	if err != nil {
+		return warnings, err
 	}
 
 	if prov.Resource.Version == "" {

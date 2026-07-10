@@ -62,8 +62,10 @@ var testResource = esv1.CRDProviderResource{
 
 func makeStore(rules ...esv1.CRDProviderWhitelistRule) *esv1.CRDProvider {
 	s := &esv1.CRDProvider{
-		ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-		Resource:          testResource,
+		Auth: &esv1.KubernetesAuth{
+			ServiceAccount: &esmeta.ServiceAccountSelector{Name: "reader"},
+		},
+		Resource: testResource,
 	}
 	if len(rules) > 0 {
 		s.Whitelist = &esv1.CRDProviderWhitelist{Rules: rules}
@@ -80,13 +82,13 @@ func wlRuleNS(ns, name string, props ...string) esv1.CRDProviderWhitelistRule {
 }
 
 func widget(name, namespace string, spec map[string]any) *unstructured.Unstructured {
-	meta := map[string]any{"name": name}
+	metaData := map[string]any{"name": name}
 	if namespace != "" {
-		meta["namespace"] = namespace
+		metaData["namespace"] = namespace
 	}
 	return &unstructured.Unstructured{Object: map[string]any{
 		"apiVersion": "example.io/v1alpha1", "kind": "Widget",
-		"metadata": meta, "spec": spec,
+		"metadata": metaData, "spec": spec,
 	}}
 }
 

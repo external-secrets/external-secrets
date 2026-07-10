@@ -84,6 +84,14 @@ var widgetResource = esv1.CRDProviderResource{
 	Kind:    "Widget",
 }
 
+// saAuth builds a KubernetesAuth that authenticates as the given ServiceAccount,
+// mirroring the in-cluster connection model shared with the Kubernetes provider.
+func saAuth(name string) *esv1.KubernetesAuth {
+	return &esv1.KubernetesAuth{
+		ServiceAccount: &esmeta.ServiceAccountSelector{Name: name},
+	}
+}
+
 // defaultRESTCfg returns a minimal REST config used in provider construction tests.
 func defaultRESTCfg() *rest.Config {
 	return &rest.Config{Host: "https://example.com", BearerToken: "tok"}
@@ -109,123 +117,89 @@ func TestValidateStore(t *testing.T) {
 			store: &esv1.SecretStore{},
 		},
 		{
-			name:    "missing service account ref",
-			store:   makeStoreWithCRDProvider(&esv1.CRDProvider{Resource: widgetResource}),
-			wantErr: errMissingSA,
+			// In-cluster: auth.serviceAccount with no server is the canonical
+			// local-read configuration; the URL defaults to kubernetes.default.
+			name: "in-cluster auth.serviceAccount without server is accepted",
+			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
+				Auth:     saAuth("reader"),
+				Resource: widgetResource,
+			}),
 		},
 		{
-			name: "service account ref with empty name",
-			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: ""},
-				Resource:          widgetResource,
-			}),
-			wantErr: errMissingSA,
-		},
-		{
-			name: "missing version",
-			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          esv1.CRDProviderResource{Group: "example.io", Kind: "Widget"},
-			}),
+			name:    "missing version",
+			store:   makeStoreWithCRDProvider(&esv1.CRDProvider{Resource: esv1.CRDProviderResource{Group: "example.io", Kind: "Widget"}}),
 			wantErr: errMissingVersion,
 		},
 		{
-			name: "missing kind",
-			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          esv1.CRDProviderResource{Group: "example.io", Version: "v1alpha1"},
-			}),
+			name:    "missing kind",
+			store:   makeStoreWithCRDProvider(&esv1.CRDProvider{Resource: esv1.CRDProviderResource{Group: "example.io", Version: "v1alpha1"}}),
 			wantErr: errMissingKind,
 		},
 		{
-			name: "empty group is valid (core resource e.g. ConfigMap)",
-			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          esv1.CRDProviderResource{Group: "", Version: "v1", Kind: "ConfigMap"},
-			}),
+			name:  "empty group is valid (core resource e.g. ConfigMap)",
+			store: makeStoreWithCRDProvider(&esv1.CRDProvider{Resource: esv1.CRDProviderResource{Group: "", Version: "v1", Kind: "ConfigMap"}}),
 		},
 		{
-			name: "core v1 Secret is denied (exact case)",
-			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          esv1.CRDProviderResource{Group: "", Version: "v1", Kind: "Secret"},
-			}),
+			name:    "core v1 Secret is denied (exact case)",
+			store:   makeStoreWithCRDProvider(&esv1.CRDProvider{Resource: esv1.CRDProviderResource{Group: "", Version: "v1", Kind: "Secret"}}),
 			wantErr: errKindIsSecret,
 		},
 		{
-			name: "core v1 secret is denied (lowercase)",
-			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          esv1.CRDProviderResource{Group: "", Version: "v1", Kind: "secret"},
-			}),
+			name:    "core v1 secret is denied (lowercase)",
+			store:   makeStoreWithCRDProvider(&esv1.CRDProvider{Resource: esv1.CRDProviderResource{Group: "", Version: "v1", Kind: "secret"}}),
 			wantErr: errKindIsSecret,
 		},
 		{
-			name: "core v1 SECRET is denied (uppercase)",
-			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          esv1.CRDProviderResource{Group: "", Version: "v1", Kind: "SECRET"},
-			}),
+			name:    "core v1 SECRET is denied (uppercase)",
+			store:   makeStoreWithCRDProvider(&esv1.CRDProvider{Resource: esv1.CRDProviderResource{Group: "", Version: "v1", Kind: "SECRET"}}),
 			wantErr: errKindIsSecret,
 		},
 		{
 			// Same Kind name on a different API group is a legitimate CRD;
 			// only the core v1 Secret is blocked.
-			name: "Secret kind in a non-core group is allowed",
-			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          esv1.CRDProviderResource{Group: "example.io", Version: "v1", Kind: "Secret"},
-			}),
+			name:  "Secret kind in a non-core group is allowed",
+			store: makeStoreWithCRDProvider(&esv1.CRDProvider{Resource: esv1.CRDProviderResource{Group: "example.io", Version: "v1", Kind: "Secret"}}),
 		},
 		{
 			// Different version of core "Secret" — also legitimate (no such
 			// thing exists today, but the block is intentionally narrow).
-			name: "core v2 Secret is allowed",
-			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          esv1.CRDProviderResource{Group: "", Version: "v2", Kind: "Secret"},
-			}),
+			name:  "core v2 Secret is allowed",
+			store: makeStoreWithCRDProvider(&esv1.CRDProvider{Resource: esv1.CRDProviderResource{Group: "", Version: "v2", Kind: "Secret"}}),
 		},
 		{
-			name: "core group alias \"core\" still denies v1 Secret",
-			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          esv1.CRDProviderResource{Group: "core", Version: "v1", Kind: "Secret"},
-			}),
+			name:    "core group alias \"core\" still denies v1 Secret",
+			store:   makeStoreWithCRDProvider(&esv1.CRDProvider{Resource: esv1.CRDProviderResource{Group: "core", Version: "v1", Kind: "Secret"}}),
 			wantErr: errKindIsSecret,
 		},
 		{
 			name: "invalid whitelist name regex",
 			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          widgetResource,
-				Whitelist:         &esv1.CRDProviderWhitelist{Rules: []esv1.CRDProviderWhitelistRule{{Name: "("}}},
+				Resource:  widgetResource,
+				Whitelist: &esv1.CRDProviderWhitelist{Rules: []esv1.CRDProviderWhitelistRule{{Name: "("}}},
 			}),
 			wantMsg: "invalid whitelist.rules[0].name regex",
 		},
 		{
 			name: "invalid whitelist property regex",
 			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          widgetResource,
-				Whitelist:         &esv1.CRDProviderWhitelist{Rules: []esv1.CRDProviderWhitelistRule{{Properties: []string{"("}}}},
+				Resource:  widgetResource,
+				Whitelist: &esv1.CRDProviderWhitelist{Rules: []esv1.CRDProviderWhitelistRule{{Properties: []string{"("}}}},
 			}),
 			wantMsg: "invalid whitelist.rules[0].properties[0] regex",
 		},
 		{
 			name: "empty whitelist rule is invalid",
 			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          widgetResource,
-				Whitelist:         &esv1.CRDProviderWhitelist{Rules: []esv1.CRDProviderWhitelistRule{{}}},
+				Resource:  widgetResource,
+				Whitelist: &esv1.CRDProviderWhitelist{Rules: []esv1.CRDProviderWhitelistRule{{}}},
 			}),
 			wantErr: errEmptyWhitelistRule,
 		},
 		{
 			name: "valid config",
 			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-				Resource:          widgetResource,
+				Auth:     saAuth("reader"),
+				Resource: widgetResource,
 				Whitelist: &esv1.CRDProviderWhitelist{Rules: []esv1.CRDProviderWhitelistRule{{
 					Name:       "^app-.*$",
 					Properties: []string{"^spec\\..+$"},
@@ -233,40 +207,7 @@ func TestValidateStore(t *testing.T) {
 			}),
 		},
 		{
-			name: "explicit mode with serviceAccountRef impersonation: empty name rejected",
-			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				Resource: widgetResource,
-				Server: esv1.KubernetesServer{
-					URL:      "https://k8s.example",
-					CABundle: []byte("fake-ca"),
-				},
-				Auth: &esv1.KubernetesAuth{
-					Token: &esv1.TokenAuth{
-						BearerToken: esmeta.SecretKeySelector{Name: "t", Key: "k"},
-					},
-				},
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: ""},
-			}),
-			wantMsg: "serviceAccountRef.name must not be empty",
-		},
-		{
-			name: "explicit mode with serviceAccountRef impersonation: valid",
-			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
-				Resource: widgetResource,
-				Server: esv1.KubernetesServer{
-					URL:      "https://k8s.example",
-					CABundle: []byte("fake-ca"),
-				},
-				Auth: &esv1.KubernetesAuth{
-					Token: &esv1.TokenAuth{
-						BearerToken: esmeta.SecretKeySelector{Name: "t", Key: "k"},
-					},
-				},
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "remote-reader"},
-			}),
-		},
-		{
-			name: "explicit auth without serviceAccountName",
+			name: "remote server with token auth is accepted",
 			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
 				Resource: widgetResource,
 				Server: esv1.KubernetesServer{
@@ -281,16 +222,13 @@ func TestValidateStore(t *testing.T) {
 			}),
 		},
 		{
-			name: "auth without server.url is rejected",
+			// server.url set without any credentials is a misconfiguration.
+			name: "server.url without auth or authRef is rejected",
 			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
 				Resource: widgetResource,
-				Auth: &esv1.KubernetesAuth{
-					Token: &esv1.TokenAuth{
-						BearerToken: esmeta.SecretKeySelector{Name: "t", Key: "k"},
-					},
-				},
+				Server:   esv1.KubernetesServer{URL: "https://k8s.example"},
 			}),
-			wantMsg: "auth requires server.url",
+			wantMsg: "server.url requires auth or authRef",
 		},
 		{
 			// authRef embeds a kubeconfig with the server address, so a
@@ -424,7 +362,7 @@ func TestGetProvider(t *testing.T) {
 	}
 
 	t.Run("valid store", func(t *testing.T) {
-		want := &esv1.CRDProvider{ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"}, Resource: widgetResource}
+		want := &esv1.CRDProvider{Auth: saAuth("reader"), Resource: widgetResource}
 		got, err := getProvider(makeStoreWithCRDProvider(want))
 		if err != nil {
 			t.Fatalf("getProvider() unexpected error: %v", err)
@@ -452,36 +390,25 @@ func TestProviderMetadata(t *testing.T) {
 
 func TestNewClientInternal(t *testing.T) {
 	ctx := context.Background()
-	store := makeStoreWithCRDProvider(&esv1.CRDProvider{ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"}, Resource: widgetResource})
+	store := makeStoreWithCRDProvider(&esv1.CRDProvider{Auth: saAuth("reader"), Resource: widgetResource})
 
 	t.Run("newClient returns getProvider error on nil store", func(t *testing.T) {
-		_, err := providerWithFakeClient("widgets").newClient(ctx, nil, nil, &rest.Config{Host: "https://example.com"}, nil, "default")
+		_, err := providerWithFakeClient("widgets").newClient(ctx, nil, nil, nil, "default")
 		if !errors.Is(err, errMissingStore) {
 			t.Fatalf("newClient() error = %v, want %v", err, errMissingStore)
 		}
 	})
 
-	t.Run("newClient returns errMissingSA when no serviceAccountRef in simple mode", func(t *testing.T) {
-		simpleStore := makeStoreWithCRDProvider(&esv1.CRDProvider{
-			// No Server/Auth/AuthRef → simple mode; no ServiceAccountRef → should error.
+	t.Run("referent ClusterSecretStore returns a validation stub at store bootstrap", func(t *testing.T) {
+		// ClusterSecretStore, auth.serviceAccount with no explicit namespace, and
+		// an empty namespace (the store-validation call). newClient must short
+		// circuit before building any REST connection and return a referent stub
+		// whose Validate() reports "unknown".
+		clusterStore := makeClusterStoreWithCRDProvider(&esv1.CRDProvider{
+			Auth:     saAuth("reader"),
 			Resource: widgetResource,
 		})
-		_, err := providerWithFakeClient("widgets").newClient(ctx, simpleStore, nil, defaultRESTCfg(), nil, "default")
-		if !errors.Is(err, errMissingSA) {
-			t.Fatalf("newClient() error = %v, want %v", err, errMissingSA)
-		}
-	})
-
-	t.Run("referent ClusterSecretStore returns a validation stub at store bootstrap", func(t *testing.T) {
-		// ClusterSecretStore, no explicit serviceAccountRef.namespace, and an
-		// empty namespace (the store-validation call). newClient must short
-		// circuit before any token fetch and return a referent stub whose
-		// Validate() reports "unknown".
-		clusterStore := makeClusterStoreWithCRDProvider(&esv1.CRDProvider{
-			ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "reader"},
-			Resource:          widgetResource,
-		})
-		client, err := (&Provider{}).newClient(ctx, clusterStore, nil, defaultRESTCfg(), nil, "")
+		client, err := (&Provider{}).newClient(ctx, clusterStore, nil, nil, "")
 		if err != nil {
 			t.Fatalf("newClient() unexpected error: %v", err)
 		}
@@ -528,8 +455,8 @@ func TestNewClientInternal(t *testing.T) {
 		if !ok {
 			t.Fatalf("returned %T, want *Client", client)
 		}
-		if c.store.ServiceAccountRef.Name != "reader" {
-			t.Fatalf("client SA = %q, want %q", c.store.ServiceAccountRef.Name, "reader")
+		if c.store.Auth.ServiceAccount.Name != "reader" {
+			t.Fatalf("client SA = %q, want %q", c.store.Auth.ServiceAccount.Name, "reader")
 		}
 		if c.namespace != "app-ns" || c.kube == nil {
 			t.Fatalf("client: ns=%q kube=%v", c.namespace, c.kube)
@@ -557,170 +484,6 @@ func TestNewClientInternal(t *testing.T) {
 		}
 		if client.(*Client).namespaced {
 			t.Fatalf("expected cluster-scoped client (namespaced=false)")
-		}
-	})
-}
-
-func TestResolveSimpleSANamespace(t *testing.T) {
-	tests := []struct {
-		name      string
-		storeKind string
-		storeNS   string
-		ref       *esmeta.ServiceAccountSelector
-		wantNS    string
-	}{
-		{
-			name:      "SecretStore uses store namespace",
-			storeKind: esv1.SecretStoreKind,
-			storeNS:   "app",
-			ref:       &esmeta.ServiceAccountSelector{Name: "sa"},
-			wantNS:    "app",
-		},
-		{
-			name:      "SecretStore ignores ref.Namespace",
-			storeKind: esv1.SecretStoreKind,
-			storeNS:   "app",
-			ref:       &esmeta.ServiceAccountSelector{Name: "sa", Namespace: new("other")},
-			wantNS:    "app",
-		},
-		{
-			name:      "ClusterSecretStore uses ref.Namespace when set",
-			storeKind: esv1.ClusterSecretStoreKind,
-			storeNS:   "",
-			ref:       &esmeta.ServiceAccountSelector{Name: "sa", Namespace: new("ops")},
-			wantNS:    "ops",
-		},
-		{
-			name:      "ClusterSecretStore referent: nil namespace uses the ES namespace",
-			storeKind: esv1.ClusterSecretStoreKind,
-			storeNS:   "team-a",
-			ref:       &esmeta.ServiceAccountSelector{Name: "sa"},
-			wantNS:    "team-a",
-		},
-		{
-			name:      "ClusterSecretStore referent: empty ES namespace stays empty",
-			storeKind: esv1.ClusterSecretStoreKind,
-			storeNS:   "",
-			ref:       &esmeta.ServiceAccountSelector{Name: "sa"},
-			wantNS:    "",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got := resolveSimpleSANamespace(tt.storeKind, tt.storeNS, tt.ref)
-			if got != tt.wantNS {
-				t.Fatalf("resolveSimpleSANamespace() = %q, want %q", got, tt.wantNS)
-			}
-		})
-	}
-}
-
-func TestResolveImpersonationNamespace(t *testing.T) {
-	tests := []struct {
-		name      string
-		storeKind string
-		storeNS   string
-		ref       *esmeta.ServiceAccountSelector
-		wantNS    string
-		wantErr   bool
-	}{
-		{
-			name:      "SecretStore uses store namespace",
-			storeKind: esv1.SecretStoreKind,
-			storeNS:   "app",
-			ref:       &esmeta.ServiceAccountSelector{Name: "sa"},
-			wantNS:    "app",
-		},
-		{
-			name:      "SecretStore uses store namespace even when ref.Namespace set",
-			storeKind: esv1.SecretStoreKind,
-			storeNS:   "app",
-			ref:       &esmeta.ServiceAccountSelector{Name: "sa", Namespace: new("other")},
-			wantNS:    "app",
-		},
-		{
-			name:      "ClusterSecretStore uses ref.Namespace",
-			storeKind: esv1.ClusterSecretStoreKind,
-			storeNS:   "",
-			ref:       &esmeta.ServiceAccountSelector{Name: "sa", Namespace: new("ops")},
-			wantNS:    "ops",
-		},
-		{
-			name:      "ClusterSecretStore without namespace returns error",
-			storeKind: esv1.ClusterSecretStoreKind,
-			storeNS:   "",
-			ref:       &esmeta.ServiceAccountSelector{Name: "sa"},
-			wantErr:   true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := resolveImpersonationNamespace(tt.storeKind, tt.storeNS, tt.ref)
-			if tt.wantErr {
-				if err == nil {
-					t.Fatalf("resolveImpersonationNamespace() error = nil, want error")
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("resolveImpersonationNamespace() unexpected error: %v", err)
-			}
-			if got != tt.wantNS {
-				t.Fatalf("resolveImpersonationNamespace() = %q, want %q", got, tt.wantNS)
-			}
-		})
-	}
-}
-
-func TestImpersonationWiring(t *testing.T) {
-	t.Run("impersonation config set when serviceAccountRef present in explicit mode", func(t *testing.T) {
-		p := providerWithFakeClient("widgets")
-		store := makeStoreWithCRDProvider(&esv1.CRDProvider{
-			Resource: widgetResource,
-			Server:   esv1.KubernetesServer{URL: "https://remote.example"},
-			Auth: &esv1.KubernetesAuth{
-				Token: &esv1.TokenAuth{
-					BearerToken: esmeta.SecretKeySelector{Name: "t", Key: "k"},
-				},
-			},
-			ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "remote-reader"},
-		})
-		// Inject a pre-built REST config (bypassing real auth fetch) via newClientWithRESTConfig.
-		// We test that the impersonate field is set by newClient when called with an already-built cfg.
-		// Here we simulate explicit mode by calling the internal path directly with a cfg that
-		// already has the impersonation applied (as newClient would do).
-		cfg := &rest.Config{
-			Host:        "https://remote.example",
-			BearerToken: "tok",
-			Impersonate: rest.ImpersonationConfig{
-				UserName: "system:serviceaccount:default:remote-reader",
-			},
-		}
-		client, err := p.newClientWithRESTConfig(context.Background(), store, cfg, "default")
-		if err != nil {
-			t.Fatalf("newClientWithRESTConfig() unexpected error: %v", err)
-		}
-		c := client.(*Client)
-		if c.kube == nil {
-			t.Fatalf("client kube is nil")
-		}
-	})
-
-	t.Run("ClusterSecretStore impersonation requires namespace on ref", func(t *testing.T) {
-		_, err := resolveImpersonationNamespace(esv1.ClusterSecretStoreKind, "", &esmeta.ServiceAccountSelector{Name: "sa"})
-		if err == nil || !strings.Contains(err.Error(), "namespace is required") {
-			t.Fatalf("resolveImpersonationNamespace() = %v, want namespace-required error", err)
-		}
-	})
-
-	t.Run("impersonation UserName format includes namespace", func(t *testing.T) {
-		saRef := &esmeta.ServiceAccountSelector{Name: "reader", Namespace: new("ops")}
-		ns, err := resolveImpersonationNamespace(esv1.ClusterSecretStoreKind, "", saRef)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if got := fmt.Sprintf("system:serviceaccount:%s:%s", ns, saRef.Name); got != "system:serviceaccount:ops:reader" {
-			t.Fatalf("UserName = %q, want %q", got, "system:serviceaccount:ops:reader")
 		}
 	})
 }

@@ -2129,25 +2129,21 @@ Can only be defined when used in a ClusterSecretStore.</p>
 <p>CRDProvider configures a store to fetch data from arbitrary Kubernetes
 resources, including both custom resources (CRDs) and core API resources
 (e.g. ConfigMap, addressed by setting resource.group to &ldquo;&rdquo;). Kubernetes
-Secrets are intentionally blocked — use the Kubernetes provider for those.</p>
+Secrets are intentionally blocked; use the Kubernetes provider for those.</p>
 <h1>Authentication modes</h1>
-<p>Legacy (in-cluster): set serviceAccountRef only. The controller uses in-cluster
-config and mints a short-lived token for the referenced ServiceAccount, which is
-then used to read CRDs from the local cluster.</p>
-<p>Explicit (remote cluster): set server + auth (or authRef). The auth.serviceAccount
-identifies the SA whose token is used to authenticate against the remote cluster.
-Optionally, set serviceAccountRef to impersonate a different identity on that remote
-cluster: the controller will set the Kubernetes Impersonate-User header to
-&ldquo;system:serviceaccount:<namespace>:<name>&rdquo; after connecting.</p>
+<p>In-cluster: set auth.serviceAccount and omit server. The server URL defaults
+to the in-cluster API (kubernetes.default) and the controller mints a
+short-lived token for the referenced ServiceAccount to read CRDs locally.</p>
+<p>Remote cluster: set server plus auth (serviceAccount, token, or cert) or
+authRef (a kubeconfig Secret), exactly like the Kubernetes provider.</p>
 <h1>Remote reference keys</h1>
 <ul>
 <li>SecretStore: the key is the object name only; &lsquo;/&rsquo; is not allowed. The API
-namespace is always the store namespace (ExternalSecret namespace, or
-remoteNamespace when set), never part of the key.</li>
+namespace is always the store namespace, never part of the key.</li>
 <li>ClusterSecretStore: use &ldquo;namespace/objectName&rdquo; to read a namespaced CR;
 a key without &lsquo;/&rsquo; addresses a cluster-scoped CR by object name. For
-dataFrom Find with a namespaced kind, listing uses all namespaces unless
-remoteNamespace is set, and result keys are &ldquo;namespace/objectName&rdquo;.</li>
+dataFrom Find with a namespaced kind, listing spans all namespaces and
+result keys are &ldquo;namespace/objectName&rdquo;.</li>
 </ul>
 </p>
 <table>
@@ -2160,33 +2156,6 @@ remoteNamespace is set, and result keys are &ldquo;namespace/objectName&rdquo;.<
 <tbody>
 <tr>
 <td>
-<code>serviceAccountRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
-External Secrets meta/v1.ServiceAccountSelector
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>ServiceAccountRef references the ServiceAccount used for authentication.</p>
-<p>Legacy mode (no server/auth/authRef): the controller mints a short-lived
-token for this SA and uses it against the local cluster.
-- SecretStore: the SA must be in the store&rsquo;s own namespace; the
-serviceAccountRef.namespace field is ignored.
-- ClusterSecretStore: serviceAccountRef.namespace is optional and
-defaults to &ldquo;default&rdquo; when omitted.</p>
-<p>Explicit mode (server + auth or authRef): serviceAccountRef itself is
-optional. When set, the controller impersonates this SA on the remote
-cluster after connecting via auth/authRef.
-- SecretStore: the SA namespace is the store&rsquo;s own namespace; the
-serviceAccountRef.namespace field is ignored.
-- ClusterSecretStore: serviceAccountRef.namespace is required; there
-is no default.</p>
-</td>
-</tr>
-<tr>
-<td>
 <code>server</code></br>
 <em>
 <a href="#external-secrets.io/v1.KubernetesServer">
@@ -2197,7 +2166,7 @@ KubernetesServer
 <td>
 <em>(Optional)</em>
 <p>Server configures the Kubernetes API address and TLS trust, same as the
-Kubernetes provider.</p>
+Kubernetes provider. When omitted, the URL defaults to the in-cluster API.</p>
 </td>
 </tr>
 <tr>
@@ -2228,22 +2197,6 @@ External Secrets meta/v1.SecretKeySelector
 <em>(Optional)</em>
 <p>AuthRef references a Secret containing a kubeconfig. Same semantics as the
 Kubernetes provider.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>remoteNamespace</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>RemoteNamespace is the default namespace for namespaced API calls on SecretStore.
-For ClusterSecretStore with a namespaced resource, when set it limits dataFrom
-List to that namespace (keys in the result map are object names only). When
-empty, List spans all namespaces and keys are namespace/objectName. Per-entry
-namespace for Get uses remoteRef.key namespace/objectName for ClusterSecretStore.</p>
 </td>
 </tr>
 <tr>

@@ -1,6 +1,6 @@
 ## Kubernetes CRD Provider
 
-External Secrets Operator can read data from arbitrary Kubernetes Custom Resources (CRDs) within the cluster or from remote clusters when configured. Remote-cluster access is covered in the [Remote cluster connection](#remote-cluster-connection-and-service-account-impersonation) section below.
+External Secrets Operator can read data from arbitrary Kubernetes Custom Resources (CRDs) in the local cluster or in a remote cluster. It uses the same connection model as the [Kubernetes provider](kubernetes.md); remote-cluster access is covered in the [Remote cluster connection](#remote-cluster-connection) section below.
 
 This provider is useful when secrets or secret-like values are already managed inside CRDs (i.e. by an operator) and you want to project them into regular Kubernetes Secrets.
 
@@ -8,23 +8,16 @@ The CRD provider is read-only.
 
 ### How it works
 
-1. The provider authenticates as the configured `serviceAccountRef` (simple mode), or with `server` + `auth`/`authRef` (explicit mode).
+1. The provider connects to a Kubernetes API using the same connection model as the Kubernetes provider. To read the local cluster, set `auth.serviceAccount` and omit `server` (the URL defaults to the in-cluster API). To read a remote cluster, set `server` plus `auth` (`serviceAccount`, `token`, or `cert`) or `authRef` (a kubeconfig Secret).
 2. It resolves the configured resource (`group`/`version`/`kind`) via Kubernetes discovery.
 3. It reads objects using the dynamic Kubernetes client.
 4. It applies optional whitelist rules before returning values.
 
-### Remote cluster connection and service account impersonation
+### Remote cluster connection
 
-When `server` + `auth` (or `authRef`) is configured, the CRD provider uses **explicit mode** and connects to the target Kubernetes API directly.
+Set `server` plus `auth` (or `authRef`) to connect to a remote Kubernetes API directly, exactly like the Kubernetes provider. The identity in `auth`/`authRef` is the identity the provider reads CRDs as; there is no separate impersonation step.
 
-In explicit mode there are two identities:
-
-1. **Connection identity** (`auth`/`authRef`): used to establish the API connection.
-2. **Optional impersonated identity** (`serviceAccountRef`): if set, the provider sends `Impersonate-User: system:serviceaccount:<namespace>:<name>` on requests.
-
-This lets you connect with one identity and read CRDs as a specific service account role in the remote cluster.
-
-Example (`ClusterSecretStore`) connecting to a remote cluster and impersonating a remote service account:
+Example (`ClusterSecretStore`) connecting to a remote cluster:
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -45,10 +38,6 @@ spec:
         serviceAccount:
           name: eso-remote-connector
           namespace: external-secrets
-      # optional impersonation target on the remote cluster
-      serviceAccountRef:
-        name: tenant-reader
-        namespace: tenant-a
       resource:
         group: example.io
         version: v1alpha1
@@ -57,12 +46,10 @@ spec:
 
 Notes:
 
-- `serviceAccountRef` is optional in explicit mode; set it only when you want impersonation.
-- For `ClusterSecretStore`, `serviceAccountRef.namespace` is required when impersonation is enabled.
-- For `SecretStore`, the impersonation namespace is the ExternalSecret/store namespace.
-- `authRef` can be used instead of `auth` when your connection details come from a Secret.
+- `auth` accepts `serviceAccount`, `token`, or `cert`, the same options as the Kubernetes provider.
+- `authRef` can be used instead of `auth` when the connection details (a kubeconfig) come from a Secret. In that case `server` is optional because the kubeconfig already carries the API address.
 
-## SecretStore / ClusterSecretStore configuration
+### SecretStore / ClusterSecretStore configuration
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -72,8 +59,9 @@ metadata:
 spec:
   provider:
     crd:
-      serviceAccountRef:
-        name: crd-reader
+      auth:
+        serviceAccount:
+          name: crd-reader
       resource:
         group: example.io
         version: v1alpha1
@@ -93,20 +81,21 @@ spec:
           # ClusterSecretStore-only rule: allows objects from matching namespaces
           - namespace: "^(prod|staging)$"
 
-          # Properties: allow only these properties to be read
+          # Properties-only rule: allows a request when the requested property matches
           - properties:
               - "^spec\\.password$"
 ```
 
-### Resource fields
+#### Resource fields
 
-- `serviceAccountRef`: ServiceAccount used for API access.
-- `server` + `auth`/`authRef` (optional): explicit Kubernetes API connection/authentication.
+- `auth.serviceAccount`: ServiceAccount used for API access to the local cluster (omit `server`).
+- `server` + `auth`/`authRef`: Kubernetes API connection and authentication for a remote cluster. Omit `server` to read the local cluster.
+- Setting `server.url` requires `auth` or `authRef`; a store that sets `server.url` without credentials is rejected at admission.
 - `resource.group`: API group of the resource (empty for core API resources).
 - `resource.version`: API version of the resource.
 - `resource.kind`: Kind of the resource.
 
-## Whitelist rules
+### Whitelist rules
 
 `whitelist.rules` is an array of allow rules.
 
@@ -128,13 +117,13 @@ Rule behavior:
 
 A rule with none of `name`, `namespace`, or `properties` is invalid.
 
-### Notes about `properties` matching
+#### Notes about `properties` matching
 
 - For `data[].remoteRef.property`, the requested key is that property path (for example `spec.password`).
 - For requests without a specific property (for example `GetAllSecrets`), only rules that do not require `properties` can match.
 - `namespace` matching is only enforced for `ClusterSecretStore`; `SecretStore` ignores this field.
 
-## Property Expressions (GJSON)
+### Property Expressions (GJSON)
 
 `remoteRef.property` is evaluated using [GJSON path syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md), the same syntax used by the Kubernetes provider and the rest of ESO, so the property dialect is consistent across providers.
 
@@ -147,9 +136,20 @@ Examples:
 
 If the expression resolves to no value, the provider returns `property not found`.
 
-## ExternalSecret examples
+### Return values
 
-### Fetch a single property
+The value returned for a reference depends on how it is requested:
+
+- `remoteRef.property` set: the value at that GJSON path. A string leaf is returned unquoted (`spec.password` -> `hunter2`); objects, arrays, numbers, and booleans are returned as their raw JSON (`spec.replicas` -> `3`).
+- `remoteRef.property` omitted: the entire object is returned as JSON.
+- Map extraction (`dataFrom`, or a `remoteRef` consumed as a map): the object's top-level keys become secret keys. String values are unwrapped; non-string values keep their raw JSON.
+- `dataFrom.find`: each matching object is returned as JSON, keyed by object name (`SecretStore`) or `namespace/objectName` (`ClusterSecretStore`). Use `conversionStrategy` on the `find` block to sanitize keys that are not valid Secret data keys.
+
+A `property` that resolves to no value returns `property not found`; a missing object is reported as "secret not found".
+
+### ExternalSecret examples
+
+#### Fetch a single property
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -174,7 +174,7 @@ spec:
         property: spec.username
 ```
 
-### ClusterSecretStore with namespace whitelist
+#### ClusterSecretStore with namespace whitelist
 
 Use a namespace-qualified key (`namespace/objectName`) for namespaced resources when referencing a `ClusterSecretStore`.
 
@@ -186,9 +186,10 @@ metadata:
 spec:
   provider:
     crd:
-      serviceAccountRef:
-        name: crd-reader
-        namespace: external-secrets
+      auth:
+        serviceAccount:
+          name: crd-reader
+          namespace: external-secrets
       resource:
         group: example.io
         version: v1alpha1
@@ -219,7 +220,7 @@ spec:
         property: spec.password
 ```
 
-### Fetch all matching CRD objects
+#### Fetch all matching CRD objects
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -242,7 +243,7 @@ spec:
 `find.name.regexp` filters the listed objects by name.
 Whitelist rules are applied in addition to this filter.
 
-## RBAC
+### RBAC
 
 The configured ServiceAccount must be allowed to read the target resource.
 At minimum, grant `get` on the selected resource. The `list` verb is only required when an `ExternalSecret` uses `dataFrom.find` (which calls `GetAllSecrets()` internally) — store bootstrap only checks `get`.
@@ -252,7 +253,7 @@ The right scope depends on which kind of store you are using:
 - **`SecretStore` (namespaced)** — a namespace-scoped `Role` + `RoleBinding` is enough; the controller only reads from the store's own namespace.
 - **`ClusterSecretStore`**: the controller may read across namespaces. `dataFrom.find` lists the target resource across all namespaces, and `remoteRef.key` uses the `namespace/objectName` form, so a `ClusterRole` + `ClusterRoleBinding` is required.
 
-### SecretStore (namespace-scoped) example
+#### SecretStore (namespace-scoped) example
 
 ```yaml
 apiVersion: v1
@@ -286,7 +287,7 @@ roleRef:
   name: crd-reader
 ```
 
-### ClusterSecretStore example
+#### ClusterSecretStore example
 
 ```yaml
 apiVersion: v1
@@ -318,14 +319,14 @@ roleRef:
   name: crd-reader
 ```
 
-## ClusterSecretStore note
+### ClusterSecretStore note
 
 When using `ClusterSecretStore`:
 
 - for namespaced resources, `remoteRef.key` must be `namespace/objectName`.
 - `whitelist.rules[].namespace` can be used to constrain which namespaces are readable.
-- in simple mode, `serviceAccountRef.namespace` is optional. When omitted, the ServiceAccount is resolved in the consuming `ExternalSecret`'s own namespace (referent authentication), so a single store can serve many namespaces, each authenticating as its local ServiceAccount. Set `serviceAccountRef.namespace` to pin one fixed namespace instead.
+- with `auth.serviceAccount`, the `namespace` field is optional. When omitted, the ServiceAccount is resolved in the consuming `ExternalSecret`'s own namespace (referent authentication), so a single store can serve many namespaces, each authenticating as its local ServiceAccount. Set `auth.serviceAccount.namespace` to pin one fixed namespace instead.
 
-### Referent authentication and RBAC
+#### Referent authentication and RBAC
 
-With referent authentication (no `serviceAccountRef.namespace`), the named ServiceAccount must exist in **every** namespace that consumes the store, and each must be granted `get` (plus `list` for `dataFrom.find`) on the target resource. Grant this with a `ClusterRole` plus a `RoleBinding` per consuming namespace, or a `ClusterRoleBinding` if the same access is acceptable cluster-wide. When you instead pin `serviceAccountRef.namespace`, only that one ServiceAccount needs the binding.
+With referent authentication (no `auth.serviceAccount.namespace`), the named ServiceAccount must exist in **every** namespace that consumes the store, and each must be granted `get` (plus `list` for `dataFrom.find`) on the target resource. Grant this with a `ClusterRole` plus a `RoleBinding` per consuming namespace, or a `ClusterRoleBinding` if the same access is acceptable cluster-wide. When you instead pin `auth.serviceAccount.namespace`, only that one ServiceAccount needs the binding.
