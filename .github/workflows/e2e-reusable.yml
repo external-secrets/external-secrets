@@ -12,6 +12,63 @@ on:
         type: string
         required: false
         default: ""
+    secrets:
+      GCP_SERVICE_ACCOUNT_KEY:
+        required: false
+      GCP_FED_REGION:
+        required: false
+      GCP_GSA_NAME:
+        required: false
+      GCP_KSA_NAME:
+        required: false
+      GCP_FED_PROJECT_ID:
+        required: false
+      AWS_OIDC_ROLE_ARN:
+        required: false
+      AWS_SA_NAME:
+        required: false
+      AWS_SA_NAMESPACE:
+        required: false
+      TFC_AZURE_CLIENT_ID:
+        required: false
+      TFC_AZURE_CLIENT_SECRET:
+        required: false
+      TFC_AZURE_TENANT_ID:
+        required: false
+      TFC_AZURE_SUBSCRIPTION_ID:
+        required: false
+      TFC_VAULT_URL:
+        required: false
+      SCALEWAY_API_URL:
+        required: false
+      SCALEWAY_REGION:
+        required: false
+      SCALEWAY_PROJECT_ID:
+        required: false
+      SCALEWAY_ACCESS_KEY:
+        required: false
+      SCALEWAY_SECRET_KEY:
+        required: false
+      DELINEA_TLD:
+        required: false
+      DELINEA_URL_TEMPLATE:
+        required: false
+      DELINEA_TENANT:
+        required: false
+      DELINEA_CLIENT_ID:
+        required: false
+      DELINEA_CLIENT_SECRET:
+        required: false
+      SECRETSERVER_USERNAME:
+        required: false
+      SECRETSERVER_PASSWORD:
+        required: false
+      SECRETSERVER_URL:
+        required: false
+      GRAFANA_URL:
+        required: false
+      GRAFANA_TOKEN:
+        required: false
 
 permissions:
   contents: read
