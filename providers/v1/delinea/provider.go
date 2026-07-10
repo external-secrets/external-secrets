@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
@@ -109,31 +110,31 @@ func loadConfigSecret(
 }
 
 func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.DelineaProviderSecretRef) error {
-	if ref.SecretRef != nil {
-		if err := esutils.ValidateReferentSecretSelector(store, *ref.SecretRef); err != nil {
-			return err
-		}
-	}
-
-	return validateSecretRef(ref)
+	return esutils.ValidateValueOrRef(ref.Value, ref.SecretRef, delineaCredentialRefPolicy(store))
 }
 
-func validateSecretRef(ref *esv1.DelineaProviderSecretRef) error {
-	if ref.SecretRef != nil {
-		if ref.Value != "" {
-			return errSecretRefAndValueConflict
+func delineaCredentialRefPolicy(store esv1.GenericStore) esutils.ValueOrRefPolicy[esmeta.SecretKeySelector] {
+	return esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
+		Presence:           esutils.RequireValueOrRef,
+		ErrValueAndRefSet:  errSecretRefAndValueConflict,
+		ErrValueOrRefUnset: errSecretRefAndValueMissing,
+		ValidateRef:        validateDelineaCredentialSecretRef(store),
+	}
+}
+
+func validateDelineaCredentialSecretRef(store esv1.GenericStore) func(esmeta.SecretKeySelector) error {
+	return func(ref esmeta.SecretKeySelector) error {
+		if err := esutils.ValidateReferentSecretSelector(store, ref); err != nil {
+			return err
 		}
-		if ref.SecretRef.Name == "" {
+		if ref.Name == "" {
 			return errMissingSecretName
 		}
-		if ref.SecretRef.Key == "" {
+		if ref.Key == "" {
 			return errMissingSecretKey
 		}
-	} else if ref.Value == "" {
-		return errSecretRefAndValueMissing
+		return nil
 	}
-
-	return nil
 }
 
 func doesConfigDependOnNamespace(cfg *esv1.DelineaProvider) bool {

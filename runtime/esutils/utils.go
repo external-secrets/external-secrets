@@ -437,6 +437,78 @@ func ErrorContains(out error, want string) bool {
 	return strings.Contains(out.Error(), want)
 }
 
+// RefPresencePolicy describes which side of a value/reference pair is allowed.
+type RefPresencePolicy int
+
+const (
+	// RequireValueOrRef requires exactly one of value or reference to be set.
+	RequireValueOrRef RefPresencePolicy = iota
+	// AllowValueOrRef allows neither value nor reference to be set, but rejects both being set.
+	AllowValueOrRef
+	// RequireRefOnly requires reference to be set and value to be empty.
+	RequireRefOnly
+	// RequireValueOnly requires value to be set and reference to be empty.
+	RequireValueOnly
+)
+
+// ValueOrRefPolicy configures ValidateValueOrRef.
+type ValueOrRefPolicy[T any] struct {
+	Presence    RefPresencePolicy
+	ValidateRef func(T) error
+
+	ErrValueAndRefSet  error
+	ErrValueOrRefUnset error
+	ErrRefUnset        error
+	ErrValueUnset      error
+	ErrRefSet          error
+	ErrValueSet        error
+}
+
+// ValidateValueOrRef validates fields that allow a direct value or a reference.
+func ValidateValueOrRef[T any](value string, ref *T, policy ValueOrRefPolicy[T]) error {
+	switch policy.Presence {
+	case RequireValueOrRef:
+		if value != "" && ref != nil {
+			return valueOrRefError(policy.ErrValueAndRefSet, "cannot specify both value and reference")
+		}
+		if value == "" && ref == nil {
+			return valueOrRefError(policy.ErrValueOrRefUnset, "must specify either value or reference")
+		}
+	case AllowValueOrRef:
+		if value != "" && ref != nil {
+			return valueOrRefError(policy.ErrValueAndRefSet, "cannot specify both value and reference")
+		}
+	case RequireRefOnly:
+		if ref == nil {
+			return valueOrRefError(policy.ErrRefUnset, "reference is required")
+		}
+		if value != "" {
+			return valueOrRefError(policy.ErrValueSet, "value must not be specified")
+		}
+	case RequireValueOnly:
+		if value == "" {
+			return valueOrRefError(policy.ErrValueUnset, "value is required")
+		}
+		if ref != nil {
+			return valueOrRefError(policy.ErrRefSet, "reference must not be specified")
+		}
+	default:
+		return fmt.Errorf("unknown value/reference presence policy: %d", policy.Presence)
+	}
+
+	if ref != nil && policy.ValidateRef != nil {
+		return policy.ValidateRef(*ref)
+	}
+	return nil
+}
+
+func valueOrRefError(custom error, fallback string) error {
+	if custom != nil {
+		return custom
+	}
+	return errors.New(fallback)
+}
+
 var (
 	errNamespaceNotAllowed = errors.New("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore")
 	errRequireNamespace    = errors.New("cluster scope requires namespace")

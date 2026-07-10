@@ -1109,6 +1109,96 @@ func TestCompareStringAndByteSlices(t *testing.T) {
 	}
 }
 
+func TestValidateValueOrRef(t *testing.T) {
+	errBoth := errors.New("both")
+	errMissing := errors.New("missing")
+	errRef := errors.New("ref")
+	ref := "ref"
+
+	tests := []struct {
+		name    string
+		value   string
+		ref     *string
+		policy  ValueOrRefPolicy[string]
+		wantErr error
+	}{
+		{
+			name:  "requires exactly one: value",
+			value: "value",
+			policy: ValueOrRefPolicy[string]{
+				Presence: RequireValueOrRef,
+			},
+		},
+		{
+			name: "requires exactly one: ref",
+			ref:  &ref,
+			policy: ValueOrRefPolicy[string]{
+				Presence: RequireValueOrRef,
+			},
+		},
+		{
+			name:  "requires exactly one: rejects both",
+			value: "value",
+			ref:   &ref,
+			policy: ValueOrRefPolicy[string]{
+				Presence:          RequireValueOrRef,
+				ErrValueAndRefSet: errBoth,
+			},
+			wantErr: errBoth,
+		},
+		{
+			name: "requires exactly one: rejects missing both",
+			policy: ValueOrRefPolicy[string]{
+				Presence:           RequireValueOrRef,
+				ErrValueOrRefUnset: errMissing,
+			},
+			wantErr: errMissing,
+		},
+		{
+			name: "validates ref when present",
+			ref:  &ref,
+			policy: ValueOrRefPolicy[string]{
+				Presence: RequireValueOrRef,
+				ValidateRef: func(string) error {
+					return errRef
+				},
+			},
+			wantErr: errRef,
+		},
+		{
+			name:  "allows optional empty pair",
+			value: "",
+			ref:   nil,
+			policy: ValueOrRefPolicy[string]{
+				Presence: AllowValueOrRef,
+			},
+		},
+		{
+			name: "requires ref only",
+			ref:  &ref,
+			policy: ValueOrRefPolicy[string]{
+				Presence: RequireRefOnly,
+			},
+		},
+		{
+			name:  "requires value only",
+			value: "value",
+			policy: ValueOrRefPolicy[string]{
+				Presence: RequireValueOnly,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ValidateValueOrRef(tt.value, tt.ref, tt.policy)
+			if !errors.Is(got, tt.wantErr) {
+				t.Errorf("ValidateValueOrRef() got = %v, want = %v", got, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestValidateSecretSelector(t *testing.T) {
 	tests := []struct {
 		desc     string
