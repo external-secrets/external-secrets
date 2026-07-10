@@ -609,7 +609,7 @@ func (vms *VaultManagementService) withOCIWorkloadIdentityEnv(
 		vms.workloadIdentityMutex.Unlock()
 	}()
 	vms.workloadIdentityMutex.Lock()
-
+	// OCI SDK requires specific environment variables for workload identity.
 	if err = os.Setenv(auth.ResourcePrincipalVersionEnvVar, auth.ResourcePrincipalVersion2_2); err != nil {
 		return nil, fmt.Errorf(errSettingOCIEnvVariables, auth.ResourcePrincipalVersionEnvVar, err)
 	}
