@@ -16,14 +16,14 @@ This Issue tracks the next ESO release. Please follow the guideline below. If an
   - [ ] version table
   - [ ] Provider Stability and Support table
   - [ ] Provider Feature Support table
-- [ ] docs: update [roadmap page](https://external-secrets.io/latest/contributing/roadmap/)
+- [ ] docs: update the [roadmap project board](https://github.com/orgs/external-secrets/projects/2/views/1)
 - [ ] tidy up [Project Board](https://github.com/orgs/external-secrets/projects/2)
   - [ ] move issues to next milestone
   - [ ] close milestone
 
 #### Release Execution
 
-- [ ] Follow the [Release Process guide](https://external-secrets.io/latest/contributing/release/)
+- [ ] Follow the [Release Process guide](https://external-secrets.io/latest/contributing/release_howto/)
 
 #### After Release Tasks
 

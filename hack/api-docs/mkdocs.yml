@@ -34,15 +34,28 @@ markdown_extensions:
   - pymdownx.superfences
   - admonition
   - pymdownx.snippets:
-      base_path: docs
+      base_path:
+        - docs
 plugins:
   - search:
       lang: en
   - macros:
       include_dir: docs/snippets
+  - redirects:
+      redirect_maps:
+        contributing/burnout-mitigation.md: contributing/burnout_mitigation_tutorial.md
+        contributing/calendar.md: contributing/journey.md
+        contributing/coc.md: contributing/code_of_conduct.md
+        contributing/devguide.md: contributing/howto.md
+        contributing/llm-policy.md: contributing/governance.md
+        contributing/process.md: contributing/howto.md
+        contributing/release.md: contributing/release_howto.md
+        contributing/roadmap.md: contributing/howto.md
+        introduction/deprecation-policy.md: contributing/deprecation_policy.md
+        introduction/prerequisites.md: contributing/howto.md
 copyright: |
-  &copy; 2025 The external-secrets Authors.<br/>
-  &copy; 2025 The Linux Foundation. All rights reserved.<br/><br/>
+  &copy; The external-secrets Authors.<br/>
+  &copy; The Linux Foundation. All rights reserved.<br/><br/>
   The Linux Foundation has registered trademarks and uses trademarks.<br/>
   For a list of trademarks of The Linux Foundation, please see our <a href="https://www.linuxfoundation.org/trademark-usage/">Trademark Usage page</a>.
 extra:
@@ -56,11 +69,9 @@ nav:
       - Introduction: index.md
       - Overview: introduction/overview.md
       - Glossary: introduction/glossary.md
-      - Prerequisites: introduction/prerequisites.md
       - Getting started: introduction/getting-started.md
       - FAQ: introduction/faq.md
       - Stability and Support: introduction/stability-support.md
-      - Deprecation Policy: introduction/deprecation-policy.md
   - API:
       - Components: api/components.md
       - Core Resources:
@@ -173,14 +184,23 @@ nav:
       - Bitwarden: examples/bitwarden.md
   - Community:
       - Contributing:
-          - Developer guide: contributing/devguide.md
-          - Contributing Process: contributing/process.md
-          - Release Process: contributing/release.md
-          - Code of Conduct: contributing/coc.md
-          - Community meetings calendar: contributing/calendar.md
-          - Roadmap: contributing/roadmap.md
-          - Burnout Prevention: contributing/burnout-mitigation.md
-          - LLM Policy: contributing/llm-policy.md
+          - HOW-TO Guides:
+              - Contribute to ESO: contributing/howto.md
+              - Releasing ESO: contributing/release_howto.md
+              - Report security incidents: contributing/security_reporting.md
+              - Reacting to a security incident: contributing/security_response.md
+              - Deprecating in practice: contributing/deprecating_in_practice.md
+          - Tutorials:
+              - Contributor journey: contributing/journey.md
+              - Contributor Burnout Prevention: contributing/burnout_mitigation_tutorial.md
+          - Reference information:
+              - Deprecation policy: contributing/deprecation_policy.md
+              - Security policy: contributing/security_policy.md
+              - Labels policy: contributing/labels_reference.md
+              - Contributor ladder policy: contributing/contributor_ladder.md
+              - Code of Conduct: contributing/code_of_conduct.md
+          - Deep dive explanations:
+              - Our policy: contributing/governance.md
       - External Resources:
           - Talks: eso-talks.md
           - Demos: eso-demos.md

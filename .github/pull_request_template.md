@@ -34,7 +34,7 @@ Where `scope` is _optionally_ one of:
 
 ## Checklist
 
-- [ ] I have read the [contribution guidelines](https://external-secrets.io/latest/contributing/process/#submitting-a-pull-request)
+- [ ] I have read the [contribution guidelines](https://external-secrets.io/latest/contributing/contributing/#commit-your-work-and-propose-a-pr)
 - [ ] All commits are signed with `git commit --signoff`
 - [ ] My changes have reasonable test coverage
 - [ ] All tests pass with `make test`
