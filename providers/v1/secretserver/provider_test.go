@@ -730,6 +730,37 @@ func TestValidateStoreSecretRef(t *testing.T) {
 	}
 }
 
+// TestLoadConfigSecretReferentValidation ensures the credential-loading path
+// enforces esutils referent validation. A namespaced SecretStore must not be
+// able to resolve a secret that lives in a different namespace, even if that
+// secret exists — this is the exfiltration guard.
+func TestLoadConfigSecretReferentValidation(t *testing.T) {
+	const storeNamespace = "default"
+	const otherNamespace = "other-ns"
+
+	// A secret in a namespace the store must NOT be allowed to read.
+	stolenSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "stolen", Namespace: otherNamespace},
+		Data:       map[string][]byte{"token": []byte("super-secret")},
+	}
+	kube := clientfake.NewClientBuilder().WithObjects(stolenSecret).Build()
+
+	// Namespaced SecretStore living in storeNamespace.
+	store := &esv1.SecretStore{
+		TypeMeta:   metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+		ObjectMeta: metav1.ObjectMeta{Namespace: storeNamespace},
+	}
+
+	// Token ref that tries to reach into the other namespace.
+	ref := makeSecretRefUsingNamespacedRef(otherNamespace, stolenSecret.Name, "token")
+
+	val, err := loadConfigSecret(context.Background(), store, ref, kube, storeNamespace)
+
+	assert.Error(t, err)
+	assert.Empty(t, val, "guard must block resolution before the value is read")
+	assert.ErrorContains(t, err, "namespace should either be empty or match")
+}
+
 // TestCapabilities tests the Capabilities function.
 func TestCapabilities(t *testing.T) {
 	tests := map[string]struct {
