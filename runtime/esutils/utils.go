@@ -446,14 +446,7 @@ var (
 // depending on the secret store type.
 // We MUST NOT check the name or key property here. It MAY be defaulted by the provider.
 func ValidateSecretSelector(store esv1.GenericStore, ref esmeta.SecretKeySelector) error {
-	clusterScope := store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
-	if clusterScope && ref.Namespace == nil {
-		return errRequireNamespace
-	}
-	if !clusterScope && ref.Namespace != nil && *ref.Namespace != store.GetNamespace() {
-		return errNamespaceNotAllowed
-	}
-	return nil
+	return validateSelectorNamespace(store, ref.Namespace, true)
 }
 
 // ValidateReferentSecretSelector allows
@@ -461,25 +454,14 @@ func ValidateSecretSelector(store esv1.GenericStore, ref esmeta.SecretKeySelecto
 // this should replace above ValidateServiceAccountSelector once all providers
 // support referent auth.
 func ValidateReferentSecretSelector(store esv1.GenericStore, ref esmeta.SecretKeySelector) error {
-	clusterScope := store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
-	if !clusterScope && ref.Namespace != nil && *ref.Namespace != store.GetNamespace() {
-		return errNamespaceNotAllowed
-	}
-	return nil
+	return validateSelectorNamespace(store, ref.Namespace, false)
 }
 
 // ValidateServiceAccountSelector just checks if the namespace field is present/absent
 // depending on the secret store type.
 // We MUST NOT check the name or key property here. It MAY be defaulted by the provider.
 func ValidateServiceAccountSelector(store esv1.GenericStore, ref esmeta.ServiceAccountSelector) error {
-	clusterScope := store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
-	if clusterScope && ref.Namespace == nil {
-		return errRequireNamespace
-	}
-	if !clusterScope && ref.Namespace != nil && *ref.Namespace != store.GetNamespace() {
-		return errNamespaceNotAllowed
-	}
-	return nil
+	return validateSelectorNamespace(store, ref.Namespace, true)
 }
 
 // ValidateReferentServiceAccountSelector allows
@@ -487,8 +469,15 @@ func ValidateServiceAccountSelector(store esv1.GenericStore, ref esmeta.ServiceA
 // this should replace above ValidateServiceAccountSelector once all providers
 // support referent auth.
 func ValidateReferentServiceAccountSelector(store esv1.GenericStore, ref esmeta.ServiceAccountSelector) error {
+	return validateSelectorNamespace(store, ref.Namespace, false)
+}
+
+func validateSelectorNamespace(store esv1.GenericStore, namespace *string, requireNamespaceForClusterStore bool) error {
 	clusterScope := store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
-	if !clusterScope && ref.Namespace != nil && *ref.Namespace != store.GetNamespace() {
+	if requireNamespaceForClusterStore && clusterScope && namespace == nil {
+		return errRequireNamespace
+	}
+	if !clusterScope && namespace != nil && *namespace != store.GetNamespace() {
 		return errNamespaceNotAllowed
 	}
 	return nil
