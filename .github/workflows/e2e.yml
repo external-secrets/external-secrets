@@ -54,6 +54,17 @@ jobs:
       SECRETSERVER_URL: ${{ secrets.SECRETSERVER_URL }}
       GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
       GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
+      AKEYLESS_ACCESS_ID: ${{ secrets.AKEYLESS_ACCESS_ID }}
+      AKEYLESS_ACCESS_TYPE: ${{ secrets.AKEYLESS_ACCESS_TYPE }}
+      AKEYLESS_ACCESS_TYPE_PARAM: ${{ secrets.AKEYLESS_ACCESS_TYPE_PARAM }}
+      GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+      GITLAB_PROJECT_ID: ${{ secrets.GITLAB_PROJECT_ID }}
+      GITLAB_ENVIRONMENT: ${{ secrets.GITLAB_ENVIRONMENT }}
+      ORACLE_USER_OCID: ${{ secrets.ORACLE_USER_OCID }}
+      ORACLE_TENANCY_OCID: ${{ secrets.ORACLE_TENANCY_OCID }}
+      ORACLE_REGION: ${{ secrets.ORACLE_REGION }}
+      ORACLE_FINGERPRINT: ${{ secrets.ORACLE_FINGERPRINT }}
+      ORACLE_KEY: ${{ secrets.ORACLE_KEY }}
 
   # Repo owner has commented /ok-to-test on a (fork-based) pull request.
   integration-fork:
@@ -62,8 +73,6 @@ jobs:
       contents: read  # for checkout
     if: github.event_name == 'repository_dispatch'
     uses: ./.github/workflows/e2e-reusable.yml
-    with:
-      ref: ${{ github.event.client_payload.slash_command.args.named.sha }}
     secrets:
       GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
       GCP_FED_REGION: ${{ secrets.GCP_FED_REGION }}
@@ -93,6 +102,17 @@ jobs:
       SECRETSERVER_URL: ${{ secrets.SECRETSERVER_URL }}
       GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
       GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
+      AKEYLESS_ACCESS_ID: ${{ secrets.AKEYLESS_ACCESS_ID }}
+      AKEYLESS_ACCESS_TYPE: ${{ secrets.AKEYLESS_ACCESS_TYPE }}
+      AKEYLESS_ACCESS_TYPE_PARAM: ${{ secrets.AKEYLESS_ACCESS_TYPE_PARAM }}
+      GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+      GITLAB_PROJECT_ID: ${{ secrets.GITLAB_PROJECT_ID }}
+      GITLAB_ENVIRONMENT: ${{ secrets.GITLAB_ENVIRONMENT }}
+      ORACLE_USER_OCID: ${{ secrets.ORACLE_USER_OCID }}
+      ORACLE_TENANCY_OCID: ${{ secrets.ORACLE_TENANCY_OCID }}
+      ORACLE_REGION: ${{ secrets.ORACLE_REGION }}
+      ORACLE_FINGERPRINT: ${{ secrets.ORACLE_FINGERPRINT }}
+      ORACLE_KEY: ${{ secrets.ORACLE_KEY }}
 
   # Report the fork run result back onto the originating pull request.
   report-fork:
