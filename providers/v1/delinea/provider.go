@@ -109,8 +109,8 @@ func loadConfigSecret(
 
 func delineaCredentialRefPolicy(store esv1.GenericStore) esutils.ValueOrRefPolicy[esmeta.SecretKeySelector] {
 	return esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
-		Presence:           esutils.RequireValueOrRef,
-		ValidateRef:        validateDelineaCredentialSecretRef(store),
+		Presence:    esutils.RequireValueOrRef,
+		ValidateRef: validateDelineaCredentialSecretRef(store),
 	}
 }
 
@@ -119,14 +119,25 @@ func validateDelineaCredentialSecretRef(store esv1.GenericStore) func(esmeta.Sec
 		if err := esutils.ValidateReferentSecretSelector(store, ref); err != nil {
 			return err
 		}
-		if ref.Name == "" {
-			return errMissingSecretName
-		}
-		if ref.Key == "" {
-			return errMissingSecretKey
-		}
-		return nil
+		return validateDelineaCredentialSecretRefNameAndKey(ref)
 	}
+}
+
+func validateSecretRef(ref *esv1.DelineaProviderSecretRef) error {
+	return esutils.ValidateValueOrRef(ref.Value, ref.SecretRef, esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
+		Presence:    esutils.RequireValueOrRef,
+		ValidateRef: validateDelineaCredentialSecretRefNameAndKey,
+	})
+}
+
+func validateDelineaCredentialSecretRefNameAndKey(ref esmeta.SecretKeySelector) error {
+	if ref.Name == "" {
+		return errMissingSecretName
+	}
+	if ref.Key == "" {
+		return errMissingSecretKey
+	}
+	return nil
 }
 
 func doesConfigDependOnNamespace(cfg *esv1.DelineaProvider) bool {

@@ -31,6 +31,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 func TestDoesConfigDependOnNamespace(t *testing.T) {
@@ -151,7 +152,7 @@ func TestValidateStore(t *testing.T) {
 				Password:  validSecretRefUsingValue,
 				ServerURL: testURL,
 			},
-			want: errSecretRefAndValueConflict,
+			want: esutils.ErrValueAndRefConflict,
 		},
 		"invalid with ambiguous Password": {
 			cfg: esv1.SecretServerProvider{
@@ -159,7 +160,7 @@ func TestValidateStore(t *testing.T) {
 				Password:  ambiguousSecretRef,
 				ServerURL: testURL,
 			},
-			want: errSecretRefAndValueConflict,
+			want: esutils.ErrValueAndRefConflict,
 		},
 		"invalid with invalid Username": {
 			cfg: esv1.SecretServerProvider{
@@ -167,7 +168,7 @@ func TestValidateStore(t *testing.T) {
 				Password:  validSecretRefUsingValue,
 				ServerURL: testURL,
 			},
-			want: errSecretRefAndValueMissing,
+			want: esutils.ErrValueOrRefMissing,
 		},
 		"invalid with invalid Password": {
 			cfg: esv1.SecretServerProvider{
@@ -175,7 +176,7 @@ func TestValidateStore(t *testing.T) {
 				Password:  makeSecretRefUsingValue(""),
 				ServerURL: testURL,
 			},
-			want: errSecretRefAndValueMissing,
+			want: esutils.ErrValueOrRefMissing,
 		},
 		"valid with tenant/clientID/clientSecret": {
 			cfg: esv1.SecretServerProvider{
@@ -714,7 +715,7 @@ func TestValidateStoreSecretRef(t *testing.T) {
 				},
 				Value: "some-value",
 			},
-			wantErr: errSecretRefAndValueConflict,
+			wantErr: esutils.ErrValueAndRefConflict,
 		},
 	}
 
@@ -724,7 +725,7 @@ func TestValidateStoreSecretRef(t *testing.T) {
 			if tc.wantErr == nil {
 				assert.NoError(t, err)
 			} else {
-				assert.ErrorIs(t, err, tc.wantErr)
+				assert.EqualError(t, err, tc.wantErr.Error())
 			}
 		})
 	}

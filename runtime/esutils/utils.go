@@ -437,65 +437,6 @@ func ErrorContains(out error, want string) bool {
 	return strings.Contains(out.Error(), want)
 }
 
-// RefPresencePolicy describes which side of a value/reference pair is allowed.
-type RefPresencePolicy int
-
-const (
-	// RequireValueOrRef requires exactly one of value or reference to be set.
-	RequireValueOrRef RefPresencePolicy = iota
-	// AllowValueOrRef allows neither value nor reference to be set, but rejects both being set.
-	AllowValueOrRef
-	// RequireRefOnly requires reference to be set and value to be empty.
-	RequireRefOnly
-	// RequireValueOnly requires value to be set and reference to be empty.
-	RequireValueOnly
-)
-
-// ValueOrRefPolicy configures ValidateValueOrRef.
-type ValueOrRefPolicy[T any] struct {
-	Presence    RefPresencePolicy
-	ValidateRef func(T) error
-
-}
-
-// ValidateValueOrRef validates fields that allow a direct value or a reference.
-func ValidateValueOrRef[T any](value string, ref *T, policy ValueOrRefPolicy[T]) error {
-	switch policy.Presence {
-	case RequireValueOrRef:
-		if value != "" && ref != nil {
-			return errors.New("cannot specify both value and reference")
-		}
-		if value == "" && ref == nil {
-			return errors.New("must specify either value or reference")
-		}
-	case AllowValueOrRef:
-		if value != "" && ref != nil {
-			return errors.New("cannot specify both value and reference")
-		}
-	case RequireRefOnly:
-		if ref == nil {
-			return errors.New("reference is required")
-		}
-		if value != "" {
-			return errors.New("value must not be specified")
-		}
-	case RequireValueOnly:
-		if value == "" {
-			return errors.New("value is required")
-		}
-		if ref != nil {
-			return errors.New("reference must not be specified")
-		}
-	default:
-		return fmt.Errorf("unknown value/reference presence policy: %d", policy.Presence)
-	}
-
-	if ref != nil && policy.ValidateRef != nil {
-		return policy.ValidateRef(*ref)
-	}
-	return nil
-}
-
 var (
 	errNamespaceNotAllowed = errors.New("namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore")
 	errRequireNamespace    = errors.New("cluster scope requires namespace")
@@ -505,7 +446,14 @@ var (
 // depending on the secret store type.
 // We MUST NOT check the name or key property here. It MAY be defaulted by the provider.
 func ValidateSecretSelector(store esv1.GenericStore, ref esmeta.SecretKeySelector) error {
-	return validateSelectorNamespace(store, ref.Namespace, true)
+	clusterScope := store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
+	if clusterScope && ref.Namespace == nil {
+		return errRequireNamespace
+	}
+	if !clusterScope && ref.Namespace != nil && *ref.Namespace != store.GetNamespace() {
+		return errNamespaceNotAllowed
+	}
+	return nil
 }
 
 // ValidateReferentSecretSelector allows
@@ -513,14 +461,25 @@ func ValidateSecretSelector(store esv1.GenericStore, ref esmeta.SecretKeySelecto
 // this should replace above ValidateServiceAccountSelector once all providers
 // support referent auth.
 func ValidateReferentSecretSelector(store esv1.GenericStore, ref esmeta.SecretKeySelector) error {
-	return validateSelectorNamespace(store, ref.Namespace, false)
+	clusterScope := store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
+	if !clusterScope && ref.Namespace != nil && *ref.Namespace != store.GetNamespace() {
+		return errNamespaceNotAllowed
+	}
+	return nil
 }
 
 // ValidateServiceAccountSelector just checks if the namespace field is present/absent
 // depending on the secret store type.
 // We MUST NOT check the name or key property here. It MAY be defaulted by the provider.
 func ValidateServiceAccountSelector(store esv1.GenericStore, ref esmeta.ServiceAccountSelector) error {
-	return validateSelectorNamespace(store, ref.Namespace, true)
+	clusterScope := store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
+	if clusterScope && ref.Namespace == nil {
+		return errRequireNamespace
+	}
+	if !clusterScope && ref.Namespace != nil && *ref.Namespace != store.GetNamespace() {
+		return errNamespaceNotAllowed
+	}
+	return nil
 }
 
 // ValidateReferentServiceAccountSelector allows
@@ -528,15 +487,8 @@ func ValidateServiceAccountSelector(store esv1.GenericStore, ref esmeta.ServiceA
 // this should replace above ValidateServiceAccountSelector once all providers
 // support referent auth.
 func ValidateReferentServiceAccountSelector(store esv1.GenericStore, ref esmeta.ServiceAccountSelector) error {
-	return validateSelectorNamespace(store, ref.Namespace, false)
-}
-
-func validateSelectorNamespace(store esv1.GenericStore, namespace *string, requireNamespaceForClusterStore bool) error {
 	clusterScope := store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind
-	if requireNamespaceForClusterStore && clusterScope && namespace == nil {
-		return errRequireNamespace
-	}
-	if !clusterScope && namespace != nil && *namespace != store.GetNamespace() {
+	if !clusterScope && ref.Namespace != nil && *ref.Namespace != store.GetNamespace() {
 		return errNamespaceNotAllowed
 	}
 	return nil

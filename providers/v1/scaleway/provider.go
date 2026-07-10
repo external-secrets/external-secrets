@@ -108,7 +108,7 @@ func validateSecretRef(store esv1.GenericStore, ref *esv1.ScalewayProviderSecret
 
 func scalewaySecretRefPolicy(store esv1.GenericStore) esutils.ValueOrRefPolicy[esmeta.SecretKeySelector] {
 	return esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
-		Presence:           esutils.RequireValueOrRef,
+		Presence: esutils.RequireValueOrRef,
 		ValidateRef: func(ref esmeta.SecretKeySelector) error {
 			return esutils.ValidateReferentSecretSelector(store, ref)
 		},
