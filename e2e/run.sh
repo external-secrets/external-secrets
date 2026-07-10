@@ -39,10 +39,15 @@ kubectl create clusterrolebinding service-account-issuer-discovery-binding \
   --clusterrole=system:service-account-issuer-discovery \
   --group=system:unauthenticated || true
 
-echo -e "Cleaning cache before running tests"
-docker system prune --force
-go clean -cache
-go clean -modcache
+# Only prune Docker and wipe the Go caches inside the GitHub Actions runner,
+# where the environment is disposable. Locally this would nuke the developer's
+# Docker state and module cache, so it is skipped outside CI.
+if [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+  echo -e "Cleaning cache before running tests"
+  docker system prune --force
+  go clean -cache
+  go clean -modcache
+fi
 
 echo -e "Starting the e2e test pod ${E2E_IMAGE_NAME}:${VERSION}"
 kubectl run --rm \
