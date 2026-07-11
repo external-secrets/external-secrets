@@ -52,6 +52,23 @@ func staticCreds() awssdk.Credentials {
 	}
 }
 
+// testCreds returns the signing credentials and the STS endpoint host the
+// signed request should target, optionally clearing the session token and
+// applying the AWS_STS_ENDPOINT override for the duration of the test.
+func testCreds(t *testing.T, noSessionToken bool, stsEndpoint string) (awssdk.Credentials, string) {
+	t.Helper()
+	creds := staticCreds()
+	if noSessionToken {
+		creds.SessionToken = ""
+	}
+	host := "sts." + testLoginRegion + ".amazonaws.com"
+	if stsEndpoint != "" {
+		t.Setenv(vaultiamauth.STSEndpointEnv, stsEndpoint)
+		host = strings.TrimPrefix(stsEndpoint, "https://")
+	}
+	return creds, host
+}
+
 // iamTestClient bundles a client under test with the state its mocked Vault
 // client records: the login write's path/data and the token set on the client.
 type iamTestClient struct {
@@ -210,15 +227,7 @@ func TestLoginWithIamCreds(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tc := newIamTestClient(tt.writeErr)
-			creds := staticCreds()
-			if tt.noSessionToken {
-				creds.SessionToken = ""
-			}
-			wantEndpointHost := "sts." + testLoginRegion + ".amazonaws.com"
-			if tt.stsEndpoint != "" {
-				t.Setenv(vaultiamauth.STSEndpointEnv, tt.stsEndpoint)
-				wantEndpointHost = strings.TrimPrefix(tt.stsEndpoint, "https://")
-			}
+			creds, wantEndpointHost := testCreds(t, tt.noSessionToken, tt.stsEndpoint)
 
 			err := tc.client.loginWithIamCreds(context.Background(), creds, tt.iamAuth, testLoginMountPath, testLoginRegion)
 			if tt.wantErr {
