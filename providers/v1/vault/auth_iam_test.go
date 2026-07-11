@@ -30,6 +30,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/vault/fake"
+	vaultiamauth "github.com/external-secrets/external-secrets/providers/v1/vault/iamauth"
 	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
 )
 
@@ -114,9 +115,10 @@ func stsRequestHeaders(t *testing.T, data map[string]any) http.Header {
 }
 
 // assertLoginRequest verifies the login write hit the expected mount path
-// with a SigV4-signed GetCallerIdentity request against the regional STS
-// endpoint, and that the returned client token was set on the Vault client.
-func assertLoginRequest(t *testing.T, tc *iamTestClient, wantSessionToken string) {
+// with a SigV4-signed GetCallerIdentity request against the expected STS
+// endpoint host, and that the returned client token was set on the Vault
+// client.
+func assertLoginRequest(t *testing.T, tc *iamTestClient, wantSessionToken, wantEndpointHost string) {
 	t.Helper()
 	if tc.path != testLoginPath {
 		t.Errorf("login path: got %q, want %q", tc.path, testLoginPath)
@@ -127,8 +129,8 @@ func assertLoginRequest(t *testing.T, tc *iamTestClient, wantSessionToken string
 	if method, _ := tc.data["iam_http_request_method"].(string); method != http.MethodPost {
 		t.Errorf("method: got %q, want %q", method, http.MethodPost)
 	}
-	if url := decodeLoginField(t, tc.data, "iam_request_url"); !strings.Contains(url, "sts."+testLoginRegion+".amazonaws.com") {
-		t.Errorf("request url %q does not target the regional STS endpoint", url)
+	if url := decodeLoginField(t, tc.data, "iam_request_url"); !strings.Contains(url, wantEndpointHost) {
+		t.Errorf("request url %q does not target STS endpoint host %q", url, wantEndpointHost)
 	}
 	if body := decodeLoginField(t, tc.data, "iam_request_body"); body != getCallerIdentityBody {
 		t.Errorf("request body: got %q, want %q", body, getCallerIdentityBody)
@@ -163,6 +165,7 @@ func TestLoginWithIamCreds(t *testing.T) {
 		iamAuth        *esv1.VaultIamAuth
 		writeErr       error
 		wantServerID   string
+		stsEndpoint    string
 		noSessionToken bool
 		wantErr        bool
 	}{
@@ -171,6 +174,13 @@ func TestLoginWithIamCreds(t *testing.T) {
 			iamAuth: &esv1.VaultIamAuth{
 				Role: testLoginRole,
 			},
+		},
+		{
+			name: "signs against the AWS_STS_ENDPOINT override when set",
+			iamAuth: &esv1.VaultIamAuth{
+				Role: testLoginRole,
+			},
+			stsEndpoint: "https://sts.internal.example.com",
 		},
 		{
 			name: "omits the session token for static credentials without one",
@@ -204,6 +214,11 @@ func TestLoginWithIamCreds(t *testing.T) {
 			if tt.noSessionToken {
 				creds.SessionToken = ""
 			}
+			wantEndpointHost := "sts." + testLoginRegion + ".amazonaws.com"
+			if tt.stsEndpoint != "" {
+				t.Setenv(vaultiamauth.STSEndpointEnv, tt.stsEndpoint)
+				wantEndpointHost = strings.TrimPrefix(tt.stsEndpoint, "https://")
+			}
 
 			err := tc.client.loginWithIamCreds(context.Background(), creds, tt.iamAuth, testLoginMountPath, testLoginRegion)
 			if tt.wantErr {
@@ -216,7 +231,7 @@ func TestLoginWithIamCreds(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			assertLoginRequest(t, tc, creds.SessionToken)
+			assertLoginRequest(t, tc, creds.SessionToken, wantEndpointHost)
 			assertServerID(t, tc, tt.wantServerID)
 		})
 	}
