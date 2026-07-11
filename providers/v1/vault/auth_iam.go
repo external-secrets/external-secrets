@@ -18,18 +18,24 @@ package vault
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
-	awsv1creds "github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/hashicorp/go-hclog"
-	"github.com/hashicorp/go-secure-stdlib/awsutil"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -39,10 +45,21 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
+// iamServerIDHeader carries the Vault server ID for AWS IAM auth
+// replay-attack mitigation. Vault requires it to be part of the signed STS
+// request when the auth mount configures iam_server_id_header_value.
+const iamServerIDHeader = "X-Vault-AWS-IAM-Server-ID"
+
+// getCallerIdentityBody is the form-encoded body of the STS
+// GetCallerIdentity call whose signature Vault verifies during IAM login.
+const getCallerIdentityBody = "Action=GetCallerIdentity&Version=2011-06-15"
+
 const (
 	defaultAWSRegion              = "us-east-1"
 	defaultAWSAuthMountPath       = "aws"
 	errAWSCredentialsRetrieve     = "could not retrieve AWS credentials for IAM auth: %w"
+	errSTSEndpointResolve         = "could not resolve STS endpoint for region %q: %w"
+	errSTSRequestSign             = "could not sign STS GetCallerIdentity request: %w"
 	errNoAWSAuthMethodFound       = "no AWS authentication method found: expected either IRSA or Pod Identity"
 	errIrsaTokenFileNotFoundOnPod = "web identity token file not found at %s location: %w"
 	errIrsaTokenFileNotReadable   = "could not read the web identity token from the file %s: %w"
@@ -145,24 +162,57 @@ func (c *client) requestTokenWithIamAuth(
 	return c.loginWithIamCreds(ctx, getCreds, iamAuth, awsAuthMountPath, regionAWS)
 }
 
+// generateLoginData signs an STS GetCallerIdentity request with the supplied
+// AWS credentials using the aws-sdk-go-v2 SigV4 signer and packages it in the
+// form Vault's AWS IAM auth login endpoint expects. Vault validates the
+// server ID against the signed copy inside iam_request_headers; no header on
+// the Vault login request itself is consulted. The endpoint comes from the
+// v2 STS endpoint resolver, so newer regions and non-default partitions
+// resolve correctly (the aws-sdk-go v1 endpoint table used by
+// go-secure-stdlib/awsutil's GenerateLoginData is frozen and misses them).
+func generateLoginData(ctx context.Context, creds aws.Credentials, serverID, region string) (map[string]any, error) {
+	endpoint, err := sts.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, sts.EndpointParameters{
+		Region: aws.String(region),
+	})
+	if err != nil {
+		return nil, fmt.Errorf(errSTSEndpointResolve, region, err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint.URI.String(), strings.NewReader(getCallerIdentityBody))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
+	if serverID != "" {
+		req.Header.Set(iamServerIDHeader, serverID)
+	}
+
+	payloadHash := sha256.Sum256([]byte(getCallerIdentityBody))
+	if err := v4.NewSigner().SignHTTP(ctx, creds, req, hex.EncodeToString(payloadHash[:]), "sts", region, time.Now()); err != nil {
+		return nil, fmt.Errorf(errSTSRequestSign, err)
+	}
+
+	headersJSON, err := json.Marshal(req.Header)
+	if err != nil {
+		return nil, err
+	}
+	return map[string]any{
+		"iam_http_request_method": req.Method,
+		"iam_request_url":         base64.StdEncoding.EncodeToString([]byte(req.URL.String())),
+		"iam_request_headers":     base64.StdEncoding.EncodeToString(headersJSON),
+		"iam_request_body":        base64.StdEncoding.EncodeToString([]byte(getCallerIdentityBody)),
+	}, nil
+}
+
 // loginWithIamCreds signs an STS GetCallerIdentity request with the supplied
 // AWS credentials and posts the resulting login data to Vault's AWS IAM auth
 // login endpoint, then stores the returned client token on the Vault client.
 func (c *client) loginWithIamCreds(ctx context.Context, creds aws.Credentials, iamAuth *esv1.VaultIamAuth, awsAuthMountPath, regionAWS string) error {
-	v1creds := awsv1creds.NewStaticCredentials(creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
-
-	loginData, err := awsutil.GenerateLoginData(v1creds, iamAuth.VaultAWSIAMServerID, regionAWS, hclog.NewNullLogger())
+	loginData, err := generateLoginData(ctx, creds, iamAuth.VaultAWSIAMServerID, regionAWS)
 	if err != nil {
 		return err
 	}
 	loginData["role"] = iamAuth.Role
-
-	// No X-Vault-AWS-IAM-Server-ID header is needed on the login request
-	// itself: Vault validates the server ID against the signed copy inside
-	// the iam_request_headers login-data field, which GenerateLoginData
-	// embedded above. (The old vault/api/auth/aws helper also set a client
-	// header, under the config-key name iam_server_id_header_value, but the
-	// server never reads it.)
 
 	url := fmt.Sprintf("auth/%s/login", awsAuthMountPath)
 	vaultResult, err := c.logical.WriteWithContext(ctx, url, loginData)
