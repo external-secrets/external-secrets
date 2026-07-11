@@ -2,7 +2,7 @@ External Secrets Operator integrates with [Passbolt API](https://www.passbolt.co
 
 
 
-### Creating a Passbolt secret store
+## Creating a Passbolt secret store
 
 Be sure the `passbolt` provider is listed in the `Kind=SecretStore` and auth and host are set.
 The API requires a password and private key provided in a secret.
@@ -11,7 +11,7 @@ The API requires a password and private key provided in a secret.
 {% include 'passbolt-secret-store.yaml' %}
 ```
 
-#### Custom CA certificate
+### Custom CA certificate
 
 If your Passbolt instance uses a certificate signed by a private or custom
 Certificate Authority, you can configure the CA bundle that ESO uses to
@@ -27,7 +27,7 @@ If neither `caBundle` nor `caProvider` is set, ESO uses the system root
 certificates to validate the TLS connection.
 
 
-### Creating an external secret
+## Creating an external secret
 
 To sync a Passbolt secret to a Kubernetes secret, a `Kind=ExternalSecret` is needed.
 By default the secret contains name, username, uri, password and description.
@@ -45,7 +45,7 @@ The above external secret will lead to the creation of a secret in the following
 ```
 
 
-### Finding a secret by name
+## Finding a secret by name
 
 Instead of retrieving secrets by ID you can also use `dataFrom` to search for secrets by name.
 

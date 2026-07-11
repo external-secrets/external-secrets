@@ -70,6 +70,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	g.createOrUpdateFn = g.orgCreateOrUpdateSecret
 	g.listSecretsFn = g.orgListSecretsFn
 	g.deleteSecretFn = g.orgDeleteSecretsFn
+	g.listSelectedReposFn = g.orgListSelectedRepoIDs
 	ghClient, err := g.AuthWithPrivateKey(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("could not get private key: %w", err)
@@ -81,6 +82,8 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		g.createOrUpdateFn = g.repoCreateOrUpdateSecret
 		g.listSecretsFn = g.repoListSecretsFn
 		g.deleteSecretFn = g.repoDeleteSecretsFn
+		// Repo and env secrets have no "selected repositories" concept.
+		g.listSelectedReposFn = nil
 		if provider.Environment != "" {
 			// For environment to work, we need the repository ID instead of its name.
 			repo, _, err := ghClient.Repositories.Get(ctx, g.provider.Organization, g.provider.Repository)
