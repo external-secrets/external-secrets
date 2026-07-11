@@ -132,6 +132,15 @@ spec:
             failureThreshold: {{ .Values.webhook.readinessProbe.failureThreshold }}
             successThreshold: {{ .Values.webhook.readinessProbe.successThreshold }}
           {{- end }}
+          {{- if .Values.webhook.startupProbe.enabled }}
+          startupProbe:
+            httpGet:
+              port: ready
+              path: /readyz
+            initialDelaySeconds: {{ .Values.webhook.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.webhook.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.webhook.startupProbe.failureThreshold }}
+          {{- end }}
           {{- with .Values.webhook.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}
