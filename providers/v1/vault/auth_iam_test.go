@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strings"
 	"testing"
 
 	awssdk "github.com/aws/aws-sdk-go-v2/aws"
@@ -37,6 +38,7 @@ const (
 	testLoginPath      = "auth/aws-mount/login"
 	testLoginRole      = "my-role"
 	testLoginToken     = "hvs.token-abc"
+	testLoginRegion    = "us-east-1"
 )
 
 // staticCreds returns a fixed set of AWS credentials for signing, standing in
@@ -85,9 +87,35 @@ func newIamTestClient(writeErr error) *iamTestClient {
 	return tc
 }
 
-// assertLoginRequest verifies the login write hit the expected mount path with
-// the signed GetCallerIdentity fields and the role, and that the returned
-// client token was set on the Vault client.
+// decodeLoginField base64-decodes a login-data field.
+func decodeLoginField(t *testing.T, data map[string]any, key string) string {
+	t.Helper()
+	enc, ok := data[key].(string)
+	if !ok {
+		t.Fatalf("login data %s is %T, want base64 string", key, data[key])
+	}
+	raw, err := base64.StdEncoding.DecodeString(enc)
+	if err != nil {
+		t.Fatalf("decoding %s: %v", key, err)
+	}
+	return string(raw)
+}
+
+// stsRequestHeaders decodes the signed STS request headers embedded in the
+// login data. Vault validates the X-Vault-AWS-IAM-Server-ID value against
+// these, not against the login request's own HTTP headers.
+func stsRequestHeaders(t *testing.T, data map[string]any) http.Header {
+	t.Helper()
+	var h http.Header
+	if err := json.Unmarshal([]byte(decodeLoginField(t, data, "iam_request_headers")), &h); err != nil {
+		t.Fatalf("unmarshaling iam_request_headers: %v", err)
+	}
+	return h
+}
+
+// assertLoginRequest verifies the login write hit the expected mount path
+// with a SigV4-signed GetCallerIdentity request against the regional STS
+// endpoint, and that the returned client token was set on the Vault client.
 func assertLoginRequest(t *testing.T, tc *iamTestClient) {
 	t.Helper()
 	if tc.path != testLoginPath {
@@ -96,36 +124,36 @@ func assertLoginRequest(t *testing.T, tc *iamTestClient) {
 	if role, _ := tc.data["role"].(string); role != testLoginRole {
 		t.Errorf("role: got %q, want %q", role, testLoginRole)
 	}
-	// GenerateLoginData must have produced the signed STS request fields.
-	for _, k := range []string{"iam_http_request_method", "iam_request_url", "iam_request_headers", "iam_request_body"} {
-		if _, ok := tc.data[k]; !ok {
-			t.Errorf("login data missing expected key %q", k)
-		}
+	if method, _ := tc.data["iam_http_request_method"].(string); method != http.MethodPost {
+		t.Errorf("method: got %q, want %q", method, http.MethodPost)
+	}
+	if url := decodeLoginField(t, tc.data, "iam_request_url"); !strings.Contains(url, "sts."+testLoginRegion+".amazonaws.com") {
+		t.Errorf("request url %q does not target the regional STS endpoint", url)
+	}
+	if body := decodeLoginField(t, tc.data, "iam_request_body"); body != getCallerIdentityBody {
+		t.Errorf("request body: got %q, want %q", body, getCallerIdentityBody)
 	}
 	if tc.token != testLoginToken {
 		t.Errorf("token: got %q, want %q", tc.token, testLoginToken)
 	}
+	assertSignature(t, stsRequestHeaders(t, tc.data))
 }
 
-// stsRequestHeaders decodes the signed STS request headers that
-// GenerateLoginData embedded in the login data. Vault validates the
-// X-Vault-AWS-IAM-Server-ID value against these, not against the login
-// request's own HTTP headers.
-func stsRequestHeaders(t *testing.T, data map[string]any) http.Header {
+// assertSignature verifies the SigV4 signature artifacts on the signed STS
+// request headers, including the session token that carries the (rotating)
+// Pod Identity credential.
+func assertSignature(t *testing.T, headers http.Header) {
 	t.Helper()
-	enc, ok := data["iam_request_headers"].(string)
-	if !ok {
-		t.Fatalf("login data iam_request_headers is %T, want base64 string", data["iam_request_headers"])
+	auth := headers.Get("Authorization")
+	if !strings.HasPrefix(auth, "AWS4-HMAC-SHA256 ") || !strings.Contains(auth, "Signature=") {
+		t.Errorf("Authorization header is not a SigV4 signature: %q", auth)
 	}
-	raw, err := base64.StdEncoding.DecodeString(enc)
-	if err != nil {
-		t.Fatalf("decoding iam_request_headers: %v", err)
+	if headers.Get("X-Amz-Date") == "" {
+		t.Error("X-Amz-Date header missing from signed request")
 	}
-	var h http.Header
-	if err := json.Unmarshal(raw, &h); err != nil {
-		t.Fatalf("unmarshaling iam_request_headers: %v", err)
+	if got := headers.Get("X-Amz-Security-Token"); got != staticCreds().SessionToken {
+		t.Errorf("X-Amz-Security-Token: got %q, want %q", got, staticCreds().SessionToken)
 	}
-	return h
 }
 
 func TestLoginWithIamCreds(t *testing.T) {
@@ -164,7 +192,7 @@ func TestLoginWithIamCreds(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tc := newIamTestClient(tt.writeErr)
 
-			err := tc.client.loginWithIamCreds(context.Background(), staticCreds(), tt.iamAuth, testLoginMountPath, "us-east-1")
+			err := tc.client.loginWithIamCreds(context.Background(), staticCreds(), tt.iamAuth, testLoginMountPath, testLoginRegion)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("expected error, got nil")
@@ -176,9 +204,26 @@ func TestLoginWithIamCreds(t *testing.T) {
 			}
 
 			assertLoginRequest(t, tc)
-			if got := stsRequestHeaders(t, tc.data).Get("X-Vault-AWS-IAM-Server-ID"); got != tt.wantServerID {
-				t.Errorf("signed server-id header: got %q, want %q", got, tt.wantServerID)
-			}
+			assertServerID(t, tc, tt.wantServerID)
 		})
+	}
+}
+
+// assertServerID verifies the X-Vault-AWS-IAM-Server-ID header: present with
+// the configured value AND covered by the SigV4 SignedHeaders list (Vault
+// rejects logins whose server-id header is not signed), or absent entirely
+// when not configured.
+func assertServerID(t *testing.T, tc *iamTestClient, want string) {
+	t.Helper()
+	headers := stsRequestHeaders(t, tc.data)
+	if got := headers.Get(iamServerIDHeader); got != want {
+		t.Errorf("signed server-id header: got %q, want %q", got, want)
+	}
+	signed := strings.Contains(headers.Get("Authorization"), strings.ToLower(iamServerIDHeader))
+	if want != "" && !signed {
+		t.Errorf("server-id header not covered by SignedHeaders in %q", headers.Get("Authorization"))
+	}
+	if want == "" && signed {
+		t.Errorf("server-id header unexpectedly signed in %q", headers.Get("Authorization"))
 	}
 }
