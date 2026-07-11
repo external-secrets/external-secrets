@@ -116,7 +116,7 @@ func stsRequestHeaders(t *testing.T, data map[string]any) http.Header {
 // assertLoginRequest verifies the login write hit the expected mount path
 // with a SigV4-signed GetCallerIdentity request against the regional STS
 // endpoint, and that the returned client token was set on the Vault client.
-func assertLoginRequest(t *testing.T, tc *iamTestClient) {
+func assertLoginRequest(t *testing.T, tc *iamTestClient, wantSessionToken string) {
 	t.Helper()
 	if tc.path != testLoginPath {
 		t.Errorf("login path: got %q, want %q", tc.path, testLoginPath)
@@ -136,13 +136,14 @@ func assertLoginRequest(t *testing.T, tc *iamTestClient) {
 	if tc.token != testLoginToken {
 		t.Errorf("token: got %q, want %q", tc.token, testLoginToken)
 	}
-	assertSignature(t, stsRequestHeaders(t, tc.data))
+	assertSignature(t, stsRequestHeaders(t, tc.data), wantSessionToken)
 }
 
 // assertSignature verifies the SigV4 signature artifacts on the signed STS
 // request headers, including the session token that carries the (rotating)
-// Pod Identity credential.
-func assertSignature(t *testing.T, headers http.Header) {
+// Pod Identity credential — or its absence for static credentials that have
+// no session token (e.g. secretRef IAM user keys).
+func assertSignature(t *testing.T, headers http.Header, wantSessionToken string) {
 	t.Helper()
 	auth := headers.Get("Authorization")
 	if !strings.HasPrefix(auth, "AWS4-HMAC-SHA256 ") || !strings.Contains(auth, "Signature=") {
@@ -151,24 +152,32 @@ func assertSignature(t *testing.T, headers http.Header) {
 	if headers.Get("X-Amz-Date") == "" {
 		t.Error("X-Amz-Date header missing from signed request")
 	}
-	if got := headers.Get("X-Amz-Security-Token"); got != staticCreds().SessionToken {
-		t.Errorf("X-Amz-Security-Token: got %q, want %q", got, staticCreds().SessionToken)
+	if got := headers.Get("X-Amz-Security-Token"); got != wantSessionToken {
+		t.Errorf("X-Amz-Security-Token: got %q, want %q", got, wantSessionToken)
 	}
 }
 
 func TestLoginWithIamCreds(t *testing.T) {
 	tests := []struct {
-		name         string
-		iamAuth      *esv1.VaultIamAuth
-		writeErr     error
-		wantServerID string
-		wantErr      bool
+		name           string
+		iamAuth        *esv1.VaultIamAuth
+		writeErr       error
+		wantServerID   string
+		noSessionToken bool
+		wantErr        bool
 	}{
 		{
 			name: "posts signed login data to the configured mount",
 			iamAuth: &esv1.VaultIamAuth{
 				Role: testLoginRole,
 			},
+		},
+		{
+			name: "omits the session token for static credentials without one",
+			iamAuth: &esv1.VaultIamAuth{
+				Role: testLoginRole,
+			},
+			noSessionToken: true,
 		},
 		{
 			name: "signs the server-id into the STS request headers when configured",
@@ -191,8 +200,12 @@ func TestLoginWithIamCreds(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tc := newIamTestClient(tt.writeErr)
+			creds := staticCreds()
+			if tt.noSessionToken {
+				creds.SessionToken = ""
+			}
 
-			err := tc.client.loginWithIamCreds(context.Background(), staticCreds(), tt.iamAuth, testLoginMountPath, testLoginRegion)
+			err := tc.client.loginWithIamCreds(context.Background(), creds, tt.iamAuth, testLoginMountPath, testLoginRegion)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("expected error, got nil")
@@ -203,7 +216,7 @@ func TestLoginWithIamCreds(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			assertLoginRequest(t, tc)
+			assertLoginRequest(t, tc, creds.SessionToken)
 			assertServerID(t, tc, tt.wantServerID)
 		})
 	}
