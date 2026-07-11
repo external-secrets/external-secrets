@@ -127,6 +127,15 @@ func (r customEndpointResolver) ResolveEndpoint(ctx context.Context, params sts.
 	return sts.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 }
 
+// ResolveSTSEndpoint resolves the STS endpoint for the given region, honoring
+// the AWS_STS_ENDPOINT override that this package's STS clients also use, so
+// credential acquisition and login-request signing target the same endpoint.
+func ResolveSTSEndpoint(ctx context.Context, region string) (smithy.Endpoint, error) {
+	return customEndpointResolver{}.ResolveEndpoint(ctx, sts.EndpointParameters{
+		Region: aws.String(region),
+	})
+}
+
 // mostly taken from:
 // https://github.com/aws/secrets-store-csi-driver-provider-aws/blob/main/auth/auth.go#L140-L145
 

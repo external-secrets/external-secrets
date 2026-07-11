@@ -34,7 +34,6 @@ import (
 	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/golang-jwt/jwt/v5"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -166,14 +165,13 @@ func (c *client) requestTokenWithIamAuth(
 // AWS credentials using the aws-sdk-go-v2 SigV4 signer and packages it in the
 // form Vault's AWS IAM auth login endpoint expects. Vault validates the
 // server ID against the signed copy inside iam_request_headers; no header on
-// the Vault login request itself is consulted. The endpoint comes from the
-// v2 STS endpoint resolver, so newer regions and non-default partitions
-// resolve correctly (the aws-sdk-go v1 endpoint table used by
-// go-secure-stdlib/awsutil's GenerateLoginData is frozen and misses them).
+// the Vault login request itself is consulted. The endpoint honors the
+// AWS_STS_ENDPOINT override and otherwise comes from the v2 STS endpoint
+// resolver, so newer regions and non-default partitions resolve correctly
+// (the aws-sdk-go v1 endpoint table used by go-secure-stdlib/awsutil's
+// GenerateLoginData is frozen and misses them).
 func generateLoginData(ctx context.Context, creds aws.Credentials, serverID, region string) (map[string]any, error) {
-	endpoint, err := sts.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, sts.EndpointParameters{
-		Region: aws.String(region),
-	})
+	endpoint, err := vaultiamauth.ResolveSTSEndpoint(ctx, region)
 	if err != nil {
 		return nil, fmt.Errorf(errSTSEndpointResolve, region, err)
 	}
