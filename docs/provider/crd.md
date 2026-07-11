@@ -8,7 +8,7 @@ The CRD provider is read-only.
 
 ### How it works
 
-1. The provider connects to a Kubernetes API using the same connection model as the Kubernetes provider. To read the local cluster, set `auth.serviceAccount` and omit `server` (the URL defaults to the in-cluster API). To read a remote cluster, set `server` plus `auth` (`serviceAccount`, `token`, or `cert`) or `authRef` (a kubeconfig Secret).
+1. The provider connects to a Kubernetes API using the same connection model as the Kubernetes provider. To read the local cluster, set `auth.serviceAccount` and point `server.caProvider` at the in-cluster CA (published in every namespace as the `kube-root-ca.crt` ConfigMap); `server.url` can be omitted, as it defaults to the in-cluster API. The CA is required even in-cluster: the API server certificate is not signed by the system roots, so without it the TLS handshake fails. To read a remote cluster, set `server` plus `auth` (`serviceAccount`, `token`, or `cert`) or `authRef` (a kubeconfig Secret).
 2. It resolves the configured resource (`group`/`version`/`kind`) via Kubernetes discovery.
 3. It reads objects using the dynamic Kubernetes client.
 4. It applies optional whitelist rules before returning values.
@@ -59,6 +59,14 @@ metadata:
 spec:
   provider:
     crd:
+      # In-cluster read: reference the cluster CA so TLS to the API server
+      # verifies. kube-root-ca.crt exists in every namespace. For a SecretStore
+      # caProvider.namespace must be omitted; server.url defaults in-cluster.
+      server:
+        caProvider:
+          type: ConfigMap
+          name: kube-root-ca.crt
+          key: ca.crt
       auth:
         serviceAccount:
           name: crd-reader
@@ -88,8 +96,8 @@ spec:
 
 #### Resource fields
 
-- `auth.serviceAccount`: ServiceAccount used for API access to the local cluster (omit `server`).
-- `server` + `auth`/`authRef`: Kubernetes API connection and authentication for a remote cluster. Omit `server` to read the local cluster.
+- `auth.serviceAccount`: ServiceAccount used for API access. For an in-cluster read, pair it with `server.caProvider` pointing at the `kube-root-ca.crt` ConfigMap so TLS to the API server verifies; `server.url` can be omitted (it defaults to the in-cluster API).
+- `server` + `auth`/`authRef`: Kubernetes API connection and authentication. A remote cluster needs the full `server` block; the local cluster needs only `server.caProvider` (the URL defaults in-cluster).
 - Setting `server.url` requires `auth` or `authRef`; a store that sets `server.url` without credentials is rejected at admission.
 - `resource.group`: API group of the resource (empty for core API resources).
 - `resource.version`: API version of the resource.
@@ -186,6 +194,15 @@ metadata:
 spec:
   provider:
     crd:
+      # ClusterSecretStore reading the local cluster: caProvider.namespace is
+      # required here (unlike SecretStore). kube-root-ca.crt exists in every
+      # namespace, so any namespace the controller can read works.
+      server:
+        caProvider:
+          type: ConfigMap
+          name: kube-root-ca.crt
+          namespace: external-secrets
+          key: ca.crt
       auth:
         serviceAccount:
           name: crd-reader
@@ -246,11 +263,11 @@ Whitelist rules are applied in addition to this filter.
 ### RBAC
 
 The configured ServiceAccount must be allowed to read the target resource.
-At minimum, grant `get` on the selected resource. The `list` verb is only required when an `ExternalSecret` uses `dataFrom.find` (which calls `GetAllSecrets()` internally) — store bootstrap only checks `get`.
+At minimum, grant `get` on the selected resource. The `list` verb is only required when an `ExternalSecret` uses `dataFrom.find` (which calls `GetAllSecrets()` internally); store bootstrap only checks `get`.
 
 The right scope depends on which kind of store you are using:
 
-- **`SecretStore` (namespaced)** — a namespace-scoped `Role` + `RoleBinding` is enough; the controller only reads from the store's own namespace.
+- **`SecretStore` (namespaced)**: a namespace-scoped `Role` + `RoleBinding` is enough; the controller only reads from the store's own namespace.
 - **`ClusterSecretStore`**: the controller may read across namespaces. `dataFrom.find` lists the target resource across all namespaces, and `remoteRef.key` uses the `namespace/objectName` form, so a `ClusterRole` + `ClusterRoleBinding` is required.
 
 #### SecretStore (namespace-scoped) example
