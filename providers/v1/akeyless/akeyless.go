@@ -427,21 +427,9 @@ func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretData
 		return nil, err
 	}
 
-	kv := make(map[string]json.RawMessage)
-	err = json.Unmarshal(data, &kv)
+	secretData, err := esutils.JSONToSecretDataMap(data)
 	if err != nil {
 		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
-	}
-
-	secretData := make(map[string][]byte)
-	for k, v := range kv {
-		var strVal string
-		err = json.Unmarshal(v, &strVal)
-		if err == nil {
-			secretData[k] = []byte(strVal)
-		} else {
-			secretData[k] = v
-		}
 	}
 
 	return secretData, nil
