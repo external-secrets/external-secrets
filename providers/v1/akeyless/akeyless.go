@@ -422,22 +422,28 @@ func (a *Akeyless) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretData
 	if esutils.IsNil(a.Client) {
 		return nil, errors.New(errUninitalizedAkeylessProvider)
 	}
-	val, err := a.GetSecret(ctx, ref)
+	data, err := a.GetSecret(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
-	// Maps the json data to a string:string map
-	kv := make(map[string]string)
-	err = json.Unmarshal(val, &kv)
+
+	kv := make(map[string]json.RawMessage)
+	err = json.Unmarshal(data, &kv)
 	if err != nil {
 		return nil, fmt.Errorf(errJSONSecretUnmarshal, err)
 	}
 
-	// Converts values in K:V pairs into bytes, while leaving keys as strings
 	secretData := make(map[string][]byte)
 	for k, v := range kv {
-		secretData[k] = []byte(v)
+		var strVal string
+		err = json.Unmarshal(v, &strVal)
+		if err == nil {
+			secretData[k] = []byte(strVal)
+		} else {
+			secretData[k] = v
+		}
 	}
+
 	return secretData, nil
 }
 
