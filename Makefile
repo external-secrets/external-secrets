@@ -129,6 +129,20 @@ test.e2e.managed: generate ## Run e2e tests managed
 	$(MAKE) -C ./e2e test.managed
 	@$(OK) go test e2e-tests-managed
 
+# Run SAP Credential Store integration tests against a live SAP CS instance.
+# Required env vars (from BTP service binding):
+#   SAPCS_SERVICE_URL   - SAP CS REST API base URL (binding "url" field)
+#   SAPCS_TOKEN_URL     - OAuth2 token endpoint  (binding "tokenurl" field)
+#   SAPCS_CLIENT_ID     - OAuth2 client ID        (binding "clientid" field)
+#   SAPCS_CLIENT_SECRET - OAuth2 client secret    (binding "clientsecret" field)
+#   SAPCS_NAMESPACE     - CS namespace to use during testing
+.PHONY: e2e-sapcredentialstore
+e2e-sapcredentialstore: ## Run SAP Credential Store e2e tests (requires live SAP CS credentials in env)
+	@$(INFO) running SAP Credential Store e2e tests
+	GOWORK=off go -C ./e2e test ./suites/provider/cases/sapcredentialstore/... \
+		-tags e2e_sapcredentialstore -v -timeout 10m
+	@$(OK) SAP Credential Store e2e tests
+
 .PHONY: test.crds
 test.crds: cty crds.generate.tests ## Test CRDs for modification and backwards compatibility
 	@$(INFO) $(CTY) test tests
