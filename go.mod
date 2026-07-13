@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets
 
-go 1.26.4
+go 1.26.5
 
 replace (
 	github.com/external-secrets/external-secrets/apis => ./apis

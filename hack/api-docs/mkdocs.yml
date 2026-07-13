@@ -81,6 +81,7 @@ nav:
           - Grafana: api/generator/grafana.md
           - Quay: api/generator/quay.md
           - Vault Dynamic Secret: api/generator/vault.md
+          - BeyondTrust Workload Credentials: api/generator/beyondtrustworkloadcredentials.md
           - Password: api/generator/password.md
           - Fake: api/generator/fake.md
           - Webhook: api/generator/webhook.md
@@ -126,6 +127,7 @@ nav:
       - Azure Key Vault: provider/azure-key-vault.md
       - Barbican: provider/barbican.md
       - BeyondTrust: provider/beyondtrust.md
+      - BeyondTrust Workload Credentials: provider/beyondtrustworkloadcredentials.md
       - Bitwarden Secrets Manager: provider/bitwarden-secrets-manager.md
       - Chef: provider/chef.md
       - Cloud.ru Secret Manager: provider/cloudru.md

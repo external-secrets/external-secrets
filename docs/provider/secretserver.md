@@ -2,7 +2,7 @@
 
 For detailed information about configuring  Kubernetes ESO with Secret Server and the Delinea Platform, see the https://docs.delinea.com/online-help/integrations/external-secrets/kubernetes-eso-secret-server.htm
 
-### Creating a SecretStore
+## Creating a SecretStore
 
 You need a username, password and a fully qualified Secret-Server/Platform tenant URL to authenticate
 i.e. `https://yourTenantName.secretservercloud.com` or `https://yourtenantname.delinea.app`.
@@ -33,7 +33,7 @@ spec:
           key: <KEY_IN_K8S_SECRET>
 ```
 
-### Referencing Secrets
+## Referencing Secrets
 
 Secrets can be referenced using four different key formats in the `remoteRef.key` field:
 
@@ -71,16 +71,16 @@ spec:
           property: "array.0.value" #<GJSON_PROPERTY> * an empty property will return the entire secret
 ```
 
-### Working with Plain Text ItemValue Fields
+## Working with Plain Text ItemValue Fields
 
 While Secret-Server/Platform always returns secrets in JSON format with an `Items` array structure, individual field values (stored in `ItemValue`) may contain plain text, passwords, URLs, or other non-JSON content.
 
 When retrieving fields that contain plain text values, you can reference them directly by their `FieldName` or `Slug` without needing additional JSON parsing within the `ItemValue`.
 
-#### Example with Plain Text Password Field
+### Example with Plain Text Password Field
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
     name: secret-server-external-secret
@@ -100,16 +100,16 @@ In this example, if the secret contains an Item with `FieldName: "Password"` or 
 
 This approach works for any field type (text, password, URL, etc.) where the `ItemValue` contains simple content rather than nested JSON structures.
 
-### Support for Fetching Secrets by Path
+## Support for Fetching Secrets by Path
 
 In addition to retrieving secrets by ID or Name, the Secret-Server/Platform provider now supports fetching secrets by **path**.
 This allows you to specify a secret’s folder hierarchy and name in the format:
 >/FolderName/SecretName
 
-#### Example
+### Example
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: secret-server-external-secret
@@ -125,18 +125,18 @@ spec:
         property: ""                    # Optional: matched against field Slug/FieldName first, then gjson on Items.0.ItemValue as fallback
 ```
 
-#### Notes:
+### Notes:
 
 The path must exactly match the folder and secret name in Secret-Server/Platform.
 If multiple secrets with the same name exist in different folders, the path helps to uniquely identify the correct one.
 You can still use property to match fields by Slug/FieldName, extract values from JSON-formatted secrets via gjson, or omit it to retrieve the entire secret.
 
-### Preparing your secret
+## Preparing your secret
 You can either retrieve your entire secret, match a field by its Slug or FieldName, or use a JSON formatted string
 stored in your secret located at Items[0].ItemValue to retrieve a specific value using gjson syntax.<br />
 See example JSON secret below.
 
-#### Examples
+### Examples
 Using the json formatted secret below:
 
 - Lookup a single top level property using secret ID.
@@ -199,11 +199,11 @@ returns: The entire secret in JSON format as displayed below
 }
 ```
 
-### Referencing Secrets by Field Name or Slug
+## Referencing Secrets by Field Name or Slug
 
 When `property` is set, the provider first tries to match it against each field's `Slug` or `FieldName` and returns the corresponding `ItemValue`. This works for secrets with any number of fields. If no field matches, it falls back to treating the first field's `ItemValue` as JSON and extracting the property using gjson syntax (supporting nested paths like `"books.1"`).
 
-#### Examples
+### Examples
 
 Using the json formatted secret below:
 
@@ -277,11 +277,11 @@ returns: The entire secret in JSON format as displayed below
 }
 ```
 
-### Pushing Secrets
+## Pushing Secrets
 
 The Delinea Secret-Server/Platform provider supports pushing secrets from Kubernetes back to your Secret Server instance using the `PushSecret` resource. You can both create new secrets and update existing ones.
 
-#### Remote Key Formats for PushSecret
+### Remote Key Formats for PushSecret
 
 When using `PushSecret`, the `remoteRef.remoteKey` field determines how the provider identifies
 the target secret in Secret Server. The same key formats described in [Referencing Secrets](#referencing-secrets) apply here:
@@ -312,7 +312,7 @@ specified, the value from the `remoteKey` takes precedence for lookups. The meta
 `secretTemplateId` are still required when **creating** a new secret (they tell the API which folder
 and template to use for the new secret).
 
-#### Requirements for Creating New Secrets
+### Requirements for Creating New Secrets
 
 When creating a **new** secret in Secret Server, you must provide a `folderId` and a `secretTemplateId`. These are passed as `metadata` in the `PushSecret` spec:
 
@@ -358,7 +358,7 @@ spec:
 > secret (for push, delete, and existence checks). The `folderId` and `secretTemplateId` in
 > `metadata` are used when **creating** a new secret via the Secret Server API.
 
-#### Updating Existing Secrets
+### Updating Existing Secrets
 
 When updating an existing secret, you do not strictly need the `folderId` or `secretTemplateId` metadata, as the provider will fetch the existing secret by its name or ID to update the corresponding fields.
 
@@ -366,7 +366,7 @@ However, if multiple secrets share the same name across different folders, you s
 `folderId:<id>/<name>` format, a path-based key, or a numeric ID to ensure the correct secret is
 updated. Using a plain name will update the **first match** returned by the API.
 
-#### Deletion Behavior
+### Deletion Behavior
 
 The `PushSecret` resource allows you to configure what happens to the remote secret in Secret Server when the `PushSecret` itself is deleted, via the `PushSecret.spec.deletionPolicy` field. Supported values are:
 
@@ -381,7 +381,7 @@ you **must** use a key format that uniquely identifies the secret — either `fo
 a full path (`/Folder/SecretName`), or a numeric ID. Using a plain name risks deleting the wrong
 secret.
 
-#### Pushing Without a Property
+### Pushing Without a Property
 
 If you omit `property` from the `remoteRef`, the provider writes the value selected by `data.match.secretKey` (e.g., the content stored under the `config` key in your Kubernetes Secret) into the **first** field of the Secret Server secret. This is useful when your secret value is a single JSON payload that you want to store in a text field like `Data` or `Notes`.
 

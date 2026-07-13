@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/pulumi
 
-go 1.26.4
+go 1.26.5
 
 require (
 	dario.cat/mergo v1.0.2
