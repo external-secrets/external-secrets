@@ -163,6 +163,9 @@ The command removes all the Kubernetes components associated with the chart and 
 | installCRDs | bool | `true` | If set, install and upgrade CRDs through helm chart. |
 | leaderElect | bool | `false` | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. |
 | leaderElectionID | string | "external-secrets-controller" | ID of the lease object used for leader election. Leave empty to use the default ('external-secrets-controller'). Set to a unique value when running multiple independent ESO deployments in the same namespace. |
+| leaderElectionLeaseDuration | string | "15s" | Duration that non-leader candidates will wait to force acquire leadership. Increase this along with renewDeadline to tolerate a busy or briefly unavailable API server (for example during control plane maintenance) without churning leadership. Leave empty to use the controller default ('15s'). |
+| leaderElectionRenewDeadline | string | "10s" | Duration that the acting leader will retry refreshing leadership before giving up. Must be less than leaderElectionLeaseDuration. Leave empty to use the controller default ('10s'). |
+| leaderElectionRetryPeriod | string | "2s" | Duration the leader election client waits between tries of actions. Leave empty to use the controller default ('2s'). |
 | livenessProbe.enabled | bool | `false` | Enabled determines if the liveness probe should be used or not. By default it's disabled. |
 | livenessProbe.spec | object | `{"address":"","failureThreshold":5,"httpGet":{"path":"/healthz","port":"live"},"initialDelaySeconds":10,"periodSeconds":10,"port":8082,"successThreshold":1,"timeoutSeconds":5}` | The body of the liveness probe settings. |
 | livenessProbe.spec.address | string | `""` | Bind address for the health server used by both liveness and readiness probes (--live-addr flag). |

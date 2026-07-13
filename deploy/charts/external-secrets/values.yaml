@@ -96,6 +96,24 @@ leaderElect: false
 # @default -- "external-secrets-controller"
 leaderElectionID: ""
 
+# -- Duration that non-leader candidates will wait to force acquire leadership.
+# Increase this along with renewDeadline to tolerate a busy or briefly unavailable API server
+# (for example during control plane maintenance) without churning leadership.
+# Leave empty to use the controller default ('15s').
+# @default -- "15s"
+leaderElectionLeaseDuration: ""
+
+# -- Duration that the acting leader will retry refreshing leadership before giving up.
+# Must be less than leaderElectionLeaseDuration.
+# Leave empty to use the controller default ('10s').
+# @default -- "10s"
+leaderElectionRenewDeadline: ""
+
+# -- Duration the leader election client waits between tries of actions.
+# Leave empty to use the controller default ('2s').
+# @default -- "2s"
+leaderElectionRetryPeriod: ""
+
 # -- If set external secrets will filter matching
 # Secret Stores with the appropriate controller values.
 controllerClass: ""
