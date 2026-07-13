@@ -1,0 +1,256 @@
+# Reusable kind-based e2e pipeline, split into two jobs so the disk-heavy build
+# and the kind test run never share a runner. The build job compiles the
+# controller + e2e images and exports them as tarballs; the test job loads those
+# tarballs into kind and runs the suite, needing no Go toolchain or buildx.
+name: e2e reusable
+
+on:
+  workflow_call:
+    secrets:
+      GCP_SERVICE_ACCOUNT_KEY:
+        required: false
+      GCP_FED_REGION:
+        required: false
+      GCP_GSA_NAME:
+        required: false
+      GCP_KSA_NAME:
+        required: false
+      GCP_FED_PROJECT_ID:
+        required: false
+      AWS_OIDC_ROLE_ARN:
+        required: false
+      AWS_SA_NAME:
+        required: false
+      AWS_SA_NAMESPACE:
+        required: false
+      TFC_AZURE_CLIENT_ID:
+        required: false
+      TFC_AZURE_CLIENT_SECRET:
+        required: false
+      TFC_AZURE_TENANT_ID:
+        required: false
+      TFC_AZURE_SUBSCRIPTION_ID:
+        required: false
+      TFC_VAULT_URL:
+        required: false
+      SCALEWAY_API_URL:
+        required: false
+      SCALEWAY_REGION:
+        required: false
+      SCALEWAY_PROJECT_ID:
+        required: false
+      SCALEWAY_ACCESS_KEY:
+        required: false
+      SCALEWAY_SECRET_KEY:
+        required: false
+      DELINEA_TLD:
+        required: false
+      DELINEA_URL_TEMPLATE:
+        required: false
+      DELINEA_TENANT:
+        required: false
+      DELINEA_CLIENT_ID:
+        required: false
+      DELINEA_CLIENT_SECRET:
+        required: false
+      SECRETSERVER_USERNAME:
+        required: false
+      SECRETSERVER_PASSWORD:
+        required: false
+      SECRETSERVER_URL:
+        required: false
+      GRAFANA_URL:
+        required: false
+      GRAFANA_TOKEN:
+        required: false
+      AKEYLESS_ACCESS_ID:
+        required: false
+      AKEYLESS_ACCESS_TYPE:
+        required: false
+      AKEYLESS_ACCESS_TYPE_PARAM:
+        required: false
+      GITLAB_TOKEN:
+        required: false
+      GITLAB_PROJECT_ID:
+        required: false
+      GITLAB_ENVIRONMENT:
+        required: false
+      ORACLE_USER_OCID:
+        required: false
+      ORACLE_TENANCY_OCID:
+        required: false
+      ORACLE_REGION:
+        required: false
+      ORACLE_FINGERPRINT:
+        required: false
+      ORACLE_KEY:
+        required: false
+
+permissions:
+  contents: read
+
+env:
+  KIND_VERSION: 'v0.30.0'
+  KIND_IMAGE: 'kindest/node:v1.33.4'
+  AWS_REGION: "eu-central-1"
+  TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha }}
+  # Ephemeral tag: images are only ever loaded into kind, never pushed, so a
+  # fixed tag keeps the build and test jobs in sync without passing a version.
+  VERSION: "e2e"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ env.TARGET_SHA || github.sha }}
+          persist-credentials: false
+
+      - name: Fetch History
+        run: git fetch --prune --unshallow
+
+      - name: Free Disk Space
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        with:
+          tool-cache: true
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: false
+          docker-images: false
+          swap-storage: false
+
+      - name: Setup Go
+        uses: actions/setup-go@44694675825211faa026b3c33043df3e48a5fa00 # v6.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Find the Go Cache
+        id: go
+        run: |
+          echo "build-cache=$(go env GOCACHE)" >> "$GITHUB_OUTPUT"
+          echo "mod-cache=$(go env GOMODCACHE)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache the Go Build Cache
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ${{ steps.go.outputs.build-cache }}
+          key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-unit-tests-
+
+      - name: Cache Go Dependencies
+        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
+        with:
+          path: ${{ steps.go.outputs.mod-cache }}
+          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+        with:
+          install: true
+
+      - name: Build images
+        env:
+          DOCKER_BUILD_ARGS: --load
+        run: make -C e2e test.build
+
+      - name: Upload image tarballs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: e2e-images
+          path: e2e/image-artifacts/*.tar
+          retention-days: 1
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # for oidc auth with aws/gcp/azure
+      contents: read  # for checkout
+    env:
+      # Role ARN (an identifier, not a credential) lives at job level so the AWS
+      # step can be skipped when it is absent, e.g. fork runs without secrets.
+      # The actual provider credentials stay scoped to the Run e2e step below.
+      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+    steps:
+      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ env.TARGET_SHA || github.sha }}
+          persist-credentials: false
+
+      - name: Configure AWS Credentials
+        if: env.AWS_OIDC_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4.0.2
+        with:
+          role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup kind
+        uses: engineerd/setup-kind@aa272fe2a7309878ffc2a81c56cfe3ef108ae7d0 # v0.5.0
+        with:
+          version: ${{ env.KIND_VERSION }}
+          wait: 10m
+          image: ${{ env.KIND_IMAGE }}
+          name: external-secrets
+
+      - name: Download image tarballs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: e2e-images
+          path: e2e/image-artifacts
+
+      - name: Run e2e
+        env:
+          GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+          GCP_FED_REGION: ${{ secrets.GCP_FED_REGION }}
+          GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME }}
+          GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME }}
+          GCP_FED_PROJECT_ID: ${{ secrets.GCP_FED_PROJECT_ID }}
+          AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
+          AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
+          TFC_AZURE_CLIENT_ID: ${{ secrets.TFC_AZURE_CLIENT_ID }}
+          TFC_AZURE_CLIENT_SECRET: ${{ secrets.TFC_AZURE_CLIENT_SECRET }}
+          TFC_AZURE_TENANT_ID: ${{ secrets.TFC_AZURE_TENANT_ID }}
+          TFC_AZURE_SUBSCRIPTION_ID: ${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}
+          TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL }}
+          SCALEWAY_API_URL: ${{ secrets.SCALEWAY_API_URL }}
+          SCALEWAY_REGION: ${{ secrets.SCALEWAY_REGION }}
+          SCALEWAY_PROJECT_ID: ${{ secrets.SCALEWAY_PROJECT_ID }}
+          SCALEWAY_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
+          SCALEWAY_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
+          DELINEA_TLD: ${{ secrets.DELINEA_TLD }}
+          DELINEA_URL_TEMPLATE: ${{ secrets.DELINEA_URL_TEMPLATE }}
+          DELINEA_TENANT: ${{ secrets.DELINEA_TENANT }}
+          DELINEA_CLIENT_ID: ${{ secrets.DELINEA_CLIENT_ID }}
+          DELINEA_CLIENT_SECRET: ${{ secrets.DELINEA_CLIENT_SECRET }}
+          SECRETSERVER_USERNAME: ${{ secrets.SECRETSERVER_USERNAME }}
+          SECRETSERVER_PASSWORD: ${{ secrets.SECRETSERVER_PASSWORD }}
+          SECRETSERVER_URL: ${{ secrets.SECRETSERVER_URL }}
+          GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+          GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
+          AKEYLESS_ACCESS_ID: ${{ secrets.AKEYLESS_ACCESS_ID }}
+          AKEYLESS_ACCESS_TYPE: ${{ secrets.AKEYLESS_ACCESS_TYPE }}
+          AKEYLESS_ACCESS_TYPE_PARAM: ${{ secrets.AKEYLESS_ACCESS_TYPE_PARAM }}
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+          GITLAB_PROJECT_ID: ${{ secrets.GITLAB_PROJECT_ID }}
+          GITLAB_ENVIRONMENT: ${{ secrets.GITLAB_ENVIRONMENT }}
+          ORACLE_USER_OCID: ${{ secrets.ORACLE_USER_OCID }}
+          ORACLE_TENANCY_OCID: ${{ secrets.ORACLE_TENANCY_OCID }}
+          ORACLE_REGION: ${{ secrets.ORACLE_REGION }}
+          ORACLE_FINGERPRINT: ${{ secrets.ORACLE_FINGERPRINT }}
+          ORACLE_KEY: ${{ secrets.ORACLE_KEY }}
+        run: make -C e2e test.run
