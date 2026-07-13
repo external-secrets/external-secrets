@@ -1,4 +1,4 @@
-## Devolutions Server (DVLS)
+# Devolutions Server (DVLS)
 
 External Secrets Operator integrates with [Devolutions Server](https://devolutions.net/server/) (DVLS) for secret management.
 

@@ -3,6 +3,7 @@ package sprig
 import (
 	"encoding/base32"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -29,6 +30,14 @@ func base32encode(v string) string {
 
 func base32decode(v string) string {
 	data, err := base32.StdEncoding.DecodeString(v)
+	if err != nil {
+		return err.Error()
+	}
+	return string(data)
+}
+
+func hexdecode(v string) string {
+	data, err := hex.DecodeString(v)
 	if err != nil {
 		return err.Error()
 	}

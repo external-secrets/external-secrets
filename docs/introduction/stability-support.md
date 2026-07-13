@@ -17,36 +17,39 @@ During a minor version support time, we cover:
 We do not do test coverage for any other kubernetes version than the ones running on our test suites.
 As of version 0.14.x , this is the only kubernetes version that we will guarantee support for.
 
-| ESO Version | Kubernetes Version | Release Date | End of Life           |
-|-------------|--------------------|--------------|-----------------------|
-| 2.4.1       | 1.34-1.35          | Apr 28, 2026 | Release of 2.5        |
-| 2.4         | 1.34-1.35          | Apr 24, 2026 | Release of 2.5        |
-| 2.3         | 1.34-1.35          | Apr 10, 2026 | April 24, 2026        |
-| 2.2         | 1.34-1.35          | Mar 20, 2026 | April 10, 2026        |
-| 2.1         | 1.34-1.35          | Mar 06, 2026 | Mar 20, 2026          |
-| 2.0         | 1.34-1.35          | Feb 06, 2026 | Mar 06, 2026          |
-| 1.3         | 1.34               | Jan 23, 2026 | Feb 06, 2026          |
-| 1.2         | 1.34               | Dec 19, 2025 | Jan 23, 2026          |
-| 1.1         | 1.34               | Nov 21, 2025 | Dec 19, 2025          |
-| 1.0         | 1.34               | Nov 7, 2025  | Nov 21, 2025          |
-| 0.20.x      | 1.34               | Sep 22, 2025 | Nov 7, 2025           |
-| 0.19.x      | 1.33               | Aug 2, 2025  | Sep 22, 2025          |
-| 0.18.x      | 1.33               | Jul 17, 2025 | Aug 2, 2025           |
-| 0.17.x      | 1.33               | May 14, 2025 | Jul 17, 2025          |
-| 0.16.x      | 1.32               | Apr 14, 2025 | May 14, 2025          |
-| 0.15.x      | 1.32               | Mar 19, 2025 | Apr 14, 2025          |
-| 0.14.x      | 1.32               | Feb 4, 2025  | Mar 19, 2025          |
-| 0.13.x      | 1.19 → 1.31        | Jan 21, 2025 | Feb 4, 2025           |
-| 0.12.x      | 1.19 → 1.31        | Dec 24, 2024 | Jan 21, 2025          |
-| 0.11.x      | 1.19 → 1.31        | Dec 2, 2024  | Dec 24, 2024          |
-| 0.10.x      | 1.19 → 1.31        | Aug 3, 2024  | Dec 24, 2024          |
-| 0.9.x       | 1.19 → 1.30        | Jun 22, 2023 | Dec 2, 2024           |
-| 0.8.x       | 1.19 → 1.28        | Mar 16, 2023 | Aug 3, 2024           |
-| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Jun 22, 2023          |
-| 0.6.x       | 1.19 → 1.24        | Oct 9, 2022  | Mar 16, 2023          |
-| 0.5.x       | 1.19 → 1.24        | Apr 6, 2022  | Dec 11, 2022          |
-| 0.4.x       | 1.16 → 1.24        | Feb 2, 2022  | Oct 9, 2022           |
-| 0.3.x       | 1.16 → 1.24        | Jul 25, 2021 | Apr 6, 2022           |
+| ESO Version | Kubernetes Version | Release Date | End of Life    |
+|-------------|--------------------|--------------|----------------|
+| 2.7         | 1.35               | Jun 26, 2026 | Release of 2.8 |
+| 2.6         | 1.34-1.35          | Jun 05, 2026 | Jun 26, 2026   |
+| 2.5         | 1.34-1.35          | May 15, 2026 | Jun 05, 2026   |
+| 2.4.1       | 1.34-1.35          | Apr 28, 2026 | May 15, 2026   |
+| 2.4         | 1.34-1.35          | Apr 24, 2026 | May 15, 2026   |
+| 2.3         | 1.34-1.35          | Apr 10, 2026 | April 24, 2026 |
+| 2.2         | 1.34-1.35          | Mar 20, 2026 | April 10, 2026 |
+| 2.1         | 1.34-1.35          | Mar 06, 2026 | Mar 20, 2026   |
+| 2.0         | 1.34-1.35          | Feb 06, 2026 | Mar 06, 2026   |
+| 1.3         | 1.34               | Jan 23, 2026 | Feb 06, 2026   |
+| 1.2         | 1.34               | Dec 19, 2025 | Jan 23, 2026   |
+| 1.1         | 1.34               | Nov 21, 2025 | Dec 19, 2025   |
+| 1.0         | 1.34               | Nov 7, 2025  | Nov 21, 2025   |
+| 0.20.x      | 1.34               | Sep 22, 2025 | Nov 7, 2025    |
+| 0.19.x      | 1.33               | Aug 2, 2025  | Sep 22, 2025   |
+| 0.18.x      | 1.33               | Jul 17, 2025 | Aug 2, 2025    |
+| 0.17.x      | 1.33               | May 14, 2025 | Jul 17, 2025   |
+| 0.16.x      | 1.32               | Apr 14, 2025 | May 14, 2025   |
+| 0.15.x      | 1.32               | Mar 19, 2025 | Apr 14, 2025   |
+| 0.14.x      | 1.32               | Feb 4, 2025  | Mar 19, 2025   |
+| 0.13.x      | 1.19 → 1.31        | Jan 21, 2025 | Feb 4, 2025    |
+| 0.12.x      | 1.19 → 1.31        | Dec 24, 2024 | Jan 21, 2025   |
+| 0.11.x      | 1.19 → 1.31        | Dec 2, 2024  | Dec 24, 2024   |
+| 0.10.x      | 1.19 → 1.31        | Aug 3, 2024  | Dec 24, 2024   |
+| 0.9.x       | 1.19 → 1.30        | Jun 22, 2023 | Dec 2, 2024    |
+| 0.8.x       | 1.19 → 1.28        | Mar 16, 2023 | Aug 3, 2024    |
+| 0.7.x       | 1.19 → 1.26        | Dec 11, 2022 | Jun 22, 2023   |
+| 0.6.x       | 1.19 → 1.24        | Oct 9, 2022  | Mar 16, 2023   |
+| 0.5.x       | 1.19 → 1.24        | Apr 6, 2022  | Dec 11, 2022   |
+| 0.4.x       | 1.16 → 1.24        | Feb 2, 2022  | Oct 9, 2022    |
+| 0.3.x       | 1.16 → 1.24        | Jul 25, 2021 | Apr 6, 2022    |
 
 ## Upgrading
 
@@ -60,81 +63,99 @@ As of version 0.14.x , this is the only kubernetes version that we will guarante
 
 The following table describes the stability level of each provider and who's responsible.
 
-| Provider | Stability | Maintainer                                                                                                                                                                                            |
-| -------- |----------:| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
-| [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                    |    stable | [external-secrets](https://github.com/external-secrets)                                             |
-| [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                    |    stable | [external-secrets](https://github.com/external-secrets)                                             |
-| [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                            |    stable | [external-secrets](https://github.com/external-secrets)                                             |
-| [GCP Secret Manager](https://external-secrets.io/latest/provider/google-secrets-manager/)                  |    stable | [external-secrets](https://github.com/external-secrets)                                             |
-| [Azure Keyvault](https://external-secrets.io/latest/provider/azure-key-vault/)                             |    stable | [external-secrets](https://github.com/external-secrets)                                             |
-| [IBM Cloud Secrets Manager](https://external-secrets.io/latest/provider/ibm-secrets-manager/)              |    stable | [@IdanAdar](https://github.com/IdanAdar)                                                            |
-| [Kubernetes](https://external-secrets.io/latest/provider/kubernetes)                                       |      beta | [external-secrets](https://github.com/external-secrets)                                             |
-| [Yandex Lockbox](https://external-secrets.io/latest/provider/yandex-lockbox/)                              |     alpha | [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
-| [GitLab Variables](https://external-secrets.io/latest/provider/gitlab-variables/)                          |     alpha | [@Jabray5](https://github.com/Jabray5)                                                              |
-| [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                   |    stable | [@anders-swanson](https://github.com/anders-swanson)                                                                                    |
-| [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                           |    stable | [external-secrets](https://github.com/external-secrets)                                             |
-| [1Password](https://external-secrets.io/latest/provider/1password-automation)                              |     alpha | [@SimSpaceCorp](https://github.com/Simspace) [@snarlysodboxer](https://github.com/snarlysodboxer)   |
-| [1Password SDK](https://external-secrets.io/latest/provider/1password-sdk)                                 |     alpha | [@Skarlso](https://github.com/Skarlso)                                                              |
-| [Generic Webhook](https://external-secrets.io/latest/provider/webhook)                                     |     alpha | [@willemm](https://github.com/willemm)                                                              |
-| [senhasegura DevOps Secrets Management (DSM)](https://external-secrets.io/latest/provider/senhasegura-dsm) |     alpha | [@lfraga](https://github.com/lfraga)                                                                |
-| [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                          |     alpha | [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/)     |
-| [Keeper Security](https://www.keepersecurity.com/)                                                         |     alpha | [@ppodevlab](https://github.com/ppodevlab)                                                          |
-| [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                           |     alpha | [@azert9](https://github.com/azert9/)                                                               |
-| [CyberArk Secrets Manager](https://external-secrets.io/latest/provider/conjur)                             |    stable | [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh)              |
-| [Delinea](https://external-secrets.io/latest/provider/delinea)                                             |     alpha | [@michaelsauter](https://github.com/michaelsauter/)                                                 |
-| [Beyondtrust](https://external-secrets.io/latest/provider/beyondtrust)                                     |     alpha | [@btfhernandez](https://github.com/btfhernandez/)                                                   |
-| [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                   |      beta | [@gmurugezan](https://github.com/gmurugezan)                                                    |
-| [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                           |     alpha | [@dirien](https://github.com/dirien)                                                                |
-| [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                           |     alpha | [@stripthis](https://github.com/stripthis)                                                                                  |
-| [Infisical](https://external-secrets.io/latest/provider/infisical)                                         |     alpha | [@akhilmhdh](https://github.com/akhilmhdh)                                                          |
-| [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)         |     alpha | [@skarlso](https://github.com/Skarlso)                                                              |
-| [Previder](https://external-secrets.io/latest/provider/previder)                                           |    stable | [@previder](https://github.com/previder)                                                            |
-| [Cloud.ru](https://external-secrets.io/latest/provider/cloudru)                                            |     alpha | [@default23](https://github.com/default23)                                                          |
-| [Volcengine](https://external-secrets.io/latest/provider/volcengine)                                       |     alpha | [@kevinyancn](https://github.com/kevinyancn)                                                        |
-| [ngrok](https://external-secrets.io/latest/provider/ngrok)                                                 |     alpha | [@jonstacks](https://github.com/jonstacks)                                                          |
-| [Barbican](https://external-secrets.io/latest/provider/barbican)                                           |     alpha | [@rkferreira](https://github.com/rkferreira)                                                        |
-| [Devolutions Server](https://external-secrets.io/latest/provider/devolutions-server)                       |     alpha | [@rbstp](https://github.com/rbstp)                                                                  |
-| [Nebius MysteryBox](https://external-secrets.io/latest/provider/nebius-mysterybox)                         | alpha     | [@greenmapc](https://github.com/greenmapc)                                                          |
+| Provider                                                                                                       | Stability | Maintainer                                                                                                                                                                                            |
+|----------------------------------------------------------------------------------------------------------------|----------:| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
+| [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                        |    stable | [external-secrets](https://github.com/external-secrets)                                             |
+| [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                        |    stable | [external-secrets](https://github.com/external-secrets)                                             |
+| [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                               |    stable | [external-secrets](https://github.com/external-secrets)                                             |
+| [Azure Keyvault](https://external-secrets.io/latest/provider/azure-key-vault/)                                 |    stable | [external-secrets](https://github.com/external-secrets)                                             |
+| [Barbican](https://external-secrets.io/latest/provider/barbican)                                               |     alpha | [@rkferreira](https://github.com/rkferreira)                                                        |
+| [Beyondtrust](https://external-secrets.io/latest/provider/beyondtrust)                                         |     alpha | [@btfhernandez](https://github.com/btfhernandez/)                                                   |
+| [Beyondtrust Workload Credentials](https://external-secrets.io/latest/provider/beyondtrustworkloadcredentials) | alpha | [@sdahal-bt](https://github.com/sdahal-bt/) |
+| [Bitwarden Secrets Manager](https://external-secrets.io/latest/provider/bitwarden-secrets-manager)             |     alpha | [@skarlso](https://github.com/Skarlso)                                                              |
+| [Chef](https://external-secrets.io/latest/provider/chef)                                                       |     alpha | [@sourav977](https://github.com/sourav977)                                                          |
+| [Cloud.ru](https://external-secrets.io/latest/provider/cloudru)                                                |     alpha | [@default23](https://github.com/default23)                                                          |
+| [CyberArk Secrets Manager](https://external-secrets.io/latest/provider/conjur)                                 |    stable | [@davidh-cyberark](https://github.com/davidh-cyberark/) [@szh](https://github.com/szh)              |
+| [Delinea](https://external-secrets.io/latest/provider/delinea)                                                 |     alpha | [@michaelsauter](https://github.com/michaelsauter/)                                                 |
+| [Devolutions Server](https://external-secrets.io/latest/provider/devolutions-server)                           |     alpha | [@rbstp](https://github.com/rbstp)                                                                  |
+| [Doppler SecretOps Platform](https://external-secrets.io/latest/provider/doppler)                              |     alpha | [@ryan-blunden](https://github.com/ryan-blunden/) [@nmanoogian](https://github.com/nmanoogian/)     |
+| [Fortanix](https://external-secrets.io/latest/provider/fortanix)                                               |     alpha | [@RecuencoJones](https://github.com/RecuencoJones)                                                  |
+| [GCP Secret Manager](https://external-secrets.io/latest/provider/google-secrets-manager/)                      |    stable | [external-secrets](https://github.com/external-secrets)                                             |
+| [Generic Webhook](https://external-secrets.io/latest/provider/webhook)                                         |     alpha | [@willemm](https://github.com/willemm)                                                              |
+| [GitHub Actions Secrets](https://external-secrets.io/latest/provider/github)                               |     alpha | [@gusfcarvalho](https://github.com/gusfcarvalho)                                                    |
+| [GitLab Variables](https://external-secrets.io/latest/provider/gitlab-variables/)                              |     alpha | [@Jabray5](https://github.com/Jabray5)                                                              |
+| [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                                |    stable | [external-secrets](https://github.com/external-secrets)                                             |
+| [IBM Cloud Secrets Manager](https://external-secrets.io/latest/provider/ibm-secrets-manager/)                  |    stable | [@IdanAdar](https://github.com/IdanAdar)                                                            |
+| [Infisical](https://external-secrets.io/latest/provider/infisical)                                             |     alpha | [@akhilmhdh](https://github.com/akhilmhdh)                                                          |
+| [Keeper Security](https://www.keepersecurity.com/)                                                             |     alpha | [@ppodevlab](https://github.com/ppodevlab)                                                          |
+| [Kubernetes](https://external-secrets.io/latest/provider/kubernetes)                                           |      beta | [external-secrets](https://github.com/external-secrets)                                             |
+| [Nebius MysteryBox](https://external-secrets.io/latest/provider/nebius-mysterybox)                             | alpha     | [@greenmapc](https://github.com/greenmapc)                                                          |
+| [Ngrok](https://external-secrets.io/latest/provider/ngrok)                                                     |     alpha | [@jonstacks](https://github.com/jonstacks)                                                          |
+| [Onboardbase](https://external-secrets.io/latest/provider/onboardbase)                                         |     alpha | [@limistah](https://github.com/limistah)                                                            |
+| [OpenBao](https://external-secrets.io/latest/provider/openbao)                                                 |     alpha | [@phil9909](https://github.com/phil9909)                                                            |
+| [Oracle Vault](https://external-secrets.io/latest/provider/oracle-vault)                                       |    stable | [@anders-swanson](https://github.com/anders-swanson)                                                                                    |
+| [OVHcloud](https://external-secrets.io/latest/provider/ovhcloud)                                               |     alpha | [@ldesauw](https://github.com/ldesauw)                                                              |
+| [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                               |     alpha | [@stripthis](https://github.com/stripthis)                                                                                  |
+| [Password Depot](https://external-secrets.io/latest/provider-passworddepot)                                    |     alpha | [@Sulfixx](https://github.com/Sulfixx)                                                              |
+| [Previder](https://external-secrets.io/latest/provider/previder)                                               |    stable | [@previder](https://github.com/previder)                                                            |
+| [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                               |     alpha | [@dirien](https://github.com/dirien)                                                                |
+| [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                               |     alpha | [@azert9](https://github.com/azert9/)                                                               |
+| [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                       |      beta | [@gmurugezan](https://github.com/gmurugezan)                                                    |
+| [Senhasegura DevOps Secrets Management (DSM)](https://external-secrets.io/latest/provider/senhasegura-dsm)     |     alpha | [@lfraga](https://github.com/lfraga)                                                                |
+| [Volcengine](https://external-secrets.io/latest/provider/volcengine)                                           |     alpha | [@kevinyancn](https://github.com/kevinyancn)                                                        |
+| [Yandex Certificate Manager](https://external-secrets.io/latest/provider/yandex-certificate-manager/)          |     alpha | [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
+| [Yandex Lockbox](https://external-secrets.io/latest/provider/yandex-lockbox/)                                  |     alpha | [@AndreyZamyslov](https://github.com/AndreyZamyslov) [@knelasevero](https://github.com/knelasevero) |
+| [1Password](https://external-secrets.io/latest/provider/1password-automation)                                  |     alpha | [@SimSpaceCorp](https://github.com/Simspace) [@snarlysodboxer](https://github.com/snarlysodboxer)   |
+| [1Password SDK](https://external-secrets.io/latest/provider/1password-sdk)                                     |     alpha | [@Skarlso](https://github.com/Skarlso)                                                              |
 
 ## Provider Feature Support
 
 The following table show the support for features across different providers.
 
-| Provider                  | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
-| ------------------------- |:------------:|:------------:| :------------------: | :---------------------: | :--------------: |:-----------:|:---------------------------:|
-| AWS Secrets Manager       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| AWS Parameter Store       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| Hashicorp Vault           |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| GCP Secret Manager        |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| Azure Keyvault            |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| Kubernetes                |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
-| IBM Cloud Secrets Manager |      x       |              |          x           |                         |        x         |             |                             |
-| Yandex Lockbox            |              |              |                      |                         |        x         |             |                             |
-| GitLab Variables          |      x       |      x       |                      |                         |        x         |             |                             |
-| Oracle Vault              |      x       |      x       |                      |                         |        x         |      x      |              x              |
-| Akeyless                  |      x       |      x       |                      |            x            |        x         |      x      |              x              |
-| 1Password                 |      x       |      x       |                      |                         |        x         |      x      |              x              |
-| 1Password SDK             |              |              |                      |                         |        x         |      x      |              x              |
-| Generic Webhook           |              |              |                      |                         |                  |             |              x              |
-| senhasegura DSM           |              |              |                      |                         |        x         |             |                             |
-| Doppler                   |      x       |              |                      |                         |        x         |             |                             |
-| Keeper Security           |      x       |              |                      |                         |        x         |      x      |                             |
-| Scaleway                  |      x       |      x       |                      |                         |        x         |      x      |              x              |
-| CyberArk Secrets Manager  |      x       |      x       |                      |                         |        x         |             |                             |
-| Delinea                   |      x       |              |                      |                         |        x         |             |                             |
-| Beyondtrust               |      x       |              |                      |                         |        x         |             |                             |
-| SecretServer              |      x       |              |                      |                         |        x         |      x      |              x              |
-| Pulumi ESC                |      x       |              |                      |                         |        x         |             |                             |
-| Passbolt                  |      x       |              |                      |                         |        x         |             |                             |
-| Infisical                 |      x       |              |                      |            x            |        x         |             |                             |
-| Bitwarden Secrets Manager |      x       |              |                      |                         |        x         |      x      |              x              |
-| Previder                  |      x       |              |                      |                         |        x         |             |                             |
-| Cloud.ru                  |      x       |      x       |                      |            x            |        x         |             |              x              |
-| Volcengine                |              |              |                      |                         |        x         |             |                             |
-| ngrok                     |              |              |                      |                         |        x         |      x      |                             |
-| Barbican                  |      x       |              |                      |                         |        x         |             |                             |
-| Devolutions Server        |              |              |                      |                         |        x         |      x      |                             |
-| Nebius Mysterybox         |              |              |                      |                         |        x         |             |                             |
+| Provider                         | find by name | find by tags | metadataPolicy Fetch | referent authentication | store validation | push secret | DeletionPolicy Merge/Delete |
+|----------------------------------|:------------:|:------------:|:--------------------:|:-----------------------:|:----------------:|:-----------:|:---------------------------:|
+| Akeyless                         |      x       |      x       |                      |            x            |        x         |      x      |              x              |
+| AWS Secrets Manager              |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
+| AWS Parameter Store              |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
+| Azure Keyvault                   |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
+| Barbican                         |      x       |              |                      |                         |        x         |             |                             |
+| Beyondtrust                      |              |              |                      |                         |        x         |      x      |                             |
+| Beyondtrust Workload Credentials |      x       |      x       |                      |                         |        x         |             |                             |
+| Bitwarden Secrets Manager        |      x       |              |                      |                         |        x         |      x      |              x              |
+| Chef                             |              |              |                      |                         |        x         |             |                             |
+| Cloud.ru                         |      x       |      x       |                      |            x            |        x         |             |              x              |
+| Delinea                          |              |              |                      |                         |        x         |             |                             |
+| Devolutions Server               |              |              |                      |                         |        x         |      x      |              x              |
+| CyberArk Secrets Manager         |      x       |      x       |                      |            x            |        x         |             |                             |
+| Doppler                          |      x       |              |                      |                         |        x         |             |                             |
+| Fortanix                         |              |              |                      |            x            |        x         |             |                             |
+| GCP Secret Manager               |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
+| GitHub Actions Secrets           |              |              |                      |            x            |                  |      x      |                             |
+| GitLab Variables                 |      x       |      x       |                      |                         |        x         |             |                             |
+| Generic Webhook                  |              |              |                      |                         |                  |             |              x              |
+| Hashicorp Vault                  |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
+| Keeper Security                  |      x       |              |                      |                         |        x         |      x      |                             |
+| IBM Cloud Secrets Manager        |      x       |              |          x           |                         |        x         |             |                             |
+| Infisical                        |      x       |              |                      |            x            |        x         |      x      |              x              |
+| Ngrok                            |              |              |                      |                         |        x         |      x      |                             |
+| Kubernetes                       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
+| Nebius Mysterybox                |              |              |                      |                         |        x         |             |              x              |
+| Onboardbase                      |      x       |              |                      |                         |        x         |             |                             |
+| OpenBao                          |      x       |              |                      |            x            |        x         |             |                             |
+| Oracle Vault                     |      x       |      x       |                      |                         |        x         |      x      |              x              |
+| OVHcloud                         |      x       |              |                      |            x            |        x         |      x      |              x              |
+| Passbolt                         |      x       |              |                      |            x            |        x         |             |                             |
+| Password Depot                   |              |              |                      |                         |                  |             |                             |
+| Previder                         |              |              |                      |            x            |        x         |             |                             |
+| Pulumi ESC                       |              |              |                      |            x            |        x         |             |                             |
+| Scaleway                         |      x       |      x       |                      |            x            |        x         |      x      |              x              |
+| SecretServer                     |              |              |                      |            x            |        x         |      x      |              x              |
+| Senhasegura DSM                  |              |              |                      |            x            |        x         |             |              x              |
+| Volcengine                       |              |              |                      |            x            |        x         |             |                             |
+| Yandex Lockbox                   |              |              |                      |            x            |        x         |             |                             |
+| Yandex Certificate Manager       |              |              |                      |            x            |        x         |             |                             |
+| 1Password                        |      x       |      x       |                      |                         |        x         |      x      |              x              |
+| 1Password SDK                    |      x       |      x       |                      |                         |        x         |      x      |              x              |
 
 ## Support Policy
 

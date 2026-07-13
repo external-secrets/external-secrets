@@ -1,0 +1,31 @@
+# Values for the bundled Infisical standalone chart used by the e2e suite.
+# Postgres and Redis run in-cluster (chart subcharts); ingress is disabled
+# because the suite reaches the API through a port-forward and ESO reaches it
+# through the in-cluster Service. ENCRYPTION_KEY / AUTH_SECRET / SITE_URL are
+# supplied at runtime by the addon via the "infisical-secrets" Secret.
+infisical:
+  # Pin a predictable Service / Deployment name so the addon can port-forward
+  # and ESO can target it by DNS without templating the release name.
+  fullnameOverride: "infisical-backend"
+  replicaCount: 1
+  autoBootstrap:
+    enabled: false
+  image:
+    tag: "v0.158.0"
+  kubeSecretRef: "infisical-secrets"
+  resources:
+    requests:
+      cpu: 200m
+    limits:
+      memory: 1000Mi
+
+ingress:
+  enabled: false
+  nginx:
+    enabled: false
+
+postgresql:
+  enabled: true
+
+redis:
+  enabled: true
