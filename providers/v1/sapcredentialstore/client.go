@@ -21,6 +21,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -40,8 +41,16 @@ const (
 
 // Client implements esv1.SecretsClient for SAP Credential Store.
 type Client struct {
-	sapClient api.SAPCSClientInterface
-	namespace string
+	sapClient      api.SAPCSClientInterface
+	storeNamespace string
+}
+
+// effectiveNamespace returns remoteRefNS if it is non-empty after trimming, else storeNS.
+func effectiveNamespace(storeNS, remoteRefNS string) string {
+	if strings.TrimSpace(remoteRefNS) != "" {
+		return remoteRefNS
+	}
+	return storeNS
 }
 
 // credTypeFromProperty maps the ExternalSecretDataRemoteRef.Property to a SAP CS credential type.
@@ -65,7 +74,8 @@ func credTypeFromProperty(property string) string {
 // The special property "certificate/key" returns the private key PEM sub-field of a certificate credential.
 func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	credType := credTypeFromProperty(ref.Property)
-	cred, err := c.sapClient.GetCredential(ctx, c.namespace, credType, ref.Key)
+	ns := effectiveNamespace(c.storeNamespace, ref.Namespace)
+	cred, err := c.sapClient.GetCredential(ctx, ns, credType, ref.Key)
 	metrics.ObserveAPICall(providerName, "GetCredential", err)
 	if err != nil {
 		var notFound *api.NotFoundError
@@ -93,7 +103,8 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 // Keys are "name", "value", and optionally "username" (password type) and "key" (certificate type).
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	credType := credTypeFromProperty(ref.Property)
-	cred, err := c.sapClient.GetCredential(ctx, c.namespace, credType, ref.Key)
+	ns := effectiveNamespace(c.storeNamespace, ref.Namespace)
+	cred, err := c.sapClient.GetCredential(ctx, ns, credType, ref.Key)
 	metrics.ObserveAPICall(providerName, "GetCredential", err)
 	if err != nil {
 		var notFound *api.NotFoundError
@@ -127,7 +138,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, _ esv1.ExternalSecretFind) (
 	result := make(map[string][]byte)
 
 	for _, credType := range []string{credTypePassword, credTypeKey, credTypeCertificate} {
-		items, err := c.sapClient.ListCredentials(ctx, c.namespace, credType)
+		items, err := c.sapClient.ListCredentials(ctx, c.storeNamespace, credType)
 		metrics.ObserveAPICall(providerName, "ListCredentials", err)
 		if err != nil {
 			// Skip unsupported types rather than failing the entire bulk sync.
@@ -135,7 +146,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, _ esv1.ExternalSecretFind) (
 		}
 
 		for _, item := range items {
-			cred, err := c.sapClient.GetCredential(ctx, c.namespace, credType, item.Name)
+			cred, err := c.sapClient.GetCredential(ctx, c.storeNamespace, credType, item.Name)
 			metrics.ObserveAPICall(providerName, "GetCredential", err)
 			if err != nil {
 				return nil, fmt.Errorf("sapCredentialStore: GetCredential %s/%s: %w", credType, item.Name, err)
@@ -170,7 +181,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		Value: string(value),
 	}
 
-	err := c.sapClient.PutCredential(ctx, c.namespace, credType, name, body)
+	err := c.sapClient.PutCredential(ctx, c.storeNamespace, credType, name, body)
 	metrics.ObserveAPICall(providerName, "PutCredential", err)
 	if err != nil {
 		return fmt.Errorf("sapCredentialStore: PushSecret %s/%s: %w", credType, name, err)
@@ -186,7 +197,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	}
 
 	name := remoteRef.GetRemoteKey()
-	err := c.sapClient.DeleteCredential(ctx, c.namespace, credType, name)
+	err := c.sapClient.DeleteCredential(ctx, c.storeNamespace, credType, name)
 	metrics.ObserveAPICall(providerName, "DeleteCredential", err)
 	if err != nil {
 		return fmt.Errorf("sapCredentialStore: DeleteSecret %s/%s: %w", credType, name, err)
@@ -202,7 +213,7 @@ func (c *Client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemo
 	}
 
 	name := remoteRef.GetRemoteKey()
-	exists, err := c.sapClient.CredentialExists(ctx, c.namespace, credType, name)
+	exists, err := c.sapClient.CredentialExists(ctx, c.storeNamespace, credType, name)
 	metrics.ObserveAPICall(providerName, "CredentialExists", err)
 	if err != nil {
 		return false, fmt.Errorf("sapCredentialStore: SecretExists %s/%s: %w", credType, name, err)

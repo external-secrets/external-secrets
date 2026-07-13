@@ -42,6 +42,32 @@ type SAPCredentialStoreProvider struct {
 	// server_public_key values are taken directly from the binding JSON.
 	// +optional
 	Encryption *SAPCSEncryption `json:"encryption,omitempty"`
+
+	// ServiceBindingSecretRef references a Kubernetes Secret containing a BTP Service
+	// Binding. When set, the provider derives serviceURL, auth.oauth2.tokenURL,
+	// auth.oauth2.clientId, and auth.oauth2.clientSecret from the binding secret,
+	// and these inline fields become optional.
+	// If serviceBindingSecretRef and inline auth fields are both set,
+	// serviceBindingSecretRef takes precedence.
+	// +optional
+	ServiceBindingSecretRef *SAPCSServiceBindingRef `json:"serviceBindingSecretRef,omitempty"`
+}
+
+// SAPCSServiceBindingRef references a Kubernetes Secret that contains a BTP Service Binding.
+type SAPCSServiceBindingRef struct {
+	// Name of the Kubernetes Secret containing the BTP Service Binding.
+	Name string `json:"name"`
+
+	// Namespace of the Secret. For ClusterSecretStore, this field is required.
+	// For namespaced SecretStore, defaults to the store's own namespace.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
+
+	// CredentialsKey is the key within the Secret's data map that holds the
+	// JSON-encoded credentials object. Defaults to "credentials".
+	// +optional
+	// +kubebuilder:default=credentials
+	CredentialsKey string `json:"credentialsKey,omitempty"`
 }
 
 // SAPCSEncryption holds the JWE keys from the BTP service binding encryption block.

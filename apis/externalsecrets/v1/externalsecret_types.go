@@ -309,6 +309,12 @@ type ExternalSecretDataRemoteRef struct {
 	// Controls how ESO handles fetched secret data containing NUL bytes for this source.
 	// +kubebuilder:default="Ignore"
 	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
+
+	// Namespace overrides the provider-level namespace for this specific secret reference.
+	// For the SAP Credential Store provider, this sets the CS namespace used in the API path.
+	// When empty, the SecretStore-level namespace is used.
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
 }
 
 // ExternalSecretMetadataPolicy defines policies for fetching metadata from provider secrets.

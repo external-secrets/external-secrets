@@ -19,9 +19,13 @@ package sapcredentialstore
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"strings"
 
-	"golang.org/x/oauth2/clientcredentials"
+	"golang.org/x/oauth2"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -48,6 +52,22 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	s := spec.Provider.SAPCredentialStore
+
+	// When a binding ref is set it supplies serviceURL and auth; inline fields become optional.
+	if s.ServiceBindingSecretRef != nil {
+		if s.ServiceBindingSecretRef.Name == "" {
+			return nil, fmt.Errorf("sapCredentialStore: serviceBindingSecretRef.name is required")
+		}
+		if s.Namespace == "" {
+			return nil, fmt.Errorf("sapCredentialStore: namespace is required")
+		}
+		// Both binding ref and inline auth set → warn, binding ref takes precedence.
+		var warnings admission.Warnings
+		if s.Auth.OAuth2 != nil || s.Auth.MTLS != nil {
+			warnings = append(warnings, "sapCredentialStore: both serviceBindingSecretRef and inline auth are set; serviceBindingSecretRef takes precedence")
+		}
+		return warnings, nil
+	}
 
 	if s.ServiceURL == "" {
 		return nil, fmt.Errorf("sapCredentialStore: serviceURL is required")
@@ -108,6 +128,60 @@ func validateMTLS(m *esv1.SAPCSMTLSAuth) error {
 	return nil
 }
 
+// resolveBindingSecret reads the referenced Kubernetes Secret, parses the BTP binding JSON,
+// and returns the four required credential fields. Error messages list missing key names only,
+// never values.
+func resolveBindingSecret(ctx context.Context, kube kclient.Client, ref *esv1.SAPCSServiceBindingRef, storeNamespace string) (clientID, clientSecret, tokenURL, serviceURL string, err error) {
+	credKey := ref.CredentialsKey
+	if credKey == "" {
+		credKey = "credentials"
+	}
+
+	ns := ref.Namespace
+	if ns == "" {
+		ns = storeNamespace
+	}
+
+	secret := &corev1.Secret{}
+	if err := kube.Get(ctx, types.NamespacedName{Name: ref.Name, Namespace: ns}, secret); err != nil {
+		return "", "", "", "", fmt.Errorf("sapCredentialStore: serviceBindingSecretRef: secret %s/%s not found: %w", ns, ref.Name, err)
+	}
+
+	raw, ok := secret.Data[credKey]
+	if !ok {
+		return "", "", "", "", fmt.Errorf("sapCredentialStore: serviceBindingSecretRef: key %q not found in secret %s/%s", credKey, ns, ref.Name)
+	}
+
+	var creds map[string]string
+	if err := json.Unmarshal(raw, &creds); err != nil {
+		return "", "", "", "", fmt.Errorf("sapCredentialStore: serviceBindingSecretRef: cannot parse credentials JSON: %w", err)
+	}
+
+	clientID = creds["clientid"]
+	clientSecret = creds["clientsecret"]
+	tokenURL = creds["tokenurl"]
+	serviceURL = creds["url"]
+
+	var missing []string
+	if clientID == "" {
+		missing = append(missing, "clientid")
+	}
+	if clientSecret == "" {
+		missing = append(missing, "clientsecret")
+	}
+	if tokenURL == "" {
+		missing = append(missing, "tokenurl")
+	}
+	if serviceURL == "" {
+		missing = append(missing, "url")
+	}
+	if len(missing) > 0 {
+		return "", "", "", "", fmt.Errorf("sapCredentialStore: serviceBindingSecretRef: missing required fields: [%s]", strings.Join(missing, ", "))
+	}
+
+	return clientID, clientSecret, tokenURL, serviceURL, nil
+}
+
 // NewClient constructs a SecretsClient from the store spec and resolves any referenced Kubernetes Secrets.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
 	spec := store.GetSpec()
@@ -137,6 +211,20 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 
 	var sapClient api.SAPCSClientInterface
 
+	// Resolve credentials from BTP Service Binding Secret if a binding ref is set.
+	if s.ServiceBindingSecretRef != nil {
+		cid, csecret, tURL, sURL, err := resolveBindingSecret(ctx, kube, s.ServiceBindingSecretRef, namespace)
+		if err != nil {
+			return nil, err
+		}
+		ts := GetOrCreateTokenSource(tURL, cid, csecret)
+		sapClient = api.NewOAuth2Client(sURL, oauth2.NewClient(ctx, ts).Transport, encKeys)
+		return &Client{
+			sapClient:      sapClient,
+			storeNamespace: s.Namespace,
+		}, nil
+	}
+
 	switch {
 	case s.Auth.OAuth2 != nil:
 		clientID, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &s.Auth.OAuth2.ClientID)
@@ -149,13 +237,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 			return nil, fmt.Errorf("sapCredentialStore: resolving clientSecret: %w", err)
 		}
 
-		cfg := clientcredentials.Config{
-			ClientID:     clientID,
-			ClientSecret: clientSecret,
-			TokenURL:     s.Auth.OAuth2.TokenURL,
-		}
-		transport := cfg.Client(ctx).Transport
-		sapClient = api.NewOAuth2Client(s.ServiceURL, transport, encKeys)
+		ts := GetOrCreateTokenSource(s.Auth.OAuth2.TokenURL, clientID, clientSecret)
+		sapClient = api.NewOAuth2Client(s.ServiceURL, oauth2.NewClient(ctx, ts).Transport, encKeys)
 
 	case s.Auth.MTLS != nil:
 		certPEM, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &s.Auth.MTLS.Certificate)
@@ -179,8 +262,8 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	return &Client{
-		sapClient: sapClient,
-		namespace: s.Namespace,
+		sapClient:      sapClient,
+		storeNamespace: s.Namespace,
 	}, nil
 }
 
