@@ -558,6 +558,7 @@ spec:
                             - Orphan
                             - Merge
                             - None
+                            - CreateOrMerge
                           type: string
                         deletionPolicy:
                           default: Retain
@@ -13588,6 +13589,7 @@ spec:
                         - Orphan
                         - Merge
                         - None
+                        - CreateOrMerge
                       type: string
                     deletionPolicy:
                       default: Retain
