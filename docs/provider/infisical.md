@@ -1,6 +1,6 @@
 ![Infisical k8s Diagram](../pictures/external-secrets-operator.png)
 
-Sync secrets from [Infisical](https://www.infisical.com) to your Kubernetes cluster using External Secrets Operator.
+Sync secrets from [Infisical](https://www.infisical.com) to your Kubernetes cluster using External Secrets Operator, and push secrets from the cluster back into Infisical with `PushSecret`.
 
 ## Authentication
 
@@ -73,7 +73,7 @@ spec:
 ```
 
 !!! note
-    For `ClusterSecretStore`, be sure to set `namespace` in `universalAuthCredentials.clientId` and `universalAuthCredentials.clientSecret`.
+    For `ClusterSecretStore`, set `namespace` on `universalAuthCredentials.clientId` and `universalAuthCredentials.clientSecret` to the namespace where the credentials Secret resides. For a regular `SecretStore`, omit `namespace` -- setting it causes a validation error.
 
 ---
 
@@ -591,6 +591,9 @@ spec:
 !!! warning
     Token Auth tokens do not automatically renew. When the token expires, you will need to generate a new one and update the Kubernetes secret.
 
+!!! note
+    Unlike all other authentication methods, Token Auth does not revoke the access token when the provider client is closed. The token remains valid in Infisical until it expires naturally. Other auth methods (Universal, Kubernetes, AWS, etc.) revoke their machine identity access token on each reconcile cycle.
+
 ---
 
 ## Fetching Secrets
@@ -607,6 +610,19 @@ For the following examples, it assumes we have a secret structure in an Infisica
 ```
 
 Where `JSON_BLOB` is a JSON string like `{"key": "value"}`.
+
+### Key resolution for `remoteRef.key`
+
+The `remoteRef.key` field resolves secret location using three rules:
+
+| Key format | Resolution |
+|------------|------------|
+| `FOO` (no slash) | Uses `secretsScope.secretsPath` as the folder; `FOO` is the secret name |
+| `/my-app/FOO` (leading slash) | Absolute path: folder is `/my-app`, secret name is `FOO`. `secretsScope.secretsPath` is ignored |
+| `sub/FOO` (slash, no leading `/`) | Relative path: `sub` is joined to `secretsScope.secretsPath`, `FOO` is the secret name |
+
+!!! note
+    Both `GetSecret` (single-secret lookup) and `GetAllSecrets` (dataFrom) always set `IncludeImports: true`. Secrets imported from linked Infisical projects are automatically included in results. There is no option to disable this.
 
 ### Fetch Individual Secret(s)
 
@@ -626,17 +642,67 @@ To sync all secrets from an Infisical project, use the following YAML:
 
 ### Filtering Secrets
 
-To filter secrets by `path` (path prefix) and `name` (regular expression):
+Use `dataFrom.find` to filter secrets by name regex and/or folder path:
 
 ``` yaml
 {% include 'infisical-filtered-secrets.yaml' %}
 ```
 
+The following restrictions apply:
+
+- `find.name.regexp` matches against the secret name. At least one of `find.name` or `find.path` must be provided.
+- `find.path` filters by folder path prefix. The value must be an absolute path starting with `/` (e.g. `/my-app`). It is matched against the `secretPath` field of each secret.
+- `find.tags` is **not supported** and returns an error if set.
+
+---
+
+## Pushing Secrets
+
+The Infisical provider supports `PushSecret`, writing a Kubernetes Secret into an Infisical project. The machine identity used by the store must have write permission on the target project and environment.
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-example
+spec:
+  refreshInterval: 1h
+  secretStoreRefs:
+    - name: infisical
+      kind: SecretStore
+  selector:
+    secret:
+      name: my-source-secret
+  data:
+    - match:
+        secretKey: API_KEY          # key in the Kubernetes Secret
+        remoteRef:
+          remoteKey: API_KEY        # secret name in Infisical
+```
+
+### Remote key resolution
+
+`remoteRef.remoteKey` resolves the target location with the same three rules as `remoteRef.key` on reads (see [Key resolution](#key-resolution-for-remoterefkey)): a bare name lands under `secretsScope.secretsPath`, a leading-slash key is an absolute path, and a relative path is joined onto `secretsScope.secretsPath`.
+
+### Push behavior
+
+- **Single key**: when `secretKey` is set, the value of that key in the source Secret is pushed as the Infisical secret value.
+- **Whole secret**: when `secretKey` is omitted, the entire source Secret is marshaled into a JSON object (`{"key":"value",...}`) and stored as the value of `remoteKey`.
+- **Property**: when `remoteRef.property` is set, the value is written as that JSON property of the remote secret's value, merging with any existing properties rather than overwriting the whole value.
+- **Create vs update**: a missing secret is created; an existing one is updated. If the remote value already matches, the push is skipped so no new secret version is created.
+
+### Deletion
+
+When a `PushSecret` is removed with `deletionPolicy: Delete`, the provider deletes the remote secret. If `remoteRef.property` is set, only that property is removed and the secret is deleted once no properties remain. Deleting an already-absent secret is a no-op.
+
+!!! note
+    The Infisical write API requires the project's internal ID, while the store is configured with a project slug. The provider resolves the slug to its ID automatically and caches the result, so no extra configuration is needed. If a write later fails because the cached ID no longer works (for example the project was deleted and recreated under the same slug), the provider re-resolves the slug once and retries; if the slug no longer maps to a project, the write fails with a clear "no such project" error.
+
 ---
 
 ## Custom CA Certificates
 
-If you are using a self-hosted Infisical instance with a self-signed certificate or a certificate signed by a private CA, you can configure the provider to trust it.
+If you are using a self-hosted Infisical instance with a self-signed certificate or a certificate signed by a private CA, you can configure the provider to trust it. Set `hostAPI` to the base URL of your Infisical server (without the `/api` suffix -- the operator appends it automatically).
 
 ### Using caBundle (inline)
 
@@ -697,7 +763,7 @@ spec:
 ```
 
 !!! note
-    For `ClusterSecretStore`, be sure to set `namespace` in `caProvider`.
+    `caBundle` and `caProvider` are mutually exclusive -- set only one. For `ClusterSecretStore`, `caProvider.namespace` is required. For a regular `SecretStore`, `caProvider.namespace` must be omitted.
 
 ---
 
@@ -709,9 +775,24 @@ The `secretsScope` configuration controls which secrets are accessible:
 |-------|----------|---------|-------------|
 | `projectSlug` | Yes | - | The slug identifier for your Infisical project |
 | `environmentSlug` | Yes | - | The environment slug (e.g., `dev`, `staging`, `prod`) |
+| `organizationSlug` | No | - | The organization the project is part of. Used for sub-organization setups |
 | `secretsPath` | No | `/` | The base path for secrets retrieval |
 | `recursive` | No | `false` | When true, fetches secrets recursively from subfolders |
 | `expandSecretReferences` | No | `true` | When true, expands secret references (e.g., `${SECRET_NAME}`) |
 
 !!! tip
     To get your project slug from Infisical, head over to the project settings and click the button `Copy Project Slug`.
+
+!!! tip
+    To get your organization slug from Infisical, head over to the organization settings. For a standard organization, copy the `Organization Slug`; for a sub-organization, copy the `Sub-Organization Slug`.
+
+!!! note
+    `secretsPath` is a default scope for secret lookups, not a security boundary. A `remoteRef.key` that begins with `/` is always treated as an absolute path and bypasses `secretsPath` entirely. To enforce that the operator can only access secrets under a specific path, configure Access Controls in Infisical rather than relying on `secretsPath`.
+
+---
+
+## Validation and Auth Method Precedence
+
+`ValidateStore` only performs field-level validation for the `universalAuthCredentials` block. All other authentication methods (Kubernetes, AWS, Azure, GCP, JWT, LDAP, OCI, Token) are not statically validated -- missing required fields are caught at runtime when the provider first attempts to authenticate.
+
+If multiple authentication blocks are set simultaneously, the provider selects the first one it finds in this order: `universalAuthCredentials` > `azureAuthCredentials` > `gcpIdTokenAuthCredentials` > `gcpIamAuthCredentials` > `jwtAuthCredentials` > `ldapAuthCredentials` > `ociAuthCredentials` > `kubernetesAuthCredentials` > `awsAuthCredentials` > `tokenAuthCredentials`. Only one auth block should be set per store.

@@ -193,3 +193,85 @@ Use the following environment variables to point the controller to your custom e
 | AWS_STS_ENDPOINT            | Endpoint for the Security Token Service. The controller uses this endpoint when creating a session and when doing `assumeRole` or `assumeRoleWithWebIdentity` calls. |
 | AWS_ECR_ENDPOINT            | Endpoint for the ECR Service. The controller uses this endpoint to fetch authorization tokens from ECR.                                                              |
 | AWS_ECR_PUBLIC_ENDPOINT     | Endpoint for the Public ECR Service. The controller uses this endpoint to fetch authorization tokens from ECR.                                                       |
+
+## STS Session Tags
+
+You can have ESO automatically include Kubernetes context data into [STS session tags](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_session-tags.html) when assuming an IAM role. These tags can be used in IAM policy conditions to implement attribute-based access control (ABAC).
+
+The behavior is controlled by setting the optional `spec.provider.aws.sessionTagsPolicy` field on a SecretStore, which can be set to one of the following values:
+
+| Policy   | Description |
+| -------- | ----------- |
+| `None`   | Default. No session tags are added. |
+| `Simple` | Automatically adds `esoNamespace`, `esoStoreName`, and `esoStoreKind` tags. |
+| `Custom` | Adds the same three built-in tags plus any additional tags defined in `customSessionTags`. |
+
+The automatically added tags are derived from the store configuration and the namespace of the ExternalSecret:
+
+| Tag            | Value |
+| -------------- | ----- |
+| `esoNamespace` | The namespace of the `ExternalSecret` making the request. |
+| `esoStoreName` | The name of the `SecretStore` or `ClusterSecretStore`. |
+| `esoStoreKind` | The kind of the store (`SecretStore` or `ClusterSecretStore`). |
+
+Session tags are configured per secret store. If using `spec.dataFrom[].sourceRef.storeRef` to reference secrets from multiple different stores, each store must be configured with the desired `sessionTagsPolicy` independently. Although the session tags for each secret will have the name and kind of the specified secret store, they'll all share the same namespace which comes from the ExternalSecret.
+
+### Simple Policy
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: team-b-store
+  namespace: team-b
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: eu-central-1
+      role: team-b
+      sessionTagsPolicy: Simple
+```
+
+Session tags will include `esoNamespace=team-b`, `esoStoreName=team-b-store`, and `esoStoreKind=SecretStore`.
+
+### Custom Policy
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: team-b-store
+  namespace: team-b
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: eu-central-1
+      role: team-b
+      sessionTagsPolicy: Custom
+      customSessionTags:
+        env: production
+        team: platform
+```
+
+Session tags will include the three automatically added tags, plus `env=production` and `team=platform`.
+
+**NOTE:** Custom tags with empty keys or empty values are silently ignored. Built-in tags (`esoNamespace`, `esoStoreName`, `esoStoreKind`) will always be included even when the sessionTagsPolicy is `Custom`. They cannot be overridden via `customSessionTags`.
+
+### Required IAM Permissions
+
+When session tags are enabled, the role trust policy must allow `sts:TagSession`:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": { "AWS": "arn:aws:iam::111122223333:role/eso-controller" },
+      "Action": ["sts:AssumeRole", "sts:TagSession"]
+    }
+  ]
+}
+```

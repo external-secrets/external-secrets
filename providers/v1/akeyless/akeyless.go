@@ -99,7 +99,7 @@ type akeylessVaultInterface interface {
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+	return esv1.SecretStoreReadWrite
 }
 
 // NewClient constructs a new secrets client based on the provided store.
@@ -180,9 +180,16 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	accessTypeParam := akeylessSpec.Auth.SecretRef.AccessTypeParam
-	err = esutils.ValidateSecretSelector(store, accessTypeParam)
-	if err != nil {
-		return nil, err
+	if accessTypeParam.Name != "" {
+		if err := esutils.ValidateSecretSelector(store, accessTypeParam); err != nil {
+			return nil, err
+		}
+	}
+
+	if akeylessSpec.Auth.ServiceAccountRef != nil {
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *akeylessSpec.Auth.ServiceAccountRef); err != nil {
+			return nil, fmt.Errorf("invalid Auth.ServiceAccountRef: %w", err)
+		}
 	}
 
 	return nil, nil

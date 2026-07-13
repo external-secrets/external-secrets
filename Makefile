@@ -106,9 +106,15 @@ go-work:
 	@$(OK) created go workspace
 
 .PHONY: test
-test: generate envtest go-work ## Run tests
+test: generate envtest ## Run tests
 	@$(INFO) go test unit-tests
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" go test -tags $(PROVIDER) work -v -race -coverprofile cover.out
+	@set -e; \
+	snap=$$(mktemp); \
+	./hack/modfiles.sh snapshot "$$snap"; \
+	trap "./hack/modfiles.sh restore $$snap" EXIT INT TERM; \
+	$(MAKE) go-work; \
+	KUBEBUILDER_ASSETS="$$($(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" \
+	    go test -tags $(PROVIDER) work -v -race -coverprofile cover.out
 	@$(OK) go test unit-tests
 
 .PHONY: test.e2e
