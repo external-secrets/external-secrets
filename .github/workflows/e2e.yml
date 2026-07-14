@@ -12,10 +12,13 @@ env:
   # Common versions
   KIND_VERSION: 'v0.30.0'
   KIND_IMAGE: 'kindest/node:v1.33.4'
-  # Prefer an explicit `/ok-to-test sha=<sha>`, otherwise the PR head captured by
-  # slash-command-dispatch when the comment was made. Empty on pull_request
-  # events, where the checkout falls back to github.sha (the PR merge ref).
-  TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha || github.event.client_payload.pull_request.head.sha }}
+  # SHA under test on the fork path. Two dispatchers populate it: an explicit
+  # `/ok-to-test sha=<sha>` comment (ok-to-test.yml) or a PR review whose body
+  # carries /ok-to-test (ok-to-test-review.yml, pinned to the reviewed
+  # commit_id). A bare comment leaves it empty and guard-fork rejects the run
+  # rather than testing the PR head or main. Also empty on the trusted
+  # pull_request path, where the checkout falls back to github.sha.
+  TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha }}
   AWS_REGION: "eu-central-1"
 
 jobs:
@@ -68,11 +71,58 @@ jobs:
       ORACLE_FINGERPRINT: ${{ secrets.ORACLE_FINGERPRINT }}
       ORACLE_KEY: ${{ secrets.ORACLE_KEY }}
 
-  # Repo owner has commented /ok-to-test on a (fork-based) pull request.
+  # A /ok-to-test *comment* must carry an explicit sha=. A bare comment has no
+  # trustworthy pinned commit (the dispatch would otherwise read the live PR
+  # head, which a later push can move), so reject it here instead of testing the
+  # wrong code. Reviews carry commit_id and arrive already pinned via
+  # ok-to-test-review.yml, so this guard never fires for them.
+  guard-fork:
+    if: github.event_name == 'repository_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write # to explain a rejected /ok-to-test on the PR
+      contents: read
+    steps:
+    - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+      with:
+        egress-policy: audit
+
+    - name: Accept an explicit target sha
+      if: env.TARGET_SHA != ''
+      run: echo "target sha $TARGET_SHA"
+
+    - name: Generate token
+      id: create_token
+      if: env.TARGET_SHA == ''
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      env:
+        APP_ID: ${{ secrets.APP_ID }}
+      with:
+        app-id: ${{ env.APP_ID }}
+        private-key: ${{ secrets.PRIVATE_KEY }}
+        owner: ${{ github.repository_owner }}
+
+    - name: Explain the rejection on the PR
+      if: env.TARGET_SHA == ''
+      uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+      with:
+        token: ${{ steps.create_token.outputs.token }}
+        issue-number: ${{ github.event.client_payload.pull_request.number }}
+        body: |
+            [Bot] - :warning: A `/ok-to-test` comment needs an explicit commit: `/ok-to-test sha=<full-sha>`. Alternatively submit a PR review (Approve or Comment) whose body contains `/ok-to-test` to test the exact commit you reviewed.
+
+    - name: Fail without a target sha
+      if: env.TARGET_SHA == ''
+      run: |
+        echo "::error::/ok-to-test comment without sha=; refusing to fall back to the PR head or main"
+        exit 1
+
+  # Repo owner approved a fork PR via /ok-to-test (comment with sha= or review).
   integration-fork:
     permissions:
       id-token: write # for oidc auth with aws/gcp/azure
       contents: read  # for checkout
+    needs: guard-fork
     if: github.event_name == 'repository_dispatch'
     uses: ./.github/workflows/e2e-reusable.yml
     secrets:
@@ -118,7 +168,7 @@ jobs:
 
   # Report the fork run result back onto the originating pull request.
   report-fork:
-    if: github.event_name == 'repository_dispatch' && always()
+    if: ${{ always() && github.event_name == 'repository_dispatch' && needs.integration-fork.result != 'skipped' }}
     needs: integration-fork
     runs-on: ubuntu-latest
     permissions:
