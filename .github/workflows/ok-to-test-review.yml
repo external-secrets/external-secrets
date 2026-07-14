@@ -52,6 +52,12 @@ jobs:
         app-id: ${{ env.APP_ID }}
         private-key: ${{ secrets.PRIVATE_KEY }}
         owner: ${{ github.repository_owner }}
+        repositories: ${{ github.event.repository.name }}
+        # contents:write to POST the repository_dispatch; metadata:read (implicit
+        # for any app token, stated for clarity) to read the reviewer's
+        # collaborator permission level.
+        permission-contents: write
+        permission-metadata: read
 
     # pull_request_review does not restrict to maintainers, and
     # author_association is not authoritative for repo write access, so verify it

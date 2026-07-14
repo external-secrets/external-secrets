@@ -101,6 +101,9 @@ jobs:
         app-id: ${{ env.APP_ID }}
         private-key: ${{ secrets.PRIVATE_KEY }}
         owner: ${{ github.repository_owner }}
+        repositories: ${{ github.event.repository.name }}
+        permission-issues: write
+        permission-pull-requests: write
 
     - name: Explain the rejection on the PR
       if: env.TARGET_SHA == ''
@@ -187,6 +190,9 @@ jobs:
         app-id: ${{ env.APP_ID }}
         private-key: ${{ secrets.PRIVATE_KEY }}
         owner: ${{ github.repository_owner }}
+        repositories: ${{ github.event.repository.name }}
+        permission-issues: write
+        permission-pull-requests: write
 
     - name: Update on Success
       if: needs.integration-fork.result == 'success'
