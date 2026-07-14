@@ -93,7 +93,7 @@ env:
   KIND_VERSION: 'v0.30.0'
   KIND_IMAGE: 'kindest/node:v1.33.4'
   AWS_REGION: "eu-central-1"
-  TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha }}
+  TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha || github.event.client_payload.pull_request.head.sha }}
   # Ephemeral tag: images are only ever loaded into kind, never pushed, so a
   # fixed tag keeps the build and test jobs in sync without passing a version.
   VERSION: "e2e"
