@@ -20,8 +20,10 @@ Refreshes the secret only when the ExternalSecret is updated.
 ### CreatedOnce
 Refreshes the secret only once per `ExternalSecret` object, on its first reconcile.
 The sync state lives on the `ExternalSecret`'s status, so deleting and recreating the
-`ExternalSecret` resets it and triggers another one-time sync that overwrites the
-existing target Secret.
+`ExternalSecret` resets it and triggers another one-time sync. Depending on the
+creation policy that sync may overwrite the operator-managed keys of an existing
+target Secret; `creationPolicy=None` does not update it, and `spec.target.immutable:
+true` prevents data rewrites.
 
 !!! note "State is not persisted across ExternalSecret objects"
     ESO is stateless across `ExternalSecret` objects: it does not persist sync claims

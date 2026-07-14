@@ -22,8 +22,8 @@ With `refreshPolicy: CreatedOnce`, the controller syncs the `Kind=Secret` once p
 
 - Runs a single sync on the first reconcile of the `ExternalSecret`, creating or
   overwriting the target `Kind=Secret`
-- Never refreshes again afterwards, even if the source data changes
-- Re-syncs if the target `Kind=Secret` is changed or deleted while the same
+- Does not refresh on a schedule or when the source data changes
+- Still re-syncs if the target `Kind=Secret` is changed or deleted while the same
   `ExternalSecret` object still exists
 - Useful for immutable credentials or when you want to manage updates manually
 
@@ -39,8 +39,8 @@ and `refreshTime`), not on whether the target Secret already exists.
     value, so the target Secret and any credential already derived from the old
     value diverge with no way to recover the original.
 
-    `creationPolicy` does not guard against this: `Owner`, `Orphan` and `Merge` all
-    rewrite the managed keys on that sync. The only field that prevents an existing
+    `creationPolicy` does not guard against this: `Owner`, `Orphan`, `Merge` and
+    `CreateOrMerge` all rewrite the managed keys on that sync. The only field that prevents an existing
     target Secret's data from being overwritten is `spec.target.immutable: true`,
     which skips the data update whenever the Secret already exists. Combine
     `refreshPolicy: CreatedOnce` with `spec.target.immutable: true` for credentials
@@ -57,7 +57,7 @@ spec:
   # other fields...
 ```
 
-To generate a credential exactly once and never overwrite it afterwards, even if
+To generate a credential exactly once and never overwrite it afterward, even if
 the `ExternalSecret` object is recreated, combine `refreshPolicy: CreatedOnce` with
 `spec.target.immutable: true`. This is the correct pattern for a credential that an
 application persists on first run (for example a Keycloak admin password written
