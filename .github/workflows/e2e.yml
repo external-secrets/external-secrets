@@ -87,13 +87,23 @@ jobs:
       with:
         egress-policy: audit
 
-    - name: Accept an explicit target sha
-      if: env.TARGET_SHA != ''
-      run: echo "target sha $TARGET_SHA"
+    # Require a full 40-char commit SHA. This rejects a bare /ok-to-test (empty
+    # TARGET_SHA) and a malformed sha= (e.g. a branch name like `main`, a short
+    # SHA, or a flag), so the checkout ref is always a pinned commit. The review
+    # path supplies review.commit_id, which is always a full SHA.
+    - name: Validate the target sha
+      id: check
+      run: |
+        if printf '%s' "$TARGET_SHA" | grep -qE '^[0-9a-fA-F]{40}$'; then
+          echo "valid=true" >> "$GITHUB_OUTPUT"
+          echo "target sha $TARGET_SHA"
+        else
+          echo "valid=false" >> "$GITHUB_OUTPUT"
+        fi
 
     - name: Generate token
       id: create_token
-      if: env.TARGET_SHA == ''
+      if: steps.check.outputs.valid == 'false'
       uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
       env:
         APP_ID: ${{ secrets.APP_ID }}
@@ -106,18 +116,18 @@ jobs:
         permission-pull-requests: write
 
     - name: Explain the rejection on the PR
-      if: env.TARGET_SHA == ''
+      if: steps.check.outputs.valid == 'false'
       uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
       with:
         token: ${{ steps.create_token.outputs.token }}
         issue-number: ${{ github.event.client_payload.pull_request.number }}
         body: |
-            [Bot] - :warning: A `/ok-to-test` comment needs an explicit commit: `/ok-to-test sha=<full-sha>`. Alternatively submit a PR review (Approve or Comment) whose body contains `/ok-to-test` to test the exact commit you reviewed.
+            [Bot] - :warning: A `/ok-to-test` comment needs an explicit full commit SHA: `/ok-to-test sha=<40-char-sha>`. Alternatively submit a PR review (Approve or Comment) whose body contains `/ok-to-test` to test the exact commit you reviewed.
 
-    - name: Fail without a target sha
-      if: env.TARGET_SHA == ''
+    - name: Fail without a valid target sha
+      if: steps.check.outputs.valid == 'false'
       run: |
-        echo "::error::/ok-to-test comment without sha=; refusing to fall back to the PR head or main"
+        echo "::error::/ok-to-test needs sha=<full 40-char commit SHA>; refusing to fall back to the PR head or main"
         exit 1
 
   # Repo owner approved a fork PR via /ok-to-test (comment with sha= or review).

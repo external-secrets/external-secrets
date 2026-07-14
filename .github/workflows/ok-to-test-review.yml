@@ -16,7 +16,7 @@ jobs:
   ok-to-test-review:
     # Only Approve or Comment reviews (never Request changes), and only when the
     # review body mentions the command. contains() is a coarse pre-filter; the
-    # grep step below enforces a real word boundary.
+    # step below enforces that /ok-to-test is the command on the first line.
     if: >-
       (github.event.review.state == 'approved' ||
        github.event.review.state == 'commented') &&
@@ -27,18 +27,23 @@ jobs:
       with:
         egress-policy: audit
 
-    # Refine the coarse contains() match: require /ok-to-test as its own token so
-    # "/ok-to-test-managed" or an incidental mention in prose does not trigger.
+    # Mirror how slash-command-dispatch parses the comment path: the command
+    # must be on the FIRST line and start with the slash command. This rejects a
+    # /ok-to-test mentioned in prose elsewhere in a longer review, and the
+    # /ok-to-test-managed prefix. Do not echo the body back: it is attacker
+    # controlled and could inject `::workflow commands::` into the log.
     - name: Match the command in the review body
       id: cmd
       env:
         REVIEW_BODY: ${{ github.event.review.body }}
       run: |
-        if printf '%s' "$REVIEW_BODY" \
-            | grep -qiE '(^|[[:space:]])/ok-to-test([[:space:]]|$)'; then
+        first=$(printf '%s' "$REVIEW_BODY" | head -n1 | tr -d '\r' \
+          | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
+        if printf '%s' "$first" | grep -qE '^/ok-to-test([[:space:]]|$)'; then
           echo "match=true" >> "$GITHUB_OUTPUT"
         else
           echo "match=false" >> "$GITHUB_OUTPUT"
+          echo "first line is not an /ok-to-test command; no e2e triggered"
         fi
 
     # App installation token, reused for the permission check and the dispatch.
@@ -73,14 +78,16 @@ jobs:
         perm=$(gh api "repos/${REPO}/collaborators/${REVIEWER}/permission" \
           --jq '.permission')
         echo "reviewer ${REVIEWER} permission: ${perm}"
+        # .permission is rolled up to admin/write/read/none (Maintain surfaces
+        # as write, Triage as read); accept write and above.
         case "${perm}" in
-          admin|maintain|write) : ;;
+          admin|write) : ;;
           *) echo "::error::${REVIEWER} lacks write access (${perm})"; exit 1 ;;
         esac
 
-    # Emit the same client_payload shape the comment path (slash-command-dispatch)
-    # produces, so e2e.yml reads TARGET_SHA from one place. jq quotes the SHA and
-    # PR number safely.
+    # Emit the client_payload fields e2e.yml consumes on the comment path:
+    # slash_command.args.named.sha (the target SHA) and pull_request.number
+    # (used by report-fork to comment the result). jq quotes both safely.
     - name: Dispatch ok-to-test-command
       if: steps.cmd.outputs.match == 'true'
       env:
@@ -93,6 +100,6 @@ jobs:
           event_type: "ok-to-test-command",
           client_payload: {
             slash_command: { args: { named: { sha: $sha } } },
-            pull_request: { number: $num, head: { sha: $sha } }
+            pull_request: { number: $num }
           }
         }' | gh api --method POST "repos/${REPO}/dispatches" --input -
