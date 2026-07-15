@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/cloudru
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/cloudru-tech/iam-sdk v1.0.4
