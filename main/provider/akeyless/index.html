@@ -5665,6 +5665,40 @@ to set your SecretStore with an authentication method from Akeyless.</p>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span><span class="w"> </span><span class="c1"># Full path of the secret on Akeyless</span>
 </code></pre></div>
+<p>When the secret contains nested JSON objects, use <code>extract.property</code> to select a subtree before parsing. This is useful when only part of the secret should be synced (for example, extracting a <code>db</code> object while ignoring other top-level keys like <code>apiKey</code>).</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h0m0s</span>
+
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-secret-store</span><span class="w"> </span><span class="c1"># Must match SecretStore on the cluster</span>
+
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials-json</span><span class="w"> </span><span class="c1"># Name for the secret to be created on the cluster</span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
+
+<span class="w">  </span><span class="c1"># Extract only the &quot;db&quot; object from a JSON secret and create one Kubernetes</span>
+<span class="w">  </span><span class="c1"># secret key per field inside it (e.g. username, password).</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">database-credentials</span><span class="w"> </span><span class="c1"># Full path of the secret on Akeyless</span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db</span>
+</code></pre></div>
+<p>Given an Akeyless static secret with value:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+<span class="w">  </span><span class="nt">&quot;db&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;username&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my_user&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;password&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;my_pass&quot;</span>
+<span class="w">  </span><span class="p">},</span>
+<span class="w">  </span><span class="nt">&quot;apiKey&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;myApiKey&quot;</span>
+<span class="p">}</span>
+</code></pre></div>
+<p>The example above creates a Kubernetes secret with keys <code>username</code> and <code>password</code>. Non-string JSON values (numbers, booleans, nested objects) are preserved as their JSON representation.</p>
+<p><strong>Note:</strong> <code>extract.property</code> requires the secret value to be valid JSON. It works reliably with <strong>Static Secrets</strong>. Dynamic and Rotated secrets may return provider-specific JSON envelopes; use <code>remoteRef.property</code> with <code>spec.data</code> for individual fields in those cases.</p>
 <h4 id="finding-secrets-by-name-or-tag">Finding secrets by name or tag</h4>
 <p>Use <code>dataFrom.find</code> to bulk-fetch secrets matching a name pattern or tag:</p>
 <div class="highlight"><pre><span></span><code><span class="c1"># by name regex</span>
