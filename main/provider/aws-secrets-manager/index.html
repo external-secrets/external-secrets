@@ -3119,6 +3119,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -5294,6 +5305,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -5346,9 +5368,10 @@ way users of the <code>SecretStore</code> can only access the secrets necessary.
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-access-key</span>
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>accessKeyIDSecretRef</code> and <code>secretAccessKeySecretRef</code>  with the namespaces where the secrets reside.</p>
-<p><strong>NOTE:</strong> When using <code>dataFrom</code> without a <code>path</code> defined, the provider will fall back to using <code>ListSecrets</code>. <code>ListSecrets</code>
-then proceeds to fetch each individual secret in turn. To use <code>BatchGetSecretValue</code> and avoid excessive API calls define
-a <code>path</code> prefix or use <code>Tags</code> filter.</p>
+<p><strong>NOTE:</strong> <code>dataFrom</code> uses the more efficient <code>BatchGetSecretValue</code> API when you define a <code>path</code>
+prefix, or when you filter by <code>Tags</code> only (without a <code>name</code>). When you search by <code>name</code> without a
+<code>path</code>, the provider falls back to <code>ListSecrets</code> and then fetches each matching secret
+individually, which is more costly. Define a <code>path</code> prefix to reduce the number of API calls.</p>
 <h3 id="iam-policy">IAM Policy</h3>
 <p>Create a IAM Policy to pin down access to secrets matching <code>dev-*</code>.</p>
 <p>For Batch permissions read the following post https://aws.amazon.com/about-aws/whats-new/2023/11/aws-secrets-manager-batch-retrieval-secrets/.</p>
@@ -5714,6 +5737,8 @@ a <code>path</code> prefix or use <code>Tags</code> filter.</p>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;production/api-key&quot;</span>
 <span class="w">      </span><span class="nt">version</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;uuid/123e4567-e89b-12d3-a456-426614174000&quot;</span>
 </code></pre></div>
+<h2 id="authentication">Authentication</h2>
+<p>See <a href="../aws-access/">AWS Authentication</a> for all supported methods: controller pod identity, IRSA, static credentials, session tokens, assuming roles, session tags, and remote key prefixes.</p>
 
 
 

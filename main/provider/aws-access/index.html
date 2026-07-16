@@ -3109,6 +3109,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#assuming-roles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assuming Roles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#eks-pod-identity-setup" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3165,6 +3176,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#manually-specified-session-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manually specified session tags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#required-iam-permissions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3177,6 +3199,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prefix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefix
+      
+    </span>
+  </a>
   
 </li>
       
@@ -5177,6 +5210,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#assuming-roles" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Assuming Roles
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#eks-pod-identity-setup" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5233,6 +5277,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#manually-specified-session-tags" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manually specified session tags
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#required-iam-permissions" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5245,6 +5300,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#prefix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefix
+      
+    </span>
+  </a>
   
 </li>
       
@@ -5311,7 +5377,12 @@
 <span class="w">          </span><span class="nt">secretAccessKeySecretRef</span><span class="p">:</span>
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-access-key</span>
+<span class="w">          </span><span class="c1"># optional: only when using temporary (STS) credentials</span>
+<span class="w">          </span><span class="nt">sessionTokenSecretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">awssm-secret</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">session-token</span>
 </code></pre></div>
+<p>The optional <code>sessionTokenSecretRef</code> supplies an AWS session token alongside the access key and secret, which is required when the credentials are temporary (STS) rather than long-lived.</p>
 <p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> in <code>accessKeyIDSecretRef</code>, <code>secretAccessKeySecretRef</code> with the namespaces where the secrets reside.</p>
 <h3 id="eks-service-account-credentials">EKS Service Account credentials</h3>
 <p><img alt="Service Account" src="../../pictures/diagrams-provider-aws-auth-service-account.png" /></p>
@@ -5342,6 +5413,28 @@ You must have <a href="https://kubernetes.io/docs/tasks/configure-pod-container/
 <span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-serviceaccount</span>
 </code></pre></div>
 <p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>serviceAccountRef</code> with the namespace where the service account resides.</p>
+<h2 id="assuming-roles">Assuming Roles</h2>
+<p>The optional <code>role</code> field makes ESO call <code>sts:AssumeRole</code> before accessing secrets, the recommended way to scope access per store. Two related fields refine role assumption:</p>
+<ul>
+<li><code>additionalRoles</code>: a chained list of Role ARNs the provider assumes sequentially <em>before</em> assuming <code>role</code>. Use it for cross-account role chaining.</li>
+<li><code>externalID</code>: the <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html">external ID</a> passed when assuming <code>role</code>, for third-party trust scenarios.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-b-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">aws</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
+<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eu-central-1</span>
+<span class="w">      </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">arn:aws:iam::222222222222:role/team-b</span>
+<span class="w">      </span><span class="c1"># optional: assume these roles in order first (e.g. cross-account hops)</span>
+<span class="w">      </span><span class="nt">additionalRoles</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">arn:aws:iam::111111111111:role/hop</span>
+<span class="w">      </span><span class="c1"># optional: external ID required by the target role&#39;s trust policy</span>
+<span class="w">      </span><span class="nt">externalID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-external-id</span>
+</code></pre></div>
 <h2 id="eks-pod-identity-setup">EKS Pod Identity Setup</h2>
 <p>In order to use EKS Pod Identity Agent, create a role like this:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
@@ -5528,6 +5621,25 @@ service accounts which have iam roles bound using pod identity. Doing so will re
 </code></pre></div>
 <p>Session tags will include the three automatically added tags, plus <code>env=production</code> and <code>team=platform</code>.</p>
 <p><strong>NOTE:</strong> Custom tags with empty keys or empty values are silently ignored. Built-in tags (<code>esoNamespace</code>, <code>esoStoreName</code>, <code>esoStoreKind</code>) will always be included even when the sessionTagsPolicy is <code>Custom</code>. They cannot be overridden via <code>customSessionTags</code>.</p>
+<h3 id="manually-specified-session-tags">Manually specified session tags</h3>
+<p>Independent of <code>sessionTagsPolicy</code>, you can attach a fixed set of session tags to the assumed role with <code>spec.provider.aws.sessionTags</code>, and mark some of them transitive (kept across roles assumed afterwards in a chain) with <code>transitiveTagKeys</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-b-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">aws</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
+<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eu-central-1</span>
+<span class="w">      </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">arn:aws:iam::222222222222:role/team-b</span>
+<span class="w">      </span><span class="nt">sessionTags</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cost-center</span>
+<span class="w">          </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-b</span>
+<span class="w">      </span><span class="c1"># keys whose tags persist across roles assumed afterwards (additionalRoles)</span>
+<span class="w">      </span><span class="nt">transitiveTagKeys</span><span class="p">:</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">cost-center</span>
+</code></pre></div>
 <h3 id="required-iam-permissions">Required IAM Permissions</h3>
 <p>When session tags are enabled, the role trust policy must allow <code>sts:TagSession</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
@@ -5540,6 +5652,19 @@ service accounts which have iam roles bound using pod identity. Doing so will re
 <span class="w">    </span><span class="p">}</span>
 <span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
+</code></pre></div>
+<h2 id="prefix">Prefix</h2>
+<p><code>spec.provider.aws.prefix</code> prepends a fixed string to every remote key the store resolves, for both reads and writes. No separator is added, so include any trailing delimiter yourself. For example, with <code>prefix: prod/</code>, a <code>remoteRef.key</code> of <code>db-password</code> resolves to <code>prod/db-password</code> in Secrets Manager or Parameter Store.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">team-b-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">aws</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretsManager</span>
+<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eu-central-1</span>
+<span class="w">      </span><span class="nt">prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prod/</span>
 </code></pre></div>
 
 
