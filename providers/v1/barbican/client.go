@@ -27,9 +27,11 @@ import (
 
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/keymanager/v1/secrets"
+	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 const (
@@ -119,14 +121,18 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esapi.ExternalSecretDataR
 		return nil, fmt.Errorf(errClientGeneric, err)
 	}
 
-	var rawJSON map[string]json.RawMessage
-	if err := json.Unmarshal(payload, &rawJSON); err != nil {
+	var kv map[string]any
+	if err := json.Unmarshal(payload, &kv); err != nil {
 		return nil, fmt.Errorf(errClientJSONUnmarshal, err)
 	}
 
-	secretMap := make(map[string][]byte, len(rawJSON))
-	for k, v := range rawJSON {
-		secretMap[k] = []byte(v)
+	secretMap := make(map[string][]byte, len(kv))
+	for k := range kv {
+		byteValue, err := esutils.GetByteValueFromMap(kv, k)
+		if err != nil {
+			return nil, fmt.Errorf(errClientGeneric, err)
+		}
+		secretMap[k] = byteValue
 	}
 
 	return secretMap, nil
@@ -163,17 +169,24 @@ func getSecretPayloadProperty(payload []byte, property string) ([]byte, error) {
 		return payload, nil
 	}
 
-	var rawJSON map[string]json.RawMessage
-	if err := json.Unmarshal(payload, &rawJSON); err != nil {
-		return nil, fmt.Errorf(errClientJSONUnmarshal, err)
+	if !json.Valid(payload) {
+		return nil, fmt.Errorf(errClientJSONUnmarshal, errors.New("payload is not valid json"))
 	}
 
-	value, ok := rawJSON[property]
-	if !ok {
+	// gjson treats '.' as a path separator, so a dotted property is tried as an
+	// escaped literal key first, then as a nested path, like the gcp provider.
+	if strings.Contains(property, ".") {
+		if escaped := gjson.GetBytes(payload, strings.ReplaceAll(property, ".", "\\.")); escaped.Exists() {
+			return []byte(escaped.String()), nil
+		}
+	}
+
+	value := gjson.GetBytes(payload, property)
+	if !value.Exists() {
 		return nil, fmt.Errorf(errClientGeneric, fmt.Errorf("property %s not found in secret payload", property))
 	}
 
-	return value, nil
+	return []byte(value.String()), nil
 }
 
 // extractUUIDFromRef extracts the UUID from a Barbican secret reference URL.
