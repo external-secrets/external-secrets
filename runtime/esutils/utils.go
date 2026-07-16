@@ -255,15 +255,9 @@ func ValidateKeys(log logr.Logger, in map[string][]byte) error {
 // ConvertKeys converts a secret map into a valid key.
 // Replaces any non-alphanumeric characters depending on convert strategy.
 func ConvertKeys(strategy esv1.ExternalSecretConversionStrategy, in map[string][]byte) (map[string][]byte, error) {
-	out := make(map[string][]byte, len(in))
-	for k, v := range in {
-		key := convert(strategy, k)
-		if _, exists := out[key]; exists {
-			return nil, fmt.Errorf("secret name collision during conversion: %s", key)
-		}
-		out[key] = v
-	}
-	return out, nil
+	return transformKeys(in, func(key string) string {
+		return convert(strategy, key)
+	})
 }
 
 func convert(strategy esv1.ExternalSecretConversionStrategy, str string) string {
@@ -293,9 +287,15 @@ func convert(strategy esv1.ExternalSecretConversionStrategy, str string) string 
 // ReverseKeys reverses a secret map into a valid key map as expected by push secrets.
 // Replaces the unicode encoded representation characters back to the actual unicode character depending on convert strategy.
 func ReverseKeys(strategy esv1alpha1.PushSecretConversionStrategy, in map[string][]byte) (map[string][]byte, error) {
+	return transformKeys(in, func(key string) string {
+		return reverse(strategy, key)
+	})
+}
+
+func transformKeys(in map[string][]byte, transform func(string) string) (map[string][]byte, error) {
 	out := make(map[string][]byte, len(in))
 	for k, v := range in {
-		key := reverse(strategy, k)
+		key := transform(k)
 		if _, exists := out[key]; exists {
 			return nil, fmt.Errorf("secret name collision during conversion: %s", key)
 		}

@@ -244,6 +244,55 @@ func TestConvertKeys(t *testing.T) {
 	}
 }
 
+func TestTransformKeys(t *testing.T) {
+	tests := []struct {
+		name      string
+		in        map[string][]byte
+		transform func(string) string
+		want      map[string][]byte
+		wantErr   bool
+	}{
+		{
+			name: "transforms keys and preserves values",
+			in: map[string][]byte{
+				"foo": []byte("bar"),
+				"baz": []byte("qux"),
+			},
+			transform: func(key string) string {
+				return key + "-transformed"
+			},
+			want: map[string][]byte{
+				"foo-transformed": []byte("bar"),
+				"baz-transformed": []byte("qux"),
+			},
+		},
+		{
+			name: "errors on transformed key collision",
+			in: map[string][]byte{
+				"foo": []byte("bar"),
+				"baz": []byte("qux"),
+			},
+			transform: func(string) string {
+				return "collision"
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := transformKeys(tt.in, tt.transform)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("transformKeys() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("transformKeys() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReverseKeys(t *testing.T) {
 	type args struct {
 		encodingStrategy esv1.ExternalSecretConversionStrategy
