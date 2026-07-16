@@ -2856,6 +2856,8 @@
       
         
       
+        
+      
     
     
     
@@ -2944,6 +2946,34 @@
     
   
     AWS Parameter Store
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../provider/aws-certificate-manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS Certificate Manager
   
 
     
@@ -5009,6 +5039,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#aws-certificate-manager" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AWS Certificate Manager
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#azure-key-vault" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5307,6 +5348,12 @@ Azure KV, GCP SM, or Vault.</p>
 <td><code>remoteKey</code> = parameter path</td>
 </tr>
 <tr>
+<td>AWS Certificate Manager</td>
+<td>Named cert</td>
+<td><strong>Yes</strong></td>
+<td><code>remoteKey</code> = <code>external-secrets-remote-key</code> tag value</td>
+</tr>
+<tr>
 <td>Azure Key Vault</td>
 <td>Named secret/key/cert</td>
 <td><strong>Yes</strong></td>
@@ -5428,6 +5475,51 @@ may show binary secrets as blank or unreadable. Add <code>secretPushFormat: stri
 <div class="highlight"><pre><span></span><code><span class="c1"># SecretStore has prefix: myapp/</span>
 <span class="c1"># dataTo remoteKey: db-config</span>
 <span class="c1"># → AWS secret name: myapp/db-config</span>
+</code></pre></div>
+<h3 id="aws-certificate-manager">AWS Certificate Manager</h3>
+<p>ACM imports a TLS certificate as a single resource. The source Kubernetes Secret must be of type <code>kubernetes.io/tls</code> and contain both <code>tls.crt</code> (PEM-encoded leaf, optionally followed by intermediates) and <code>tls.key</code> (PEM-encoded private key). <code>remoteKey</code> becomes the value of the <code>external-secrets-remote-key</code> tag that ESO uses to locate the certificate on subsequent reconciles.</p>
+<div class="admonition warning">
+<p class="admonition-title">Do not filter out <code>tls.crt</code> or <code>tls.key</code></p>
+<p>The ACM provider always reads <code>tls.crt</code> and <code>tls.key</code> from the source secret. If <code>match.regexp</code> excludes either, the push fails with <code>key "tls.crt" not found or empty</code>. Either omit <code>match</code> entirely, or write a pattern that includes both keys (e.g. <code>^tls\.</code>).</p>
+</div>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-acm-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">aws</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">service</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CertificateManager</span>
+<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">us-east-1</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">push-tls-to-acm</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-acm-store</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-tls-cert</span><span class="w">    </span><span class="c1"># kubernetes.io/tls Secret with tls.crt and tls.key</span>
+<span class="w">  </span><span class="nt">dataTo</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">storeRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">aws-acm-store</span>
+<span class="w">      </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-app-cert</span><span class="w">    </span><span class="c1"># → external-secrets-remote-key tag</span>
+<span class="w">      </span><span class="nt">metadata</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes.external-secrets.io/v1alpha1</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecretMetadata</span>
+<span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">tags</span><span class="p">:</span><span class="w">                 </span><span class="c1"># optional: extra AWS resource tags on the imported cert</span>
+<span class="w">            </span><span class="nt">environment</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">prod</span>
+<span class="w">            </span><span class="nt">team</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">platform</span>
+</code></pre></div>
+<p>Result in ACM: a certificate tagged with <code>managed-by=external-secrets</code>, <code>external-secrets-remote-key=my-app-cert</code>, plus any custom tags from <code>metadata.spec.tags</code>. The reserved tags <code>managed-by</code> and <code>external-secrets-remote-key</code> cannot be overridden via <code>metadata</code>.</p>
+<p><strong>With a store prefix:</strong></p>
+<div class="highlight"><pre><span></span><code><span class="c1"># SecretStore has prefix: certs/</span>
+<span class="c1"># dataTo remoteKey: my-app-cert</span>
+<span class="c1"># → external-secrets-remote-key tag value: certs/my-app-cert</span>
 </code></pre></div>
 <h3 id="azure-key-vault">Azure Key Vault</h3>
 <div class="highlight"><pre><span></span><code><span class="nt">dataTo</span><span class="p">:</span>

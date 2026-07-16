@@ -9,7 +9,7 @@
       
       
       
-        <link rel="prev" href="../aws-parameter-store/">
+        <link rel="prev" href="../aws-certificate-manager/">
       
       
         <link rel="next" href="../azure-key-vault/">
@@ -2864,6 +2864,8 @@
       
         
       
+        
+      
     
     
     
@@ -2953,6 +2955,34 @@
     
   
     AWS Parameter Store
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../aws-certificate-manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS Certificate Manager
   
 
     
@@ -5243,9 +5273,9 @@
 <h2 id="aws-authentication">AWS Authentication</h2>
 <h3 id="controllers-pod-identity">Controller's Pod Identity</h3>
 <p><img alt="Pod Identity Authentication" src="../../pictures/diagrams-provider-aws-auth-pod-identity.png" /></p>
-<p>Note: If you are using Parameter Store replace <code>service: SecretsManager</code> with <code>service: ParameterStore</code> in all examples below.</p>
+<p>Note: If you are using Parameter Store replace <code>service: SecretsManager</code> with <code>service: ParameterStore</code> in all examples below. For Certificate Manager use <code>service: CertificateManager</code>.</p>
 <p>This is basically a zero-configuration authentication method that inherits the credentials from the runtime environment using the <a href="https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default">aws sdk default credential chain</a>.</p>
-<p>You can attach a role to the pod using <a href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html">IRSA</a>, <a href="https://github.com/uswitch/kiam">kiam</a> or <a href="https://github.com/jtblin/kube2iam">kube2iam</a>. When no other authentication method is configured in the <code>Kind=Secretstore</code> this role is used to make all API calls against AWS Secrets Manager or SSM Parameter Store.</p>
+<p>You can attach a role to the pod using <a href="https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html">IRSA</a>, <a href="https://github.com/uswitch/kiam">kiam</a> or <a href="https://github.com/jtblin/kube2iam">kube2iam</a>. When no other authentication method is configured in the <code>Kind=SecretStore</code> this role is used to make all API calls against AWS Secrets Manager, SSM Parameter Store or Certificate Manager.</p>
 <p>Based on the Pod's identity you can do a <code>sts:assumeRole</code> before fetching the secrets to limit access to certain keys in your provider. This is optional.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
@@ -5375,7 +5405,7 @@ service accounts which have iam roles bound using pod identity. Doing so will re
 <p><em>Note:</em> No <code>auth</code> section is defined for the SecretStore.</p>
 <p><em>Note:</em> For even more details you can follow this post for more setup and information using Terraform <a href="https://containscloud.com/2024/03/24/integrating-aws-secrets-manager-to-eks-using-external-secrets/">here</a>.</p>
 <h2 id="custom-endpoints">Custom Endpoints</h2>
-<p>You can define custom AWS endpoints if you want to use regional, vpc or custom endpoints. See List of endpoints for <a href="https://docs.aws.amazon.com/general/latest/gr/asm.html">Secrets Manager</a>, <a href="https://docs.aws.amazon.com/general/latest/gr/ssm.html">Secure Systems Manager</a> and <a href="https://docs.aws.amazon.com/general/latest/gr/sts.html">Security Token Service</a>.</p>
+<p>You can define custom AWS endpoints if you want to use regional, vpc or custom endpoints. See List of endpoints for <a href="https://docs.aws.amazon.com/general/latest/gr/asm.html">Secrets Manager</a>, <a href="https://docs.aws.amazon.com/general/latest/gr/ssm.html">Secure Systems Manager</a>, <a href="https://docs.aws.amazon.com/general/latest/gr/acm.html">Certificate Manager</a> and <a href="https://docs.aws.amazon.com/general/latest/gr/sts.html">Security Token Service</a>.</p>
 <p>Use the following environment variables to point the controller to your custom endpoints. Note: All resources managed by this controller are affected.</p>
 <table>
 <thead>
@@ -5392,6 +5422,14 @@ service accounts which have iam roles bound using pod identity. Doing so will re
 <tr>
 <td>AWS_SSM_ENDPOINT</td>
 <td>Endpoint for the AWS Secure Systems Manager. The controller uses this endpoint to fetch secrets from SSM Parameter Store.</td>
+</tr>
+<tr>
+<td>AWS_ACM_ENDPOINT</td>
+<td>Endpoint for the AWS Certificate Manager. The controller uses this endpoint to import and export certificates from ACM.</td>
+</tr>
+<tr>
+<td>AWS_RESOURCE_GROUPS_TAGGING_API_ENDPOINT</td>
+<td>Endpoint for the AWS Resource Groups Tagging API. The controller uses this endpoint to locate ACM certificates by their ESO management tags.</td>
 </tr>
 <tr>
 <td>AWS_STS_ENDPOINT</td>
