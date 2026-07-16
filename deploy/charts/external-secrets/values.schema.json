@@ -584,6 +584,15 @@
         "leaderElectionID": {
             "type": "string"
         },
+        "leaderElectionLeaseDuration": {
+            "type": "string"
+        },
+        "leaderElectionRenewDeadline": {
+            "type": "string"
+        },
+        "leaderElectionRetryPeriod": {
+            "type": "string"
+        },
         "livenessProbe": {
             "type": "object",
             "properties": {
