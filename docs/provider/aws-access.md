@@ -119,7 +119,7 @@ spec:
       service: SecretsManager
       region: eu-central-1
       role: arn:aws:iam::222222222222:role/team-b
-      # optional: assume these roles in order first (e.g. cross-account hops)
+      # optional: assume these roles in order first (e.g. cross-account hops).
       additionalRoles:
         - arn:aws:iam::111111111111:role/hop
       # optional: external ID required by the target role's trust policy
