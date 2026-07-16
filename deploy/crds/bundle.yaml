@@ -7404,6 +7404,9 @@ spec:
                       required:
                         - serverURL
                       type: object
+                      x-kubernetes-validations:
+                        - message: either token, or both username and password, must be set
+                          rule: has(self.token) || (has(self.username) && has(self.password))
                     senhasegura:
                       description: Senhasegura configures this store to sync secrets using senhasegura provider
                       properties:
@@ -20213,6 +20216,9 @@ spec:
                       required:
                         - serverURL
                       type: object
+                      x-kubernetes-validations:
+                        - message: either token, or both username and password, must be set
+                          rule: has(self.token) || (has(self.username) && has(self.password))
                     senhasegura:
                       description: Senhasegura configures this store to sync secrets using senhasegura provider
                       properties:

@@ -33,6 +33,9 @@ type SecretServerProviderRef struct {
 
 // SecretServerProvider provides access to authenticate to a secrets provider server.
 // See: https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go.
+// Authentication requires either Token, or both Username and Password. If Token is
+// set it takes precedence and Username/Password are ignored.
+// +kubebuilder:validation:XValidation:rule="has(self.token) || (has(self.username) && has(self.password))",message="either token, or both username and password, must be set"
 type SecretServerProvider struct {
 	// Username is the secret server account username.
 	// Required unless Token is set.
