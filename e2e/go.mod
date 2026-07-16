@@ -52,7 +52,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.30.13
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.9
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.66.3
-	github.com/cyberark/conjur-api-go v0.13.8
+	github.com/cyberark/conjur-api-go v0.14.1
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/providers/v1/azure v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-00010101000000-000000000000
