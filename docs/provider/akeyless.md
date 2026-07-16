@@ -9,6 +9,10 @@ SecretStore resource specifies how to access Akeyless. This resource is namespac
 **NOTE:** Make sure the Akeyless provider is listed in the Kind=SecretStore.
 If you use a customer fragment, define the value of akeylessGWApiURL as the URL of your Akeyless Gateway in the following format: https://your.akeyless.gw:8080/v2.
 
+When using an Akeyless Gateway, you can set `ignoreCache: true` on the SecretStore to bypass the Gateway cache and fetch the latest secret value from Akeyless SaaS on every sync. This matches the `ignore_cache` option in the Akeyless Kubernetes Secrets Injector. Use this only when you need fresh values on each reconcile: it increases load on the Gateway and upstream Akeyless API compared to serving cached responses.
+
+**NOTE:** `ignoreCache` affects Gateway-side caching only. ESO still reuses the provider client between reconciles when the SecretStore spec is unchanged.
+
 Akeyless provides several Authentication Methods:
 
 ### Authentication with Kubernetes
@@ -43,6 +47,14 @@ The supported auth-methods and their parameters are:
 | `access_key`   | The access key (alias for api_key) |
 | `k8s`          | The k8s configuration name         |
 
+For `azure_ad` on AKS Workload Identity, set `authSecretRef.serviceAccountRef` to a ServiceAccount annotated with `azure.workload.identity/client-id` and `azure.workload.identity/tenant-id`. This field is only used when `accessType` is `azure_ad`; other access types ignore it.
+
+```yaml
+{% include 'akeyless-secret-store-azure-ad-wi.yaml' %}
+```
+
+For `ClusterSecretStore`, set `serviceAccountRef.namespace` when the ServiceAccount is not in the same namespace as the consuming `ExternalSecret`; otherwise the ServiceAccount is resolved from that namespace. Sovereign Azure clouds (US Government, China) are supported when `AZURE_ENVIRONMENT` or `AZURE_CLOUD` is set accordingly, matching the non-WI `GetCloudId` path.
+
 For more information see [Akeyless Authentication Methods](https://docs.akeyless.io/docs/access-and-authentication-methods)
 
 #### Creating an Akeyless Credentials Secret
@@ -69,6 +81,7 @@ spec:
   provider:
     akeyless:
       akeylessGWApiURL: "https://your.akeyless.gw:8080/v2"
+      ignoreCache: true
 
       # Optional caBundle - PEM/base64 encoded CA certificate
       caBundle: "<base64 encoded cabundle>"

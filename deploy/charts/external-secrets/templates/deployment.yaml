@@ -76,6 +76,15 @@ spec:
           {{- if .Values.leaderElectionID }}
           - --leader-election-id={{ .Values.leaderElectionID }}
           {{- end }}
+          {{- if .Values.leaderElectionLeaseDuration }}
+          - --leader-election-lease-duration={{ .Values.leaderElectionLeaseDuration }}
+          {{- end }}
+          {{- if .Values.leaderElectionRenewDeadline }}
+          - --leader-election-renew-deadline={{ .Values.leaderElectionRenewDeadline }}
+          {{- end }}
+          {{- if .Values.leaderElectionRetryPeriod }}
+          - --leader-election-retry-period={{ .Values.leaderElectionRetryPeriod }}
+          {{- end }}
           {{- if or .Values.scopedNamespace .Values.scopedRBAC }}
           - --namespace={{ .Values.scopedNamespace | default .Release.Namespace }}
           {{- end }}

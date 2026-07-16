@@ -70,12 +70,16 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.metrics.service.annotations | object | `{}` | Additional service annotations |
 | certController.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
 | certController.metrics.service.port | int | `8080` | Metrics service port to scrape |
+| certController.networkPolicy | object | `{"egress":[],"enabled":false,"ingress":[{"ports":[{"port":8080,"protocol":"TCP"},{"port":8081,"protocol":"TCP"}]}]}` | Setup a networkPolicy for external-secrets certController |
+| certController.networkPolicy.egress | list | `[]` | The egress traffic The minimum egress ports required to function are:   DNS (53/udp, 53/tcp)   API server (80/tcp, 443/tcp, or 6443/tcp) You will need to customize this value to meet your needs |
+| certController.networkPolicy.enabled | bool | `false` | Specifies whether the networkPolicy should be created. |
+| certController.networkPolicy.ingress | list | `[{"ports":[{"port":8080,"protocol":"TCP"},{"port":8081,"protocol":"TCP"}]}]` | The ingress traffic Should match the health and (optionally) metrics port |
 | certController.nodeSelector | object | `{}` |  |
 | certController.podAnnotations | object | `{}` | Annotations to add to Pod |
 | certController.podDisruptionBudget | object | `{"enabled":false,"minAvailable":1,"nameOverride":""}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |
 | certController.podLabels | object | `{}` |  |
 | certController.podSecurityContext.enabled | bool | `true` |  |
-| certController.priorityClassName | string | `""` | Pod priority class name. |
+| certController.priorityClassName | string | `""` |  |
 | certController.rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
 | certController.readinessProbe.address | string | `""` |  |
 | certController.readinessProbe.enabled | bool | `true` |  |
@@ -101,9 +105,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | certController.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | certController.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
-| certController.startupProbe.enabled | bool | `false` | Enabled determines if the startup probe should be used or not. By default it's enabled |
-| certController.startupProbe.port | string | `""` | Port for startup probe. |
-| certController.startupProbe.useReadinessProbePort | bool | `true` | whether to use the readiness probe port for startup probe. |
+| certController.startupProbe.enabled | bool | `false` | Enabled determines if the startup probe should be used or not. By default it's disabled. |
+| certController.startupProbe.failureThreshold | int | `30` | Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds. |
+| certController.startupProbe.initialDelaySeconds | int | `10` | Number of seconds after the container has started before the startup probe is initiated. |
+| certController.startupProbe.periodSeconds | int | `10` | How often (in seconds) to perform the startup probe. |
 | certController.strategy | object | `{}` | Set deployment strategy |
 | certController.tolerations | list | `[]` |  |
 | certController.topologySpreadConstraints | list | `[]` |  |
@@ -162,6 +167,9 @@ The command removes all the Kubernetes components associated with the chart and 
 | installCRDs | bool | `true` | If set, install and upgrade CRDs through helm chart. |
 | leaderElect | bool | `false` | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. |
 | leaderElectionID | string | "external-secrets-controller" | ID of the lease object used for leader election. Leave empty to use the default ('external-secrets-controller'). Set to a unique value when running multiple independent ESO deployments in the same namespace. |
+| leaderElectionLeaseDuration | string | "15s" | Duration that non-leader candidates will wait to force acquire leadership. Increase this along with renewDeadline to tolerate a busy or briefly unavailable API server (for example during control plane maintenance) without churning leadership. Leave empty to use the controller default ('15s'). |
+| leaderElectionRenewDeadline | string | "10s" | Duration that the acting leader will retry refreshing leadership before giving up. Must be less than leaderElectionLeaseDuration. Leave empty to use the controller default ('10s'). |
+| leaderElectionRetryPeriod | string | "2s" | Duration the leader election client waits between tries of actions. Leave empty to use the controller default ('2s'). |
 | livenessProbe.enabled | bool | `false` | Enabled determines if the liveness probe should be used or not. By default it's disabled. |
 | livenessProbe.spec | object | `{"address":"","failureThreshold":5,"httpGet":{"path":"/healthz","port":"live"},"initialDelaySeconds":10,"periodSeconds":10,"port":8082,"successThreshold":1,"timeoutSeconds":5}` | The body of the liveness probe settings. |
 | livenessProbe.spec.address | string | `""` | Bind address for the health server used by both liveness and readiness probes (--live-addr flag). |
@@ -186,6 +194,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | metrics.service.port | int | `8080` | Metrics service port to scrape |
 | nameOverride | string | `""` |  |
 | namespaceOverride | string | `""` |  |
+| networkPolicy | object | `{"egress":[],"enabled":false,"ingress":[{"ports":[{"port":8080,"protocol":"TCP"},{"port":8082,"protocol":"TCP"}]}]}` | Setup a networkPolicy for external-secrets |
+| networkPolicy.egress | list | `[]` | The egress traffic The minimum egress ports required to function are:   DNS (53/udp, 53/tcp)   API server (80/tcp, 443/tcp, or 6443/tcp) You will need to customize this value to meet your needs |
+| networkPolicy.enabled | bool | `false` | Specifies whether the networkPolicy should be created. |
+| networkPolicy.ingress | list | `[{"ports":[{"port":8080,"protocol":"TCP"},{"port":8082,"protocol":"TCP"}]}]` | The ingress traffic Should match the health and (optionally) metrics port |
 | nodeSelector | object | `{}` |  |
 | openshiftFinalizers | bool | `true` | If true the OpenShift finalizer permissions will be added to RBAC |
 | podAnnotations | object | `{}` | Annotations to add to Pod |
@@ -300,6 +312,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.metrics.service.annotations | object | `{}` | Additional service annotations |
 | webhook.metrics.service.enabled | bool | `false` | Enable if you use another monitoring tool than Prometheus to scrape the metrics |
 | webhook.metrics.service.port | int | `8080` | Metrics service port to scrape |
+| webhook.networkPolicy | object | `{"egress":[],"enabled":false,"ingress":[{"ports":[{"port":8080,"protocol":"TCP"},{"port":8081,"protocol":"TCP"},{"port":10250,"protocol":"TCP"}]}]}` | Setup a networkPolicy for external-secrets webhook |
+| webhook.networkPolicy.egress | list | `[]` | The egress traffic The minimum egress ports required to function are:   DNS (53/udp, 53/tcp)   API server (80/tcp, 443/tcp, or 6443/tcp) You will need to customize this value to meet your needs |
+| webhook.networkPolicy.enabled | bool | `false` | Specifies whether the networkPolicy should be created. |
+| webhook.networkPolicy.ingress | list | `[{"ports":[{"port":8080,"protocol":"TCP"},{"port":8081,"protocol":"TCP"},{"port":10250,"protocol":"TCP"}]}]` | The ingress traffic Should match the webhook, health, and (optionally) metrics port |
 | webhook.nodeSelector | object | `{}` |  |
 | webhook.podAnnotations | object | `{}` | Annotations to add to Pod |
 | webhook.podDisruptionBudget | object | `{"enabled":false,"minAvailable":1,"nameOverride":""}` | Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/ |
@@ -337,6 +353,10 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.serviceAccount.create | bool | `true` | Specifies whether a service account should be created. |
 | webhook.serviceAccount.extraLabels | object | `{}` | Extra Labels to add to the service account. |
 | webhook.serviceAccount.name | string | `""` | The name of the service account to use. If not set and create is true, a name is generated using the fullname template. |
+| webhook.startupProbe.enabled | bool | `false` | Enabled determines if the startup probe should be used or not. By default it's disabled. |
+| webhook.startupProbe.failureThreshold | int | `30` | Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds. |
+| webhook.startupProbe.initialDelaySeconds | int | `10` | Number of seconds after the container has started before the startup probe is initiated. |
+| webhook.startupProbe.periodSeconds | int | `10` | How often (in seconds) to perform the startup probe. |
 | webhook.strategy | object | `{}` | Set deployment strategy |
 | webhook.tolerations | list | `[]` |  |
 | webhook.topologySpreadConstraints | list | `[]` |  |
