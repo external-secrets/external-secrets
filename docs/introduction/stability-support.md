@@ -67,6 +67,7 @@ The following table describes the stability level of each provider and who's res
 |----------------------------------------------------------------------------------------------------------------|----------:| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                        |    stable | [external-secrets](https://github.com/external-secrets)                                             |
 | [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                        |    stable | [external-secrets](https://github.com/external-secrets)                                             |
+| [AWS Certificate Manager](https://external-secrets.io/latest/provider/aws-certificate-manager/)                |     alpha | [external-secrets](https://github.com/external-secrets)                                             |
 | [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                               |    stable | [external-secrets](https://github.com/external-secrets)                                             |
 | [Azure Keyvault](https://external-secrets.io/latest/provider/azure-key-vault/)                                 |    stable | [external-secrets](https://github.com/external-secrets)                                             |
 | [Barbican](https://external-secrets.io/latest/provider/barbican)                                               |     alpha | [@rkferreira](https://github.com/rkferreira)                                                        |
@@ -117,6 +118,7 @@ The following table show the support for features across different providers.
 | Akeyless                         |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | AWS Secrets Manager              |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store              |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
+| AWS Certificate Manager          |              |              |                      |            x            |        x         |      x      |              x              |
 | Azure Keyvault                   |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Barbican                         |      x       |              |                      |                         |        x         |             |                             |
 | Beyondtrust                      |              |              |                      |                         |        x         |      x      |                             |

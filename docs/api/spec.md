@@ -351,7 +351,11 @@ string
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;ParameterStore&#34;</p></td>
+<tbody><tr><td><p>&#34;CertificateManager&#34;</p></td>
+<td><p>AWSServiceCertificateManager is the AWS Certificate Manager service.
+see: <a href="https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html">https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html</a></p>
+</td>
+</tr><tr><td><p>&#34;ParameterStore&#34;</p></td>
 <td><p>AWSServiceParameterStore is the AWS SystemsManager ParameterStore service.
 see: <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html">https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html</a></p>
 </td>
@@ -587,6 +591,19 @@ string
 </td>
 <td>
 <p>Akeyless GW API Url from which the secrets to be fetched from.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ignoreCache</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IgnoreCache bypasses the Gateway cache for secret reads when true.
+Only relevant when akeylessGWApiURL points to an Akeyless Gateway.</p>
 </td>
 </tr>
 <tr>
