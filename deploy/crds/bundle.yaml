@@ -2709,6 +2709,11 @@ spec:
                             - name
                             - type
                           type: object
+                        ignoreCache:
+                          description: |-
+                            IgnoreCache bypasses the Gateway cache for secret reads when true.
+                            Only relevant when akeylessGWApiURL points to an Akeyless Gateway.
+                          type: boolean
                       required:
                         - akeylessGWApiURL
                         - authSecretRef
@@ -15481,6 +15486,11 @@ spec:
                             - name
                             - type
                           type: object
+                        ignoreCache:
+                          description: |-
+                            IgnoreCache bypasses the Gateway cache for secret reads when true.
+                            Only relevant when akeylessGWApiURL points to an Akeyless Gateway.
+                          type: boolean
                       required:
                         - akeylessGWApiURL
                         - authSecretRef
