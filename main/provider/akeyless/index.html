@@ -5402,6 +5402,8 @@
 <p>SecretStore resource specifies how to access Akeyless. This resource is namespaced.</p>
 <p><strong>NOTE:</strong> Make sure the Akeyless provider is listed in the Kind=SecretStore.
 If you use a customer fragment, define the value of akeylessGWApiURL as the URL of your Akeyless Gateway in the following format: https://your.akeyless.gw:8080/v2.</p>
+<p>When using an Akeyless Gateway, you can set <code>ignoreCache: true</code> on the SecretStore to bypass the Gateway cache and fetch the latest secret value from Akeyless SaaS on every sync. This matches the <code>ignore_cache</code> option in the Akeyless Kubernetes Secrets Injector. Use this only when you need fresh values on each reconcile: it increases load on the Gateway and upstream Akeyless API compared to serving cached responses.</p>
+<p><strong>NOTE:</strong> <code>ignoreCache</code> affects Gateway-side caching only. ESO still reuses the provider client between reconciles when the SecretStore spec is unchanged.</p>
 <p>Akeyless provides several Authentication Methods:</p>
 <h3 id="authentication-with-kubernetes">Authentication with Kubernetes</h3>
 <p>Options for obtaining Kubernetes credentials include:</p>
@@ -5527,6 +5529,7 @@ to set your SecretStore with an authentication method from Akeyless.</p>
 <span class="w">    </span><span class="nt">akeyless</span><span class="p">:</span>
 <span class="w">      </span><span class="c1"># URL of your akeyless API</span>
 <span class="w">      </span><span class="nt">akeylessGWApiURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://api.akeyless.io&quot;</span>
+<span class="w">      </span><span class="c1"># ignoreCache: true  # bypass Gateway cache when using an Akeyless Gateway URL</span>
 <span class="w">      </span><span class="nt">authSecretRef</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">accessID</span><span class="p">:</span>
@@ -5546,6 +5549,7 @@ to set your SecretStore with an authentication method from Akeyless.</p>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">akeyless</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">akeylessGWApiURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://your.akeyless.gw:8080/v2&quot;</span>
+<span class="w">      </span><span class="nt">ignoreCache</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
 
 <span class="w">      </span><span class="c1"># Optional caBundle - PEM/base64 encoded CA certificate</span>
 <span class="w">      </span><span class="nt">caBundle</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&lt;base64</span><span class="nv"> </span><span class="s">encoded</span><span class="nv"> </span><span class="s">cabundle&gt;&quot;</span>
