@@ -95,6 +95,52 @@ spec:
 
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `serviceAccountRef` with the namespace where the service account resides.
 
+#### Setting up the IAM Role for IRSA
+
+First, ensure your cluster has an IAM OIDC provider associated with it:
+
+```bash
+# Get your cluster's OIDC issuer URL — note: output includes https:// prefix
+aws eks describe-cluster --name <cluster-name> \
+  --query "cluster.identity.oidc.issuer" \
+  --output text
+# Example output: https://oidc.eks.eu-central-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE
+
+# Associate the OIDC provider (if not already done)
+eksctl utils associate-iam-oidc-provider \
+  --cluster <cluster-name> \
+  --approve
+```
+
+Create an IAM role with the following trust policy. The trust policy uses the OIDC issuer **without** the `https://` prefix — strip it before pasting into the `Federated` ARN and condition keys. Replace the OIDC issuer host/path, account ID, namespace, and service account name with your values:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::123456789012:oidc-provider/oidc.eks.eu-central-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.eks.eu-central-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE:sub": "system:serviceaccount:default:my-serviceaccount",
+          "oidc.eks.eu-central-1.amazonaws.com/id/EXAMPLED539D4633E53DE1B71EXAMPLE:aud": "sts.amazonaws.com"
+        }
+      }
+    }
+  ]
+}
+```
+
+The `sub` condition must be `system:serviceaccount:<namespace>:<serviceaccount-name>`, matching the service account referenced in your `SecretStore`. Scope this as narrowly as possible — a specific namespace and service account name is more secure than using a wildcard.
+
+Attach an IAM permissions policy to this role granting `secretsmanager:GetSecretValue` (and `secretsmanager:DescribeSecret`) on the secrets ESO needs to access.
+
+**NOTE:** AWS Secrets Manager appends a 6-character random suffix to secret ARNs (e.g. `arn:aws:secretsmanager:region:account:secret:my-secret-AbCdEf`). Use a trailing wildcard in your IAM policy resource to avoid access denied errors when the suffix is not known in advance: `arn:aws:secretsmanager:eu-central-1:123456789012:secret:my-secret-*`.
+
 ## EKS Pod Identity Setup
 
 In order to use EKS Pod Identity Agent, create a role like this:
@@ -274,4 +320,79 @@ When session tags are enabled, the role trust policy must allow `sts:TagSession`
     }
   ]
 }
+```
+
+## Troubleshooting
+
+### Checking sync status
+
+Use `kubectl describe` to inspect the status conditions and recent events on your resources:
+
+```bash
+# Check ExternalSecret status and events
+kubectl describe externalsecret <name> -n <namespace>
+
+# Check SecretStore status
+kubectl describe secretstore <name> -n <namespace>
+
+# Check ClusterSecretStore status
+kubectl describe clustersecretstore <name>
+```
+
+A healthy `ExternalSecret` shows `Ready=True` in its status conditions. When sync fails, the `message` field contains the error returned by the provider.
+
+### Common errors
+
+#### `AccessDeniedException: Not authorized to perform sts:AssumeRoleWithWebIdentity`
+
+The IRSA trust policy is missing or misconfigured. Check:
+
+1. Your cluster has an IAM OIDC provider: `aws iam list-open-id-connect-providers`
+2. The `Federated` principal in the trust policy exactly matches your cluster's OIDC provider ARN
+3. The `sub` condition matches `system:serviceaccount:<namespace>:<serviceaccount-name>` for the service account referenced in your `SecretStore`
+4. The service account has the `eks.amazonaws.com/role-arn` annotation set to the correct role ARN
+
+#### `AccessDeniedException: is not authorized to perform: secretsmanager:GetSecretValue`
+
+The role can be assumed but lacks permissions on the secret. Check:
+
+1. The IAM permissions policy is attached to the role
+2. The resource ARN in the policy covers your secret — AWS Secrets Manager appends a 6-character random suffix to ARNs. Use a trailing wildcard: `arn:aws:secretsmanager:region:account:secret:my-secret-*`
+
+#### `ResourceNotFoundException`
+
+The secret cannot be found. Verify:
+
+1. The `region` in your `SecretStore` or `ClusterSecretStore` matches the AWS region where the secret is stored
+2. The `remoteRef.key` in your `ExternalSecret` is the correct secret name or ARN
+3. The secret exists and is not scheduled for deletion (`aws secretsmanager describe-secret --secret-id <name>`)
+
+#### `ClusterSecretStore` not syncing — service account not found
+
+When using `auth.jwt.serviceAccountRef` in a `ClusterSecretStore`, the `namespace` field is required:
+
+```yaml
+auth:
+  jwt:
+    serviceAccountRef:
+      name: my-serviceaccount
+      namespace: external-secrets  # required for ClusterSecretStore
+```
+
+Without `namespace`, ESO cannot locate the service account and the store will fail to initialize.
+
+#### Secret syncs once but never updates
+
+Check the `refreshInterval` on your `ExternalSecret`. A value of `0` disables periodic re-sync — the secret is only fetched on creation:
+
+```yaml
+spec:
+  refreshInterval: 1h  # re-sync every hour; use 0 to disable
+```
+
+To trigger an immediate re-sync without waiting for the interval, annotate the `ExternalSecret`:
+
+```bash
+kubectl annotate externalsecret <name> \
+  force-sync=$(date +%s) --overwrite
 ```
