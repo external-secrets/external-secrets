@@ -3409,6 +3409,56 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#option-3-external-secret-store-with-cert-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 3: External secret store with cert authentication
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Option 3: External secret store with cert authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-define-an-external-secret-store_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1: Define an external secret store
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-create-kubernetes-secrets-for-the-client-certificate-and-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2: Create Kubernetes secrets for the client certificate and key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-create-the-external-secrets-store_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3: Create the external secrets store
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -5322,6 +5372,56 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#option-3-external-secret-store-with-cert-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option 3: External secret store with cert authentication
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Option 3: External secret store with cert authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#step-1-define-an-external-secret-store_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 1: Define an external secret store
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-2-create-kubernetes-secrets-for-the-client-certificate-and-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 2: Create Kubernetes secrets for the client certificate and key
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#step-3-create-the-external-secrets-store_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step 3: Create the external secrets store
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -5415,8 +5515,8 @@
 <ul>
 <li>A running instance of <a href="https://github.com/cyberark/conjur">Conjur OSS</a> or CyberArk Secrets Manager, with:</li>
 <li>An accessible Secrets Manager endpoint (for example: <code>https://myapi.example.com</code>).</li>
-<li>Your configured Secrets Manager authentication info (such as <code>hostid</code>, <code>apikey</code>, or JWT service ID). For more information on configuring Secrets Manager, see <a href="https://docs.cyberark.com/conjur-open-source/Latest/en/Content/Operations/Policy/policy-statement-ref.htm">Policy statement reference</a>.</li>
-<li>Support for your authentication method (<code>apikey</code> is supported by default, <code>jwt</code> requires additional configuration).</li>
+<li>Your configured Secrets Manager authentication info (such as <code>hostid</code>, <code>apikey</code> or service ID of JWT or Cert authenticator). For more information on configuring Secrets Manager, see <a href="https://docs.cyberark.com/conjur-open-source/Latest/en/Content/Operations/Policy/policy-statement-ref.htm">Policy statement reference</a>.</li>
+<li>Support for your authentication method (<code>apikey</code> is supported by default, <code>jwt</code> and <code>cert</code> require additional configuration).</li>
 <li><strong>Optional</strong>: Secrets Manager server certificate (see <a href="#conjur-server-certificate">below</a>).</li>
 <li>A Kubernetes cluster with ESO installed.</li>
 </ul>
@@ -5445,10 +5545,11 @@
 <span class="w">  </span><span class="l l-Scalar l-Scalar-Plain">....</span>
 </code></pre></div>
 <h2 id="external-secret-store">External secret store</h2>
-<p>The Secrets Manager provider is configured as an external secret store in ESO. The Secrets Manager provider supports these two methods to authenticate to Secrets Manager:</p>
+<p>To synchronise secrets with Secrets Manager, you must configure an external secret store with one of the following three methods to authenticate to the Secrets Manager API:</p>
 <ul>
 <li><a href="#option-1-external-secret-store-with-apikey-authentication"><code>apikey</code></a>: uses a Secrets Manager <code>hostid</code> and <code>apikey</code> to authenticate with Secrets Manager</li>
 <li><a href="#option-2-external-secret-store-with-jwt-authentication"><code>jwt</code></a>: uses a JWT to authenticate with Secrets Manager</li>
+<li><a href="#option-3-external-secret-store-with-cert-authentication"><code>cert</code></a>: uses a client certificate and private key to authenticate with Secrets Manager</li>
 </ul>
 <h3 id="option-1-external-secret-store-with-apikey-authentication">Option 1: External secret store with apiKey authentication</h3>
 <p>This method uses a Secrets Manager <code>hostid</code> and <code>apikey</code> to authenticate with Secrets Manager. It is the simplest method to set up and use because your Secrets Manager instance requires no additional configuration.</p>
@@ -5581,6 +5682,72 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-n<span class="w"> <
 </code></pre></div>
 <p>Save the secret store file as <code>conjur-secret-store.yaml</code>.</p>
 <h4 id="step-2-create-the-external-secrets-store">Step 2: Create the external secrets store</h4>
+<div class="highlight"><pre><span></span><code><span class="c1"># WARNING: creates the store in the &quot;external-secrets&quot; namespace, update the value as needed</span>
+<span class="c1">#</span>
+kubectl<span class="w"> </span>apply<span class="w"> </span>-n<span class="w"> </span>external-secrets<span class="w"> </span>-f<span class="w"> </span>conjur-secret-store.yaml
+
+<span class="c1"># WARNING: running the delete command will delete the secret store configuration</span>
+<span class="c1">#</span>
+<span class="c1"># If there is a need to delete the external secretstore</span>
+<span class="c1"># kubectl delete secretstore -n external-secrets conjur</span>
+</code></pre></div>
+<h3 id="option-3-external-secret-store-with-cert-authentication">Option 3: External secret store with cert authentication</h3>
+<p>This method uses a client X.509 certificate and private key to authenticate with Secrets Manager via the <code>authn-cert</code> authenticator. The certificate must be issued by a CA that is trusted by the Secrets Manager <code>authn-cert</code> service. Conjur validates the presented certificate using constraints configured in the authenticator policy (such as <code>cn</code>, <code>san-uri</code>, <code>san-dns</code>, <code>san-ip</code> variables), and optionally per-host annotations that scope constraints to individual workloads.</p>
+<p>For more information on configuring the certificate authenticator, see the <a href="https://docs.cyberark.com/conjur-open-source/latest/en/content/operations/authn/authn-cert/authn-cert.htm?TocPath=Integrations%7CCertificate%20authenticator%7C_____0">Secrets Manager Certificate authenticator documentation</a>.</p>
+<h4 id="step-1-define-an-external-secret-store_2">Step 1: Define an external secret store</h4>
+<p>When you use cert authentication, the following must be specified in the <code>SecretStore</code>:</p>
+<ul>
+<li><code>account</code> - The name of the Secrets Manager account</li>
+<li><code>serviceID</code> - The ID of the <code>authn-cert</code> <code>WebService</code> configured in Secrets Manager that is used to authenticate the client certificate</li>
+<li><code>clientCertRef</code> - Reference to a Kubernetes secret containing the PEM-encoded client certificate</li>
+<li><code>clientKeyRef</code> - Reference to a Kubernetes secret containing the PEM-encoded client private key</li>
+<li><code>hostId</code> (optional) - The Secrets Manager host identity to authenticate as. Required in the default <code>request</code> mode. Leave empty when using <code>spiffe</code> mode, where the host identity is derived from the SPIFFE SAN URI (<code>spiffe://&lt;trust-domain&gt;/&lt;workload-id&gt;</code>) in the certificate.</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">conjur</span><span class="p">:</span>
+<span class="w">      </span><span class="c1"># Service URL</span>
+<span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://myapi.conjur.org</span>
+<span class="w">      </span><span class="c1"># [OPTIONAL] base64 encoded string of certificate</span>
+<span class="w">      </span><span class="nt">caBundle</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">OPTIONALxFIELDxxxBase64xCertxString==</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">cert</span><span class="p">:</span>
+<span class="w">          </span><span class="c1"># conjur account</span>
+<span class="w">          </span><span class="nt">account</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
+<span class="w">          </span><span class="c1"># The authn-cert service ID</span>
+<span class="w">          </span><span class="nt">serviceID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-cert-auth-service</span>
+<span class="w">          </span><span class="c1"># [OPTIONAL] HostID for cert authentication (leave empty for &#39;spiffe&#39; mode).</span>
+<span class="w">          </span><span class="c1"># hostId: vm-01</span>
+<span class="w">          </span><span class="c1"># Reference to a Kubernetes secret containing the PEM-encoded client certificate</span>
+<span class="w">          </span><span class="nt">clientCertRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur-client-cert</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tls.crt</span>
+<span class="w">          </span><span class="c1"># Reference to a Kubernetes secret containing the PEM-encoded client key</span>
+<span class="w">          </span><span class="nt">clientKeyRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur-client-cert</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">tls.key</span>
+</code></pre></div>
+<h4 id="step-2-create-kubernetes-secrets-for-the-client-certificate-and-key">Step 2: Create Kubernetes secrets for the client certificate and key</h4>
+<p>To connect to the Secrets Manager server using certificate authentication, the <strong>ESO Secrets Manager provider</strong> needs to retrieve the client certificate and private key from K8s secrets.</p>
+<p>You can use either a TLS-typed secret or a generic secret. The following example uses a generic secret:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># This is all one line</span>
+kubectl<span class="w"> </span>-n<span class="w"> </span>external-secrets<span class="w"> </span>create<span class="w"> </span>secret<span class="w"> </span>generic<span class="w"> </span>conjur-client-cert<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--from-file<span class="o">=</span>tls.crt<span class="o">=</span>/path/to/client.crt<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--from-file<span class="o">=</span>tls.key<span class="o">=</span>/path/to/client.key
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>conjur-client-cert</code> is the <code>name</code> defined in the <code>clientCertRef</code> and <code>clientKeyRef</code> fields of the <code>conjur-secret-store.yaml</code> file. Both the certificate and the key must be PEM-encoded.</p>
+</div>
+<h4 id="step-3-create-the-external-secrets-store_1">Step 3: Create the external secrets store</h4>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>Unless you are using a <a href="../../api/clustersecretstore/">ClusterSecretStore</a>, credentials must reside in the same namespace as the SecretStore.</p>
+</div>
 <div class="highlight"><pre><span></span><code><span class="c1"># WARNING: creates the store in the &quot;external-secrets&quot; namespace, update the value as needed</span>
 <span class="c1">#</span>
 kubectl<span class="w"> </span>apply<span class="w"> </span>-n<span class="w"> </span>external-secrets<span class="w"> </span>-f<span class="w"> </span>conjur-secret-store.yaml

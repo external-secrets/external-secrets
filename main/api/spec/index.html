@@ -8248,6 +8248,101 @@ ConjurJWT
 <p>Jwt enables JWT authentication using Kubernetes service account tokens.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>cert</code></br>
+<em>
+<a href="#external-secrets.io/v1.ConjurCert">
+ConjurCert
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Cert enables certificate-based authentication using a client certificate and key.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ConjurCert">ConjurCert
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ConjurAuth">ConjurAuth</a>)
+</p>
+<p>
+<p>ConjurCert defines the Cert authentication configuration for Conjur provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>account</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Account is the Conjur organization account name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The conjur authn cert webservice id</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional HostID for cert authentication (can be omitted when using &lsquo;spiffe&rsquo; mode).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientCertRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>ClientCertRef is a reference to a specific &lsquo;key&rsquo; containing the client certificate
+within a Secret resource. The certificate must be PEM-encoded.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientKeyRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>ClientKeyRef is a reference to a specific &lsquo;key&rsquo; containing the private RSA client key
+within a Secret resource. The key must be PEM-encoded.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.ConjurJWT">ConjurJWT
