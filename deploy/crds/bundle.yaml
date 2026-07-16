@@ -7405,8 +7405,12 @@ spec:
                               type: object
                             value:
                               description: Value can be specified directly to set a value without using a secret.
+                              minLength: 1
                               type: string
                           type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of value or secretRef must be set
+                              rule: has(self.value) != has(self.secretRef)
                         serverURL:
                           description: |-
                             ServerURL
@@ -7446,8 +7450,12 @@ spec:
                               type: object
                             value:
                               description: Value can be specified directly to set a value without using a secret.
+                              minLength: 1
                               type: string
                           type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of value or secretRef must be set
+                              rule: has(self.value) != has(self.secretRef)
                         username:
                           description: |-
                             Username is the secret server account username.
@@ -7481,8 +7489,12 @@ spec:
                               type: object
                             value:
                               description: Value can be specified directly to set a value without using a secret.
+                              minLength: 1
                               type: string
                           type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of value or secretRef must be set
+                              rule: has(self.value) != has(self.secretRef)
                       required:
                         - serverURL
                       type: object
@@ -20299,8 +20311,12 @@ spec:
                               type: object
                             value:
                               description: Value can be specified directly to set a value without using a secret.
+                              minLength: 1
                               type: string
                           type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of value or secretRef must be set
+                              rule: has(self.value) != has(self.secretRef)
                         serverURL:
                           description: |-
                             ServerURL
@@ -20340,8 +20356,12 @@ spec:
                               type: object
                             value:
                               description: Value can be specified directly to set a value without using a secret.
+                              minLength: 1
                               type: string
                           type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of value or secretRef must be set
+                              rule: has(self.value) != has(self.secretRef)
                         username:
                           description: |-
                             Username is the secret server account username.
@@ -20375,8 +20395,12 @@ spec:
                               type: object
                             value:
                               description: Value can be specified directly to set a value without using a secret.
+                              minLength: 1
                               type: string
                           type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of value or secretRef must be set
+                              rule: has(self.value) != has(self.secretRef)
                       required:
                         - serverURL
                       type: object

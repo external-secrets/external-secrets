@@ -19,11 +19,13 @@ package v1
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
 // SecretServerProviderRef references a value that can be specified directly or via a secret
-// for a SecretServerProvider.
+// for a SecretServerProvider. Exactly one of Value or SecretRef must be set.
+// +kubebuilder:validation:XValidation:rule="has(self.value) != has(self.secretRef)",message="exactly one of value or secretRef must be set"
 type SecretServerProviderRef struct {
 
 	// Value can be specified directly to set a value without using a secret.
 	// +optional
+	// +kubebuilder:validation:MinLength=1
 	Value string `json:"value,omitempty"`
 
 	// SecretRef references a key in a secret that will be used as value.
