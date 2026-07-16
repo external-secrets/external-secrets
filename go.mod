@@ -7,6 +7,7 @@ replace (
 	github.com/external-secrets/external-secrets/generators/v1/acr => ./generators/v1/acr
 	github.com/external-secrets/external-secrets/generators/v1/beyondtrustworkloadcredentials => ./generators/v1/beyondtrustworkloadcredentials
 	github.com/external-secrets/external-secrets/generators/v1/cloudsmith => ./generators/v1/cloudsmith
+	github.com/external-secrets/external-secrets/generators/v1/codeartifact => ./generators/v1/codeartifact
 	github.com/external-secrets/external-secrets/generators/v1/ecr => ./generators/v1/ecr
 	github.com/external-secrets/external-secrets/generators/v1/fake => ./generators/v1/fake
 	github.com/external-secrets/external-secrets/generators/v1/gcr => ./generators/v1/gcr
@@ -124,6 +125,7 @@ require (
 	github.com/external-secrets/external-secrets/generators/v1/acr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/beyondtrustworkloadcredentials v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/cloudsmith v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/codeartifact v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/ecr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/fake v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/gcr v0.0.0-00010101000000-000000000000
@@ -218,6 +220,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.13 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.13 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/codeartifact v1.38.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.51.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.38.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.3 // indirect
