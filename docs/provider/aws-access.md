@@ -52,7 +52,13 @@ spec:
           secretAccessKeySecretRef:
             name: awssm-secret
             key: secret-access-key
+          # optional: only when using temporary (STS) credentials
+          sessionTokenSecretRef:
+            name: awssm-secret
+            key: session-token
 ```
+
+The optional `sessionTokenSecretRef` supplies an AWS session token alongside the access key and secret, which is required when the credentials are temporary (STS) rather than long-lived.
 
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef`, `secretAccessKeySecretRef` with the namespaces where the secrets reside.
 
@@ -94,6 +100,31 @@ spec:
 ```
 
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `serviceAccountRef` with the namespace where the service account resides.
+
+## Assuming Roles
+
+The optional `role` field makes ESO call `sts:AssumeRole` before accessing secrets, the recommended way to scope access per store. Two related fields refine role assumption:
+
+- `additionalRoles`: a chained list of Role ARNs the provider assumes sequentially *before* assuming `role`. Use it for cross-account role chaining.
+- `externalID`: the [external ID](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html) passed when assuming `role`, for third-party trust scenarios.
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: team-b-store
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: eu-central-1
+      role: arn:aws:iam::222222222222:role/team-b
+      # optional: assume these roles in order first (e.g. cross-account hops)
+      additionalRoles:
+        - arn:aws:iam::111111111111:role/hop
+      # optional: external ID required by the target role's trust policy
+      externalID: my-external-id
+```
 
 ## EKS Pod Identity Setup
 
@@ -261,6 +292,29 @@ Session tags will include the three automatically added tags, plus `env=producti
 
 **NOTE:** Custom tags with empty keys or empty values are silently ignored. Built-in tags (`esoNamespace`, `esoStoreName`, `esoStoreKind`) will always be included even when the sessionTagsPolicy is `Custom`. They cannot be overridden via `customSessionTags`.
 
+### Manually specified session tags
+
+Independent of `sessionTagsPolicy`, you can attach a fixed set of session tags to the assumed role with `spec.provider.aws.sessionTags`, and mark some of them transitive (kept across roles assumed afterwards in a chain) with `transitiveTagKeys`:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: team-b-store
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: eu-central-1
+      role: arn:aws:iam::222222222222:role/team-b
+      sessionTags:
+        - key: cost-center
+          value: team-b
+      # keys whose tags persist across roles assumed afterwards (additionalRoles)
+      transitiveTagKeys:
+        - cost-center
+```
+
 ### Required IAM Permissions
 
 When session tags are enabled, the role trust policy must allow `sts:TagSession`:
@@ -276,4 +330,21 @@ When session tags are enabled, the role trust policy must allow `sts:TagSession`
     }
   ]
 }
+```
+
+## Prefix
+
+`spec.provider.aws.prefix` prepends a fixed string to every remote key the store resolves, for both reads and writes. No separator is added, so include any trailing delimiter yourself. For example, with `prefix: prod/`, a `remoteRef.key` of `db-password` resolves to `prod/db-password` in Secrets Manager or Parameter Store.
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: team-b-store
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: eu-central-1
+      prefix: prod/
 ```
