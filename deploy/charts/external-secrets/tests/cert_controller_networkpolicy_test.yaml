@@ -1,0 +1,97 @@
+suite: test cert controller networkpolicy
+templates:
+  - cert-controller-networkpolicy.yaml
+tests:
+  - it: should create a networkPolicy
+    set:
+      certController.networkPolicy.enabled: true
+    asserts:
+      - equal:
+          path: spec.policyTypes
+          value:
+            - Egress
+            - Ingress
+  - it: should not create a networkPolicy
+    set:
+      certController.networkPolicy.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should set correct pod selector
+    set:
+      certController.networkPolicy.enabled: true
+    asserts:
+      - isNotEmpty:
+          path: spec.podSelector.matchLabels
+      - equal:
+          path: spec.podSelector.matchLabels["app.kubernetes.io/name"]
+          value: external-secrets-cert-controller
+  - it: should apply default ingress ports
+    set:
+      certController.networkPolicy.enabled: true
+    asserts:
+      - equal:
+          path: spec.ingress[0].ports
+          value:
+            - protocol: TCP
+              port: 8080
+            - protocol: TCP
+              port: 8081
+  - it: should allow custom ingress CIDR blocks
+    set:
+      certController.networkPolicy.enabled: true
+      certController.networkPolicy.ingress:
+        - from:
+            - ipBlock:
+                cidr: 172.16.0.0/12
+          ports:
+            - protocol: TCP
+              port: 8080
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[0].ipBlock.cidr
+          value: 172.16.0.0/12
+  - it: should allow custom ingress pod selector
+    set:
+      certController.networkPolicy.enabled: true
+      certController.networkPolicy.ingress:
+        - from:
+            - podSelector:
+                matchLabels:
+                  monitoring: prometheus
+          ports:
+            - protocol: TCP
+              port: 8080
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels.monitoring
+          value: prometheus
+  - it: should allow custom egress CIDR blocks
+    set:
+      certController.networkPolicy.enabled: true
+      certController.networkPolicy.egress:
+        - to:
+            - ipBlock:
+                cidr: 0.0.0.0/0
+          ports:
+            - protocol: TCP
+              port: 443
+    asserts:
+      - equal:
+          path: spec.egress[0].to[0].ipBlock.cidr
+          value: 0.0.0.0/0
+  - it: should allow custom egress pod selector
+    set:
+      certController.networkPolicy.enabled: true
+      certController.networkPolicy.egress:
+        - to:
+            - podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+          ports:
+            - protocol: UDP
+              port: 53
+    asserts:
+      - equal:
+          path: spec.egress[0].to[0].podSelector.matchLabels["k8s-app"]
+          value: kube-dns
