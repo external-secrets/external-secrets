@@ -892,7 +892,7 @@ func TestJSONToSecretDataMap(t *testing.T) {
 	t.Run("null value", func(t *testing.T) {
 		got, err := JSONToSecretDataMap([]byte(`{"key":null}`))
 		assert.NoError(t, err)
-		assert.Equal(t, map[string][]byte{"key": []byte("null")}, got)
+		assert.Equal(t, map[string][]byte{"key": []byte("")}, got)
 	})
 
 	t.Run("invalid json", func(t *testing.T) {

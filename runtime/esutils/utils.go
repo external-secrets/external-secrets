@@ -359,10 +359,6 @@ func JSONToSecretDataMap(data []byte) (map[string][]byte, error) {
 
 	secretData := make(map[string][]byte, len(kv))
 	for k, v := range kv {
-		if string(v) == "null" {
-			secretData[k] = v
-			continue
-		}
 		var strVal string
 		if err := json.Unmarshal(v, &strVal); err == nil {
 			secretData[k] = []byte(strVal)
