@@ -921,6 +921,35 @@ func TestFetchValueFromMetadata(t *testing.T) {
 	}
 }
 
+func TestJSONToSecretDataMap(t *testing.T) {
+	t.Run("string values", func(t *testing.T) {
+		got, err := JSONToSecretDataMap([]byte(`{"foo":"bar"}`))
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{"foo": []byte("bar")}, got)
+	})
+
+	t.Run("nested and non-string values", func(t *testing.T) {
+		got, err := JSONToSecretDataMap([]byte(`{"username":"my_user","port":5432,"nested":{"baz":"nestedval"}}`))
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{
+			"username": []byte("my_user"),
+			"port":     []byte("5432"),
+			"nested":   []byte(`{"baz":"nestedval"}`),
+		}, got)
+	})
+
+	t.Run("null value", func(t *testing.T) {
+		got, err := JSONToSecretDataMap([]byte(`{"key":null}`))
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{"key": []byte("")}, got)
+	})
+
+	t.Run("invalid json", func(t *testing.T) {
+		_, err := JSONToSecretDataMap([]byte(`not-json`))
+		assert.Error(t, err)
+	})
+}
+
 func TestGetByteValue(t *testing.T) {
 	type args struct {
 		data any
