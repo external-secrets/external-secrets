@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets
 
-go 1.26.4
+go 1.26.5
 
 replace (
 	github.com/external-secrets/external-secrets/apis => ./apis
@@ -11,6 +11,7 @@ replace (
 	github.com/external-secrets/external-secrets/generators/v1/fake => ./generators/v1/fake
 	github.com/external-secrets/external-secrets/generators/v1/gcr => ./generators/v1/gcr
 	github.com/external-secrets/external-secrets/generators/v1/github => ./generators/v1/github
+	github.com/external-secrets/external-secrets/generators/v1/gitlab => ./generators/v1/gitlab
 	github.com/external-secrets/external-secrets/generators/v1/grafana => ./generators/v1/grafana
 	github.com/external-secrets/external-secrets/generators/v1/mfa => ./generators/v1/mfa
 	github.com/external-secrets/external-secrets/generators/v1/password => ./generators/v1/password
@@ -82,7 +83,7 @@ require (
 	github.com/go-logr/logr v1.4.3
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
+	github.com/googleapis/gax-go/v2 v2.17.0 // indirect
 	github.com/hashicorp/vault/api v1.22.0 // indirect
 	github.com/hashicorp/vault/api/auth/approle v0.11.0 // indirect
 	github.com/hashicorp/vault/api/auth/kubernetes v0.10.0 // indirect
@@ -102,8 +103,8 @@ require (
 	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.53.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
-	google.golang.org/api v0.254.0 // indirect
-	google.golang.org/genproto v0.0.0-20251029180050-ab9386a59fda // indirect
+	google.golang.org/api v0.267.0 // indirect
+	google.golang.org/genproto v0.0.0-20260128011058-8636f8732409 // indirect
 	google.golang.org/grpc v1.79.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919 // indirect
@@ -127,6 +128,7 @@ require (
 	github.com/external-secrets/external-secrets/generators/v1/fake v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/gcr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/github v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/gitlab v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/grafana v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/mfa v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/password v0.0.0-00010101000000-000000000000
@@ -179,6 +181,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/yandex v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.0
+	github.com/robfig/cron/v3 v3.0.1
 	sigs.k8s.io/yaml v1.6.0
 )
 
@@ -186,7 +189,7 @@ require (
 	al.essio.dev/pkg/shellescape v1.6.0 // indirect
 	buf.build/gen/go/bufbuild/protovalidate/protocolbuffers/go v1.36.10-20250912141014-52f32327d4b0.1 // indirect
 	cel.dev/expr v0.25.1 // indirect
-	cloud.google.com/go/auth v0.17.0 // indirect
+	cloud.google.com/go/auth v0.18.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
@@ -215,10 +218,12 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.13 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.13 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/acm v1.37.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.51.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.38.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.13 // indirect
+	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.30.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.67.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.2 // indirect
@@ -233,7 +238,7 @@ require (
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/cloudru-tech/iam-sdk v1.0.4 // indirect
 	github.com/cloudru-tech/secret-manager-sdk v1.1.1 // indirect
-	github.com/cyberark/conjur-api-go v0.13.8 // indirect
+	github.com/cyberark/conjur-api-go v0.14.1 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dylibso/observe-sdk/go v0.0.0-20240828172851-9145d8ad07e1 // indirect
 	github.com/extism/go-sdk v1.7.1 // indirect
@@ -286,7 +291,7 @@ require (
 	github.com/hashicorp/vault/api/auth/gcp v0.11.0 // indirect
 	github.com/hashicorp/vault/api/auth/userpass v0.11.0 // indirect
 	github.com/ianlancetaylor/demangle v0.0.0-20250628045327-2d64ad6b7ec5 // indirect
-	github.com/infisical/go-sdk v0.5.100 // indirect
+	github.com/infisical/go-sdk v0.8.0 // indirect
 	github.com/keeper-security/secrets-manager-go/core v1.6.4 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/lestrrat-go/httprc v1.0.6 // indirect
@@ -294,12 +299,14 @@ require (
 	github.com/nebius/gosdk v0.0.0-20260204094009-511fd4d4f7a1 // indirect
 	github.com/ngrok/ngrok-api-go/v9 v9.0.0 // indirect
 	github.com/oapi-codegen/runtime v1.1.2 // indirect
+	github.com/openbao/openbao/api/auth/approle/v2 v2.5.1 // indirect
 	github.com/openbao/openbao/api/auth/userpass/v2 v2.5.1 // indirect
 	github.com/openbao/openbao/api/v2 v2.5.1-0.20260603121413-a08669ff09ec // indirect
 	github.com/ovh/okms-sdk-go v0.5.1 // indirect
 	github.com/passbolt/go-passbolt v0.8.0 // indirect
 	github.com/previder/vault-cli v0.1.3 // indirect
 	github.com/pulumi/esc-sdk/sdk v0.14.0 // indirect
+	github.com/rs/zerolog v1.33.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.35 // indirect
 	github.com/segmentio/asm v1.2.1 // indirect
@@ -329,7 +336,7 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/sync v0.21.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20251202230838-ff82c1b0f217 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260316180232-0b37fe3546d5 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/ghodss/yaml.v1 v1.0.0 // indirect
@@ -379,7 +386,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
 	github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83 // indirect
-	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
+	github.com/googleapis/enterprise-certificate-proxy v0.3.11 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-hclog v1.6.3 // indirect

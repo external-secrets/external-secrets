@@ -55,6 +55,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/decoding"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	estemplate "github.com/external-secrets/external-secrets/runtime/template/v2"
 )
@@ -228,54 +229,6 @@ func RewriteTransform(operation esv1.ExternalSecretRewriteTransform, in map[stri
 	return out, nil
 }
 
-// DecodeMap decodes values from a secretMap.
-func DecodeMap(strategy esv1.ExternalSecretDecodingStrategy, in map[string][]byte) (map[string][]byte, error) {
-	out := make(map[string][]byte, len(in))
-	for k, v := range in {
-		val, err := Decode(strategy, v)
-		if err != nil {
-			return nil, fmt.Errorf("failure decoding key %v: %w", k, err)
-		}
-		out[k] = val
-	}
-	return out, nil
-}
-
-// Decode decodes the input byte slice according to the provided decoding strategy.
-func Decode(strategy esv1.ExternalSecretDecodingStrategy, in []byte) ([]byte, error) {
-	switch strategy {
-	case esv1.ExternalSecretDecodeBase64:
-		out, err := base64.StdEncoding.DecodeString(string(in))
-		if err != nil {
-			return nil, err
-		}
-		return out, nil
-	case esv1.ExternalSecretDecodeBase64URL:
-		out, err := base64.URLEncoding.DecodeString(string(in))
-		if err != nil {
-			return nil, err
-		}
-		return out, nil
-	case esv1.ExternalSecretDecodeNone:
-		return in, nil
-	// default when stored version is v1alpha1
-	case "":
-		return in, nil
-	case esv1.ExternalSecretDecodeAuto:
-		out, err := Decode(esv1.ExternalSecretDecodeBase64, in)
-		if err != nil {
-			out, err := Decode(esv1.ExternalSecretDecodeBase64URL, in)
-			if err != nil {
-				return Decode(esv1.ExternalSecretDecodeNone, in)
-			}
-			return out, nil
-		}
-		return out, nil
-	default:
-		return nil, fmt.Errorf("decoding strategy %v is not supported", strategy)
-	}
-}
-
 // ValidateKeys checks if the keys in the secret map are valid keys for a Kubernetes secret.
 func ValidateKeys(log logr.Logger, in map[string][]byte) error {
 	for key := range in {
@@ -302,15 +255,9 @@ func ValidateKeys(log logr.Logger, in map[string][]byte) error {
 // ConvertKeys converts a secret map into a valid key.
 // Replaces any non-alphanumeric characters depending on convert strategy.
 func ConvertKeys(strategy esv1.ExternalSecretConversionStrategy, in map[string][]byte) (map[string][]byte, error) {
-	out := make(map[string][]byte, len(in))
-	for k, v := range in {
-		key := convert(strategy, k)
-		if _, exists := out[key]; exists {
-			return nil, fmt.Errorf("secret name collision during conversion: %s", key)
-		}
-		out[key] = v
-	}
-	return out, nil
+	return transformKeys(in, func(key string) string {
+		return convert(strategy, key)
+	})
 }
 
 func convert(strategy esv1.ExternalSecretConversionStrategy, str string) string {
@@ -340,9 +287,15 @@ func convert(strategy esv1.ExternalSecretConversionStrategy, str string) string 
 // ReverseKeys reverses a secret map into a valid key map as expected by push secrets.
 // Replaces the unicode encoded representation characters back to the actual unicode character depending on convert strategy.
 func ReverseKeys(strategy esv1alpha1.PushSecretConversionStrategy, in map[string][]byte) (map[string][]byte, error) {
+	return transformKeys(in, func(key string) string {
+		return reverse(strategy, key)
+	})
+}
+
+func transformKeys(in map[string][]byte, transform func(string) string) (map[string][]byte, error) {
 	out := make(map[string][]byte, len(in))
 	for k, v := range in {
-		key := reverse(strategy, k)
+		key := transform(k)
 		if _, exists := out[key]; exists {
 			return nil, fmt.Errorf("secret name collision during conversion: %s", key)
 		}
@@ -395,6 +348,27 @@ var (
 	// ErrSecretType is returned when a secret value cannot be handled due to its type.
 	ErrSecretType = errors.New("can not handle secret value with type")
 )
+
+// JSONToSecretDataMap unmarshals a JSON object into secret key/value pairs.
+// String values are unquoted; all other JSON types are kept as raw JSON bytes.
+func JSONToSecretDataMap(data []byte) (map[string][]byte, error) {
+	kv := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &kv); err != nil {
+		return nil, err
+	}
+
+	secretData := make(map[string][]byte, len(kv))
+	for k, v := range kv {
+		var strVal string
+		if err := json.Unmarshal(v, &strVal); err == nil {
+			secretData[k] = []byte(strVal)
+		} else {
+			secretData[k] = v
+		}
+	}
+
+	return secretData, nil
+}
 
 // GetByteValueFromMap retrieves a byte value from a map by key.
 func GetByteValueFromMap(data map[string]any, key string) ([]byte, error) {
@@ -778,7 +752,7 @@ func base64decode(cert []byte) ([]byte, error) {
 	}
 
 	// try decoding and test for validity again...
-	certificate, err := Decode(esv1.ExternalSecretDecodeAuto, cert)
+	certificate, err := decoding.Decode(esv1.ExternalSecretDecodeAuto, cert)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode base64: %w", err)
 	}
