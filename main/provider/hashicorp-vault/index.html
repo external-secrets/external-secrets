@@ -5897,6 +5897,14 @@ one supported by this provider. For other secrets engines, please refer to the
 <span class="c1">#  foobar: czNjcjN0</span>
 </code></pre></div>
 <p>Keep in mind that fetching the labels with <code>metadataPolicy: Fetch</code> only works with KV sercrets engine version v2.</p>
+<p>In addition to the labels defined under <code>custom_metadata</code>, <code>metadataPolicy: Fetch</code> also exposes the following system metadata of the secret: <code>created_time</code>, <code>current_version</code> and <code>delete_version_after</code>. All values are returned as strings. If a <code>custom_metadata</code> label uses the same name as one of these keys, the <code>custom_metadata</code> value takes precedence.</p>
+<div class="highlight"><pre><span></span><code><span class="w">  </span><span class="c1"># metadataPolicy to fetch the current version of the secret</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">version</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">metadataPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Fetch</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">foo</span>
+<span class="w">      </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">current_version</span>
+</code></pre></div>
 <h4 id="fetching-raw-values">Fetching Raw Values</h4>
 <p>You can fetch all key/value pairs for a given path If you leave the <code>remoteRef.property</code> empty. This returns the json-encoded secret value for that path.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
