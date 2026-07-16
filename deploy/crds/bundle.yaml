@@ -2709,6 +2709,11 @@ spec:
                             - name
                             - type
                           type: object
+                        ignoreCache:
+                          description: |-
+                            IgnoreCache bypasses the Gateway cache for secret reads when true.
+                            Only relevant when akeylessGWApiURL points to an Akeyless Gateway.
+                          type: boolean
                       required:
                         - akeylessGWApiURL
                         - authSecretRef
@@ -2895,6 +2900,7 @@ spec:
                           enum:
                             - SecretsManager
                             - ParameterStore
+                            - CertificateManager
                           type: string
                         sessionTags:
                           description: AWS STS assume role session tags
@@ -15480,6 +15486,11 @@ spec:
                             - name
                             - type
                           type: object
+                        ignoreCache:
+                          description: |-
+                            IgnoreCache bypasses the Gateway cache for secret reads when true.
+                            Only relevant when akeylessGWApiURL points to an Akeyless Gateway.
+                          type: boolean
                       required:
                         - akeylessGWApiURL
                         - authSecretRef
@@ -15666,6 +15677,7 @@ spec:
                           enum:
                             - SecretsManager
                             - ParameterStore
+                            - CertificateManager
                           type: string
                         sessionTags:
                           description: AWS STS assume role session tags
