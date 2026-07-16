@@ -40,4 +40,4 @@ jobs:
         reaction-token: ${{ secrets.GITHUB_TOKEN }}
         issue-type: pull-request
         commands: ok-to-test
-        permission: maintain
+        permission: write
