@@ -332,3 +332,84 @@ spec:
 ```
 
 --8<-- "snippets/provider-aws-access.md"
+
+
+## Extracting keys from JSON secrets
+
+Most production secrets stored in AWS Secrets Manager are JSON objects, not plain strings:
+
+```json
+{
+  "username": "admin",
+  "password": "s3cr3t",
+  "host": "mydb.cluster-xyz.us-east-1.rds.amazonaws.com",
+  "port": "5432",
+  "dbname": "myapp"
+}
+```
+
+### Fetch a single key with `remoteRef.property`
+
+Use `remoteRef.property` to extract one key from a JSON secret:
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: db-password
+  namespace: myapp
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: SecretStore
+  target:
+    name: db-password
+    creationPolicy: Owner
+  data:
+    - secretKey: password
+      remoteRef:
+        key: myapp/prod/database
+        property: password
+```
+
+### Fetch all keys at once with `dataFrom`
+
+Maps every JSON key directly into the Kubernetes Secret:
+
+```yaml
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: db-credentials
+  namespace: myapp
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: aws-secrets-manager
+    kind: SecretStore
+  target:
+    name: db-credentials
+    creationPolicy: Owner
+  dataFrom:
+    - extract:
+        key: myapp/prod/database
+```
+
+This produces a Secret with keys `username`, `password`, `host`, `port`, and `dbname`.
+
+### Rename keys with `rewrite`
+
+```yaml
+  dataFrom:
+    - extract:
+        key: myapp/prod/database
+      rewrite:
+        - regexp:
+            source: "(.+)"
+            target: "DB_$1"
+```
+
+This produces `DB_username`, `DB_password`, `DB_host`, etc.
+
+> **Tip:** If your secret is a plain string (not JSON), omit `property` — the entire value is stored under the `secretKey` you specify.
