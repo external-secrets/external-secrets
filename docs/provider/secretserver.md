@@ -122,6 +122,31 @@ spec:
           key: password
 ```
 
+## Authenticating with an Access Token
+
+As an alternative to `username` and `password`, you can authenticate using a pre-issued
+access token via the `token` field. This is useful when username/password login is not
+available (for example, on-prem installations with domain accounts). When `token` is set,
+`username` and `password` are not required and are ignored.
+
+Like the other credentials, the token can be provided directly via the `value` field or by
+referencing a Kubernetes secret via `secretRef`.
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: secret-server-store
+spec:
+  provider:
+    secretserver:
+      serverURL: "https://yourtenantname.secretservercloud.com"  # or "https://yourtenantname.delinea.app" for Platform
+      token:
+        secretRef:
+          name: <NAME_OF_K8S_SECRET>
+          key: <KEY_IN_K8S_SECRET>
+```
+
 ## Referencing Secrets
 
 Secrets can be referenced using four different key formats in the `remoteRef.key` field:
