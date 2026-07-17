@@ -3914,6 +3914,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#authenticating-with-an-access-token" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authenticating with an Access Token
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#referencing-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5239,6 +5250,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#authenticating-with-an-access-token" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authenticating with an Access Token
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#referencing-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5492,6 +5514,26 @@ spec.provider.secretserver.password.value: "yourpassword" <br /></p>
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_K8S_SECRET&gt;</span>
 <span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_K8S_SECRET&gt;</span>
 </code></pre></div></p>
+<h2 id="authenticating-with-an-access-token">Authenticating with an Access Token</h2>
+<p>As an alternative to <code>username</code> and <code>password</code>, you can authenticate using a pre-issued
+access token via the <code>token</code> field. This is useful when username/password login is not
+available (for example, on-prem installations with domain accounts). When <code>token</code> is set,
+<code>username</code> and <code>password</code> are not required and are ignored.</p>
+<p>Like the other credentials, the token can be provided directly via the <code>value</code> field or by
+referencing a Kubernetes secret via <code>secretRef</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secretserver</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">serverURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://yourtenantname.secretservercloud.com&quot;</span><span class="w">  </span><span class="c1"># or &quot;https://yourtenantname.delinea.app&quot; for Platform</span>
+<span class="w">      </span><span class="nt">token</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_K8S_SECRET&gt;</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_K8S_SECRET&gt;</span>
+</code></pre></div>
 <h2 id="referencing-secrets">Referencing Secrets</h2>
 <p>Secrets can be referenced using four different key formats in the <code>remoteRef.key</code> field:</p>
 <table>
