@@ -13,7 +13,7 @@ For production deployments, prefer Kubernetes Secret references over direct valu
 
 **Note:** Use `https://yourtenantname.secretservercloud.com` for Secret Server or `https://yourtenantname.delinea.app` for Platform.
 
-### Username and Password Values
+### Option A: Provide Username and Password directly in the SecretStore
 
 ```yaml
 apiVersion: external-secrets.io/v1
