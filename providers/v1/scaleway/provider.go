@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
@@ -102,19 +103,17 @@ func loadConfigSecret(ctx context.Context, ref *esv1.ScalewayProviderSecretRef, 
 }
 
 func validateSecretRef(store esv1.GenericStore, ref *esv1.ScalewayProviderSecretRef) error {
-	if ref.SecretRef != nil {
-		if ref.Value != "" {
-			return errors.New("cannot specify both secret reference and value")
-		}
-		err := esutils.ValidateReferentSecretSelector(store, *ref.SecretRef)
-		if err != nil {
-			return err
-		}
-	} else if ref.Value == "" {
-		return errors.New("must specify either secret reference or direct value")
-	}
+	return esutils.ValidateValueOrRef(ref.Value, ref.SecretRef, scalewaySecretRefPolicy(store))
+}
 
-	return nil
+// scalewaySecretRefPolicy returns the validation policy for Scaleway secret references.
+func scalewaySecretRefPolicy(store esv1.GenericStore) esutils.ValueOrRefPolicy[esmeta.SecretKeySelector] {
+	return esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
+		Presence: esutils.RequireValueOrRef,
+		ValidateRef: func(ref esmeta.SecretKeySelector) error {
+			return esutils.ValidateReferentSecretSelector(store, ref)
+		},
+	}
 }
 
 func doesConfigDependOnNamespace(cfg *esv1.ScalewayProvider) bool {
