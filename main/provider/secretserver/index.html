@@ -3911,6 +3911,56 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Creating a SecretStore">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-a-provide-username-and-password-directly-in-the-secretstore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option A: Provide Username and Password directly in the SecretStore
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-b-refer-to-authentication-credentials-stored-within-a-kubernetes-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option B: Refer to authentication credentials stored within a Kubernetes Secret
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#domain-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Domain Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-ca-bundle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom CA Bundle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -4055,6 +4105,28 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#known-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#production-deployment-guidance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production Deployment Guidance
+      
+    </span>
+  </a>
   
 </li>
       
@@ -5247,6 +5319,56 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Creating a SecretStore">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#option-a-provide-username-and-password-directly-in-the-secretstore" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option A: Provide Username and Password directly in the SecretStore
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#option-b-refer-to-authentication-credentials-stored-within-a-kubernetes-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Option B: Refer to authentication credentials stored within a Kubernetes Secret
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#domain-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Domain Authentication
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#custom-ca-bundle" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Custom CA Bundle
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -5395,6 +5517,28 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#known-limitations" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Known Limitations
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#production-deployment-guidance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Production Deployment Guidance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#pushing-secrets" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5487,22 +5631,19 @@
 
 
 <h1 id="delinea-secret-serverplatform">Delinea Secret-Server/Platform</h1>
-<p>For detailed information about configuring  Kubernetes ESO with Secret Server and the Delinea Platform, see the https://docs.delinea.com/online-help/integrations/external-secrets/kubernetes-eso-secret-server.htm</p>
+<p>For detailed information about configuring Kubernetes ESO with Secret Server and the Delinea Platform, see the Delinea External Secrets Operator integration documentation:
+https://docs.delinea.com/online-help/integrations/external-secrets/kubernetes-eso-secret-server.htm</p>
 <h2 id="creating-a-secretstore">Creating a SecretStore</h2>
 <p>You need a username, password and a fully qualified Secret-Server/Platform tenant URL to authenticate
 i.e. <code>https://yourTenantName.secretservercloud.com</code> or <code>https://yourtenantname.delinea.app</code>.</p>
-<p>Both username and password can be specified either directly in your <code>SecretStore</code> yaml config, or by referencing a kubernetes secret.</p>
-<p>Both <code>username</code> and <code>password</code> can either be specified directly via the <code>value</code> field (example below)</p>
-<blockquote>
-<p>spec.provider.secretserver.username.value: "yourusername"<br />
-spec.provider.secretserver.password.value: "yourpassword" <br /></p>
-</blockquote>
-<p>Or you can reference a kubernetes secret (password example below).</p>
-<p><strong>Note:</strong> Use <code>https://yourtenantname.secretservercloud.com</code> for Secret Server or <code>https://yourtenantname.delinea.app</code> for Platform.
+<p>Both username and password can be specified either directly in your <code>SecretStore</code> yaml config, or by referencing a Kubernetes Secret.
+For production deployments, prefer Kubernetes Secret references over direct values.</p>
+<p><strong>Note:</strong> Use <code>https://yourtenantname.secretservercloud.com</code> for Secret Server or <code>https://yourtenantname.delinea.app</code> for Platform.</p>
+<h3 id="option-a-provide-username-and-password-directly-in-the-secretstore">Option A: Provide Username and Password directly in the SecretStore</h3>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-store</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-store-values</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">secretserver</span><span class="p">:</span>
@@ -5510,10 +5651,89 @@ spec.provider.secretserver.password.value: "yourpassword" <br /></p>
 <span class="w">      </span><span class="nt">username</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;yourusername&quot;</span>
 <span class="w">      </span><span class="nt">password</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">value</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;yourpassword&quot;</span>
+</code></pre></div>
+<h3 id="option-b-refer-to-authentication-credentials-stored-within-a-kubernetes-secret">Option B: Refer to authentication credentials stored within a Kubernetes Secret</h3>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretserver-credentials</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;yourusername&quot;</span>
+<span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;yourpassword&quot;</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secretserver</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">serverURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://yourtenantname.secretservercloud.com&quot;</span>
+<span class="w">      </span><span class="nt">username</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
-<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;NAME_OF_K8S_SECRET&gt;</span>
-<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;KEY_IN_K8S_SECRET&gt;</span>
-</code></pre></div></p>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretserver-credentials</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
+<span class="w">      </span><span class="nt">password</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretserver-credentials</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+</code></pre></div>
+<h3 id="domain-authentication">Domain Authentication</h3>
+<p>If your Secret Server account requires a domain, set <code>domain</code> with the same value used for interactive or API login.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-store-domain</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secretserver</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">serverURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://yourtenantname.secretservercloud.com&quot;</span>
+<span class="w">      </span><span class="nt">domain</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-domain&quot;</span>
+<span class="w">      </span><span class="nt">username</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretserver-credentials</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
+<span class="w">      </span><span class="nt">password</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretserver-credentials</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+</code></pre></div>
+<h3 id="custom-ca-bundle">Custom CA Bundle</h3>
+<p>For Secret Server instances that use a private CA, configure either <code>caBundle</code> or <code>caProvider</code>.
+This example reads the CA certificate from a ConfigMap:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ConfigMap</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretserver-ca</span>
+<span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">ca.crt</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+<span class="w">    </span><span class="no">-----BEGIN CERTIFICATE-----</span>
+<span class="w">    </span><span class="no">...</span>
+<span class="w">    </span><span class="no">-----END CERTIFICATE-----</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret-server-store-ca</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secretserver</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">serverURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://secretserver.example.com&quot;</span>
+<span class="w">      </span><span class="nt">caProvider</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ConfigMap</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretserver-ca</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ca.crt</span>
+<span class="w">      </span><span class="nt">username</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretserver-credentials</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">username</span>
+<span class="w">      </span><span class="nt">password</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretserver-credentials</span>
+<span class="w">          </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+</code></pre></div>
 <h2 id="authenticating-with-an-access-token">Authenticating with an Access Token</h2>
 <p>As an alternative to <code>username</code> and <code>password</code>, you can authenticate using a pre-issued
 access token via the <code>token</code> field. This is useful when username/password login is not
@@ -5573,9 +5793,11 @@ referencing a Kubernetes secret via <code>secretRef</code>.</p>
 <li>Retrieving a specific version of a secret is not yet supported.</li>
 <li>The <strong>folder-scoped name</strong> format (<code>folderId:&lt;id&gt;/&lt;name&gt;</code>) is particularly important when using <code>PushSecret</code> with <code>deletionPolicy: Delete</code>, because the deletion and existence-check operations need to identify the correct secret without access to metadata. See <a href="#pushing-secrets">Pushing Secrets</a> for details.</li>
 </ul>
-<p>Because all Secret-Server/Platform secrets are JSON objects, you must specify the <code>remoteRef.property</code>
-in your ExternalSecret configuration.<br />
-You can access nested values or arrays using <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson syntax</a>.</p>
+<p>Secret Server returns a secret object with an <code>Items</code> array. Individual <code>ItemValue</code> fields can contain JSON or plain text.
+Set <code>remoteRef.property</code> to a <a href="https://github.com/tidwall/gjson/blob/master/SYNTAX.md">gjson path</a> when the first <code>ItemValue</code> contains JSON, or to a field <code>Slug</code>/<code>FieldName</code> for multi-field templates.
+If <code>remoteRef.property</code> is empty, <code>data</code> returns the full Secret Server secret object as JSON.
+For <code>dataFrom</code> with an empty <code>property</code>, the provider parses the first field's <code>ItemValue</code> as a map when it is a valid JSON object; otherwise it maps the secret into key/value entries keyed by each field's <code>Slug</code> (falling back to <code>FieldName</code>, then <code>FieldID</code>).
+For <code>dataFrom</code> with <code>property</code> set, the provider resolves that property using the same rules as <code>data</code>; if the resolved value is itself a JSON object it is expanded into key/value entries, otherwise a single entry keyed by the property name is returned.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5632,7 +5854,7 @@ This allows you to specify a secret’s folder hierarchy and name in the format:
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretServerValue</span><span class="w">  </span><span class="c1"># Key in the Kubernetes Secret</span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/secretFolder/secretname&quot;</span><span class="w">  </span><span class="c1"># Path format: /&lt;Folder&gt;/&lt;SecretName&gt;</span>
-<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;&quot;</span><span class="w">                    </span><span class="c1"># Optional: matched against field Slug/FieldName first, then gjson on Items.0.ItemValue as fallback</span>
+<span class="w">        </span><span class="c1"># property omitted: returns the entire secret as JSON. Set it to a gjson path or a field Slug/FieldName to select a value.</span>
 </code></pre></div>
 <h3 id="notes">Notes:</h3>
 <p>The path must exactly match the folder and secret name in Secret-Server/Platform.
@@ -5708,7 +5930,7 @@ returns: The entire secret in JSON format as displayed below</p>
 <span class="p">}</span>
 </code></pre></div>
 <h2 id="referencing-secrets-by-field-name-or-slug">Referencing Secrets by Field Name or Slug</h2>
-<p>When <code>property</code> is set, the provider first tries to match it against each field's <code>Slug</code> or <code>FieldName</code> and returns the corresponding <code>ItemValue</code>. This works for secrets with any number of fields. If no field matches, it falls back to treating the first field's <code>ItemValue</code> as JSON and extracting the property using gjson syntax (supporting nested paths like <code>"books.1"</code>).</p>
+<p>When <code>property</code> is set, the provider first treats the first field's <code>ItemValue</code> as JSON — when it is valid JSON — and extracts the property using gjson syntax (supporting nested paths like <code>"books.1"</code>). If that does not yield a value, it falls back to matching <code>property</code> against each field's <code>Slug</code> or <code>FieldName</code> and returns the corresponding <code>ItemValue</code>. This works for secrets with any number of fields.</p>
 <h3 id="examples_1">Examples</h3>
 <p>Using the json formatted secret below:</p>
 <ul>
@@ -5784,6 +6006,24 @@ returns: The entire secret in JSON format as displayed below</p>
 <span class="w">  </span><span class="p">]</span>
 <span class="p">}</span>
 </code></pre></div>
+<h2 id="known-limitations">Known Limitations</h2>
+<ul>
+<li><code>GetAllSecrets</code> is not implemented. The current <code>tss-sdk-go</code> search API used by this provider is capped at 30 results and does not expose pagination, folder enumeration, or server-side tag filtering.</li>
+<li><code>dataFrom.find.tags</code> is not supported. Secret Server does not expose an indexed tag search for ESO to map directly to this feature.</li>
+<li>Secret version lookup is not supported. Setting <code>remoteRef.version</code> returns an error.</li>
+<li>Name-only lookups can be ambiguous when multiple folders contain secrets with the same name. Prefer numeric IDs, full paths, or <code>folderId:&lt;id&gt;/&lt;name&gt;</code> for production references.</li>
+</ul>
+<h2 id="production-deployment-guidance">Production Deployment Guidance</h2>
+<ul>
+<li>Use a dedicated Secret Server account for ESO with the minimum permissions needed for the configured use case.</li>
+<li>Store Secret Server credentials in Kubernetes Secrets and reference them from the <code>SecretStore</code> or <code>ClusterSecretStore</code>; avoid committing direct credential values to manifests.</li>
+<li>Prefer namespace-scoped <code>SecretStore</code> resources when different teams or namespaces should have different Secret Server access boundaries.</li>
+<li>Use <code>ClusterSecretStore</code> only when the same Secret Server account is intentionally shared across namespaces. For <code>ClusterSecretStore</code>, credential <code>secretRef</code> values must include explicit namespaces.</li>
+<li>Scope the Secret Server account to the folders and templates ESO needs. For <code>PushSecret</code>, grant create/update/delete only in folders that ESO is expected to manage.</li>
+<li>Rotate the Secret Server account password according to your organization's credential rotation policy, then update the referenced Kubernetes Secret.</li>
+<li>Use <code>folderId:&lt;id&gt;/&lt;name&gt;</code>, full paths, or numeric IDs for <code>PushSecret</code> resources with <code>deletionPolicy: Delete</code> to avoid acting on the wrong secret.</li>
+<li>For private or on-premises Secret Server instances, configure <code>caBundle</code> or <code>caProvider</code> instead of disabling TLS verification outside ESO.</li>
+</ul>
 <h2 id="pushing-secrets">Pushing Secrets</h2>
 <p>The Delinea Secret-Server/Platform provider supports pushing secrets from Kubernetes back to your Secret Server instance using the <code>PushSecret</code> resource. You can both create new secrets and update existing ones.</p>
 <h3 id="remote-key-formats-for-pushsecret">Remote Key Formats for PushSecret</h3>
