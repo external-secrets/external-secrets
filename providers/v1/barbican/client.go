@@ -31,7 +31,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 const (
@@ -121,18 +120,21 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esapi.ExternalSecretDataR
 		return nil, fmt.Errorf(errClientGeneric, err)
 	}
 
-	var kv map[string]any
-	if err := json.Unmarshal(payload, &kv); err != nil {
+	var rawJSON map[string]json.RawMessage
+	if err := json.Unmarshal(payload, &rawJSON); err != nil {
 		return nil, fmt.Errorf(errClientJSONUnmarshal, err)
 	}
 
-	secretMap := make(map[string][]byte, len(kv))
-	for k := range kv {
-		byteValue, err := esutils.GetByteValueFromMap(kv, k)
-		if err != nil {
-			return nil, fmt.Errorf(errClientGeneric, err)
+	secretMap := make(map[string][]byte, len(rawJSON))
+	for k, v := range rawJSON {
+		// Numbers stay raw; decoding into float64 would drop precision on
+		// large integers.
+		var strVal string
+		if err := json.Unmarshal(v, &strVal); err == nil {
+			secretMap[k] = []byte(strVal)
+		} else {
+			secretMap[k] = v
 		}
-		secretMap[k] = byteValue
 	}
 
 	return secretMap, nil
