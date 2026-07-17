@@ -1,4 +1,4 @@
-## Nebius MysteryBox
+# Nebius MysteryBox
 
 External Secrets Operator integrates with [Nebius MysteryBox](https://docs.nebius.com/mysterybox/overview).
 

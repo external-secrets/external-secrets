@@ -42,7 +42,8 @@ var (
 	errClusterStoreRequiresNamespace = errors.New("when using a ClusterSecretStore, namespaces must be explicitly set")
 )
 
-// Provider implements the External Secrets provider for Delinea Secret Server.
+// Provider implements the External Secrets provider for Delinea DevOps
+// Secrets Vault.
 type Provider struct{}
 
 var _ esv1.Provider = &Provider{}
@@ -52,7 +53,7 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
-// NewClient creates a new Delinea Secret Server client.
+// NewClient creates a new Delinea DevOps Secrets Vault client.
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube kubeClient.Client, namespace string) (esv1.SecretsClient, error) {
 	cfg, err := getConfig(store)
 	if err != nil {

@@ -31,7 +31,7 @@ const (
 	errInvalidStoreSpec   = "invalid store spec"
 	errInvalidStoreProv   = "invalid store provider"
 	errInvalidOpenBaoProv = "invalid OpenBao provider"
-	errInvalidTokenRef    = "invalid Auth.TokenSecretRef: %w"
+	errInvalidRef         = "invalid %s: %w"
 )
 
 // ValidateStore validates the OpenBao provider configuration in the SecretStore.
@@ -51,9 +51,25 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, errors.New(errInvalidOpenBaoProv)
 	}
 	if baoProvider.Auth != nil {
-		if baoProvider.Auth.TokenSecretRef != nil {
-			if err := esutils.ValidateReferentSecretSelector(store, *baoProvider.Auth.TokenSecretRef); err != nil {
-				return nil, fmt.Errorf(errInvalidTokenRef, err)
+		auth := baoProvider.Auth
+		if auth.AppRole != nil {
+			if auth.AppRole.RoleRef != nil {
+				if err := esutils.ValidateReferentSecretSelector(store, *auth.AppRole.RoleRef); err != nil {
+					return nil, fmt.Errorf(errInvalidRef, "Auth.AppRole.RoleRef", err)
+				}
+			}
+			if err := esutils.ValidateReferentSecretSelector(store, auth.AppRole.SecretRef); err != nil {
+				return nil, fmt.Errorf(errInvalidRef, "Auth.AppRole.SecretRef", err)
+			}
+		}
+		if auth.TokenSecretRef != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, *auth.TokenSecretRef); err != nil {
+				return nil, fmt.Errorf(errInvalidRef, "Auth.TokenSecretRef", err)
+			}
+		}
+		if auth.UserPass != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, auth.UserPass.SecretRef); err != nil {
+				return nil, fmt.Errorf(errInvalidRef, "Auth.UserPass.SecretRef", err)
 			}
 		}
 	}

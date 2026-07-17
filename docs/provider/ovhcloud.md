@@ -1,4 +1,4 @@
-## Secrets Manager
+# OVHcloud Secrets Manager
 
 External Secrets Operator integrates with [OVHcloud KMS](https://www.ovhcloud.com/en/identity-security-operations/key-management-service/).  
 
