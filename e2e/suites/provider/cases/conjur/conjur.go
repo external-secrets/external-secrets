@@ -28,6 +28,8 @@ const (
 	withTokenAuth    = "with apikey auth"
 	withJWTK8s       = "with jwt k8s provider"
 	withJWTK8sHostID = "with jwt k8s hostid provider"
+	withCert         = "with cert provider"
+	withCertHostID   = "with cert hostid provider"
 )
 
 var _ = Describe("[conjur]", Label("conjur"), Ordered, func() {
@@ -78,6 +80,24 @@ var _ = Describe("[conjur]", Label("conjur"), Ordered, func() {
 		framework.Compose(withJWTK8sHostID, f, common.SyncWithoutTargetName, useJWTK8sHostIDProvider(prov)),
 		framework.Compose(withJWTK8sHostID, f, common.JSONDataFromSync, useJWTK8sHostIDProvider(prov)),
 		framework.Compose(withJWTK8sHostID, f, common.JSONDataFromRewrite, useJWTK8sHostIDProvider(prov)),
+
+		// use cert provider
+		framework.Compose(withCert, f, common.FindByName, useCertProvider(prov)),
+		framework.Compose(withCert, f, common.FindByNameAndRewrite, useCertProvider(prov)),
+		framework.Compose(withCert, f, common.FindByTag, useCertProvider(prov)),
+		framework.Compose(withCert, f, common.SimpleDataSync, useCertProvider(prov)),
+		framework.Compose(withCert, f, common.SyncWithoutTargetName, useCertProvider(prov)),
+		framework.Compose(withCert, f, common.JSONDataFromSync, useCertProvider(prov)),
+		framework.Compose(withCert, f, common.JSONDataFromRewrite, useCertProvider(prov)),
+
+		// use cert hostid provider
+		framework.Compose(withCertHostID, f, common.FindByName, useCertHostIDProvider(prov)),
+		framework.Compose(withCertHostID, f, common.FindByNameAndRewrite, useCertHostIDProvider(prov)),
+		framework.Compose(withCertHostID, f, common.FindByTag, useCertHostIDProvider(prov)),
+		framework.Compose(withCertHostID, f, common.SimpleDataSync, useCertHostIDProvider(prov)),
+		framework.Compose(withCertHostID, f, common.SyncWithoutTargetName, useCertHostIDProvider(prov)),
+		framework.Compose(withCertHostID, f, common.JSONDataFromSync, useCertHostIDProvider(prov)),
+		framework.Compose(withCertHostID, f, common.JSONDataFromRewrite, useCertHostIDProvider(prov)),
 	)
 })
 
@@ -99,5 +119,19 @@ func useJWTK8sHostIDProvider(prov *conjurProvider) func(tc *framework.TestCase) 
 	return func(tc *framework.TestCase) {
 		prov.CreateJWTK8sHostIDStore()
 		tc.ExternalSecret.Spec.SecretStoreRef.Name = jwtK8sHostIDProviderName
+	}
+}
+
+func useCertProvider(prov *conjurProvider) func(tc *framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		prov.CreateCertStore()
+		tc.ExternalSecret.Spec.SecretStoreRef.Name = certProviderName
+	}
+}
+
+func useCertHostIDProvider(prov *conjurProvider) func(tc *framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		prov.CreateCertHostIDStore()
+		tc.ExternalSecret.Spec.SecretStoreRef.Name = certHostIDProviderName
 	}
 }
