@@ -13,7 +13,7 @@
 # limitations under the License.
 
 DOCKER ?= docker
-MKDOCS_IMAGE ?= github.com/external-secrets-mkdocs:latest
+MKDOCS_IMAGE ?= eso-mkdocs:latest
 MKDOCS ?= mkdocs
 MIKE ?= mike
 DOCS_VERSION ?= main
@@ -47,7 +47,7 @@ all: build
 
 .PHONY: image
 image:
-	$(DOCKER) build -t $(MKDOCS_IMAGE) -f Dockerfile .
+	$(DOCKER) buildx build --load -t $(MKDOCS_IMAGE) -f Dockerfile .
 
 VERSION_TO_UPDATE ?= $(shell echo $(MAJOR_VERSION).$(MINOR_VERSION).x)
 
@@ -66,7 +66,7 @@ build: image generate $(SOURCES)
 		--env "GIT_COMMITTER_EMAIL=$(shell git config user.email)" \
 		--env "GITHUB_TOKEN=$(GITHUB_TOKEN)" \
 		$(MKDOCS_IMAGE) \
-		$(SHELL) -c "cd /repo && $(MIKE) deploy --ignore --update-aliases -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
+		$(SHELL) -c "cd /repo && $(MIKE) deploy --ignore-remote-status --update-aliases -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: build.publish
 build.publish: image generate $(SOURCES)
 	mkdir -p $(GENROOT)

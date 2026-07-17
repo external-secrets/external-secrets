@@ -1,4 +1,4 @@
-## BeyondTrust Password Safe
+# BeyondTrust Password Safe
 
 External Secrets Operator integrates with [BeyondTrust Password Safe](https://www.beyondtrust.com/docs/beyondinsight-password-safe/).
 
@@ -6,12 +6,12 @@ Warning: The External Secrets Operator secure usage involves taking several meas
 
 Warning: If the BT provider secret is deleted it will still exist in the Kubernetes secrets.
 
-### Prerequisites
+## Prerequisites
 The BT provider supports retrieval of a secret from BeyondInsight/Password Safe versions 23.1 or greater.
 
 For this provider to retrieve a secret the Password Safe/Secrets Safe instance must be preconfigured with the secret in question and authorized to read it.
 
-### Authentication
+## Authentication
 
 BeyondTrust [OAuth Authentication](https://www.beyondtrust.com/docs/beyondinsight-password-safe/ps/admin/configure-api-registration.htm).
 
@@ -35,7 +35,7 @@ If you're using API Key authentication:
 kubectl create secret generic bt-apikey --from-literal ApiKey="<your apikey>"
 ```
 
-### Client Certificate
+## Client Certificate
 
 If using `retrievalType: MANAGED_ACCOUNT`, you will also need to download the pfx certificate from Secrets Safe, extract that certificate and create two Kubernetes secrets.
 
@@ -57,7 +57,7 @@ kubectl create secret generic bt-certificate --from-file=ClientCertificate=./ps_
 kubectl create secret generic bt-certificatekey --from-file=ClientCertificateKey=./ps_key.pem
 ```
 
-### Creating a SecretStore
+## Creating a SecretStore
 
 You can follow the below example to create a `SecretStore` resource.
 You can also use a `ClusterSecretStore` allowing you to reference secrets from all namespaces. [ClusterSecretStore](https://external-secrets.io/latest/api/clustersecretstore/)
@@ -75,8 +75,10 @@ spec:
   provider:
     beyondtrust:
       server:
-        apiUrl: https://example.com:443/BeyondTrust/api/public/v3/
+        apiUrl: https://example.com/BeyondTrust/api/public/v3/
         retrievalType: MANAGED_ACCOUNT  # or SECRET
+        separator: "/" # folder separator used to split remoteRef.key paths; defaults to "/"
+        decrypt: true # SECRET retrievalType only: when false the password field is omitted; defaults to true
         verifyCA: true
         clientTimeOutSeconds: 45
         apiVersion: "3.0" # The recommended version is 3.1. If no version is specified, the default API version 3.0 will be used.
@@ -103,10 +105,12 @@ spec:
             key: ApiKey
 ```
 
-### Creating an ExternalSecret
+## Creating an ExternalSecret
 
 You can follow the below example to create a `ExternalSecret` resource. Secrets can be referenced by path.
 You can also use a `ClusterExternalSecret` allowing you to reference secrets from all namespaces.
+
+`remoteRef.key` is the secret or managed-account path. Path segments are joined by the `separator` configured on the store (default `/`), for example `system01/managed_account01`. Reference each secret explicitly under `data`; `dataFrom` is not supported (see Limitations).
 
 ```sh
 kubectl apply -f external-secret.yml
@@ -116,14 +120,14 @@ kubectl apply -f external-secret.yml
 {% include 'beyondtrust-external-secret.yaml' %}
 ```
 
-### Get the K8s secret
+## Get the K8s secret
 
 ```shell
 # WARNING: this command will reveal the stored secret in plain text
 kubectl get secret my-beyondtrust-secret -o jsonpath="{.data.secretKey}" | base64 --decode && echo
 ```
 
-### Creating a Secret
+## Creating a Secret
 
 The following example shows how to create a Kubernetes `Secret` that will later be pushed to BeyondTrust.
 
@@ -135,7 +139,7 @@ kubectl apply -f beyondtrust-secret.yml
 {% include 'beyondtrust-secret.yaml' %}
 ```
 
-### Creating an ClusterSecretStore
+## Creating an ClusterSecretStore
 
 The following example demonstrates how to create a `ClusterSecretStore` configured to use the BeyondTrust provider.
 
@@ -147,7 +151,7 @@ kubectl apply -f beyondtrust-cluster-secret-store.yml
 {% include 'beyondtrust-cluster-secret-store.yaml' %}
 ```
 
-### Creating an PushSecret
+## Creating an PushSecret
 
 The example below demonstrates how to create a `PushSecret` resource to push secret data to BeyondTrust.
 
@@ -158,3 +162,8 @@ kubectl apply -f beyondtrust-push-secret.yml
 ```yaml
 {% include 'beyondtrust-push-secret.yaml' %}
 ```
+
+## Limitations
+
+- The provider reads individual secrets via `data[].remoteRef.key` and writes via `PushSecret`. `dataFrom.extract` and `dataFrom.find` are not implemented (`GetSecretMap` and `GetAllSecrets` return "not implemented"), so reference each secret explicitly by key.
+- `PushSecret` with `deletionPolicy: Delete` is not supported. Removing the `PushSecret` or `ExternalSecret` does not delete the secret in BeyondTrust, because the `DeleteSecret` operation is not implemented.

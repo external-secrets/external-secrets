@@ -212,7 +212,7 @@ Once the Core Controller Pod can access the Secret Manager secret(s) through GKE
 Alternatively, with projectID auto-detection (GKE only):
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: gcp-secret-store
@@ -235,7 +235,7 @@ In practice:
 This allows portable `SecretStore` configurations on GKE without hard-coding the project when the above conditions hold:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: gcp-secret-store
@@ -478,7 +478,7 @@ spec:
 
 ### Location and Replication
 
-By default, secrets are automatically replicated across multiple regions. You can specify a single location for your secrets by setting the `replicationLocation` field:
+By default, secrets are automatically replicated across multiple regions. You can specify one or more replication locations for your secrets by setting the `replicationLocations` field:
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
@@ -496,7 +496,8 @@ spec:
         apiVersion: kubernetes.external-secrets.io/v1alpha1
         kind: PushSecretMetadata
         spec:
-          replicationLocation: "us-east1"
+          replicationLocations:
+            - "us-east1"
 ```
 
 ### Customer-Managed Encryption Keys (CMEK)
@@ -546,7 +547,7 @@ GCP Secret Manager Regional Secrets are available to be used with both ExternalS
 In order to achieve so, add a `location` to your SecretStore definition:
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: gcp-secret-store
@@ -573,7 +574,7 @@ By default, when you request a secret without specifying a version, the provider
 #### Configuration Example
 
 ```yaml
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: gcp-secret-store

@@ -81,10 +81,12 @@ nav:
           - Grafana: api/generator/grafana.md
           - Quay: api/generator/quay.md
           - Vault Dynamic Secret: api/generator/vault.md
+          - BeyondTrust Workload Credentials: api/generator/beyondtrustworkloadcredentials.md
           - Password: api/generator/password.md
           - Fake: api/generator/fake.md
           - Webhook: api/generator/webhook.md
           - Github: api/generator/github.md
+          - Gitlab: api/generator/gitlab.md
           - UUID: api/generator/uuid.md
           - MFA: api/generator/mfa.md
           - SSHKey: api/generator/sshkey.md
@@ -121,10 +123,12 @@ nav:
   - Provider:
       - AWS Secrets Manager: provider/aws-secrets-manager.md
       - AWS Parameter Store: provider/aws-parameter-store.md
+      - AWS Certificate Manager: provider/aws-certificate-manager.md
       - AWS Access: provider/aws-access.md
       - Azure Key Vault: provider/azure-key-vault.md
       - Barbican: provider/barbican.md
       - BeyondTrust: provider/beyondtrust.md
+      - BeyondTrust Workload Credentials: provider/beyondtrustworkloadcredentials.md
       - Bitwarden Secrets Manager: provider/bitwarden-secrets-manager.md
       - Chef: provider/chef.md
       - Cloud.ru Secret Manager: provider/cloudru.md

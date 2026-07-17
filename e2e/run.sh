@@ -15,11 +15,6 @@
 # limitations under the License.
 set -euo pipefail
 
-if ! command -v kind --version &> /dev/null; then
-  echo "kind is not installed. Use the package manager or visit the official site https://kind.sigs.k8s.io/"
-  exit 1
-fi
-
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
@@ -38,11 +33,6 @@ echo -e "Granting anonymous access to service account issuer discovery"
 kubectl create clusterrolebinding service-account-issuer-discovery-binding \
   --clusterrole=system:service-account-issuer-discovery \
   --group=system:unauthenticated || true
-
-echo -e "Cleaning cache before running tests"
-docker system prune --force
-go clean -cache
-go clean -modcache
 
 echo -e "Starting the e2e test pod ${E2E_IMAGE_NAME}:${VERSION}"
 kubectl run --rm \

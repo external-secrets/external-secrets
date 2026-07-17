@@ -1,4 +1,4 @@
-## 1Password Secrets with SDK
+# 1Password Secrets with SDK
 
 1Password released [developer SDKs](https://developer.1password.com/docs/sdks/) to ease the usage of the secret provider
 without the need for any external devices. This provides a much better user experience for automated processes without
@@ -40,7 +40,7 @@ spec:
         maxSize: 100 # Optional, default: 100
 ```
 
-Caching applies to read operations (`GetSecret`, `GetSecretMap`). Write operations (`PushSecret`, `DeleteSecret`) automatically invalidate relevant cache entries.
+Caching applies to read operations (`GetSecret`, `GetSecretMap`, `GetAllSecrets`). Write operations (`PushSecret`, `DeleteSecret`) automatically invalidate relevant cache entries.
 
 !!! warning "Experimental"
     This is an experimental feature and if too long of a TTL is set, secret information might be out of date.
