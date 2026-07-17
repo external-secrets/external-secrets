@@ -106,6 +106,7 @@ func validateSecretRef(store esv1.GenericStore, ref *esv1.ScalewayProviderSecret
 	return esutils.ValidateValueOrRef(ref.Value, ref.SecretRef, scalewaySecretRefPolicy(store))
 }
 
+// scalewaySecretRefPolicy returns the validation policy for Scaleway secret references.
 func scalewaySecretRefPolicy(store esv1.GenericStore) esutils.ValueOrRefPolicy[esmeta.SecretKeySelector] {
 	return esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
 		Presence: esutils.RequireValueOrRef,

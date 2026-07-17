@@ -146,6 +146,7 @@ func loadCredentials(ctx context.Context, store esv1.GenericStore, cfg *esv1.Sec
 	}, nil
 }
 
+// secretServerCredentialRefPolicy returns the validation policy for Secret Server credential fields.
 func secretServerCredentialRefPolicy(store esv1.GenericStore) esutils.ValueOrRefPolicy[esmeta.SecretKeySelector] {
 	return esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
 		Presence:    esutils.RequireValueOrRef,
@@ -153,6 +154,7 @@ func secretServerCredentialRefPolicy(store esv1.GenericStore) esutils.ValueOrRef
 	}
 }
 
+// validateSecretServerCredentialSecretRef validates a Secret Server credential secret reference against the store scope.
 func validateSecretServerCredentialSecretRef(store esv1.GenericStore) func(esmeta.SecretKeySelector) error {
 	return func(ref esmeta.SecretKeySelector) error {
 		if err := esutils.ValidateReferentSecretSelector(store, ref); err != nil {
@@ -168,6 +170,7 @@ func validateSecretServerCredentialSecretRef(store esv1.GenericStore) func(esmet
 	}
 }
 
+// validateStoreSecretRef validates a Secret Server credential reference against the store scope.
 func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.SecretServerProviderRef) error {
 	return esutils.ValidateValueOrRef(ref.Value, ref.SecretRef, secretServerCredentialRefPolicy(store))
 }
@@ -179,6 +182,7 @@ func validateSecretRef(ref *esv1.SecretServerProviderRef) error {
 	})
 }
 
+// validateSecretServerCredentialSecretRefNameAndKey ensures a Secret Server credential secret reference has both name and key.
 func validateSecretServerCredentialSecretRefNameAndKey(ref esmeta.SecretKeySelector) error {
 	if ref.Name == "" {
 		return errMissingSecretName

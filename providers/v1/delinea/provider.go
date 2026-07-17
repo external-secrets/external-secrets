@@ -92,6 +92,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}, nil
 }
 
+// loadConfigSecret resolves a Delinea credential from either an inline value or a secret reference.
 func loadConfigSecret(
 	ctx context.Context,
 	storeKind string,
@@ -107,6 +108,7 @@ func loadConfigSecret(
 	return resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, ref.SecretRef)
 }
 
+// delineaCredentialRefPolicy returns the validation policy for Delinea credential fields.
 func delineaCredentialRefPolicy(store esv1.GenericStore) esutils.ValueOrRefPolicy[esmeta.SecretKeySelector] {
 	return esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
 		Presence:    esutils.RequireValueOrRef,
@@ -114,6 +116,7 @@ func delineaCredentialRefPolicy(store esv1.GenericStore) esutils.ValueOrRefPolic
 	}
 }
 
+// validateDelineaCredentialSecretRef validates a Delinea credential secret reference against the store scope.
 func validateDelineaCredentialSecretRef(store esv1.GenericStore) func(esmeta.SecretKeySelector) error {
 	return func(ref esmeta.SecretKeySelector) error {
 		if err := esutils.ValidateReferentSecretSelector(store, ref); err != nil {
@@ -123,6 +126,7 @@ func validateDelineaCredentialSecretRef(store esv1.GenericStore) func(esmeta.Sec
 	}
 }
 
+// validateSecretRef validates a Delinea credential reference independently of a store.
 func validateSecretRef(ref *esv1.DelineaProviderSecretRef) error {
 	return esutils.ValidateValueOrRef(ref.Value, ref.SecretRef, esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
 		Presence:    esutils.RequireValueOrRef,
@@ -130,6 +134,7 @@ func validateSecretRef(ref *esv1.DelineaProviderSecretRef) error {
 	})
 }
 
+// validateDelineaCredentialSecretRefNameAndKey ensures a Delinea credential secret reference has both name and key.
 func validateDelineaCredentialSecretRefNameAndKey(ref esmeta.SecretKeySelector) error {
 	if ref.Name == "" {
 		return errMissingSecretName

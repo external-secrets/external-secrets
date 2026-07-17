@@ -725,7 +725,7 @@ func TestValidateStoreSecretRef(t *testing.T) {
 			if tc.wantErr == nil {
 				assert.NoError(t, err)
 			} else {
-				assert.EqualError(t, err, tc.wantErr.Error())
+				assert.ErrorIs(t, err, tc.wantErr)
 			}
 		})
 	}

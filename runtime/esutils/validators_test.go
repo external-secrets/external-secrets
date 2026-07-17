@@ -82,11 +82,50 @@ func TestValidateValueOrRef(t *testing.T) {
 			},
 		},
 		{
+			name:  "allows optional value",
+			value: "value",
+			policy: ValueOrRefPolicy[string]{
+				Presence: AllowValueOrRef,
+			},
+		},
+		{
+			name: "allows optional ref",
+			ref:  &ref,
+			policy: ValueOrRefPolicy[string]{
+				Presence: AllowValueOrRef,
+			},
+		},
+		{
+			name:  "allows optional pair: rejects both",
+			value: "value",
+			ref:   &ref,
+			policy: ValueOrRefPolicy[string]{
+				Presence: AllowValueOrRef,
+			},
+			wantErr: ErrValueAndRefConflict,
+		},
+		{
 			name: "requires ref only",
 			ref:  &ref,
 			policy: ValueOrRefPolicy[string]{
 				Presence: RequireRefOnly,
 			},
+		},
+		{
+			name: "requires ref only: rejects missing ref",
+			policy: ValueOrRefPolicy[string]{
+				Presence: RequireRefOnly,
+			},
+			wantErr: ErrRefRequired,
+		},
+		{
+			name:  "requires ref only: rejects value",
+			value: "value",
+			ref:   &ref,
+			policy: ValueOrRefPolicy[string]{
+				Presence: RequireRefOnly,
+			},
+			wantErr: ErrValueNotAllowed,
 		},
 		{
 			name:  "requires value only",
@@ -95,15 +134,41 @@ func TestValidateValueOrRef(t *testing.T) {
 				Presence: RequireValueOnly,
 			},
 		},
+		{
+			name: "requires value only: rejects missing value",
+			policy: ValueOrRefPolicy[string]{
+				Presence: RequireValueOnly,
+			},
+			wantErr: ErrValueRequired,
+		},
+		{
+			name:  "requires value only: rejects ref",
+			value: "value",
+			ref:   &ref,
+			policy: ValueOrRefPolicy[string]{
+				Presence: RequireValueOnly,
+			},
+			wantErr: ErrRefNotAllowed,
+		},
+		{
+			name: "rejects unknown policy",
+			policy: ValueOrRefPolicy[string]{
+				Presence: RefPresencePolicy(99),
+			},
+			wantErr: errors.New("unknown value/reference presence policy: 99"),
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := ValidateValueOrRef(tt.value, tt.ref, tt.policy)
-			if got == nil && tt.wantErr == nil {
+			if tt.wantErr == nil {
+				if got != nil {
+					t.Errorf("ValidateValueOrRef() got = %v, want no error", got)
+				}
 				return
 			}
-			if got == nil || tt.wantErr == nil || got.Error() != tt.wantErr.Error() {
+			if !errors.Is(got, tt.wantErr) && (got == nil || got.Error() != tt.wantErr.Error()) {
 				t.Errorf("ValidateValueOrRef() got = %v, want = %v", got, tt.wantErr)
 			}
 		})
