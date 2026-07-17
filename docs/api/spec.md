@@ -3278,12 +3278,14 @@ SecretStoreRetrySettings
 <td>
 <code>refreshInterval</code></br>
 <em>
-int
+k8s.io/apimachinery/pkg/util/intstr.IntOrString
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
+<p>Used to configure store refresh interval. Accepts either an integer number
+of seconds (legacy) or a Go duration string such as &ldquo;1h&rdquo; or &ldquo;5m&rdquo;. Empty or
+0 will default to the controller config.</p>
 </td>
 </tr>
 <tr>
@@ -4505,7 +4507,13 @@ ExternalSecretStatus
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;Merge&#34;</p></td>
+<tbody><tr><td><p>&#34;CreateOrMerge&#34;</p></td>
+<td><p>CreatePolicyCreateOrMerge creates the Secret if it is missing and merges
+data fields into it if it exists, without an ownerReference. A deleted
+target is recreated while the ExternalSecret exists, and the Secret is
+retained when the ExternalSecret is deleted.</p>
+</td>
+</tr><tr><td><p>&#34;Merge&#34;</p></td>
 <td><p>CreatePolicyMerge does not create the Secret, but merges the data fields to the Secret.</p>
 </td>
 </tr><tr><td><p>&#34;None&#34;</p></td>
@@ -10686,12 +10694,14 @@ SecretStoreRetrySettings
 <td>
 <code>refreshInterval</code></br>
 <em>
-int
+k8s.io/apimachinery/pkg/util/intstr.IntOrString
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
+<p>Used to configure store refresh interval. Accepts either an integer number
+of seconds (legacy) or a Go duration string such as &ldquo;1h&rdquo; or &ldquo;5m&rdquo;. Empty or
+0 will default to the controller config.</p>
 </td>
 </tr>
 <tr>
@@ -11547,12 +11557,14 @@ SecretStoreRetrySettings
 <td>
 <code>refreshInterval</code></br>
 <em>
-int
+k8s.io/apimachinery/pkg/util/intstr.IntOrString
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
+<p>Used to configure store refresh interval. Accepts either an integer number
+of seconds (legacy) or a Go duration string such as &ldquo;1h&rdquo; or &ldquo;5m&rdquo;. Empty or
+0 will default to the controller config.</p>
 </td>
 </tr>
 <tr>
