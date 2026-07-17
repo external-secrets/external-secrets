@@ -645,6 +645,20 @@ func TestPushSecret(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "folderId, secretTemplateId, and siteId must be provided in metadata to create a new secret")
 
+	// Missing siteId for new secret
+	metadataWithoutSiteID := apiextensionsv1.JSON{
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId":1,"secretTemplateId":1}}`),
+	}
+	dataWithoutSiteID := fakePushSecretData{
+		remoteKey: "new-secret-no-site-id",
+		property:  "username",
+		secretKey: "my-key",
+		metadata:  &metadataWithoutSiteID,
+	}
+	err = c.PushSecret(ctx, secret, dataWithoutSiteID)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "folderId, secretTemplateId, and siteId must be provided in metadata to create a new secret")
+
 	// Invalid secretTemplateId in metadata
 	invalidMetadataJSON := apiextensionsv1.JSON{
 		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 999, "siteId": 1}}`), // non-existent template
