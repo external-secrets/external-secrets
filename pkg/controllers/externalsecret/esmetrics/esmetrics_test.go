@@ -97,6 +97,16 @@ func TestUpdateExternalSecretCondition(t *testing.T) {
 				},
 			},
 		},
+		{
+			// An Unknown Ready status must emit no series at all: it is
+			// neither ready nor not-ready, so no {status="False"} is set.
+			desc: "Ready/ConditionUnknown emits no series",
+			condition: &esv1.ExternalSecretStatusCondition{
+				Type:   esv1.ExternalSecretReady,
+				Status: v1.ConditionUnknown,
+			},
+			value: 1.0,
+		},
 	}
 
 	for _, test := range tests {

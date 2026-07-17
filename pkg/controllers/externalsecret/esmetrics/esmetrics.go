@@ -141,11 +141,22 @@ func UpdateExternalSecretCondition(es *esv1.ExternalSecret, condition *esv1.Exte
 		delete(baseLabels, "condition")
 		delete(baseLabels, "status")
 
-		// Emit only status=False: 1.0 when not ready (ConditionFalse), 0.0 when ready.
-		// Mirrors the cert-manager single-series convention.
-		notReadyValue := 0.0
-		if condition.Status == v1.ConditionFalse {
+		// Emit only status=False for the Ready condition: cert-manager
+		// single-series convention. ConditionFalse -> value (not ready),
+		// ConditionTrue -> 0.0 (ready), ConditionUnknown -> emit nothing.
+		var notReadyValue float64
+		switch condition.Status {
+		case v1.ConditionFalse:
 			notReadyValue = value
+		case v1.ConditionTrue:
+			notReadyValue = 0.0
+		case v1.ConditionUnknown:
+			// Neither ready nor not-ready: emit no Ready series. The stale
+			// True/False series were already deleted above.
+			return
+		default:
+			// Defensive: unexpected status, do not emit a Ready series.
+			return
 		}
 		externalSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
 			map[string]string{
