@@ -13,9 +13,10 @@ way users of the `SecretStore` can only access the secrets necessary.
 ```
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef` and `secretAccessKeySecretRef`  with the namespaces where the secrets reside.
 
-**NOTE:** When using `dataFrom` without a `path` defined, the provider will fall back to using `ListSecrets`. `ListSecrets`
-then proceeds to fetch each individual secret in turn. To use `BatchGetSecretValue` and avoid excessive API calls define
-a `path` prefix or use `Tags` filter.
+**NOTE:** `dataFrom` uses the more efficient `BatchGetSecretValue` API when you define a `path`
+prefix, or when you filter by `Tags` only (without a `name`). When you search by `name` without a
+`path`, the provider falls back to `ListSecrets` and then fetches each matching secret
+individually, which is more costly. Define a `path` prefix to reduce the number of API calls.
 
 ### IAM Policy
 
@@ -331,4 +332,6 @@ spec:
       version: "uuid/123e4567-e89b-12d3-a456-426614174000"
 ```
 
---8<-- "snippets/provider-aws-access.md"
+## Authentication
+
+See [AWS Authentication](aws-access.md) for all supported methods: controller pod identity, IRSA, static credentials, session tokens, assuming roles, session tags, and remote key prefixes.
