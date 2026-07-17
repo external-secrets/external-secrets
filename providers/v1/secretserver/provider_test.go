@@ -205,14 +205,14 @@ func TestValidateStore(t *testing.T) {
 				Token:     ambiguousSecretRef,
 				ServerURL: testURL,
 			},
-			want: errSecretRefAndValueConflict,
+			want: esutils.ErrValueAndRefConflict,
 		},
 		"invalid with invalid token": {
 			cfg: esv1.SecretServerProvider{
 				Token:     makeSecretRefUsingValue(""),
 				ServerURL: testURL,
 			},
-			want: errSecretRefAndValueMissing,
+			want: esutils.ErrValueOrRefMissing,
 		},
 	}
 	for name, tc := range tests {

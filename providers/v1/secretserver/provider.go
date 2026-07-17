@@ -175,24 +175,6 @@ func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.SecretServerProvi
 	return esutils.ValidateValueOrRef(ref.Value, ref.SecretRef, secretServerCredentialRefPolicy(store))
 }
 
-func validateSecretRef(ref *esv1.SecretServerProviderRef) error {
-	return esutils.ValidateValueOrRef(ref.Value, ref.SecretRef, esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
-		Presence:    esutils.RequireValueOrRef,
-		ValidateRef: validateSecretServerCredentialSecretRefNameAndKey,
-	})
-}
-
-// validateSecretServerCredentialSecretRefNameAndKey ensures a Secret Server credential secret reference has both name and key.
-func validateSecretServerCredentialSecretRefNameAndKey(ref esmeta.SecretKeySelector) error {
-	if ref.Name == "" {
-		return errMissingSecretName
-	}
-	if ref.Key == "" {
-		return errMissingSecretKey
-	}
-	return nil
-}
-
 func doesConfigDependOnNamespace(cfg *esv1.SecretServerProvider) bool {
 	// Mirror getConfig's precedence: when Token is set, username/password are
 	// ignored, so only the token ref can introduce a namespace dependency.
