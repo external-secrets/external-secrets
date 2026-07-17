@@ -136,6 +136,14 @@ type SecretStoreProvider struct {
 	// +optional
 	Kubernetes *KubernetesProvider `json:"kubernetes,omitempty"`
 
+	// CRD configures this store to sync secrets from arbitrary Kubernetes resources,
+	// including both custom resources (CRDs) and core API resources. Resources are
+	// selected by API group, version and kind, where group can be "" (empty string)
+	// for core resources such as ConfigMap. Reading the core v1 Secret is
+	// intentionally blocked — use the Kubernetes provider for that.
+	// +optional
+	CRD *CRDProvider `json:"crd,omitempty"`
+
 	// Fake configures a store with static key/value pairs
 	// +optional
 	Fake *FakeProvider `json:"fake,omitempty"`

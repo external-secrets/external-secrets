@@ -32,56 +32,13 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
-const (
-	warnNoCAConfigured = "No caBundle or caProvider specified; TLS connections will use system certificate roots."
-)
-
 // ValidateStore validates the Kubernetes SecretStore configuration.
 func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
-	storeSpec := store.GetSpec()
-	k8sSpec := storeSpec.Provider.Kubernetes
-	var warnings admission.Warnings
-	if k8sSpec.AuthRef == nil && k8sSpec.Server.CABundle == nil && k8sSpec.Server.CAProvider == nil {
-		warnings = append(warnings, warnNoCAConfigured)
-	}
-	if store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind &&
-		k8sSpec.Server.CAProvider != nil &&
-		k8sSpec.Server.CAProvider.Namespace == nil {
-		return warnings, errors.New("CAProvider.namespace must not be empty with ClusterSecretStore")
-	}
-	if store.GetObjectKind().GroupVersionKind().Kind == esv1.SecretStoreKind &&
-		k8sSpec.Server.CAProvider != nil &&
-		k8sSpec.Server.CAProvider.Namespace != nil {
-		return warnings, errors.New("CAProvider.namespace must be empty with SecretStore")
-	}
-	if k8sSpec.Auth != nil && k8sSpec.Auth.Cert != nil {
-		if k8sSpec.Auth.Cert.ClientCert.Name == "" {
-			return warnings, errors.New("ClientCert.Name cannot be empty")
-		}
-		if k8sSpec.Auth.Cert.ClientCert.Key == "" {
-			return warnings, errors.New("ClientCert.Key cannot be empty")
-		}
-		if err := esutils.ValidateSecretSelector(store, k8sSpec.Auth.Cert.ClientCert); err != nil {
-			return warnings, err
-		}
-	}
-	if k8sSpec.Auth != nil && k8sSpec.Auth.Token != nil {
-		if k8sSpec.Auth.Token.BearerToken.Name == "" {
-			return warnings, errors.New("BearerToken.Name cannot be empty")
-		}
-		if k8sSpec.Auth.Token.BearerToken.Key == "" {
-			return warnings, errors.New("BearerToken.Key cannot be empty")
-		}
-		if err := esutils.ValidateSecretSelector(store, k8sSpec.Auth.Token.BearerToken); err != nil {
-			return warnings, err
-		}
-	}
-	if k8sSpec.Auth != nil && k8sSpec.Auth.ServiceAccount != nil {
-		if err := esutils.ValidateReferentServiceAccountSelector(store, *k8sSpec.Auth.ServiceAccount); err != nil {
-			return warnings, err
-		}
-	}
-	return warnings, nil
+	k8sSpec := store.GetSpec().Provider.Kubernetes
+	// server/auth/authRef validation is shared with the CRD provider, which
+	// reuses the same connection types.
+	warnings, err := esutils.ValidateKubernetesConnection(store, k8sSpec.Server, k8sSpec.Auth, k8sSpec.AuthRef)
+	return warnings, err
 }
 
 // Validate checks if the client has the necessary permissions to access secrets in the target namespace.
@@ -89,7 +46,7 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	// when using referent namespace we can not validate the token
 	// because the namespace is not known yet when Validate() is called
 	// from the SecretStore controller.
-	if c.storeKind == esv1.ClusterSecretStoreKind && isReferentSpec(c.store) {
+	if c.storeKind == esv1.ClusterSecretStoreKind && esutils.IsReferentKubernetesAuth(c.store.Auth) {
 		return esv1.ValidationResultUnknown, nil
 	}
 	ctx := context.Background()
