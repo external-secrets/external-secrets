@@ -136,9 +136,7 @@ func parseFolderPrefix(key string) (folderID int, name string, hasFolderPrefix b
 type PushSecretMetadataSpec struct {
 	FolderID         int `json:"folderId"`
 	SecretTemplateID int `json:"secretTemplateId"`
-	// SiteID is required when creating a secret, but not when updating one.
-	// PushSecret metadata is opaque provider-specific JSON in the CRD, so this
-	// conditional requirement is enforced in PushSecret rather than at admission.
+	// SiteID is required when creating a secret, but not when updating an existing one.
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:Minimum=1
 	SiteID int `json:"siteId"`
