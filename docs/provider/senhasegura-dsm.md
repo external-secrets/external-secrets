@@ -1,4 +1,4 @@
-## Segura® DevOps Secret Manager (DSM)
+# Segura® DevOps Secret Manager (DSM)
 
 External Secrets Operator integrates with [Segura®](https://segura.security/) [DevOps Secret Manager (DSM)](https://segura.security/solutions/devops) module to sync application secrets to secrets held on the Kubernetes cluster.
 

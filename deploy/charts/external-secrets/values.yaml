@@ -96,6 +96,24 @@ leaderElect: false
 # @default -- "external-secrets-controller"
 leaderElectionID: ""
 
+# -- Duration that non-leader candidates will wait to force acquire leadership.
+# Increase this along with renewDeadline to tolerate a busy or briefly unavailable API server
+# (for example during control plane maintenance) without churning leadership.
+# Leave empty to use the controller default ('15s').
+# @default -- "15s"
+leaderElectionLeaseDuration: ""
+
+# -- Duration that the acting leader will retry refreshing leadership before giving up.
+# Must be less than leaderElectionLeaseDuration.
+# Leave empty to use the controller default ('10s').
+# @default -- "10s"
+leaderElectionRenewDeadline: ""
+
+# -- Duration the leader election client waits between tries of actions.
+# Leave empty to use the controller default ('2s').
+# @default -- "2s"
+leaderElectionRetryPeriod: ""
+
 # -- If set external secrets will filter matching
 # Secret Stores with the appropriate controller values.
 controllerClass: ""
@@ -214,6 +232,9 @@ rbac:
 
   # -- Specifies whether permissions are aggregated to the edit ClusterRole
   aggregateToEdit: true
+
+  # -- Specifies whether permissions are aggregated to the admin ClusterRole
+  aggregateToAdmin: true
 
 ## -- Extra environment variables to add to container.
 extraEnv: []
@@ -440,6 +461,27 @@ hostNetwork: false
 # @schema type: [boolean, null]
 hostUsers:
 
+# -- Setup a networkPolicy for external-secrets
+networkPolicy:
+  # -- Specifies whether the networkPolicy should be created.
+  enabled: false
+  # -- The ingress traffic
+  # Should match the health and (optionally) metrics port
+  ingress:
+  - ports:
+    - protocol: TCP
+      # @schema type: [string, integer]
+      port: 8080  # metrics port
+    - protocol: TCP
+      # @schema type: [string, integer]
+      port: 8082  # health port
+  # -- The egress traffic
+  # The minimum egress ports required to function are:
+  #   DNS (53/udp, 53/tcp)
+  #   API server (80/tcp, 443/tcp, or 6443/tcp)
+  # You will need to customize this value to meet your needs
+  egress: []
+
 webhook:
   # -- Annotations to place on validating webhook configuration.
   annotations: {}
@@ -465,6 +507,31 @@ webhook:
   # -- (bool) Specifies if webhook pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33.
   # @schema type: [boolean, null]
   hostUsers:
+
+  # -- Setup a networkPolicy for external-secrets webhook
+  networkPolicy:
+    # -- Specifies whether the networkPolicy should be created.
+    enabled: false
+    # -- The ingress traffic
+    # Should match the webhook, health, and (optionally) metrics port
+    ingress:
+    - ports:
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 8080  # metrics port
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 8081  # health port
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 10250  # webhook port
+    # -- The egress traffic
+    # The minimum egress ports required to function are:
+    #   DNS (53/udp, 53/tcp)
+    #   API server (80/tcp, 443/tcp, or 6443/tcp)
+    # You will need to customize this value to meet your needs
+    egress: []
+
   image:
     repository: ghcr.io/external-secrets/external-secrets
     pullPolicy: IfNotPresent
@@ -609,6 +676,16 @@ webhook:
     successThreshold: 1
     initialDelaySeconds: 20
 
+  startupProbe:
+    # -- Enabled determines if the startup probe should be used or not. By default it's disabled.
+    enabled: false
+    # -- Number of seconds after the container has started before the startup probe is initiated.
+    initialDelaySeconds: 10
+    # -- How often (in seconds) to perform the startup probe.
+    periodSeconds: 10
+    # -- Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds.
+    failureThreshold: 30
+
 
     ## -- Extra environment variables to add to container.
   extraEnv: []
@@ -724,6 +801,27 @@ certController:
   # @schema type: [boolean, null]
   hostUsers:
 
+  # -- Setup a networkPolicy for external-secrets certController
+  networkPolicy:
+    # -- Specifies whether the networkPolicy should be created.
+    enabled: false
+    # -- The ingress traffic
+    # Should match the health and (optionally) metrics port
+    ingress:
+    - ports:
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 8080  # metrics port
+      - protocol: TCP
+        # @schema type: [string, integer]
+        port: 8081  # health port
+    # -- The egress traffic
+    # The minimum egress ports required to function are:
+    #   DNS (53/udp, 53/tcp)
+    #   API server (80/tcp, 443/tcp, or 6443/tcp)
+    # You will need to customize this value to meet your needs
+    egress: []
+
     # -- Pod priority class name.
   priorityClassName: ""
 
@@ -785,12 +883,14 @@ certController:
     initialDelaySeconds: 20
 
   startupProbe:
-    # -- Enabled determines if the startup probe should be used or not. By default it's enabled
+    # -- Enabled determines if the startup probe should be used or not. By default it's disabled.
     enabled: false
-    # -- whether to use the readiness probe port for startup probe.
-    useReadinessProbePort: true
-    # -- Port for startup probe.
-    port: ""
+    # -- Number of seconds after the container has started before the startup probe is initiated.
+    initialDelaySeconds: 10
+    # -- How often (in seconds) to perform the startup probe.
+    periodSeconds: 10
+    # -- Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds.
+    failureThreshold: 30
 
     ## -- Extra environment variables to add to container.
   extraEnv: []

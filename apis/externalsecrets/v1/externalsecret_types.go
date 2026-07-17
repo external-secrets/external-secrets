@@ -163,6 +163,11 @@ type TemplateFrom struct {
 
 	// +optional
 	Literal *string `json:"literal,omitempty"`
+
+	// Used to define a decoding Strategy for the rendered template values.
+	// +optional
+	// +kubebuilder:default="None"
+	ValuesDecodingStrategy ExternalSecretDecodingStrategy `json:"valuesDecodingStrategy,omitempty"`
 }
 
 // TemplateScope specifies how the template keys should be interpreted.
@@ -519,6 +524,51 @@ const (
 	RefreshPolicyOnChange ExternalSecretRefreshPolicy = "OnChange"
 )
 
+// ExternalSecretSyncWindowKind defines whether a SyncWindow permits or
+// blocks periodic refreshes.
+// +kubebuilder:validation:Enum=allow;deny
+type ExternalSecretSyncWindowKind string
+
+const (
+	// SyncWindowAllow allows periodic refreshes only while at least one window
+	// in the list is active. Refreshes are blocked at all other times.
+	SyncWindowAllow ExternalSecretSyncWindowKind = "allow"
+	// SyncWindowDeny blocks periodic refreshes while any window in the list is
+	// active. Refreshes proceed normally at all other times.
+	SyncWindowDeny ExternalSecretSyncWindowKind = "deny"
+)
+
+// ExternalSecretSyncWindowEntry defines a single cron-schedule + duration pair
+// within a SyncWindows block.
+type ExternalSecretSyncWindowEntry struct {
+	// Schedule is a standard 5-field cron expression evaluated in UTC, or a
+	// named shorthand such as @daily or @every 1h. It marks the start time of
+	// each window occurrence.
+	// Example: "0 22 * * 1-5" opens a window every weekday at 22:00 UTC.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Pattern:=`^(@(annually|yearly|monthly|weekly|daily|midnight|hourly)|@every [^\s]+.*|[^\s]+( [^\s]+){4})$`
+	Schedule string `json:"schedule"`
+
+	// Duration specifies how long the window stays open after each Schedule
+	// firing. Example: "8h".
+	Duration metav1.Duration `json:"duration"`
+}
+
+// ExternalSecretSyncWindows optionally restricts when periodic syncs may occur.
+// All windows in the list share the same Kind.
+type ExternalSecretSyncWindows struct {
+	// Kind applies to every window in the list.
+	// "allow" -- syncs are permitted only while at least one window is active;
+	//            all other times are blocked.
+	// "deny"  -- syncs are blocked while any window is active;
+	//            all other times are permitted.
+	Kind ExternalSecretSyncWindowKind `json:"kind"`
+
+	// Windows is the list of schedule+duration pairs.
+	// +kubebuilder:validation:MinItems=1
+	Windows []ExternalSecretSyncWindowEntry `json:"windows"`
+}
+
 // ExternalSecretSpec defines the desired state of ExternalSecret.
 type ExternalSecretSpec struct {
 	// +optional
@@ -543,6 +593,11 @@ type ExternalSecretSpec struct {
 	// May be set to "0s" to fetch and create it once. Defaults to 1h0m0s.
 	// +kubebuilder:default="1h0m0s"
 	RefreshInterval *metav1.Duration `json:"refreshInterval,omitempty"`
+
+	// SyncWindows optionally restricts when periodic refreshes may occur.
+	// Evaluated in UTC, only for Periodic refresh policy (or when refreshPolicy is unset).
+	// +optional
+	SyncWindows *ExternalSecretSyncWindows `json:"syncWindows,omitempty"`
 
 	// Data defines the connection between the Kubernetes Secret keys and the Provider data
 	// +optional
@@ -591,7 +646,7 @@ type GeneratorRef struct {
 	APIVersion string `json:"apiVersion,omitempty"`
 
 	// Specify the Kind of the generator resource
-	// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;ClusterGenerator;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
+	// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;ClusterGenerator;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;GitlabDeployToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
 	Kind string `json:"kind"`
 
 	// Specify the name of the generator resource

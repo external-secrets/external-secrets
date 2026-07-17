@@ -66,7 +66,7 @@ build: image generate $(SOURCES)
 		--env "GIT_COMMITTER_EMAIL=$(shell git config user.email)" \
 		--env "GITHUB_TOKEN=$(GITHUB_TOKEN)" \
 		$(MKDOCS_IMAGE) \
-		$(SHELL) -c "cd /repo && $(MIKE) deploy --ignore --update-aliases -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
+		$(SHELL) -c "cd /repo && $(MIKE) deploy --ignore-remote-status --update-aliases -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: build.publish
 build.publish: image generate $(SOURCES)
 	mkdir -p $(GENROOT)
