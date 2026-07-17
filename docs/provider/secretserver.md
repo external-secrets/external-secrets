@@ -30,7 +30,7 @@ spec:
         value: "yourpassword"
 ```
 
-### Username and Password from Kubernetes Secret
+### Option B: Refer to authentication credentials stored within a Kubernetes Secret
 
 ```yaml
 apiVersion: v1
