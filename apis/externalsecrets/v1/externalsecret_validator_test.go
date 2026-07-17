@@ -53,6 +53,21 @@ func TestValidateExternalSecret(t *testing.T) {
 			expectedErr: "deletionPolicy=Delete must not be used when the controller doesn't own the secret. Please set creationPolicy=Owner",
 		},
 		{
+			name: "deletion policy delete with create or merge",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Target: ExternalSecretTarget{
+						DeletionPolicy: DeletionPolicyDelete,
+						CreationPolicy: CreatePolicyCreateOrMerge,
+					},
+					Data: []ExternalSecretData{
+						{},
+					},
+				},
+			},
+			expectedErr: "deletionPolicy=Delete must not be used when the controller doesn't own the secret. Please set creationPolicy=Owner",
+		},
+		{
 			name: "deletion policy merge",
 			obj: &ExternalSecret{
 				Spec: ExternalSecretSpec{
