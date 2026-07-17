@@ -86,7 +86,7 @@ func (c *Client) resolveWhitelistedObject(ctx context.Context, key, property str
 	if !c.matchesWhitelistRule(objectName, ns, requestedKeys) {
 		return nil, fmt.Errorf("crd: request for %q denied by whitelist rules", key)
 	}
-	return c.getObject(ctx, key)
+	return c.getObject(ctx, objectName, keyNamespace)
 }
 
 // GetAllSecrets lists CRD objects whose logical keys match the store Name pattern
@@ -198,13 +198,10 @@ func (c *Client) buildGVK() schema.GroupVersionKind {
 	}
 }
 
-// getObject fetches a CRD object using remoteRef.key semantics (see parseRemoteRefKey).
-func (c *Client) getObject(ctx context.Context, remoteKey string) (*unstructured.Unstructured, error) {
-	objName, keyNS, err := parseRemoteRefKey(c.storeKind, remoteKey)
-	if err != nil {
-		return nil, err
-	}
-
+// getObject fetches a CRD object from the already-parsed remoteRef.key
+// components (see parseRemoteRefKey). Callers parse the key once and pass the
+// object name and optional namespace in, so the key is not re-parsed here.
+func (c *Client) getObject(ctx context.Context, objName string, keyNS *string) (*unstructured.Unstructured, error) {
 	obj := &unstructured.Unstructured{}
 	obj.SetGroupVersionKind(c.buildGVK())
 
