@@ -307,6 +307,27 @@ func TestValidateStore(t *testing.T) {
 			},
 			wantMsg: "CAProvider.namespace must be empty with SecretStore",
 		},
+		{
+			// A SecretStore reads only its own namespace, so a namespace rule
+			// can never match and is rejected to surface the misconfiguration.
+			name: "SecretStore rejects whitelist namespace rule",
+			store: makeStoreWithCRDProvider(&esv1.CRDProvider{
+				Auth:      saAuth("reader"),
+				Resource:  widgetResource,
+				Whitelist: &esv1.CRDProviderWhitelist{Rules: []esv1.CRDProviderWhitelistRule{{Namespace: "^prod$"}}},
+			}),
+			wantMsg: "whitelist.rules[0].namespace is not supported for a SecretStore",
+		},
+		{
+			// A ClusterSecretStore reads across namespaces, so a namespace rule
+			// is a legitimate restriction and must be accepted.
+			name: "ClusterSecretStore allows whitelist namespace rule",
+			store: makeClusterStoreWithCRDProvider(&esv1.CRDProvider{
+				Auth:      saAuth("reader"),
+				Resource:  widgetResource,
+				Whitelist: &esv1.CRDProviderWhitelist{Rules: []esv1.CRDProviderWhitelistRule{{Namespace: "^prod$"}}},
+			}),
+		},
 	}
 
 	p := &Provider{}

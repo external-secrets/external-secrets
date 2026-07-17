@@ -46,6 +46,7 @@ var (
 	errKindIsSecret       = errors.New("kind \"Secret\" is not allowed: use the Kubernetes provider to read Kubernetes Secrets")
 	errEmptyWhitelistRule = errors.New("whitelist rule must define name, namespace, or properties")
 	errNotImplemented     = errors.New("not implemented")
+	errClientNotReady     = errors.New("crd: client has no active connection; a referent ClusterSecretStore is resolved per-ExternalSecret at reconcile")
 )
 
 // isCoreV1Secret reports whether the configured resource is the core
@@ -336,6 +337,18 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 	if _, err := compileWhitelistRules(prov.Whitelist); err != nil {
 		return warnings, err
+	}
+	// A SecretStore only ever reads its own namespace, so a whitelist rule that
+	// constrains the namespace can never match: it looks like a restriction but
+	// silently denies everything. Reject it at admission rather than letting the
+	// misconfiguration surface as empty reads later. Namespace rules remain valid
+	// for a ClusterSecretStore, which reads across namespaces.
+	if store.GetKind() == esv1.SecretStoreKind && prov.Whitelist != nil {
+		for i, r := range prov.Whitelist.Rules {
+			if r.Namespace != "" {
+				return warnings, fmt.Errorf("crd: whitelist.rules[%d].namespace is not supported for a SecretStore (it only reads its own namespace); remove it or use a ClusterSecretStore", i)
+			}
+		}
 	}
 	return warnings, nil
 }

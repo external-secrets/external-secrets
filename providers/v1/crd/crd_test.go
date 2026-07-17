@@ -536,6 +536,27 @@ func TestClientMiscMethods(t *testing.T) {
 	}
 }
 
+func TestReadsRejectReferentStub(t *testing.T) {
+	// The referent stub (returned by newClient for a ClusterSecretStore whose SA
+	// namespace is not yet known) has no kube client. Every read must return
+	// errClientNotReady instead of nil-panicking on c.kube.
+	c := &Client{referent: true, storeKind: esv1.ClusterSecretStoreKind}
+	ctx := context.Background()
+
+	if _, err := c.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "widget"}); !errors.Is(err, errClientNotReady) {
+		t.Fatalf("GetSecret() err = %v, want errClientNotReady", err)
+	}
+	if _, err := c.GetSecretMap(ctx, esv1.ExternalSecretDataRemoteRef{Key: "widget"}); !errors.Is(err, errClientNotReady) {
+		t.Fatalf("GetSecretMap() err = %v, want errClientNotReady", err)
+	}
+	if _, err := c.GetAllSecrets(ctx, esv1.ExternalSecretFind{}); !errors.Is(err, errClientNotReady) {
+		t.Fatalf("GetAllSecrets() err = %v, want errClientNotReady", err)
+	}
+	if _, err := c.SecretExists(ctx, testPushSecretRemoteRef{remoteKey: "widget"}); !errors.Is(err, errClientNotReady) {
+		t.Fatalf("SecretExists() err = %v, want errClientNotReady", err)
+	}
+}
+
 func TestClientSecretExists(t *testing.T) {
 	obj := widget("item-a", "ns1", map[string]any{"password": "pw1"})
 	c := ssClient(makeStore(), "ns1", obj)

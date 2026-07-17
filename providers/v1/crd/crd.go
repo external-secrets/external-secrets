@@ -35,6 +35,17 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
+// ensureConnected rejects reads on the referent stub client, which has no kube
+// client (see newClient): the stub only answers Validate() while the store's SA
+// namespace is unknown, and the operational client is rebuilt per-ExternalSecret
+// at reconcile. Without this guard a read would nil-panic on c.kube.
+func (c *Client) ensureConnected() error {
+	if c.kube == nil {
+		return errClientNotReady
+	}
+	return nil
+}
+
 // GetSecret retrieves a single value from a CRD object.
 // ref.Key is interpreted per store kind (see parseRemoteRefKey); ref.Property is an optional GJSON path expression.
 func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
@@ -68,6 +79,9 @@ func (c *Client) fetchObject(ctx context.Context, ref esv1.ExternalSecretDataRem
 // read paths apply the same whitelist gate; without it SecretExists could be
 // used to probe the existence of objects the whitelist does not permit.
 func (c *Client) resolveWhitelistedObject(ctx context.Context, key, property string) (*unstructured.Unstructured, error) {
+	if err := c.ensureConnected(); err != nil {
+		return nil, err
+	}
 	if key == "" {
 		return nil, errors.New("crd: ref.key must not be empty")
 	}
@@ -95,6 +109,9 @@ func (c *Client) resolveWhitelistedObject(ctx context.Context, key, property str
 // For ClusterSecretStore with a namespaced kind, listing spans all namespaces and keys are
 // namespace/name. Cluster-scoped kinds use object names only.
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	if err := c.ensureConnected(); err != nil {
+		return nil, err
+	}
 	// Verify the caller actually has "list" permission. The preflight at store
 	// bootstrap only checks "get" — moving "list" here means a SA that only
 	// ever uses GetSecret does not need list rights, but anything that calls
