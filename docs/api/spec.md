@@ -10444,7 +10444,9 @@ string
 </p>
 <p>
 <p>SecretServerProvider provides access to authenticate to a secrets provider server.
-See: <a href="https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go">https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go</a>.</p>
+See: <a href="https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go">https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go</a>.
+Authentication requires either Token, or both Username and Password. If Token is
+set it takes precedence and Username/Password are ignored.</p>
 </p>
 <table>
 <thead>
@@ -10464,7 +10466,9 @@ SecretServerProviderRef
 </em>
 </td>
 <td>
-<p>Username is the secret server account username.</p>
+<em>(Optional)</em>
+<p>Username is the secret server account username.
+Required unless Token is set.</p>
 </td>
 </tr>
 <tr>
@@ -10477,7 +10481,25 @@ SecretServerProviderRef
 </em>
 </td>
 <td>
-<p>Password is the secret server account password.</p>
+<em>(Optional)</em>
+<p>Password is the secret server account password.
+Required unless Token is set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>token</code></br>
+<em>
+<a href="#external-secrets.io/v1.SecretServerProviderRef">
+SecretServerProviderRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Token is an access token used to authenticate to the secret server,
+as an alternative to Username and Password. When set, Username and
+Password are not required and are ignored.</p>
 </td>
 </tr>
 <tr>
@@ -10542,7 +10564,7 @@ CAProvider
 </p>
 <p>
 <p>SecretServerProviderRef references a value that can be specified directly or via a secret
-for a SecretServerProvider.</p>
+for a SecretServerProvider. Exactly one of Value or SecretRef must be set.</p>
 </p>
 <table>
 <thead>

@@ -3779,6 +3779,11 @@ func (in *SecretServerProvider) DeepCopyInto(out *SecretServerProvider) {
 		*out = new(SecretServerProviderRef)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.Token != nil {
+		in, out := &in.Token, &out.Token
+		*out = new(SecretServerProviderRef)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.CABundle != nil {
 		in, out := &in.CABundle, &out.CABundle
 		*out = make([]byte, len(*in))
