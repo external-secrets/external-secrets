@@ -97,6 +97,16 @@ func TestUpdatePushSecretCondition(t *testing.T) {
 				},
 			},
 		},
+		{
+			// An Unknown Ready status must emit no series at all: it is
+			// neither ready nor not-ready, so no {status="False"} is set.
+			desc: "Ready/ConditionUnknown emits no series",
+			condition: &esapi.PushSecretStatusCondition{
+				Type:   esapi.PushSecretReady,
+				Status: v1.ConditionUnknown,
+			},
+			value: 1.0,
+		},
 	}
 
 	for _, test := range tests {
