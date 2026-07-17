@@ -9216,8 +9216,14 @@ spec:
                       type: object
                   type: object
                 refreshInterval:
-                  description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
-                  type: integer
+                  anyOf:
+                    - type: integer
+                    - type: string
+                  description: |-
+                    Used to configure store refresh interval. Accepts either an integer number
+                    of seconds (legacy) or a Go duration string such as "1h" or "5m". Empty or
+                    0 will default to the controller config.
+                  x-kubernetes-int-or-string: true
                 retrySettings:
                   description: Used to configure HTTP retries on failures.
                   properties:
@@ -22410,8 +22416,14 @@ spec:
                       type: object
                   type: object
                 refreshInterval:
-                  description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
-                  type: integer
+                  anyOf:
+                    - type: integer
+                    - type: string
+                  description: |-
+                    Used to configure store refresh interval. Accepts either an integer number
+                    of seconds (legacy) or a Go duration string such as "1h" or "5m". Empty or
+                    0 will default to the controller config.
+                  x-kubernetes-int-or-string: true
                 retrySettings:
                   description: Used to configure HTTP retries on failures.
                   properties:
