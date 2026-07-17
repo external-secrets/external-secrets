@@ -68,7 +68,7 @@ test.managed: e2e-image ## Run e2e tests against current kube context
 
 
 e2e-bin: install-ginkgo
-	   CGO_ENABLED=0 ginkgo build ./suites/...
+	   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ginkgo build ./suites/...
 
 e2e-image: e2e-bin
 	-rm -rf ./k8s/deploy

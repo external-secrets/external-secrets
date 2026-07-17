@@ -351,7 +351,11 @@ string
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;ParameterStore&#34;</p></td>
+<tbody><tr><td><p>&#34;CertificateManager&#34;</p></td>
+<td><p>AWSServiceCertificateManager is the AWS Certificate Manager service.
+see: <a href="https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html">https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html</a></p>
+</td>
+</tr><tr><td><p>&#34;ParameterStore&#34;</p></td>
 <td><p>AWSServiceParameterStore is the AWS SystemsManager ParameterStore service.
 see: <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html">https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html</a></p>
 </td>
@@ -587,6 +591,19 @@ string
 </td>
 <td>
 <p>Akeyless GW API Url from which the secrets to be fetched from.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ignoreCache</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IgnoreCache bypasses the Gateway cache for secret reads when true.
+Only relevant when akeylessGWApiURL points to an Akeyless Gateway.</p>
 </td>
 </tr>
 <tr>
@@ -3512,6 +3529,101 @@ ConjurJWT
 <td>
 <em>(Optional)</em>
 <p>Jwt enables JWT authentication using Kubernetes service account tokens.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cert</code></br>
+<em>
+<a href="#external-secrets.io/v1.ConjurCert">
+ConjurCert
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Cert enables certificate-based authentication using a client certificate and key.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ConjurCert">ConjurCert
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ConjurAuth">ConjurAuth</a>)
+</p>
+<p>
+<p>ConjurCert defines the Cert authentication configuration for Conjur provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>account</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Account is the Conjur organization account name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The conjur authn cert webservice id</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional HostID for cert authentication (can be omitted when using &lsquo;spiffe&rsquo; mode).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientCertRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>ClientCertRef is a reference to a specific &lsquo;key&rsquo; containing the client certificate
+within a Secret resource. The certificate must be PEM-encoded.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientKeyRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>ClientKeyRef is a reference to a specific &lsquo;key&rsquo; containing the private RSA client key
+within a Secret resource. The key must be PEM-encoded.</p>
 </td>
 </tr>
 </tbody>

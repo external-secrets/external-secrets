@@ -255,15 +255,9 @@ func ValidateKeys(log logr.Logger, in map[string][]byte) error {
 // ConvertKeys converts a secret map into a valid key.
 // Replaces any non-alphanumeric characters depending on convert strategy.
 func ConvertKeys(strategy esv1.ExternalSecretConversionStrategy, in map[string][]byte) (map[string][]byte, error) {
-	out := make(map[string][]byte, len(in))
-	for k, v := range in {
-		key := convert(strategy, k)
-		if _, exists := out[key]; exists {
-			return nil, fmt.Errorf("secret name collision during conversion: %s", key)
-		}
-		out[key] = v
-	}
-	return out, nil
+	return transformKeys(in, func(key string) string {
+		return convert(strategy, key)
+	})
 }
 
 func convert(strategy esv1.ExternalSecretConversionStrategy, str string) string {
@@ -293,9 +287,15 @@ func convert(strategy esv1.ExternalSecretConversionStrategy, str string) string 
 // ReverseKeys reverses a secret map into a valid key map as expected by push secrets.
 // Replaces the unicode encoded representation characters back to the actual unicode character depending on convert strategy.
 func ReverseKeys(strategy esv1alpha1.PushSecretConversionStrategy, in map[string][]byte) (map[string][]byte, error) {
+	return transformKeys(in, func(key string) string {
+		return reverse(strategy, key)
+	})
+}
+
+func transformKeys(in map[string][]byte, transform func(string) string) (map[string][]byte, error) {
 	out := make(map[string][]byte, len(in))
 	for k, v := range in {
-		key := reverse(strategy, k)
+		key := transform(k)
 		if _, exists := out[key]; exists {
 			return nil, fmt.Errorf("secret name collision during conversion: %s", key)
 		}
@@ -348,6 +348,27 @@ var (
 	// ErrSecretType is returned when a secret value cannot be handled due to its type.
 	ErrSecretType = errors.New("can not handle secret value with type")
 )
+
+// JSONToSecretDataMap unmarshals a JSON object into secret key/value pairs.
+// String values are unquoted; all other JSON types are kept as raw JSON bytes.
+func JSONToSecretDataMap(data []byte) (map[string][]byte, error) {
+	kv := make(map[string]json.RawMessage)
+	if err := json.Unmarshal(data, &kv); err != nil {
+		return nil, err
+	}
+
+	secretData := make(map[string][]byte, len(kv))
+	for k, v := range kv {
+		var strVal string
+		if err := json.Unmarshal(v, &strVal); err == nil {
+			secretData[k] = []byte(strVal)
+		} else {
+			secretData[k] = v
+		}
+	}
+
+	return secretData, nil
+}
 
 // GetByteValueFromMap retrieves a byte value from a map by key.
 func GetByteValueFromMap(data map[string]any, key string) ([]byte, error) {
