@@ -5205,7 +5205,7 @@ the <code>external-secrets.io/force-sync</code> annotation on the ClusterExterna
 <p>The interval can be changed by the <code>spec.refreshInterval</code> in the ExternalSecret. You can also control the refresh behavior by setting <code>spec.refreshPolicy</code> to one of the following options:</p>
 <ul>
 <li><code>Periodic</code> (default): Update regularly based on refreshInterval</li>
-<li><code>CreatedOnce</code>: Create the Secret only once and never update it afterward</li>
+<li><code>CreatedOnce</code>: Create the Secret only once per ExternalSecret object and never update it afterward (recreating the ExternalSecret re-syncs it, see the <a href="../../api/externalsecret/#createdonce">refresh policy docs</a>)</li>
 <li><code>OnChange</code>: Only update when the ExternalSecret's metadata or specification changes</li>
 </ul>
 <h2 id="how-do-i-know-when-the-status-of-my-secret-changed-the-last-time">How do I know when the status of my secret changed the last time?</h2>

@@ -2411,6 +2411,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#createormerge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CreateOrMerge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#none" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2423,6 +2434,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#immutable-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Immutable target
+      
+    </span>
+  </a>
   
 </li>
       
@@ -2473,6 +2495,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#behavior-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behavior matrix
+      
+    </span>
+  </a>
   
 </li>
       
@@ -5297,6 +5330,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#createormerge" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CreateOrMerge
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#none" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5309,6 +5353,17 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#immutable-target" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Immutable target
+      
+    </span>
+  </a>
   
 </li>
       
@@ -5362,6 +5417,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#behavior-matrix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behavior matrix
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -5383,24 +5449,39 @@
 
 
 <h1 id="lifecycle">Lifecycle</h1>
-<p>The External Secrets Operator manages the lifecycle of secrets in Kubernetes. With <code>refreshPolicy</code>,   <code>creationPolicy</code> and <code>deletionPolicy</code> you get fine-grained control of its lifecycle.</p>
+<p>The External Secrets Operator manages the lifecycle of secrets in Kubernetes. With <code>refreshPolicy</code>, <code>creationPolicy</code> and <code>deletionPolicy</code> you get fine-grained control of its lifecycle.</p>
 <div class="admonition note">
 <p class="admonition-title">Creation/Deletion Policy Combinations</p>
 <p>Some combinations of creationPolicy/deletionPolicy are not allowed as they would delete existing secrets:
 <br/>- <code>deletionPolicy=Delete</code> &amp; <code>creationPolicy=Merge</code>
+<br/>- <code>deletionPolicy=Delete</code> &amp; <code>creationPolicy=CreateOrMerge</code>
 <br/>- <code>deletionPolicy=Delete</code> &amp; <code>creationPolicy=None</code>
 <br/>- <code>deletionPolicy=Merge</code> &amp; <code>creationPolicy=None</code></p>
 </div>
 <h2 id="refresh-policy">Refresh Policy</h2>
-<p>The field <code>spec.refreshPolicy</code> defines how the operator refreshes the a secret.</p>
+<p>The field <code>spec.refreshPolicy</code> defines how the operator refreshes the secret.</p>
 <h3 id="periodic-default">Periodic (default)</h3>
 <p>Refreshes the secret at a fixed interval via <code>spec.refreshInterval</code>. Due to backwards compatibility, setting a refresh interval of 0 will result in the same behavior as <code>CreatedOnce</code>.</p>
 <h3 id="onchange">OnChange</h3>
-<p>Refreshes the secret only when the ExternalSecret is updated.  </p>
+<p>Refreshes the secret only when the ExternalSecret is updated.</p>
 <h3 id="createdonce">CreatedOnce</h3>
-<p>Refreshes the secret only once, when the ExternalSecret is created.</p>
+<p>Refreshes the secret only once per <code>ExternalSecret</code> object, on its first reconcile.
+The sync state lives on the <code>ExternalSecret</code>'s status, so deleting and recreating the
+<code>ExternalSecret</code> resets it and triggers another one-time sync. Depending on the
+creation policy that sync may overwrite the operator-managed keys of an existing
+target Secret; <code>creationPolicy=None</code> does not update it, and <code>spec.target.immutable:
+true</code> prevents data rewrites.</p>
+<div class="admonition note">
+<p class="admonition-title">State is not persisted across ExternalSecret objects</p>
+<p>ESO is stateless across <code>ExternalSecret</code> objects: it does not persist sync claims
+or reclaim orphaned Secrets when an <code>ExternalSecret</code> is recreated. <code>creationPolicy</code>
+(including <code>Orphan</code>) does not protect a pre-existing target Secret from being
+rewritten on that sync. To keep an already-populated Secret from being overwritten
+on recreation, set <code>spec.target.immutable: true</code> (optionally together with
+<code>refreshPolicy: CreatedOnce</code>).</p>
+</div>
 <h2 id="creation-policy">Creation Policy</h2>
-<p>The field <code>spec.target.creationPolicy</code> defines how the operator creates the a secret.</p>
+<p>The field <code>spec.target.creationPolicy</code> defines how the operator creates the secret.</p>
 <h3 id="owner-default">Owner (default)</h3>
 <p>The External Secret Operator creates secret and sets the <code>ownerReference</code> field on the Secret. This secret is subject to <a href="https://kubernetes.io/docs/concepts/architecture/garbage-collection/">garbage collection</a> if the initial <code>ExternalSecret</code> is absent. If a secret with the same name already exists that is not owned by the controller it will result in a conflict. The operator will just error out, not claiming the ownership.</p>
 <div class="admonition note">
@@ -5408,10 +5489,13 @@
 <p>If the secret exists and the ownerReference field is not found, the controller treats this secret as orphaned. It will take ownership of this secret by adding an <code>ownerReference</code> field and updating it.</p>
 </div>
 <h3 id="orphan">Orphan</h3>
-<p>Whenever triggered via <code>RefreshPolicy</code> conditions, the operator creates/updates 
-the target Secret according to the provider available information. 
-However, the operator will not watch on Secret Changes (delete/updates), nor trigger 
-<a href="https://kubernetes.io/docs/concepts/architecture/garbage-collection/">garbage collection</a> when the <code>ExternalSecret</code> object is deleted.</p>
+<p>Whenever triggered via <code>RefreshPolicy</code> conditions, the operator creates/updates
+the target Secret according to the provider available information.
+It does not set an <code>ownerReference</code>, so it does not trigger
+<a href="https://kubernetes.io/docs/concepts/architecture/garbage-collection/">garbage collection</a> of the Secret when the <code>ExternalSecret</code> object is deleted.
+The operator still watches the Secret, but for <code>Orphan</code> it re-syncs only when a refresh
+is due (see the warning below and the <a href="#behavior-matrix">behavior matrix</a>), not on
+every change to the Secret.</p>
 <div class="admonition warning">
 <p class="admonition-title">Unwanted reverts of manual changes</p>
 <p>If you set <code>spec.refreshPolicy</code> to <code>Periodic</code> or <code>OnChange</code> and <code>spec.target.creationPolicy</code> to <code>Orphan</code>,
@@ -5421,8 +5505,23 @@ Use <code>creationPolicy=Orphan</code> with caution.</p>
 </div>
 <h3 id="merge">Merge</h3>
 <p>The operator does not create a secret. Instead, it expects the secret to already exist. Values from the secret provider will be merged into the existing secret. Note: the controller takes ownership of a field even if it is owned by a different entity. Multiple ExternalSecrets can use <code>creationPolicy=Merge</code> with a single secret as long as the fields don't collide - otherwise you end up in an oscillating state.</p>
+<h3 id="createormerge">CreateOrMerge</h3>
+<p>Creates the Secret if it does not exist and, if it does, merges the provider values
+into it while preserving keys owned by others (like <code>Merge</code>), without setting an
+<code>ownerReference</code> (like <code>Orphan</code>). Unlike <code>Merge</code> it also creates a missing Secret,
+so a deleted target is recreated immediately (driven by the Secret watch) while the
+<code>ExternalSecret</code> exists; unlike <code>Owner</code> the Secret is retained when the
+<code>ExternalSecret</code> is deleted. Combined with <code>spec.target.immutable: true</code> it gives
+"create once, freeze, recreate if deleted, keep on ExternalSecret deletion". Note:
+<code>deletionPolicy=Delete</code> is not allowed, the controller does not own the Secret.</p>
 <h3 id="none">None</h3>
 <p>The operator does not create or update the secret, this is basically a no-op.</p>
+<h2 id="immutable-target">Immutable target</h2>
+<p>Setting <code>spec.target.immutable: true</code> marks the generated <code>Kind=Secret</code> as immutable,
+so its data is never rewritten once the Secret exists (Kubernetes itself also blocks
+edits to an immutable Secret's data). It does not affect whether a missing Secret is
+created or recreated, that is governed by <code>creationPolicy</code> and <code>refreshPolicy</code>. See the
+<a href="#behavior-matrix">behavior matrix</a> for the full interaction.</p>
 <h2 id="deletion-policy">Deletion Policy</h2>
 <p>DeletionPolicy defines what should happen if a given secret gets deleted <strong>from the provider</strong>.</p>
 <p>DeletionPolicy is only supported on the specific providers, please refer to our <a href="../../introduction/stability-support/">stability/support table</a>.</p>
@@ -5435,12 +5534,182 @@ SecretSyncedError status.</p>
 If a secret gets deleted on the provider side and is not accessible
 anymore this is not considered an error and the ExternalSecret
 does not go into SecretSyncedError status. This is also true for new
-ExternalSecrets mapping to non-existing secrets in the provider.</p>
+ExternalSecrets mapping to non-existing secrets in the provider.
+<code>deletionPolicy=Delete</code> only takes effect with <code>creationPolicy=Owner</code>; the operator
+refuses to delete a Secret it does not own and reports a <code>SecretSyncedError</code> otherwise.</p>
 <h3 id="merge_1">Merge</h3>
 <p>Merge removes keys in the secret, but not the secret itself.
 If a secret gets deleted on the provider side and is not accessible
 anymore this is not considered an error and the ExternalSecret
 does not go into SecretSyncedError status.</p>
+<h2 id="behavior-matrix">Behavior matrix</h2>
+<p>How <code>creationPolicy</code> and <code>refreshPolicy</code> combine to drive the Secret operations.
+<code>deletionPolicy</code> is a separate axis (covered below the table) that only fires when
+the provider returns no data.</p>
+<table>
+<thead>
+<tr>
+<th>creationPolicy</th>
+<th>refreshPolicy</th>
+<th>Create if missing</th>
+<th>Reflect source change</th>
+<th>Overwrite on ES re-create</th>
+<th>Recreate if Secret deleted</th>
+<th>Retain on ES delete</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Owner</strong></td>
+<td>Periodic</td>
+<td>Yes</td>
+<td>Yes (at interval)</td>
+<td>Yes</td>
+<td>Yes (immediate)</td>
+<td>No (GC via ownerRef)</td>
+</tr>
+<tr>
+<td><strong>Owner</strong></td>
+<td>OnChange</td>
+<td>Yes</td>
+<td>Only on ES change</td>
+<td>Yes</td>
+<td>Yes (immediate)</td>
+<td>No (GC via ownerRef)</td>
+</tr>
+<tr>
+<td><strong>Owner</strong></td>
+<td>CreatedOnce</td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes (immediate)</td>
+<td>No (GC via ownerRef)</td>
+</tr>
+<tr>
+<td><strong>Orphan</strong></td>
+<td>Periodic</td>
+<td>Yes</td>
+<td>Yes (at interval)</td>
+<td>Yes</td>
+<td>Yes (at interval)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Orphan</strong></td>
+<td>OnChange</td>
+<td>Yes</td>
+<td>Only on ES change</td>
+<td>Yes</td>
+<td>No (until ES change)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Orphan</strong></td>
+<td>CreatedOnce</td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Merge</strong></td>
+<td>Periodic</td>
+<td>No (waits)</td>
+<td>Yes (at interval)</td>
+<td>Yes (if target exists)</td>
+<td>No (never creates)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Merge</strong></td>
+<td>OnChange</td>
+<td>No (waits)</td>
+<td>Only on ES change</td>
+<td>Yes (if target exists)</td>
+<td>No (never creates)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>Merge</strong></td>
+<td>CreatedOnce</td>
+<td>No (waits)</td>
+<td>No</td>
+<td>Yes (if target exists)</td>
+<td>No (never creates)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>CreateOrMerge</strong></td>
+<td>Periodic</td>
+<td>Yes</td>
+<td>Yes (at interval)</td>
+<td>Yes</td>
+<td>Yes (immediate)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>CreateOrMerge</strong></td>
+<td>OnChange</td>
+<td>Yes</td>
+<td>Only on ES change</td>
+<td>Yes</td>
+<td>Yes (immediate)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>CreateOrMerge</strong></td>
+<td>CreatedOnce</td>
+<td>Yes</td>
+<td>No</td>
+<td>Yes</td>
+<td>Yes (immediate)</td>
+<td>Yes</td>
+</tr>
+<tr>
+<td><strong>None</strong></td>
+<td>any</td>
+<td>No (no-op)</td>
+<td>No</td>
+<td>No</td>
+<td>No</td>
+<td>Yes (nothing created)</td>
+</tr>
+</tbody>
+</table>
+<p>Column meanings:</p>
+<ul>
+<li><strong>Reflect source change</strong>: a value changing in the provider is pulled into the
+  Secret. ESO is pull-based and does not watch providers, so only <code>Periodic</code> polls
+  (at each interval). <code>OnChange</code> re-syncs only when the <code>ExternalSecret</code> spec or
+  metadata changes, or when you set the <code>force-sync</code> annotation. <code>CreatedOnce</code> never
+  re-syncs.</li>
+<li><strong>Overwrite on ES re-create</strong>: deleting and recreating the <code>ExternalSecret</code> object
+  resets its status, so the next sync overwrites the ES-managed keys of an existing
+  target (keys owned by others are preserved). This is independent of <code>refreshPolicy</code>;
+  only <code>spec.target.immutable: true</code> prevents it.</li>
+<li><strong>Recreate if Secret deleted</strong>: you delete the target Secret while the
+  <code>ExternalSecret</code> still exists. <code>Owner</code> treats a missing Secret as invalid and
+  recreates it immediately via the Secret watch. <code>Orphan</code> treats a missing Secret as
+  valid, so it only recreates when a refresh is triggered (a <code>Periodic</code> interval);
+  under <code>CreatedOnce</code> or <code>OnChange</code> it stays deleted. <code>Merge</code> never creates.</li>
+<li><strong>Retain on ES delete</strong>: whether the target Secret survives deletion of the
+  <code>ExternalSecret</code>. Only <code>Owner</code> sets an <code>ownerReference</code>, so only <code>Owner</code> is
+  garbage-collected.</li>
+</ul>
+<p>Modifiers that cut across every row:</p>
+<ul>
+<li><strong><code>spec.target.immutable: true</code></strong>: once the target Secret exists, its data is never
+  rewritten, so "Reflect source change" and "Overwrite on ES re-create" become No. It
+  does not affect "Create if missing" or "Recreate if Secret deleted", a Secret that
+  does not exist has no data to protect, so it is created or recreated fresh.</li>
+<li><strong><code>refreshInterval: 0</code> with <code>Periodic</code></strong> behaves like <code>CreatedOnce</code>.</li>
+<li><strong><code>deletionPolicy</code></strong> (Retain, Delete, Merge) only acts when the provider returns no
+  data, which is only detected on a re-sync. So under <code>CreatedOnce</code> a provider-side
+  deletion is never detected, under <code>OnChange</code> only on an <code>ExternalSecret</code> change, and
+  under <code>Periodic</code> at the next interval.</li>
+</ul>
 
 
 

@@ -5380,13 +5380,34 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <h2 id="update-behavior-with-3-different-refresh-policies">Update behavior with 3 different refresh policies</h2>
 <p>You can control how and when the <code>ExternalSecret</code> is refreshed by setting the <code>spec.refreshPolicy</code> field. If not specified, the default behavior is <code>Periodic</code>.</p>
 <h3 id="createdonce">CreatedOnce</h3>
-<p>With <code>refreshPolicy: CreatedOnce</code>, the controller will:</p>
+<p>With <code>refreshPolicy: CreatedOnce</code>, the controller syncs the <code>Kind=Secret</code> once per
+<code>ExternalSecret</code> object and then stops:</p>
 <ul>
-<li>Create the <code>Kind=Secret</code> only if it does not exist yet</li>
-<li>Never update the <code>Kind=Secret</code> afterwards if the source data changes</li>
-<li>Update/ Recreate the <code>Kind=Secret</code> if it gets changed/Deleted</li>
+<li>Runs a single sync on the first reconcile of the <code>ExternalSecret</code>, creating or
+  overwriting the target <code>Kind=Secret</code></li>
+<li>Does not refresh on a schedule or when the source data changes</li>
+<li>Still re-syncs if the target <code>Kind=Secret</code> is changed or deleted while the same
+  <code>ExternalSecret</code> object still exists</li>
 <li>Useful for immutable credentials or when you want to manage updates manually</li>
 </ul>
+<p>The "once" is tracked on the <code>ExternalSecret</code>'s own status (<code>syncedResourceVersion</code>
+and <code>refreshTime</code>), not on whether the target Secret already exists.</p>
+<div class="admonition warning">
+<p class="admonition-title">Recreating the ExternalSecret re-syncs the target Secret</p>
+<p><code>CreatedOnce</code> does not check whether the target Secret already exists. If the
+<code>ExternalSecret</code> object itself is deleted and recreated (for example by a GitOps
+controller that prunes and re-applies it), its status resets and the controller
+performs a fresh sync that overwrites the existing target Secret. With a
+stateless generator such as the Password generator this produces a brand new
+value, so the target Secret and any credential already derived from the old
+value diverge with no way to recover the original.</p>
+<p><code>creationPolicy</code> does not guard against this: <code>Owner</code>, <code>Orphan</code>, <code>Merge</code> and
+<code>CreateOrMerge</code> all rewrite the managed keys on that sync. The only field that prevents an existing
+target Secret's data from being overwritten is <code>spec.target.immutable: true</code>,
+which skips the data update whenever the Secret already exists. Combine
+<code>refreshPolicy: CreatedOnce</code> with <code>spec.target.immutable: true</code> for credentials
+that must be generated once and never change.</p>
+</div>
 <p>Example:
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
@@ -5396,6 +5417,44 @@ be transformed and saved as a <code>Kind=Secret</code>:</p>
 <span class="w">  </span><span class="nt">refreshPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CreatedOnce</span>
 <span class="w">  </span><span class="c1"># other fields...</span>
 </code></pre></div></p>
+<p>To generate a credential exactly once and never overwrite it afterward, even if
+the <code>ExternalSecret</code> object is recreated, combine <code>refreshPolicy: CreatedOnce</code> with
+<code>spec.target.immutable: true</code>. This is the correct pattern for a credential that an
+application persists on first run (for example a Keycloak admin password written
+into the application database at bootstrap): regenerating the value later would
+leave the target Secret out of sync with the live credential. <code>creationPolicy:
+Orphan</code> keeps the target Secret in place if the <code>ExternalSecret</code> is deleted, and
+<code>immutable: true</code> stops any later reconcile (including one triggered by recreating
+the <code>ExternalSecret</code>) from rewriting the existing data.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Password</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">keycloak-admin-password</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">length</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">32</span>
+<span class="w">  </span><span class="nt">digits</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">  </span><span class="nt">symbols</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">5</span>
+<span class="w">  </span><span class="nt">allowRepeat</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">keycloak-admin</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">CreatedOnce</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">keycloak-admin</span>
+<span class="w">    </span><span class="c1"># keep the Secret if this ExternalSecret is ever deleted</span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Orphan</span>
+<span class="w">    </span><span class="c1"># never rewrite the Secret data once it exists, even on recreation</span>
+<span class="w">    </span><span class="nt">immutable</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">sourceRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">generatorRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="w">          </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Password</span>
+<span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">keycloak-admin-password</span>
+</code></pre></div>
 <h3 id="periodic">Periodic</h3>
 <p>With <code>refreshPolicy: Periodic</code> (the default behavior), the controller will:</p>
 <ul>

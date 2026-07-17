@@ -9513,7 +9513,13 @@ ExternalSecretStatus
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;Merge&#34;</p></td>
+<tbody><tr><td><p>&#34;CreateOrMerge&#34;</p></td>
+<td><p>CreatePolicyCreateOrMerge creates the Secret if it is missing and merges
+data fields into it if it exists, without an ownerReference. A deleted
+target is recreated while the ExternalSecret exists, and the Secret is
+retained when the ExternalSecret is deleted.</p>
+</td>
+</tr><tr><td><p>&#34;Merge&#34;</p></td>
 <td><p>CreatePolicyMerge does not create the Secret, but merges the data fields to the Secret.</p>
 </td>
 </tr><tr><td><p>&#34;None&#34;</p></td>
