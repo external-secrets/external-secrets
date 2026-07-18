@@ -28,9 +28,9 @@
 #                 count for coverage and document the target matrix; flip to true
 #                 to expand the fan-out.
 #
-# Trial scope: only the three secret-light legs below are enabled while the
-# plumbing is validated on a same-repo PR. The remaining areas are the intended
-# full matrix and are switched on once the trial is green.
+# Trial scope: the legs marked enabled below (core-smoke, vault, openbao,
+# conjur, aws) are the initial set validated on a same-repo PR. The rest are the
+# intended full matrix, switched on once the trial is green.
 
 areas:
   # In-cluster only, no external credentials. The required floor: this leg runs
@@ -54,19 +54,39 @@ areas:
       - "e2e/suites/provider/cases/common/**"
     enabled: true
 
-  # Self-hosted secret backends installed as in-cluster addons. No cloud creds.
+  # Self-hosted secret backends, installed as in-cluster addons (no cloud
+  # creds). One leg per provider so a broken addon (e.g. conjur) fails only its
+  # own leg, not the others, and the leg name matches what it runs.
   - name: vault
     suite: provider
-    labels: "(vault || openbao || conjur) && !managed"
-    providers: [vault, openbao, conjur]
+    labels: "vault && !managed"
+    providers: [vault]
     secret_groups: []
     needs_secrets: false
     paths:
       - "providers/v1/vault/**"
-      - "providers/v1/openbao/**"
-      - "providers/v1/conjur/**"
       - "e2e/suites/provider/cases/vault/**"
+    enabled: true
+
+  - name: openbao
+    suite: provider
+    labels: "openbao && !managed"
+    providers: [openbao]
+    secret_groups: []
+    needs_secrets: false
+    paths:
+      - "providers/v1/openbao/**"
       - "e2e/suites/provider/cases/openbao/**"
+    enabled: true
+
+  - name: conjur
+    suite: provider
+    labels: "conjur && !managed"
+    providers: [conjur]
+    secret_groups: []
+    needs_secrets: false
+    paths:
+      - "providers/v1/conjur/**"
       - "e2e/suites/provider/cases/conjur/**"
     enabled: true
 
