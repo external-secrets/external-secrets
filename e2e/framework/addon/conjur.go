@@ -147,6 +147,8 @@ func NewConjur() *Conjur {
 			Chart:       fmt.Sprintf("%s/conjur-oss", repo),
 			// Pinned to the current latest conjur-oss chart release. Bump alongside conjurReleaseVersion.
 			ChartVersion: "2.1.1",
+			// Cap the wait so a crashlooping server fails fast (see image.tag).
+			InstallTimeout: "300s",
 			Repo: ChartRepo{
 				Name: repo,
 				URL:  "https://cyberark.github.io/helm-charts",
@@ -154,6 +156,9 @@ func NewConjur() *Conjur {
 			Values: []string{filepath.Join(AssetDir(), "conjur.values.yaml")},
 			Args: []string{
 				"--create-namespace",
+				// Pin the server image; the chart default `latest` is frozen at
+				// 1.24.0, which rejects the authn-cert authenticators.
+				"--set", "image.tag=" + conjurServerImageTag,
 				"--set", "ssl.caCert=" + base64.StdEncoding.EncodeToString(rootPem),
 				"--set", "ssl.caKey=" + base64.StdEncoding.EncodeToString(rootKeyPEM),
 				"--set", "ssl.cert=" + base64.StdEncoding.EncodeToString(serverPem),
@@ -348,6 +353,12 @@ func (l *Conjur) initConjur() error {
 // conjurReleaseVersion is the pinned cyberark/conjur GitHub release used to fetch the
 // authenticator-service binary. Bump this when a newer release is needed.
 const conjurReleaseVersion = "v1.27.0"
+
+// conjurServerImageTag pins the cyberark/conjur server image. The chart default
+// `latest` is frozen at 1.24.0, which predates the authn-cert authenticator
+// type, so it must be a version that supports it (kept in step with
+// conjurReleaseVersion).
+const conjurServerImageTag = "1.27.0"
 
 // authenticatorServiceInitScript downloads the authenticator-service binary matching the
 // node's architecture from the pinned cyberark/conjur GitHub release (see
