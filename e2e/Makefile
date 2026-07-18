@@ -67,6 +67,12 @@ test.managed: e2e-image ## Run e2e tests against current kube context
 	./run.sh
 
 
+matrix.check: ## Validate matrix.yaml (coverage, secret scoping consistency)
+	./matrix.py check
+
+matrix.plan: ## Show the credential env vars each enabled e2e leg receives
+	./matrix.py plan
+
 e2e-bin: install-ginkgo
 	   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 ginkgo build ./suites/...
 

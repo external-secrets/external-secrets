@@ -1,0 +1,198 @@
+# Source of truth for the non-managed e2e fan-out (e2e.yml). Each area is one CI
+# leg: a suite binary run under a Ginkgo label filter. The build job compiles
+# the images once; every enabled area runs as its own matrix leg on its own kind
+# cluster, so a flaky addon in one provider cannot fail the others.
+#
+# Fields:
+#   name          leg id, shown as "test (<name>)" in the checks list.
+#   suite         which suite binary to run (TEST_SUITES). One suite per leg so a
+#                 label filter never has to span binaries that lack the labels.
+#   labels        Ginkgo -label-filter (GINKGO_LABELS). This workflow is
+#                 non-managed only; the managed IRSA/workload-identity specs run
+#                 in e2e-managed.yml, so every filter ends with "&& !managed".
+#   providers     provider case names this leg covers. Used only by
+#                 check-matrix.sh to prove every provider compiled into the suite
+#                 (suites/provider/cases/import.go) is tested somewhere. Not read
+#                 by CI at run time.
+#   secret_groups external credential groups this leg receives. The reusable
+#                 workflow injects a provider's secrets only when its group is
+#                 listed here, so a vault leg never sees AWS creds. Empty means
+#                 the leg runs against in-cluster addons only (fork-safe). Group
+#                 names map to secret sets in e2e-reusable.yml.
+#   needs_secrets convenience mirror of "secret_groups is non-empty". Documents
+#                 intent; not read by CI.
+#   paths         globs whose change should trigger this leg. Seed for the
+#                 phase 2 affected-only resolver; ignored by the static phase 1
+#                 matrix, which runs every enabled area.
+#   enabled       whether phase 1 CI runs this leg now. Disabled areas still
+#                 count for coverage and document the target matrix; flip to true
+#                 to expand the fan-out.
+#
+# Trial scope: only the three secret-light legs below are enabled while the
+# plumbing is validated on a same-repo PR. The remaining areas are the intended
+# full matrix and are switched on once the trial is green.
+
+areas:
+  # In-cluster only, no external credentials. The required floor: this leg runs
+  # on every PR (including forks) and is the stable branch-protection gate.
+  - name: core-smoke
+    suite: provider
+    labels: "(fake || kubernetes || template) && !managed"
+    providers: [fake, kubernetes, template]
+    secret_groups: []
+    needs_secrets: false
+    paths:
+      - "apis/**"
+      - "pkg/**"
+      - "runtime/**"
+      - "cmd/**"
+      - "deploy/**"
+      - "e2e/framework/**"
+      - "e2e/suites/provider/cases/fake/**"
+      - "e2e/suites/provider/cases/kubernetes/**"
+      - "e2e/suites/provider/cases/template/**"
+      - "e2e/suites/provider/cases/common/**"
+    enabled: true
+
+  # Self-hosted secret backends installed as in-cluster addons. No cloud creds.
+  - name: vault
+    suite: provider
+    labels: "(vault || openbao || conjur) && !managed"
+    providers: [vault, openbao, conjur]
+    secret_groups: []
+    needs_secrets: false
+    paths:
+      - "providers/v1/vault/**"
+      - "providers/v1/openbao/**"
+      - "providers/v1/conjur/**"
+      - "e2e/suites/provider/cases/vault/**"
+      - "e2e/suites/provider/cases/openbao/**"
+      - "e2e/suites/provider/cases/conjur/**"
+    enabled: true
+
+  # Cloud provider, non-managed specs. Needs AWS OIDC credentials.
+  - name: aws
+    suite: provider
+    labels: "aws && !managed"
+    providers: [aws]
+    secret_groups: [aws]
+    needs_secrets: true
+    paths:
+      - "providers/v1/aws/**"
+      - "e2e/suites/provider/cases/aws/**"
+    enabled: true
+
+  # ---- Below: intended full matrix, switched on after the trial is green. ----
+
+  - name: gcp
+    suite: provider
+    labels: "gcp && !managed"
+    providers: [gcp]
+    secret_groups: [gcp]
+    needs_secrets: true
+    paths:
+      - "providers/v1/gcp/**"
+      - "e2e/suites/provider/cases/gcp/**"
+    enabled: false
+
+  - name: azure
+    suite: provider
+    labels: "azure && !managed"
+    providers: [azure]
+    secret_groups: [azure]
+    needs_secrets: true
+    paths:
+      - "providers/v1/azure/**"
+      - "e2e/suites/provider/cases/azure/**"
+    enabled: false
+
+  - name: scaleway
+    suite: provider
+    labels: "scaleway && !managed"
+    providers: [scaleway]
+    secret_groups: [scaleway]
+    needs_secrets: true
+    paths:
+      - "providers/v1/scaleway/**"
+      - "e2e/suites/provider/cases/scaleway/**"
+    enabled: false
+
+  - name: delinea
+    suite: provider
+    labels: "delinea && !managed"
+    providers: [delinea]
+    secret_groups: [delinea]
+    needs_secrets: true
+    paths:
+      - "providers/v1/delinea/**"
+      - "e2e/suites/provider/cases/delinea/**"
+    enabled: false
+
+  - name: secretserver
+    suite: provider
+    labels: "secretserver && !managed"
+    providers: [secretserver]
+    secret_groups: [secretserver]
+    needs_secrets: true
+    paths:
+      - "providers/v1/secretserver/**"
+      - "e2e/suites/provider/cases/secretserver/**"
+    enabled: false
+
+  # Infisical runs against an in-cluster Infisical addon (addon.NewInfisical),
+  # not an external tenant, so it needs no repo secrets despite being a SaaS.
+  - name: infisical
+    suite: provider
+    labels: "infisical && !managed"
+    providers: [infisical]
+    secret_groups: []
+    needs_secrets: false
+    paths:
+      - "providers/v1/infisical/**"
+      - "e2e/suites/provider/cases/infisical/**"
+    enabled: false
+
+  # Non-provider suites. No provider labels, so providers is empty; they run the
+  # whole non-managed suite. flux and argocd exercise ESO under GitOps tools and
+  # need no creds. generator's grafana specs need the grafana group; the
+  # credential needs of the other generators (e.g. ecr/sts) want a closer look
+  # before this leg is enabled.
+  - name: generator
+    suite: generator
+    labels: "!managed"
+    providers: []
+    secret_groups: [grafana]
+    needs_secrets: true
+    paths:
+      - "apis/**"
+      - "pkg/**"
+      - "runtime/**"
+      - "generators/**"
+      - "e2e/suites/generator/**"
+    enabled: false
+
+  - name: flux
+    suite: flux
+    labels: "!managed"
+    providers: []
+    secret_groups: []
+    needs_secrets: false
+    paths:
+      - "apis/**"
+      - "pkg/**"
+      - "runtime/**"
+      - "e2e/suites/flux/**"
+    enabled: false
+
+  - name: argocd
+    suite: argocd
+    labels: "!managed"
+    providers: []
+    secret_groups: []
+    needs_secrets: false
+    paths:
+      - "apis/**"
+      - "pkg/**"
+      - "runtime/**"
+      - "e2e/suites/argocd/**"
+    enabled: false
