@@ -1,0 +1,11 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: QuayAccessToken
+metadata:
+  name: my-quay-token
+  namespace: default
+spec:
+  url: "quay.io"
+  robotAccount: "quay_user_or_org+robot_account_name"
+  serviceAccountRef:
+    name: "default"
+    namespace: "default"

@@ -1,0 +1,26 @@
+{% raw %}
+
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: VaultDynamicSecret
+metadata:
+  name: "vault-get-example"
+spec:
+  path: "/kv/data/example"
+  method: "GET"
+  # Query string parameters for GET calls (each key may map to multiple values).
+  # These are ignored for non-GET methods; use `parameters` for write bodies.
+  getParameters:
+    version:
+    - "1"
+  resultType: "Data"  # "Auth" and "Raw" are also available
+  provider:
+    # For production, always use "https" and ensure the additional TLS parameters are configured accordingly.
+    server: "http://vault.default.svc.cluster.local:8200"
+    auth:
+      kubernetes:
+        mountPath: "kubernetes"
+        role: "external-secrets-operator"
+        serviceAccountRef:
+          name: "default"
+{% endraw %}
+
