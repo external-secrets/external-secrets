@@ -22,6 +22,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -63,6 +64,84 @@ func TestValidateSecretStore(t *testing.T) {
 			},
 			assertErr: func(t *testing.T, err error) {
 				require.NoError(t, err)
+			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
+			},
+		},
+		{
+			name: "valid duration string refreshInterval",
+			obj: &SecretStore{
+				Spec: SecretStoreSpec{
+					RefreshInterval: new(intstr.FromString("1h")),
+					Provider: &SecretStoreProvider{
+						AWS: &AWSProvider{},
+					},
+				},
+			},
+			mock: func() {
+				ForceRegister(&ValidationProvider{}, &SecretStoreProvider{
+					AWS: &AWSProvider{},
+				}, MaintenanceStatusMaintained)
+			},
+			assertErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
+			},
+		},
+		{
+			name: "legacy integer refreshInterval",
+			obj: &SecretStore{
+				Spec: SecretStoreSpec{
+					RefreshInterval: new(intstr.FromInt32(300)),
+					Provider: &SecretStoreProvider{
+						AWS: &AWSProvider{},
+					},
+				},
+			},
+			mock: func() {
+				ForceRegister(&ValidationProvider{}, &SecretStoreProvider{
+					AWS: &AWSProvider{},
+				}, MaintenanceStatusMaintained)
+			},
+			assertErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
+			},
+		},
+		{
+			name: "invalid duration string refreshInterval is rejected",
+			obj: &SecretStore{
+				Spec: SecretStoreSpec{
+					RefreshInterval: new(intstr.FromString("nonsense")),
+					Provider: &SecretStoreProvider{
+						AWS: &AWSProvider{},
+					},
+				},
+			},
+			assertErr: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "invalid refreshInterval")
+			},
+			assertWarns: func(t *testing.T, warns admission.Warnings) {
+				require.Equal(t, 0, len(warns))
+			},
+		},
+		{
+			name: "negative refreshInterval is rejected",
+			obj: &SecretStore{
+				Spec: SecretStoreSpec{
+					RefreshInterval: new(intstr.FromInt32(-5)),
+					Provider: &SecretStoreProvider{
+						AWS: &AWSProvider{},
+					},
+				},
+			},
+			assertErr: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "must not be negative")
 			},
 			assertWarns: func(t *testing.T, warns admission.Warnings) {
 				require.Equal(t, 0, len(warns))

@@ -351,7 +351,11 @@ string
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;ParameterStore&#34;</p></td>
+<tbody><tr><td><p>&#34;CertificateManager&#34;</p></td>
+<td><p>AWSServiceCertificateManager is the AWS Certificate Manager service.
+see: <a href="https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html">https://docs.aws.amazon.com/acm/latest/userguide/acm-overview.html</a></p>
+</td>
+</tr><tr><td><p>&#34;ParameterStore&#34;</p></td>
 <td><p>AWSServiceParameterStore is the AWS SystemsManager ParameterStore service.
 see: <a href="https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html">https://docs.aws.amazon.com/systems-manager/latest/userguide/systems-manager-parameter-store.html</a></p>
 </td>
@@ -406,6 +410,23 @@ AkeylessKubernetesAuth
 <em>(Optional)</em>
 <p>Kubernetes authenticates with Akeyless by passing the ServiceAccount
 token stored in the named Secret resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef specifies a Kubernetes ServiceAccount used for azure_ad
+authentication on AKS Workload Identity. The operator obtains a federated
+identity token from this ServiceAccount via the TokenRequest API instead
+of using the ESO controller pod identity. Ignored for other access types.</p>
 </td>
 </tr>
 </tbody>
@@ -570,6 +591,19 @@ string
 </td>
 <td>
 <p>Akeyless GW API Url from which the secrets to be fetched from.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>ignoreCache</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IgnoreCache bypasses the Gateway cache for secret reads when true.
+Only relevant when akeylessGWApiURL points to an Akeyless Gateway.</p>
 </td>
 </tr>
 <tr>
@@ -2119,6 +2153,269 @@ Can only be defined when used in a ClusterSecretStore.</p>
 </td>
 </tr></tbody>
 </table>
+<h3 id="external-secrets.io/v1.CRDProvider">CRDProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>CRDProvider configures a store to fetch data from arbitrary Kubernetes
+resources, including both custom resources (CRDs) and core API resources
+(e.g. ConfigMap, addressed by setting resource.group to &ldquo;&rdquo;). Kubernetes
+Secrets are intentionally blocked; use the Kubernetes provider for those.</p>
+<h1>Authentication modes</h1>
+<p>In-cluster: set auth.serviceAccount and omit server. The server URL defaults
+to the in-cluster API (kubernetes.default) and the controller mints a
+short-lived token for the referenced ServiceAccount to read CRDs locally.</p>
+<p>Remote cluster: set server plus auth (serviceAccount, token, or cert) or
+authRef (a kubeconfig Secret), exactly like the Kubernetes provider.</p>
+<h1>Remote reference keys</h1>
+<ul>
+<li>SecretStore: the key is the object name only; &lsquo;/&rsquo; is not allowed. The API
+namespace is always the store namespace, never part of the key.</li>
+<li>ClusterSecretStore: use &ldquo;namespace/objectName&rdquo; to read a namespaced CR;
+a key without &lsquo;/&rsquo; addresses a cluster-scoped CR by object name. For
+dataFrom Find with a namespaced kind, listing spans all namespaces and
+result keys are &ldquo;namespace/objectName&rdquo;.</li>
+</ul>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>server</code></br>
+<em>
+<a href="#external-secrets.io/v1.KubernetesServer">
+KubernetesServer
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Server configures the Kubernetes API address and TLS trust, same as the
+Kubernetes provider. When omitted, the URL defaults to the in-cluster API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.KubernetesAuth">
+KubernetesAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth configures authentication to the Kubernetes API, same as the
+Kubernetes provider. Required when Server.URL is set (unless using AuthRef).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>authRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AuthRef references a Secret containing a kubeconfig. Same semantics as the
+Kubernetes provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>resource</code></br>
+<em>
+<a href="#external-secrets.io/v1.CRDProviderResource">
+CRDProviderResource
+</a>
+</em>
+</td>
+<td>
+<p>Resource identifies the CRD by its API group, version and kind.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>whitelist</code></br>
+<em>
+<a href="#external-secrets.io/v1.CRDProviderWhitelist">
+CRDProviderWhitelist
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Whitelist optionally restricts which object names and requested properties
+are allowed to be read.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.CRDProviderResource">CRDProviderResource
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.CRDProvider">CRDProvider</a>)
+</p>
+<p>
+<p>CRDProviderResource identifies a Kubernetes resource (CRD or core) by its
+full API coordinates: group, version and kind.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>group</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Group is the API group of the resource. Use &ldquo;&rdquo; (empty string) for core
+Kubernetes resources such as ConfigMap; use e.g. &ldquo;config.example.io&rdquo;
+for a CRD. The field is required to be present in the manifest — write
+<code>group: &quot;&quot;</code> explicitly for core resources so typos fail at admission
+time rather than later at discovery.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>version</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Version is the API version of the resource (e.g. &ldquo;v1alpha1&rdquo;).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kind</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Kind is the Kubernetes resource kind (e.g. &ldquo;MyCustomResource&rdquo;).</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.CRDProviderWhitelist">CRDProviderWhitelist
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.CRDProvider">CRDProvider</a>)
+</p>
+<p>
+<p>CRDProviderWhitelist configures allow-list rules for CRD reads.
+If any rules are present, a request must satisfy ALL non-empty filters of at
+least one rule; requests that match no rule are denied.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>rules</code></br>
+<em>
+<a href="#external-secrets.io/v1.CRDProviderWhitelistRule">
+[]CRDProviderWhitelistRule
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Rules is a list of allow rules. If rules are set, at least one rule must
+match for a request to be allowed.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.CRDProviderWhitelistRule">CRDProviderWhitelistRule
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.CRDProviderWhitelist">CRDProviderWhitelist</a>)
+</p>
+<p>
+<p>CRDProviderWhitelistRule defines a single allow rule for CRD reads.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Name is an optional regular expression matched against the bare object name.
+For both SecretStore and ClusterSecretStore this is always the object name
+without any namespace prefix (e.g. &ldquo;my-db-spec&rdquo;, not &ldquo;prod/my-db-spec&rdquo;).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Namespace is an optional regular expression matched against the namespace of
+the object. Applies only when a ClusterSecretStore is used; it is ignored
+for SecretStore (where the namespace is fixed to the store namespace).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>properties</code></br>
+<em>
+[]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Properties is an optional list of regular expressions matched against
+requested property keys (for example: &ldquo;spec.secretValue&rdquo;).</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.CSMAuth">CSMAuth
 </h3>
 <p>
@@ -2981,12 +3278,14 @@ SecretStoreRetrySettings
 <td>
 <code>refreshInterval</code></br>
 <em>
-int
+k8s.io/apimachinery/pkg/util/intstr.IntOrString
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
+<p>Used to configure store refresh interval. Accepts either an integer number
+of seconds (legacy) or a Go duration string such as &ldquo;1h&rdquo; or &ldquo;5m&rdquo;. Empty or
+0 will default to the controller config.</p>
 </td>
 </tr>
 <tr>
@@ -3232,6 +3531,101 @@ ConjurJWT
 <td>
 <em>(Optional)</em>
 <p>Jwt enables JWT authentication using Kubernetes service account tokens.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>cert</code></br>
+<em>
+<a href="#external-secrets.io/v1.ConjurCert">
+ConjurCert
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Cert enables certificate-based authentication using a client certificate and key.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ConjurCert">ConjurCert
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ConjurAuth">ConjurAuth</a>)
+</p>
+<p>
+<p>ConjurCert defines the Cert authentication configuration for Conjur provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>account</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Account is the Conjur organization account name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The conjur authn cert webservice id</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional HostID for cert authentication (can be omitted when using &lsquo;spiffe&rsquo; mode).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientCertRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>ClientCertRef is a reference to a specific &lsquo;key&rsquo; containing the client certificate
+within a Secret resource. The certificate must be PEM-encoded.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientKeyRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>ClientKeyRef is a reference to a specific &lsquo;key&rsquo; containing the private RSA client key
+within a Secret resource. The key must be PEM-encoded.</p>
 </td>
 </tr>
 </tbody>
@@ -4113,7 +4507,13 @@ ExternalSecretStatus
 <th>Description</th>
 </tr>
 </thead>
-<tbody><tr><td><p>&#34;Merge&#34;</p></td>
+<tbody><tr><td><p>&#34;CreateOrMerge&#34;</p></td>
+<td><p>CreatePolicyCreateOrMerge creates the Secret if it is missing and merges
+data fields into it if it exists, without an ownerReference. A deleted
+target is recreated while the ExternalSecret exists, and the Secret is
+retained when the ExternalSecret is deleted.</p>
+</td>
+</tr><tr><td><p>&#34;Merge&#34;</p></td>
 <td><p>CreatePolicyMerge does not create the Secret, but merges the data fields to the Secret.</p>
 </td>
 </tr><tr><td><p>&#34;None&#34;</p></td>
@@ -7234,6 +7634,7 @@ bool
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1.CRDProvider">CRDProvider</a>, 
 <a href="#external-secrets.io/v1.KubernetesProvider">KubernetesProvider</a>)
 </p>
 <p>
@@ -7412,6 +7813,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
+<a href="#external-secrets.io/v1.CRDProvider">CRDProvider</a>, 
 <a href="#external-secrets.io/v1.KubernetesProvider">KubernetesProvider</a>)
 </p>
 <p>
@@ -7460,7 +7862,7 @@ CAProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>see: <a href="https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider">https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider</a></p>
+<p>see: <a href="https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider">https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider</a></p>
 </td>
 </tr>
 </tbody>
@@ -10050,7 +10452,9 @@ string
 </p>
 <p>
 <p>SecretServerProvider provides access to authenticate to a secrets provider server.
-See: <a href="https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go">https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go</a>.</p>
+See: <a href="https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go">https://github.com/DelineaXPM/tss-sdk-go/blob/main/server/server.go</a>.
+Authentication requires either Token, or both Username and Password. If Token is
+set it takes precedence and Username/Password are ignored.</p>
 </p>
 <table>
 <thead>
@@ -10070,7 +10474,9 @@ SecretServerProviderRef
 </em>
 </td>
 <td>
-<p>Username is the secret server account username.</p>
+<em>(Optional)</em>
+<p>Username is the secret server account username.
+Required unless Token is set.</p>
 </td>
 </tr>
 <tr>
@@ -10083,7 +10489,25 @@ SecretServerProviderRef
 </em>
 </td>
 <td>
-<p>Password is the secret server account password.</p>
+<em>(Optional)</em>
+<p>Password is the secret server account password.
+Required unless Token is set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>token</code></br>
+<em>
+<a href="#external-secrets.io/v1.SecretServerProviderRef">
+SecretServerProviderRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Token is an access token used to authenticate to the secret server,
+as an alternative to Username and Password. When set, Username and
+Password are not required and are ignored.</p>
 </td>
 </tr>
 <tr>
@@ -10148,7 +10572,7 @@ CAProvider
 </p>
 <p>
 <p>SecretServerProviderRef references a value that can be specified directly or via a secret
-for a SecretServerProvider.</p>
+for a SecretServerProvider. Exactly one of Value or SecretRef must be set.</p>
 </p>
 <table>
 <thead>
@@ -10270,12 +10694,14 @@ SecretStoreRetrySettings
 <td>
 <code>refreshInterval</code></br>
 <em>
-int
+k8s.io/apimachinery/pkg/util/intstr.IntOrString
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
+<p>Used to configure store refresh interval. Accepts either an integer number
+of seconds (legacy) or a Go duration string such as &ldquo;1h&rdquo; or &ldquo;5m&rdquo;. Empty or
+0 will default to the controller config.</p>
 </td>
 </tr>
 <tr>
@@ -10611,6 +11037,24 @@ KubernetesProvider
 <td>
 <em>(Optional)</em>
 <p>Kubernetes configures this store to sync secrets using a Kubernetes cluster provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>crd</code></br>
+<em>
+<a href="#external-secrets.io/v1.CRDProvider">
+CRDProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CRD configures this store to sync secrets from arbitrary Kubernetes resources,
+including both custom resources (CRDs) and core API resources. Resources are
+selected by API group, version and kind, where group can be &ldquo;&rdquo; (empty string)
+for core resources such as ConfigMap. Reading the core v1 Secret is
+intentionally blocked — use the Kubernetes provider for that.</p>
 </td>
 </tr>
 <tr>
@@ -11113,12 +11557,14 @@ SecretStoreRetrySettings
 <td>
 <code>refreshInterval</code></br>
 <em>
-int
+k8s.io/apimachinery/pkg/util/intstr.IntOrString
 </em>
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.</p>
+<p>Used to configure store refresh interval. Accepts either an integer number
+of seconds (legacy) or a Go duration string such as &ldquo;1h&rdquo; or &ldquo;5m&rdquo;. Empty or
+0 will default to the controller config.</p>
 </td>
 </tr>
 <tr>

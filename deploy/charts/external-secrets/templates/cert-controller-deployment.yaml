@@ -115,11 +115,6 @@ spec:
             - containerPort: {{ .Values.certController.readinessProbe.port }}
               protocol: TCP
               name: ready
-            {{- if and .Values.certController.startupProbe.enabled (not .Values.certController.startupProbe.useReadinessProbePort) }}
-            - containerPort: {{ .Values.certController.startupProbe.port }}
-              protocol: TCP
-              name: startup
-            {{- end }}
           {{- if .Values.certController.livenessProbe.enabled }}
           livenessProbe:
             httpGet:
@@ -145,14 +140,11 @@ spec:
           {{- if .Values.certController.startupProbe.enabled }}
           startupProbe:
             httpGet:
-              {{- if .Values.certController.startupProbe.useReadinessProbePort }}
               port: ready
-              {{- else }}
-              port: startup
-              {{- end }}
               path: /readyz
-            initialDelaySeconds: 20
-            periodSeconds: 5
+            initialDelaySeconds: {{ .Values.certController.startupProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.certController.startupProbe.periodSeconds }}
+            failureThreshold: {{ .Values.certController.startupProbe.failureThreshold }}
           {{- end }}
           {{- with .Values.certController.extraEnv }}
           env:

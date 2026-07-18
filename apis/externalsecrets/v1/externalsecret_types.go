@@ -37,7 +37,7 @@ type SecretStoreRef struct {
 }
 
 // ExternalSecretCreationPolicy defines rules on how to create the resulting Secret.
-// +kubebuilder:validation:Enum=Owner;Orphan;Merge;None
+// +kubebuilder:validation:Enum=Owner;Orphan;Merge;None;CreateOrMerge
 type ExternalSecretCreationPolicy string
 
 const (
@@ -53,6 +53,12 @@ const (
 
 	// CreatePolicyNone does not create a Secret (future use with injector).
 	CreatePolicyNone ExternalSecretCreationPolicy = "None"
+
+	// CreatePolicyCreateOrMerge creates the Secret if it is missing and merges
+	// data fields into it if it exists, without an ownerReference. A deleted
+	// target is recreated while the ExternalSecret exists, and the Secret is
+	// retained when the ExternalSecret is deleted.
+	CreatePolicyCreateOrMerge ExternalSecretCreationPolicy = "CreateOrMerge"
 )
 
 // ExternalSecretDeletionPolicy defines rules on how to delete the resulting Secret.
