@@ -28,9 +28,8 @@
 #                 count for coverage and document the target matrix; flip to true
 #                 to expand the fan-out.
 #
-# Trial scope: the legs marked enabled below (core-smoke, vault, openbao,
-# conjur, aws) are the initial set validated on a same-repo PR. The rest are the
-# intended full matrix, switched on once the trial is green.
+# All legs are enabled. Set enabled: false on an area to skip it (e.g. while a
+# provider's e2e is being fixed) without deleting its definition.
 
 areas:
   # In-cluster only, no external credentials. The required floor: this leg runs
@@ -102,7 +101,7 @@ areas:
       - "e2e/suites/provider/cases/aws/**"
     enabled: true
 
-  # ---- Below: intended full matrix, switched on after the trial is green. ----
+  # ---- Cloud / external-API providers (each scoped to its own secret group). ----
 
   - name: gcp
     suite: provider
@@ -113,7 +112,7 @@ areas:
     paths:
       - "providers/v1/gcp/**"
       - "e2e/suites/provider/cases/gcp/**"
-    enabled: false
+    enabled: true
 
   - name: azure
     suite: provider
@@ -124,7 +123,7 @@ areas:
     paths:
       - "providers/v1/azure/**"
       - "e2e/suites/provider/cases/azure/**"
-    enabled: false
+    enabled: true
 
   - name: scaleway
     suite: provider
@@ -135,7 +134,7 @@ areas:
     paths:
       - "providers/v1/scaleway/**"
       - "e2e/suites/provider/cases/scaleway/**"
-    enabled: false
+    enabled: true
 
   - name: delinea
     suite: provider
@@ -146,7 +145,7 @@ areas:
     paths:
       - "providers/v1/delinea/**"
       - "e2e/suites/provider/cases/delinea/**"
-    enabled: false
+    enabled: true
 
   - name: secretserver
     suite: provider
@@ -157,7 +156,7 @@ areas:
     paths:
       - "providers/v1/secretserver/**"
       - "e2e/suites/provider/cases/secretserver/**"
-    enabled: false
+    enabled: true
 
   # Infisical runs against an in-cluster Infisical addon (addon.NewInfisical),
   # not an external tenant, so it needs no repo secrets despite being a SaaS.
@@ -170,7 +169,7 @@ areas:
     paths:
       - "providers/v1/infisical/**"
       - "e2e/suites/provider/cases/infisical/**"
-    enabled: false
+    enabled: true
 
   # Non-provider suites. No provider labels, so providers is empty; they run the
   # whole non-managed suite. flux and argocd exercise ESO under GitOps tools and
@@ -189,7 +188,7 @@ areas:
       - "runtime/**"
       - "generators/**"
       - "e2e/suites/generator/**"
-    enabled: false
+    enabled: true
 
   - name: flux
     suite: flux
@@ -202,7 +201,7 @@ areas:
       - "pkg/**"
       - "runtime/**"
       - "e2e/suites/flux/**"
-    enabled: false
+    enabled: true
 
   - name: argocd
     suite: argocd
@@ -215,4 +214,4 @@ areas:
       - "pkg/**"
       - "runtime/**"
       - "e2e/suites/argocd/**"
-    enabled: false
+    enabled: true
