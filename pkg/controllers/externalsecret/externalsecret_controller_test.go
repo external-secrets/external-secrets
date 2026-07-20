@@ -193,6 +193,29 @@ var _ = Describe("Kind=secret existence logic", func() {
 			ExternalSecret: makeExternalSecret(esv1.CreatePolicyOrphan),
 			ExpectedOutput: true,
 		},
+		{
+			Name:           "Missing UID Secret is invalid with creation policy CreateOrMerge",
+			Input:          &v1.Secret{},
+			ExternalSecret: makeExternalSecret(esv1.CreatePolicyCreateOrMerge),
+			ExpectedOutput: false,
+		},
+		{
+			Name: "A valid secret with creation policy CreateOrMerge should return true",
+			Input: &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					UID: "xxx",
+					Labels: map[string]string{
+						esv1.LabelManaged: esv1.LabelManagedValue,
+					},
+					Annotations: map[string]string{
+						esv1.AnnotationDataHash: esutils.ObjectHash(validData),
+					},
+				},
+				Data: validData,
+			},
+			ExternalSecret: makeExternalSecret(esv1.CreatePolicyCreateOrMerge),
+			ExpectedOutput: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -2556,6 +2579,392 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			noSecretCreatedWhenNamespaceMatchMultipleNonMatchingConditions,
 		),
 	)
+
+	// Regression coverage for issue #6640: refreshPolicy CreatedOnce tracks its
+	// "once" on the ExternalSecret's own status, not on whether the target Secret
+	// already exists. Recreating the ExternalSecret object therefore re-syncs and
+	// overwrites the existing target Secret unless target.immutable is set.
+	Context("RefreshPolicy=CreatedOnce recreation (issue #6640)", func() {
+		It("overwrites an existing target Secret when the ExternalSecret is recreated without immutable", func() {
+			ctx := context.Background()
+			const firstVal = "created-once-first"
+			const secondVal = "created-once-second"
+
+			tc := makeDefaultTestcase()
+			tc.externalSecret.Spec.RefreshPolicy = esv1.RefreshPolicyCreatedOnce
+			tc.externalSecret.Spec.Target.CreationPolicy = esv1.CreatePolicyOrphan
+			fakeProvider.WithGetSecret([]byte(firstVal), nil)
+
+			By("creating the secret store and external secret")
+			Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
+			Expect(k8sClient.Create(ctx, tc.externalSecret)).To(Succeed())
+
+			secretKey := types.NamespacedName{Name: ExternalSecretTargetSecretName, Namespace: ExternalSecretNamespace}
+			esKey := types.NamespacedName{Name: ExternalSecretName, Namespace: ExternalSecretNamespace}
+
+			By("waiting for the target secret to be created with the first value")
+			Eventually(func() string {
+				sec := &v1.Secret{}
+				if err := k8sClient.Get(ctx, secretKey, sec); err != nil {
+					return ""
+				}
+				return string(sec.Data[targetProp])
+			}, timeout, interval).Should(Equal(firstVal))
+
+			By("changing the provider value; CreatedOnce must not refresh the live ExternalSecret")
+			fakeProvider.WithGetSecret([]byte(secondVal), nil)
+			Consistently(func() string {
+				sec := &v1.Secret{}
+				if err := k8sClient.Get(ctx, secretKey, sec); err != nil {
+					return ""
+				}
+				return string(sec.Data[targetProp])
+			}, time.Second*3, interval).Should(Equal(firstVal))
+
+			By("deleting the ExternalSecret; creationPolicy=Orphan keeps the target secret")
+			Expect(k8sClient.Delete(ctx, tc.externalSecret)).To(Succeed())
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, esKey, &esv1.ExternalSecret{}))
+			}, timeout, interval).Should(BeTrue())
+			sec := &v1.Secret{}
+			Expect(k8sClient.Get(ctx, secretKey, sec)).To(Succeed())
+			Expect(string(sec.Data[targetProp])).To(Equal(firstVal))
+
+			By("recreating an identical ExternalSecret")
+			recreated := makeDefaultTestcase().externalSecret
+			recreated.Spec.RefreshPolicy = esv1.RefreshPolicyCreatedOnce
+			recreated.Spec.Target.CreationPolicy = esv1.CreatePolicyOrphan
+			Expect(k8sClient.Create(ctx, recreated)).To(Succeed())
+
+			By("observing the pre-existing target secret is overwritten with the new value")
+			Eventually(func() string {
+				s := &v1.Secret{}
+				if err := k8sClient.Get(ctx, secretKey, s); err != nil {
+					return ""
+				}
+				return string(s.Data[targetProp])
+			}, timeout, interval).Should(Equal(secondVal))
+		})
+
+		It("preserves an existing target Secret when the ExternalSecret is recreated with target.immutable", func() {
+			ctx := context.Background()
+			const firstVal = "immutable-first"
+			const secondVal = "immutable-second"
+
+			tc := makeDefaultTestcase()
+			tc.externalSecret.Spec.RefreshPolicy = esv1.RefreshPolicyCreatedOnce
+			tc.externalSecret.Spec.Target.CreationPolicy = esv1.CreatePolicyOrphan
+			tc.externalSecret.Spec.Target.Immutable = true
+			fakeProvider.WithGetSecret([]byte(firstVal), nil)
+
+			By("creating the secret store and immutable external secret")
+			Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
+			Expect(k8sClient.Create(ctx, tc.externalSecret)).To(Succeed())
+
+			secretKey := types.NamespacedName{Name: ExternalSecretTargetSecretName, Namespace: ExternalSecretNamespace}
+			esKey := types.NamespacedName{Name: ExternalSecretName, Namespace: ExternalSecretNamespace}
+
+			By("waiting for the immutable target secret to be created")
+			Eventually(func() string {
+				sec := &v1.Secret{}
+				if err := k8sClient.Get(ctx, secretKey, sec); err != nil {
+					return ""
+				}
+				return string(sec.Data[targetProp])
+			}, timeout, interval).Should(Equal(firstVal))
+			sec := &v1.Secret{}
+			Expect(k8sClient.Get(ctx, secretKey, sec)).To(Succeed())
+			Expect(sec.Immutable).ToNot(BeNil())
+			Expect(*sec.Immutable).To(BeTrue())
+
+			By("changing the provider value and deleting the ExternalSecret")
+			fakeProvider.WithGetSecret([]byte(secondVal), nil)
+			Expect(k8sClient.Delete(ctx, tc.externalSecret)).To(Succeed())
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, esKey, &esv1.ExternalSecret{}))
+			}, timeout, interval).Should(BeTrue())
+
+			By("recreating the identical immutable ExternalSecret")
+			recreated := makeDefaultTestcase().externalSecret
+			recreated.Spec.RefreshPolicy = esv1.RefreshPolicyCreatedOnce
+			recreated.Spec.Target.CreationPolicy = esv1.CreatePolicyOrphan
+			recreated.Spec.Target.Immutable = true
+			Expect(k8sClient.Create(ctx, recreated)).To(Succeed())
+
+			By("waiting for the recreated ExternalSecret to reconcile to Ready")
+			Eventually(func() bool {
+				es := &esv1.ExternalSecret{}
+				if err := k8sClient.Get(ctx, esKey, es); err != nil {
+					return false
+				}
+				cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+				return cond != nil && cond.Status == v1.ConditionTrue
+			}, timeout, interval).Should(BeTrue())
+
+			By("confirming the pre-existing secret data is preserved despite the changed provider value")
+			Consistently(func() string {
+				s := &v1.Secret{}
+				if err := k8sClient.Get(ctx, secretKey, s); err != nil {
+					return ""
+				}
+				return string(s.Data[targetProp])
+			}, time.Second*5, interval).Should(Equal(firstVal))
+		})
+
+		It("recreates a deleted target Secret even with target.immutable set (creationPolicy Owner)", func() {
+			// immutable only blocks overwriting an EXISTING Secret's data; a
+			// deleted Secret no longer exists, so the controller creates a fresh
+			// one on the next reconcile (the by-label Secret watch enqueues it).
+			ctx := context.Background()
+			const val = "immutable-recreate"
+
+			tc := makeDefaultTestcase()
+			tc.externalSecret.Spec.RefreshPolicy = esv1.RefreshPolicyCreatedOnce
+			tc.externalSecret.Spec.Target.CreationPolicy = esv1.CreatePolicyOwner
+			tc.externalSecret.Spec.Target.Immutable = true
+			fakeProvider.WithGetSecret([]byte(val), nil)
+
+			Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
+			Expect(k8sClient.Create(ctx, tc.externalSecret)).To(Succeed())
+
+			secretKey := types.NamespacedName{Name: ExternalSecretTargetSecretName, Namespace: ExternalSecretNamespace}
+
+			By("waiting for the immutable target secret to be created")
+			secret := &v1.Secret{}
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, secretKey, secret); err != nil {
+					return false
+				}
+				return secret.UID != "" && string(secret.Data[targetProp]) == val
+			}, timeout, interval).Should(BeTrue())
+			Expect(secret.Immutable).ToNot(BeNil())
+			Expect(*secret.Immutable).To(BeTrue())
+			oldUID := secret.UID
+
+			By("deleting the target secret")
+			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
+
+			By("observing the controller recreates it as a new object")
+			Eventually(func() bool {
+				recreated := &v1.Secret{}
+				if err := k8sClient.Get(ctx, secretKey, recreated); err != nil {
+					return false
+				}
+				return recreated.UID != "" && recreated.UID != oldUID
+			}, timeout, interval).Should(BeTrue())
+		})
+
+		It("does not recreate a deleted target Secret with creationPolicy Orphan and refreshPolicy CreatedOnce", func() {
+			// With Orphan the controller treats a missing Secret as valid, and
+			// CreatedOnce never triggers another refresh, so a deleted Secret is
+			// not recreated. immutable is irrelevant to this outcome.
+			ctx := context.Background()
+			const val = "orphan-created-once"
+
+			tc := makeDefaultTestcase()
+			tc.externalSecret.Spec.RefreshPolicy = esv1.RefreshPolicyCreatedOnce
+			tc.externalSecret.Spec.Target.CreationPolicy = esv1.CreatePolicyOrphan
+			tc.externalSecret.Spec.Target.Immutable = true
+			fakeProvider.WithGetSecret([]byte(val), nil)
+
+			Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
+			Expect(k8sClient.Create(ctx, tc.externalSecret)).To(Succeed())
+
+			secretKey := types.NamespacedName{Name: ExternalSecretTargetSecretName, Namespace: ExternalSecretNamespace}
+
+			By("waiting for the target secret to be created")
+			secret := &v1.Secret{}
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, secretKey, secret); err != nil {
+					return false
+				}
+				return secret.UID != "" && string(secret.Data[targetProp]) == val
+			}, timeout, interval).Should(BeTrue())
+
+			By("deleting the target secret")
+			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, secretKey, &v1.Secret{}))
+			}, timeout, interval).Should(BeTrue())
+
+			By("confirming the controller leaves it deleted")
+			Consistently(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, secretKey, &v1.Secret{}))
+			}, time.Second*5, interval).Should(BeTrue())
+		})
+
+		It("with Orphan + Periodic + immutable: creates, recreates on delete, and keeps the Secret if the ExternalSecret is deleted", func() {
+			// Orphan keeps the Secret when the ExternalSecret goes away (no
+			// ownerReference), Periodic re-triggers a sync so a deleted Secret is
+			// recreated at the next interval, and immutable stops the periodic
+			// re-sync from rewriting the live value once it exists.
+			ctx := context.Background()
+			const val = "orphan-periodic-immutable"
+
+			tc := makeDefaultTestcase()
+			tc.externalSecret.Spec.RefreshPolicy = esv1.RefreshPolicyPeriodic
+			tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
+			tc.externalSecret.Spec.Target.CreationPolicy = esv1.CreatePolicyOrphan
+			tc.externalSecret.Spec.Target.Immutable = true
+			fakeProvider.WithGetSecret([]byte(val), nil)
+
+			Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
+			Expect(k8sClient.Create(ctx, tc.externalSecret)).To(Succeed())
+
+			secretKey := types.NamespacedName{Name: ExternalSecretTargetSecretName, Namespace: ExternalSecretNamespace}
+			esKey := types.NamespacedName{Name: ExternalSecretName, Namespace: ExternalSecretNamespace}
+
+			By("creating and populating an immutable target secret")
+			secret := &v1.Secret{}
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, secretKey, secret); err != nil {
+					return false
+				}
+				return secret.UID != "" && string(secret.Data[targetProp]) == val
+			}, timeout, interval).Should(BeTrue())
+			Expect(secret.Immutable).ToNot(BeNil())
+			Expect(*secret.Immutable).To(BeTrue())
+			oldUID := secret.UID
+
+			By("recreating and repopulating it after the target secret is deleted")
+			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
+			Eventually(func() bool {
+				recreated := &v1.Secret{}
+				if err := k8sClient.Get(ctx, secretKey, recreated); err != nil {
+					return false
+				}
+				return recreated.UID != "" && recreated.UID != oldUID &&
+					string(recreated.Data[targetProp]) == val &&
+					recreated.Immutable != nil && *recreated.Immutable
+			}, timeout, interval).Should(BeTrue())
+
+			By("keeping the target secret after the ExternalSecret is deleted")
+			Expect(k8sClient.Delete(ctx, tc.externalSecret)).To(Succeed())
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, esKey, &esv1.ExternalSecret{}))
+			}, timeout, interval).Should(BeTrue())
+			Consistently(func() bool {
+				return k8sClient.Get(ctx, secretKey, &v1.Secret{}) == nil
+			}, time.Second*5, interval).Should(BeTrue())
+		})
+	})
+
+	Context("creationPolicy=CreateOrMerge", func() {
+		It("merges into an existing Secret and preserves foreign keys", func() {
+			ctx := context.Background()
+			const foreignKey = "owned-elsewhere"
+			const foreignVal = "keepme"
+			const val = "from-provider"
+
+			// a Secret created by another party, with a key ESO does not manage
+			Expect(k8sClient.Create(ctx, &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: ExternalSecretTargetSecretName, Namespace: ExternalSecretNamespace},
+				Data:       map[string][]byte{foreignKey: []byte(foreignVal)},
+			})).To(Succeed())
+
+			tc := makeDefaultTestcase()
+			tc.externalSecret.Spec.Target.CreationPolicy = esv1.CreatePolicyCreateOrMerge
+			fakeProvider.WithGetSecret([]byte(val), nil)
+
+			Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
+			Expect(k8sClient.Create(ctx, tc.externalSecret)).To(Succeed())
+
+			secretKey := types.NamespacedName{Name: ExternalSecretTargetSecretName, Namespace: ExternalSecretNamespace}
+			By("merging the provider key while keeping the foreign key")
+			Eventually(func() bool {
+				s := &v1.Secret{}
+				if err := k8sClient.Get(ctx, secretKey, s); err != nil {
+					return false
+				}
+				return string(s.Data[targetProp]) == val && string(s.Data[foreignKey]) == foreignVal
+			}, timeout, interval).Should(BeTrue())
+		})
+
+		It("creates when missing, recreates a deleted target immediately under CreatedOnce, and retains on ES delete", func() {
+			ctx := context.Background()
+			const val = "createormerge-val"
+
+			tc := makeDefaultTestcase()
+			tc.externalSecret.Spec.RefreshPolicy = esv1.RefreshPolicyCreatedOnce
+			tc.externalSecret.Spec.Target.CreationPolicy = esv1.CreatePolicyCreateOrMerge
+			// no RefreshInterval: recreation must not depend on it
+			fakeProvider.WithGetSecret([]byte(val), nil)
+
+			Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
+			Expect(k8sClient.Create(ctx, tc.externalSecret)).To(Succeed())
+
+			secretKey := types.NamespacedName{Name: ExternalSecretTargetSecretName, Namespace: ExternalSecretNamespace}
+			esKey := types.NamespacedName{Name: ExternalSecretName, Namespace: ExternalSecretNamespace}
+
+			By("creating and populating the target secret")
+			secret := &v1.Secret{}
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, secretKey, secret); err != nil {
+					return false
+				}
+				return secret.UID != "" && string(secret.Data[targetProp]) == val
+			}, timeout, interval).Should(BeTrue())
+			oldUID := secret.UID
+
+			By("recreating it immediately after the target secret is deleted")
+			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
+			Eventually(func() bool {
+				r := &v1.Secret{}
+				if err := k8sClient.Get(ctx, secretKey, r); err != nil {
+					return false
+				}
+				return r.UID != "" && r.UID != oldUID && string(r.Data[targetProp]) == val
+			}, timeout, interval).Should(BeTrue())
+
+			By("keeping the target secret after the ExternalSecret is deleted")
+			Expect(k8sClient.Delete(ctx, tc.externalSecret)).To(Succeed())
+			Eventually(func() bool {
+				return apierrors.IsNotFound(k8sClient.Get(ctx, esKey, &esv1.ExternalSecret{}))
+			}, timeout, interval).Should(BeTrue())
+			Consistently(func() bool {
+				return k8sClient.Get(ctx, secretKey, &v1.Secret{}) == nil
+			}, time.Second*5, interval).Should(BeTrue())
+		})
+
+		It("with immutable, creates and freezes the Secret and recreates it after deletion", func() {
+			ctx := context.Background()
+			const val = "createormerge-immutable"
+
+			tc := makeDefaultTestcase()
+			tc.externalSecret.Spec.RefreshPolicy = esv1.RefreshPolicyCreatedOnce
+			tc.externalSecret.Spec.Target.CreationPolicy = esv1.CreatePolicyCreateOrMerge
+			tc.externalSecret.Spec.Target.Immutable = true
+			fakeProvider.WithGetSecret([]byte(val), nil)
+
+			Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
+			Expect(k8sClient.Create(ctx, tc.externalSecret)).To(Succeed())
+
+			secretKey := types.NamespacedName{Name: ExternalSecretTargetSecretName, Namespace: ExternalSecretNamespace}
+
+			By("creating a populated, immutable target secret")
+			secret := &v1.Secret{}
+			Eventually(func() bool {
+				if err := k8sClient.Get(ctx, secretKey, secret); err != nil {
+					return false
+				}
+				return secret.UID != "" && string(secret.Data[targetProp]) == val
+			}, timeout, interval).Should(BeTrue())
+			Expect(secret.Immutable).ToNot(BeNil())
+			Expect(*secret.Immutable).To(BeTrue())
+			oldUID := secret.UID
+
+			By("recreating a fresh immutable secret after deletion")
+			Expect(k8sClient.Delete(ctx, secret)).To(Succeed())
+			Eventually(func() bool {
+				r := &v1.Secret{}
+				if err := k8sClient.Get(ctx, secretKey, r); err != nil {
+					return false
+				}
+				return r.UID != "" && r.UID != oldUID && string(r.Data[targetProp]) == val &&
+					r.Immutable != nil && *r.Immutable
+			}, timeout, interval).Should(BeTrue())
+		})
+	})
 })
 
 var _ = Describe("ExternalSecret refresh logic", func() {
