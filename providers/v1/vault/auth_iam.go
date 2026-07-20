@@ -57,6 +57,7 @@ const (
 	defaultAWSRegion              = "us-east-1"
 	defaultAWSAuthMountPath       = "aws"
 	errAWSCredentialsRetrieve     = "could not retrieve AWS credentials for IAM auth: %w"
+	errAWSCredentialsEmpty        = "resolved AWS credentials are missing an access key ID or secret access key"
 	errSTSEndpointResolve         = "could not resolve STS endpoint for region %q: %w"
 	errSTSRequestSign             = "could not sign STS GetCallerIdentity request: %w"
 	errNoAWSAuthMethodFound       = "no AWS authentication method found: expected either IRSA or Pod Identity"
@@ -172,6 +173,13 @@ func (c *client) requestTokenWithIamAuth(
 // (the aws-sdk-go v1 endpoint table used by go-secure-stdlib/awsutil's
 // GenerateLoginData is frozen and misses them).
 func generateLoginData(ctx context.Context, creds aws.Credentials, serverID, region string) (map[string]any, error) {
+	// The v2 signer signs whatever credentials it is given; the v1 flow this
+	// replaces failed fast via creds.Get() when the keys were empty. Reject
+	// keyless credentials here instead of producing an unverifiable request.
+	if !creds.HasKeys() {
+		return nil, errors.New(errAWSCredentialsEmpty)
+	}
+
 	endpoint, err := vaultiamauth.ResolveSTSEndpoint(ctx, region)
 	if err != nil {
 		return nil, fmt.Errorf(errSTSEndpointResolve, region, err)
