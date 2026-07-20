@@ -117,7 +117,13 @@ func (r customEndpointResolver) ResolveEndpoint(ctx context.Context, params sts.
 	if v := os.Getenv(STSEndpointEnv); v != "" {
 		uri, err := url.Parse(v)
 		if err != nil {
-			return smithy.Endpoint{}, err
+			return smithy.Endpoint{}, fmt.Errorf("could not parse %s %q: %w", STSEndpointEnv, v, err)
+		}
+		// url.Parse accepts a bare hostname as a relative URL with an empty
+		// host, which would produce STS clients and signed login requests
+		// that fail with opaque errors downstream.
+		if uri.Scheme == "" || uri.Host == "" {
+			return smithy.Endpoint{}, fmt.Errorf("%s %q must be an absolute URL with a scheme and host, e.g. https://sts.us-east-1.amazonaws.com", STSEndpointEnv, v)
 		}
 		return smithy.Endpoint{
 			URI: *uri,
