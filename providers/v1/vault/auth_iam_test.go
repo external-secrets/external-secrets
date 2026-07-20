@@ -277,6 +277,15 @@ func TestLoginWithIamCreds(t *testing.T) {
 	}
 }
 
+// TestGenerateLoginDataEmptyCreds verifies keyless credentials are rejected
+// before signing: the v2 signer would happily sign with empty keys, unlike
+// the v1 creds.Get() fail-fast in the flow this replaced.
+func TestGenerateLoginDataEmptyCreds(t *testing.T) {
+	if _, err := generateLoginData(context.Background(), awssdk.Credentials{}, "", testLoginRegion); err == nil {
+		t.Fatal("expected error for credentials without keys, got nil")
+	}
+}
+
 // assertServerID verifies the X-Vault-AWS-IAM-Server-ID header: present with
 // the configured value AND covered by the SigV4 SignedHeaders list (Vault
 // rejects logins whose server-id header is not signed), or absent entirely

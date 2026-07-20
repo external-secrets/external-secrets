@@ -35,3 +35,45 @@ func TestTokenFetcher(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, []byte("FAKETOKEN"), token)
 }
+
+func TestResolveSTSEndpoint(t *testing.T) {
+	tests := []struct {
+		name     string
+		endpoint string
+		wantHost string
+		wantErr  bool
+	}{
+		{
+			name:     "default resolver without override",
+			wantHost: "sts.us-east-1.amazonaws.com",
+		},
+		{
+			name:     "valid override",
+			endpoint: "https://sts.internal.example.com",
+			wantHost: "sts.internal.example.com",
+		},
+		{
+			name:     "override without a scheme is rejected",
+			endpoint: "sts.internal.example.com",
+			wantErr:  true,
+		},
+		{
+			name:     "unparsable override is rejected",
+			endpoint: "https://sts.internal example.com",
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(STSEndpointEnv, tt.endpoint)
+			ep, err := ResolveSTSEndpoint(t.Context(), "us-east-1")
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantHost, ep.URI.Host)
+		})
+	}
+}
