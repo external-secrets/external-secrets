@@ -93,6 +93,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.requeueInterval | string | `"5m"` |  |
 | certController.resources | object | `{}` |  |
 | certController.revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
+| certController.runtimeClassName | string | `""` | Pod runtime class name. |
+| certController.schedulerName | string | `""` | Pod scheduler name. |
 | certController.securityContext.allowPrivilegeEscalation | bool | `false` |  |
 | certController.securityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | certController.securityContext.enabled | bool | `true` |  |
@@ -231,6 +233,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | replicaCount | int | `1` |  |
 | resources | object | `{}` |  |
 | revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
+| runtimeClassName | string | `""` | Pod runtime class name. |
+| schedulerName | string | `""` | Pod scheduler name. |
 | scopedNamespace | string | `""` | If set external secrets are only reconciled in the provided namespace |
 | scopedRBAC | bool | `false` | If true, create scoped RBAC roles and implicitly disable cluster-scoped controllers. Scoped to scopedNamespace if set, otherwise to .Release.Namespace. |
 | securityContext.allowPrivilegeEscalation | bool | `false` |  |
@@ -334,6 +338,8 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.replicaCount | int | `1` |  |
 | webhook.resources | object | `{}` |  |
 | webhook.revisionHistoryLimit | int | `10` | Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy) |
+| webhook.runtimeClassName | string | `""` | Pod runtime class name. |
+| webhook.schedulerName | string | `""` | Pod scheduler name. |
 | webhook.secretAnnotations | object | `{}` | Annotations to add to Secret |
 | webhook.securityContext.allowPrivilegeEscalation | bool | `false` |  |
 | webhook.securityContext.capabilities.drop[0] | string | `"ALL"` |  |

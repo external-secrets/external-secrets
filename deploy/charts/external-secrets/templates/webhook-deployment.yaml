@@ -197,4 +197,10 @@ spec:
       {{- if .Values.webhook.priorityClassName }}
       priorityClassName: {{ .Values.webhook.priorityClassName }}
       {{- end }}
+      {{- if .Values.webhook.schedulerName }}
+      schedulerName: {{ .Values.webhook.schedulerName }}
+      {{- end }}
+      {{- if .Values.webhook.runtimeClassName }}
+      runtimeClassName: {{ .Values.webhook.runtimeClassName }}
+      {{- end }}
 {{- end }}
