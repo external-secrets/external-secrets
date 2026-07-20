@@ -62,7 +62,7 @@ jobs:
         run: git checkout "$RESOLVED_SHA"
 
       - name: Create Release
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           tag_name: ${{ github.event.inputs.version }}
           target_commitish: ${{ github.event.inputs.source_ref }}
@@ -156,7 +156,7 @@ jobs:
           image-tag: ${{ env.RELEASE_TAG }}
 
       - name: Update Release
-        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
+        uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           tag_name: ${{ github.event.inputs.version }}
           files: |
