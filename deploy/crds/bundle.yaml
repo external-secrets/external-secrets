@@ -6720,6 +6720,7 @@ spec:
                                   description: |-
                                     A required field containing the OpenBao Role to assume. A Role binds a
                                     Kubernetes ServiceAccount with a set of OpenBao policies.
+                                  minLength: 1
                                   type: string
                                 secretRef:
                                   description: |-
@@ -20005,6 +20006,7 @@ spec:
                                   description: |-
                                     A required field containing the OpenBao Role to assume. A Role binds a
                                     Kubernetes ServiceAccount with a set of OpenBao policies.
+                                  minLength: 1
                                   type: string
                                 secretRef:
                                   description: |-
