@@ -33,6 +33,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/vault/fake"
+	vaultiamauth "github.com/external-secrets/external-secrets/providers/v1/vault/iamauth"
 	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
 	utilfake "github.com/external-secrets/external-secrets/runtime/util/fake"
 )
@@ -735,6 +736,9 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
+			// The IAM auth case resolves the STS endpoint; clear any ambient
+			// override from the developer's shell so the test is hermetic.
+			t.Setenv(vaultiamauth.STSEndpointEnv, "")
 			vaultTest(t, name, tc)
 		})
 	}

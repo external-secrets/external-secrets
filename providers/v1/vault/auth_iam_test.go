@@ -54,16 +54,18 @@ func staticCreds() awssdk.Credentials {
 
 // testCreds returns the signing credentials and the STS endpoint host the
 // signed request should target, optionally clearing the session token and
-// applying the AWS_STS_ENDPOINT override for the duration of the test.
+// applying the AWS_STS_ENDPOINT override for the duration of the test. The
+// env var is always set (an empty value clears it) so an ambient
+// AWS_STS_ENDPOINT in the developer's shell cannot leak into the test.
 func testCreds(t *testing.T, noSessionToken bool, stsEndpoint string) (awssdk.Credentials, string) {
 	t.Helper()
 	creds := staticCreds()
 	if noSessionToken {
 		creds.SessionToken = ""
 	}
+	t.Setenv(vaultiamauth.STSEndpointEnv, stsEndpoint)
 	host := "sts." + testLoginRegion + ".amazonaws.com"
 	if stsEndpoint != "" {
-		t.Setenv(vaultiamauth.STSEndpointEnv, stsEndpoint)
 		host = strings.TrimPrefix(stsEndpoint, "https://")
 	}
 	return creds, host
