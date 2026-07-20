@@ -173,14 +173,13 @@ areas:
 
   # Non-provider suites. No provider labels, so providers is empty; they run the
   # whole non-managed suite. flux and argocd exercise ESO under GitOps tools and
-  # need no creds. generator's grafana specs need the grafana group; the
-  # credential needs of the other generators (e.g. ecr/sts) want a closer look
-  # before this leg is enabled.
+  # need no creds. The generator suite needs grafana (grafana generator) and aws
+  # (the ecr and sts generators mint tokens against real AWS).
   - name: generator
     suite: generator
     labels: "!managed"
     providers: []
-    secret_groups: [grafana]
+    secret_groups: [grafana, aws]
     needs_secrets: true
     paths:
       - "apis/**"
