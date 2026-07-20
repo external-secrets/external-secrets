@@ -173,13 +173,18 @@ areas:
 
   # Non-provider suites. No provider labels, so providers is empty; they run the
   # whole non-managed suite. flux and argocd exercise ESO under GitOps tools and
-  # need no creds. The generator suite needs grafana (grafana generator) and aws
-  # (the ecr and sts generators mint tokens against real AWS).
+  # need no creds.
+  #
+  # The generator suite is split in two: the grafana generator talks to a live
+  # external Grafana Cloud instance (its own leg below), while every other
+  # generator runs in-cluster. This leg runs all generators except grafana; the
+  # ecr and sts generators mint tokens against real AWS, so it needs the aws
+  # group.
   - name: generator
     suite: generator
-    labels: "!managed"
+    labels: "!managed && !grafana"
     providers: []
-    secret_groups: [grafana, aws]
+    secret_groups: [aws]
     needs_secrets: true
     paths:
       - "apis/**"
@@ -187,6 +192,21 @@ areas:
       - "runtime/**"
       - "generators/**"
       - "e2e/suites/generator/**"
+    enabled: true
+
+  # The grafana generator, isolated. It depends on a live external Grafana Cloud
+  # instance (GRAFANA_URL / GRAFANA_TOKEN); the suite even wakes a sleepy
+  # instance in BeforeEach. Kept as its own leg so its external flakiness is
+  # attributable and never masks the other generators.
+  - name: grafana
+    suite: generator
+    labels: "grafana && !managed"
+    providers: []
+    secret_groups: [grafana]
+    needs_secrets: true
+    paths:
+      - "generators/v1/grafana/**"
+      - "e2e/suites/generator/grafana.go"
     enabled: true
 
   - name: flux

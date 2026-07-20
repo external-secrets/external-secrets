@@ -112,6 +112,14 @@ Which providers actually need external credentials: `fake`, `kubernetes`,
 `template`, `vault`, `openbao`, `conjur`, and `infisical` run against in-cluster
 addons and need none. The rest hit real APIs and are scoped to their group.
 
+The `generator` suite is split across two legs by label. The `generator` leg
+runs every generator except grafana (`!managed && !grafana`) and is scoped to
+`aws`, because the ecr and sts generators mint tokens against real AWS. The
+`grafana` leg (`grafana && !managed`, scoped to `grafana`) is isolated on its
+own because the grafana generator depends on a live external Grafana Cloud
+instance; keeping it separate means its external flakiness is attributable and
+never masks the other generators.
+
 ## The `e2e-required` gate
 
 The individual leg names change as the matrix grows, which makes them a poor
