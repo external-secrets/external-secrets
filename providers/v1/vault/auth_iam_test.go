@@ -78,19 +78,21 @@ type iamTestClient struct {
 	token  string
 }
 
-// newIamTestClient builds an iamTestClient whose login write returns writeErr,
-// or a successful login otherwise.
-func newIamTestClient(writeErr error) *iamTestClient {
+// newIamTestClient builds an iamTestClient whose login write returns the
+// result of response, or a successful login when response is nil.
+func newIamTestClient(response func() (*vault.Secret, error)) *iamTestClient {
 	tc := &iamTestClient{}
+	if response == nil {
+		response = func() (*vault.Secret, error) {
+			return &vault.Secret{Auth: &vault.SecretAuth{ClientToken: testLoginToken}}, nil
+		}
+	}
 
 	logical := fake.Logical{
 		WriteWithContextFn: func(_ context.Context, path string, d map[string]any) (*vault.Secret, error) {
 			tc.path = path
 			tc.data = d
-			if writeErr != nil {
-				return nil, writeErr
-			}
-			return &vault.Secret{Auth: &vault.SecretAuth{ClientToken: testLoginToken}}, nil
+			return response()
 		},
 	}
 	vc := &vaultutil.VaultClient{
@@ -180,7 +182,7 @@ func TestLoginWithIamCreds(t *testing.T) {
 	tests := []struct {
 		name           string
 		iamAuth        *esv1.VaultIamAuth
-		writeErr       error
+		response       func() (*vault.Secret, error)
 		wantServerID   string
 		stsEndpoint    string
 		noSessionToken bool
@@ -219,20 +221,49 @@ func TestLoginWithIamCreds(t *testing.T) {
 			iamAuth: &esv1.VaultIamAuth{
 				Role: testLoginRole,
 			},
-			writeErr: errors.New("vault unreachable"),
+			response: func() (*vault.Secret, error) { return nil, errors.New("vault unreachable") },
 			wantErr:  true,
+		},
+		{
+			name: "returns error when the login response is nil",
+			iamAuth: &esv1.VaultIamAuth{
+				Role: testLoginRole,
+			},
+			response: func() (*vault.Secret, error) { return nil, nil },
+			wantErr:  true,
+		},
+		{
+			name: "returns error when the login response has no auth stanza",
+			iamAuth: &esv1.VaultIamAuth{
+				Role: testLoginRole,
+			},
+			response: func() (*vault.Secret, error) { return &vault.Secret{}, nil },
+			wantErr:  true,
+		},
+		{
+			name: "returns error when the login response has an empty client token",
+			iamAuth: &esv1.VaultIamAuth{
+				Role: testLoginRole,
+			},
+			response: func() (*vault.Secret, error) {
+				return &vault.Secret{Auth: &vault.SecretAuth{}}, nil
+			},
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tc := newIamTestClient(tt.writeErr)
+			tc := newIamTestClient(tt.response)
 			creds, wantEndpointHost := testCreds(t, tt.noSessionToken, tt.stsEndpoint)
 
 			err := tc.client.loginWithIamCreds(context.Background(), creds, tt.iamAuth, testLoginMountPath, testLoginRegion)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("expected error, got nil")
+				}
+				if tc.token != "" {
+					t.Errorf("token set to %q on failed login, want unset", tc.token)
 				}
 				return
 			}
