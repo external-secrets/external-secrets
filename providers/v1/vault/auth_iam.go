@@ -223,16 +223,17 @@ func (c *client) loginWithIamCreds(ctx context.Context, creds aws.Credentials, i
 
 	url := fmt.Sprintf("auth/%s/login", awsAuthMountPath)
 	vaultResult, err := c.logical.WriteWithContext(ctx, url, loginData)
+	// Validate the response the way api.Auth.Login's checkAndSetToken step
+	// does, before the metric is recorded so a token-less response counts as
+	// a failed login. Secret.TokenID would return "" without an error for a
+	// nil secret or a response missing Auth.ClientToken, silently clearing
+	// the token.
+	if err == nil && (vaultResult == nil || vaultResult.Auth == nil || vaultResult.Auth.ClientToken == "") {
+		err = errors.New(errVaultLoginNoToken)
+	}
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
 	if err != nil {
 		return err
-	}
-
-	// Validate the response the way api.Auth.Login's checkAndSetToken step
-	// does. Secret.TokenID would return "" without an error for a nil secret
-	// or a response missing Auth.ClientToken, silently clearing the token.
-	if vaultResult == nil || vaultResult.Auth == nil || vaultResult.Auth.ClientToken == "" {
-		return errors.New(errVaultLoginNoToken)
 	}
 	c.client.SetToken(vaultResult.Auth.ClientToken)
 	return nil
