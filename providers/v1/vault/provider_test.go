@@ -466,8 +466,12 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 						"secret-session-token": []byte("c2VjcmV0LXNlc3Npb24tdG9rZW4K"),
 					},
 				}).Build(),
-				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
-				newClientFunc: fake.ClientWithLoginMock,
+				corev1: utilfake.NewCreateTokenMock().WithToken("ok"),
+				newClientFunc: fake.ModifiableClientWithLoginMock(func(cl *fake.VaultClient) {
+					cl.MockLogical.WriteWithContextFn = func(context.Context, string, map[string]any) (*vault.Secret, error) {
+						return &vault.Secret{Auth: &vault.SecretAuth{ClientToken: "test-token"}}, nil
+					}
+				}),
 			},
 			want: want{
 				err: nil,

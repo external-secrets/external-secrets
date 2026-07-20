@@ -64,6 +64,7 @@ const (
 	errIrsaTokenFileNotReadable   = "could not read the web identity token from the file %s: %w"
 	errIrsaTokenNotValidJWT       = "could not parse web identity token available at %s. not a valid jwt?: %w"
 	errIrsaTokenNotValidClaims    = "could not find pod identity info on token %s"
+	errVaultLoginNoToken          = "vault login response did not return a client token"
 )
 
 func setIamAuthToken(ctx context.Context, v *client, jwtProvider vaultutil.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) (bool, error) {
@@ -219,11 +220,13 @@ func (c *client) loginWithIamCreds(ctx context.Context, creds aws.Credentials, i
 		return err
 	}
 
-	token, err := vaultResult.TokenID()
-	if err != nil {
-		return fmt.Errorf(errVaultToken, err)
+	// Validate the response the way api.Auth.Login's checkAndSetToken step
+	// does. Secret.TokenID would return "" without an error for a nil secret
+	// or a response missing Auth.ClientToken, silently clearing the token.
+	if vaultResult == nil || vaultResult.Auth == nil || vaultResult.Auth.ClientToken == "" {
+		return errors.New(errVaultLoginNoToken)
 	}
-	c.client.SetToken(token)
+	c.client.SetToken(vaultResult.Auth.ClientToken)
 	return nil
 }
 
