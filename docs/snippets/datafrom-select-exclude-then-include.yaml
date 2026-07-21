@@ -1,0 +1,22 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: example-exclude-then-include
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: backend
+  target:
+    name: selected-secret
+  dataFrom:
+  - extract:
+      key: my-secret
+    select:
+    # 1) Drop host from the working set
+    - names:
+      - host
+      operation: Exclude
+    # 2) Keep every remaining key (cannot revive host)
+    - regexp: ".*"
+      operation: Include
