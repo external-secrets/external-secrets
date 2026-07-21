@@ -30,9 +30,11 @@ import (
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 type testCase struct {
@@ -833,5 +835,85 @@ func TestDeleteSecret(t *testing.T) {
 				t.Errorf("DeleteSecret() used method %v, want %v", receivedMethod, tt.expectMethod)
 			}
 		})
+	}
+}
+
+func TestDeleteSecretTemplatesStoreSecretsIntoHeadersAndURL(t *testing.T) {
+	secretName := "webhookAuthSecret"
+	secretNamespace := "default"
+
+	var receivedAuthHeader, receivedPath string
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedAuthHeader = r.Header.Get("Authorization")
+		receivedPath = r.URL.Path
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	mockClient := fake.NewClientBuilder().WithObjects(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: secretNamespace,
+			Name:      secretName,
+			Labels: map[string]string{
+				"external-secrets.io/type": "webhook",
+			},
+		},
+		Data: map[string][]byte{
+			"token": []byte("supersecret"),
+		},
+	}).Build()
+
+	store := &esv1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ClusterSecretStore",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "webhook-store",
+			Namespace: secretNamespace,
+		},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Webhook: &esv1.WebhookProvider{
+					URL: ts.URL + "/api/secret/{{ .auth.token }}",
+					Headers: map[string]string{
+						"Authorization": "Bearer {{ .auth.token }}",
+					},
+					Secrets: []esv1.WebhookSecret{
+						{
+							Name: "auth",
+							SecretRef: esmeta.SecretKeySelector{
+								Name:      secretName,
+								Namespace: &secretNamespace,
+								Key:       "token",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	prov := &Provider{}
+	client, err := prov.NewClient(context.Background(), store, mockClient, "testnamespace")
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	remoteRef := v1alpha1.PushSecretRemoteRef{
+		RemoteKey: "test-key",
+	}
+
+	if err := client.DeleteSecret(context.Background(), remoteRef); err != nil {
+		t.Fatalf("DeleteSecret() unexpected error: %v", err)
+	}
+
+	wantAuthHeader := "Bearer supersecret"
+	if receivedAuthHeader != wantAuthHeader {
+		t.Errorf("DeleteSecret() sent Authorization header %q, want %q", receivedAuthHeader, wantAuthHeader)
+	}
+
+	wantPath := "/api/secret/supersecret"
+	if receivedPath != wantPath {
+		t.Errorf("DeleteSecret() called URL path %q, want %q", receivedPath, wantPath)
 	}
 }
