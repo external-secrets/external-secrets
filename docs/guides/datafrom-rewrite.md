@@ -4,7 +4,7 @@ When calling out an ExternalSecret with `dataFrom.extract` or `dataFrom.find`, i
 
 In order to do so, it is possible to define a set of rewrite operations using `dataFrom.rewrite`. These operations can be stacked, hence allowing complex manipulations of the secret keys.
 
-Rewrite operations are all applied before `ConversionStrategy` is applied.
+Rewrite operations are all applied before `ConversionStrategy` is applied. To filter which keys are kept after rewrite, see [Filtering Keys with Select](datafrom-select.md).
 
 ## Methods
 
