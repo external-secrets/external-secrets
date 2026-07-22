@@ -85,59 +85,54 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 }
 
 // GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.
-// First load all secrets from secretStore path configuration
-// Then, gets secrets from a matching name or matching custom_metadata.
 func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	var matcher *find.Matcher
 	if ref.Name != nil {
-		return c.findSecretsFromName(ctx, *ref.Name)
-	}
-	return c.findSecretsFromTags(ctx, ref.Tags)
-}
-
-func (c *Client) findSecretsFromName(ctx context.Context, ref esv1.FindName) (map[string][]byte, error) {
-	matcher, err := find.New(ref)
-	if err != nil {
-		return nil, err
-	}
-
-	var resourceFilterFunc = func(candidate conjurResource) (string, error) {
-		name := trimConjurResourceName(candidate["id"].(string))
-		isMatch := matcher.MatchName(name)
-		if !isMatch {
-			return "", nil
-		}
-		return name, nil
-	}
-
-	return c.listSecrets(ctx, resourceFilterFunc)
-}
-
-func (c *Client) findSecretsFromTags(ctx context.Context, tags map[string]string) (map[string][]byte, error) {
-	var resourceFilterFunc = func(candidate conjurResource) (string, error) {
-		name := trimConjurResourceName(candidate["id"].(string))
-		annotations, ok := candidate["annotations"].([]any)
-		if !ok {
-			// No annotations, skip
-			return "", nil
-		}
-
-		formattedAnnotations, err := formatAnnotations(annotations)
+		m, err := find.New(*ref.Name)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
+		matcher = m
+	}
 
-		// Check if all tags match
-		for tk, tv := range tags {
-			p, ok := formattedAnnotations[tk]
-			if !ok || p != tv {
+	resourceFilterFunc := func(candidate conjurResource) (string, error) {
+		name := trimConjurResourceName(candidate["id"].(string))
+		if matcher != nil && !matcher.MatchName(name) {
+			return "", nil
+		}
+		if len(ref.Tags) > 0 {
+			matched, err := matchTags(candidate, ref.Tags)
+			if err != nil {
+				return "", err
+			}
+			if !matched {
 				return "", nil
 			}
 		}
-
 		return name, nil
 	}
 
 	return c.listSecrets(ctx, resourceFilterFunc)
+}
+
+func matchTags(candidate conjurResource, tags map[string]string) (bool, error) {
+	annotations, ok := candidate["annotations"].([]any)
+	if !ok {
+		return false, nil
+	}
+
+	formattedAnnotations, err := formatAnnotations(annotations)
+	if err != nil {
+		return false, err
+	}
+
+	for tk, tv := range tags {
+		p, ok := formattedAnnotations[tk]
+		if !ok || p != tv {
+			return false, nil
+		}
+	}
+	return true, nil
 }
 
 func (c *Client) listSecrets(ctx context.Context, filterFunc resourceFilterFunc) (map[string][]byte, error) {
