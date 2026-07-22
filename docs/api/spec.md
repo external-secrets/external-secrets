@@ -907,7 +907,7 @@ string
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AzureKVProvider">AzureKVProvider</a>,
+<a href="#external-secrets.io/v1.AzureKVProvider">AzureKVProvider</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.ACRAccessTokenSpec">ACRAccessTokenSpec</a>)
 </p>
 <p>
@@ -1692,7 +1692,7 @@ For details on creating API tokens, see: <a href="https://docs.beyondtrust.com/b
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>,
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.BeyondtrustWorkloadCredentialsDynamicSecretSpec">BeyondtrustWorkloadCredentialsDynamicSecretSpec</a>)
 </p>
 <p>
@@ -2054,17 +2054,17 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.AkeylessProvider">AkeylessProvider</a>,
-<a href="#external-secrets.io/v1.BeyondtrustWorkloadCredentialsProvider">BeyondtrustWorkloadCredentialsProvider</a>,
-<a href="#external-secrets.io/v1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>,
-<a href="#external-secrets.io/v1.ConjurProvider">ConjurProvider</a>,
-<a href="#external-secrets.io/v1.GitlabProvider">GitlabProvider</a>,
-<a href="#external-secrets.io/v1.InfisicalProvider">InfisicalProvider</a>,
-<a href="#external-secrets.io/v1.KubernetesServer">KubernetesServer</a>,
-<a href="#external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider</a>,
-<a href="#external-secrets.io/v1.OvhClientMTLS">OvhClientMTLS</a>,
-<a href="#external-secrets.io/v1.PassboltProvider">PassboltProvider</a>,
-<a href="#external-secrets.io/v1.SecretServerProvider">SecretServerProvider</a>,
+<a href="#external-secrets.io/v1.AkeylessProvider">AkeylessProvider</a>, 
+<a href="#external-secrets.io/v1.BeyondtrustWorkloadCredentialsProvider">BeyondtrustWorkloadCredentialsProvider</a>, 
+<a href="#external-secrets.io/v1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>, 
+<a href="#external-secrets.io/v1.ConjurProvider">ConjurProvider</a>, 
+<a href="#external-secrets.io/v1.GitlabProvider">GitlabProvider</a>, 
+<a href="#external-secrets.io/v1.InfisicalProvider">InfisicalProvider</a>, 
+<a href="#external-secrets.io/v1.KubernetesServer">KubernetesServer</a>, 
+<a href="#external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider</a>, 
+<a href="#external-secrets.io/v1.OvhClientMTLS">OvhClientMTLS</a>, 
+<a href="#external-secrets.io/v1.PassboltProvider">PassboltProvider</a>, 
+<a href="#external-secrets.io/v1.SecretServerProvider">SecretServerProvider</a>, 
 <a href="#external-secrets.io/v1.VaultProvider">VaultProvider</a>)
 </p>
 <p>
@@ -3547,87 +3547,6 @@ ConjurCert
 <p>Cert enables certificate-based authentication using a client certificate and key.</p>
 </td>
 </tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1.ConjurCert">ConjurCert
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ConjurAuth">ConjurAuth</a>)
-</p>
-<p>
-<p>ConjurCert defines the Cert authentication configuration for Conjur provider.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>account</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Account is the Conjur organization account name.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>serviceID</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>The conjur authn cert webservice id</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>hostId</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Optional HostID for cert authentication (can be omitted when using &lsquo;spiffe&rsquo; mode).</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clientCertRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<p>ClientCertRef is a reference to a specific &lsquo;key&rsquo; containing the client certificate
-within a Secret resource. The certificate must be PEM-encoded.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>clientKeyRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<p>ClientKeyRef is a reference to a specific &lsquo;key&rsquo; containing the private RSA client key
-within a Secret resource. The key must be PEM-encoded.</p>
-</td>
-</tr>
 <tr>
 <td>
 <code>iam</code></br>
@@ -3756,6 +3675,87 @@ authn-azure. If omitted, the token is fetched from the Azure IMDS endpoint inste
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.ConjurCert">ConjurCert
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ConjurAuth">ConjurAuth</a>)
+</p>
+<p>
+<p>ConjurCert defines the Cert authentication configuration for Conjur provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>account</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Account is the Conjur organization account name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>The conjur authn cert webservice id</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional HostID for cert authentication (can be omitted when using &lsquo;spiffe&rsquo; mode).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientCertRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>ClientCertRef is a reference to a specific &lsquo;key&rsquo; containing the client certificate
+within a Secret resource. The certificate must be PEM-encoded.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientKeyRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>ClientKeyRef is a reference to a specific &lsquo;key&rsquo; containing the private RSA client key
+within a Secret resource. The key must be PEM-encoded.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.ConjurGCP">ConjurGCP
 </h3>
 <p>
@@ -3795,7 +3795,10 @@ string
 </em>
 </td>
 <td>
-<p>ServiceID is the Conjur authn-gcp webservice identifier (e.g. &ldquo;prod&rdquo;).</p>
+<em>(Optional)</em>
+<p>ServiceID is the Conjur authn-gcp webservice identifier (e.g. &ldquo;prod&rdquo;).
+Note: Conjur&rsquo;s authn-gcp authenticator does not include the service ID in the
+authentication URL; this field is reserved for future use.</p>
 </td>
 </tr>
 <tr>
@@ -4830,7 +4833,7 @@ ExternalSecretStatus
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
+<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
 <a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -5033,7 +5036,7 @@ The generator returns a static map of values</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretData">ExternalSecretData</a>,
+<a href="#external-secrets.io/v1.ExternalSecretData">ExternalSecretData</a>, 
 <a href="#external-secrets.io/v1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
 </p>
 <p>
@@ -5144,8 +5147,8 @@ ExternalSecretNullBytePolicy
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
-<a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>,
+<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>, 
 <a href="#external-secrets.io/v1.TemplateFrom">TemplateFrom</a>)
 </p>
 <p>
@@ -5375,7 +5378,7 @@ map[string]string
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
+<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
 <a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -5648,7 +5651,7 @@ list during merge operations.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>,
+<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>, 
 <a href="#external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite</a>)
 </p>
 <p>
@@ -5690,7 +5693,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>,
+<a href="#external-secrets.io/v1.ExternalSecretRewrite">ExternalSecretRewrite</a>, 
 <a href="#external-secrets.io/v1alpha1.PushSecretRewrite">PushSecretRewrite</a>)
 </p>
 <p>
@@ -5722,7 +5725,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>,
+<a href="#external-secrets.io/v1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>, 
 <a href="#external-secrets.io/v1.ExternalSecret">ExternalSecret</a>)
 </p>
 <p>
@@ -6226,7 +6229,7 @@ bool
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretTarget">ExternalSecretTarget</a>,
+<a href="#external-secrets.io/v1.ExternalSecretTarget">ExternalSecretTarget</a>, 
 <a href="#external-secrets.io/v1alpha1.PushSecretSpec">PushSecretSpec</a>)
 </p>
 <p>
@@ -6473,7 +6476,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>,
+<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>, 
 <a href="#external-secrets.io/v1.YandexLockboxProvider">YandexLockboxProvider</a>)
 </p>
 <p>
@@ -6681,7 +6684,7 @@ GCPWorkloadIdentityFederation
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>,
+<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>, 
 <a href="#external-secrets.io/v1.VaultGCPAuth">VaultGCPAuth</a>)
 </p>
 <p>
@@ -6788,7 +6791,7 @@ Possible values are:
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>,
+<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>, 
 <a href="#external-secrets.io/v1.VaultGCPAuth">VaultGCPAuth</a>)
 </p>
 <p>
@@ -6859,7 +6862,7 @@ If not specified, it fetches information from the metadata server</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>,
+<a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.GCPSMAuth">GCPSMAuth</a>)
 </p>
 <p>
@@ -7038,8 +7041,8 @@ External Secrets meta/v1.SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>,
-<a href="#external-secrets.io/v1.StoreSourceRef">StoreSourceRef</a>,
+<a href="#external-secrets.io/v1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
+<a href="#external-secrets.io/v1.StoreSourceRef">StoreSourceRef</a>, 
 <a href="#external-secrets.io/v1alpha1.PushSecretSelector">PushSecretSelector</a>)
 </p>
 <p>
@@ -10600,7 +10603,7 @@ PulumiProviderSecretRef
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.PulumiAuth">PulumiAuth</a>,
+<a href="#external-secrets.io/v1.PulumiAuth">PulumiAuth</a>, 
 <a href="#external-secrets.io/v1.PulumiProvider">PulumiProvider</a>)
 </p>
 <p>
@@ -11773,8 +11776,8 @@ OpenBaoProvider
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ExternalSecretSpec">ExternalSecretSpec</a>,
-<a href="#external-secrets.io/v1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>,
+<a href="#external-secrets.io/v1.ExternalSecretSpec">ExternalSecretSpec</a>, 
+<a href="#external-secrets.io/v1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
 <a href="#external-secrets.io/v1.StoreSourceRef">StoreSourceRef</a>)
 </p>
 <p>
@@ -11818,8 +11821,8 @@ Defaults to <code>SecretStore</code></p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreSpec">SecretStoreSpec</a>,
-<a href="#generators.external-secrets.io/v1alpha1.BeyondtrustWorkloadCredentialsDynamicSecretSpec">BeyondtrustWorkloadCredentialsDynamicSecretSpec</a>,
+<a href="#external-secrets.io/v1.SecretStoreSpec">SecretStoreSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.BeyondtrustWorkloadCredentialsDynamicSecretSpec">BeyondtrustWorkloadCredentialsDynamicSecretSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.VaultDynamicSecretSpec">VaultDynamicSecretSpec</a>)
 </p>
 <p>
@@ -11859,7 +11862,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ClusterSecretStore">ClusterSecretStore</a>,
+<a href="#external-secrets.io/v1.ClusterSecretStore">ClusterSecretStore</a>, 
 <a href="#external-secrets.io/v1.SecretStore">SecretStore</a>)
 </p>
 <p>
@@ -11947,7 +11950,7 @@ of seconds (legacy) or a Go duration string such as &ldquo;1h&rdquo; or &ldquo;5
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.ClusterSecretStore">ClusterSecretStore</a>,
+<a href="#external-secrets.io/v1.ClusterSecretStore">ClusterSecretStore</a>, 
 <a href="#external-secrets.io/v1.SecretStore">SecretStore</a>)
 </p>
 <p>
@@ -13107,7 +13110,7 @@ VaultAwsJWTAuth
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.VaultAwsAuth">VaultAwsAuth</a>,
+<a href="#external-secrets.io/v1.VaultAwsAuth">VaultAwsAuth</a>, 
 <a href="#external-secrets.io/v1.VaultIamAuth">VaultIamAuth</a>)
 </p>
 <p>
@@ -13172,7 +13175,7 @@ see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_te
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.VaultAwsAuth">VaultAwsAuth</a>,
+<a href="#external-secrets.io/v1.VaultAwsAuth">VaultAwsAuth</a>, 
 <a href="#external-secrets.io/v1.VaultIamAuth">VaultIamAuth</a>)
 </p>
 <p>
@@ -13894,7 +13897,7 @@ method</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>,
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.VaultDynamicSecretSpec">VaultDynamicSecretSpec</a>)
 </p>
 <p>
@@ -14600,7 +14603,7 @@ External Secrets meta/v1.SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>,
+<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>, 
 <a href="#external-secrets.io/v1.YandexLockboxProvider">YandexLockboxProvider</a>)
 </p>
 <p>
@@ -14634,7 +14637,7 @@ External Secrets meta/v1.SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>,
+<a href="#external-secrets.io/v1.YandexCertificateManagerProvider">YandexCertificateManagerProvider</a>, 
 <a href="#external-secrets.io/v1.YandexLockboxProvider">YandexLockboxProvider</a>)
 </p>
 <p>
@@ -15364,7 +15367,7 @@ PushSecretStatus
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.PushSecretData">PushSecretData</a>,
+<a href="#external-secrets.io/v1alpha1.PushSecretData">PushSecretData</a>, 
 <a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>)
 </p>
 <p>
@@ -15876,7 +15879,7 @@ GeneratorRef
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.ClusterPushSecretSpec">ClusterPushSecretSpec</a>,
+<a href="#external-secrets.io/v1alpha1.ClusterPushSecretSpec">ClusterPushSecretSpec</a>, 
 <a href="#external-secrets.io/v1alpha1.PushSecret">PushSecret</a>)
 </p>
 <p>
@@ -16076,7 +16079,7 @@ Matches secret stores to PushSecretData that was stored to that secret store.</p
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.ClusterPushSecretStatus">ClusterPushSecretStatus</a>,
+<a href="#external-secrets.io/v1alpha1.ClusterPushSecretStatus">ClusterPushSecretStatus</a>, 
 <a href="#external-secrets.io/v1alpha1.PushSecretStatus">PushSecretStatus</a>)
 </p>
 <p>
@@ -16155,7 +16158,7 @@ Kubernetes meta/v1.Time
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>,
+<a href="#external-secrets.io/v1alpha1.PushSecretDataTo">PushSecretDataTo</a>, 
 <a href="#external-secrets.io/v1alpha1.PushSecretSpec">PushSecretSpec</a>)
 </p>
 <p>
@@ -17738,11 +17741,11 @@ External Secrets meta/v1.SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.AkeylessProvider">AkeylessProvider</a>,
-<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>,
-<a href="#external-secrets.io/v1beta1.ConjurProvider">ConjurProvider</a>,
-<a href="#external-secrets.io/v1beta1.GitlabProvider">GitlabProvider</a>,
-<a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>,
+<a href="#external-secrets.io/v1beta1.AkeylessProvider">AkeylessProvider</a>, 
+<a href="#external-secrets.io/v1beta1.BitwardenSecretsManagerProvider">BitwardenSecretsManagerProvider</a>, 
+<a href="#external-secrets.io/v1beta1.ConjurProvider">ConjurProvider</a>, 
+<a href="#external-secrets.io/v1beta1.GitlabProvider">GitlabProvider</a>, 
+<a href="#external-secrets.io/v1beta1.KubernetesServer">KubernetesServer</a>, 
 <a href="#external-secrets.io/v1beta1.VaultProvider">VaultProvider</a>)
 </p>
 <p>
@@ -18843,150 +18846,6 @@ ConjurJWT
 <p>Jwt enables JWT authentication using Kubernetes service account tokens.</p>
 </td>
 </tr>
-<tr>
-<td>
-<code>iam</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.ConjurIAM">
-ConjurIAM
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>Iam enables authentication to Conjur via the authn-iam authenticator.</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1beta1.ConjurIAM">ConjurIAM
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ConjurAuth">ConjurAuth</a>)
-</p>
-<p>
-<p>ConjurIAM configures authentication to Conjur via the authn-iam authenticator.
-It uses the AWS STS GetCallerIdentity endpoint to authenticate.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>account</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>Account is the Conjur organization account name.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>serviceID</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>ServiceID is the Conjur authn-iam webservice identifier (e.g. &ldquo;prod&rdquo;).</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>hostId</code></br>
-<em>
-string
-</em>
-</td>
-<td>
-<p>HostID is the Conjur host mapped to the AWS IAM role
-(e.g. &ldquo;data/myapp/123456789012/MyRole&rdquo;).</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>secretRef</code></br>
-<em>
-<a href="#external-secrets.io/v1beta1.ConjurIAMSecretRef">
-ConjurIAMSecretRef
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>SecretRef holds optional references to Kubernetes Secrets containing explicit
-AWS credentials. If omitted, the default AWS SDK credential chain is used
-(IRSA, instance metadata, environment variables, etc.).</p>
-</td>
-</tr>
-</tbody>
-</table>
-<h3 id="external-secrets.io/v1beta1.ConjurIAMSecretRef">ConjurIAMSecretRef
-</h3>
-<p>
-(<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ConjurIAM">ConjurIAM</a>)
-</p>
-<p>
-<p>ConjurIAMSecretRef holds secret selectors for explicit AWS credentials.</p>
-</p>
-<table>
-<thead>
-<tr>
-<th>Field</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>
-<code>accessKeyIDSecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<p>A reference to a Secret key containing the AWS Access Key ID.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>secretAccessKeySecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<p>A reference to a Secret key containing the AWS Secret Access Key.</p>
-</td>
-</tr>
-<tr>
-<td>
-<code>sessionTokenSecretRef</code></br>
-<em>
-<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
-External Secrets meta/v1.SecretKeySelector
-</a>
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>A reference to a Secret key containing the AWS Session Token.
-Required only when using temporary credentials.</p>
-</td>
-</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1beta1.ConjurJWT">ConjurJWT
@@ -19700,7 +19559,7 @@ ExternalSecretStatus
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
 <a href="#external-secrets.io/v1beta1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -19896,7 +19755,7 @@ The generator returns a static map of values</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>,
+<a href="#external-secrets.io/v1beta1.ExternalSecretData">ExternalSecretData</a>, 
 <a href="#external-secrets.io/v1beta1.ExternalSecretDataFromRemoteRef">ExternalSecretDataFromRemoteRef</a>)
 </p>
 <p>
@@ -19993,7 +19852,7 @@ ExternalSecretDecodingStrategy
 (<code>string</code> alias)</p></h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>,
+<a href="#external-secrets.io/v1beta1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
 <a href="#external-secrets.io/v1beta1.ExternalSecretFind">ExternalSecretFind</a>)
 </p>
 <p>
@@ -20357,7 +20216,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>,
+<a href="#external-secrets.io/v1beta1.ClusterExternalSecretSpec">ClusterExternalSecretSpec</a>, 
 <a href="#external-secrets.io/v1beta1.ExternalSecret">ExternalSecret</a>)
 </p>
 <p>
@@ -21236,7 +21095,7 @@ If not specified, it fetches information from the metadata server</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>,
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
 <a href="#external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef</a>)
 </p>
 <p>
@@ -24061,8 +23920,8 @@ CloudruSMProvider
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>,
-<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>,
+<a href="#external-secrets.io/v1beta1.ExternalSecretSpec">ExternalSecretSpec</a>, 
+<a href="#external-secrets.io/v1beta1.StoreGeneratorSourceRef">StoreGeneratorSourceRef</a>, 
 <a href="#external-secrets.io/v1beta1.StoreSourceRef">StoreSourceRef</a>)
 </p>
 <p>
@@ -24147,7 +24006,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>,
+<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>, 
 <a href="#external-secrets.io/v1beta1.SecretStore">SecretStore</a>)
 </p>
 <p>
@@ -24233,7 +24092,7 @@ int
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>,
+<a href="#external-secrets.io/v1beta1.ClusterSecretStore">ClusterSecretStore</a>, 
 <a href="#external-secrets.io/v1beta1.SecretStore">SecretStore</a>)
 </p>
 <p>
@@ -25300,7 +25159,7 @@ VaultAwsJWTAuth
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>,
+<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>, 
 <a href="#external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth</a>)
 </p>
 <p>
@@ -25365,7 +25224,7 @@ see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_te
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>,
+<a href="#external-secrets.io/v1beta1.VaultAwsAuth">VaultAwsAuth</a>, 
 <a href="#external-secrets.io/v1beta1.VaultIamAuth">VaultIamAuth</a>)
 </p>
 <p>
@@ -26838,7 +26697,7 @@ PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.ACRAccessToken">ACRAccessToken</a>,
+<a href="#generators.external-secrets.io/v1alpha1.ACRAccessToken">ACRAccessToken</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>)
 </p>
 <p>
@@ -26990,7 +26849,7 @@ AzureACRWorkloadIdentityAuth
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.ECRAuthorizationTokenSpec">ECRAuthorizationTokenSpec</a>,
+<a href="#generators.external-secrets.io/v1alpha1.ECRAuthorizationTokenSpec">ECRAuthorizationTokenSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.STSSessionTokenSpec">STSSessionTokenSpec</a>)
 </p>
 <p>
@@ -27398,7 +27257,7 @@ If not specified, uses the default retry settings.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.BeyondtrustWorkloadCredentialsDynamicSecret">BeyondtrustWorkloadCredentialsDynamicSecret</a>,
+<a href="#generators.external-secrets.io/v1alpha1.BeyondtrustWorkloadCredentialsDynamicSecret">BeyondtrustWorkloadCredentialsDynamicSecret</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>)
 </p>
 <p>
@@ -27556,7 +27415,7 @@ External Secrets meta/v1.ServiceAccountSelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.CloudsmithAccessToken">CloudsmithAccessToken</a>,
+<a href="#generators.external-secrets.io/v1alpha1.CloudsmithAccessToken">CloudsmithAccessToken</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>)
 </p>
 <p>
@@ -27877,7 +27736,7 @@ Valid options are private and public.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.ECRAuthorizationToken">ECRAuthorizationToken</a>,
+<a href="#generators.external-secrets.io/v1alpha1.ECRAuthorizationToken">ECRAuthorizationToken</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>)
 </p>
 <p>
@@ -28019,7 +27878,7 @@ by this generator.</p>
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.Fake">Fake</a>,
+<a href="#generators.external-secrets.io/v1alpha1.Fake">Fake</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>)
 </p>
 <p>
@@ -28286,7 +28145,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GCRAccessToken">GCRAccessToken</a>,
+<a href="#generators.external-secrets.io/v1alpha1.GCRAccessToken">GCRAccessToken</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>)
 </p>
 <p>
@@ -29036,7 +28895,7 @@ GithubAuth
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.GithubAccessToken">GithubAccessToken</a>)
 </p>
 <p>
@@ -29439,7 +29298,7 @@ External Secrets meta/v1.SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.GitlabDeployToken">GitlabDeployToken</a>)
 </p>
 <p>
@@ -29830,7 +29689,7 @@ GrafanaStateServiceAccount
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.Grafana">Grafana</a>)
 </p>
 <p>
@@ -30042,7 +29901,7 @@ Kubernetes meta/v1.Time
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.MFA">MFA</a>)
 </p>
 <p>
@@ -30311,7 +30170,7 @@ Valid values are:
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.Password">Password</a>)
 </p>
 <p>
@@ -30511,7 +30370,7 @@ External Secrets meta/v1.ServiceAccountSelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.QuayAccessToken">QuayAccessToken</a>)
 </p>
 <p>
@@ -30704,7 +30563,7 @@ string
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.SSHKey">SSHKey</a>)
 </p>
 <p>
@@ -30860,7 +30719,7 @@ RequestParameters
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.STSSessionToken">STSSessionToken</a>)
 </p>
 <p>
@@ -30932,8 +30791,8 @@ RequestParameters
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GrafanaAuth">GrafanaAuth</a>,
-<a href="#generators.external-secrets.io/v1alpha1.GrafanaBasicAuth">GrafanaBasicAuth</a>,
+<a href="#generators.external-secrets.io/v1alpha1.GrafanaAuth">GrafanaAuth</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GrafanaBasicAuth">GrafanaBasicAuth</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.WebhookSecret">WebhookSecret</a>)
 </p>
 <p>
@@ -31025,7 +30884,7 @@ UUIDSpec
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.UUID">UUID</a>)
 </p>
 <p>
@@ -31224,7 +31083,7 @@ bool
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.VaultDynamicSecret">VaultDynamicSecret</a>)
 </p>
 <p>
@@ -31704,7 +31563,7 @@ SecretKeySelector
 </h3>
 <p>
 (<em>Appears on:</em>
-<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>,
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.Webhook">Webhook</a>)
 </p>
 <p>
