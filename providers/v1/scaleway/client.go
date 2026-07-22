@@ -104,12 +104,36 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	return value, nil
 }
 
-func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
-	if data.GetSecretKey() == "" {
-		return errors.New("pushing the whole secret is not yet implemented")
+// pushPayload resolves the bytes to push: the selected key's value when
+// secretKey is set, otherwise the whole secret serialized as a JSON object of
+// its string values (dataTo / whole-secret push). The PushSecret controller
+// has already filtered and rewritten secret.Data for dataTo entries.
+func pushPayload(secret *corev1.Secret, data esv1.PushSecretData) ([]byte, error) {
+	if key := data.GetSecretKey(); key != "" {
+		value, ok := secret.Data[key]
+		if !ok {
+			return nil, fmt.Errorf("secret key %q not found in the source secret", key)
+		}
+		return value, nil
 	}
 
-	value := secret.Data[data.GetSecretKey()]
+	values := make(map[string]string, len(secret.Data))
+	for k, v := range secret.Data {
+		values[k] = string(v)
+	}
+	payload, err := json.Marshal(values)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal secret data: %w", err)
+	}
+	return payload, nil
+}
+
+func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+	value, err := pushPayload(secret, data)
+	if err != nil {
+		return err
+	}
+
 	scwRef, err := decodeScwSecretRef(data.GetRemoteKey())
 	if err != nil {
 		return err
@@ -141,7 +165,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	}
 
 	var secretID string
-	existingSecretVersion := int64(-1)
+	var existingValue []byte
 
 	// list secret by ref
 	listSecrets, err := c.api.ListSecrets(listSecretReq, scw.WithContext(ctx))
@@ -159,23 +183,14 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 			Revision: "latest",
 		}, scw.WithContext(ctx))
 		if err != nil {
-			var errNotNound *scw.ResourceNotFoundError
-			if !errors.As(err, &errNotNound) {
+			var errNotFound *scw.ResourceNotFoundError
+			if !errors.As(err, &errNotFound) {
 				return err
 			}
 		} else {
-			existingSecretVersion = int64(secretVersion.Revision)
-		}
-
-		if existingSecretVersion != -1 {
-			data, err := c.accessSpecificSecretVersion(ctx, secretID, secretVersion.Revision)
+			existingValue, err = c.accessSpecificSecretVersion(ctx, secretID, secretVersion.Revision)
 			if err != nil {
 				return err
-			}
-
-			if bytes.Equal(data, value) {
-				// No change to push.
-				return nil
 			}
 		}
 	} else {
@@ -191,29 +206,24 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		secretID = secret.ID
 	}
 
-	// Finally, we push the new secret version.
-
-	createSecretVersionRequest := smapi.CreateSecretVersionRequest{
-		SecretID: secretID,
-		Data:     value,
+	if existingValue != nil && bytes.Equal(existingValue, value) {
+		// No change to push.
+		return nil
 	}
 
-	createSecretVersionResponse, err := c.api.CreateSecretVersion(&createSecretVersionRequest, scw.WithContext(ctx))
+	// Finally, we push the new secret version. DisablePrevious atomically
+	// disables the previous version in the same call (a no-op if there is
+	// none or it is already disabled).
+	createSecretVersionResponse, err := c.api.CreateSecretVersion(&smapi.CreateSecretVersionRequest{
+		SecretID:        secretID,
+		Data:            value,
+		DisablePrevious: scw.BoolPtr(true),
+	}, scw.WithContext(ctx))
 	if err != nil {
 		return err
 	}
 
 	c.cache.Put(secretID, createSecretVersionResponse.Revision, value)
-
-	if existingSecretVersion != -1 {
-		_, err := c.api.DisableSecretVersion(&smapi.DisableSecretVersionRequest{
-			SecretID: secretID,
-			Revision: fmt.Sprintf("%d", existingSecretVersion),
-		})
-		if err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
