@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"slices"
 	"strings"
 	"testing"
 
@@ -302,7 +303,7 @@ func TestLoginWithIamCreds(t *testing.T) {
 				wantSigningRegion = "us-east-1"
 			}
 
-			err := tc.client.loginWithIamCreds(context.Background(), creds, tt.iamAuth, testLoginMountPath, region)
+			err := tc.client.loginWithIamCreds(t.Context(), creds, tt.iamAuth, testLoginMountPath, region)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("expected error, got nil")
@@ -330,7 +331,7 @@ func TestLoginWithIamCredsUsesFreshCredentials(t *testing.T) {
 	iamAuth := &esv1.VaultIamAuth{Role: testLoginRole}
 	creds := testCreds(t, false, "")
 
-	if err := tc.client.loginWithIamCreds(context.Background(), creds, iamAuth, testLoginMountPath, testLoginRegion); err != nil {
+	if err := tc.client.loginWithIamCreds(t.Context(), creds, iamAuth, testLoginMountPath, testLoginRegion); err != nil {
 		t.Fatalf("unexpected error on first login: %v", err)
 	}
 	if got := stsRequestHeaders(t, tc.data).Get("X-Amz-Security-Token"); got != creds.SessionToken {
@@ -339,7 +340,7 @@ func TestLoginWithIamCredsUsesFreshCredentials(t *testing.T) {
 
 	rotated := creds
 	rotated.SessionToken = "rotated-session-token"
-	if err := tc.client.loginWithIamCreds(context.Background(), rotated, iamAuth, testLoginMountPath, testLoginRegion); err != nil {
+	if err := tc.client.loginWithIamCreds(t.Context(), rotated, iamAuth, testLoginMountPath, testLoginRegion); err != nil {
 		t.Fatalf("unexpected error on second login: %v", err)
 	}
 	if got := stsRequestHeaders(t, tc.data).Get("X-Amz-Security-Token"); got != rotated.SessionToken {
@@ -351,7 +352,7 @@ func TestLoginWithIamCredsUsesFreshCredentials(t *testing.T) {
 // before signing: the v2 signer would happily sign with empty keys, unlike
 // the v1 creds.Get() fail-fast in the flow this replaced.
 func TestGenerateLoginDataEmptyCreds(t *testing.T) {
-	if _, err := generateLoginData(context.Background(), awssdk.Credentials{}, "", testLoginRegion, ""); err == nil {
+	if _, err := generateLoginData(t.Context(), awssdk.Credentials{}, "", testLoginRegion, ""); err == nil {
 		t.Fatal("expected error for credentials without keys, got nil")
 	}
 }
@@ -366,11 +367,24 @@ func assertServerID(t *testing.T, tc *iamTestClient, want string) {
 	if got := headers.Get(iamServerIDHeader); got != want {
 		t.Errorf("signed server-id header: got %q, want %q", got, want)
 	}
-	signed := strings.Contains(headers.Get("Authorization"), strings.ToLower(iamServerIDHeader))
+	signed := slices.Contains(signedHeaders(t, headers), strings.ToLower(iamServerIDHeader))
 	if want != "" && !signed {
 		t.Errorf("server-id header not covered by SignedHeaders in %q", headers.Get("Authorization"))
 	}
 	if want == "" && signed {
 		t.Errorf("server-id header unexpectedly signed in %q", headers.Get("Authorization"))
 	}
+}
+
+// signedHeaders extracts the header names from the SignedHeaders= component
+// of the SigV4 Authorization header.
+func signedHeaders(t *testing.T, headers http.Header) []string {
+	t.Helper()
+	for field := range strings.SplitSeq(strings.TrimPrefix(headers.Get("Authorization"), "AWS4-HMAC-SHA256 "), ", ") {
+		if names, ok := strings.CutPrefix(field, "SignedHeaders="); ok {
+			return strings.Split(names, ";")
+		}
+	}
+	t.Fatalf("no SignedHeaders component in Authorization header %q", headers.Get("Authorization"))
+	return nil
 }

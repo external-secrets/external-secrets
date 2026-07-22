@@ -736,8 +736,9 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
-			// The IAM auth case resolves the STS endpoint; clear any ambient
-			// override from the developer's shell so the test is hermetic.
+			// Cleared for every case so the ones that resolve the STS
+			// endpoint (IAM auth) stay hermetic against an ambient override
+			// in the developer's shell.
 			t.Setenv(vaultiamauth.STSEndpointEnv, "")
 			vaultTest(t, name, tc)
 		})

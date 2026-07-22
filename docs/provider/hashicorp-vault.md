@@ -385,7 +385,8 @@ endpoint the login request is signed against:
   the box. Newer regions (e.g. `ap-east-1`) and non-default partitions (China,
   GovCloud) have no global endpoint and always sign against their regional
   endpoint.
-- `Regional` signs against `sts.<region>.amazonaws.com` derived from
+- `Regional` signs against the partition-appropriate regional STS endpoint
+  (e.g. `sts.<region>.amazonaws.com`) derived from
   `spec.provider.vault.auth.iam.region`, matching the behavior of modern Vault
   clients. This keeps login validation traffic in-region and removes the
   dependency on the global (us-east-1-backed) endpoint, but requires the Vault
@@ -399,7 +400,9 @@ takes precedence over either policy and is used for both credential acquisition
 and the signed login request — the Vault mount then needs a matching
 `sts_endpoint`, and the endpoint's region must match
 `spec.provider.vault.auth.iam.region` because the request signature is scoped to
-that region.
+that region. The value must be an absolute URL with a scheme and host (e.g.
+`https://sts.us-east-1.amazonaws.com`); a bare hostname is rejected at login
+time.
 
 #### TLS certificates authentication
 
