@@ -437,6 +437,9 @@
         "dnsPolicy": {
             "type": "string"
         },
+        "disableExternalSecretCleanupFinalizer": {
+            "type": ["boolean", "null"]
+        },
         "enableHTTP2": {
             "type": "boolean"
         },
