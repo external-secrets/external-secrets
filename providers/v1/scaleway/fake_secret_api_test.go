@@ -27,6 +27,11 @@ import (
 	"github.com/scaleway/scaleway-sdk-go/scw"
 )
 
+const (
+	statusEnabled  = "enabled"
+	statusDisabled = "disabled"
+)
+
 type fakeSecretVersion struct {
 	revision     int
 	data         []byte
@@ -74,7 +79,7 @@ func buildDB(f *fakeSecretAPI) *fakeSecretAPI {
 			}
 
 			if version.status == "" {
-				version.status = "enabled"
+				version.status = statusEnabled
 			}
 		}
 
@@ -106,7 +111,7 @@ func (s *fakeSecret) getVersion(revision string) (*fakeSecretVersion, bool) {
 
 	if revision == "latest_enabled" {
 		for i := len(s.versions) - 1; i >= 0; i-- {
-			if s.versions[i].status == "enabled" {
+			if s.versions[i].status == statusEnabled {
 				return s.versions[i], true
 			}
 		}
@@ -247,7 +252,7 @@ func (f *fakeSecretAPI) DisableSecretVersion(request *smapi.DisableSecretVersion
 		}
 	}
 
-	version.status = "disabled"
+	version.status = statusDisabled
 
 	return &smapi.SecretVersion{
 		SecretID: secret.id,
@@ -393,15 +398,15 @@ func (f *fakeSecretAPI) CreateSecretVersion(request *smapi.CreateSecretVersionRe
 
 	if request.DisablePrevious != nil && *request.DisablePrevious && len(secret.versions) > 0 {
 		previous := secret.versions[len(secret.versions)-1]
-		if previous.status == "enabled" {
-			previous.status = "disabled"
+		if previous.status == statusEnabled {
+			previous.status = statusDisabled
 		}
 	}
 
 	newVersion := &fakeSecretVersion{
 		revision: len(secret.versions) + 1,
 		data:     request.Data,
-		status:   "enabled",
+		status:   statusEnabled,
 	}
 
 	secret.versions = append(secret.versions, newVersion)

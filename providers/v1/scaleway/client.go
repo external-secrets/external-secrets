@@ -225,7 +225,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	createSecretVersionResponse, err := c.api.CreateSecretVersion(&smapi.CreateSecretVersionRequest{
 		SecretID:        secretID,
 		Data:            value,
-		DisablePrevious: scw.BoolPtr(true),
+		DisablePrevious: new(true),
 	}, scw.WithContext(ctx))
 	if err != nil {
 		return err
@@ -330,7 +330,7 @@ func (c *client) deleteSecretProperty(ctx context.Context, secretID, property st
 	createSecretVersionResponse, err := c.api.CreateSecretVersion(&smapi.CreateSecretVersionRequest{
 		SecretID:        secretID,
 		Data:            []byte(updated),
-		DisablePrevious: scw.BoolPtr(true),
+		DisablePrevious: new(true),
 	}, scw.WithContext(ctx))
 	if err != nil {
 		return err
