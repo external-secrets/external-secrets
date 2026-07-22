@@ -97,6 +97,7 @@ var (
 	enableFloodGate                       bool
 	enableGeneratorState                  bool
 	enableExtendedMetricLabels            bool
+	useDeprecatedStatusCondition          bool
 	storeRequeueInterval                  time.Duration
 	serviceName, serviceNamespace         string
 	secretName, secretNamespace           string
@@ -133,6 +134,7 @@ var rootCmd = &cobra.Command{
 		setupLogger()
 
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
+		ctrlmetrics.SetUseDeprecatedStatusCondition(useDeprecatedStatusCondition)
 		esmetrics.SetUpMetrics()
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
@@ -385,6 +387,8 @@ func init() {
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 	rootCmd.Flags().BoolVar(&enableGeneratorState, "enable-generator-state", true, "Whether the Controller should manage GeneratorState")
 	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")
+	rootCmd.Flags().
+		BoolVar(&useDeprecatedStatusCondition, "use-deprecated-status-condition", false, "Emit the legacy dual status_condition series (status=True and status=False) for the Ready condition. Deprecated migration fallback for dashboards/alerts; slated for removal in v3.")
 	rootCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics server")
 	rootCmd.Flags().
