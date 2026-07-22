@@ -88,6 +88,25 @@ func TestResolveSTSEndpoint(t *testing.T) {
 			wantErr:  true,
 		},
 		{
+			name:     "override with a query string is rejected",
+			endpoint: "https://sts.internal.example.com?foo=bar",
+			region:   "us-east-1",
+			wantErr:  true,
+		},
+		{
+			name:     "override with a fragment is rejected",
+			endpoint: "https://sts.internal.example.com#frag",
+			region:   "us-east-1",
+			wantErr:  true,
+		},
+		{
+			name:              "override with a path is allowed",
+			endpoint:          "https://sts.internal.example.com/sts-proxy",
+			region:            "us-east-1",
+			wantHost:          "sts.internal.example.com",
+			wantSigningRegion: "us-east-1",
+		},
+		{
 			name:     "unparsable override is rejected",
 			endpoint: "https://sts.internal example.com",
 			region:   "us-east-1",
