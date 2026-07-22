@@ -569,6 +569,77 @@ func TestGetAllSecrets(t *testing.T) {
 	}
 }
 
+func TestDeleteSecretProperty(t *testing.T) {
+	ctx := context.Background()
+	seed := func(t *testing.T, name string, data []byte) *fakeSecret {
+		t.Helper()
+		c := newTestClient()
+		assert.NoError(t, c.PushSecret(ctx, &corev1.Secret{Data: map[string][]byte{"k": data}},
+			testingfake.PushSecretData{SecretKey: "k", RemoteKey: "name:" + name}))
+		return db.secret(name)
+	}
+
+	t.Run("removes only the property and disables the previous version", func(t *testing.T) {
+		c := newTestClient()
+		fs := seed(t, "delete-prop-partial", []byte(`{"username":"alice","password":"s3cr3t"}`))
+
+		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "password"})
+
+		assert.NoError(t, err)
+		assert.Len(t, fs.versions, 2)
+		assert.JSONEq(t, `{"username":"alice"}`, string(fs.versions[1].data))
+		assert.Equal(t, "disabled", fs.versions[0].status)
+	})
+
+	t.Run("removes a literal dotted key", func(t *testing.T) {
+		c := newTestClient()
+		fs := seed(t, "delete-prop-dotted", []byte(`{"tls.crt":"CERT","username":"alice"}`))
+
+		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "tls.crt"})
+
+		assert.NoError(t, err)
+		assert.JSONEq(t, `{"username":"alice"}`, string(fs.versions[len(fs.versions)-1].data))
+	})
+
+	t.Run("deletes the whole secret when the last property is removed", func(t *testing.T) {
+		c := newTestClient()
+		fs := seed(t, "delete-prop-last", []byte(`{"username":"alice"}`))
+
+		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "username"})
+
+		assert.NoError(t, err)
+		assert.Nil(t, db.secret(fs.name))
+	})
+
+	t.Run("missing property is a no-op", func(t *testing.T) {
+		c := newTestClient()
+		fs := seed(t, "delete-prop-missing", []byte(`{"username":"alice"}`))
+
+		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "nope"})
+
+		assert.NoError(t, err)
+		assert.Len(t, fs.versions, 1)
+	})
+
+	t.Run("raw non-object value is a no-op", func(t *testing.T) {
+		c := newTestClient()
+		fs := seed(t, "delete-prop-raw", []byte("raw bytes"))
+
+		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "username"})
+
+		assert.NoError(t, err)
+		assert.Len(t, fs.versions, 1)
+	})
+
+	t.Run("missing secret is a no-op", func(t *testing.T) {
+		c := newTestClient()
+
+		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:not-a-secret", Property: "username"})
+
+		assert.NoError(t, err)
+	})
+}
+
 func TestDeleteSecret(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient()
