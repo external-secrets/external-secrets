@@ -25,6 +25,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1beta1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
@@ -120,6 +121,9 @@ func pushPayload(secret *corev1.Secret, data esv1.PushSecretData) ([]byte, error
 
 	values := make(map[string]string, len(secret.Data))
 	for k, v := range secret.Data {
+		if !utf8.Valid(v) {
+			return nil, fmt.Errorf("value of key %q is not valid UTF-8: binary values cannot be serialized into the JSON object of a whole-secret push", k)
+		}
 		values[k] = string(v)
 	}
 	payload, err := json.Marshal(values)
@@ -133,6 +137,12 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	value, err := pushPayload(secret, data)
 	if err != nil {
 		return err
+	}
+
+	// Fail before any remote mutation: a JSON string cannot carry arbitrary
+	// bytes, so a binary value cannot become a JSON property.
+	if property := data.GetProperty(); property != "" && !utf8.Valid(value) {
+		return fmt.Errorf("value for property %q is not valid UTF-8: binary values cannot be stored as a JSON property, push them without property instead", property)
 	}
 
 	scwRef, err := decodeScwSecretRef(data.GetRemoteKey())
@@ -641,11 +651,14 @@ func jsonPropertyPath(doc, property string) string {
 }
 
 // setJSONProperty returns doc with property set to value as a JSON string.
-// A non-object doc (including none at all) is replaced by a fresh object:
-// PushSecret owns the remote value under updatePolicy Replace semantics.
+// An existing value that is not a JSON object is refused: the provider cannot
+// know whether it may overwrite a value it did not write.
 func setJSONProperty(existing []byte, property string, value []byte) ([]byte, error) {
 	doc := "{}"
-	if gjson.ValidBytes(existing) && gjson.ParseBytes(existing).IsObject() {
+	if len(existing) > 0 {
+		if !gjson.ValidBytes(existing) || !gjson.ParseBytes(existing).IsObject() {
+			return nil, fmt.Errorf("remote secret value is not a JSON object; refusing to overwrite it with property %q", property)
+		}
 		doc = string(existing)
 	}
 	merged, err := sjson.Set(doc, jsonPropertyPath(doc, property), string(value))

@@ -97,7 +97,8 @@ With `property` set, the pushed value is merged into the remote secret's JSON ob
 property is created or updated, other properties are preserved. Keys containing dots (e.g. `tls.crt`)
 are stored as literal top-level keys, unless the remote JSON already contains a matching nested
 structure (e.g. `{"tls":{"crt":...}}`), in which case the nested value is updated in place.
-If the remote value is not a JSON object, it is replaced by one.
+If the existing remote value is not a JSON object, the push fails: the provider refuses to
+overwrite a value it did not write. Delete or migrate the remote secret first.
 With `deletionPolicy: Delete`, deleting a pushed property removes only that key (as a new version);
 the remote secret itself is deleted when the last property is removed.
 
@@ -140,5 +141,8 @@ applied by the controller before the push.
 ```
 
 Note: Scaleway limits a secret's payload to 64KiB; the JSON object holding all pushed
-properties (or the whole serialized Secret) must stay under that limit.
+properties (or the whole serialized Secret) must stay under that limit. Values pushed with
+`property` (or via a whole-secret push) must be valid UTF-8 — binary values cannot be stored
+inside a JSON object and are rejected; push them as a single raw secret (a `data` entry
+without `property`) instead.
 
