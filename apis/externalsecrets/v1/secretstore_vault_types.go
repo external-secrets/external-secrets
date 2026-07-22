@@ -353,6 +353,20 @@ type VaultCertAuth struct {
 	SecretRef esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
 
+// VaultIAMSTSEndpointPolicy defines which STS endpoint the IAM login request is signed against.
+// +kubebuilder:validation:Enum=Legacy;Regional
+type VaultIAMSTSEndpointPolicy string
+
+const (
+	// VaultIAMSTSEndpointPolicyLegacy signs the login request against the global
+	// sts.amazonaws.com endpoint (us-east-1 signature scope) for classic AWS regions;
+	// newer regions and non-default partitions always use their regional endpoint.
+	VaultIAMSTSEndpointPolicyLegacy VaultIAMSTSEndpointPolicy = "Legacy"
+	// VaultIAMSTSEndpointPolicyRegional signs the login request against the regional
+	// sts.<region>.amazonaws.com endpoint for the configured region.
+	VaultIAMSTSEndpointPolicyRegional VaultIAMSTSEndpointPolicy = "Regional"
+)
+
 // VaultIamAuth authenticates with Vault using the Vault's AWS IAM authentication method. Refer: https://developer.hashicorp.com/vault/docs/auth/aws
 //
 // When JWTAuth and SecretRef are not specified, the provider will use the controller pod's
@@ -374,6 +388,16 @@ type VaultIamAuth struct {
 	// X-Vault-AWS-IAM-Server-ID is an additional header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws
 	// +optional
 	VaultAWSIAMServerID string `json:"vaultAwsIamServerID,omitempty"`
+	// STSEndpointPolicy controls which STS endpoint the Vault login request is signed against.
+	// Legacy (default) signs against the global sts.amazonaws.com endpoint (us-east-1
+	// signature scope) for classic AWS regions - matching Vault's default AWS auth mount
+	// configuration - while newer regions and non-default partitions (China, GovCloud)
+	// always sign regionally. Regional signs against sts.<region>.amazonaws.com and
+	// requires the Vault AWS auth mount to be configured with
+	// use_sts_region_from_client=true (Vault >= 1.15) or a matching sts_endpoint.
+	// +optional
+	// +kubebuilder:default=Legacy
+	STSEndpointPolicy VaultIAMSTSEndpointPolicy `json:"stsEndpointPolicy,omitempty"`
 	// Specify credentials in a Secret object
 	// +optional
 	SecretRef *VaultAwsAuthSecretRef `json:"secretRef,omitempty"`

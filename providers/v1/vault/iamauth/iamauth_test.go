@@ -38,28 +38,59 @@ func TestTokenFetcher(t *testing.T) {
 
 func TestResolveSTSEndpoint(t *testing.T) {
 	tests := []struct {
-		name     string
-		endpoint string
-		wantHost string
-		wantErr  bool
+		name              string
+		endpoint          string
+		region            string
+		useGlobalEndpoint bool
+		wantHost          string
+		wantSigningRegion string
+		wantErr           bool
 	}{
 		{
-			name:     "default resolver without override",
-			wantHost: "sts.us-east-1.amazonaws.com",
+			name:              "regional resolver without override",
+			region:            "us-east-1",
+			wantHost:          "sts.us-east-1.amazonaws.com",
+			wantSigningRegion: "us-east-1",
 		},
 		{
-			name:     "valid override",
-			endpoint: "https://sts.internal.example.com",
-			wantHost: "sts.internal.example.com",
+			name:              "global endpoint for a classic region signs with us-east-1 scope",
+			region:            "us-west-2",
+			useGlobalEndpoint: true,
+			wantHost:          "sts.amazonaws.com",
+			wantSigningRegion: "us-east-1",
+		},
+		{
+			name:              "global endpoint falls back to regional for a post-2019 region",
+			region:            "ap-east-1",
+			useGlobalEndpoint: true,
+			wantHost:          "sts.ap-east-1.amazonaws.com",
+			wantSigningRegion: "ap-east-1",
+		},
+		{
+			name:              "global endpoint falls back to regional for the China partition",
+			region:            "cn-north-1",
+			useGlobalEndpoint: true,
+			wantHost:          "sts.cn-north-1.amazonaws.com.cn",
+			wantSigningRegion: "cn-north-1",
+		},
+		{
+			name:              "override wins over the global endpoint and signs with the requested region",
+			endpoint:          "https://sts.internal.example.com",
+			region:            "us-west-2",
+			useGlobalEndpoint: true,
+			wantHost:          "sts.internal.example.com",
+			wantSigningRegion: "us-west-2",
 		},
 		{
 			name:     "override without a scheme is rejected",
 			endpoint: "sts.internal.example.com",
+			region:   "us-east-1",
 			wantErr:  true,
 		},
 		{
 			name:     "unparsable override is rejected",
 			endpoint: "https://sts.internal example.com",
+			region:   "us-east-1",
 			wantErr:  true,
 		},
 	}
@@ -67,13 +98,14 @@ func TestResolveSTSEndpoint(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Setenv(STSEndpointEnv, tt.endpoint)
-			ep, err := ResolveSTSEndpoint(t.Context(), "us-east-1")
+			ep, signingRegion, err := ResolveSTSEndpoint(t.Context(), tt.region, tt.useGlobalEndpoint)
 			if tt.wantErr {
 				assert.Error(t, err)
 				return
 			}
 			assert.NoError(t, err)
 			assert.Equal(t, tt.wantHost, ep.URI.Host)
+			assert.Equal(t, tt.wantSigningRegion, signingRegion)
 		})
 	}
 }

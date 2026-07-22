@@ -167,12 +167,19 @@ func (c *client) requestTokenWithIamAuth(
 // AWS credentials using the aws-sdk-go-v2 SigV4 signer and packages it in the
 // form Vault's AWS IAM auth login endpoint expects. Vault validates the
 // server ID against the signed copy inside iam_request_headers; no header on
-// the Vault login request itself is consulted. The endpoint honors the
-// AWS_STS_ENDPOINT override and otherwise comes from the v2 STS endpoint
-// resolver, so newer regions and non-default partitions resolve correctly
-// (the aws-sdk-go v1 endpoint table used by go-secure-stdlib/awsutil's
-// GenerateLoginData is frozen and misses them).
-func generateLoginData(ctx context.Context, creds aws.Credentials, serverID, region string) (map[string]any, error) {
+// the Vault login request itself is consulted.
+//
+// The endpoint honors the AWS_STS_ENDPOINT override (signed with the store's
+// region) and otherwise comes from the v2 STS endpoint resolver. By default
+// (Legacy policy) the resolver reproduces the aws-sdk-go v1 behavior this
+// provider has always had: the global sts.amazonaws.com endpoint with a
+// us-east-1 signature scope for classic AWS regions - which every Vault AWS
+// auth mount accepts out of the box - and regional endpoints for newer
+// regions and non-default partitions. The Regional policy signs against
+// sts.<region>.amazonaws.com, which requires the Vault mount to be
+// configured with use_sts_region_from_client=true or a matching
+// sts_endpoint.
+func generateLoginData(ctx context.Context, creds aws.Credentials, serverID, region string, policy esv1.VaultIAMSTSEndpointPolicy) (map[string]any, error) {
 	// The v2 signer signs whatever credentials it is given; the v1 flow this
 	// replaces failed fast via creds.Get() when the keys were empty. Reject
 	// keyless credentials here instead of producing an unverifiable request.
@@ -180,7 +187,10 @@ func generateLoginData(ctx context.Context, creds aws.Credentials, serverID, reg
 		return nil, errors.New(errAWSCredentialsEmpty)
 	}
 
-	endpoint, err := vaultiamauth.ResolveSTSEndpoint(ctx, region)
+	// Empty (objects written before the field existed, or CRDs without the
+	// default) means Legacy, so behavior only changes on an explicit opt-in.
+	useGlobalEndpoint := policy != esv1.VaultIAMSTSEndpointPolicyRegional
+	endpoint, signingRegion, err := vaultiamauth.ResolveSTSEndpoint(ctx, region, useGlobalEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf(errSTSEndpointResolve, region, err)
 	}
@@ -195,7 +205,7 @@ func generateLoginData(ctx context.Context, creds aws.Credentials, serverID, reg
 	}
 
 	payloadHash := sha256.Sum256([]byte(getCallerIdentityBody))
-	if err := v4.NewSigner().SignHTTP(ctx, creds, req, hex.EncodeToString(payloadHash[:]), "sts", region, time.Now()); err != nil {
+	if err := v4.NewSigner().SignHTTP(ctx, creds, req, hex.EncodeToString(payloadHash[:]), "sts", signingRegion, time.Now()); err != nil {
 		return nil, fmt.Errorf(errSTSRequestSign, err)
 	}
 
@@ -215,7 +225,7 @@ func generateLoginData(ctx context.Context, creds aws.Credentials, serverID, reg
 // AWS credentials and posts the resulting login data to Vault's AWS IAM auth
 // login endpoint, then stores the returned client token on the Vault client.
 func (c *client) loginWithIamCreds(ctx context.Context, creds aws.Credentials, iamAuth *esv1.VaultIamAuth, awsAuthMountPath, regionAWS string) error {
-	loginData, err := generateLoginData(ctx, creds, iamAuth.VaultAWSIAMServerID, regionAWS)
+	loginData, err := generateLoginData(ctx, creds, iamAuth.VaultAWSIAMServerID, regionAWS, iamAuth.STSEndpointPolicy)
 	if err != nil {
 		return err
 	}
