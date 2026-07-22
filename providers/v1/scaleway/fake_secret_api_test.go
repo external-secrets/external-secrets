@@ -391,9 +391,17 @@ func (f *fakeSecretAPI) CreateSecretVersion(request *smapi.CreateSecretVersionRe
 		}
 	}
 
+	if request.DisablePrevious != nil && *request.DisablePrevious && len(secret.versions) > 0 {
+		previous := secret.versions[len(secret.versions)-1]
+		if previous.status == "enabled" {
+			previous.status = "disabled"
+		}
+	}
+
 	newVersion := &fakeSecretVersion{
 		revision: len(secret.versions) + 1,
 		data:     request.Data,
+		status:   "enabled",
 	}
 
 	secret.versions = append(secret.versions, newVersion)
@@ -414,6 +422,8 @@ func (f *fakeSecretAPI) DeleteSecret(request *smapi.DeleteSecretRequest, _ ...sc
 		}
 	}
 	delete(f._secretsByID, secret.id)
+	delete(f._secretsByName, secret.name)
+	f.secrets = slices.DeleteFunc(f.secrets, func(s *fakeSecret) bool { return s.id == secret.id })
 
 	return nil
 }
