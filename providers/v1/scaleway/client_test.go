@@ -363,7 +363,7 @@ func TestGetAllSecrets(t *testing.T) {
 	}{
 		"find secrets by name": {
 			ref: esv1.ExternalSecretFind{
-				Name: &esv1.FindName{RegExp: "secret-.*"},
+				Name: &esv1.FindName{RegExp: "^secret-\\d$"},
 			},
 			response: map[string][]byte{
 				db.secret("secret-1").name: db.secret("secret-1").mustGetVersion("latest_enabled").data,
