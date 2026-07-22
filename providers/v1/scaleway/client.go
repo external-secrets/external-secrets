@@ -133,6 +133,51 @@ func pushPayload(secret *corev1.Secret, data esv1.PushSecretData) ([]byte, error
 	return payload, nil
 }
 
+// listSecretsRequest returns a single-result ListSecrets filter for a name: or
+// path: reference. Other reference types cannot address a secret for writing.
+func (c *client) listSecretsRequest(scwRef *scwSecretRef) (*smapi.ListSecretsRequest, error) {
+	request := &smapi.ListSecretsRequest{
+		ProjectID: &c.projectID,
+		Page:      scw.Int32Ptr(1),
+		PageSize:  scw.Uint32Ptr(1),
+	}
+
+	switch scwRef.RefType {
+	case refTypeName:
+		request.Name = &scwRef.Value
+	case refTypePath:
+		name, path, ok := splitNameAndPath(scwRef.Value)
+		if !ok {
+			return nil, errors.New("ref is not a path")
+		}
+		request.Name = &name
+		request.Path = &path
+	default:
+		return nil, errors.New("secrets can only be referenced by name or path")
+	}
+
+	return request, nil
+}
+
+// findSecret resolves a name: or path: reference to the secret's ID.
+// found is false when no secret matches the reference.
+func (c *client) findSecret(ctx context.Context, scwRef *scwSecretRef) (id string, found bool, err error) {
+	request, err := c.listSecretsRequest(scwRef)
+	if err != nil {
+		return "", false, err
+	}
+
+	response, err := c.api.ListSecrets(request, scw.WithContext(ctx))
+	if err != nil {
+		return "", false, err
+	}
+	if len(response.Secrets) == 0 {
+		return "", false, nil
+	}
+
+	return response.Secrets[0].ID, true, nil
+}
+
 func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	value, err := pushPayload(secret, data)
 	if err != nil {
@@ -150,44 +195,14 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return err
 	}
 
-	listSecretReq := &smapi.ListSecretsRequest{
-		ProjectID: &c.projectID,
-		Page:      scw.Int32Ptr(1),
-		PageSize:  scw.Uint32Ptr(1),
-	}
-	var secretName string
-	secretPath := "/"
-
-	switch scwRef.RefType {
-	case refTypeName:
-		listSecretReq.Name = &scwRef.Value
-		secretName = scwRef.Value
-	case refTypePath:
-		name, path, ok := splitNameAndPath(scwRef.Value)
-		if !ok {
-			return errors.New("ref is not a path")
-		}
-		listSecretReq.Name = &name
-		listSecretReq.Path = &path
-		secretName = name
-		secretPath = path
-	default:
-		return errors.New("secrets can only be pushed by name or path")
-	}
-
-	var secretID string
 	var existingValue []byte
 
-	// list secret by ref
-	listSecrets, err := c.api.ListSecrets(listSecretReq, scw.WithContext(ctx))
+	secretID, found, err := c.findSecret(ctx, scwRef)
 	if err != nil {
 		return err
 	}
 
-	// secret exists
-	if len(listSecrets.Secrets) > 0 {
-		secretID = listSecrets.Secrets[0].ID
-
+	if found {
 		// get the latest version
 		secretVersion, err := c.api.GetSecretVersion(&smapi.GetSecretVersionRequest{
 			SecretID: secretID,
@@ -205,6 +220,13 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 			}
 		}
 	} else {
+		secretName := scwRef.Value
+		secretPath := "/"
+		if scwRef.RefType == refTypePath {
+			// already validated by findSecret
+			secretName, secretPath, _ = splitNameAndPath(scwRef.Value)
+		}
+
 		secret, err := c.api.CreateSecret(&smapi.CreateSecretRequest{
 			ProjectID: c.projectID,
 			Name:      secretName,
@@ -252,42 +274,20 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 		return err
 	}
 
-	listSecretReq := &smapi.ListSecretsRequest{
-		ProjectID: &c.projectID,
-		Page:      scw.Int32Ptr(1),
-		PageSize:  scw.Uint32Ptr(1),
-	}
-
-	switch scwRef.RefType {
-	case refTypeName:
-		listSecretReq.Name = &scwRef.Value
-	case refTypePath:
-		name, path, ok := splitNameAndPath(scwRef.Value)
-		if !ok {
-			return errors.New("ref is not a path")
-		}
-		listSecretReq.Name = &name
-		listSecretReq.Path = &path
-
-	default:
-		return errors.New("secrets can only be deleted by name or path")
-	}
-
-	listSecrets, err := c.api.ListSecrets(listSecretReq, scw.WithContext(ctx))
+	secretID, found, err := c.findSecret(ctx, scwRef)
 	if err != nil {
 		return err
 	}
-
-	if len(listSecrets.Secrets) == 0 {
+	if !found {
 		return nil
 	}
 
 	if property := remoteRef.GetProperty(); property != "" {
-		return c.deleteSecretProperty(ctx, listSecrets.Secrets[0].ID, property)
+		return c.deleteSecretProperty(ctx, secretID, property)
 	}
 
 	request := smapi.DeleteSecretRequest{
-		SecretID: listSecrets.Secrets[0].ID,
+		SecretID: secretID,
 	}
 
 	err = c.api.DeleteSecret(&request, scw.WithContext(ctx))
@@ -358,48 +358,28 @@ func (c *client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemo
 	}
 
 	var secretID string
-	var listSecretReq *smapi.ListSecretsRequest
-
-	switch scwRef.RefType {
-	case refTypeID:
+	if scwRef.RefType == refTypeID {
 		if scwRef.Value == "" {
 			return false, errors.New("empty id in secret reference")
 		}
 		secretID = scwRef.Value
-	case refTypeName:
-		listSecretReq = &smapi.ListSecretsRequest{
-			ProjectID: &c.projectID,
-			Page:      scw.Int32Ptr(1),
-			PageSize:  scw.Uint32Ptr(1),
-			Name:      &scwRef.Value,
-		}
-	case refTypePath:
-		name, path, ok := splitNameAndPath(scwRef.Value)
-		if !ok {
-			return false, errors.New("ref is not a path")
-		}
-		listSecretReq = &smapi.ListSecretsRequest{
-			ProjectID: &c.projectID,
-			Page:      scw.Int32Ptr(1),
-			PageSize:  scw.Uint32Ptr(1),
-			Name:      &name,
-			Path:      &path,
-		}
-	default:
-		return false, errors.New("secrets can only be referenced by id, name or path")
-	}
-
-	if secretID == "" {
-		listSecrets, err := c.api.ListSecrets(listSecretReq, scw.WithContext(ctx))
+	} else {
+		id, found, err := c.findSecret(ctx, scwRef)
 		if err != nil {
 			return false, err
 		}
-		if len(listSecrets.Secrets) == 0 {
+		if !found {
 			return false, nil
 		}
-		secretID = listSecrets.Secrets[0].ID
+		secretID = id
 	}
 
+	return c.secretVersionExists(ctx, secretID, remoteRef.GetProperty())
+}
+
+// secretVersionExists reports whether the secret has a latest version and,
+// when property is set, whether that property exists in its JSON value.
+func (c *client) secretVersionExists(ctx context.Context, secretID, property string) (bool, error) {
 	secretVersion, err := c.api.GetSecretVersion(&smapi.GetSecretVersionRequest{
 		SecretID: secretID,
 		Revision: "latest",
@@ -412,7 +392,6 @@ func (c *client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemo
 		return false, err
 	}
 
-	property := remoteRef.GetProperty()
 	if property == "" {
 		return true, nil
 	}
@@ -556,14 +535,7 @@ func (c *client) accessSecretVersion(ctx context.Context, secretRef *scwSecretRe
 	}
 
 	// otherwise, we do a GetSecret() first to avoid transferring the secret value if it is cached
-	request := &smapi.ListSecretsRequest{
-		ProjectID: &c.projectID,
-		Page:      scw.Int32Ptr(1),
-		PageSize:  scw.Uint32Ptr(1),
-	}
-
-	switch secretRef.RefType {
-	case refTypeID:
+	if secretRef.RefType == refTypeID {
 		request := smapi.GetSecretVersionRequest{
 			SecretID: secretRef.Value,
 			Revision: versionSpec,
@@ -573,19 +545,11 @@ func (c *client) accessSecretVersion(ctx context.Context, secretRef *scwSecretRe
 			return nil, err
 		}
 		return c.accessSpecificSecretVersion(ctx, response.SecretID, response.Revision)
-	case refTypeName:
-		request.Name = &secretRef.Value
+	}
 
-	case refTypePath:
-		name, path, ok := splitNameAndPath(secretRef.Value)
-		if !ok {
-			return nil, errors.New("ref is not a path")
-		}
-
-		request.Name = &name
-		request.Path = &path
-	default:
-		return nil, fmt.Errorf("invalid secret reference: %q", secretRef.Value)
+	request, err := c.listSecretsRequest(secretRef)
+	if err != nil {
+		return nil, err
 	}
 
 	response, err := c.api.ListSecrets(request, scw.WithContext(ctx))
