@@ -52,23 +52,18 @@ func staticCreds() awssdk.Credentials {
 	}
 }
 
-// testCreds returns the signing credentials and the STS endpoint host the
-// signed request should target, optionally clearing the session token and
-// applying the AWS_STS_ENDPOINT override for the duration of the test. The
-// env var is always set (an empty value clears it) so an ambient
+// testCreds returns the signing credentials, optionally clearing the session
+// token and applying the AWS_STS_ENDPOINT override for the duration of the
+// test. The env var is always set (an empty value clears it) so an ambient
 // AWS_STS_ENDPOINT in the developer's shell cannot leak into the test.
-func testCreds(t *testing.T, noSessionToken bool, stsEndpoint string) (awssdk.Credentials, string) {
+func testCreds(t *testing.T, noSessionToken bool, stsEndpoint string) awssdk.Credentials {
 	t.Helper()
 	creds := staticCreds()
 	if noSessionToken {
 		creds.SessionToken = ""
 	}
 	t.Setenv(vaultiamauth.STSEndpointEnv, stsEndpoint)
-	host := "sts." + testLoginRegion + ".amazonaws.com"
-	if stsEndpoint != "" {
-		host = strings.TrimPrefix(stsEndpoint, "https://")
-	}
-	return creds, host
+	return creds
 }
 
 // iamTestClient bundles a client under test with the state its mocked Vault
@@ -137,9 +132,9 @@ func stsRequestHeaders(t *testing.T, data map[string]any) http.Header {
 
 // assertLoginRequest verifies the login write hit the expected mount path
 // with a SigV4-signed GetCallerIdentity request against the expected STS
-// endpoint host, and that the returned client token was set on the Vault
-// client.
-func assertLoginRequest(t *testing.T, tc *iamTestClient, wantSessionToken, wantEndpointHost string) {
+// endpoint host and signing region, and that the returned client token was
+// set on the Vault client.
+func assertLoginRequest(t *testing.T, tc *iamTestClient, wantSessionToken, wantEndpointHost, wantSigningRegion string) {
 	t.Helper()
 	if tc.path != testLoginPath {
 		t.Errorf("login path: got %q, want %q", tc.path, testLoginPath)
@@ -159,18 +154,23 @@ func assertLoginRequest(t *testing.T, tc *iamTestClient, wantSessionToken, wantE
 	if tc.token != testLoginToken {
 		t.Errorf("token: got %q, want %q", tc.token, testLoginToken)
 	}
-	assertSignature(t, stsRequestHeaders(t, tc.data), wantSessionToken)
+	assertSignature(t, stsRequestHeaders(t, tc.data), wantSessionToken, wantSigningRegion)
 }
 
 // assertSignature verifies the SigV4 signature artifacts on the signed STS
-// request headers, including the session token that carries the (rotating)
-// Pod Identity credential — or its absence for static credentials that have
-// no session token (e.g. secretRef IAM user keys).
-func assertSignature(t *testing.T, headers http.Header, wantSessionToken string) {
+// request headers: the credential scope's signing region (us-east-1 for the
+// legacy global endpoint, the store's region otherwise) and the session
+// token that carries the (rotating) Pod Identity credential — or its absence
+// for static credentials that have no session token (e.g. secretRef IAM user
+// keys).
+func assertSignature(t *testing.T, headers http.Header, wantSessionToken, wantSigningRegion string) {
 	t.Helper()
 	auth := headers.Get("Authorization")
 	if !strings.HasPrefix(auth, "AWS4-HMAC-SHA256 ") || !strings.Contains(auth, "Signature=") {
 		t.Errorf("Authorization header is not a SigV4 signature: %q", auth)
+	}
+	if !strings.Contains(auth, "/"+wantSigningRegion+"/sts/aws4_request") {
+		t.Errorf("Authorization credential scope is not signed for region %q: %q", wantSigningRegion, auth)
 	}
 	if headers.Get("X-Amz-Date") == "" {
 		t.Error("X-Amz-Date header missing from signed request")
@@ -182,26 +182,55 @@ func assertSignature(t *testing.T, headers http.Header, wantSessionToken string)
 
 func TestLoginWithIamCreds(t *testing.T) {
 	tests := []struct {
-		name           string
-		iamAuth        *esv1.VaultIamAuth
-		response       func() (*vault.Secret, error)
-		wantServerID   string
-		stsEndpoint    string
-		noSessionToken bool
-		wantErr        bool
+		name              string
+		iamAuth           *esv1.VaultIamAuth
+		response          func() (*vault.Secret, error)
+		wantServerID      string
+		stsEndpoint       string
+		region            string
+		wantHost          string
+		wantSigningRegion string
+		noSessionToken    bool
+		wantErr           bool
 	}{
 		{
+			// The default (Legacy) policy signs classic regions against the
+			// global endpoint with a us-east-1 scope — the request shape this
+			// provider has always produced, accepted by default Vault mounts.
 			name: "posts signed login data to the configured mount",
 			iamAuth: &esv1.VaultIamAuth{
 				Role: testLoginRole,
 			},
 		},
 		{
+			name: "signs regionally when the Regional endpoint policy is set",
+			iamAuth: &esv1.VaultIamAuth{
+				Role:              testLoginRole,
+				STSEndpointPolicy: esv1.VaultIAMSTSEndpointPolicyRegional,
+			},
+			region:            "us-west-2",
+			wantHost:          "sts.us-west-2.amazonaws.com",
+			wantSigningRegion: "us-west-2",
+		},
+		{
+			// The global endpoint does not exist for post-2019 regions, so the
+			// Legacy policy falls back to regional signing there on its own.
+			name: "legacy policy signs a post-2019 region regionally",
+			iamAuth: &esv1.VaultIamAuth{
+				Role: testLoginRole,
+			},
+			region:            "ap-east-1",
+			wantHost:          "sts.ap-east-1.amazonaws.com",
+			wantSigningRegion: "ap-east-1",
+		},
+		{
 			name: "signs against the AWS_STS_ENDPOINT override when set",
 			iamAuth: &esv1.VaultIamAuth{
 				Role: testLoginRole,
 			},
-			stsEndpoint: "https://sts.internal.example.com",
+			stsEndpoint:       "https://sts.internal.example.com",
+			wantHost:          "sts.internal.example.com",
+			wantSigningRegion: testLoginRegion,
 		},
 		{
 			name: "omits the session token for static credentials without one",
@@ -257,9 +286,23 @@ func TestLoginWithIamCreds(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tc := newIamTestClient(tt.response)
-			creds, wantEndpointHost := testCreds(t, tt.noSessionToken, tt.stsEndpoint)
+			creds := testCreds(t, tt.noSessionToken, tt.stsEndpoint)
+			region := tt.region
+			if region == "" {
+				region = testLoginRegion
+			}
+			// The Legacy default signs classic regions against the global
+			// endpoint with a us-east-1 scope.
+			wantHost := tt.wantHost
+			if wantHost == "" {
+				wantHost = "sts.amazonaws.com"
+			}
+			wantSigningRegion := tt.wantSigningRegion
+			if wantSigningRegion == "" {
+				wantSigningRegion = "us-east-1"
+			}
 
-			err := tc.client.loginWithIamCreds(context.Background(), creds, tt.iamAuth, testLoginMountPath, testLoginRegion)
+			err := tc.client.loginWithIamCreds(context.Background(), creds, tt.iamAuth, testLoginMountPath, region)
 			if tt.wantErr {
 				if err == nil {
 					t.Fatalf("expected error, got nil")
@@ -273,9 +316,34 @@ func TestLoginWithIamCreds(t *testing.T) {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			assertLoginRequest(t, tc, creds.SessionToken, wantEndpointHost)
+			assertLoginRequest(t, tc, creds.SessionToken, wantHost, wantSigningRegion)
 			assertServerID(t, tc, tt.wantServerID)
 		})
+	}
+}
+
+// TestLoginWithIamCredsUsesFreshCredentials pins the Pod Identity fix: every
+// login signs with the credentials passed to that call, so a rotated session
+// token is picked up on the next login without a pod restart.
+func TestLoginWithIamCredsUsesFreshCredentials(t *testing.T) {
+	tc := newIamTestClient(nil)
+	iamAuth := &esv1.VaultIamAuth{Role: testLoginRole}
+	creds := testCreds(t, false, "")
+
+	if err := tc.client.loginWithIamCreds(context.Background(), creds, iamAuth, testLoginMountPath, testLoginRegion); err != nil {
+		t.Fatalf("unexpected error on first login: %v", err)
+	}
+	if got := stsRequestHeaders(t, tc.data).Get("X-Amz-Security-Token"); got != creds.SessionToken {
+		t.Errorf("first login session token: got %q, want %q", got, creds.SessionToken)
+	}
+
+	rotated := creds
+	rotated.SessionToken = "rotated-session-token"
+	if err := tc.client.loginWithIamCreds(context.Background(), rotated, iamAuth, testLoginMountPath, testLoginRegion); err != nil {
+		t.Fatalf("unexpected error on second login: %v", err)
+	}
+	if got := stsRequestHeaders(t, tc.data).Get("X-Amz-Security-Token"); got != rotated.SessionToken {
+		t.Errorf("second login did not sign with the rotated session token: got %q, want %q", got, rotated.SessionToken)
 	}
 }
 
@@ -283,7 +351,7 @@ func TestLoginWithIamCreds(t *testing.T) {
 // before signing: the v2 signer would happily sign with empty keys, unlike
 // the v1 creds.Get() fail-fast in the flow this replaced.
 func TestGenerateLoginDataEmptyCreds(t *testing.T) {
-	if _, err := generateLoginData(context.Background(), awssdk.Credentials{}, "", testLoginRegion); err == nil {
+	if _, err := generateLoginData(context.Background(), awssdk.Credentials{}, "", testLoginRegion, ""); err == nil {
 		t.Fatal("expected error for credentials without keys, got nil")
 	}
 }

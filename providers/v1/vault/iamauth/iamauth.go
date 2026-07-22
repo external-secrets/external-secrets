@@ -29,7 +29,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	smithyauth "github.com/aws/smithy-go/auth"
 	smithy "github.com/aws/smithy-go/endpoints"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -133,13 +135,38 @@ func (r customEndpointResolver) ResolveEndpoint(ctx context.Context, params sts.
 	return sts.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
 }
 
-// ResolveSTSEndpoint resolves the STS endpoint for the given region, honoring
-// the AWS_STS_ENDPOINT override that this package's STS clients also use, so
-// credential acquisition and login-request signing target the same endpoint.
-func ResolveSTSEndpoint(ctx context.Context, region string) (smithy.Endpoint, error) {
-	return customEndpointResolver{}.ResolveEndpoint(ctx, sts.EndpointParameters{
-		Region: aws.String(region),
+// ResolveSTSEndpoint resolves the STS endpoint and SigV4 signing region for
+// the given region, honoring the AWS_STS_ENDPOINT override that this
+// package's STS clients also use, so credential acquisition and login-request
+// signing target the same endpoint.
+//
+// With useGlobalEndpoint the ruleset reproduces the aws-sdk-go v1 "legacy"
+// STS resolution: classic AWS regions resolve to the global sts.amazonaws.com
+// endpoint, which must be signed with a us-east-1 scope, while newer regions
+// and non-default partitions (China, GovCloud) resolve regionally. The
+// signing region therefore comes from the resolved endpoint's auth
+// properties, falling back to the requested region when the endpoint does
+// not override it (regional endpoints and the AWS_STS_ENDPOINT override).
+func ResolveSTSEndpoint(ctx context.Context, region string, useGlobalEndpoint bool) (smithy.Endpoint, string, error) {
+	endpoint, err := customEndpointResolver{}.ResolveEndpoint(ctx, sts.EndpointParameters{
+		Region:            aws.String(region),
+		UseGlobalEndpoint: aws.Bool(useGlobalEndpoint),
 	})
+	if err != nil {
+		return smithy.Endpoint{}, "", err
+	}
+	signingRegion := region
+	if options, ok := smithyauth.GetAuthOptions(&endpoint.Properties); ok {
+		for _, option := range options {
+			if option.SchemeID != smithyauth.SchemeIDSigV4 {
+				continue
+			}
+			if r, ok := smithyhttp.GetSigV4SigningRegion(&option.SignerProperties); ok {
+				signingRegion = r
+			}
+		}
+	}
+	return endpoint, signingRegion, nil
 }
 
 // mostly taken from:

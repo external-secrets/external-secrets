@@ -19,6 +19,8 @@ spec:
           vaultRole: vault-role-for-aws-iam-auth
           # Optional. Placeholder to supply header X-Vault-AWS-IAM-Server-ID. It is an additional (optional) header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws
           vaultAwsIamServerID: example-vaultAwsIamServerID
+          # Optional. Legacy (default) signs the login against the global STS endpoint; Regional signs against sts.<region>.amazonaws.com and requires the Vault mount to be configured with use_sts_region_from_client=true or a matching sts_endpoint
+          stsEndpointPolicy: Legacy
           jwt:
             serviceAccountRef:
               name: my-serviceaccount #Provide service account with IRSA enabled
