@@ -86,6 +86,14 @@ var db = buildDB(&fakeSecretAPI{
 			},
 		},
 		{
+			name: "json-dotted-keys",
+			versions: []*fakeSecretVersion{
+				{revision: 1, data: []byte(
+					`{"tls.crt":"CERT","username":"alice","a.b":"literal","a":{"b":"nested"}}`,
+				)},
+			},
+		},
+		{
 			name: "nested-secret",
 			path: "/subpath",
 			versions: []*fakeSecretVersion{
@@ -158,6 +166,22 @@ func TestGetSecret(t *testing.T) {
 				Version:  "latest",
 			},
 			response: []byte("9"),
+		},
+		"literal dotted key is found without escaping": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:      "id:" + db.secret("json-dotted-keys").id,
+				Property: "tls.crt",
+				Version:  "latest",
+			},
+			response: []byte("CERT"),
+		},
+		"nested path still wins over literal fallback": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:      "id:" + db.secret("json-dotted-keys").id,
+				Property: "a.b",
+				Version:  "latest",
+			},
+			response: []byte("nested"),
 		},
 		"secret in path": {
 			ref: esv1.ExternalSecretDataRemoteRef{

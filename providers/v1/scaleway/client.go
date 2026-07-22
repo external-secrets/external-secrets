@@ -483,6 +483,12 @@ func jsonToSecretData(value json.RawMessage) []byte {
 func extractJSONProperty(secretData []byte, property string) ([]byte, error) {
 	result := gjson.Get(string(secretData), property)
 
+	if !result.Exists() && strings.Contains(property, ".") {
+		// fall back to a literal dotted key (e.g. "tls.crt"), the shape
+		// produced when pushing a property containing dots
+		result = gjson.Get(string(secretData), strings.ReplaceAll(property, ".", "\\."))
+	}
+
 	if !result.Exists() {
 		return nil, esv1.NoSecretError{}
 	}
