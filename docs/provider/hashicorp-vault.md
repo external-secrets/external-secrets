@@ -401,8 +401,9 @@ and the signed login request — the Vault mount then needs a matching
 `sts_endpoint`, and the endpoint's region must match
 `spec.provider.vault.auth.iam.region` because the request signature is scoped to
 that region. The value must be an absolute URL with a scheme and host (e.g.
-`https://sts.us-east-1.amazonaws.com`); a bare hostname is rejected at login
-time.
+`https://sts.us-east-1.amazonaws.com`); a bare hostname, a query string, or a
+fragment is rejected at login time (a path is allowed, e.g. for STS behind a
+proxy prefix).
 
 #### TLS certificates authentication
 

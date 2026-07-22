@@ -41,6 +41,11 @@ const (
 	testLoginRole      = "my-role"
 	testLoginToken     = "hvs.token-abc"
 	testLoginRegion    = "us-east-1"
+
+	// The Legacy default signs classic regions against the global endpoint
+	// with a us-east-1 scope.
+	globalEndpointHost  = "sts.amazonaws.com"
+	globalSigningRegion = "us-east-1"
 )
 
 // staticCreds returns a fixed set of AWS credentials for signing, standing in
@@ -202,6 +207,9 @@ func TestLoginWithIamCreds(t *testing.T) {
 			iamAuth: &esv1.VaultIamAuth{
 				Role: testLoginRole,
 			},
+			region:            testLoginRegion,
+			wantHost:          globalEndpointHost,
+			wantSigningRegion: globalSigningRegion,
 		},
 		{
 			name: "signs regionally when the Regional endpoint policy is set",
@@ -230,6 +238,7 @@ func TestLoginWithIamCreds(t *testing.T) {
 				Role: testLoginRole,
 			},
 			stsEndpoint:       "https://sts.internal.example.com",
+			region:            testLoginRegion,
 			wantHost:          "sts.internal.example.com",
 			wantSigningRegion: testLoginRegion,
 		},
@@ -238,7 +247,10 @@ func TestLoginWithIamCreds(t *testing.T) {
 			iamAuth: &esv1.VaultIamAuth{
 				Role: testLoginRole,
 			},
-			noSessionToken: true,
+			noSessionToken:    true,
+			region:            testLoginRegion,
+			wantHost:          globalEndpointHost,
+			wantSigningRegion: globalSigningRegion,
 		},
 		{
 			name: "signs the server-id into the STS request headers when configured",
@@ -246,7 +258,10 @@ func TestLoginWithIamCreds(t *testing.T) {
 				Role:                testLoginRole,
 				VaultAWSIAMServerID: "vault.example.com",
 			},
-			wantServerID: "vault.example.com",
+			wantServerID:      "vault.example.com",
+			region:            testLoginRegion,
+			wantHost:          globalEndpointHost,
+			wantSigningRegion: globalSigningRegion,
 		},
 		{
 			name: "returns error when the login write fails",
@@ -254,6 +269,7 @@ func TestLoginWithIamCreds(t *testing.T) {
 				Role: testLoginRole,
 			},
 			response: func() (*vault.Secret, error) { return nil, errors.New("vault unreachable") },
+			region:   testLoginRegion,
 			wantErr:  true,
 		},
 		{
@@ -262,6 +278,7 @@ func TestLoginWithIamCreds(t *testing.T) {
 				Role: testLoginRole,
 			},
 			response: func() (*vault.Secret, error) { return nil, nil },
+			region:   testLoginRegion,
 			wantErr:  true,
 		},
 		{
@@ -270,6 +287,7 @@ func TestLoginWithIamCreds(t *testing.T) {
 				Role: testLoginRole,
 			},
 			response: func() (*vault.Secret, error) { return &vault.Secret{}, nil },
+			region:   testLoginRegion,
 			wantErr:  true,
 		},
 		{
@@ -280,6 +298,7 @@ func TestLoginWithIamCreds(t *testing.T) {
 			response: func() (*vault.Secret, error) {
 				return &vault.Secret{Auth: &vault.SecretAuth{}}, nil
 			},
+			region:  testLoginRegion,
 			wantErr: true,
 		},
 	}
@@ -288,38 +307,31 @@ func TestLoginWithIamCreds(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tc := newIamTestClient(tt.response)
 			creds := testCreds(t, tt.noSessionToken, tt.stsEndpoint)
-			region := tt.region
-			if region == "" {
-				region = testLoginRegion
-			}
-			// The Legacy default signs classic regions against the global
-			// endpoint with a us-east-1 scope.
-			wantHost := tt.wantHost
-			if wantHost == "" {
-				wantHost = "sts.amazonaws.com"
-			}
-			wantSigningRegion := tt.wantSigningRegion
-			if wantSigningRegion == "" {
-				wantSigningRegion = "us-east-1"
-			}
 
-			err := tc.client.loginWithIamCreds(t.Context(), creds, tt.iamAuth, testLoginMountPath, region)
+			err := tc.client.loginWithIamCreds(t.Context(), creds, tt.iamAuth, testLoginMountPath, tt.region)
 			if tt.wantErr {
-				if err == nil {
-					t.Fatalf("expected error, got nil")
-				}
-				if tc.token != "" {
-					t.Errorf("token set to %q on failed login, want unset", tc.token)
-				}
+				assertLoginFailed(t, tc, err)
 				return
 			}
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
 
-			assertLoginRequest(t, tc, creds.SessionToken, wantHost, wantSigningRegion)
+			assertLoginRequest(t, tc, creds.SessionToken, tt.wantHost, tt.wantSigningRegion)
 			assertServerID(t, tc, tt.wantServerID)
 		})
+	}
+}
+
+// assertLoginFailed verifies a login attempt returned an error without
+// setting a client token.
+func assertLoginFailed(t *testing.T, tc *iamTestClient, err error) {
+	t.Helper()
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
+	if tc.token != "" {
+		t.Errorf("token set to %q on failed login, want unset", tc.token)
 	}
 }
 

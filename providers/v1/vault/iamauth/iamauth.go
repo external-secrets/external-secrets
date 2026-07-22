@@ -127,6 +127,13 @@ func (r customEndpointResolver) ResolveEndpoint(ctx context.Context, params sts.
 		if uri.Scheme == "" || uri.Host == "" {
 			return smithy.Endpoint{}, fmt.Errorf("%s %q must be an absolute URL with a scheme and host, e.g. https://sts.us-east-1.amazonaws.com", STSEndpointEnv, v)
 		}
+		// A query would enter the SigV4 canonical query string and a fragment
+		// would survive into the signed login URL, either of which produces a
+		// request Vault cannot reconstruct and verify; both are certainly
+		// misconfiguration. A path is allowed (e.g. STS behind a proxy prefix).
+		if uri.RawQuery != "" || uri.Fragment != "" {
+			return smithy.Endpoint{}, fmt.Errorf("%s %q must not contain a query string or fragment", STSEndpointEnv, v)
+		}
 		return smithy.Endpoint{
 			URI: *uri,
 		}, nil
