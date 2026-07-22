@@ -341,6 +341,43 @@ func TestPushSecret(t *testing.T) {
 		assert.Equal(t, 2, len(fs.versions))
 		assert.Equal(t, "disabled", fs.versions[0].status)
 	})
+
+	t.Run("whole secret is pushed as a JSON object", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "whole-secret-test"
+		wholeSecret := &corev1.Secret{Data: map[string][]byte{
+			"username": []byte("alice"),
+			"password": []byte("s3cr3t"),
+		}}
+
+		pushErr := c.PushSecret(ctx, wholeSecret, testingfake.PushSecretData{RemoteKey: "name:" + secretName})
+
+		assert.NoError(t, pushErr)
+		assert.Len(t, db.secret(secretName).versions, 1)
+		assert.JSONEq(t, `{"username":"alice","password":"s3cr3t"}`, string(db.secret(secretName).versions[0].data))
+	})
+
+	t.Run("whole secret push without change does not create a version", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "whole-secret-idempotent"
+		wholeSecret := &corev1.Secret{Data: map[string][]byte{"a": []byte("1"), "b": []byte("2")}}
+
+		assert.NoError(t, c.PushSecret(ctx, wholeSecret, testingfake.PushSecretData{RemoteKey: "name:" + secretName}))
+		assert.NoError(t, c.PushSecret(ctx, wholeSecret, testingfake.PushSecretData{RemoteKey: "name:" + secretName}))
+
+		assert.Len(t, db.secret(secretName).versions, 1)
+	})
+
+	t.Run("missing secret key is an error", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+
+		pushErr := c.PushSecret(ctx, secret([]byte("x")), testingfake.PushSecretData{SecretKey: "other-key", RemoteKey: "name:missing-key-test"})
+
+		assert.Error(t, pushErr)
+	})
 }
 
 func TestGetSecretMap(t *testing.T) {
