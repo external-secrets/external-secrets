@@ -689,6 +689,10 @@ func TestSecretExists(t *testing.T) {
 			ref: testingfake.PushSecretData{RemoteKey: "no-colon"},
 			err: true,
 		},
+		"empty id is an error": {
+			ref: testingfake.PushSecretData{RemoteKey: "id:"},
+			err: true,
+		},
 	}
 
 	for tcName, tc := range testCases {
