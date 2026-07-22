@@ -32,6 +32,7 @@ import (
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -126,7 +127,7 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, ctrlC
 
 	// allow SecretStore controller validation to pass
 	// when using referent namespace.
-	if client.storeKind == esv1.ClusterSecretStoreKind && client.namespace == "" && isReferentSpec(storeSpecKubernetes) {
+	if client.storeKind == esv1.ClusterSecretStoreKind && client.namespace == "" && esutils.IsReferentKubernetesAuth(storeSpecKubernetes.Auth) {
 		return client, nil
 	}
 
@@ -151,32 +152,6 @@ func (c *Client) secretsClientFor(namespace string) KClient {
 		return c.userCoreV1.Secrets(namespace)
 	}
 	return c.userSecretClient
-}
-
-func isReferentSpec(prov *esv1.KubernetesProvider) bool {
-	if prov.Auth == nil {
-		return false
-	}
-
-	if prov.Auth.Cert != nil {
-		if prov.Auth.Cert.ClientCert.Namespace == nil {
-			return true
-		}
-		if prov.Auth.Cert.ClientKey.Namespace == nil {
-			return true
-		}
-	}
-	if prov.Auth.ServiceAccount != nil {
-		if prov.Auth.ServiceAccount.Namespace == nil {
-			return true
-		}
-	}
-	if prov.Auth.Token != nil {
-		if prov.Auth.Token.BearerToken.Namespace == nil {
-			return true
-		}
-	}
-	return false
 }
 
 // Close cleans up any resources used by the Kubernetes provider.

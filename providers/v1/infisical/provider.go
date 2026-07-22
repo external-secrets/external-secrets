@@ -18,6 +18,8 @@ package infisical
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -55,6 +57,13 @@ type Provider struct {
 	sdkClient       infisicalSdk.InfisicalClientInterface
 	apiScope        *ClientScope
 	authMethod      string
+
+	// hostAPI, caCertificate and authIdentity back the project-ID resolution
+	// the write endpoints need (see push_secret.go): the SecretStore carries a
+	// project slug but Create/Update/Delete require the project UUID.
+	hostAPI       string
+	caCertificate string
+	authIdentity  string
 }
 
 // ClientScope represents the scope configuration for an Infisical client.
@@ -72,9 +81,17 @@ var _ esv1.Provider = &Provider{}
 
 // Capabilities returns the provider's supported capabilities.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+	return esv1.SecretStoreReadWrite
 }
 
+// Each perform*Login function authenticates the SDK client and returns the
+// machine-identity discriminator it resolved (the value already read for login,
+// so no second credential read is needed). NewClient hashes that value into
+// authIdentity to scope the project-ID cache per credential. The returned
+// string is empty only when the accompanying error is non-nil.
+
+// performUniversalAuthLogin logs in via Universal Auth and returns the client
+// ID as the cache discriminator.
 func performUniversalAuthLogin(
 	ctx context.Context,
 	store esv1.GenericStore,
@@ -82,28 +99,30 @@ func performUniversalAuthLogin(
 	sdkClient infisicalSdk.InfisicalClientInterface,
 	kube kclient.Client,
 	namespace string,
-) error {
+) (string, error) {
 	universalAuthCredentials := infisicalSpec.Auth.UniversalAuthCredentials
 	clientID, err := GetStoreSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientID)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	clientSecret, err := GetStoreSecretData(ctx, store, kube, namespace, universalAuthCredentials.ClientSecret)
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	_, err = sdkClient.Auth().UniversalAuthLogin(clientID, clientSecret)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).UniversalAuthLogin(clientID, clientSecret)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaUniversalAuth, err)
 
 	if err != nil {
-		return fmt.Errorf("failed to authenticate via universal auth %w", err)
+		return "", fmt.Errorf("failed to authenticate via universal auth %w", err)
 	}
 
-	return nil
+	return clientID, nil
 }
 
+// performAzureAuthLogin logs in via Azure Auth and returns the machine
+// identity ID as the cache discriminator.
 func performAzureAuthLogin(
 	ctx context.Context,
 	store esv1.GenericStore,
@@ -111,11 +130,11 @@ func performAzureAuthLogin(
 	sdkClient infisicalSdk.InfisicalClientInterface,
 	kube kclient.Client,
 	namespace string,
-) error {
+) (string, error) {
 	azureAuthCredentials := infisicalSpec.Auth.AzureAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, azureAuthCredentials.IdentityID)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data id %w", err)
+		return "", fmt.Errorf("failed to get secret data id %w", err)
 	}
 
 	resource := ""
@@ -123,20 +142,22 @@ func performAzureAuthLogin(
 		resource, err = GetStoreSecretData(ctx, store, kube, namespace, azureAuthCredentials.Resource)
 
 		if err != nil {
-			return fmt.Errorf("failed to get secret data resource %w", err)
+			return "", fmt.Errorf("failed to get secret data resource %w", err)
 		}
 	}
 
-	_, err = sdkClient.Auth().AzureAuthLogin(identityID, resource)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).AzureAuthLogin(identityID, resource)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaAzureAuth, err)
 
 	if err != nil {
-		return fmt.Errorf("failed to authenticate via azure auth %w", err)
+		return "", fmt.Errorf("failed to authenticate via azure auth %w", err)
 	}
 
-	return nil
+	return identityID, nil
 }
 
+// performGcpIDTokenAuthLogin logs in via GCP ID-token Auth and returns the
+// machine identity ID as the cache discriminator.
 func performGcpIDTokenAuthLogin(
 	ctx context.Context,
 	store esv1.GenericStore,
@@ -144,23 +165,25 @@ func performGcpIDTokenAuthLogin(
 	sdkClient infisicalSdk.InfisicalClientInterface,
 	kube kclient.Client,
 	namespace string,
-) error {
+) (string, error) {
 	gcpIDTokenAuthCredentials := infisicalSpec.Auth.GcpIDTokenAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, gcpIDTokenAuthCredentials.IdentityID)
 	if err != nil {
-		return fmt.Errorf(errSecretDataFormat, err)
+		return "", fmt.Errorf(errSecretDataFormat, err)
 	}
 
-	_, err = sdkClient.Auth().GcpIdTokenAuthLogin(identityID)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).GcpIdTokenAuthLogin(identityID)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaGCPIDTokenAuth, err)
 
 	if err != nil {
-		return fmt.Errorf("failed to authenticate via gcp id token auth %w", err)
+		return "", fmt.Errorf("failed to authenticate via gcp id token auth %w", err)
 	}
 
-	return nil
+	return identityID, nil
 }
 
+// performGcpIamAuthLogin logs in via GCP IAM Auth and returns the machine
+// identity ID as the cache discriminator.
 func performGcpIamAuthLogin(
 	ctx context.Context,
 	store esv1.GenericStore,
@@ -168,28 +191,30 @@ func performGcpIamAuthLogin(
 	sdkClient infisicalSdk.InfisicalClientInterface,
 	kube kclient.Client,
 	namespace string,
-) error {
+) (string, error) {
 	gcpIamAuthCredentials := infisicalSpec.Auth.GcpIamAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, gcpIamAuthCredentials.IdentityID)
 	if err != nil {
-		return fmt.Errorf(errSecretDataFormat, err)
+		return "", fmt.Errorf(errSecretDataFormat, err)
 	}
 
 	serviceAccountKeyFilePath, err := GetStoreSecretData(ctx, store, kube, namespace, gcpIamAuthCredentials.ServiceAccountKeyFilePath)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data serviceAccountKeyFilePath %w", err)
+		return "", fmt.Errorf("failed to get secret data serviceAccountKeyFilePath %w", err)
 	}
 
-	_, err = sdkClient.Auth().GcpIamAuthLogin(identityID, serviceAccountKeyFilePath)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).GcpIamAuthLogin(identityID, serviceAccountKeyFilePath)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaGcpServiceAccountAuth, err)
 
 	if err != nil {
-		return fmt.Errorf("failed to authenticate via gcp iam auth %w", err)
+		return "", fmt.Errorf("failed to authenticate via gcp iam auth %w", err)
 	}
 
-	return nil
+	return identityID, nil
 }
 
+// performJwtAuthLogin logs in via JWT Auth and returns the machine identity ID
+// as the cache discriminator.
 func performJwtAuthLogin(
 	ctx context.Context,
 	store esv1.GenericStore,
@@ -197,28 +222,30 @@ func performJwtAuthLogin(
 	sdkClient infisicalSdk.InfisicalClientInterface,
 	kube kclient.Client,
 	namespace string,
-) error {
+) (string, error) {
 	jwtAuthCredentials := infisicalSpec.Auth.JwtAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, jwtAuthCredentials.IdentityID)
 	if err != nil {
-		return fmt.Errorf(errSecretDataFormat, err)
+		return "", fmt.Errorf(errSecretDataFormat, err)
 	}
 
 	jwt, err := GetStoreSecretData(ctx, store, kube, namespace, jwtAuthCredentials.JWT)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data jwt %w", err)
+		return "", fmt.Errorf("failed to get secret data jwt %w", err)
 	}
 
-	_, err = sdkClient.Auth().JwtAuthLogin(identityID, jwt)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).JwtAuthLogin(identityID, jwt)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaJwtAuth, err)
 
 	if err != nil {
-		return fmt.Errorf("failed to authenticate via jwt auth %w", err)
+		return "", fmt.Errorf("failed to authenticate via jwt auth %w", err)
 	}
 
-	return nil
+	return identityID, nil
 }
 
+// performLdapAuthLogin logs in via LDAP Auth and returns the machine identity
+// ID as the cache discriminator.
 func performLdapAuthLogin(
 	ctx context.Context,
 	store esv1.GenericStore,
@@ -226,33 +253,35 @@ func performLdapAuthLogin(
 	sdkClient infisicalSdk.InfisicalClientInterface,
 	kube kclient.Client,
 	namespace string,
-) error {
+) (string, error) {
 	ldapAuthCredentials := infisicalSpec.Auth.LdapAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, ldapAuthCredentials.IdentityID)
 	if err != nil {
-		return fmt.Errorf(errSecretDataFormat, err)
+		return "", fmt.Errorf(errSecretDataFormat, err)
 	}
 
 	ldapPassword, err := GetStoreSecretData(ctx, store, kube, namespace, ldapAuthCredentials.LDAPPassword)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data ldapPassword %w", err)
+		return "", fmt.Errorf("failed to get secret data ldapPassword %w", err)
 	}
 
 	ldapUsername, err := GetStoreSecretData(ctx, store, kube, namespace, ldapAuthCredentials.LDAPUsername)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data ldapUsername %w", err)
+		return "", fmt.Errorf("failed to get secret data ldapUsername %w", err)
 	}
 
-	_, err = sdkClient.Auth().LdapAuthLogin(identityID, ldapPassword, ldapUsername)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).LdapAuthLogin(identityID, ldapPassword, ldapUsername)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaLdapAuth, err)
 
 	if err != nil {
-		return fmt.Errorf("failed to authenticate via ldap auth %w", err)
+		return "", fmt.Errorf("failed to authenticate via ldap auth %w", err)
 	}
 
-	return nil
+	return identityID, nil
 }
 
+// performOciAuthLogin logs in via OCI Auth and returns the machine identity ID
+// as the cache discriminator.
 func performOciAuthLogin(
 	ctx context.Context,
 	store esv1.GenericStore,
@@ -260,48 +289,48 @@ func performOciAuthLogin(
 	sdkClient infisicalSdk.InfisicalClientInterface,
 	kube kclient.Client,
 	namespace string,
-) error {
+) (string, error) {
 	ociAuthCredentials := infisicalSpec.Auth.OciAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.IdentityID)
 	if err != nil {
-		return fmt.Errorf(errSecretDataFormat, err)
+		return "", fmt.Errorf(errSecretDataFormat, err)
 	}
 
 	privateKey, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.PrivateKey)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data privateKey %w", err)
+		return "", fmt.Errorf("failed to get secret data privateKey %w", err)
 	}
 
 	var privateKeyPassphrase *string
 	if ociAuthCredentials.PrivateKeyPassphrase.Name != "" {
 		passphrase, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.PrivateKeyPassphrase)
 		if err != nil {
-			return fmt.Errorf("failed to get secret data privateKeyPassphrase %w", err)
+			return "", fmt.Errorf("failed to get secret data privateKeyPassphrase %w", err)
 		}
 		privateKeyPassphrase = &passphrase
 	}
 
 	fingerprint, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.Fingerprint)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data fingerprint %w", err)
+		return "", fmt.Errorf("failed to get secret data fingerprint %w", err)
 	}
 
 	userID, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.UserID)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data userId %w", err)
+		return "", fmt.Errorf("failed to get secret data userId %w", err)
 	}
 
 	tenancyID, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.TenancyID)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data tenancyId %w", err)
+		return "", fmt.Errorf("failed to get secret data tenancyId %w", err)
 	}
 
 	region, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.Region)
 	if err != nil {
-		return fmt.Errorf("failed to get secret data region %w", err)
+		return "", fmt.Errorf("failed to get secret data region %w", err)
 	}
 
-	_, err = sdkClient.Auth().OciAuthLogin(infisicalSdk.OciAuthLoginOptions{
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).OciAuthLogin(infisicalSdk.OciAuthLoginOptions{
 		IdentityID:  identityID,
 		PrivateKey:  privateKey,
 		Passphrase:  privateKeyPassphrase,
@@ -313,12 +342,14 @@ func performOciAuthLogin(
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaOciAuth, err)
 
 	if err != nil {
-		return fmt.Errorf("failed to authenticate via oci auth %w", err)
+		return "", fmt.Errorf("failed to authenticate via oci auth %w", err)
 	}
 
-	return nil
+	return identityID, nil
 }
 
+// performKubernetesAuthLogin logs in via Kubernetes Auth and returns the
+// machine identity ID as the cache discriminator.
 func performKubernetesAuthLogin(
 	ctx context.Context,
 	store esv1.GenericStore,
@@ -326,11 +357,11 @@ func performKubernetesAuthLogin(
 	sdkClient infisicalSdk.InfisicalClientInterface,
 	kube kclient.Client,
 	namespace string,
-) error {
+) (string, error) {
 	kubernetesAuthCredentials := infisicalSpec.Auth.KubernetesAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, kubernetesAuthCredentials.IdentityID)
 	if err != nil {
-		return fmt.Errorf(errSecretDataFormat, err)
+		return "", fmt.Errorf(errSecretDataFormat, err)
 	}
 
 	serviceAccountTokenPath := ""
@@ -338,20 +369,22 @@ func performKubernetesAuthLogin(
 		serviceAccountTokenPath, err = GetStoreSecretData(ctx, store, kube, namespace, kubernetesAuthCredentials.ServiceAccountTokenPath)
 
 		if err != nil {
-			return fmt.Errorf("failed to get secret data serviceAccountTokenPath %w", err)
+			return "", fmt.Errorf("failed to get secret data serviceAccountTokenPath %w", err)
 		}
 	}
 
-	_, err = sdkClient.Auth().KubernetesAuthLogin(identityID, serviceAccountTokenPath)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).KubernetesAuthLogin(identityID, serviceAccountTokenPath)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaKubernetesAuth, err)
 
 	if err != nil {
-		return fmt.Errorf("failed to authenticate via kubernetes auth %w", err)
+		return "", fmt.Errorf("failed to authenticate via kubernetes auth %w", err)
 	}
 
-	return nil
+	return identityID, nil
 }
 
+// performAwsAuthLogin logs in via AWS IAM Auth and returns the machine
+// identity ID as the cache discriminator.
 func performAwsAuthLogin(
 	ctx context.Context,
 	store esv1.GenericStore,
@@ -359,23 +392,26 @@ func performAwsAuthLogin(
 	sdkClient infisicalSdk.InfisicalClientInterface,
 	kube kclient.Client,
 	namespace string,
-) error {
+) (string, error) {
 	awsAuthCredentials := infisicalSpec.Auth.AwsAuthCredentials
 	identityID, err := GetStoreSecretData(ctx, store, kube, namespace, awsAuthCredentials.IdentityID)
 	if err != nil {
-		return fmt.Errorf(errSecretDataFormat, err)
+		return "", fmt.Errorf(errSecretDataFormat, err)
 	}
 
-	_, err = sdkClient.Auth().AwsIamAuthLogin(identityID)
+	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).AwsIamAuthLogin(identityID)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaAwsAuth, err)
 
 	if err != nil {
-		return fmt.Errorf("failed to authenticate via aws auth %w", err)
+		return "", fmt.Errorf("failed to authenticate via aws auth %w", err)
 	}
 
-	return nil
+	return identityID, nil
 }
 
+// performTokenAuthLogin sets the SDK client's pre-generated access token and
+// returns it as the cache discriminator (there is no separate identity ID for
+// token auth).
 func performTokenAuthLogin(
 	ctx context.Context,
 	store esv1.GenericStore,
@@ -383,17 +419,17 @@ func performTokenAuthLogin(
 	sdkClient infisicalSdk.InfisicalClientInterface,
 	kube kclient.Client,
 	namespace string,
-) error {
+) (string, error) {
 	tokenAuthCredentials := infisicalSpec.Auth.TokenAuthCredentials
 	accessToken, err := GetStoreSecretData(ctx, store, kube, namespace, tokenAuthCredentials.AccessToken)
 	if err != nil {
-		return fmt.Errorf(errSecretDataFormat, err)
+		return "", fmt.Errorf(errSecretDataFormat, err)
 	}
 
-	sdkClient.Auth().SetAccessToken(accessToken)
+	sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).SetAccessToken(accessToken)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaTokenAuth, err)
 
-	return nil
+	return accessToken, nil
 }
 
 // NewClient creates a new Infisical client.
@@ -435,7 +471,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		secretPath = "/"
 	}
 
-	var loginFn func(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) error
+	var loginFn func(ctx context.Context, store esv1.GenericStore, infisicalSpec *esv1.InfisicalProvider, sdkClient infisicalSdk.InfisicalClientInterface, kube kclient.Client, namespace string) (string, error)
 	var authMethod string
 	switch {
 	case infisicalSpec.Auth.UniversalAuthCredentials != nil:
@@ -473,9 +509,17 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, errors.New("authentication method not found")
 	}
 
-	if err := loginFn(ctx, store, infisicalSpec, sdkClient, kube, namespace); err != nil {
+	identity, err := loginFn(ctx, store, infisicalSpec, sdkClient, kube, namespace)
+	if err != nil {
 		cancelSdkClient()
 		return nil, err
+	}
+
+	// hostAPI mirrors the SiteUrl the SDK uses; default it the same way the SDK
+	// does so the write-path project lookup targets the right instance.
+	hostAPI := infisicalSpec.HostAPI
+	if hostAPI == "" {
+		hostAPI = "https://app.infisical.com"
 	}
 
 	return &Provider{
@@ -488,8 +532,22 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 			SecretPath:             secretPath,
 			ExpandSecretReferences: infisicalSpec.SecretsScope.ExpandSecretReferences,
 		},
-		authMethod: authMethod,
+		authMethod:    authMethod,
+		hostAPI:       hostAPI,
+		caCertificate: caCertificate,
+		authIdentity:  hashAuthIdentity(authMethod, identity),
 	}, nil
+}
+
+// hashAuthIdentity returns a stable, non-secret discriminator for the
+// authenticating machine identity, used to scope the project-ID cache so a
+// project slug reused across tenants on a shared host cannot collide. The
+// identity (client ID, identity ID, or access token) comes from the login
+// step, so no second credential read is needed. It is hashed so a token-auth
+// credential is never held verbatim as a map key.
+func hashAuthIdentity(authMethod, identity string) string {
+	sum := sha256.Sum256([]byte(authMethod + "\x00" + identity))
+	return hex.EncodeToString(sum[:])
 }
 
 // Close releases any resources used by the provider.

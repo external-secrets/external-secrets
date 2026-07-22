@@ -57,7 +57,7 @@ func (s *openBaoProvider) DeleteSecret(key string) {
 }
 
 func (s *openBaoProvider) updateSecret(method string, path string, body io.Reader, expectedStatus int) {
-	req, err := http.NewRequest(method, fmt.Sprintf("%s/%s", s.addon.LocalURL, path), body)
+	req, err := http.NewRequest(method, fmt.Sprintf("%s/%s", s.addon.URLs.Local, path), body)
 	Expect(err).ToNot(HaveOccurred())
 	req.Header.Add("X-Vault-Token", s.addon.RootToken)
 
@@ -82,10 +82,11 @@ func makeStore(name, ns string, v *addon.OpenBao) *esv1.SecretStore {
 		},
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
-				Vault: &esv1.VaultProvider{
-					Version: esv1.VaultKVStoreV2,
-					Path:    new(secretStorePath),
-					Server:  v.InClusterURL,
+				OpenBao: &esv1.OpenBaoProvider{
+					Version:  esv1.OpenBaoKVStoreV2,
+					Path:     new(secretStorePath),
+					Server:   v.URLs.InClusterTLS,
+					CABundle: v.ServerCA,
 				},
 			},
 		},
@@ -103,7 +104,7 @@ func (s openBaoProvider) CreateTokenStore() {
 		},
 	}
 	secretStore := makeStore(s.framework.Namespace.Name, s.framework.Namespace.Name, s.addon)
-	secretStore.Spec.Provider.Vault.Auth = &esv1.VaultAuth{
+	secretStore.Spec.Provider.OpenBao.Auth = &esv1.OpenBaoAuth{
 		TokenSecretRef: &esmeta.SecretKeySelector{
 			Name: secret.Name,
 			Key:  "token",

@@ -22,7 +22,9 @@ import (
 	"path/filepath"
 
 	. "github.com/onsi/ginkgo/v2"
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/external-secrets/external-secrets-e2e/framework/util"
 )
@@ -31,9 +33,13 @@ type OpenBao struct {
 	chart     *HelmChart
 	Namespace string
 
-	InClusterURL string
-	LocalURL     string
-	RootToken    string
+	URLs struct {
+		InClusterPlainText string
+		InClusterTLS       string
+		Local              string
+	}
+	RootToken string
+	ServerCA  []byte
 
 	portForwarder *PortForward
 }
@@ -67,7 +73,39 @@ func NewOpenBao() *OpenBao {
 }
 
 func (l *OpenBao) Install() error {
+	serverRootPem, serverPem, serverKeyPem, _, _, _, err := genVaultCertificates(l.Namespace, l.chart.ReleaseName)
+	if err != nil {
+		return err
+	}
+	l.ServerCA = serverRootPem
+
 	if err := l.chart.Install(); err != nil {
+		return err
+	}
+
+	sec := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "openbao-config",
+			Namespace: l.Namespace,
+		},
+		Data: map[string][]byte{},
+	}
+	_, err = controllerutil.CreateOrUpdate(GinkgoT().Context(), l.chart.config.CRClient, sec, func() error {
+		sec.Data = map[string][]byte{
+			"server-cert.pem":     serverPem,
+			"server-cert-key.pem": serverKeyPem,
+			"config.hcl": []byte(`
+				ui = true
+				listener "tcp" {
+					address = "[::]:8300"
+					tls_cert_file = "/etc/bao/server-cert.pem"
+					tls_key_file = "/etc/bao/server-cert-key.pem"
+				}
+			`),
+		}
+		return nil
+	})
+	if err != nil {
 		return err
 	}
 
@@ -96,8 +134,9 @@ func (l *OpenBao) initBao() error {
 		return err
 	}
 
-	l.InClusterURL = fmt.Sprintf("http://%s.%s.svc.cluster.local:8200", l.chart.ReleaseName, l.Namespace)
-	l.LocalURL = fmt.Sprintf("http://localhost:%d", l.portForwarder.localPort)
+	l.URLs.InClusterTLS = fmt.Sprintf("https://%s.%s.svc.cluster.local:8300", l.chart.ReleaseName, l.Namespace)
+	l.URLs.InClusterPlainText = fmt.Sprintf("http://%s.%s.svc.cluster.local:8200", l.chart.ReleaseName, l.Namespace)
+	l.URLs.Local = fmt.Sprintf("http://localhost:%d", l.portForwarder.localPort)
 
 	return nil
 }
