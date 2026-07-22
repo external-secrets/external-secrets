@@ -1,4 +1,5 @@
-{{- if .Values.rbac.create -}}
+{{- if .Values.rbac.create }}
+{{- if not .Values.watchNamespaces }}
 apiVersion: rbac.authorization.k8s.io/v1
 {{- if .Values.scopedRBAC }}
 kind: Role
@@ -216,20 +217,6 @@ rules:
     - "update"
     - "delete"
   {{- end }}
-  {{- if .Values.metrics.listen.auth.enabled }}
-  - apiGroups:
-    - "authentication.k8s.io"
-    resources: 
-    - "tokenreviews"
-    verbs:
-    - "create"
-  - apiGroups:
-    - "authorization.k8s.io"
-    resources: 
-    - "subjectaccessreviews"
-    verbs:
-    - "create"
-  {{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 {{- if .Values.scopedRBAC }}
@@ -389,6 +376,30 @@ subjects:
   - name: {{ include "external-secrets.serviceAccountName" . }}
     namespace: {{ template "external-secrets.namespace" . }}
     kind: ServiceAccount
+{{- if .Values.rbac.servicebindings.create }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-servicebindings
+  labels:
+    servicebinding.io/controller: "true"
+    {{- include "external-secrets.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+    - "external-secrets.io"
+    resources:
+    - "externalsecrets"
+    {{- if .Values.processPushSecret }}
+    - "pushsecrets"
+    {{- end }}
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+{{- end }}
+{{- end }}
+
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -439,27 +450,43 @@ subjects:
   - kind: ServiceAccount
     name: {{ include "external-secrets.serviceAccountName" . }}
     namespace: {{ template "external-secrets.namespace" . }}
-{{- if .Values.rbac.servicebindings.create }}
+
+{{- if .Values.metrics.listen.auth.enabled }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "external-secrets.fullname" . }}-servicebindings
+  name: {{ include "external-secrets.fullname" . }}-metrics-auth
   labels:
-    servicebinding.io/controller: "true"
     {{- include "external-secrets.labels" . | nindent 4 }}
 rules:
   - apiGroups:
-    - "external-secrets.io"
+    - "authentication.k8s.io"
     resources:
-    - "externalsecrets"
-    {{- if .Values.processPushSecret }}
-    - "pushsecrets"
-    {{- end }}
+    - "tokenreviews"
     verbs:
-    - "get"
-    - "list"
-    - "watch"
+    - "create"
+  - apiGroups:
+    - "authorization.k8s.io"
+    resources:
+    - "subjectaccessreviews"
+    verbs:
+    - "create"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-metrics-auth
+  labels:
+    {{- include "external-secrets.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "external-secrets.fullname" . }}-metrics-auth
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "external-secrets.serviceAccountName" . }}
+    namespace: {{ template "external-secrets.namespace" . }}
 {{- end }}
 {{- end }}
 {{- if .Values.systemAuthDelegator }}
