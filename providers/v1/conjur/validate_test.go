@@ -304,3 +304,12 @@ func makeIAMSecretStore(svcURL, account, serviceID, hostID string, withSecretRef
 		},
 	}
 }
+
+func makeIAMSecretStoreWithSessionToken(svcURL, account, serviceID, hostID string) *esv1.SecretStore {
+	store := makeIAMSecretStore(svcURL, account, serviceID, hostID, true)
+	store.Spec.Provider.Conjur.Auth.Iam.SecretRef.SessionTokenSecretRef = &esmeta.SecretKeySelector{
+		Name: "aws-session-token",
+		Key:  "session-token",
+	}
+	return store
+}
