@@ -23,7 +23,8 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     permissions:
-      contents: write # to create a release and push new docs
+      contents: write # to create a release, push new docs, and commit changelog
+      pull-requests: write # to open a PR with the updated changelog
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
@@ -90,6 +91,158 @@ jobs:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: make docs.publish DOCS_ALIAS=latest
 
+  changelog-pr:
+    name: Create CHANGELOG PR
+    needs: [release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # to commit changelog
+      pull-requests: write # to open a PR with the updated changelog
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Fetch Native Release Notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ github.event.inputs.version }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh api repos/${GH_REPO}/releases/tags/${VERSION} --jq '.body' > release_body.txt
+
+      - name: Parse Release Notes from PR Bodies
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v7
+        env:
+          VERSION: ${{ github.event.inputs.version }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            // Read the native GitHub release notes generated in the previous step
+            const releaseBody = fs.readFileSync('release_body.txt', 'utf8');
+            
+            // Extract all PR numbers from the text (matching the /pull/1234 format at the end of the line)
+            const prRegex = /\/pull\/(\d+)/g;
+            const prNumbers = [];
+            let match;
+            while ((match = prRegex.exec(releaseBody)) !== null) {
+              prNumbers.push(parseInt(match[1]));
+            }
+            
+            // Remove duplicates just in case
+            const uniquePRs = [...new Set(prNumbers)];
+            console.log(`Found PRs in release: ${uniquePRs.join(', ')}`);
+            
+            const date = new Date().toISOString().split('T')[0];
+            let changelogContent = `## [${process.env.VERSION}] - ${date}\n\n`;
+            let hasNotes = false;
+            
+            // Fetch the body of each PR and extract the release-note block or fallback to title
+            for (const prNumber of uniquePRs) {
+              try {
+                const { data: pr } = await github.rest.pulls.get({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: prNumber,
+                });
+                
+                const body = pr.body || "";
+                const title = pr.title;
+                const prUrl = pr.html_url; 
+                
+                const noteRegex = /```release-note\s*([\s\S]*?)```/;
+                const noteMatch = body.match(noteRegex);
+                
+                let finalNote = "";
+                
+                if (noteMatch) {
+                  const noteText = noteMatch[1].trim();
+                  
+                  if (noteText.toUpperCase() === 'NONE') {
+                    // Explicitly ignored by the contributor
+                    console.log(`PR #${prNumber} explicitly ignored via NONE.`);
+                    continue; 
+                  } else if (noteText) {
+                    finalNote = noteText; // Uses the custom release note
+                  } else {
+                    finalNote = title; // Block exists but is empty, fallback to PR title
+                  }
+                } else {
+                  finalNote = title; // No block found (e.g. old PRs), fallback to PR title
+                }
+                
+                changelogContent += `* ${finalNote} (${prUrl})\n`;
+                hasNotes = true;
+                
+              } catch (error) {
+                console.error(`Failed to fetch PR #${prNumber}: ${error.message}`);
+              }
+            }
+            
+            if (!hasNotes) {
+              changelogContent += "* No notable changes for this release.\n";
+            }
+            
+            changelogContent += "\n---\n\n";
+            
+            // Save the parsed notes to a new file
+            fs.writeFileSync('PARSED_CHANGELOG.md', changelogContent);
+
+      - name: Create CHANGELOG PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          VERSION: ${{ github.event.inputs.version }}
+        run: |
+          BRANCH_NAME="changelog-update-${VERSION}"
+          
+          # Check if an open PR already exists for this branch using GitHub CLI
+          # Returns a JSON with the PR number and the author's login
+          PR_INFO=$(gh pr list --head "$BRANCH_NAME" --state open --json number,author --jq '.[0]')
+          
+          # If the PR exists (not null and not empty)
+          if [ "$PR_INFO" != "null" ] && [ -n "$PR_INFO" ]; then
+            PR_AUTHOR=$(echo "$PR_INFO" | jq -r '.author.login')
+            
+            # Verify the PR author
+            if [[ "$PR_AUTHOR" == *"github-actions"* ]]; then
+              echo "✅ A PR for version ${VERSION} has already been created by the automation (Author: $PR_AUTHOR)."
+              echo "⏭️ Skipping creation to ensure job idempotency."
+              exit 0
+            else
+              echo "⚠️ A PR for version ${VERSION} has already been opened or modified manually by a human ($PR_AUTHOR)."
+              echo "⏭️ Skipping execution to avoid overwriting maintainer work."
+              exit 0
+            fi
+          fi
+          
+          # If no open PR is found, proceed with merging and creation
+          echo "No open PR found. Starting creation..."
+          
+          cat PARSED_CHANGELOG.md CHANGELOG.md > temp_changelog.md
+          mv temp_changelog.md CHANGELOG.md
+          
+          # Create the branch locally
+          git checkout -b $BRANCH_NAME
+          
+          git config user.name "$GITHUB_ACTOR"
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${GH_REPO}.git"
+          git add CHANGELOG.md
+          git commit -s -m "docs(release): update CHANGELOG for ${VERSION}"
+          
+          # Use push --force to ensure that if an orphaned remote branch exists without a PR, it gets updated
+          git push origin $BRANCH_NAME --force
+          
+          # Open the PR
+          gh pr create \
+            --title "docs(release): update CHANGELOG for ${VERSION}" \
+            --body "Automated PR to update the \`CHANGELOG.md\` with the latest release notes from ${VERSION}." \
+            --base main \
+            --label "area/documentation"
   promote:
     name: Promote Container Image
     runs-on: ubuntu-latest
