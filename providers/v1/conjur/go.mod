@@ -1,9 +1,9 @@
 module github.com/external-secrets/external-secrets/providers/v1/conjur
 
-go 1.26.4
+go 1.26.5
 
 require (
-	github.com/cyberark/conjur-api-go v0.13.8
+	github.com/cyberark/conjur-api-go v0.14.1
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
@@ -104,7 +104,6 @@ require (
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiextensions-apiserver v0.35.2 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260304202019-5b3e3fdb0acf // indirect

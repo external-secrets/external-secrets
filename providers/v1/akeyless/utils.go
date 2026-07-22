@@ -66,6 +66,10 @@ func GetAKeylessProvider(store esv1.GenericStore) (*esv1.AkeylessProvider, error
 	return prov, nil
 }
 
+func ignoreCacheEnabled(prov *esv1.AkeylessProvider) bool {
+	return prov != nil && prov.IgnoreCache != nil && *prov.IgnoreCache
+}
+
 func getV2Url(path string) string {
 	// add check if not v2
 	rebody := sendReq(path)

@@ -19,7 +19,8 @@ As of version 0.14.x , this is the only kubernetes version that we will guarante
 
 | ESO Version | Kubernetes Version | Release Date | End of Life    |
 |-------------|--------------------|--------------|----------------|
-| 2.7         | 1.35               | Jun 26, 2026 | Release of 2.8 |
+| 2.8         | 1.35               | Jul 18, 2026 | Release of 2.9 |
+| 2.7         | 1.35               | Jun 26, 2026 | July 18, 2026  |
 | 2.6         | 1.34-1.35          | Jun 05, 2026 | Jun 26, 2026   |
 | 2.5         | 1.34-1.35          | May 15, 2026 | Jun 05, 2026   |
 | 2.4.1       | 1.34-1.35          | Apr 28, 2026 | May 15, 2026   |
@@ -67,6 +68,7 @@ The following table describes the stability level of each provider and who's res
 |----------------------------------------------------------------------------------------------------------------|----------:| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                        |    stable | [external-secrets](https://github.com/external-secrets)                                             |
 | [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                        |    stable | [external-secrets](https://github.com/external-secrets)                                             |
+| [AWS Certificate Manager](https://external-secrets.io/latest/provider/aws-certificate-manager/)                |     alpha | [external-secrets](https://github.com/external-secrets)                                             |
 | [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                               |    stable | [external-secrets](https://github.com/external-secrets)                                             |
 | [Azure Keyvault](https://external-secrets.io/latest/provider/azure-key-vault/)                                 |    stable | [external-secrets](https://github.com/external-secrets)                                             |
 | [Barbican](https://external-secrets.io/latest/provider/barbican)                                               |     alpha | [@rkferreira](https://github.com/rkferreira)                                                        |
@@ -82,6 +84,7 @@ The following table describes the stability level of each provider and who's res
 | [Fortanix](https://external-secrets.io/latest/provider/fortanix)                                               |     alpha | [@RecuencoJones](https://github.com/RecuencoJones)                                                  |
 | [GCP Secret Manager](https://external-secrets.io/latest/provider/google-secrets-manager/)                      |    stable | [external-secrets](https://github.com/external-secrets)                                             |
 | [Generic Webhook](https://external-secrets.io/latest/provider/webhook)                                         |     alpha | [@willemm](https://github.com/willemm)                                                              |
+| [GitHub Actions Secrets](https://external-secrets.io/latest/provider/github)                               |     alpha | [@gusfcarvalho](https://github.com/gusfcarvalho)                                                    |
 | [GitLab Variables](https://external-secrets.io/latest/provider/gitlab-variables/)                              |     alpha | [@Jabray5](https://github.com/Jabray5)                                                              |
 | [Hashicorp Vault](https://external-secrets.io/latest/provider/hashicorp-vault/)                                |    stable | [external-secrets](https://github.com/external-secrets)                                             |
 | [IBM Cloud Secrets Manager](https://external-secrets.io/latest/provider/ibm-secrets-manager/)                  |    stable | [@IdanAdar](https://github.com/IdanAdar)                                                            |
@@ -116,6 +119,7 @@ The following table show the support for features across different providers.
 | Akeyless                         |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | AWS Secrets Manager              |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store              |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
+| AWS Certificate Manager          |              |              |                      |            x            |        x         |      x      |              x              |
 | Azure Keyvault                   |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Barbican                         |      x       |              |                      |                         |        x         |             |                             |
 | Beyondtrust                      |              |              |                      |                         |        x         |      x      |                             |
@@ -124,11 +128,12 @@ The following table show the support for features across different providers.
 | Chef                             |              |              |                      |                         |        x         |             |                             |
 | Cloud.ru                         |      x       |      x       |                      |            x            |        x         |             |              x              |
 | Delinea                          |              |              |                      |                         |        x         |             |                             |
-| Devolutions Server               |              |              |                      |                         |        x         |      x      |                             |
+| Devolutions Server               |              |              |                      |                         |        x         |      x      |              x              |
 | CyberArk Secrets Manager         |      x       |      x       |                      |            x            |        x         |             |                             |
 | Doppler                          |      x       |              |                      |                         |        x         |             |                             |
 | Fortanix                         |              |              |                      |            x            |        x         |             |                             |
 | GCP Secret Manager               |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
+| GitHub Actions Secrets           |              |              |                      |            x            |                  |      x      |                             |
 | GitLab Variables                 |      x       |      x       |                      |                         |        x         |             |                             |
 | Generic Webhook                  |              |              |                      |                         |                  |             |              x              |
 | Hashicorp Vault                  |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
