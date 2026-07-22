@@ -1793,11 +1793,11 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				client: fakesm.Client{
 					RemoveRegionsFromReplicationFn: func(ctx context.Context, input *awssm.RemoveRegionsFromReplicationInput, opts ...func(*awssm.Options)) (*awssm.RemoveRegionsFromReplicationOutput, error) {
-						// Validate that the replication region is being removed
-						if len(input.RemoveReplicaRegions) != 1 && input.RemoveReplicaRegions[0] != "eu-north-1" {
-							return nil, errors.New("invalid remove regions from replication input")
+						// Validate that there is a replication region and the it's the one being removed.
+						if len(input.RemoveReplicaRegions) > 0 && input.RemoveReplicaRegions[0] == "eu-north-1" {
+							return &awssm.RemoveRegionsFromReplicationOutput{}, nil
 						}
-						return &awssm.RemoveRegionsFromReplicationOutput{}, nil
+						return nil, errors.New("invalid remove regions from replication input")
 					},
 				},
 				config: esv1.SecretsManager{
@@ -1824,7 +1824,6 @@ func TestDeleteSecret(t *testing.T) {
 			args: args{
 				client: fakesm.Client{
 					RemoveRegionsFromReplicationFn: func(ctx context.Context, input *awssm.RemoveRegionsFromReplicationInput, opts ...func(*awssm.Options)) (*awssm.RemoveRegionsFromReplicationOutput, error) {
-						// Validate that the replication region is being removed
 						return nil, &types.InternalServiceError{Message: aws.String("The secret is scheduled for deletion")}
 					},
 				},
