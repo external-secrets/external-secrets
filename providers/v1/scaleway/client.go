@@ -341,8 +341,74 @@ func (c *client) deleteSecretProperty(ctx context.Context, secretID, property st
 	return nil
 }
 
-func (c *client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New("not implemented")
+func (c *client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
+	scwRef, err := decodeScwSecretRef(remoteRef.GetRemoteKey())
+	if err != nil {
+		return false, err
+	}
+
+	listSecretReq := &smapi.ListSecretsRequest{
+		ProjectID: &c.projectID,
+		Page:      scw.Int32Ptr(1),
+		PageSize:  scw.Uint32Ptr(1),
+	}
+
+	var secretID string
+
+	switch scwRef.RefType {
+	case refTypeID:
+		secretID = scwRef.Value
+	case refTypeName:
+		listSecretReq.Name = &scwRef.Value
+	case refTypePath:
+		name, path, ok := splitNameAndPath(scwRef.Value)
+		if !ok {
+			return false, errors.New("ref is not a path")
+		}
+		listSecretReq.Name = &name
+		listSecretReq.Path = &path
+	default:
+		return false, errors.New("secrets can only be referenced by id, name or path")
+	}
+
+	if secretID == "" {
+		listSecrets, err := c.api.ListSecrets(listSecretReq, scw.WithContext(ctx))
+		if err != nil {
+			return false, err
+		}
+		if len(listSecrets.Secrets) == 0 {
+			return false, nil
+		}
+		secretID = listSecrets.Secrets[0].ID
+	}
+
+	secretVersion, err := c.api.GetSecretVersion(&smapi.GetSecretVersionRequest{
+		SecretID: secretID,
+		Revision: "latest",
+	}, scw.WithContext(ctx))
+	if err != nil {
+		var errNotFound *scw.ResourceNotFoundError
+		if errors.As(err, &errNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	property := remoteRef.GetProperty()
+	if property == "" {
+		return true, nil
+	}
+
+	data, err := c.accessSpecificSecretVersion(ctx, secretID, secretVersion.Revision)
+	if err != nil {
+		return false, err
+	}
+
+	doc := string(data)
+	if !gjson.Valid(doc) || !gjson.Parse(doc).IsObject() {
+		return false, nil
+	}
+	return gjson.Get(doc, jsonPropertyPath(doc, property)).Exists(), nil
 }
 
 func (c *client) Validate() (esv1.ValidationResult, error) {

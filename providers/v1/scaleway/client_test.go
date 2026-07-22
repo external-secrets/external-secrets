@@ -103,6 +103,10 @@ var db = buildDB(&fakeSecretAPI{
 				},
 			},
 		},
+		{
+			name:     "exists-no-version",
+			versions: []*fakeSecretVersion{},
+		},
 	},
 })
 
@@ -638,6 +642,66 @@ func TestDeleteSecretProperty(t *testing.T) {
 
 		assert.NoError(t, err)
 	})
+}
+
+func TestSecretExists(t *testing.T) {
+	ctx := context.Background()
+	c := newTestClient()
+
+	testCases := map[string]struct {
+		ref    testingfake.PushSecretData
+		exists bool
+		err    bool
+	}{
+		"existing secret by name": {
+			ref:    testingfake.PushSecretData{RemoteKey: "name:secret-1"},
+			exists: true,
+		},
+		"existing secret by id": {
+			ref:    testingfake.PushSecretData{RemoteKey: "id:" + db.secret("secret-1").id},
+			exists: true,
+		},
+		"existing secret by path": {
+			ref:    testingfake.PushSecretData{RemoteKey: "path:/subpath/nested-secret"},
+			exists: true,
+		},
+		"missing secret": {
+			ref: testingfake.PushSecretData{RemoteKey: "name:not-a-secret"},
+		},
+		"secret without version": {
+			ref: testingfake.PushSecretData{RemoteKey: "name:exists-no-version"},
+		},
+		"existing property": {
+			ref:    testingfake.PushSecretData{RemoteKey: "name:json-dotted-keys", Property: "username"},
+			exists: true,
+		},
+		"existing literal dotted property": {
+			ref:    testingfake.PushSecretData{RemoteKey: "name:json-dotted-keys", Property: "tls.crt"},
+			exists: true,
+		},
+		"missing property": {
+			ref: testingfake.PushSecretData{RemoteKey: "name:json-dotted-keys", Property: "nope"},
+		},
+		"property on non-object value": {
+			ref: testingfake.PushSecretData{RemoteKey: "name:nested-secret", Property: "username"},
+		},
+		"invalid ref": {
+			ref: testingfake.PushSecretData{RemoteKey: "no-colon"},
+			err: true,
+		},
+	}
+
+	for tcName, tc := range testCases {
+		t.Run(tcName, func(t *testing.T) {
+			exists, err := c.SecretExists(ctx, tc.ref)
+			if tc.err {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tc.exists, exists)
+		})
+	}
 }
 
 func TestDeleteSecret(t *testing.T) {
