@@ -53,6 +53,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	kcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -116,6 +117,10 @@ const (
 
 	errMissingWorkloadEnvVars = "missing environment variables. AZURE_CLIENT_ID, AZURE_TENANT_ID and AZURE_FEDERATED_TOKEN_FILE must be set"
 	errReadTokenFile          = "unable to read token file %s: %w"
+
+	softDeletedSecretErrorCode = "ObjectIsDeletedButRecoverable"
+	secretRecoveryPollInterval = 2 * time.Second
+	secretRecoveryTimeout      = 2 * time.Minute
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -129,6 +134,7 @@ type SecretClient interface {
 	GetSecretsComplete(ctx context.Context, vaultBaseURL string, maxresults *int32) (result keyvault.SecretListResultIterator, err error)
 	GetCertificate(ctx context.Context, vaultBaseURL string, certificateName string, certificateVersion string) (result keyvault.CertificateBundle, err error)
 	SetSecret(ctx context.Context, vaultBaseURL string, secretName string, parameters keyvault.SecretSetParameters) (result keyvault.SecretBundle, err error)
+	RecoverDeletedSecret(ctx context.Context, vaultBaseURL string, secretName string) (result keyvault.SecretBundle, err error)
 	ImportKey(ctx context.Context, vaultBaseURL string, keyName string, parameters keyvault.KeyImportParameters) (result keyvault.KeyBundle, err error)
 	ImportCertificate(ctx context.Context, vaultBaseURL string, certificateName string, parameters keyvault.CertificateImportParameters) (result keyvault.CertificateBundle, err error)
 	DeleteCertificate(ctx context.Context, vaultBaseURL string, certificateName string) (result keyvault.DeletedCertificateBundle, err error)
@@ -148,7 +154,7 @@ type Azure struct {
 	baseClient SecretClient
 
 	// New Azure SDK clients (used when UseAzureSDK is true)
-	secretsClient *azsecrets.Client
+	secretsClient newSecretClient
 	keysClient    *azkeys.Client
 	certsClient   *azcertificates.Client
 }
@@ -615,8 +621,54 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 
 	_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
+	if isLegacySoftDeletedSecretError(err) {
+		if err := a.recoverLegacySecret(ctx, secretName); err != nil {
+			return err
+		}
+		_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
+		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
+	}
 	if err != nil {
 		return fmt.Errorf("could not set secret %v: %w", secretName, err)
+	}
+	return nil
+}
+
+func isLegacySoftDeletedSecretError(err error) bool {
+	var requestErr *azure.RequestError
+	if !errors.As(err, &requestErr) || requestErr.StatusCode != 409 || requestErr.ServiceError == nil {
+		return false
+	}
+	if requestErr.ServiceError.Code == softDeletedSecretErrorCode {
+		return true
+	}
+	innerCode, ok := requestErr.ServiceError.InnerError["code"].(string)
+	return ok && innerCode == softDeletedSecretErrorCode
+}
+
+func (a *Azure) recoverLegacySecret(ctx context.Context, secretName string) error {
+	_, err := a.baseClient.RecoverDeletedSecret(ctx, *a.provider.VaultURL, secretName)
+	if err != nil {
+		return fmt.Errorf("could not recover soft-deleted secret %v: %w", secretName, err)
+	}
+
+	err = wait.PollUntilContextTimeout(ctx, secretRecoveryPollInterval, secretRecoveryTimeout, true, func(ctx context.Context) (bool, error) {
+		secret, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
+		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+		if err != nil {
+			var detailedErr *autorest.DetailedError
+			if errors.As(err, &detailedErr) && detailedErr.StatusCode == 404 {
+				return false, nil
+			}
+			return false, err
+		}
+		if _, err := canCreate(secret.Tags, nil); err != nil {
+			return false, fmt.Errorf("cannot update recovered secret %v: %w", secretName, err)
+		}
+		return true, nil
+	})
+	if err != nil {
+		return fmt.Errorf("waiting for recovered secret %v to become available: %w", secretName, err)
 	}
 	return nil
 }
