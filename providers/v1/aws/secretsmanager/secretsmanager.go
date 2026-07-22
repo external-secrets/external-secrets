@@ -199,6 +199,16 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1.PushS
 	if !isManagedByESO(data) {
 		return nil
 	}
+	if len(data.ReplicationStatus) > 0 {
+		log.Info("detaching replication regions", "replication status", data.ReplicationStatus)
+		regions := make([]string, 0, len(data.ReplicationStatus))
+		for _, replicationStatus := range data.ReplicationStatus {
+			regions = append(regions, aws.ToString(replicationStatus.Region))
+		}
+		if err := sm.removeRegionsFromReplication(ctx, aws.String(secretName), regions); err != nil {
+			return err
+		}
+	}
 	deleteInput := &awssm.DeleteSecretInput{
 		SecretId: awsSecret.ARN,
 	}
