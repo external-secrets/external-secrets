@@ -29,7 +29,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	smithyauth "github.com/aws/smithy-go/auth"
 	smithy "github.com/aws/smithy-go/endpoints"
+	smithyhttp "github.com/aws/smithy-go/transport/http"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -117,7 +119,20 @@ func (r customEndpointResolver) ResolveEndpoint(ctx context.Context, params sts.
 	if v := os.Getenv(STSEndpointEnv); v != "" {
 		uri, err := url.Parse(v)
 		if err != nil {
-			return smithy.Endpoint{}, err
+			return smithy.Endpoint{}, fmt.Errorf("could not parse %s %q: %w", STSEndpointEnv, v, err)
+		}
+		// url.Parse accepts a bare hostname as a relative URL with an empty
+		// host, which would produce STS clients and signed login requests
+		// that fail with opaque errors downstream.
+		if uri.Scheme == "" || uri.Host == "" {
+			return smithy.Endpoint{}, fmt.Errorf("%s %q must be an absolute URL with a scheme and host, e.g. https://sts.us-east-1.amazonaws.com", STSEndpointEnv, v)
+		}
+		// A query would enter the SigV4 canonical query string and a fragment
+		// would survive into the signed login URL, either of which produces a
+		// request Vault cannot reconstruct and verify; both are certainly
+		// misconfiguration. A path is allowed (e.g. STS behind a proxy prefix).
+		if uri.RawQuery != "" || uri.Fragment != "" {
+			return smithy.Endpoint{}, fmt.Errorf("%s %q must not contain a query string or fragment", STSEndpointEnv, v)
 		}
 		return smithy.Endpoint{
 			URI: *uri,
@@ -125,6 +140,40 @@ func (r customEndpointResolver) ResolveEndpoint(ctx context.Context, params sts.
 	}
 	// Fall back to default resolver
 	return sts.NewDefaultEndpointResolverV2().ResolveEndpoint(ctx, params)
+}
+
+// ResolveSTSEndpoint resolves the STS endpoint and SigV4 signing region for
+// the given region, honoring the AWS_STS_ENDPOINT override that this
+// package's STS clients also use, so credential acquisition and login-request
+// signing target the same endpoint.
+//
+// With useGlobalEndpoint the ruleset reproduces the aws-sdk-go v1 "legacy"
+// STS resolution: classic AWS regions resolve to the global sts.amazonaws.com
+// endpoint, which must be signed with a us-east-1 scope, while newer regions
+// and non-default partitions (China, GovCloud) resolve regionally. The
+// signing region therefore comes from the resolved endpoint's auth
+// properties, falling back to the requested region when the endpoint does
+// not override it (regional endpoints and the AWS_STS_ENDPOINT override).
+func ResolveSTSEndpoint(ctx context.Context, region string, useGlobalEndpoint bool) (smithy.Endpoint, string, error) {
+	endpoint, err := customEndpointResolver{}.ResolveEndpoint(ctx, sts.EndpointParameters{
+		Region:            aws.String(region),
+		UseGlobalEndpoint: aws.Bool(useGlobalEndpoint),
+	})
+	if err != nil {
+		return smithy.Endpoint{}, "", err
+	}
+	signingRegion := region
+	if options, ok := smithyauth.GetAuthOptions(&endpoint.Properties); ok {
+		for _, option := range options {
+			if option.SchemeID != smithyauth.SchemeIDSigV4 {
+				continue
+			}
+			if r, ok := smithyhttp.GetSigV4SigningRegion(&option.SignerProperties); ok {
+				signingRegion = r
+			}
+		}
+	}
+	return endpoint, signingRegion, nil
 }
 
 // mostly taken from:

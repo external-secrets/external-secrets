@@ -13111,6 +13111,33 @@ External Secrets meta/v1.ServiceAccountSelector
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.VaultIAMSTSEndpointPolicy">VaultIAMSTSEndpointPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.VaultIamAuth">VaultIamAuth</a>)
+</p>
+<p>
+<p>VaultIAMSTSEndpointPolicy defines which STS endpoint the IAM login request is signed against.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Legacy&#34;</p></td>
+<td><p>VaultIAMSTSEndpointPolicyLegacy signs the login request against the global
+sts.amazonaws.com endpoint (us-east-1 signature scope) for classic AWS regions;
+newer regions and non-default partitions always use their regional endpoint.</p>
+</td>
+</tr><tr><td><p>&#34;Regional&#34;</p></td>
+<td><p>VaultIAMSTSEndpointPolicyRegional signs the login request against the regional
+sts.<region>.amazonaws.com endpoint for the configured region.</p>
+</td>
+</tr></tbody>
+</table>
 <h3 id="external-secrets.io/v1.VaultIamAuth">VaultIamAuth
 </h3>
 <p>
@@ -13198,6 +13225,26 @@ string
 <td>
 <em>(Optional)</em>
 <p>X-Vault-AWS-IAM-Server-ID is an additional header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: <a href="https://developer.hashicorp.com/vault/docs/auth/aws">https://developer.hashicorp.com/vault/docs/auth/aws</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>stsEndpointPolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.VaultIAMSTSEndpointPolicy">
+VaultIAMSTSEndpointPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>STSEndpointPolicy controls which STS endpoint the Vault login request is signed against.
+Legacy (default) signs against the global sts.amazonaws.com endpoint (us-east-1
+signature scope) for classic AWS regions - matching Vault&rsquo;s default AWS auth mount
+configuration - while newer regions and non-default partitions (China, GovCloud)
+always sign regionally. Regional signs against sts.<region>.amazonaws.com and
+requires the Vault AWS auth mount to be configured with
+use_sts_region_from_client=true (Vault &gt;= 1.15) or a matching sts_endpoint.</p>
 </td>
 </tr>
 <tr>

@@ -387,6 +387,35 @@ or `Kind=ClusterSecretStore` resource.
 set of AWS Programmatic access credentials stored in a `Kind=Secret` and referenced by the
 `secretRef` or by getting the authentication token from an [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) enabled service account
 
+**NOTE:** `spec.provider.vault.auth.iam.stsEndpointPolicy` controls which STS
+endpoint the login request is signed against:
+
+- `Legacy` (the default) signs against the global `sts.amazonaws.com` endpoint
+  (with a `us-east-1` signature scope) for classic AWS regions — the request
+  shape previous releases produced, accepted by Vault AWS auth mounts out of
+  the box. Newer regions (e.g. `ap-east-1`) and non-default partitions (China,
+  GovCloud) have no global endpoint and always sign against their regional
+  endpoint.
+- `Regional` signs against the partition-appropriate regional STS endpoint
+  (e.g. `sts.<region>.amazonaws.com`) derived from
+  `spec.provider.vault.auth.iam.region`, matching the behavior of modern Vault
+  clients. This keeps login validation traffic in-region and removes the
+  dependency on the global (us-east-1-backed) endpoint, but requires the Vault
+  AWS auth mount to be configured with
+  [`use_sts_region_from_client=true`](https://developer.hashicorp.com/vault/api-docs/auth/aws#use_sts_region_from_client)
+  (Vault >= 1.15) or a matching
+  [`sts_endpoint`](https://developer.hashicorp.com/vault/api-docs/auth/aws#sts_endpoint).
+
+If the `AWS_STS_ENDPOINT` environment variable is set on the controller, it
+takes precedence over either policy and is used for both credential acquisition
+and the signed login request — the Vault mount then needs a matching
+`sts_endpoint`, and the endpoint's region must match
+`spec.provider.vault.auth.iam.region` because the request signature is scoped to
+that region. The value must be an absolute URL with a scheme and host (e.g.
+`https://sts.us-east-1.amazonaws.com`); a bare hostname, a query string, or a
+fragment is rejected at login time (a path is allowed, e.g. for STS behind a
+proxy prefix).
+
 #### TLS certificates authentication
 
 [TLS certificates auth method](https://developer.hashicorp.com/vault/docs/auth/cert) allows authentication using SSL/TLS client certificates which are either signed by a CA or self-signed. SSL/TLS client certificates are defined as having an ExtKeyUsage extension with the usage set to either ClientAuth or Any.
