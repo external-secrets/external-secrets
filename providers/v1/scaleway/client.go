@@ -29,6 +29,7 @@ import (
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1beta1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -204,6 +205,13 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		}
 
 		secretID = secret.ID
+	}
+
+	if property := data.GetProperty(); property != "" {
+		value, err = setJSONProperty(existingValue, property, value)
+		if err != nil {
+			return err
+		}
 	}
 
 	if existingValue != nil && bytes.Equal(existingValue, value) {
@@ -490,14 +498,34 @@ func jsonToSecretData(value json.RawMessage) []byte {
 	return []byte(strings.TrimSpace(string(value)))
 }
 
-func extractJSONProperty(secretData []byte, property string) ([]byte, error) {
-	result := gjson.Get(string(secretData), property)
-
-	if !result.Exists() && strings.Contains(property, ".") {
-		// fall back to a literal dotted key (e.g. "tls.crt"), the shape
-		// produced when pushing a property containing dots
-		result = gjson.Get(string(secretData), strings.ReplaceAll(property, ".", "\\."))
+// jsonPropertyPath returns the gjson/sjson path to use for property on doc:
+// the property itself when it has no dot or already resolves as a nested
+// path, the dot-escaped literal key otherwise. Literal keys are how pushed
+// Kubernetes keys like "tls.crt" are stored.
+func jsonPropertyPath(doc, property string) string {
+	if !strings.Contains(property, ".") || gjson.Get(doc, property).Exists() {
+		return property
 	}
+	return strings.ReplaceAll(property, ".", "\\.")
+}
+
+// setJSONProperty returns doc with property set to value as a JSON string.
+// A non-object doc (including none at all) is replaced by a fresh object:
+// PushSecret owns the remote value under updatePolicy Replace semantics.
+func setJSONProperty(existing []byte, property string, value []byte) ([]byte, error) {
+	doc := "{}"
+	if gjson.ValidBytes(existing) && gjson.ParseBytes(existing).IsObject() {
+		doc = string(existing)
+	}
+	merged, err := sjson.Set(doc, jsonPropertyPath(doc, property), string(value))
+	if err != nil {
+		return nil, fmt.Errorf("failed to set property %q: %w", property, err)
+	}
+	return []byte(merged), nil
+}
+
+func extractJSONProperty(secretData []byte, property string) ([]byte, error) {
+	result := gjson.Get(string(secretData), jsonPropertyPath(string(secretData), property))
 
 	if !result.Exists() {
 		return nil, esv1.NoSecretError{}
