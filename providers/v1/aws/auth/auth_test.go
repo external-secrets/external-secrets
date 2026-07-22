@@ -833,8 +833,8 @@ func TestNewGeneratorSession_DefaultCredentialChainFallback(t *testing.T) {
 
 func TestCredentialsProviderName(t *testing.T) {
 	const (
-		accessKeyID     = "AKIAEXAMPLESECRET123"
-		secretAccessKey = "abc123SUPERsecretKEYvalue456xyz789"
+		accessKeyID     = "test-access-key-id"
+		secretAccessKey = "test-secret-access-key"
 	)
 
 	t.Run("nil provider", func(t *testing.T) {
