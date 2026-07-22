@@ -347,26 +347,34 @@ func (c *client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemo
 		return false, err
 	}
 
-	listSecretReq := &smapi.ListSecretsRequest{
-		ProjectID: &c.projectID,
-		Page:      scw.Int32Ptr(1),
-		PageSize:  scw.Uint32Ptr(1),
-	}
-
 	var secretID string
+	var listSecretReq *smapi.ListSecretsRequest
 
 	switch scwRef.RefType {
 	case refTypeID:
+		if scwRef.Value == "" {
+			return false, errors.New("empty id in secret reference")
+		}
 		secretID = scwRef.Value
 	case refTypeName:
-		listSecretReq.Name = &scwRef.Value
+		listSecretReq = &smapi.ListSecretsRequest{
+			ProjectID: &c.projectID,
+			Page:      scw.Int32Ptr(1),
+			PageSize:  scw.Uint32Ptr(1),
+			Name:      &scwRef.Value,
+		}
 	case refTypePath:
 		name, path, ok := splitNameAndPath(scwRef.Value)
 		if !ok {
 			return false, errors.New("ref is not a path")
 		}
-		listSecretReq.Name = &name
-		listSecretReq.Path = &path
+		listSecretReq = &smapi.ListSecretsRequest{
+			ProjectID: &c.projectID,
+			Page:      scw.Int32Ptr(1),
+			PageSize:  scw.Uint32Ptr(1),
+			Name:      &name,
+			Path:      &path,
+		}
 	default:
 		return false, errors.New("secrets can only be referenced by id, name or path")
 	}
