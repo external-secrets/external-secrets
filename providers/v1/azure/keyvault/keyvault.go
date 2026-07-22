@@ -648,6 +648,7 @@ func isLegacySoftDeletedSecretError(err error) bool {
 
 func (a *Azure) recoverLegacySecret(ctx context.Context, secretName string) error {
 	_, err := a.baseClient.RecoverDeletedSecret(ctx, *a.provider.VaultURL, secretName)
+	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVRecoverSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not recover soft-deleted secret %v: %w", secretName, err)
 	}
@@ -656,7 +657,7 @@ func (a *Azure) recoverLegacySecret(ctx context.Context, secretName string) erro
 		secret, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
 		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
 		if err != nil {
-			var detailedErr *autorest.DetailedError
+			var detailedErr autorest.DetailedError
 			if errors.As(err, &detailedErr) && detailedErr.StatusCode == 404 {
 				return false, nil
 			}

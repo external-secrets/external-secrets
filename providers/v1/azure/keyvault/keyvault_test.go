@@ -81,12 +81,17 @@ type secretManagerTestCase struct {
 
 type softDeletedSecretClient struct {
 	SecretClient
-	recovered bool
-	setCalls  int
+	recovered        bool
+	recoveryGetCalls int
+	setCalls         int
 }
 
 func (c *softDeletedSecretClient) GetSecret(_ context.Context, _, _, _ string) (keyvault.SecretBundle, error) {
 	if c.recovered {
+		c.recoveryGetCalls++
+		if c.recoveryGetCalls == 1 {
+			return keyvault.SecretBundle{}, autorest.DetailedError{StatusCode: 404, Method: "GET", Message: notFoundMessage}
+		}
 		return keyvault.SecretBundle{Tags: map[string]*string{managedBy: new(managerLabel)}}, nil
 	}
 	return keyvault.SecretBundle{}, autorest.DetailedError{StatusCode: 404, Method: "GET", Message: notFoundMessage}
@@ -131,6 +136,22 @@ func TestSetKeyVaultSecretRecoversSoftDeletedSecret(t *testing.T) {
 	}
 	if client.setCalls != 2 {
 		t.Fatalf("SetSecret() calls = %d, want 2", client.setCalls)
+	}
+	if client.recoveryGetCalls != 2 {
+		t.Fatalf("GetSecret() calls after recovery = %d, want 2", client.recoveryGetCalls)
+	}
+}
+
+func TestLegacyDoesNotRecoverUnrelatedConflict(t *testing.T) {
+	err := autorest.DetailedError{
+		StatusCode: 409,
+		Original: &azure.RequestError{
+			DetailedError: autorest.DetailedError{StatusCode: 409},
+			ServiceError:  &azure.ServiceError{Code: "Conflict"},
+		},
+	}
+	if isLegacySoftDeletedSecretError(err) {
+		t.Fatal("isLegacySoftDeletedSecretError() = true for unrelated conflict")
 	}
 }
 

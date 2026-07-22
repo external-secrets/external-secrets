@@ -167,6 +167,7 @@ func isNewSDKSoftDeletedSecretError(err error) bool {
 
 func (a *Azure) recoverSecretWithNewSDK(ctx context.Context, secretName string) error {
 	_, err := a.secretsClient.RecoverDeletedSecret(ctx, secretName, nil)
+	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVRecoverSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not recover soft-deleted secret %v: %w", secretName, parseNewSDKError(err))
 	}
