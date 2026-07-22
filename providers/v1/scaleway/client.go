@@ -272,6 +272,10 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 		return nil
 	}
 
+	if property := remoteRef.GetProperty(); property != "" {
+		return c.deleteSecretProperty(ctx, listSecrets.Secrets[0].ID, property)
+	}
+
 	request := smapi.DeleteSecretRequest{
 		SecretID: listSecrets.Secrets[0].ID,
 	}
@@ -280,6 +284,59 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+// deleteSecretProperty removes property from the secret's JSON object value.
+// Versions are immutable, so the removal is a new version (previous one
+// disabled); the whole secret is deleted once the last property is removed.
+// A missing version, a non-object value, or an absent property is a no-op.
+func (c *client) deleteSecretProperty(ctx context.Context, secretID, property string) error {
+	secretVersion, err := c.api.GetSecretVersion(&smapi.GetSecretVersionRequest{
+		SecretID: secretID,
+		Revision: "latest",
+	}, scw.WithContext(ctx))
+	if err != nil {
+		var errNotFound *scw.ResourceNotFoundError
+		if errors.As(err, &errNotFound) {
+			return nil
+		}
+		return err
+	}
+
+	existing, err := c.accessSpecificSecretVersion(ctx, secretID, secretVersion.Revision)
+	if err != nil {
+		return err
+	}
+
+	doc := string(existing)
+	if !gjson.Valid(doc) || !gjson.Parse(doc).IsObject() {
+		return nil
+	}
+	path := jsonPropertyPath(doc, property)
+	if !gjson.Get(doc, path).Exists() {
+		return nil
+	}
+	updated, err := sjson.Delete(doc, path)
+	if err != nil {
+		return fmt.Errorf("failed to delete property %q: %w", property, err)
+	}
+
+	if len(gjson.Parse(updated).Map()) == 0 {
+		return c.api.DeleteSecret(&smapi.DeleteSecretRequest{SecretID: secretID}, scw.WithContext(ctx))
+	}
+
+	createSecretVersionResponse, err := c.api.CreateSecretVersion(&smapi.CreateSecretVersionRequest{
+		SecretID:        secretID,
+		Data:            []byte(updated),
+		DisablePrevious: scw.BoolPtr(true),
+	}, scw.WithContext(ctx))
+	if err != nil {
+		return err
+	}
+
+	c.cache.Put(secretID, createSecretVersionResponse.Revision, []byte(updated))
 
 	return nil
 }
