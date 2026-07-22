@@ -489,9 +489,26 @@ func (r *Reconciler) deleteOutdatedExternalSecrets(ctx context.Context, namespac
 	failedNamespaces := map[string]error{}
 	// Loop through existing namespaces first to make sure they still have our labels
 	for _, namespace := range getRemovedNamespaces(namespaces, provisionedNamespaces) {
-		err := r.deleteExternalSecret(ctx, esName, cesName, namespace)
+		var ns v1.Namespace
+		err := r.Get(ctx, types.NamespacedName{Name: namespace}, &ns)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			r.Log.Error(err, "unable to get namespace for finalizer cleanup")
+			failedNamespaces[namespace] = err
+			continue
+		}
+
+		err = r.deleteExternalSecret(ctx, esName, cesName, namespace)
 		if err != nil {
 			r.Log.Error(err, "unable to delete external secret")
+			failedNamespaces[namespace] = err
+			continue
+		}
+
+		if err := r.removeNamespaceFinalizer(ctx, r.Log, &ns, cesName); err != nil {
+			r.Log.Error(err, "unable to remove namespace finalizer")
 			failedNamespaces[namespace] = err
 		}
 	}
