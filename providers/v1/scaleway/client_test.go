@@ -454,7 +454,7 @@ func TestPushSecret(t *testing.T) {
 		assert.JSONEq(t, `{"bundle":"{\"user\":\"alice\"}"}`, string(db.secret(secretName).versions[0].data))
 	})
 
-	t.Run("property push replaces a raw non-object value", func(t *testing.T) {
+	t.Run("property push onto a raw non-object value is refused", func(t *testing.T) {
 		ctx := context.Background()
 		c := newTestClient()
 		secretName := "property-over-raw"
@@ -462,9 +462,48 @@ func TestPushSecret(t *testing.T) {
 
 		pushErr := c.PushSecret(ctx, secret([]byte("alice")), pushSecretDataWithProperty("name:"+secretName, "username"))
 
-		assert.NoError(t, pushErr)
+		assert.ErrorContains(t, pushErr, "not a JSON object")
 		fs := db.secret(secretName)
-		assert.JSONEq(t, `{"username":"alice"}`, string(fs.versions[len(fs.versions)-1].data))
+		assert.Len(t, fs.versions, 1, "no version must be created")
+		assert.Equal(t, []byte("raw bytes"), fs.versions[0].data, "remote value must be untouched")
+	})
+
+	t.Run("property push with a binary value is refused", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "property-binary"
+
+		pushErr := c.PushSecret(ctx, secret([]byte{0xff, 0xfe, 0x00, 0x01}), pushSecretDataWithProperty("name:"+secretName, "keystore"))
+
+		assert.ErrorContains(t, pushErr, "not valid UTF-8")
+		assert.Nil(t, db.secret(secretName), "no secret must be created")
+	})
+
+	t.Run("whole secret push with a binary value is refused", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "whole-secret-binary"
+		wholeSecret := &corev1.Secret{Data: map[string][]byte{
+			"ok":       []byte("text"),
+			"keystore": {0xff, 0xfe, 0x00, 0x01},
+		}}
+
+		pushErr := c.PushSecret(ctx, wholeSecret, testingfake.PushSecretData{RemoteKey: "name:" + secretName})
+
+		assert.ErrorContains(t, pushErr, "not valid UTF-8")
+		assert.Nil(t, db.secret(secretName), "no secret must be created")
+	})
+
+	t.Run("raw push without property accepts binary values", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "raw-binary-ok"
+		binary := []byte{0xff, 0xfe, 0x00, 0x01}
+
+		pushErr := c.PushSecret(ctx, secret(binary), pushSecretData("name:"+secretName))
+
+		assert.NoError(t, pushErr)
+		assert.Equal(t, binary, db.secret(secretName).versions[0].data)
 	})
 
 	t.Run("property push without change does not create a version", func(t *testing.T) {
