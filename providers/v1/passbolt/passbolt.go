@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
+	"strings"
 
 	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
@@ -40,6 +41,8 @@ import (
 )
 
 const (
+	customFieldPrefix = "custom_fields."
+
 	errPassboltStoreMissingProvider                = "missing: spec.provider.passbolt"
 	errPassboltStoreMissingAuth                    = "missing: spec.provider.passbolt.auth"
 	errPassboltStoreMissingAuthPassword            = "missing: spec.provider.passbolt.auth.passwordSecretRef"
@@ -47,7 +50,8 @@ const (
 	errPassboltStoreMissingHost                    = "missing: spec.provider.passbolt.host"
 	errPassboltExternalSecretMissingFindNameRegExp = "missing: find.name.regexp"
 	errPassboltStoreHostSchemeNotHTTPS             = "host Url has to be https scheme"
-	errPassboltSecretPropertyInvalid               = "property must be one of name, username, uri, password or description"
+	errPassboltSecretPropertyInvalid               = "property must be one of name, username, uri, password, description, or " + customFieldPrefix + "<name>"
+	errPassboltCustomFieldNotFound                 = "custom field not found"
 	errPassboltCAInvalid                           = "failed to parse CA certificate for Passbolt provider"
 	errPassboltUnexpectedTransport                 = "unexpected default http transport type"
 	errNotImplemented                              = "not implemented"
@@ -253,9 +257,17 @@ type Secret struct {
 	Password    string `json:"password"`
 	URI         string `json:"uri"`
 	Description string `json:"description"`
+	// CustomFields holds any custom fields defined on the resource, keyed by
+	// the field's metadata_key (display name). Fields whose name is also
+	// encrypted (secret_key) cannot be referenced by name and are omitted.
+	CustomFields map[string]string `json:"custom_fields,omitempty"`
 }
 
 // GetProp retrieves a specific property from the Passbolt secret.
+//
+// Supported properties: name, username, uri, password, description.
+// Custom fields are accessed via the "custom_fields.<name>" prefix, where
+// <name> is the field's metadata_key (display name) as configured in Passbolt.
 func (ps Secret) GetProp(key string) ([]byte, error) {
 	switch key {
 	case "name":
@@ -269,22 +281,139 @@ func (ps Secret) GetProp(key string) ([]byte, error) {
 	case "description":
 		return []byte(ps.Description), nil
 	default:
+		if fieldName, ok := strings.CutPrefix(key, customFieldPrefix); ok {
+			val, exists := ps.CustomFields[fieldName]
+			if !exists {
+				return nil, fmt.Errorf("%s: %s", errPassboltCustomFieldNotFound, fieldName)
+			}
+			return []byte(val), nil
+		}
 		return nil, errors.New(errPassboltSecretPropertyInvalid)
 	}
 }
 
 func (provider *ProviderPassbolt) getPassboltSecret(ctx context.Context, id string) (*Secret, error) {
-	_, name, username, uri, password, description, err := helper.GetResource(ctx, provider.client, id)
+	resource, err := provider.client.GetResource(ctx, id)
+	if err != nil {
+		if isPassboltNotFound(err) {
+			return nil, esv1.NoSecretErr
+		}
+		return nil, err
+	}
+
+	rType, err := provider.client.GetResourceType(ctx, resource.ResourceTypeID)
 	if err != nil {
 		return nil, err
 	}
+
+	secretData, err := provider.client.GetSecret(ctx, resource.ID)
+	if err != nil {
+		if isPassboltNotFound(err) {
+			return nil, esv1.NoSecretErr
+		}
+		return nil, err
+	}
+
+	_, metaFields, secretFields, err := helper.GetResourceFieldMaps(provider.client, *resource, *secretData, *rType, true)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Secret{
-		Name:        name,
-		Username:    username,
-		URI:         uri,
-		Password:    password,
-		Description: description,
+		Name:         helper.GetStringField(metaFields, "name"),
+		Username:     helper.GetStringField(metaFields, "username"),
+		URI:          helper.GetStringField(metaFields, "uri"),
+		Password:     helper.GetStringField(secretFields, "password"),
+		Description:  helper.GetStringField(metaFields, "description"),
+		CustomFields: buildCustomFields(metaFields, secretFields),
 	}, nil
+}
+
+// buildCustomFields extracts custom fields from the decrypted metadata and secret
+// field maps returned by helper.GetResourceFieldMaps. It returns a map of field
+// name (metadata_key) to field value (secret_value for encrypted values, or
+// metadata_value for non-secret custom fields).
+//
+// Fields whose name is also encrypted (secret_key) are silently skipped because
+// they cannot be referenced by a stable, user-visible name.
+//
+// Returns nil when the resource has no custom fields.
+func buildCustomFields(metaFields, secretFields map[string]any) map[string]string {
+	metaCF, ok := metaFields["custom_fields"].([]any)
+	if !ok || len(metaCF) == 0 {
+		return nil
+	}
+
+	secretValByID := indexSecretValues(secretFields, len(metaCF))
+
+	result := make(map[string]string, len(metaCF))
+	for _, item := range metaCF {
+		if name, val, ok := resolveCustomField(item, secretValByID); ok {
+			result[name] = val
+		}
+	}
+
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+// indexSecretValues builds a UUID→secret_value index from the secret-side
+// custom_fields array for O(1) lookup during metadata processing.
+func indexSecretValues(secretFields map[string]any, sizeHint int) map[string]string {
+	idx := make(map[string]string, sizeHint)
+	if secretFields == nil {
+		return idx
+	}
+	secretCF, ok := secretFields["custom_fields"].([]any)
+	if !ok {
+		return idx
+	}
+	for _, item := range secretCF {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		id, _ := m["id"].(string)
+		if id == "" {
+			continue
+		}
+		val, _ := m["secret_value"].(string)
+		idx[id] = val
+	}
+	return idx
+}
+
+// resolveCustomField extracts the name and value from a metadata-side custom
+// field entry. Returns (name, value, true) on success, or ("", "", false) when
+// the entry should be skipped (missing id, or secret_key field whose name is
+// also encrypted).
+func resolveCustomField(item any, secretValByID map[string]string) (name, value string, ok bool) {
+	m, ok := item.(map[string]any)
+	if !ok {
+		return "", "", false
+	}
+
+	fieldName, _ := m["metadata_key"].(string)
+	if fieldName == "" {
+		// Field name is also encrypted (secret_key); cannot reference by name.
+		return "", "", false
+	}
+
+	id, _ := m["id"].(string)
+	if id == "" {
+		return "", "", false
+	}
+
+	// Secret-side value takes precedence; fall back to metadata_value for
+	// non-secret custom fields where the value is stored in cleartext.
+	val, hasSecretEntry := secretValByID[id]
+	if !hasSecretEntry {
+		val, _ = m["metadata_value"].(string)
+	}
+
+	return fieldName, val, true
 }
 
 func assureLoggedIn(ctx context.Context, client *api.Client) error {
@@ -292,6 +421,12 @@ func assureLoggedIn(ctx context.Context, client *api.Client) error {
 		return nil
 	}
 	return client.Login(ctx)
+}
+
+// isPassboltNotFound reports whether err is a Passbolt API 404 (Not Found) response.
+func isPassboltNotFound(err error) bool {
+	var apiErr *api.APIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound
 }
 
 // buildHTTPClient returns an *http.Client configured with the provider's CA bundle
