@@ -142,6 +142,7 @@ const (
 
 	ProviderKeeperSecurity                       = "KeeperSecurity"
 	CallKeeperSecurityGetSecrets                 = "GetSecrets"
+	CallKeeperSecurityGetFolders                 = "GetFolders"
 	CallKeeperSecurityGetSecretsByTitle          = "GetSecretsByTitle"
 	CallKeeperSecurityCreateSecretWithRecordData = "CreateSecretWithRecordData"
 	CallKeeperSecuritySave                       = "Save"
