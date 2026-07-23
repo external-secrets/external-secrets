@@ -10,7 +10,7 @@ ENV CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH}
 WORKDIR /app
 COPY . /app/
 RUN go mod download
-RUN go build -o external-secrets main.go
+RUN go build -tags all_providers -o external-secrets main.go
 
 FROM gcr.io/distroless/static@sha256:d5f030ca7c5793784e9ea4178a116da360250411d13921a5af27c6cb5a5949bf AS app
 COPY --from=builder /app/external-secrets /bin/external-secrets
