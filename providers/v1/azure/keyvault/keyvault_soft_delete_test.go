@@ -86,14 +86,22 @@ func TestSetKeyVaultSecretWithNewSDKRecoversSoftDeletedSecret(t *testing.T) {
 	contentType := "text/plain"
 
 	err := azureClient.setKeyVaultSecretWithNewSDK(context.Background(), secretName, []byte(secretString), &contentType, nil)
-	if err != nil {
-		t.Fatalf("setKeyVaultSecretWithNewSDK() error = %v", err)
+	if err == nil {
+		t.Fatal("setKeyVaultSecretWithNewSDK() error = nil, want retryable recovery error")
 	}
 	if !client.recovered {
 		t.Fatal("setKeyVaultSecretWithNewSDK() did not recover the soft-deleted secret")
 	}
+	if client.setCalls != 1 {
+		t.Fatalf("SetSecret() calls after recovery = %d, want 1", client.setCalls)
+	}
+
+	err = azureClient.setKeyVaultSecretWithNewSDK(context.Background(), secretName, []byte(secretString), &contentType, nil)
+	if err != nil {
+		t.Fatalf("setKeyVaultSecretWithNewSDK() on next reconciliation error = %v", err)
+	}
 	if client.setCalls != 2 {
-		t.Fatalf("SetSecret() calls = %d, want 2", client.setCalls)
+		t.Fatalf("SetSecret() calls after next reconciliation = %d, want 2", client.setCalls)
 	}
 	if client.lastSetParams.ContentType == nil || *client.lastSetParams.ContentType != contentType {
 		t.Fatalf("SetSecret() content type = %v, want %q", client.lastSetParams.ContentType, contentType)

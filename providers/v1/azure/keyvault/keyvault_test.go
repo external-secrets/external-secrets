@@ -81,17 +81,12 @@ type secretManagerTestCase struct {
 
 type softDeletedSecretClient struct {
 	SecretClient
-	recovered        bool
-	recoveryGetCalls int
-	setCalls         int
+	recovered bool
+	setCalls  int
 }
 
 func (c *softDeletedSecretClient) GetSecret(_ context.Context, _, _, _ string) (keyvault.SecretBundle, error) {
 	if c.recovered {
-		c.recoveryGetCalls++
-		if c.recoveryGetCalls == 1 {
-			return keyvault.SecretBundle{}, autorest.DetailedError{StatusCode: 404, Method: "GET", Message: notFoundMessage}
-		}
 		return keyvault.SecretBundle{Tags: map[string]*string{managedBy: new(managerLabel)}}, nil
 	}
 	return keyvault.SecretBundle{}, autorest.DetailedError{StatusCode: 404, Method: "GET", Message: notFoundMessage}
@@ -128,17 +123,22 @@ func TestSetKeyVaultSecretRecoversSoftDeletedSecret(t *testing.T) {
 	}
 
 	err := azureClient.setKeyVaultSecret(context.Background(), secretName, []byte(secretString), nil, nil, nil)
-	if err != nil {
-		t.Fatalf("setKeyVaultSecret() error = %v", err)
+	if err == nil {
+		t.Fatal("setKeyVaultSecret() error = nil, want retryable recovery error")
 	}
 	if !client.recovered {
 		t.Fatal("setKeyVaultSecret() did not recover the soft-deleted secret")
 	}
-	if client.setCalls != 2 {
-		t.Fatalf("SetSecret() calls = %d, want 2", client.setCalls)
+	if client.setCalls != 1 {
+		t.Fatalf("SetSecret() calls after recovery = %d, want 1", client.setCalls)
 	}
-	if client.recoveryGetCalls != 2 {
-		t.Fatalf("GetSecret() calls after recovery = %d, want 2", client.recoveryGetCalls)
+
+	err = azureClient.setKeyVaultSecret(context.Background(), secretName, []byte(secretString), nil, nil, nil)
+	if err != nil {
+		t.Fatalf("setKeyVaultSecret() on next reconciliation error = %v", err)
+	}
+	if client.setCalls != 2 {
+		t.Fatalf("SetSecret() calls after next reconciliation = %d, want 2", client.setCalls)
 	}
 }
 

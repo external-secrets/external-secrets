@@ -37,7 +37,6 @@ import (
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/constants"
@@ -125,11 +124,12 @@ func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName stri
 	_, err = a.secretsClient.SetSecret(ctx, secretName, params, nil)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
 	if isNewSDKSoftDeletedSecretError(err) {
-		if err := a.recoverSecretWithNewSDK(ctx, secretName); err != nil {
-			return err
+		_, err = a.secretsClient.RecoverDeletedSecret(ctx, secretName, nil)
+		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVRecoverSecret, err)
+		if err != nil {
+			return fmt.Errorf("could not recover soft-deleted secret %v: %w", secretName, parseNewSDKError(err))
 		}
-		_, err = a.secretsClient.SetSecret(ctx, secretName, params, nil)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
+		return fmt.Errorf("recovered soft-deleted secret %v; waiting for the next reconciliation to update it", secretName)
 	}
 	if err != nil {
 		return fmt.Errorf("could not set secret %v: %w", secretName, parseNewSDKError(err))
@@ -163,33 +163,6 @@ func isNewSDKSoftDeletedSecretError(err error) bool {
 		return false
 	}
 	return envelope.Error.InnerError.Code == softDeletedSecretErrorCode
-}
-
-func (a *Azure) recoverSecretWithNewSDK(ctx context.Context, secretName string) error {
-	_, err := a.secretsClient.RecoverDeletedSecret(ctx, secretName, nil)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVRecoverSecret, err)
-	if err != nil {
-		return fmt.Errorf("could not recover soft-deleted secret %v: %w", secretName, parseNewSDKError(err))
-	}
-
-	err = wait.PollUntilContextTimeout(ctx, secretRecoveryPollInterval, secretRecoveryTimeout, true, func(ctx context.Context) (bool, error) {
-		secret, err := a.secretsClient.GetSecret(ctx, secretName, "", nil)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
-		if err != nil {
-			if isNotFoundErr(err) {
-				return false, nil
-			}
-			return false, parseNewSDKError(err)
-		}
-		if !isManagedByESONewSDK(secret.Tags) {
-			return false, fmt.Errorf("cannot update recovered secret %v: not managed by external-secrets", secretName)
-		}
-		return true, nil
-	})
-	if err != nil {
-		return fmt.Errorf("waiting for recovered secret %v to become available: %w", secretName, err)
-	}
-	return nil
 }
 
 func (a *Azure) setKeyVaultCertificateWithNewSDK(ctx context.Context, secretName string, value []byte, tags map[string]string) error {

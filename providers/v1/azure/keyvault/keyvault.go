@@ -53,7 +53,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	kcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -119,8 +118,6 @@ const (
 	errReadTokenFile          = "unable to read token file %s: %w"
 
 	softDeletedSecretErrorCode = "ObjectIsDeletedButRecoverable"
-	secretRecoveryPollInterval = 2 * time.Second
-	secretRecoveryTimeout      = 2 * time.Minute
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -622,11 +619,12 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 	_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
 	if isLegacySoftDeletedSecretError(err) {
-		if err := a.recoverLegacySecret(ctx, secretName); err != nil {
-			return err
+		_, err = a.baseClient.RecoverDeletedSecret(ctx, *a.provider.VaultURL, secretName)
+		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVRecoverSecret, err)
+		if err != nil {
+			return fmt.Errorf("could not recover soft-deleted secret %v: %w", secretName, err)
 		}
-		_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
+		return fmt.Errorf("recovered soft-deleted secret %v; waiting for the next reconciliation to update it", secretName)
 	}
 	if err != nil {
 		return fmt.Errorf("could not set secret %v: %w", secretName, err)
@@ -644,34 +642,6 @@ func isLegacySoftDeletedSecretError(err error) bool {
 	}
 	innerCode, ok := requestErr.ServiceError.InnerError["code"].(string)
 	return ok && innerCode == softDeletedSecretErrorCode
-}
-
-func (a *Azure) recoverLegacySecret(ctx context.Context, secretName string) error {
-	_, err := a.baseClient.RecoverDeletedSecret(ctx, *a.provider.VaultURL, secretName)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVRecoverSecret, err)
-	if err != nil {
-		return fmt.Errorf("could not recover soft-deleted secret %v: %w", secretName, err)
-	}
-
-	err = wait.PollUntilContextTimeout(ctx, secretRecoveryPollInterval, secretRecoveryTimeout, true, func(ctx context.Context) (bool, error) {
-		secret, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
-		if err != nil {
-			var detailedErr autorest.DetailedError
-			if errors.As(err, &detailedErr) && detailedErr.StatusCode == 404 {
-				return false, nil
-			}
-			return false, err
-		}
-		if _, err := canCreate(secret.Tags, nil); err != nil {
-			return false, fmt.Errorf("cannot update recovered secret %v: %w", secretName, err)
-		}
-		return true, nil
-	})
-	if err != nil {
-		return fmt.Errorf("waiting for recovered secret %v to become available: %w", secretName, err)
-	}
-	return nil
 }
 
 func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, value []byte, tags map[string]string) error {
