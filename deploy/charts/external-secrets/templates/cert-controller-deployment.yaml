@@ -197,9 +197,9 @@ spec:
       priorityClassName: {{ .Values.certController.priorityClassName }}
       {{- end }}
       {{- if .Values.certController.schedulerName }}
-      schedulerName: {{ .Values.certController.schedulerName }}
+      schedulerName: {{ .Values.certController.schedulerName | quote }}
       {{- end }}
       {{- if .Values.certController.runtimeClassName }}
-      runtimeClassName: {{ .Values.certController.runtimeClassName }}
+      runtimeClassName: {{ .Values.certController.runtimeClassName | quote }}
       {{- end }}
 {{- end }}

@@ -239,10 +239,10 @@ spec:
       priorityClassName: {{ .Values.priorityClassName }}
       {{- end }}
       {{- if .Values.schedulerName }}
-      schedulerName: {{ .Values.schedulerName }}
+      schedulerName: {{ .Values.schedulerName | quote }}
       {{- end }}
       {{- if .Values.runtimeClassName }}
-      runtimeClassName: {{ .Values.runtimeClassName }}
+      runtimeClassName: {{ .Values.runtimeClassName | quote }}
       {{- end }}
       {{- if .Values.podSpecExtra }}
       {{- toYaml .Values.podSpecExtra | nindent 6 }}

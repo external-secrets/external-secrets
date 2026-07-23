@@ -198,9 +198,9 @@ spec:
       priorityClassName: {{ .Values.webhook.priorityClassName }}
       {{- end }}
       {{- if .Values.webhook.schedulerName }}
-      schedulerName: {{ .Values.webhook.schedulerName }}
+      schedulerName: {{ .Values.webhook.schedulerName | quote }}
       {{- end }}
       {{- if .Values.webhook.runtimeClassName }}
-      runtimeClassName: {{ .Values.webhook.runtimeClassName }}
+      runtimeClassName: {{ .Values.webhook.runtimeClassName | quote }}
       {{- end }}
 {{- end }}
