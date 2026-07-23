@@ -82,3 +82,6 @@ tests/crds/*.yml
 .env.test.local
 .env.production.local
 .envrc
+
+pkg/perf/**/perf-results-*.json
+perf-*.log
