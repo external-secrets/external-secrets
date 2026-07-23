@@ -156,6 +156,7 @@ spec:
                                     description: Specify the Kind of the generator resource
                                     enum:
                                       - ACRAccessToken
+                                      - AzureAccessToken
                                       - BeyondtrustWorkloadCredentialsDynamicSecret
                                       - ClusterGenerator
                                       - CloudsmithAccessToken
@@ -405,6 +406,7 @@ spec:
                                     description: Specify the Kind of the generator resource
                                     enum:
                                       - ACRAccessToken
+                                      - AzureAccessToken
                                       - BeyondtrustWorkloadCredentialsDynamicSecret
                                       - ClusterGenerator
                                       - CloudsmithAccessToken
@@ -2034,6 +2036,7 @@ spec:
                               description: Specify the Kind of the generator resource
                               enum:
                                 - ACRAccessToken
+                                - AzureAccessToken
                                 - BeyondtrustWorkloadCredentialsDynamicSecret
                                 - ClusterGenerator
                                 - CloudsmithAccessToken
@@ -13615,6 +13618,7 @@ spec:
                                 description: Specify the Kind of the generator resource
                                 enum:
                                   - ACRAccessToken
+                                  - AzureAccessToken
                                   - BeyondtrustWorkloadCredentialsDynamicSecret
                                   - ClusterGenerator
                                   - CloudsmithAccessToken
@@ -13864,6 +13868,7 @@ spec:
                                 description: Specify the Kind of the generator resource
                                 enum:
                                   - ACRAccessToken
+                                  - AzureAccessToken
                                   - BeyondtrustWorkloadCredentialsDynamicSecret
                                   - ClusterGenerator
                                   - CloudsmithAccessToken
@@ -15206,6 +15211,7 @@ spec:
                           description: Specify the Kind of the generator resource
                           enum:
                             - ACRAccessToken
+                            - AzureAccessToken
                             - BeyondtrustWorkloadCredentialsDynamicSecret
                             - ClusterGenerator
                             - CloudsmithAccessToken
@@ -26885,6 +26891,282 @@ metadata:
     controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
+  name: azureaccesstokens.generators.external-secrets.io
+spec:
+  group: generators.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+      - external-secrets-generators
+    kind: AzureAccessToken
+    listKind: AzureAccessTokenList
+    plural: azureaccesstokens
+    singular: azureaccesstoken
+  scope: Namespaced
+  versions:
+    - name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: |-
+            AzureAccessToken generates a Microsoft Entra ID access token scoped to a configurable
+            resource. The token is returned under the "token" key and can be remapped (e.g. to
+            AZP_TOKEN for Azure DevOps) via the consuming ExternalSecret template.
+
+            See tracking issue: https://github.com/external-secrets/external-secrets/issues/5113
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: |-
+                AzureAccessTokenSpec defines how to generate a Microsoft Entra ID access token for a
+                given Entra resource.
+
+                All supported authentication methods are app-only (client-credentials) flows, so the
+                token is always requested with the "<resource>/.default" scope. The resource selects
+                what the token grants access to -- for example the Azure DevOps application id
+                (499b84ac-1321-427f-aa17-267ca6975798), Azure Resource Manager
+                (https://management.azure.com), or any other Entra resource id/URI.
+
+                The Azure DevOps use-case is tracked in
+                https://github.com/external-secrets/external-secrets/issues/5113
+              properties:
+                auth:
+                  description: Auth configures how ESO authenticates with Microsoft Entra ID.
+                  maxProperties: 1
+                  minProperties: 1
+                  properties:
+                    managedIdentity:
+                      description: ManagedIdentity uses Azure Managed Identity to authenticate with Microsoft Entra ID.
+                      properties:
+                        identityId:
+                          description: If multiple Managed Identities are assigned to the pod, you can select the one to be used.
+                          type: string
+                        identityType:
+                          description: |-
+                            IdentityType selects how IdentityID is interpreted: as the managed identity's
+                            ClientID, ObjectID or ResourceID. When empty, ESO infers ResourceID if IdentityID
+                            contains a "/" and ClientID otherwise; an ObjectID can only be selected explicitly.
+                          enum:
+                            - ClientID
+                            - ObjectID
+                            - ResourceID
+                          type: string
+                      type: object
+                      x-kubernetes-validations:
+                        - message: identityId is required when identityType is set
+                          rule: '!has(self.identityType) || (has(self.identityId) && size(self.identityId) > 0)'
+                    servicePrincipal:
+                      description: |-
+                        ServicePrincipal uses Azure Service Principal credentials (client secret or
+                        client certificate) to authenticate with Microsoft Entra ID.
+                      properties:
+                        secretRef:
+                          description: |-
+                            AzureServicePrincipalAuthSecretRef defines the secret references for Azure Service
+                            Principal authentication. Provide either a client secret or a client certificate.
+                          properties:
+                            clientCertificate:
+                              description: |-
+                                The PEM-encoded certificate (certificate and private key) of the service principal
+                                used for certificate based authentication. Mutually exclusive with ClientSecret.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                            clientId:
+                              description: The Azure clientId of the service principal used for authentication.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                            clientSecret:
+                              description: |-
+                                The Azure ClientSecret of the service principal used for authentication.
+                                Mutually exclusive with ClientCertificate.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - clientId
+                          type: object
+                          x-kubernetes-validations:
+                            - message: exactly one of clientSecret or clientCertificate must be set
+                              rule: has(self.clientSecret) != has(self.clientCertificate)
+                      required:
+                        - secretRef
+                      type: object
+                    workloadIdentity:
+                      description: WorkloadIdentity uses Azure Workload Identity to authenticate with Microsoft Entra ID.
+                      properties:
+                        serviceAccountRef:
+                          description: |-
+                            ServiceAccountRef specifies the service account
+                            that should be used when authenticating with WorkloadIdentity.
+                            The referenced service account must live in the same namespace as the generator;
+                            a namespace set on the reference is rejected.
+                          properties:
+                            audiences:
+                              description: |-
+                                Audience specifies the `aud` claim for the service account token
+                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                then this audiences will be appended to the list
+                              items:
+                                type: string
+                              type: array
+                            name:
+                              description: The name of the ServiceAccount resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                Namespace of the resource being referred to.
+                                Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                          required:
+                            - name
+                          type: object
+                      type: object
+                      x-kubernetes-validations:
+                        - message: 'serviceAccountRef.namespace is not supported: the service account must be in the same namespace as the generator'
+                          rule: '!has(self.serviceAccountRef) || !has(self.serviceAccountRef.__namespace__)'
+                  type: object
+                environmentType:
+                  allOf:
+                    - enum:
+                        - PublicCloud
+                        - USGovernmentCloud
+                        - ChinaCloud
+                        - GermanCloud
+                        - AzureStackCloud
+                    - enum:
+                        - PublicCloud
+                        - USGovernmentCloud
+                        - ChinaCloud
+                        - GermanCloud
+                  default: PublicCloud
+                  description: |-
+                    EnvironmentType specifies the Azure cloud environment endpoints to use for
+                    connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
+                    The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
+                    PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud.
+                    AzureStackCloud is intentionally not accepted: this generator cannot resolve its
+                    AAD authority host and would otherwise silently authenticate against the public cloud.
+                  type: string
+                resource:
+                  description: |-
+                    Resource is the Microsoft Entra resource id ("audience") that the issued access
+                    token targets. The token is requested with the "<resource>/.default" scope.
+                    Examples: "499b84ac-1321-427f-aa17-267ca6975798" (Azure DevOps),
+                    "https://management.azure.com" (Azure Resource Manager),
+                    "https://storage.azure.com" (Azure Storage).
+                  minLength: 1
+                  type: string
+                tenantId:
+                  description: |-
+                    TenantID configures the Azure Tenant to send requests to. Required for the
+                    ServicePrincipal auth type.
+                  type: string
+              required:
+                - auth
+                - resource
+              type: object
+              x-kubernetes-validations:
+                - message: tenantId is required when servicePrincipal auth is used
+                  rule: '!has(self.auth.servicePrincipal) || (has(self.tenantId) && size(self.tenantId) > 0)'
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  labels:
+    external-secrets.io/component: controller
   name: beyondtrustworkloadcredentialsdynamicsecrets.generators.external-secrets.io
 spec:
   group: generators.external-secrets.io
@@ -27387,6 +27669,229 @@ spec:
                         - auth
                         - registry
                       type: object
+                    azureAccessTokenSpec:
+                      description: |-
+                        AzureAccessTokenSpec defines how to generate a Microsoft Entra ID access token for a
+                        given Entra resource.
+
+                        All supported authentication methods are app-only (client-credentials) flows, so the
+                        token is always requested with the "<resource>/.default" scope. The resource selects
+                        what the token grants access to -- for example the Azure DevOps application id
+                        (499b84ac-1321-427f-aa17-267ca6975798), Azure Resource Manager
+                        (https://management.azure.com), or any other Entra resource id/URI.
+
+                        The Azure DevOps use-case is tracked in
+                        https://github.com/external-secrets/external-secrets/issues/5113
+                      properties:
+                        auth:
+                          description: Auth configures how ESO authenticates with Microsoft Entra ID.
+                          maxProperties: 1
+                          minProperties: 1
+                          properties:
+                            managedIdentity:
+                              description: ManagedIdentity uses Azure Managed Identity to authenticate with Microsoft Entra ID.
+                              properties:
+                                identityId:
+                                  description: If multiple Managed Identities are assigned to the pod, you can select the one to be used.
+                                  type: string
+                                identityType:
+                                  description: |-
+                                    IdentityType selects how IdentityID is interpreted: as the managed identity's
+                                    ClientID, ObjectID or ResourceID. When empty, ESO infers ResourceID if IdentityID
+                                    contains a "/" and ClientID otherwise; an ObjectID can only be selected explicitly.
+                                  enum:
+                                    - ClientID
+                                    - ObjectID
+                                    - ResourceID
+                                  type: string
+                              type: object
+                              x-kubernetes-validations:
+                                - message: identityId is required when identityType is set
+                                  rule: '!has(self.identityType) || (has(self.identityId) && size(self.identityId) > 0)'
+                            servicePrincipal:
+                              description: |-
+                                ServicePrincipal uses Azure Service Principal credentials (client secret or
+                                client certificate) to authenticate with Microsoft Entra ID.
+                              properties:
+                                secretRef:
+                                  description: |-
+                                    AzureServicePrincipalAuthSecretRef defines the secret references for Azure Service
+                                    Principal authentication. Provide either a client secret or a client certificate.
+                                  properties:
+                                    clientCertificate:
+                                      description: |-
+                                        The PEM-encoded certificate (certificate and private key) of the service principal
+                                        used for certificate based authentication. Mutually exclusive with ClientSecret.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                    clientId:
+                                      description: The Azure clientId of the service principal used for authentication.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                    clientSecret:
+                                      description: |-
+                                        The Azure ClientSecret of the service principal used for authentication.
+                                        Mutually exclusive with ClientCertificate.
+                                      properties:
+                                        key:
+                                          description: |-
+                                            A key in the referenced Secret.
+                                            Some instances of this field may be defaulted, in others it may be required.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[-._a-zA-Z0-9]+$
+                                          type: string
+                                        name:
+                                          description: The name of the Secret resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            The namespace of the Secret resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      type: object
+                                  required:
+                                    - clientId
+                                  type: object
+                                  x-kubernetes-validations:
+                                    - message: exactly one of clientSecret or clientCertificate must be set
+                                      rule: has(self.clientSecret) != has(self.clientCertificate)
+                              required:
+                                - secretRef
+                              type: object
+                            workloadIdentity:
+                              description: WorkloadIdentity uses Azure Workload Identity to authenticate with Microsoft Entra ID.
+                              properties:
+                                serviceAccountRef:
+                                  description: |-
+                                    ServiceAccountRef specifies the service account
+                                    that should be used when authenticating with WorkloadIdentity.
+                                    The referenced service account must live in the same namespace as the generator;
+                                    a namespace set on the reference is rejected.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
+                                        then this audiences will be appended to the list
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              type: object
+                              x-kubernetes-validations:
+                                - message: 'serviceAccountRef.namespace is not supported: the service account must be in the same namespace as the generator'
+                                  rule: '!has(self.serviceAccountRef) || !has(self.serviceAccountRef.__namespace__)'
+                          type: object
+                        environmentType:
+                          allOf:
+                            - enum:
+                                - PublicCloud
+                                - USGovernmentCloud
+                                - ChinaCloud
+                                - GermanCloud
+                                - AzureStackCloud
+                            - enum:
+                                - PublicCloud
+                                - USGovernmentCloud
+                                - ChinaCloud
+                                - GermanCloud
+                          default: PublicCloud
+                          description: |-
+                            EnvironmentType specifies the Azure cloud environment endpoints to use for
+                            connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
+                            The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
+                            PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud.
+                            AzureStackCloud is intentionally not accepted: this generator cannot resolve its
+                            AAD authority host and would otherwise silently authenticate against the public cloud.
+                          type: string
+                        resource:
+                          description: |-
+                            Resource is the Microsoft Entra resource id ("audience") that the issued access
+                            token targets. The token is requested with the "<resource>/.default" scope.
+                            Examples: "499b84ac-1321-427f-aa17-267ca6975798" (Azure DevOps),
+                            "https://management.azure.com" (Azure Resource Manager),
+                            "https://storage.azure.com" (Azure Storage).
+                          minLength: 1
+                          type: string
+                        tenantId:
+                          description: |-
+                            TenantID configures the Azure Tenant to send requests to. Required for the
+                            ServicePrincipal auth type.
+                          type: string
+                      required:
+                        - auth
+                        - resource
+                      type: object
+                      x-kubernetes-validations:
+                        - message: tenantId is required when servicePrincipal auth is used
+                          rule: '!has(self.auth.servicePrincipal) || (has(self.tenantId) && size(self.tenantId) > 0)'
                     beyondtrustWorkloadCredentialsDynamicSecretSpec:
                       description: |-
                         BeyondtrustWorkloadCredentialsDynamicSecretSpec defines the desired spec for BeyondtrustWorkloadCredentials dynamic generator.
@@ -29694,6 +30199,7 @@ spec:
                   description: Kind the kind of this generator.
                   enum:
                     - ACRAccessToken
+                    - AzureAccessToken
                     - BeyondtrustWorkloadCredentialsDynamicSecret
                     - CloudsmithAccessToken
                     - ECRAuthorizationToken
