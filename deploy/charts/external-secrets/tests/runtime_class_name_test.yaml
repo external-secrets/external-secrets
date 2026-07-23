@@ -1,0 +1,20 @@
+---
+suite: test runtimeClassName
+templates:
+  - cert-controller-deployment.yaml
+  - deployment.yaml
+  - webhook-deployment.yaml
+tests:
+  - it: should set runtimeClassName to set value if given
+    set:
+      runtimeClassName: my-runtime-class
+      webhook.runtimeClassName: my-runtime-class
+      certController.runtimeClassName: my-runtime-class
+    asserts:
+      - equal:
+          path: spec.template.spec.runtimeClassName
+          value: my-runtime-class
+  - it: should not set runtimeClassName by default
+    asserts:
+      - notExists:
+          path: spec.template.spec.runtimeClassName
