@@ -1789,6 +1789,64 @@ func TestDeleteSecret(t *testing.T) {
 			},
 			reason: "",
 		},
+		"Delete a secret with replicated regions attached successfully": {
+			args: args{
+				client: fakesm.Client{
+					RemoveRegionsFromReplicationFn: func(ctx context.Context, input *awssm.RemoveRegionsFromReplicationInput, opts ...func(*awssm.Options)) (*awssm.RemoveRegionsFromReplicationOutput, error) {
+						// Validate that there is a replication region and the it's the one being removed.
+						if len(input.RemoveReplicaRegions) > 0 && input.RemoveReplicaRegions[0] == "eu-north-1" {
+							return &awssm.RemoveRegionsFromReplicationOutput{}, nil
+						}
+						return nil, errors.New("invalid remove regions from replication input")
+					},
+				},
+				config: esv1.SecretsManager{
+					ForceDeleteWithoutRecovery: true,
+				},
+				getSecretOutput: &awssm.GetSecretValueOutput{},
+				describeSecretOutput: &awssm.DescribeSecretOutput{
+					Tags:              []types.Tag{secretTag},
+					ReplicationStatus: []types.ReplicationStatusType{{Region: aws.String("eu-north-1")}},
+				},
+				deleteSecretOutput: &awssm.DeleteSecretOutput{
+					DeletionDate: aws.Time(time.Now()),
+				},
+				getSecretErr:      nil,
+				describeSecretErr: nil,
+				deleteSecretErr:   nil,
+			},
+			want: want{
+				err: nil,
+			},
+			reason: "",
+		},
+		"Fails to delete a secret with replicated regions attached if replication removal fails": {
+			args: args{
+				client: fakesm.Client{
+					RemoveRegionsFromReplicationFn: func(ctx context.Context, input *awssm.RemoveRegionsFromReplicationInput, opts ...func(*awssm.Options)) (*awssm.RemoveRegionsFromReplicationOutput, error) {
+						return nil, &types.InternalServiceError{Message: aws.String("The secret is scheduled for deletion")}
+					},
+				},
+				config: esv1.SecretsManager{
+					ForceDeleteWithoutRecovery: true,
+				},
+				getSecretOutput: &awssm.GetSecretValueOutput{},
+				describeSecretOutput: &awssm.DescribeSecretOutput{
+					Tags:              []types.Tag{secretTag},
+					ReplicationStatus: []types.ReplicationStatusType{{Region: aws.String("eu-north-1")}},
+				},
+				deleteSecretOutput: &awssm.DeleteSecretOutput{
+					DeletionDate: aws.Time(time.Now()),
+				},
+				getSecretErr:      nil,
+				describeSecretErr: nil,
+				deleteSecretErr:   nil,
+			},
+			want: want{
+				err: errors.New("failed to remove regions from secret replication: InternalServiceError: The secret is scheduled for deletion"),
+			},
+			reason: "Secret deletion depends on removing secret replication first when existing",
+		},
 		"Invalid Recovery Window": {
 			args: args{
 
