@@ -1,0 +1,20 @@
+---
+suite: test schedulerName
+templates:
+  - cert-controller-deployment.yaml
+  - deployment.yaml
+  - webhook-deployment.yaml
+tests:
+  - it: should set schedulerName to set value if given
+    set:
+      schedulerName: my-scheduler
+      webhook.schedulerName: my-scheduler
+      certController.schedulerName: my-scheduler
+    asserts:
+      - equal:
+          path: spec.template.spec.schedulerName
+          value: my-scheduler
+  - it: should not set schedulerName by default
+    asserts:
+      - notExists:
+          path: spec.template.spec.schedulerName
