@@ -268,7 +268,7 @@ func (p *Provider) newACMClient(ctx context.Context, store esv1.GenericStore, na
 		return nil, err
 	}
 
-	p.acmClientCache.Add(store.GetObjectMeta().ResourceVersion, key, client)
+	p.acmClientCache.ContainsOrAdd(store.GetObjectMeta().ResourceVersion, key, client)
 
 	return client, nil
 }

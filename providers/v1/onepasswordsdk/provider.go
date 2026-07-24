@@ -125,7 +125,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		sc.cache = expirable.NewLRU[string, []byte](maxSize, nil, ttl)
 	}
 
-	p.clientCache.Add(store.GetObjectMeta().ResourceVersion, key, sc)
+	p.clientCache.ContainsOrAdd(store.GetObjectMeta().ResourceVersion, key, sc)
 
 	return sc, nil
 }
