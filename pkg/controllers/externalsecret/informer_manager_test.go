@@ -60,6 +60,20 @@ func (f *fakeInformer) HasSynced() bool {
 	return true
 }
 
+func (f *fakeInformer) HasSyncedChecker() toolscache.DoneChecker {
+	return f
+}
+
+func (f *fakeInformer) Name() string {
+	return "fakeInformer"
+}
+
+func (f *fakeInformer) Done() <-chan struct{} {
+	done := make(chan struct{})
+	close(done)
+	return done
+}
+
 func (f *fakeInformer) IsStopped() bool {
 	return false
 }
