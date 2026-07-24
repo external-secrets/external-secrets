@@ -25,10 +25,12 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 
 	smapi "github.com/scaleway/scaleway-sdk-go/api/secret/v1beta1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"github.com/tidwall/gjson"
+	"github.com/tidwall/sjson"
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -104,81 +106,127 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 	return value, nil
 }
 
-func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
-	if data.GetSecretKey() == "" {
-		return errors.New("pushing the whole secret is not yet implemented")
+// pushPayload resolves the bytes to push: the selected key's value when
+// secretKey is set, otherwise the whole secret serialized as a JSON object of
+// its string values (dataTo / whole-secret push). The PushSecret controller
+// has already filtered and rewritten secret.Data for dataTo entries.
+func pushPayload(secret *corev1.Secret, data esv1.PushSecretData) ([]byte, error) {
+	if key := data.GetSecretKey(); key != "" {
+		value, ok := secret.Data[key]
+		if !ok {
+			return nil, fmt.Errorf("secret key %q not found in the source secret", key)
+		}
+		return value, nil
 	}
 
-	value := secret.Data[data.GetSecretKey()]
+	values := make(map[string]string, len(secret.Data))
+	for k, v := range secret.Data {
+		if !utf8.Valid(v) {
+			return nil, fmt.Errorf("value of key %q is not valid UTF-8: binary values cannot be serialized into the JSON object of a whole-secret push", k)
+		}
+		values[k] = string(v)
+	}
+	payload, err := json.Marshal(values)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal secret data: %w", err)
+	}
+	return payload, nil
+}
+
+// listSecretsRequest returns a single-result ListSecrets filter for a name: or
+// path: reference. Other reference types cannot address a secret for writing.
+func (c *client) listSecretsRequest(scwRef *scwSecretRef) (*smapi.ListSecretsRequest, error) {
+	request := &smapi.ListSecretsRequest{
+		ProjectID: &c.projectID,
+		Page:      scw.Int32Ptr(1),
+		PageSize:  scw.Uint32Ptr(1),
+	}
+
+	switch scwRef.RefType {
+	case refTypeName:
+		request.Name = &scwRef.Value
+	case refTypePath:
+		name, path, ok := splitNameAndPath(scwRef.Value)
+		if !ok {
+			return nil, errors.New("ref is not a path")
+		}
+		request.Name = &name
+		request.Path = &path
+	default:
+		return nil, errors.New("secrets can only be referenced by name or path")
+	}
+
+	return request, nil
+}
+
+// findSecret resolves a name: or path: reference to the secret's ID.
+// found is false when no secret matches the reference.
+func (c *client) findSecret(ctx context.Context, scwRef *scwSecretRef) (id string, found bool, err error) {
+	request, err := c.listSecretsRequest(scwRef)
+	if err != nil {
+		return "", false, err
+	}
+
+	response, err := c.api.ListSecrets(request, scw.WithContext(ctx))
+	if err != nil {
+		return "", false, err
+	}
+	if len(response.Secrets) == 0 {
+		return "", false, nil
+	}
+
+	return response.Secrets[0].ID, true, nil
+}
+
+func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+	value, err := pushPayload(secret, data)
+	if err != nil {
+		return err
+	}
+
+	// Fail before any remote mutation: a JSON string cannot carry arbitrary
+	// bytes, so a binary value cannot become a JSON property.
+	if property := data.GetProperty(); property != "" && !utf8.Valid(value) {
+		return fmt.Errorf("value for property %q is not valid UTF-8: binary values cannot be stored as a JSON property, push them without property instead", property)
+	}
+
 	scwRef, err := decodeScwSecretRef(data.GetRemoteKey())
 	if err != nil {
 		return err
 	}
 
-	listSecretReq := &smapi.ListSecretsRequest{
-		ProjectID: &c.projectID,
-		Page:      scw.Int32Ptr(1),
-		PageSize:  scw.Uint32Ptr(1),
-	}
-	var secretName string
-	secretPath := "/"
+	var existingValue []byte
 
-	switch scwRef.RefType {
-	case refTypeName:
-		listSecretReq.Name = &scwRef.Value
-		secretName = scwRef.Value
-	case refTypePath:
-		name, path, ok := splitNameAndPath(scwRef.Value)
-		if !ok {
-			return errors.New("ref is not a path")
-		}
-		listSecretReq.Name = &name
-		listSecretReq.Path = &path
-		secretName = name
-		secretPath = path
-	default:
-		return errors.New("secrets can only be pushed by name or path")
-	}
-
-	var secretID string
-	existingSecretVersion := int64(-1)
-
-	// list secret by ref
-	listSecrets, err := c.api.ListSecrets(listSecretReq, scw.WithContext(ctx))
+	secretID, found, err := c.findSecret(ctx, scwRef)
 	if err != nil {
 		return err
 	}
 
-	// secret exists
-	if len(listSecrets.Secrets) > 0 {
-		secretID = listSecrets.Secrets[0].ID
-
+	if found {
 		// get the latest version
 		secretVersion, err := c.api.GetSecretVersion(&smapi.GetSecretVersionRequest{
 			SecretID: secretID,
 			Revision: "latest",
 		}, scw.WithContext(ctx))
 		if err != nil {
-			var errNotNound *scw.ResourceNotFoundError
-			if !errors.As(err, &errNotNound) {
+			var errNotFound *scw.ResourceNotFoundError
+			if !errors.As(err, &errNotFound) {
 				return err
 			}
 		} else {
-			existingSecretVersion = int64(secretVersion.Revision)
-		}
-
-		if existingSecretVersion != -1 {
-			data, err := c.accessSpecificSecretVersion(ctx, secretID, secretVersion.Revision)
+			existingValue, err = c.accessSpecificSecretVersion(ctx, secretID, secretVersion.Revision)
 			if err != nil {
 				return err
 			}
-
-			if bytes.Equal(data, value) {
-				// No change to push.
-				return nil
-			}
 		}
 	} else {
+		secretName := scwRef.Value
+		secretPath := "/"
+		if scwRef.RefType == refTypePath {
+			// already validated by findSecret
+			secretName, secretPath, _ = splitNameAndPath(scwRef.Value)
+		}
+
 		secret, err := c.api.CreateSecret(&smapi.CreateSecretRequest{
 			ProjectID: c.projectID,
 			Name:      secretName,
@@ -191,29 +239,31 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		secretID = secret.ID
 	}
 
-	// Finally, we push the new secret version.
-
-	createSecretVersionRequest := smapi.CreateSecretVersionRequest{
-		SecretID: secretID,
-		Data:     value,
+	if property := data.GetProperty(); property != "" {
+		value, err = setJSONProperty(existingValue, property, value)
+		if err != nil {
+			return err
+		}
 	}
 
-	createSecretVersionResponse, err := c.api.CreateSecretVersion(&createSecretVersionRequest, scw.WithContext(ctx))
+	if existingValue != nil && bytes.Equal(existingValue, value) {
+		// No change to push.
+		return nil
+	}
+
+	// Finally, we push the new secret version. DisablePrevious atomically
+	// disables the previous version in the same call (a no-op if there is
+	// none or it is already disabled).
+	createSecretVersionResponse, err := c.api.CreateSecretVersion(&smapi.CreateSecretVersionRequest{
+		SecretID:        secretID,
+		Data:            value,
+		DisablePrevious: new(true),
+	}, scw.WithContext(ctx))
 	if err != nil {
 		return err
 	}
 
 	c.cache.Put(secretID, createSecretVersionResponse.Revision, value)
-
-	if existingSecretVersion != -1 {
-		_, err := c.api.DisableSecretVersion(&smapi.DisableSecretVersionRequest{
-			SecretID: secretID,
-			Revision: fmt.Sprintf("%d", existingSecretVersion),
-		})
-		if err != nil {
-			return err
-		}
-	}
 
 	return nil
 }
@@ -224,38 +274,20 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 		return err
 	}
 
-	listSecretReq := &smapi.ListSecretsRequest{
-		ProjectID: &c.projectID,
-		Page:      scw.Int32Ptr(1),
-		PageSize:  scw.Uint32Ptr(1),
-	}
-
-	switch scwRef.RefType {
-	case refTypeName:
-		listSecretReq.Name = &scwRef.Value
-	case refTypePath:
-		name, path, ok := splitNameAndPath(scwRef.Value)
-		if !ok {
-			return errors.New("ref is not a path")
-		}
-		listSecretReq.Name = &name
-		listSecretReq.Path = &path
-
-	default:
-		return errors.New("secrets can only be deleted by name or path")
-	}
-
-	listSecrets, err := c.api.ListSecrets(listSecretReq, scw.WithContext(ctx))
+	secretID, found, err := c.findSecret(ctx, scwRef)
 	if err != nil {
 		return err
 	}
-
-	if len(listSecrets.Secrets) == 0 {
+	if !found {
 		return nil
 	}
 
+	if property := remoteRef.GetProperty(); property != "" {
+		return c.deleteSecretProperty(ctx, secretID, property)
+	}
+
 	request := smapi.DeleteSecretRequest{
-		SecretID: listSecrets.Secrets[0].ID,
+		SecretID: secretID,
 	}
 
 	err = c.api.DeleteSecret(&request, scw.WithContext(ctx))
@@ -266,8 +298,114 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	return nil
 }
 
-func (c *client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New("not implemented")
+// deleteSecretProperty removes property from the secret's JSON object value.
+// Versions are immutable, so the removal is a new version (previous one
+// disabled); the whole secret is deleted once the last property is removed.
+// A missing version, a non-object value, or an absent property is a no-op.
+func (c *client) deleteSecretProperty(ctx context.Context, secretID, property string) error {
+	secretVersion, err := c.api.GetSecretVersion(&smapi.GetSecretVersionRequest{
+		SecretID: secretID,
+		Revision: "latest",
+	}, scw.WithContext(ctx))
+	if err != nil {
+		var errNotFound *scw.ResourceNotFoundError
+		if errors.As(err, &errNotFound) {
+			return nil
+		}
+		return err
+	}
+
+	existing, err := c.accessSpecificSecretVersion(ctx, secretID, secretVersion.Revision)
+	if err != nil {
+		return err
+	}
+
+	doc := string(existing)
+	if !gjson.Valid(doc) || !gjson.Parse(doc).IsObject() {
+		return nil
+	}
+	path := jsonPropertyPath(doc, property)
+	if !gjson.Get(doc, path).Exists() {
+		return nil
+	}
+	updated, err := sjson.Delete(doc, path)
+	if err != nil {
+		return fmt.Errorf("failed to delete property %q: %w", property, err)
+	}
+
+	if len(gjson.Parse(updated).Map()) == 0 {
+		return c.api.DeleteSecret(&smapi.DeleteSecretRequest{SecretID: secretID}, scw.WithContext(ctx))
+	}
+
+	createSecretVersionResponse, err := c.api.CreateSecretVersion(&smapi.CreateSecretVersionRequest{
+		SecretID:        secretID,
+		Data:            []byte(updated),
+		DisablePrevious: new(true),
+	}, scw.WithContext(ctx))
+	if err != nil {
+		return err
+	}
+
+	c.cache.Put(secretID, createSecretVersionResponse.Revision, []byte(updated))
+
+	return nil
+}
+
+func (c *client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
+	scwRef, err := decodeScwSecretRef(remoteRef.GetRemoteKey())
+	if err != nil {
+		return false, err
+	}
+
+	var secretID string
+	if scwRef.RefType == refTypeID {
+		if scwRef.Value == "" {
+			return false, errors.New("empty id in secret reference")
+		}
+		secretID = scwRef.Value
+	} else {
+		id, found, err := c.findSecret(ctx, scwRef)
+		if err != nil {
+			return false, err
+		}
+		if !found {
+			return false, nil
+		}
+		secretID = id
+	}
+
+	return c.secretVersionExists(ctx, secretID, remoteRef.GetProperty())
+}
+
+// secretVersionExists reports whether the secret has a latest version and,
+// when property is set, whether that property exists in its JSON value.
+func (c *client) secretVersionExists(ctx context.Context, secretID, property string) (bool, error) {
+	secretVersion, err := c.api.GetSecretVersion(&smapi.GetSecretVersionRequest{
+		SecretID: secretID,
+		Revision: "latest",
+	}, scw.WithContext(ctx))
+	if err != nil {
+		var errNotFound *scw.ResourceNotFoundError
+		if errors.As(err, &errNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+
+	if property == "" {
+		return true, nil
+	}
+
+	data, err := c.accessSpecificSecretVersion(ctx, secretID, secretVersion.Revision)
+	if err != nil {
+		return false, err
+	}
+
+	doc := string(data)
+	if !gjson.Valid(doc) || !gjson.Parse(doc).IsObject() {
+		return false, nil
+	}
+	return gjson.Get(doc, jsonPropertyPath(doc, property)).Exists(), nil
 }
 
 func (c *client) Validate() (esv1.ValidationResult, error) {
@@ -397,14 +535,7 @@ func (c *client) accessSecretVersion(ctx context.Context, secretRef *scwSecretRe
 	}
 
 	// otherwise, we do a GetSecret() first to avoid transferring the secret value if it is cached
-	request := &smapi.ListSecretsRequest{
-		ProjectID: &c.projectID,
-		Page:      scw.Int32Ptr(1),
-		PageSize:  scw.Uint32Ptr(1),
-	}
-
-	switch secretRef.RefType {
-	case refTypeID:
+	if secretRef.RefType == refTypeID {
 		request := smapi.GetSecretVersionRequest{
 			SecretID: secretRef.Value,
 			Revision: versionSpec,
@@ -414,19 +545,11 @@ func (c *client) accessSecretVersion(ctx context.Context, secretRef *scwSecretRe
 			return nil, err
 		}
 		return c.accessSpecificSecretVersion(ctx, response.SecretID, response.Revision)
-	case refTypeName:
-		request.Name = &secretRef.Value
+	}
 
-	case refTypePath:
-		name, path, ok := splitNameAndPath(secretRef.Value)
-		if !ok {
-			return nil, errors.New("ref is not a path")
-		}
-
-		request.Name = &name
-		request.Path = &path
-	default:
-		return nil, fmt.Errorf("invalid secret reference: %q", secretRef.Value)
+	request, err := c.listSecretsRequest(secretRef)
+	if err != nil {
+		return nil, err
 	}
 
 	response, err := c.api.ListSecrets(request, scw.WithContext(ctx))
@@ -480,8 +603,37 @@ func jsonToSecretData(value json.RawMessage) []byte {
 	return []byte(strings.TrimSpace(string(value)))
 }
 
+// jsonPropertyPath returns the gjson/sjson path to use for property on doc:
+// the property itself when it has no dot or already resolves as a nested
+// path, the dot-escaped literal key otherwise. Literal keys are how pushed
+// Kubernetes keys like "tls.crt" are stored.
+func jsonPropertyPath(doc, property string) string {
+	if !strings.Contains(property, ".") || gjson.Get(doc, property).Exists() {
+		return property
+	}
+	return strings.ReplaceAll(property, ".", "\\.")
+}
+
+// setJSONProperty returns doc with property set to value as a JSON string.
+// An existing value that is not a JSON object is refused: the provider cannot
+// know whether it may overwrite a value it did not write.
+func setJSONProperty(existing []byte, property string, value []byte) ([]byte, error) {
+	doc := "{}"
+	if len(existing) > 0 {
+		if !gjson.ValidBytes(existing) || !gjson.ParseBytes(existing).IsObject() {
+			return nil, fmt.Errorf("remote secret value is not a JSON object; refusing to overwrite it with property %q", property)
+		}
+		doc = string(existing)
+	}
+	merged, err := sjson.Set(doc, jsonPropertyPath(doc, property), string(value))
+	if err != nil {
+		return nil, fmt.Errorf("failed to set property %q: %w", property, err)
+	}
+	return []byte(merged), nil
+}
+
 func extractJSONProperty(secretData []byte, property string) ([]byte, error) {
-	result := gjson.Get(string(secretData), property)
+	result := gjson.Get(string(secretData), jsonPropertyPath(string(secretData), property))
 
 	if !result.Exists() {
 		return nil, esv1.NoSecretError{}
