@@ -145,7 +145,7 @@ func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1.ExternalSecretD
 		}
 	}
 
-	if err := w.getTemplatedSecrets(ctx, secrets, data); err != nil {
+	if err := w.GetTemplatedSecrets(ctx, secrets, data); err != nil {
 		return nil, err
 	}
 	return data, nil
@@ -172,14 +172,16 @@ func (w *Webhook) GetTemplatePushData(ctx context.Context, ref esv1.PushSecretDa
 		}
 	}
 
-	if err := w.getTemplatedSecrets(ctx, secrets, data); err != nil {
+	if err := w.GetTemplatedSecrets(ctx, secrets, data); err != nil {
 		return nil, err
 	}
 
 	return data, nil
 }
 
-func (w *Webhook) getTemplatedSecrets(ctx context.Context, secrets []Secret, data map[string]map[string]string) error {
+// GetTemplatedSecrets loads the configured store secrets and adds them to data,
+// keyed by their configured template name, so they can be used in webhook templates.
+func (w *Webhook) GetTemplatedSecrets(ctx context.Context, secrets []Secret, data map[string]map[string]string) error {
 	for _, secref := range secrets {
 		if _, ok := data[secref.Name]; !ok {
 			data[secref.Name] = make(map[string]string)

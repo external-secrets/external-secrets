@@ -120,6 +120,9 @@ func (w *WebHook) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRem
 			"remoteKey": remoteRef.GetRemoteKey(),
 		},
 	}
+	if err := w.wh.GetTemplatedSecrets(ctx, provider.Secrets, escapedData); err != nil {
+		return err
+	}
 
 	url, err := webhook.ExecuteTemplateString(provider.URL, escapedData)
 	if err != nil {
@@ -137,6 +140,10 @@ func (w *WebHook) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRem
 			"remoteKey": remoteRef.GetRemoteKey(),
 		},
 	}
+	if err := w.wh.GetTemplatedSecrets(ctx, provider.Secrets, rawData); err != nil {
+		return err
+	}
+
 	if provider.Headers != nil {
 		req, err = w.wh.ReqAddHeaders(req, provider, rawData)
 		if err != nil {
