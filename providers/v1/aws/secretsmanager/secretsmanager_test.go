@@ -751,6 +751,30 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"SetSecretWithNewSecretWithoutReplicationLocations": {
+			reason: "create a new secret without replica regions when replication locations are not set",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(blankDescribeSecretOutput, &getSecretCorrectErr),
+					CreateSecretFn: func(_ context.Context, input *awssm.CreateSecretInput, _ ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error) {
+						assert.Nil(t, input.AddReplicaRegions)
+						return secretOutput, nil
+					},
+				},
+				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{
+						"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+						"kind": "PushSecretMetadata",
+						"spec": {
+							"secretPushFormat": "string"
+						}
+					}`)}},
+			},
+			want: want{
+				err: nil,
+			},
+		},
 		"SetSecretWithPropertySucceedsWithExistingSecretAndNewPropertyBinary": {
 			reason: "when a pushSecretData property is specified, this property will be added to the sm secret if it is currently absent (sm secret is binary)",
 			args: args{
@@ -2766,6 +2790,24 @@ func TestPatchTags(t *testing.T) {
 			assert.Equal(t, tt.expectTag, calls.tagCalled)
 		})
 	}
+}
+
+func TestBuildReplicationRegionType(t *testing.T) {
+	t.Run("empty regions", func(t *testing.T) {
+		assert.Nil(t, buildReplicationRegionType(nil, nil))
+		assert.Nil(t, buildReplicationRegionType([]string{}, nil))
+	})
+
+	t.Run("configured regions", func(t *testing.T) {
+		kmsKeyID := aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c")
+
+		got := buildReplicationRegionType([]string{"eu-north-1", "eu-central-1"}, kmsKeyID)
+
+		assert.Equal(t, []types.ReplicaRegionType{
+			{Region: aws.String("eu-north-1"), KmsKeyId: kmsKeyID},
+			{Region: aws.String("eu-central-1"), KmsKeyId: kmsKeyID},
+		}, got)
+	})
 }
 
 // FakeCredProvider implements the AWS credentials.Provider interface
