@@ -28,6 +28,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
 	"github.com/Azure/go-autorest/autorest"
+	"github.com/Azure/go-autorest/autorest/azure"
 	"github.com/Azure/go-autorest/autorest/date"
 	"gopkg.in/yaml.v2"
 	corev1 "k8s.io/api/core/v1"
@@ -76,6 +77,82 @@ type secretManagerTestCase struct {
 	// optional hook; called with the SetSecret params captured by the fake.
 	// params is nil if SetSecret was not invoked during the test.
 	verifySetSecret func(t *testing.T, key int, params *keyvault.SecretSetParameters)
+}
+
+type softDeletedSecretClient struct {
+	SecretClient
+	recovered bool
+	setCalls  int
+}
+
+func (c *softDeletedSecretClient) GetSecret(_ context.Context, _, _, _ string) (keyvault.SecretBundle, error) {
+	if c.recovered {
+		return keyvault.SecretBundle{Tags: map[string]*string{managedBy: new(managerLabel)}}, nil
+	}
+	return keyvault.SecretBundle{}, autorest.DetailedError{StatusCode: 404, Method: "GET", Message: notFoundMessage}
+}
+
+func (c *softDeletedSecretClient) SetSecret(_ context.Context, _, _ string, _ keyvault.SecretSetParameters) (keyvault.SecretBundle, error) {
+	c.setCalls++
+	if c.setCalls == 1 {
+		return keyvault.SecretBundle{}, autorest.DetailedError{
+			StatusCode: 409,
+			Method:     "PUT",
+			Original: &azure.RequestError{
+				DetailedError: autorest.DetailedError{StatusCode: 409},
+				ServiceError: &azure.ServiceError{
+					Code:       "Conflict",
+					InnerError: map[string]any{"code": softDeletedSecretErrorCode},
+				},
+			},
+		}
+	}
+	return keyvault.SecretBundle{}, nil
+}
+
+func (c *softDeletedSecretClient) RecoverDeletedSecret(_ context.Context, _, _ string) (keyvault.SecretBundle, error) {
+	c.recovered = true
+	return keyvault.SecretBundle{}, nil
+}
+
+func TestSetKeyVaultSecretRecoversSoftDeletedSecret(t *testing.T) {
+	client := &softDeletedSecretClient{}
+	azureClient := Azure{
+		provider:   &esv1.AzureKVProvider{VaultURL: new(fakeURL)},
+		baseClient: client,
+	}
+
+	err := azureClient.setKeyVaultSecret(context.Background(), secretName, []byte(secretString), nil, nil, nil)
+	if err == nil {
+		t.Fatal("setKeyVaultSecret() error = nil, want retryable recovery error")
+	}
+	if !client.recovered {
+		t.Fatal("setKeyVaultSecret() did not recover the soft-deleted secret")
+	}
+	if client.setCalls != 1 {
+		t.Fatalf("SetSecret() calls after recovery = %d, want 1", client.setCalls)
+	}
+
+	err = azureClient.setKeyVaultSecret(context.Background(), secretName, []byte(secretString), nil, nil, nil)
+	if err != nil {
+		t.Fatalf("setKeyVaultSecret() on next reconciliation error = %v", err)
+	}
+	if client.setCalls != 2 {
+		t.Fatalf("SetSecret() calls after next reconciliation = %d, want 2", client.setCalls)
+	}
+}
+
+func TestLegacyDoesNotRecoverUnrelatedConflict(t *testing.T) {
+	err := autorest.DetailedError{
+		StatusCode: 409,
+		Original: &azure.RequestError{
+			DetailedError: autorest.DetailedError{StatusCode: 409},
+			ServiceError:  &azure.ServiceError{Code: "Conflict"},
+		},
+	}
+	if isLegacySoftDeletedSecretError(err) {
+		t.Fatal("isLegacySoftDeletedSecretError() = true for unrelated conflict")
+	}
 }
 
 func makeValidSecretManagerTestCase() *secretManagerTestCase {
