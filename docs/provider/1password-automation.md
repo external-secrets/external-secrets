@@ -1,4 +1,4 @@
-## 1Password Secrets Automation
+# 1Password Secrets Automation
 
 External Secrets Operator integrates with [1Password Secrets Automation](https://1password.com/products/secrets/) for secret management.
 

@@ -12,18 +12,25 @@ env:
   # Common versions
   KIND_VERSION: 'v0.30.0'
   KIND_IMAGE: 'kindest/node:v1.33.4'
+  # SHA under test on the fork path. Two dispatchers populate it: an explicit
+  # `/ok-to-test sha=<sha>` comment (ok-to-test.yml) or a PR review whose body
+  # carries /ok-to-test (ok-to-test-review.yml, pinned to the reviewed
+  # commit_id). A bare comment leaves it empty and guard-fork rejects the run
+  # rather than testing the PR head or main. Also empty on the trusted
+  # pull_request path, where the checkout falls back to github.sha.
   TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha }}
-  GHCR_USERNAME: ${{ github.actor }}
   AWS_REGION: "eu-central-1"
+
 jobs:
 
+  # Same-repo pull request: build and test run as two jobs on separate runners.
   integration-trusted:
-    runs-on: ubuntu-latest
     permissions:
-      id-token: write #for oidc auth with aws/gcp/azure
-      contents: read  #for checkout
+      id-token: write # for oidc auth with aws/gcp/azure
+      contents: read  # for checkout
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor !='dependabot[bot]'
-    env:
+    uses: ./.github/workflows/e2e-reusable.yml
+    secrets:
       GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
       GCP_FED_REGION: ${{ secrets.GCP_FED_REGION }}
       GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME }}
@@ -52,77 +59,51 @@ jobs:
       SECRETSERVER_URL: ${{ secrets.SECRETSERVER_URL }}
       GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
       GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
-    steps:
-    - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
-      with:
-        egress-policy: audit
+      AKEYLESS_ACCESS_ID: ${{ secrets.AKEYLESS_ACCESS_ID }}
+      AKEYLESS_ACCESS_TYPE: ${{ secrets.AKEYLESS_ACCESS_TYPE }}
+      AKEYLESS_ACCESS_TYPE_PARAM: ${{ secrets.AKEYLESS_ACCESS_TYPE_PARAM }}
+      GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+      GITLAB_PROJECT_ID: ${{ secrets.GITLAB_PROJECT_ID }}
+      GITLAB_ENVIRONMENT: ${{ secrets.GITLAB_ENVIRONMENT }}
+      ORACLE_USER_OCID: ${{ secrets.ORACLE_USER_OCID }}
+      ORACLE_TENANCY_OCID: ${{ secrets.ORACLE_TENANCY_OCID }}
+      ORACLE_REGION: ${{ secrets.ORACLE_REGION }}
+      ORACLE_FINGERPRINT: ${{ secrets.ORACLE_FINGERPRINT }}
+      ORACLE_KEY: ${{ secrets.ORACLE_KEY }}
 
-    - name: Branch based PR checkout
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      with:
-        persist-credentials: false
-
-    - name: Fetch History
-      run: git fetch --prune --unshallow
-
-    - uses: ./.github/actions/e2e
-
-  # Repo owner has commented /ok-to-test on a (fork-based) pull request
-  integration-fork:
+  # A /ok-to-test *comment* must carry an explicit sha=. A bare comment has no
+  # trustworthy pinned commit (the dispatch would otherwise read the live PR
+  # head, which a later push can move), so reject it here instead of testing the
+  # wrong code. Reviews carry commit_id and arrive already pinned via
+  # ok-to-test-review.yml, so this guard never fires for them.
+  guard-fork:
+    if: github.event_name == 'repository_dispatch'
     runs-on: ubuntu-latest
     permissions:
-      id-token: write      #for oidc auth with aws/gcp/azure
-      contents: read       #for checkout
-      pull-requests: write # to publish the status as comments
-    if: github.event_name == 'repository_dispatch'
-    env:
-      GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
-      GCP_FED_REGION: ${{ secrets.GCP_FED_REGION }}
-      GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME }}
-      GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME }}
-      GCP_FED_PROJECT_ID: ${{ secrets.GCP_FED_PROJECT_ID }}
-      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
-      AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
-      AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
-      TFC_AZURE_CLIENT_ID: ${{ secrets.TFC_AZURE_CLIENT_ID }}
-      TFC_AZURE_CLIENT_SECRET: ${{ secrets.TFC_AZURE_CLIENT_SECRET }}
-      TFC_AZURE_TENANT_ID: ${{ secrets.TFC_AZURE_TENANT_ID }}
-      TFC_AZURE_SUBSCRIPTION_ID: ${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}
-      TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL }}
-      SCALEWAY_API_URL: ${{ secrets.SCALEWAY_API_URL }}
-      SCALEWAY_REGION: ${{ secrets.SCALEWAY_REGION }}
-      SCALEWAY_PROJECT_ID: ${{ secrets.SCALEWAY_PROJECT_ID }}
-      SCALEWAY_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
-      SCALEWAY_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
-      DELINEA_TLD: ${{ secrets.DELINEA_TLD }}
-      DELINEA_URL_TEMPLATE: ${{ secrets.DELINEA_URL_TEMPLATE }}
-      DELINEA_TENANT: ${{ secrets.DELINEA_TENANT }}
-      DELINEA_CLIENT_ID: ${{ secrets.DELINEA_CLIENT_ID }}
-      DELINEA_CLIENT_SECRET: ${{ secrets.DELINEA_CLIENT_SECRET }}
-      SECRETSERVER_USERNAME: ${{ secrets.SECRETSERVER_USERNAME }}
-      SECRETSERVER_PASSWORD: ${{ secrets.SECRETSERVER_PASSWORD }}
-      SECRETSERVER_URL: ${{ secrets.SECRETSERVER_URL }}
-      GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
-      GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
+      pull-requests: write # to explain a rejected /ok-to-test on the PR
+      contents: read
     steps:
     - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
       with:
         egress-policy: audit
 
-    # Check out merge commit
-    - name: Fork based /ok-to-test checkout
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
-      with:
-        ref: '${{ env.TARGET_SHA }}'
-        persist-credentials: false
+    # Require a full 40-char commit SHA. This rejects a bare /ok-to-test (empty
+    # TARGET_SHA) and a malformed sha= (e.g. a branch name like `main`, a short
+    # SHA, or a flag), so the checkout ref is always a pinned commit. The review
+    # path supplies review.commit_id, which is always a full SHA.
+    - name: Validate the target sha
+      id: check
+      run: |
+        if printf '%s' "$TARGET_SHA" | grep -qE '^[0-9a-fA-F]{40}$'; then
+          echo "valid=true" >> "$GITHUB_OUTPUT"
+          echo "target sha $TARGET_SHA"
+        else
+          echo "valid=false" >> "$GITHUB_OUTPUT"
+        fi
 
-    - name: Fetch History
-      run: git fetch --prune --unshallow
-
-    - id: e2e
-      uses: ./.github/actions/e2e
-    - id: create_token
-      if: always()
+    - name: Generate token
+      id: create_token
+      if: steps.check.outputs.valid == 'false'
       uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
       env:
         APP_ID: ${{ secrets.APP_ID }}
@@ -130,17 +111,110 @@ jobs:
         app-id: ${{ env.APP_ID }}
         private-key: ${{ secrets.PRIVATE_KEY }}
         owner: ${{ github.repository_owner }}
+        repositories: ${{ github.event.repository.name }}
+        permission-issues: write
+        permission-pull-requests: write
 
-    - name: Update on Succeess
-      if: always() && steps.e2e.conclusion == 'success'
+    - name: Explain the rejection on the PR
+      if: steps.check.outputs.valid == 'false'
+      uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
+      with:
+        token: ${{ steps.create_token.outputs.token }}
+        issue-number: ${{ github.event.client_payload.pull_request.number }}
+        body: |
+            [Bot] - :warning: A `/ok-to-test` comment needs an explicit full commit SHA: `/ok-to-test sha=<40-char-sha>`. Alternatively submit a PR review (Approve or Comment) whose body contains `/ok-to-test` to test the exact commit you reviewed.
+
+    - name: Fail without a valid target sha
+      if: steps.check.outputs.valid == 'false'
+      run: |
+        echo "::error::/ok-to-test needs sha=<full 40-char commit SHA>; refusing to fall back to the PR head or main"
+        exit 1
+
+  # Repo owner approved a fork PR via /ok-to-test (comment with sha= or review).
+  integration-fork:
+    permissions:
+      id-token: write # for oidc auth with aws/gcp/azure
+      contents: read  # for checkout
+    needs: guard-fork
+    if: github.event_name == 'repository_dispatch'
+    uses: ./.github/workflows/e2e-reusable.yml
+    secrets:
+      GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+      GCP_FED_REGION: ${{ secrets.GCP_FED_REGION }}
+      GCP_GSA_NAME: ${{ secrets.GCP_GSA_NAME }}
+      GCP_KSA_NAME: ${{ secrets.GCP_KSA_NAME }}
+      GCP_FED_PROJECT_ID: ${{ secrets.GCP_FED_PROJECT_ID }}
+      AWS_OIDC_ROLE_ARN: ${{ secrets.AWS_OIDC_ROLE_ARN }}
+      AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
+      AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
+      TFC_AZURE_CLIENT_ID: ${{ secrets.TFC_AZURE_CLIENT_ID }}
+      TFC_AZURE_CLIENT_SECRET: ${{ secrets.TFC_AZURE_CLIENT_SECRET }}
+      TFC_AZURE_TENANT_ID: ${{ secrets.TFC_AZURE_TENANT_ID }}
+      TFC_AZURE_SUBSCRIPTION_ID: ${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}
+      TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL }}
+      SCALEWAY_API_URL: ${{ secrets.SCALEWAY_API_URL }}
+      SCALEWAY_REGION: ${{ secrets.SCALEWAY_REGION }}
+      SCALEWAY_PROJECT_ID: ${{ secrets.SCALEWAY_PROJECT_ID }}
+      SCALEWAY_ACCESS_KEY: ${{ secrets.SCALEWAY_ACCESS_KEY }}
+      SCALEWAY_SECRET_KEY: ${{ secrets.SCALEWAY_SECRET_KEY }}
+      DELINEA_TLD: ${{ secrets.DELINEA_TLD }}
+      DELINEA_URL_TEMPLATE: ${{ secrets.DELINEA_URL_TEMPLATE }}
+      DELINEA_TENANT: ${{ secrets.DELINEA_TENANT }}
+      DELINEA_CLIENT_ID: ${{ secrets.DELINEA_CLIENT_ID }}
+      DELINEA_CLIENT_SECRET: ${{ secrets.DELINEA_CLIENT_SECRET }}
+      SECRETSERVER_USERNAME: ${{ secrets.SECRETSERVER_USERNAME }}
+      SECRETSERVER_PASSWORD: ${{ secrets.SECRETSERVER_PASSWORD }}
+      SECRETSERVER_URL: ${{ secrets.SECRETSERVER_URL }}
+      GRAFANA_URL: ${{ secrets.GRAFANA_URL }}
+      GRAFANA_TOKEN: ${{ secrets.GRAFANA_TOKEN }}
+      AKEYLESS_ACCESS_ID: ${{ secrets.AKEYLESS_ACCESS_ID }}
+      AKEYLESS_ACCESS_TYPE: ${{ secrets.AKEYLESS_ACCESS_TYPE }}
+      AKEYLESS_ACCESS_TYPE_PARAM: ${{ secrets.AKEYLESS_ACCESS_TYPE_PARAM }}
+      GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+      GITLAB_PROJECT_ID: ${{ secrets.GITLAB_PROJECT_ID }}
+      GITLAB_ENVIRONMENT: ${{ secrets.GITLAB_ENVIRONMENT }}
+      ORACLE_USER_OCID: ${{ secrets.ORACLE_USER_OCID }}
+      ORACLE_TENANCY_OCID: ${{ secrets.ORACLE_TENANCY_OCID }}
+      ORACLE_REGION: ${{ secrets.ORACLE_REGION }}
+      ORACLE_FINGERPRINT: ${{ secrets.ORACLE_FINGERPRINT }}
+      ORACLE_KEY: ${{ secrets.ORACLE_KEY }}
+
+  # Report the fork run result back onto the originating pull request.
+  report-fork:
+    if: ${{ always() && github.event_name == 'repository_dispatch' && needs.integration-fork.result != 'skipped' }}
+    needs: integration-fork
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write # to publish the status as comments
+      contents: read
+    steps:
+    - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+      with:
+        egress-policy: audit
+
+    - id: create_token
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      env:
+        APP_ID: ${{ secrets.APP_ID }}
+      with:
+        app-id: ${{ env.APP_ID }}
+        private-key: ${{ secrets.PRIVATE_KEY }}
+        owner: ${{ github.repository_owner }}
+        repositories: ${{ github.event.repository.name }}
+        permission-issues: write
+        permission-pull-requests: write
+
+    - name: Update on Success
+      if: needs.integration-fork.result == 'success'
       uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
       with:
         token: ${{ steps.create_token.outputs.token }}
         issue-number: ${{ github.event.client_payload.pull_request.number }}
         body: |
             [Bot] - :white_check_mark: [e2e for ${{ env.TARGET_SHA }} passed](https://github.com/external-secrets/external-secrets/actions/runs/${{ github.run_id }})
+
     - name: Update on Failure
-      if: always() &&  steps.e2e.conclusion != 'success'
+      if: needs.integration-fork.result != 'success'
       uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9 # v5.0.0
       with:
         token: ${{ steps.create_token.outputs.token }}

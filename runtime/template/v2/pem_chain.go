@@ -23,6 +23,9 @@ SOFTWARE
 
 Original Author: Anish Ramasekar https://github.com/aramase
 In: https://github.com/Azure/secrets-store-csi-driver-provider-azure/pull/332
+
+This file is a local fork/adaptation of the original implementation.
+It does not need to be kept up to date with Azure upstream due to divergences.
 */
 
 package template
@@ -47,6 +50,15 @@ type node struct {
 	isParent bool
 }
 
+// fetchX509CertChains parses PEM-encoded certificates and returns them ordered
+// as leaf -> intermediate(s) -> root when a single chain can be inferred from
+// AuthorityKeyId/SubjectKeyId relationships.
+//
+// This is a formatting/templating helper only. It does not perform certificate
+// trust validation: it does not verify signatures, expiry, hostnames, key usage,
+// CA constraints, revocation, or trusted roots. Do not use a nil error from this
+// function as proof that a certificate chain is valid or trusted; use
+// crypto/x509.Certificate.Verify with explicit VerifyOptions for that purpose.
 func fetchX509CertChains(data []byte) ([]*x509.Certificate, error) {
 	var newCertChain []*x509.Certificate
 	nodes, err := pemToNodes(data)
@@ -105,6 +117,9 @@ func fetchX509CertChains(data []byte) ([]*x509.Certificate, error) {
 	return newCertChain, nil
 }
 
+// fetchCertChains returns PEM-encoded certificates ordered by
+// fetchX509CertChains. It preserves the same non-validation semantics: the
+// returned order is not proof of trust or cryptographic validity.
 func fetchCertChains(data []byte) ([]byte, error) {
 	var pemData []byte
 	newCertChain, err := fetchX509CertChains(data)
@@ -121,6 +136,12 @@ func fetchCertChains(data []byte) ([]byte, error) {
 	return pemData, nil
 }
 
+// pemToNodes decodes all PEM blocks in data as X.509 certificates and wraps
+// them as chain-construction nodes.
+//
+// Like fetchX509CertChains, this only parses certificate syntax. A successfully
+// parsed certificate is not necessarily trusted, currently valid, usable for a
+// given purpose, or correctly signed by another certificate in the input.
 func pemToNodes(data []byte) ([]*node, error) {
 	nodes := make([]*node, 0)
 	for {

@@ -124,6 +124,7 @@ rules:
     - "fakes"
     - "gcraccesstokens"
     - "githubaccesstokens"
+    - "gitlabdeploytokens"
     - "quayaccesstokens"
     - "passwords"
     - "sshkeys"
@@ -270,7 +271,9 @@ metadata:
     {{- if .Values.rbac.aggregateToEdit }}
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
     {{- end }}
+    {{- if .Values.rbac.aggregateToAdmin }}
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    {{- end }}
 rules:
   - apiGroups:
       - "external-secrets.io"
@@ -303,6 +306,7 @@ rules:
     - "fakes"
     - "gcraccesstokens"
     - "githubaccesstokens"
+    - "gitlabdeploytokens"
     - "quayaccesstokens"
     - "passwords"
     - "sshkeys"
@@ -333,7 +337,9 @@ metadata:
     {{- if .Values.rbac.aggregateToEdit }}
     rbac.authorization.k8s.io/aggregate-to-edit: "true"
     {{- end }}
+    {{- if .Values.rbac.aggregateToAdmin }}
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    {{- end }}
 rules:
   - apiGroups:
       - "external-secrets.io"
@@ -367,6 +373,7 @@ rules:
     - "fakes"
     - "gcraccesstokens"
     - "githubaccesstokens"
+    - "gitlabdeploytokens"
     - "quayaccesstokens"
     - "passwords"
     - "sshkeys"

@@ -29,6 +29,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/prometheus/client_golang/prometheus"
+	robfigcron "github.com/robfig/cron/v3"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -520,8 +521,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			r.markAsDone(externalSecret, start, log, esv1.ConditionReasonSecretMissing, msgMissing)
 			return r.getRequeueResult(externalSecret), nil
 		}
-	case esv1.CreatePolicyOrphan:
-		// create the secret, if it does not exist
+	case esv1.CreatePolicyOrphan, esv1.CreatePolicyCreateOrMerge:
+		// create the secret if it does not exist, otherwise update it.
+		// CreateOrMerge behaves like Orphan here (create-or-update, no
+		// ownerReference); it differs only in that ApplyTemplate keeps existing
+		// keys for it (see externalsecret_controller_template.go).
 		if existingSecret.UID == "" {
 			err = r.createSecret(ctx, mutationFunc, externalSecret, secretName)
 		} else {
@@ -593,7 +597,8 @@ func (r *Reconciler) reconcileGenericTarget(
 	var existing *unstructured.Unstructured
 	if externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
 		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOrphan ||
-		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
+		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner ||
+		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyCreateOrMerge {
 		var getErr error
 		existing, getErr = r.getGenericResource(ctx, log, externalSecret)
 		if getErr != nil && !apierrors.IsNotFound(getErr) {
@@ -646,10 +651,12 @@ func (r *Reconciler) reconcileGenericTarget(
 		}
 	}
 
-	// For Merge policy with existing resource, pass it to applyTemplateToManifest
-	// so templates are applied to the existing resource instead of creating a new one
+	// For Merge and CreateOrMerge with an existing resource, pass it to
+	// applyTemplateToManifest so templates are applied to the existing resource
+	// instead of creating a new one.
 	var baseObj *unstructured.Unstructured
-	if externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge && existing != nil {
+	if (externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
+		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyCreateOrMerge) && existing != nil {
 		baseObj = existing
 	}
 
@@ -678,7 +685,7 @@ func (r *Reconciler) reconcileGenericTarget(
 
 		// update the existing resource
 		err = r.updateGenericResource(ctx, log, externalSecret, obj)
-	case esv1.CreatePolicyOrphan, esv1.CreatePolicyOwner:
+	case esv1.CreatePolicyOrphan, esv1.CreatePolicyOwner, esv1.CreatePolicyCreateOrMerge:
 		if existing != nil {
 			obj.SetResourceVersion(existing.GetResourceVersion())
 			obj.SetUID(existing.GetUID())
@@ -1151,6 +1158,69 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 	return false, nil
 }
 
+// isWithinSyncWindow reports whether 'at' falls inside the window that opened
+// at the most-recent firing of 'sched' before 'at'. robfig's Next() is strictly
+// exclusive, so we back up by (duration + 1s) to find that firing.
+func isWithinSyncWindow(sched robfigcron.Schedule, duration time.Duration, at time.Time) bool {
+	prev := sched.Next(at.Add(-duration - time.Second))
+	return !prev.IsZero() && !prev.After(at) && !at.After(prev.Add(duration))
+}
+
+// cronParser is the standard 5-field (no-seconds) parser shared across all
+// sync-window checks within this controller.
+var cronParser = robfigcron.NewParser(
+	robfigcron.Minute | robfigcron.Hour | robfigcron.Dom |
+		robfigcron.Month | robfigcron.Dow | robfigcron.Descriptor,
+)
+
+// isPeriodicRefreshAllowedByWindows returns true when the SyncWindows on 'es'
+// collectively permit a periodic refresh at time 'at'.
+//
+//   - No windows: always allow.
+//   - kind=deny: deny when any window is active; allow otherwise.
+//   - kind=allow: allow when at least one window is active; deny otherwise.
+//
+// Windows with an unparseable Schedule are silently ignored (treated as
+// inactive) so a typo does not permanently block syncs.
+func isPeriodicRefreshAllowedByWindows(es *esv1.ExternalSecret, at time.Time) bool {
+	sw := es.Spec.SyncWindows
+	if sw == nil || len(sw.Windows) == 0 {
+		return true
+	}
+	anyActive := false
+	for _, w := range sw.Windows {
+		sched, err := cronParser.Parse(w.Schedule)
+		if err != nil {
+			// A schedule that fails to parse is skipped rather than aborting the
+			// whole evaluation. The kubebuilder pattern marker rejects malformed
+			// schedules at admission, so this is a defensive log for any value
+			// that slips past validation (e.g. a parser/regex mismatch).
+			ctrl.Log.V(1).Info("ignoring unparseable sync window schedule",
+				"ExternalSecret", es.Namespace+"/"+es.Name,
+				"schedule", w.Schedule,
+				"error", err.Error())
+			continue
+		}
+		if isWithinSyncWindow(sched, w.Duration.Duration, at) {
+			anyActive = true
+			break
+		}
+	}
+	allowed := true
+	switch sw.Kind {
+	case esv1.SyncWindowDeny:
+		allowed = !anyActive
+	case esv1.SyncWindowAllow:
+		allowed = anyActive
+	}
+	if !allowed {
+		ctrl.Log.V(1).Info("periodic refresh blocked by SyncWindow",
+			"ExternalSecret", es.Namespace+"/"+es.Name,
+			"kind", sw.Kind)
+	}
+	return allowed
+}
+
 func shouldRefresh(es *esv1.ExternalSecret) bool {
 	switch es.Spec.RefreshPolicy {
 	case esv1.RefreshPolicyCreatedOnce:
@@ -1190,13 +1260,20 @@ func shouldRefreshPeriodic(es *esv1.ExternalSecret) bool {
 		return true
 	}
 
+	now := time.Now()
+
 	// if the last refresh time is in the future, we should refresh
-	if es.Status.RefreshTime.Time.After(time.Now()) {
+	if es.Status.RefreshTime.Time.After(now) {
 		return true
 	}
 
 	// if the last refresh time + refresh interval is before now, we should refresh
-	return es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(time.Now())
+	if !es.Status.RefreshTime.Add(es.Spec.RefreshInterval.Duration).Before(now) {
+		return false
+	}
+
+	// check sync windows before triggering a refresh
+	return isPeriodicRefreshAllowedByWindows(es, now)
 }
 
 // isSecretValid checks if the secret exists, and it's data is consistent with the calculated hash.

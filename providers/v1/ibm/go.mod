@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/ibm
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/IBM/go-sdk-core/v5 v5.21.0

@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/oracle
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
@@ -48,6 +48,7 @@ require (
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/google/pprof v0.0.0-20260115054156-294ebfa9ad83 // indirect
 	github.com/google/uuid v1.6.0 // indirect
+	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/lestrrat-go/blackmagic v1.0.4 // indirect

@@ -1,4 +1,4 @@
-## 1Password Secrets with SDK
+# 1Password Secrets with SDK
 
 1Password released [developer SDKs](https://developer.1password.com/docs/sdks/) to ease the usage of the secret provider
 without the need for any external devices. This provides a much better user experience for automated processes without

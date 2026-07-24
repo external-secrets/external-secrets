@@ -110,8 +110,10 @@ func validateExtractFindGenerator(ref ExternalSecretDataFromRemoteRef) error {
 
 func validatePolicies(es *ExternalSecret) error {
 	var errs error
-	if (es.Spec.Target.DeletionPolicy == DeletionPolicyDelete && es.Spec.Target.CreationPolicy == CreatePolicyMerge) ||
-		(es.Spec.Target.DeletionPolicy == DeletionPolicyDelete && es.Spec.Target.CreationPolicy == CreatePolicyNone) {
+	if es.Spec.Target.DeletionPolicy == DeletionPolicyDelete &&
+		(es.Spec.Target.CreationPolicy == CreatePolicyMerge ||
+			es.Spec.Target.CreationPolicy == CreatePolicyNone ||
+			es.Spec.Target.CreationPolicy == CreatePolicyCreateOrMerge) {
 		errs = errors.Join(errs, errors.New("deletionPolicy=Delete must not be used when the controller doesn't own the secret. Please set creationPolicy=Owner"))
 	}
 

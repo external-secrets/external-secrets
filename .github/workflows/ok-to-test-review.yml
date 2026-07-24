@@ -1,0 +1,105 @@
+# If someone with write access submits a PR review (Approve or Comment) whose
+# body contains "/ok-to-test", emit a repository_dispatch pinned to the exact
+# commit that was reviewed (github.event.review.commit_id). A review records the
+# head the reviewer actually saw, so the tested SHA cannot be moved by a later
+# push, and no PR-head lookup or sha= argument is needed.
+name: Ok To Test (review)
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+
+jobs:
+  ok-to-test-review:
+    # Only Approve or Comment reviews (never Request changes), and only when the
+    # review body mentions the command. contains() is a coarse pre-filter; the
+    # step below enforces that /ok-to-test is the command on the first line.
+    if: >-
+      (github.event.review.state == 'approved' ||
+       github.event.review.state == 'commented') &&
+      contains(github.event.review.body, '/ok-to-test')
+    runs-on: ubuntu-latest
+    steps:
+    - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+      with:
+        egress-policy: audit
+
+    # Mirror how slash-command-dispatch parses the comment path: the command
+    # must be on the FIRST line and start with the slash command. This rejects a
+    # /ok-to-test mentioned in prose elsewhere in a longer review, and the
+    # /ok-to-test-managed prefix. Do not echo the body back: it is attacker
+    # controlled and could inject `::workflow commands::` into the log.
+    - name: Match the command in the review body
+      id: cmd
+      env:
+        REVIEW_BODY: ${{ github.event.review.body }}
+      run: |
+        first=$(printf '%s' "$REVIEW_BODY" | head -n1 | tr -d '\r' \
+          | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
+        if printf '%s' "$first" | grep -qE '^/ok-to-test([[:space:]]|$)'; then
+          echo "match=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "match=false" >> "$GITHUB_OUTPUT"
+          echo "first line is not an /ok-to-test command; no e2e triggered"
+        fi
+
+    # App installation token, reused for the permission check and the dispatch.
+    - name: Generate token
+      id: generate_token
+      if: steps.cmd.outputs.match == 'true'
+      uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      env:
+        APP_ID: ${{ secrets.APP_ID }}
+      with:
+        app-id: ${{ env.APP_ID }}
+        private-key: ${{ secrets.PRIVATE_KEY }}
+        owner: ${{ github.repository_owner }}
+        repositories: ${{ github.event.repository.name }}
+        # contents:write to POST the repository_dispatch; metadata:read (implicit
+        # for any app token, stated for clarity) to read the reviewer's
+        # collaborator permission level.
+        permission-contents: write
+        permission-metadata: read
+
+    # pull_request_review does not restrict to maintainers, and
+    # author_association is not authoritative for repo write access, so verify it
+    # explicitly. This is the equivalent of slash-command-dispatch's
+    # `permission: maintain` on the comment path.
+    - name: Verify the reviewer has write access
+      if: steps.cmd.outputs.match == 'true'
+      env:
+        GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+        REPO: ${{ github.repository }}
+        REVIEWER: ${{ github.event.review.user.login }}
+      run: |
+        perm=$(gh api "repos/${REPO}/collaborators/${REVIEWER}/permission" \
+          --jq '.permission')
+        echo "reviewer ${REVIEWER} permission: ${perm}"
+        # .permission is rolled up to admin/write/read/none (Maintain surfaces
+        # as write, Triage as read); accept write and above.
+        case "${perm}" in
+          admin|write) : ;;
+          *) echo "::error::${REVIEWER} lacks write access (${perm})"; exit 1 ;;
+        esac
+
+    # Emit the client_payload fields e2e.yml consumes on the comment path:
+    # slash_command.args.named.sha (the target SHA) and pull_request.number
+    # (used by report-fork to comment the result). jq quotes both safely.
+    - name: Dispatch ok-to-test-command
+      if: steps.cmd.outputs.match == 'true'
+      env:
+        GH_TOKEN: ${{ steps.generate_token.outputs.token }}
+        REPO: ${{ github.repository }}
+        SHA: ${{ github.event.review.commit_id }}
+        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        jq -cn --arg sha "$SHA" --argjson num "$PR_NUMBER" '{
+          event_type: "ok-to-test-command",
+          client_payload: {
+            slash_command: { args: { named: { sha: $sha } } },
+            pull_request: { number: $num }
+          }
+        }' | gh api --method POST "repos/${REPO}/dispatches" --input -

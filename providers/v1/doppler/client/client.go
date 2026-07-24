@@ -59,6 +59,8 @@ type APIError struct {
 	Err     error
 	Message string
 	Data    string
+	// StatusCode is the HTTP status of the response, when one was received.
+	StatusCode int
 }
 
 type apiResponse struct {
@@ -269,10 +271,17 @@ func (r *SecretsRequest) buildQueryParams() queryParams {
 }
 
 func (c *DopplerClient) performRequest(path, method string, headers headers, params queryParams, body httpRequestBody) (*apiResponse, error) {
+	// newErr stamps the HTTP status (when a response was received) onto every
+	// APIError this function returns, so callers can see the response code that
+	// failed.
+	newErr := func(statusCode int, err error, message string) *APIError {
+		return &APIError{Err: err, Message: message, StatusCode: statusCode}
+	}
+
 	urlStr := c.BaseURL().String() + path
 	reqURL, err := url.Parse(urlStr)
 	if err != nil {
-		return nil, &APIError{Err: err, Message: fmt.Sprintf("invalid API URL: %s", urlStr)}
+		return nil, newErr(0, err, fmt.Sprintf("invalid API URL: %s", urlStr))
 	}
 
 	var bodyReader io.Reader
@@ -284,7 +293,7 @@ func (c *DopplerClient) performRequest(path, method string, headers headers, par
 
 	req, err := http.NewRequest(method, reqURL.String(), bodyReader)
 	if err != nil {
-		return nil, &APIError{Err: err, Message: "unable to form HTTP request"}
+		return nil, newErr(0, err, "unable to form HTTP request")
 	}
 
 	if method == "POST" && req.Header.Get("content-type") == "" {
@@ -324,7 +333,7 @@ func (c *DopplerClient) performRequest(path, method string, headers headers, par
 
 	r, err := httpClient.Do(req)
 	if err != nil {
-		return nil, &APIError{Err: err, Message: "unable to load response"}
+		return nil, newErr(0, err, "unable to load response")
 	}
 	defer func() {
 		_ = r.Body.Close()
@@ -332,7 +341,7 @@ func (c *DopplerClient) performRequest(path, method string, headers headers, par
 
 	bodyResponse, err := io.ReadAll(r.Body)
 	if err != nil {
-		return &apiResponse{HTTPResponse: r, Body: nil}, &APIError{Err: err, Message: "unable to read entire response body"}
+		return &apiResponse{HTTPResponse: r, Body: nil}, newErr(r.StatusCode, err, "unable to read entire response body")
 	}
 
 	response := &apiResponse{HTTPResponse: r, Body: bodyResponse}
@@ -343,15 +352,15 @@ func (c *DopplerClient) performRequest(path, method string, headers headers, par
 			var errResponse apiErrorResponse
 			err := json.Unmarshal(bodyResponse, &errResponse)
 			if err != nil {
-				return response, &APIError{Err: err, Message: "unable to unmarshal error JSON payload"}
+				return response, newErr(r.StatusCode, err, "unable to unmarshal error JSON payload")
 			}
-			return response, &APIError{Err: nil, Message: strings.Join(errResponse.Messages, "\n")}
+			return response, newErr(r.StatusCode, nil, strings.Join(errResponse.Messages, "\n"))
 		}
-		return nil, &APIError{Err: fmt.Errorf("%d status code; %d bytes", r.StatusCode, len(bodyResponse)), Message: "unable to load response"}
+		return nil, newErr(r.StatusCode, fmt.Errorf("%d status code; %d bytes", r.StatusCode, len(bodyResponse)), "unable to load response")
 	}
 
 	if success && err != nil {
-		return nil, &APIError{Err: err, Message: "unable to load data from successful response"}
+		return nil, newErr(r.StatusCode, err, "unable to load data from successful response")
 	}
 	return response, nil
 }
@@ -361,7 +370,15 @@ func isSuccess(statusCode int) bool {
 }
 
 func (e *APIError) Error() string {
-	message := fmt.Sprintf("Doppler API Client Error: %s", e.Message)
+	// Surface the HTTP status when a response was received, so a failure points
+	// at the response code that produced it. The status is omitted for errors
+	// not tied to a response (e.g. a request that never reached the server, or
+	// a "secret not found").
+	prefix := "Doppler API Client Error:"
+	if e.StatusCode != 0 {
+		prefix = fmt.Sprintf("Doppler API Client Error (HTTP %d):", e.StatusCode)
+	}
+	message := fmt.Sprintf("%s %s", prefix, e.Message)
 	if underlyingError := e.Err; underlyingError != nil {
 		message = fmt.Sprintf("%s\n%s", message, underlyingError.Error())
 	}

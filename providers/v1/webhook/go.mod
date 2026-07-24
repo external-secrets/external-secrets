@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/webhook
 
-go 1.26.4
+go 1.26.5
 
 require (
 	github.com/Azure/go-ntlmssp v0.1.1

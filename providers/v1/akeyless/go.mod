@@ -1,8 +1,10 @@
 module github.com/external-secrets/external-secrets/providers/v1/akeyless
 
-go 1.26.4
+go 1.26.5
 
 require (
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.1
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.7
 	github.com/akeylesslabs/akeyless-go/v4 v4.3.0
 	github.com/external-secrets/external-secrets/apis v0.0.0
@@ -20,8 +22,6 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.1 // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.11.2 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.5.0 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
@@ -62,6 +62,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.11 // indirect
 	github.com/googleapis/gax-go/v2 v2.17.0 // indirect
+	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/huandu/xstrings v1.5.0 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
@@ -95,8 +96,6 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.63.0 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/metric v1.43.0 // indirect
-	go.opentelemetry.io/otel/sdk v1.43.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v1.43.0 // indirect
 	go.opentelemetry.io/otel/trace v1.43.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
@@ -110,8 +109,8 @@ require (
 	golang.org/x/time v0.15.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
 	google.golang.org/api v0.267.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260316180232-0b37fe3546d5 // indirect
-	google.golang.org/grpc v1.79.3 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260414002931-afd174a4e478 // indirect
+	google.golang.org/grpc v1.82.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect

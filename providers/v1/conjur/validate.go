@@ -38,6 +38,11 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if prov.URL == "" {
 		return nil, errors.New("conjur URL cannot be empty")
 	}
+
+	if err := validateAuthCount(prov.Auth); err != nil {
+		return nil, err
+	}
+
 	if prov.Auth.APIKey != nil {
 		err := validateAPIKeyStore(store, *prov.Auth.APIKey)
 		if err != nil {
@@ -52,12 +57,31 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		}
 	}
 
-	// At least one auth must be configured
-	if prov.Auth.APIKey == nil && prov.Auth.Jwt == nil {
-		return nil, errors.New("missing Auth.* configuration")
+	if prov.Auth.Cert != nil {
+		err := validateCertStore(store, *prov.Auth.Cert)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return nil, nil
+}
+
+func validateAuthCount(auth esv1.ConjurAuth) error {
+	count := 0
+	if auth.APIKey != nil {
+		count++
+	}
+	if auth.Jwt != nil {
+		count++
+	}
+	if auth.Cert != nil {
+		count++
+	}
+	if count != 1 {
+		return errors.New("must specify exactly one Auth.* method")
+	}
+	return nil
 }
 
 func validateAPIKeyStore(store esv1.GenericStore, auth esv1.ConjurAPIKey) error {
@@ -99,5 +123,34 @@ func validateJWTStore(store esv1.GenericStore, auth esv1.ConjurJWT) error {
 			return fmt.Errorf("invalid Auth.Jwt.ServiceAccountRef: %w", err)
 		}
 	}
+	return nil
+}
+
+func validateCertStore(store esv1.GenericStore, auth esv1.ConjurCert) error {
+	if auth.Account == "" {
+		return errors.New("missing Auth.Cert.Account")
+	}
+	if auth.ServiceID == "" {
+		return errors.New("missing Auth.Cert.ServiceID")
+	}
+	if auth.ClientCertRef == nil {
+		return errors.New("missing Auth.Cert.ClientCertRef")
+	}
+	if auth.ClientCertRef.Name == "" {
+		return errors.New("missing Auth.Cert.ClientCertRef.Name")
+	}
+	if err := esutils.ValidateReferentSecretSelector(store, *auth.ClientCertRef); err != nil {
+		return fmt.Errorf("invalid Auth.Cert.ClientCertRef: %w", err)
+	}
+	if auth.ClientKeyRef == nil {
+		return errors.New("missing Auth.Cert.ClientKeyRef")
+	}
+	if auth.ClientKeyRef.Name == "" {
+		return errors.New("missing Auth.Cert.ClientKeyRef.Name")
+	}
+	if err := esutils.ValidateReferentSecretSelector(store, *auth.ClientKeyRef); err != nil {
+		return fmt.Errorf("invalid Auth.Cert.ClientKeyRef: %w", err)
+	}
+
 	return nil
 }

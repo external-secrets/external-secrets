@@ -14,3 +14,7 @@ bao kv put -mount=secret_v1 foo bar=bazz_v1 lorem=ipsum_v1
 bao policy write read-kv testdata/policy-read-kv.hcl
 bao auth enable --path=customuserpasspath userpass
 bao write auth/customuserpasspath/users/alice password=bob4ever token_policies=read-kv
+
+bao namespace create my-namespace
+bao secrets enable -version=2 --namespace=my-namespace kv
+bao kv put -mount=kv --namespace=my-namespace foo namespaced-bar=namespaced-bazz
