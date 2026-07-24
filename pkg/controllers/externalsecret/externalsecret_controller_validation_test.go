@@ -17,6 +17,8 @@ limitations under the License.
 package externalsecret
 
 import (
+	"errors"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -103,6 +105,33 @@ func TestValidateFetchedSecretMap(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			assertFetchedSecretValidationError(t, validateFetchedSecretMap(tt.policy, tt.data), tt.wantErr)
+		})
+	}
+}
+
+func TestShouldIgnoreEmptyResult(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		policy esv1.ExternalSecretEmptyResultPolicy
+		err    error
+		want   bool
+	}{
+		{"ignore + NoSecretErr", esv1.ExternalSecretEmptyResultPolicyIgnore, esv1.NoSecretErr, true},
+		{"ignore + wrapped NoSecretErr", esv1.ExternalSecretEmptyResultPolicyIgnore, fmt.Errorf("getting all secrets: %w", esv1.NoSecretErr), true},
+		{"ignore + other error", esv1.ExternalSecretEmptyResultPolicyIgnore, errors.New("boom"), false},
+		{"ignore + nil error", esv1.ExternalSecretEmptyResultPolicyIgnore, nil, false},
+		{"fail + NoSecretErr", esv1.ExternalSecretEmptyResultPolicyFail, esv1.NoSecretErr, false},
+		{"unset + NoSecretErr", "", esv1.NoSecretErr, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			if got := shouldIgnoreEmptyResult(tt.policy, tt.err); got != tt.want {
+				t.Fatalf("shouldIgnoreEmptyResult(%q, %v) = %v, want %v", tt.policy, tt.err, got, tt.want)
+			}
 		})
 	}
 }

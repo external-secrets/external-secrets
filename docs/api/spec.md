@@ -4778,6 +4778,22 @@ ExternalSecretNullBytePolicy
 <p>Controls how ESO handles fetched secret data containing NUL bytes for this source.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>emptyResultPolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretEmptyResultPolicy">
+ExternalSecretEmptyResultPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Controls how ESO handles an empty or absent result for this reference.
+Ignore skips it silently; Fail (default when unset) fails reconciliation.
+Only applies to providers that report absence via NoSecretErr.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.ExternalSecretDecodingStrategy">ExternalSecretDecodingStrategy
@@ -4844,6 +4860,35 @@ does not go into SecretSyncedError status.</p>
 <td><p>DeletionPolicyRetain will retain the secret if all provider secrets have been deleted.
 If a provider secret does not exist the ExternalSecret gets into the
 SecretSyncedError status.</p>
+</td>
+</tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.ExternalSecretEmptyResultPolicy">ExternalSecretEmptyResultPolicy
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ExternalSecretDataRemoteRef">ExternalSecretDataRemoteRef</a>, 
+<a href="#external-secrets.io/v1.ExternalSecretFind">ExternalSecretFind</a>)
+</p>
+<p>
+<p>ExternalSecretEmptyResultPolicy defines how ESO handles an empty or absent
+result (signaled by esv1.NoSecretErr) from a find, extract, or single data
+reference.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Fail&#34;</p></td>
+<td><p>ExternalSecretEmptyResultPolicyFail fails reconciliation when the result is
+empty or absent. This is the default (unset) behavior.</p>
+</td>
+</tr><tr><td><p>&#34;Ignore&#34;</p></td>
+<td><p>ExternalSecretEmptyResultPolicyIgnore treats an empty or absent result as
+contributing nothing, without failing reconciliation.</p>
 </td>
 </tr></tbody>
 </table>
@@ -4942,6 +4987,22 @@ ExternalSecretNullBytePolicy
 <td>
 <em>(Optional)</em>
 <p>Controls how ESO handles fetched secret data containing NUL bytes for this find source.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>emptyResultPolicy</code></br>
+<em>
+<a href="#external-secrets.io/v1.ExternalSecretEmptyResultPolicy">
+ExternalSecretEmptyResultPolicy
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Controls how ESO handles a find that returns no secrets.
+Ignore skips it silently; Fail (default when unset) fails reconciliation.
+Only applies to providers that report absence via NoSecretErr.</p>
 </td>
 </tr>
 </tbody>

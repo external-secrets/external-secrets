@@ -96,6 +96,22 @@ const (
 	ExternalSecretNullBytePolicyFail ExternalSecretNullBytePolicy = "Fail"
 )
 
+// ExternalSecretEmptyResultPolicy defines how ESO handles an empty or absent
+// result (signaled by esv1.NoSecretErr) from a find, extract, or single data
+// reference.
+// +kubebuilder:validation:Enum=Ignore;Fail
+type ExternalSecretEmptyResultPolicy string
+
+const (
+	// ExternalSecretEmptyResultPolicyIgnore treats an empty or absent result as
+	// contributing nothing, without failing reconciliation.
+	ExternalSecretEmptyResultPolicyIgnore ExternalSecretEmptyResultPolicy = "Ignore"
+
+	// ExternalSecretEmptyResultPolicyFail fails reconciliation when the result is
+	// empty or absent. This is the default (unset) behavior.
+	ExternalSecretEmptyResultPolicyFail ExternalSecretEmptyResultPolicy = "Fail"
+)
+
 // ExternalSecretTemplateMetadata defines metadata fields for the Secret blueprint.
 type ExternalSecretTemplateMetadata struct {
 	// +optional
@@ -319,6 +335,12 @@ type ExternalSecretDataRemoteRef struct {
 	// +optional
 	// Controls how ESO handles fetched secret data containing NUL bytes for this source.
 	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
+
+	// +optional
+	// Controls how ESO handles an empty or absent result for this reference.
+	// Ignore skips it silently; Fail (default when unset) fails reconciliation.
+	// Only applies to providers that report absence via NoSecretErr.
+	EmptyResultPolicy ExternalSecretEmptyResultPolicy `json:"emptyResultPolicy,omitempty"`
 }
 
 // ExternalSecretMetadataPolicy defines policies for fetching metadata from provider secrets.
@@ -508,6 +530,12 @@ type ExternalSecretFind struct {
 	// +optional
 	// Controls how ESO handles fetched secret data containing NUL bytes for this find source.
 	NullBytePolicy ExternalSecretNullBytePolicy `json:"nullBytePolicy,omitempty"`
+
+	// +optional
+	// Controls how ESO handles a find that returns no secrets.
+	// Ignore skips it silently; Fail (default when unset) fails reconciliation.
+	// Only applies to providers that report absence via NoSecretErr.
+	EmptyResultPolicy ExternalSecretEmptyResultPolicy `json:"emptyResultPolicy,omitempty"`
 }
 
 // FindName defines criteria for finding secrets by name patterns.
