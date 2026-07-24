@@ -8959,7 +8959,7 @@ resource is used as the app role secret.</p>
 <p>
 <p>OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
 Currently the following authentication methods are supported: <a href="https://openbao.org/docs/auth/approle/">AppRole</a>,
-<a href="https://openbao.org/docs/auth/token/">Token</a> and <a href="https://openbao.org/docs/auth/userpass/">UserPass</a></p>
+<a href="https://openbao.org/docs/auth/kubernetes/">Kubernetes</a>, <a href="https://openbao.org/docs/auth/token/">Token</a> and <a href="https://openbao.org/docs/auth/userpass/">UserPass</a></p>
 <p>Additional authentication methods are planned for future releases.</p>
 </p>
 <table>
@@ -8983,6 +8983,21 @@ OpenBaoAppRole
 <em>(Optional)</em>
 <p>AppRole authenticates with OpenBao using the <a href="https://openbao.org/docs/auth/approle/">App Role auth mechanism</a>,
 with the role and secret stored in a Kubernetes Secret resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubernetes</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoKubernetesAuth">
+OpenBaoKubernetesAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Kubernetes authenticates with OpenBao by passing a ServiceAccount
+token to the <a href="https://openbao.org/docs/auth/kubernetes/">Kubernetes auth mechanism</a>.</p>
 </td>
 </tr>
 <tr>
@@ -9052,6 +9067,85 @@ OpenBaoUserPassAuth
 </tr><tr><td><p>&#34;v2&#34;</p></td>
 <td></td>
 </tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoKubernetesAuth">OpenBaoKubernetesAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth</a>)
+</p>
+<p>
+<p>OpenBaoKubernetesAuth authenticates with OpenBao using the <a href="https://openbao.org/docs/auth/kubernetes/">Kubernetes
+auth mechanism</a> with a ServiceAccount token. The ServiceAccount token can be
+sourced from a ServiceAccount via <code>ServiceAccountRef</code> or from a secret
+via <code>SecretRef</code>.
+Using the controller pod&rsquo;s ServiceAccount token is not supported.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the Kubernetes authentication backend is mounted in OpenBao, e.g:
+&ldquo;kubernetes&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional service account field containing the name of a kubernetes ServiceAccount.
+If the service account is specified, the service account secret token JWT will be used
+for authenticating with OpenBao.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional secret field containing a Kubernetes ServiceAccount JWT used
+for authenticating with OpenBao. If a name is specified without a key,
+<code>token</code> is the default.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>A required field containing the OpenBao Role to assume. A Role binds a
+Kubernetes ServiceAccount with a set of OpenBao policies.</p>
+</td>
+</tr>
+</tbody>
 </table>
 <h3 id="external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider
 </h3>

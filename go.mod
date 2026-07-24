@@ -302,6 +302,7 @@ require (
 	github.com/ngrok/ngrok-api-go/v9 v9.0.0 // indirect
 	github.com/oapi-codegen/runtime v1.1.2 // indirect
 	github.com/openbao/openbao/api/auth/approle/v2 v2.5.1 // indirect
+	github.com/openbao/openbao/api/auth/kubernetes/v2 v2.5.1 // indirect
 	github.com/openbao/openbao/api/auth/userpass/v2 v2.5.1 // indirect
 	github.com/openbao/openbao/api/v2 v2.5.1-0.20260603121413-a08669ff09ec // indirect
 	github.com/ovh/okms-sdk-go v0.5.1 // indirect

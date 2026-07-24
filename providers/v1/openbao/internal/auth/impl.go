@@ -18,6 +18,7 @@ package auth
 
 import (
 	"github.com/openbao/openbao/api/auth/approle/v2"
+	"github.com/openbao/openbao/api/auth/kubernetes/v2"
 	"github.com/openbao/openbao/api/auth/userpass/v2"
 	"github.com/openbao/openbao/api/v2"
 )
@@ -36,6 +37,11 @@ func (authMethodFactory) UserPass(username, password, mount string) (api.AuthMet
 	return userpass.NewUserpassAuth(username, &userpass.Password{
 		FromString: password,
 	}, userpass.WithMountPath(mount))
+}
+
+// Kubernetes implements [Factory].
+func (authMethodFactory) Kubernetes(role, jwt, mount string) (api.AuthMethod, error) {
+	return kubernetes.NewKubernetesAuth(role, kubernetes.WithServiceAccountToken(jwt), kubernetes.WithMountPath(mount))
 }
 
 // DefaultAuthMethodFactory implements [Factory].
