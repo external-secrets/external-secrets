@@ -263,8 +263,8 @@ func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config, nam
 		return nil, fmt.Errorf(errVaultClient, err)
 	}
 
-	if useCache && !clientCache.Contains(key) {
-		clientCache.Add(store.GetObjectMeta().ResourceVersion, key, client)
+	if useCache {
+		clientCache.ContainsOrAdd(store.GetObjectMeta().ResourceVersion, key, client)
 	}
 	return client, nil
 }
