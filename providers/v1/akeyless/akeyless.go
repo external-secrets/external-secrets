@@ -134,7 +134,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	p.clientCache.Add(store.GetObjectMeta().ResourceVersion, key, client)
+	p.clientCache.ContainsOrAdd(store.GetObjectMeta().ResourceVersion, key, client)
 	return client, nil
 }
 
