@@ -442,13 +442,13 @@ By using the `folderId:<id>/<name>` format (e.g., `folderId:73/my-secret`), the 
 encoded directly in the key and is available to **all** operations, ensuring consistent behavior.
 
 **Precedence rule:** If both a `folderId` in the `remoteKey` and a `folderId` in the metadata are
-specified, the value from the `remoteKey` takes precedence for lookups. The metadata `folderId` and
-`secretTemplateId` are still required when **creating** a new secret (they tell the API which folder
-and template to use for the new secret).
+specified, the value from the `remoteKey` takes precedence for lookups. The metadata `folderId`,
+`secretTemplateId`, and `siteId` are still required when **creating** a new secret (they tell the API
+which folder, template, and site to use for the new secret).
 
 ### Requirements for Creating New Secrets
 
-When creating a **new** secret in Secret Server, you must provide a `folderId` and a `secretTemplateId`. These are passed as `metadata` in the `PushSecret` spec:
+When creating a **new** secret in Secret Server, you must provide a `folderId`, `secretTemplateId`, and `siteId`. These are passed as `metadata` in the `PushSecret` spec:
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
@@ -475,6 +475,7 @@ spec:
         spec:
           folderId: 73 # Required for new secrets: folder to create the secret in
           secretTemplateId: 6098 # Required for new secrets: template to use
+          siteId: 1 # Required for new secrets: site where the secret is located
     - match:
         secretKey: password
         remoteRef:
@@ -486,15 +487,16 @@ spec:
         spec:
           folderId: 73
           secretTemplateId: 6098
+          siteId: 1
 ```
 
 > **Note:** The `folderId` in the `remoteKey` (`folderId:73/...`) is used when **looking up** the
-> secret (for push, delete, and existence checks). The `folderId` and `secretTemplateId` in
-> `metadata` are used when **creating** a new secret via the Secret Server API.
+> secret (for push, delete, and existence checks). The `folderId`, `secretTemplateId`, and `siteId`
+> in `metadata` are used when **creating** a new secret via the Secret Server API.
 
 ### Updating Existing Secrets
 
-When updating an existing secret, you do not strictly need the `folderId` or `secretTemplateId` metadata, as the provider will fetch the existing secret by its name or ID to update the corresponding fields.
+When updating an existing secret, you do not strictly need the `folderId`, `secretTemplateId`, or `siteId` metadata, as the provider will fetch the existing secret by its name or ID to update the corresponding fields.
 
 However, if multiple secrets share the same name across different folders, you should use either the
 `folderId:<id>/<name>` format, a path-based key, or a numeric ID to ensure the correct secret is
@@ -544,4 +546,5 @@ spec:
         spec:
           folderId: 73
           secretTemplateId: 6098
+          siteId: 1
 ```
