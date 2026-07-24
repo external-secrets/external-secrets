@@ -181,6 +181,23 @@ createOperator: true
 # -- if true, HTTP2 will be enabled for the services created by all controllers, curently metrics and webhook.
 enableHTTP2: false
 
+# -- TLS security profile settings applied to all controller, webhook, and certController deployments.
+# These can be overridden per-component via webhook.tls and certController.tls.
+tls:
+  # -- Minimum TLS version supported (e.g. "1.2" or "1.3"). Default: "1.2".
+  # +docs:property
+  minVersion: "1.2"
+
+  # -- Comma-separated list of TLS cipher suites (TLS_CIPHER_SUITE names).
+  # Does not apply to TLS 1.3. If empty, Go defaults apply.
+  # +docs:property
+  ciphers: ""
+
+  # -- Ordered list of TLS key exchange curves (e.g. X25519, CurveP256, or decimal CurveID).
+  # If empty, Go defaults apply.
+  # +docs:property
+  curvePreferences: []
+
 # -- Vault token cache configuration
 vault:
   # -- Enable Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.
@@ -506,6 +523,22 @@ webhook:
   revisionHistoryLimit: 10
 
   certDir: /tmp/certs
+
+  # -- Webhook-specific TLS security profile overrides.
+  # When set, these override the global tls.* values for the webhook deployment.
+  tls:
+    # -- Minimum TLS version supported (e.g. "1.2" or "1.3"). If empty, the global tls.minVersion is used.
+    # +docs:property
+    minVersion: ""
+
+    # -- Comma-separated list of TLS cipher suites. If empty, the global tls.ciphers is used.
+    # +docs:property
+    ciphers: ""
+
+    # -- Ordered list of TLS key exchange curves. If empty, the global tls.curvePreferences is used.
+    # +docs:property
+    curvePreferences: []
+
   # -- Specifies whether validating webhooks should be created with failurePolicy: Fail or Ignore
   failurePolicy: Fail
   # -- Specifies if webhook pod should use hostNetwork or not.
@@ -771,6 +804,21 @@ certController:
     timeEncoding: epoch
   # -- Specifies the amount of historic ReplicaSets k8s should keep (see https://kubernetes.io/docs/concepts/workloads/controllers/deployment/#clean-up-policy)
   revisionHistoryLimit: 10
+
+  # -- CertController-specific TLS security profile overrides.
+  # When set, these override the global tls.* values for the cert-controller deployment.
+  tls:
+    # -- Minimum TLS version supported (e.g. "1.2" or "1.3"). If empty, the global tls.minVersion is used.
+    # +docs:property
+    minVersion: ""
+
+    # -- Comma-separated list of TLS cipher suites. If empty, the global tls.ciphers is used.
+    # +docs:property
+    ciphers: ""
+
+    # -- Ordered list of TLS key exchange curves. If empty, the global tls.curvePreferences is used.
+    # +docs:property
+    curvePreferences: []
 
   image:
     repository: ghcr.io/external-secrets/external-secrets

@@ -98,33 +98,12 @@ var webhookCmd = &cobra.Command{
 			}
 		}(c, dnsName, certCheckInterval)
 
-		cipherList, err := getTLSCipherSuitesIDs(tlsCiphers)
+		webhookTLSOpts, err := buildTLSConfigFuncs(tlsCiphers, tlsMinVersion, tlsCurvePreferences, enableHTTP2)
 		if err != nil {
-			ctrl.Log.Error(err, "unable to fetch tls ciphers")
+			setupLog.Error(err, "unable to configure TLS for webhook server")
 			os.Exit(1)
 		}
 
-		// Configure TLS options for webhook server
-		var webhookTLSOpts []func(*tls.Config)
-
-		// Add cipher configuration if needed
-		if len(cipherList) > 0 {
-			webhookTLSOpts = append(webhookTLSOpts, func(cfg *tls.Config) {
-				cfg.CipherSuites = cipherList
-			})
-		}
-
-		// Add TLS version configuration
-		webhookTLSOpts = append(webhookTLSOpts, func(c *tls.Config) {
-			c.MinVersion = tlsVersion(tlsMinVersion)
-		})
-
-		// Add HTTP/2 disabling if needed
-		if !enableHTTP2 {
-			webhookTLSOpts = append(webhookTLSOpts, disableHTTP2)
-		}
-
-		// Configure metrics server options
 		metricsServerOpts := server.Options{
 			BindAddress: metricsAddr,
 		}
@@ -144,10 +123,10 @@ var webhookCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Configure TLS options for metrics server
-		var metricsTLSOpts []func(*tls.Config)
-		if !enableHTTP2 {
-			metricsTLSOpts = append(metricsTLSOpts, disableHTTP2)
+		metricsTLSOpts, err := buildTLSConfigFuncs(tlsCiphers, tlsMinVersion, tlsCurvePreferences, enableHTTP2)
+		if err != nil {
+			setupLog.Error(err, "unable to configure TLS for webhook metrics server")
+			os.Exit(1)
 		}
 		metricsServerOpts.TLSOpts = metricsTLSOpts
 
@@ -283,6 +262,10 @@ func init() {
 		" Full lists of available ciphers can be found at https://pkg.go.dev/crypto/tls#pkg-constants."+
 		" E.g. 'TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256'")
 	webhookCmd.Flags().StringVar(&tlsMinVersion, "tls-min-version", "1.2", "minimum version of TLS supported.")
+	webhookCmd.Flags().StringSliceVar(&tlsCurvePreferences, "tls-curve-preferences", nil,
+		"ordered list of TLS key exchange curves for the webhook and metrics servers "+
+			"(for example X25519,CurveP256, or decimal tls.CurveID values supported by this Go toolchain). "+
+			"If omitted, Go defaults are used.")
 	webhookCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook server")
 }
