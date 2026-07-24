@@ -48,10 +48,21 @@ func (s *HelmServer) Setup(config *Config) error {
 		return err
 	}
 
-	// nolint:gosec
-	cmd := exec.Command("helm", "package", s.ChartDir, "--version", s.ChartRevision)
-	cmd.Dir = s.serveDir
+	// The chart's charts/ subchart tarballs are gitignored, so a fresh
+	// checkout packages an empty charts/ and `helm package` fails with
+	// "missing in charts/ directory". Build deps from the committed
+	// Chart.lock first so this addon is self-contained: a suite that uses
+	// only HelmServer (e.g. flux) has nothing else to populate charts/.
+	cmd := exec.Command("helm", "dependency", "build", s.ChartDir)
 	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("unable to build helm chart dependencies: %w %s", err, string(out))
+	}
+
+	// nolint:gosec
+	cmd = exec.Command("helm", "package", s.ChartDir, "--version", s.ChartRevision)
+	cmd.Dir = s.serveDir
+	out, err = cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("unable to package helm chart: %w %s", err, string(out))
 	}
