@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
@@ -35,14 +36,11 @@ var (
 	errEmptyUserName                 = errors.New("username must not be empty")
 	errEmptyPassword                 = errors.New("password must be set")
 	errEmptyServerURL                = errors.New("serverURL must be set")
-	errSecretRefAndValueConflict     = errors.New("cannot specify both secret reference and value")
-	errSecretRefAndValueMissing      = errors.New("must specify either secret reference or direct value")
 	errMissingStore                  = errors.New("missing store specification")
 	errInvalidSpec                   = errors.New("invalid specification for secret server provider")
 	errClusterStoreRequiresNamespace = errors.New("when using a ClusterSecretStore, namespaces must be explicitly set")
 	errMissingSecretName             = errors.New("must specify a secret name")
-
-	errMissingSecretKey = errors.New("must specify a secret key")
+	errMissingSecretKey              = errors.New("must specify a secret key")
 )
 
 // Provider struct that implements the ESO esv1.Provider.
@@ -65,22 +63,15 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		// we are not attached to a specific namespace, but some config values are dependent on it
 		return nil, errClusterStoreRequiresNamespace
 	}
-	username, err := loadConfigSecret(ctx, store.GetKind(), cfg.Username, kube, namespace)
-	if err != nil {
-		return nil, err
-	}
-	password, err := loadConfigSecret(ctx, store.GetKind(), cfg.Password, kube, namespace)
+
+	credentials, err := loadCredentials(ctx, store, cfg, kube, namespace)
 	if err != nil {
 		return nil, err
 	}
 
 	ssConfig := server.Configuration{
-		Credentials: server.UserCredential{
-			Username: username,
-			Password: password,
-			Domain:   cfg.Domain,
-		},
-		ServerURL: cfg.ServerURL,
+		Credentials: credentials,
+		ServerURL:   cfg.ServerURL,
 	}
 
 	if len(cfg.CABundle) > 0 || cfg.CAProvider != nil {
@@ -118,50 +109,82 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 
 func loadConfigSecret(
 	ctx context.Context,
-	storeKind string,
+	store esv1.GenericStore,
 	ref *esv1.SecretServerProviderRef,
 	kube kubeClient.Client,
 	namespace string) (string, error) {
 	if ref.SecretRef == nil {
 		return ref.Value, nil
 	}
-	if err := validateSecretRef(ref); err != nil {
+	if err := validateStoreSecretRef(store, ref); err != nil {
 		return "", err
 	}
-	return resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, ref.SecretRef)
+	return resolvers.SecretKeyRef(ctx, kube, store.GetKind(), namespace, ref.SecretRef)
 }
 
-func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.SecretServerProviderRef) error {
-	if ref.SecretRef != nil {
-		if err := esutils.ValidateReferentSecretSelector(store, *ref.SecretRef); err != nil {
+func loadCredentials(ctx context.Context, store esv1.GenericStore, cfg *esv1.SecretServerProvider, kube kubeClient.Client, namespace string) (server.UserCredential, error) {
+	if cfg.Token != nil {
+		token, err := loadConfigSecret(ctx, store, cfg.Token, kube, namespace)
+		if err != nil {
+			return server.UserCredential{}, err
+		}
+		return server.UserCredential{Token: token}, nil
+	}
+
+	username, err := loadConfigSecret(ctx, store, cfg.Username, kube, namespace)
+	if err != nil {
+		return server.UserCredential{}, err
+	}
+	password, err := loadConfigSecret(ctx, store, cfg.Password, kube, namespace)
+	if err != nil {
+		return server.UserCredential{}, err
+	}
+	return server.UserCredential{
+		Username: username,
+		Password: password,
+		Domain:   cfg.Domain,
+	}, nil
+}
+
+// secretServerCredentialRefPolicy returns the validation policy for Secret Server credential fields.
+func secretServerCredentialRefPolicy(store esv1.GenericStore) esutils.ValueOrRefPolicy[esmeta.SecretKeySelector] {
+	return esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
+		Presence:    esutils.RequireValueOrRef,
+		ValidateRef: validateSecretServerCredentialSecretRef(store),
+	}
+}
+
+// validateSecretServerCredentialSecretRef validates a Secret Server credential secret reference against the store scope.
+func validateSecretServerCredentialSecretRef(store esv1.GenericStore) func(esmeta.SecretKeySelector) error {
+	return func(ref esmeta.SecretKeySelector) error {
+		if err := esutils.ValidateReferentSecretSelector(store, ref); err != nil {
 			return err
 		}
-	}
-	return validateSecretRef(ref)
-}
-
-func validateSecretRef(ref *esv1.SecretServerProviderRef) error {
-	if ref.SecretRef != nil {
-		if ref.Value != "" {
-			return errSecretRefAndValueConflict
-		}
-		if ref.SecretRef.Name == "" {
+		if ref.Name == "" {
 			return errMissingSecretName
 		}
-		if ref.SecretRef.Key == "" {
+		if ref.Key == "" {
 			return errMissingSecretKey
 		}
-	} else if ref.Value == "" {
-		return errSecretRefAndValueMissing
+		return nil
 	}
-	return nil
+}
+
+// validateStoreSecretRef validates a Secret Server credential reference against the store scope.
+func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.SecretServerProviderRef) error {
+	return esutils.ValidateValueOrRef(ref.Value, ref.SecretRef, secretServerCredentialRefPolicy(store))
 }
 
 func doesConfigDependOnNamespace(cfg *esv1.SecretServerProvider) bool {
-	if cfg.Username.SecretRef != nil && cfg.Username.SecretRef.Namespace == nil {
+	// Mirror getConfig's precedence: when Token is set, username/password are
+	// ignored, so only the token ref can introduce a namespace dependency.
+	if cfg.Token != nil {
+		return cfg.Token.SecretRef != nil && cfg.Token.SecretRef.Namespace == nil
+	}
+	if cfg.Username != nil && cfg.Username.SecretRef != nil && cfg.Username.SecretRef.Namespace == nil {
 		return true
 	}
-	if cfg.Password.SecretRef != nil && cfg.Password.SecretRef.Namespace == nil {
+	if cfg.Password != nil && cfg.Password.SecretRef != nil && cfg.Password.SecretRef.Namespace == nil {
 		return true
 	}
 	return false
@@ -178,22 +201,29 @@ func getConfig(store esv1.GenericStore) (*esv1.SecretServerProvider, error) {
 	}
 	cfg := storeSpec.Provider.SecretServer
 
+	if cfg.ServerURL == "" {
+		return nil, errEmptyServerURL
+	}
+
+	// Token authentication takes precedence over username/password.
+	if cfg.Token != nil {
+		if err := validateStoreSecretRef(store, cfg.Token); err != nil {
+			return nil, err
+		}
+		return cfg, nil
+	}
+
 	if cfg.Username == nil {
 		return nil, errEmptyUserName
 	}
 	if cfg.Password == nil {
 		return nil, errEmptyPassword
 	}
-	if cfg.ServerURL == "" {
-		return nil, errEmptyServerURL
-	}
 
-	err := validateStoreSecretRef(store, cfg.Username)
-	if err != nil {
+	if err := validateStoreSecretRef(store, cfg.Username); err != nil {
 		return nil, err
 	}
-	err = validateStoreSecretRef(store, cfg.Password)
-	if err != nil {
+	if err := validateStoreSecretRef(store, cfg.Password); err != nil {
 		return nil, err
 	}
 	return cfg, nil

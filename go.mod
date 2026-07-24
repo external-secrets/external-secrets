@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets
 
-go 1.26.4
+go 1.26.5
 
 replace (
 	github.com/external-secrets/external-secrets/apis => ./apis
@@ -31,6 +31,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/chef => ./providers/v1/chef
 	github.com/external-secrets/external-secrets/providers/v1/cloudru => ./providers/v1/cloudru
 	github.com/external-secrets/external-secrets/providers/v1/conjur => ./providers/v1/conjur
+	github.com/external-secrets/external-secrets/providers/v1/crd => ./providers/v1/crd
 	github.com/external-secrets/external-secrets/providers/v1/delinea => ./providers/v1/delinea
 	github.com/external-secrets/external-secrets/providers/v1/doppler => ./providers/v1/doppler
 	github.com/external-secrets/external-secrets/providers/v1/dvls => ./providers/v1/dvls
@@ -105,7 +106,7 @@ require (
 	golang.org/x/oauth2 v0.36.0 // indirect
 	google.golang.org/api v0.267.0 // indirect
 	google.golang.org/genproto v0.0.0-20260128011058-8636f8732409 // indirect
-	google.golang.org/grpc v1.79.3 // indirect
+	google.golang.org/grpc v1.82.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	grpc.go4.org v0.0.0-20170609214715-11d0a25b4919 // indirect
 	k8s.io/api v0.35.2
@@ -148,6 +149,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/chef v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/cloudru v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/conjur v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/providers/v1/crd v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/delinea v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/doppler v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/dvls v0.0.0-00010101000000-000000000000
@@ -218,10 +220,12 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.13 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.13 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
+	github.com/aws/aws-sdk-go-v2/service/acm v1.37.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.51.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.38.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.13.13 // indirect
+	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.30.13 // indirect
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.12 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.67.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sso v1.30.2 // indirect
@@ -236,7 +240,7 @@ require (
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/cloudru-tech/iam-sdk v1.0.4 // indirect
 	github.com/cloudru-tech/secret-manager-sdk v1.1.1 // indirect
-	github.com/cyberark/conjur-api-go v0.13.8 // indirect
+	github.com/cyberark/conjur-api-go v0.14.1 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
 	github.com/dylibso/observe-sdk/go v0.0.0-20240828172851-9145d8ad07e1 // indirect
 	github.com/extism/go-sdk v1.7.1 // indirect
@@ -334,8 +338,8 @@ require (
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
 	golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f // indirect
 	golang.org/x/sync v0.21.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20260128011058-8636f8732409 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20260316180232-0b37fe3546d5 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260414002931-afd174a4e478 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260414002931-afd174a4e478 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/ghodss/yaml.v1 v1.0.0 // indirect
 	k8s.io/apiserver v0.35.2 // indirect

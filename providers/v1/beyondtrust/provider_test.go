@@ -1053,3 +1053,131 @@ func TestPushSecret_OwnerFieldsArePropagated(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateStore(t *testing.T) {
+	p := &Provider{}
+	validRef := &esv1.BeyondTrustProviderSecretRef{Value: "x"}
+
+	newStore := func(prov *esv1.BeyondtrustProvider) esv1.GenericStore {
+		return &esv1.SecretStore{Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{Beyondtrust: prov},
+		}}
+	}
+
+	tests := []struct {
+		name     string
+		store    esv1.GenericStore
+		wantErr  bool
+		wantWarn bool
+	}{
+		{
+			name: "api key auth validates without panicking",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Auth:   &esv1.BeyondtrustAuth{APIKey: validRef},
+			}),
+			wantErr: false,
+		},
+		{
+			name: "client id and secret auth validates",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Auth:   &esv1.BeyondtrustAuth{ClientID: validRef, ClientSecret: validRef},
+			}),
+			wantErr: false,
+		},
+		{
+			name: "empty api url is rejected",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: ""},
+				Auth:   &esv1.BeyondtrustAuth{APIKey: validRef},
+			}),
+			wantErr: true,
+		},
+		{
+			name: "missing server is rejected",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Auth: &esv1.BeyondtrustAuth{APIKey: validRef},
+			}),
+			wantErr: true,
+		},
+		{
+			name: "missing auth is rejected",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+			}),
+			wantErr: true,
+		},
+		{
+			name: "auth without any method is rejected",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Auth:   &esv1.BeyondtrustAuth{},
+			}),
+			wantErr: true,
+		},
+		{
+			name: "client id without client secret is rejected",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Auth:   &esv1.BeyondtrustAuth{ClientID: validRef},
+			}),
+			wantErr: true,
+		},
+		{
+			name: "auth ref without secretRef or value is rejected",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Auth:   &esv1.BeyondtrustAuth{APIKey: &esv1.BeyondTrustProviderSecretRef{}},
+			}),
+			wantErr: true,
+		},
+		{
+			name: "cross-namespace secretRef is rejected for a namespaced store",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Auth: &esv1.BeyondtrustAuth{APIKey: &esv1.BeyondTrustProviderSecretRef{
+					SecretRef: &esmeta.SecretKeySelector{
+						Name:      "creds",
+						Key:       "apikey",
+						Namespace: new("other-namespace"),
+					},
+				}},
+			}),
+			wantErr: true,
+		},
+		{
+			name: "certificate without key warns but validates",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Auth:   &esv1.BeyondtrustAuth{APIKey: validRef, Certificate: validRef},
+			}),
+			wantErr:  false,
+			wantWarn: true,
+		},
+		{
+			name: "complete certificate pair validates without warning",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Auth:   &esv1.BeyondtrustAuth{APIKey: validRef, Certificate: validRef, CertificateKey: validRef},
+			}),
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			warnings, err := p.ValidateStore(tt.store)
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			if tt.wantWarn {
+				require.NotEmpty(t, warnings)
+			} else {
+				require.Empty(t, warnings)
+			}
+		})
+	}
+}
