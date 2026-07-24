@@ -611,8 +611,16 @@ func (f *fakeLister) Create(ctx context.Context, params onepassword.ItemCreatePa
 	return onepassword.Item{}, nil
 }
 
+func (f *fakeLister) CreateAll(context.Context, string, []onepassword.ItemCreateParams) (onepassword.ItemsUpdateAllResponse, error) {
+	return onepassword.ItemsUpdateAllResponse{}, nil
+}
+
 func (f *fakeLister) Get(ctx context.Context, vaultID, itemID string) (onepassword.Item, error) {
 	return f.getResult, f.getErr
+}
+
+func (f *fakeLister) GetAll(context.Context, string, []string) (onepassword.ItemsGetAllResponse, error) {
+	return onepassword.ItemsGetAllResponse{}, nil
 }
 
 func (f *fakeLister) Put(ctx context.Context, item onepassword.Item) (onepassword.Item, error) {
@@ -624,6 +632,10 @@ func (f *fakeLister) Put(ctx context.Context, item onepassword.Item) (onepasswor
 func (f *fakeLister) Delete(ctx context.Context, vaultID, itemID string) error {
 	f.deleteCalled = true
 	return nil
+}
+
+func (f *fakeLister) DeleteAll(context.Context, string, []string) (onepassword.ItemsDeleteAllResponse, error) {
+	return onepassword.ItemsDeleteAllResponse{}, nil
 }
 
 func (f *fakeLister) Archive(ctx context.Context, vaultID, itemID string) error {
@@ -679,6 +691,10 @@ func (f *statefulFakeLister) Create(ctx context.Context, params onepassword.Item
 	return onepassword.Item{}, nil
 }
 
+func (f *statefulFakeLister) CreateAll(context.Context, string, []onepassword.ItemCreateParams) (onepassword.ItemsUpdateAllResponse, error) {
+	return onepassword.ItemsUpdateAllResponse{}, nil
+}
+
 func (f *statefulFakeLister) Get(ctx context.Context, vaultID, itemID string) (onepassword.Item, error) {
 	if f.deletedItems != nil && f.deletedItems[itemID] {
 		return onepassword.Item{}, fmt.Errorf("item not found")
@@ -687,6 +703,10 @@ func (f *statefulFakeLister) Get(ctx context.Context, vaultID, itemID string) (o
 		return item, nil
 	}
 	return onepassword.Item{}, fmt.Errorf("item not found")
+}
+
+func (f *statefulFakeLister) GetAll(context.Context, string, []string) (onepassword.ItemsGetAllResponse, error) {
+	return onepassword.ItemsGetAllResponse{}, nil
 }
 
 func (f *statefulFakeLister) Put(ctx context.Context, item onepassword.Item) (onepassword.Item, error) {
@@ -707,6 +727,10 @@ func (f *statefulFakeLister) Delete(ctx context.Context, vaultID, itemID string)
 	delete(f.items, itemID)
 	f.listAllResult = nil
 	return nil
+}
+
+func (f *statefulFakeLister) DeleteAll(context.Context, string, []string) (onepassword.ItemsDeleteAllResponse, error) {
+	return onepassword.ItemsDeleteAllResponse{}, nil
 }
 
 func (f *statefulFakeLister) Archive(ctx context.Context, vaultID, itemID string) error {
@@ -736,8 +760,40 @@ type fakeClient struct {
 	listAllError    error
 }
 
-func (f *fakeClient) List(ctx context.Context) ([]onepassword.VaultOverview, error) {
+func (f *fakeClient) Create(context.Context, onepassword.VaultCreateParams) (onepassword.Vault, error) {
+	return onepassword.Vault{}, nil
+}
+
+func (f *fakeClient) List(ctx context.Context, _ ...onepassword.VaultListParams) ([]onepassword.VaultOverview, error) {
 	return f.listAllResult, f.listAllError
+}
+
+func (f *fakeClient) GetOverview(context.Context, string) (onepassword.VaultOverview, error) {
+	return onepassword.VaultOverview{}, nil
+}
+
+func (f *fakeClient) Get(context.Context, string, onepassword.VaultGetParams) (onepassword.Vault, error) {
+	return onepassword.Vault{}, nil
+}
+
+func (f *fakeClient) Update(context.Context, string, onepassword.VaultUpdateParams) (onepassword.Vault, error) {
+	return onepassword.Vault{}, nil
+}
+
+func (f *fakeClient) Delete(context.Context, string) error {
+	return nil
+}
+
+func (f *fakeClient) GrantGroupPermissions(context.Context, string, []onepassword.GroupAccess) error {
+	return nil
+}
+
+func (f *fakeClient) UpdateGroupPermissions(context.Context, []onepassword.GroupVaultAccess) error {
+	return nil
+}
+
+func (f *fakeClient) RevokeGroupPermissions(context.Context, string, string) error {
+	return nil
 }
 
 func (f *fakeClient) Resolve(ctx context.Context, secretReference string) (string, error) {
