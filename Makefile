@@ -6,21 +6,6 @@ MAKEFLAGS     += --warn-undefined-variables
 .SHELLFLAGS   := -euo pipefail -c
 
 ARCH ?= amd64 arm64 ppc64le
-
-# Detect local architecture for e2e testing
-LOCAL_ARCH := $(shell uname -m)
-ifeq ($(LOCAL_ARCH),x86_64)
-	LOCAL_GOARCH := amd64
-else ifeq ($(LOCAL_ARCH),aarch64)
-	LOCAL_GOARCH := arm64
-else ifeq ($(LOCAL_ARCH),arm64)
-	LOCAL_GOARCH := arm64
-else ifeq ($(LOCAL_ARCH),ppc64le)
-	LOCAL_GOARCH := ppc64le
-else
-	LOCAL_GOARCH := amd64
-endif
-
 BUILD_ARGS ?= CGO_ENABLED=0
 DOCKER_BUILD_ARGS ?=
 DOCKERFILE ?= Dockerfile
@@ -112,7 +97,7 @@ proto: ## Generate protobuf code
 # ====================================================================================
 # Conformance
 
-reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt generate-providers verify-providers ## Ensure a PR is ready for review.
+reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
 	@for module in . e2e apis runtime $$(find providers/v1 generators/v1 providers/v2 -name go.mod -not -path '*/vendor/*' -exec dirname {} \; | sort); do \
 		(cd "$$module" && GOWORK=off go mod tidy); \
 	done
@@ -165,18 +150,6 @@ test.e2e.managed: generate ## Run e2e tests managed
 	@$(INFO) go test e2e-tests-managed
 	$(MAKE) -C ./e2e test.managed
 	@$(OK) go test e2e-tests-managed
-
-.PHONY: test.e2e.v2
-test.e2e.v2: generate ## Run V2 E2E tests
-	@$(INFO) go test v2 e2e-tests
-	$(MAKE) -C ./e2e test.v2
-	@$(OK) go test v2 e2e-tests
-
-.PHONY: test.e2e.v2.operational
-test.e2e.v2.operational: generate ## Run focused V2 operational E2E tests
-	@$(INFO) go test v2 operational e2e-tests
-	$(MAKE) -C ./e2e test.v2.operational
-	@$(OK) go test v2 operational e2e-tests
 
 .PHONY: test.crds
 test.crds: cty crds.generate.tests ## Test CRDs for modification and backwards compatibility
@@ -240,21 +213,6 @@ lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific mod
 generate: ## Generate code and crds
 	@./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
-
-generate-providers: ## Generate provider main.go and Dockerfile files from provider.yaml configs
-	@$(INFO) Generating provider files
-	@cd providers/v2/hack && go run generate-provider-main.go -providers-dir=..
-	@$(OK) Generated provider files
-
-verify-providers: ## Verify that provider files are up to date
-	@$(INFO) Verifying provider files are up to date
-	@cd providers/v2/hack && go run generate-provider-main.go -providers-dir=.. -dry-run
-	@if ! git diff --quiet providers/v2/*/main.go providers/v2/*/Dockerfile 2>/dev/null; then \
-		echo "Provider files are out of date. Run 'make generate-providers' to update them."; \
-		git diff providers/v2/*/main.go providers/v2/*/Dockerfile; \
-		exit 1; \
-	fi
-	@$(OK) Provider files are up to date
 
 # ====================================================================================
 # Local Utility
@@ -395,9 +353,6 @@ docker.tag:  ## Emit IMAGE_TAG
 .PHONY: docker.build
 docker.build: docker.build.controller docker.build.providers ## Build all docker images (controller + providers)
 
-.PHONY: docker.build.e2e
-docker.build.e2e: docker.build.controller.e2e ## Build docker images for local e2e testing (local arch only)
-
 .PHONY: docker.build.controller
 docker.build.controller: $(addprefix build-,$(ARCH)) ## Build the controller docker image
 	@$(INFO) $(DOCKER) build controller
@@ -405,35 +360,8 @@ docker.build.controller: $(addprefix build-,$(ARCH)) ## Build the controller doc
 	@DOCKER_BUILDKIT=1 $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
 	@$(OK) $(DOCKER) build controller
 
-.PHONY: docker.build.controller.e2e
-docker.build.controller.e2e: build-$(LOCAL_GOARCH) ## Build the controller docker image for local arch only
-	@$(INFO) $(DOCKER) build controller for $(LOCAL_GOARCH)
-	@echo $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
-	@DOCKER_BUILDKIT=1 $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
-	@$(OK) $(DOCKER) build controller for $(LOCAL_GOARCH)
-
 .PHONY: docker.build.providers
-docker.build.providers: docker.build.provider.kubernetes docker.build.provider.aws docker.build.provider.fake ## Build all provider images
-
-.PHONY: docker.build.provider.kubernetes
-docker.build.provider.kubernetes: ## Build Kubernetes provider image
-	@$(INFO) $(DOCKER) build kubernetes provider
-	@DOCKER_BUILDKIT=1 $(DOCKER) build \
-		-f providers/v2/kubernetes/Dockerfile \
-		. \
-		$(DOCKER_BUILD_ARGS) \
-		-t $(IMAGE_REGISTRY)/external-secrets/provider-kubernetes:$(IMAGE_TAG)
-	@$(OK) $(DOCKER) build kubernetes provider
-
-.PHONY: docker.build.provider.aws
-docker.build.provider.aws: ## Build AWS provider image
-	@$(INFO) $(DOCKER) build AWS provider
-	@DOCKER_BUILDKIT=1 $(DOCKER) build \
-		-f providers/v2/aws/Dockerfile \
-		. \
-		$(DOCKER_BUILD_ARGS) \
-		-t $(IMAGE_REGISTRY)/external-secrets/provider-aws:$(IMAGE_TAG)
-	@$(OK) $(DOCKER) build AWS provider
+docker.build.providers: docker.build.provider.fake ## Build all provider images
 
 .PHONY: docker.build.provider.fake
 docker.build.provider.fake: ## Build Fake provider image
@@ -455,19 +383,7 @@ docker.push.controller: ## Push the controller docker image to the registry
 	@$(OK) $(DOCKER) push controller
 
 .PHONY: docker.push.providers
-docker.push.providers: docker.push.provider.kubernetes docker.push.provider.aws docker.push.provider.fake ## Push all provider images
-
-.PHONY: docker.push.provider.kubernetes
-docker.push.provider.kubernetes: ## Push Kubernetes provider image
-	@$(INFO) $(DOCKER) push kubernetes provider
-	@$(DOCKER) push $(IMAGE_REGISTRY)/external-secrets/provider-kubernetes:$(IMAGE_TAG)
-	@$(OK) $(DOCKER) push kubernetes provider
-
-.PHONY: docker.push.provider.aws
-docker.push.provider.aws: ## Push AWS provider image
-	@$(INFO) $(DOCKER) push AWS provider
-	@$(DOCKER) push $(IMAGE_REGISTRY)/external-secrets/provider-aws:$(IMAGE_TAG)
-	@$(OK) $(DOCKER) push AWS provider
+docker.push.providers: docker.push.provider.fake ## Push all provider images
 
 .PHONY: docker.push.provider.fake
 docker.push.provider.fake: ## Push Fake provider image

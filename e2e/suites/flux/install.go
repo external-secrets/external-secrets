@@ -22,12 +22,13 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/external-secrets/external-secrets-e2e/framework/addon"
-
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
+
 	// nolint
 	. "github.com/onsi/gomega"
+
+	"github.com/external-secrets/external-secrets-e2e/framework/addon"
 )
 
 const (

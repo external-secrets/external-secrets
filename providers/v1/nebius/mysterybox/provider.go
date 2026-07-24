@@ -289,7 +289,7 @@ func (p *Provider) initTokenGetter() error {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.ProviderInterface {
+func NewProvider() esv1.Provider {
 	return &Provider{
 		Logger:              log,
 		NewMysteryboxClient: newMysteryboxClient,

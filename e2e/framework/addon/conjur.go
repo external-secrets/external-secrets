@@ -27,13 +27,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cyberark/conjur-api-go/conjurapi"
-	"github.com/cyberark/conjur-api-go/conjurapi/authn"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/external-secrets/external-secrets-e2e/framework/util"
+	// nolint
 
 	. "github.com/onsi/ginkgo/v2"
+
+	"github.com/cyberark/conjur-api-go/conjurapi"
+	"github.com/cyberark/conjur-api-go/conjurapi/authn"
+	"github.com/external-secrets/external-secrets-e2e/framework/util"
 )
 
 type Conjur struct {

@@ -38,9 +38,9 @@ var (
 	log           = ctrl.Log.WithName("provider").WithName("scaleway")
 )
 
-var _ esv1.ProviderInterface = &Provider{}
+var _ esv1.Provider = &Provider{}
 
-// Provider is a Scaleway provider implementation that satisfies the esv1.ProviderInterface interface.
+// Provider is a Scaleway provider implementation that satisfies the esv1.Provider interface.
 type Provider struct{}
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
@@ -174,7 +174,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.ProviderInterface {
+func NewProvider() esv1.Provider {
 	return &Provider{}
 }
 

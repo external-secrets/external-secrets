@@ -62,11 +62,9 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/volcengine => ./providers/v1/volcengine
 	github.com/external-secrets/external-secrets/providers/v1/webhook => ./providers/v1/webhook
 	github.com/external-secrets/external-secrets/providers/v1/yandex => ./providers/v1/yandex
-	github.com/external-secrets/external-secrets/providers/v2 => ./providers/v2
 	github.com/external-secrets/external-secrets/providers/v2/adapter => ./providers/v2/adapter
 	github.com/external-secrets/external-secrets/providers/v2/adapter/generator => ./providers/v2/adapter/generator
 	github.com/external-secrets/external-secrets/providers/v2/adapter/store => ./providers/v2/adapter/store
-	github.com/external-secrets/external-secrets/providers/v2/aws => ./providers/v2/aws
 	github.com/external-secrets/external-secrets/providers/v2/common => ./providers/v2/common
 	github.com/external-secrets/external-secrets/providers/v2/fake => ./providers/v2/fake
 	github.com/external-secrets/external-secrets/runtime => ./runtime
@@ -145,6 +143,7 @@ require (
 	github.com/external-secrets/external-secrets/generators/v1/acr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/beyondtrustworkloadcredentials v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/cloudsmith v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/ecr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/gcr v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/github v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/grafana v0.0.0-00010101000000-000000000000
@@ -152,6 +151,7 @@ require (
 	github.com/external-secrets/external-secrets/generators/v1/password v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/quay v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/sshkey v0.0.0-00010101000000-000000000000
+	github.com/external-secrets/external-secrets/generators/v1/sts v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/uuid v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/vault v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/generators/v1/webhook v0.0.0-00010101000000-000000000000
@@ -170,7 +170,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/dvls v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/fake v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/fortanix v0.0.0-00010101000000-000000000000
-	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-20260608131842-6c144f4bcfc4
+	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-20251104073127-4d2c8fd13e10
 	github.com/external-secrets/external-secrets/providers/v1/github v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/gitlab v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/ibm v0.0.0-00010101000000-000000000000
@@ -222,7 +222,6 @@ require (
 )
 
 require (
-	github.com/external-secrets/external-secrets/providers/v2/aws v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v2/common v0.0.0
 	github.com/external-secrets/external-secrets/providers/v2/fake v0.0.0-00010101000000-000000000000
 )

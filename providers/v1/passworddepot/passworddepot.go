@@ -199,7 +199,7 @@ func (p *PasswordDepot) Close(_ context.Context) error {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.ProviderInterface {
+func NewProvider() esv1.Provider {
 	return &PasswordDepot{}
 }
 

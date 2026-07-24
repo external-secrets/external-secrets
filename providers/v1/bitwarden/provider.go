@@ -42,7 +42,7 @@ type Provider struct {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.ProviderInterface {
+func NewProvider() esv1.Provider {
 	return &Provider{}
 }
 

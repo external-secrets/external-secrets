@@ -17,12 +17,13 @@ limitations under the License.
 package flux
 
 import (
-	"github.com/external-secrets/external-secrets-e2e/framework"
-	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
-	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/fake"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
+
+	"github.com/external-secrets/external-secrets-e2e/framework"
+	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
+	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/fake"
 )
 
 var _ = Describe("flux", Label("flux"), func() {

@@ -654,7 +654,7 @@ func TestCapabilities(t *testing.T) {
 // TestNewProvider tests the NewProvider function.
 func TestNewProvider(t *testing.T) {
 	tests := map[string]struct {
-		want esv1.ProviderInterface
+		want esv1.Provider
 	}{
 		"creates a new provider instance": {
 			want: &Provider{},

@@ -34,7 +34,6 @@ import (
 	b64 "encoding/base64"
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
@@ -51,7 +50,6 @@ type mockAuthTestPackage struct {
 	MockServer mockAuthTestServer
 	Request    mockAuthRequest
 	Expect     string
-	PrefixOnly bool
 }
 
 type mockCreds struct {
@@ -72,15 +70,15 @@ func TestWebhookAuth(t *testing.T) {
 	// define test cases
 	creds := mockCreds{"correctuser123", "correctpassword123"}
 	basicAuthExpect := "Basic " + b64.StdEncoding.EncodeToString([]byte(creds.UserName+":"+creds.Password))
-	ntlmExpect := "NTLM TlRMTVNTUAABAAAA"
-	negotiateExpect := "Negotiate TlRMTVNTUAABAAAA"
+	ntlmExpect := "NTLM TlRMTVNTUAABAAAAAQCIoAAAAAAoAAAAAAAAACgAAAAGAbEdAAAADw=="
+	negotiateExpect := "Negotiate TlRMTVNTUAABAAAAAQCIoAAAAAAoAAAAAAAAACgAAAAGAbEdAAAADw=="
 
 	// due to integrated nature of GetSecret(), we use a mock server
 	// to return relevant parts of a request, in this case, the auth header.
 	testAuthHeaders := map[string]mockAuthTestPackage{
-		"BasicAuth": {Creds: creds, MockServer: basicAuthRequestEcho, Request: basicAuthRequest, Expect: basicAuthExpect},
-		"NTLM":      {Creds: creds, MockServer: ntlmRequestEcho, Request: ntlmRequest, Expect: ntlmExpect, PrefixOnly: true},
-		"Negotiate": {Creds: creds, MockServer: negotiateRequestEcho, Request: ntlmRequest, Expect: negotiateExpect, PrefixOnly: true},
+		"BasicAuth": {creds, basicAuthRequestEcho, basicAuthRequest, basicAuthExpect},
+		"NTLM":      {creds, ntlmRequestEcho, ntlmRequest, ntlmExpect},
+		"Negotiate": {creds, negotiateRequestEcho, ntlmRequest, negotiateExpect},
 	}
 
 	// execute test cases
@@ -89,7 +87,7 @@ func TestWebhookAuth(t *testing.T) {
 		result := p.Request(server.URL, creds, t)
 		server.Close()
 		expect := p.Expect
-		if (!p.PrefixOnly && result != expect) || (p.PrefixOnly && !strings.HasPrefix(result, expect)) {
+		if result != expect {
 			t.Errorf("Test failed. Result: '%s' / Expected:  '%s'", result, expect)
 		}
 	}

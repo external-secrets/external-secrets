@@ -20,9 +20,8 @@ import (
 	"encoding/json"
 
 	"github.com/DelineaXPM/dsv-sdk-go/v2/vault"
-	"github.com/onsi/gomega"
-
 	"github.com/external-secrets/external-secrets-e2e/framework"
+	"github.com/onsi/gomega"
 )
 
 type secretStoreProvider struct {

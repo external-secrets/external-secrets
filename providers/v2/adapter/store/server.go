@@ -47,7 +47,7 @@ type Server struct {
 }
 
 // ProviderMapping maps Kubernetes resources to their provider implementations.
-type ProviderMapping map[schema.GroupVersionKind]esv1.ProviderInterface
+type ProviderMapping map[schema.GroupVersionKind]esv1.Provider
 
 // SpecMapper maps a provider reference to a SecretStoreSpec.
 // This is used to create a synthetic store for the v1 provider.
@@ -64,7 +64,7 @@ func NewServer(kubeClient client.Client, resourceMapping ProviderMapping, specMa
 	}
 }
 
-func (s *Server) resolveProvider(ref *pb.ProviderReference) (esv1.ProviderInterface, error) {
+func (s *Server) resolveProvider(ref *pb.ProviderReference) (esv1.Provider, error) {
 	if ref == nil {
 		return nil, fmt.Errorf("provider reference is nil")
 	}

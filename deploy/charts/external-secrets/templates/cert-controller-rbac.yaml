@@ -85,17 +85,6 @@ rules:
     verbs:
     - "update"
     - "patch"
-  {{- if and .Values.v2.enabled .Values.providers.enabled }}
-  - apiGroups:
-    - ""
-    resources:
-    - "secrets"
-    resourceNames:
-    - "external-secrets-provider-tls"
-    verbs:
-    - "update"
-    - "patch"
-  {{- end }}
   - apiGroups:
     - "coordination.k8s.io"
     resources:

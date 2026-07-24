@@ -28,7 +28,7 @@ import (
 
 // ValidationProvider is a simple provider that we can use without cyclic import.
 type ValidationProvider struct {
-	ProviderInterface
+	Provider
 }
 
 func (v *ValidationProvider) ValidateStore(_ GenericStore) (admission.Warnings, error) {

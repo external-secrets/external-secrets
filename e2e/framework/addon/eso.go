@@ -208,32 +208,13 @@ func WithAllowGenericTargets() MutationFunc {
 }
 
 func (l *ESO) Install() error {
-	restoreInstallCRDs := false
-	if needsCRDPreinstall(l.HelmChart) {
-		By("Pre-installing eso CRDs")
-		if err := installCRDs(l.config); err != nil {
-			return err
-		}
-		setOrAppendVar(l.HelmChart, StringTuple{
-			Key:   installCRDsVar,
-			Value: "false",
-		})
-		restoreInstallCRDs = true
-	}
-	if restoreInstallCRDs {
-		defer setOrAppendVar(l.HelmChart, StringTuple{
-			Key:   installCRDsVar,
-			Value: "true",
-		})
-	}
-
 	By("Installing eso\n")
 	err := l.HelmChart.Install()
 	if err != nil {
 		return err
 	}
 
-	return waitForExternalSecretWebhookReady(webhookServiceName(l.ReleaseName), l.Namespace)
+	return nil
 }
 
 func (l *ESO) Uninstall() error {
@@ -256,16 +237,4 @@ func (l *ESO) Uninstall() error {
 		return err
 	}
 	return nil
-}
-
-func needsCRDPreinstall(chart *HelmChart) bool {
-	if !chart.HasVar(installCRDsVar, "true") {
-		return false
-	}
-	for _, variable := range chart.Vars {
-		if variable.Key == "crds.createClusterProviderClass" {
-			return variable.Value == "true"
-		}
-	}
-	return true
 }

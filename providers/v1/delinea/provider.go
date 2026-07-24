@@ -45,7 +45,7 @@ var (
 // Provider implements the External Secrets provider for Delinea Secret Server.
 type Provider struct{}
 
-var _ esv1.ProviderInterface = &Provider{}
+var _ esv1.Provider = &Provider{}
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
@@ -190,7 +190,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.ProviderInterface {
+func NewProvider() esv1.Provider {
 	return &Provider{}
 }
 

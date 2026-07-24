@@ -77,7 +77,7 @@ type ClientScope struct {
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &Provider{}
-var _ esv1.ProviderInterface = &Provider{}
+var _ esv1.Provider = &Provider{}
 
 // Capabilities returns the provider's supported capabilities.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
@@ -648,7 +648,7 @@ func validateUniversalAuth(store esv1.GenericStore, spec *esv1.InfisicalProvider
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.ProviderInterface {
+func NewProvider() esv1.Provider {
 	return &Provider{}
 }
 

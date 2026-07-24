@@ -104,8 +104,8 @@ type PushSecretMetadataSpec struct {
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var (
-	_ esv1.SecretsClient     = &ProviderOnePassword{}
-	_ esv1.ProviderInterface = &ProviderOnePassword{}
+	_ esv1.SecretsClient = &ProviderOnePassword{}
+	_ esv1.Provider      = &ProviderOnePassword{}
 )
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
@@ -823,7 +823,7 @@ func hasUniqueVaultNumbers(vaults map[string]int) bool {
 }
 
 // NewProvider creates a new Provider instance.
-func NewProvider() esv1.ProviderInterface {
+func NewProvider() esv1.Provider {
 	return &ProviderOnePassword{}
 }
 

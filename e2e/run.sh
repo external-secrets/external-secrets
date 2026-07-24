@@ -23,44 +23,29 @@ fi
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
-KUBECTL_CONTEXT="${KUBECTL_CONTEXT:-kind-external-secrets}"
-if kubectl config get-contexts "${KUBECTL_CONTEXT}" >/dev/null 2>&1; then
-  KUBECTL=(kubectl --context "${KUBECTL_CONTEXT}")
-else
-  echo "warning: kubectl context ${KUBECTL_CONTEXT} not found, using current context"
-  KUBECTL=(kubectl)
-fi
-
-go_clean_best_effort() {
-  local target="$1"
-  if ! go clean "${target}"; then
-    echo "warning: unable to clean ${target}; continuing"
-  fi
-}
-
 echo "Kubernetes cluster:"
-"${KUBECTL[@]}" get nodes -o wide
+kubectl get nodes -o wide
 
 echo -e "Granting permissions to e2e service account..."
-"${KUBECTL[@]}" create serviceaccount external-secrets-e2e || true
-"${KUBECTL[@]}" create clusterrolebinding permissive-binding \
+kubectl create serviceaccount external-secrets-e2e || true
+kubectl create clusterrolebinding permissive-binding \
   --clusterrole=cluster-admin \
   --user=admin \
   --user=kubelet \
   --serviceaccount=default:external-secrets-e2e || true
 
 echo -e "Granting anonymous access to service account issuer discovery"
-"${KUBECTL[@]}" create clusterrolebinding service-account-issuer-discovery-binding \
+kubectl create clusterrolebinding service-account-issuer-discovery-binding \
   --clusterrole=system:service-account-issuer-discovery \
   --group=system:unauthenticated || true
 
 echo -e "Cleaning cache before running tests"
 docker system prune --force
-go_clean_best_effort -cache
-go_clean_best_effort -modcache
+go clean -cache
+go clean -modcache
 
 echo -e "Starting the e2e test pod ${E2E_IMAGE_NAME}:${VERSION}"
-"${KUBECTL[@]}" run --rm \
+kubectl run --rm \
   --attach \
   --restart=Never \
   --pod-running-timeout=5m \
@@ -108,8 +93,6 @@ echo -e "Starting the e2e test pod ${E2E_IMAGE_NAME}:${VERSION}"
   --env="SECRETSERVER_URL=${SECRETSERVER_URL:-}" \
   --env="GRAFANA_URL=${GRAFANA_URL:-}" \
   --env="GRAFANA_TOKEN=${GRAFANA_TOKEN:-}" \
-  --env="E2E_SKIP_HELM_DEPENDENCY_UPDATE=${E2E_SKIP_HELM_DEPENDENCY_UPDATE:-}" \
-  --env="E2E_PROVIDER_MODE=${E2E_PROVIDER_MODE:-}" \
   --env="VERSION=${VERSION}" \
   --env="TEST_SUITES=${TEST_SUITES}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \

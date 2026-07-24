@@ -17,8 +17,6 @@ rules:
   - apiGroups:
     - "provider.external-secrets.io"
     resources:
-    - "kubernetes"
-    - "awssecretsmanagers"
     - "fakes"
     verbs:
     - "get"
@@ -279,10 +277,6 @@ rules:
     resources:
       - "externalsecrets"
       - "secretstores"
-      {{- if .Values.v2.enabled }}
-      - "providers"
-      - "clusterproviders"
-      {{- end }}
       {{- if .Values.processClusterStore }}
       - "clustersecretstores"
       {{- end }}
@@ -346,10 +340,6 @@ rules:
     resources:
       - "externalsecrets"
       - "secretstores"
-      {{- if .Values.v2.enabled }}
-      - "providers"
-      - "clusterproviders"
-      {{- end }}
       {{- if .Values.processClusterStore }}
       - "clustersecretstores"
       {{- end }}
