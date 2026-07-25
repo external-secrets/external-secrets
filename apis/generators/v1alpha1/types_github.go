@@ -23,8 +23,8 @@ import (
 )
 
 // GithubAccessTokenSpec defines the desired state to generate a GitHub access token.
-// +kubebuilder:validation:XValidation:rule="has(self.appID) != has(self.appIDRef)",message="exactly one of appID or appIDRef must be set"
-// +kubebuilder:validation:XValidation:rule="has(self.installID) != has(self.installIDRef)",message="exactly one of installID or installIDRef must be set"
+// +kubebuilder:validation:ExactlyOneOf=appID;appIDRef
+// +kubebuilder:validation:ExactlyOneOf=installID;installIDRef
 type GithubAccessTokenSpec struct {
 	// URL configures the GitHub instance URL. Defaults to https://github.com/.
 	URL string `json:"url,omitempty"`

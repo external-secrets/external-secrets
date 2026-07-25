@@ -28081,10 +28081,10 @@ spec:
                         - auth
                       type: object
                       x-kubernetes-validations:
-                        - message: exactly one of appID or appIDRef must be set
-                          rule: has(self.appID) != has(self.appIDRef)
-                        - message: exactly one of installID or installIDRef must be set
-                          rule: has(self.installID) != has(self.installIDRef)
+                        - message: exactly one of the fields in [appID appIDRef] must be set
+                          rule: '[has(self.appID),has(self.appIDRef)].filter(x,x==true).size() == 1'
+                        - message: exactly one of the fields in [installID installIDRef] must be set
+                          rule: '[has(self.installID),has(self.installIDRef)].filter(x,x==true).size() == 1'
                     gitlabDeployTokenSpec:
                       description: GitlabDeployTokenSpec defines the desired state to generate a GitLab deploy token.
                       properties:
@@ -30570,10 +30570,10 @@ spec:
                 - auth
               type: object
               x-kubernetes-validations:
-                - message: exactly one of appID or appIDRef must be set
-                  rule: has(self.appID) != has(self.appIDRef)
-                - message: exactly one of installID or installIDRef must be set
-                  rule: has(self.installID) != has(self.installIDRef)
+                - message: exactly one of the fields in [appID appIDRef] must be set
+                  rule: '[has(self.appID),has(self.appIDRef)].filter(x,x==true).size() == 1'
+                - message: exactly one of the fields in [installID installIDRef] must be set
+                  rule: '[has(self.installID),has(self.installIDRef)].filter(x,x==true).size() == 1'
           type: object
       served: true
       storage: true
