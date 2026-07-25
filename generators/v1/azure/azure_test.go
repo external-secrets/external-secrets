@@ -40,6 +40,10 @@ const (
 	// adoResource is the well-known Azure DevOps Entra application id, used here as a
 	// representative resource value.
 	adoResource = "499b84ac-1321-427f-aa17-267ca6975798"
+	// managed-identity id fixtures for the identity-type inference cases.
+	miClientID   = "22222222-3333-4444-5555-666666666666"
+	miObjectID   = "33333333-4444-5555-6666-777777777777"
+	miResourceID = "/subscriptions/sub/resourcegroups/rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/id"
 )
 
 func spSecretSpec() *apiextensions.JSON {
@@ -136,6 +140,25 @@ spec:
 	}
 }
 
+// miSpec builds a managed-identity spec. identityType is omitted from the rendered
+// YAML when empty, exercising the inference path.
+func miSpec(identityID, identityType string) *apiextensions.JSON {
+	idType := ""
+	if identityType != "" {
+		idType = fmt.Sprintf("\n      identityType: %s", identityType)
+	}
+	return &apiextensions.JSON{
+		Raw: fmt.Appendf(nil, `apiVersion: generators.external-secrets.io/v1alpha1
+kind: AzureAccessToken
+spec:
+  resource: %s
+  environmentType: "PublicCloud"
+  auth:
+    managedIdentity:
+      identityId: %s%s`, adoResource, identityID, idType),
+	}
+}
+
 func secretFixture() client.Client {
 	return clientfake.NewClientBuilder().WithObjects(&v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -152,14 +175,15 @@ func secretFixture() client.Client {
 
 func TestGenerate(t *testing.T) {
 	tests := []struct {
-		name              string
-		jsonSpec          *apiextensions.JSON
-		crClient          client.Client
-		kubeClient        kubernetes.Interface
-		clientSecretCreds clientSecretCredentialFunc
-		clientCertCreds   clientCertificateCredentialFunc
-		want              map[string][]byte
-		wantErr           bool
+		name                 string
+		jsonSpec             *apiextensions.JSON
+		crClient             client.Client
+		kubeClient           kubernetes.Interface
+		clientSecretCreds    clientSecretCredentialFunc
+		clientCertCreds      clientCertificateCredentialFunc
+		managedIdentityCreds managedIdentityCredentialFunc
+		want                 map[string][]byte
+		wantErr              bool
 	}{
 		{
 			name:     "no spec",
@@ -225,12 +249,55 @@ func TestGenerate(t *testing.T) {
 			},
 			want: map[string][]byte{tokenKey: []byte(testToken)},
 		},
+		{
+			// Explicit identityType is honored verbatim, regardless of the value's shape.
+			name:                 "managed identity explicit clientID",
+			jsonSpec:             miSpec(miClientID, "ClientID"),
+			managedIdentityCreds: miCreds(t, azidentity.ClientID(miClientID)),
+			want:                 map[string][]byte{tokenKey: []byte(testToken)},
+		},
+		{
+			// An object id can only be selected explicitly; it is never inferred.
+			name:                 "managed identity explicit objectID",
+			jsonSpec:             miSpec(miObjectID, "ObjectID"),
+			managedIdentityCreds: miCreds(t, azidentity.ObjectID(miObjectID)),
+			want:                 map[string][]byte{tokenKey: []byte(testToken)},
+		},
+		{
+			name:                 "managed identity explicit resourceID",
+			jsonSpec:             miSpec(miResourceID, "ResourceID"),
+			managedIdentityCreds: miCreds(t, azidentity.ResourceID(miResourceID)),
+			want:                 map[string][]byte{tokenKey: []byte(testToken)},
+		},
+		{
+			// No identityType: a value containing "/" is inferred as a resource id.
+			name:                 "managed identity infer resourceID from slash",
+			jsonSpec:             miSpec(miResourceID, ""),
+			managedIdentityCreds: miCreds(t, azidentity.ResourceID(miResourceID)),
+			want:                 map[string][]byte{tokenKey: []byte(testToken)},
+		},
+		{
+			// No identityType: a bare GUID is inferred as a client id.
+			name:                 "managed identity infer clientID from bare guid",
+			jsonSpec:             miSpec(miClientID, ""),
+			managedIdentityCreds: miCreds(t, azidentity.ClientID(miClientID)),
+			want:                 map[string][]byte{tokenKey: []byte(testToken)},
+		},
+		{
+			// No identityType and no identityId: leave opts.ID unset so the SDK falls
+			// back to the system-assigned identity.
+			name:                 "managed identity system-assigned empty id",
+			jsonSpec:             miSpec("", ""),
+			managedIdentityCreds: miCreds(t, nil),
+			want:                 map[string][]byte{tokenKey: []byte(testToken)},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			g := &Generator{
-				clientSecretCreds: tt.clientSecretCreds,
-				clientCertCreds:   tt.clientCertCreds,
+				clientSecretCreds:    tt.clientSecretCreds,
+				clientCertCreds:      tt.clientCertCreds,
+				managedIdentityCreds: tt.managedIdentityCreds,
 			}
 			kubeClientFn := func() (kubernetes.Interface, error) {
 				return tt.kubeClient, nil
@@ -252,6 +319,20 @@ func TestScopeForResource(t *testing.T) {
 	// a trailing slash on a resource URI must not produce a double slash.
 	assert.Equal(t, "https://management.azure.com/.default", scopeForResource("https://management.azure.com/"))
 	assert.Equal(t, "https://management.azure.com/.default", scopeForResource("https://management.azure.com"))
+}
+
+// miCreds returns a managedIdentityCredentialFunc that asserts the credential options
+// carry the expected identity id kind and value produced by the identity-type inference.
+// A nil wantID asserts that no id was set (system-assigned identity).
+func miCreds(t *testing.T, wantID azidentity.ManagedIDKind) managedIdentityCredentialFunc {
+	return func(opts *azidentity.ManagedIdentityCredentialOptions) (TokenGetter, error) {
+		if wantID == nil {
+			assert.Nil(t, opts.ID)
+		} else {
+			assert.Equal(t, wantID, opts.ID)
+		}
+		return &fakeTokenGetter{t: t, wantScope: adoResource + "/.default", token: azcore.AccessToken{Token: testToken}}, nil
+	}
 }
 
 // fakeTokenGetter asserts that the requested scope matches the expected value.

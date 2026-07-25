@@ -46,13 +46,16 @@ import (
 
 // Generator implements Microsoft Entra ID access token generation.
 type Generator struct {
-	clientSecretCreds clientSecretCredentialFunc
-	clientCertCreds   clientCertificateCredentialFunc
+	clientSecretCreds    clientSecretCredentialFunc
+	clientCertCreds      clientCertificateCredentialFunc
+	managedIdentityCreds managedIdentityCredentialFunc
 }
 
 type clientSecretCredentialFunc func(tenantID, clientID, clientSecret string, options *azidentity.ClientSecretCredentialOptions) (TokenGetter, error)
 
 type clientCertificateCredentialFunc func(tenantID, clientID string, certData []byte, options *azidentity.ClientCertificateCredentialOptions) (TokenGetter, error)
+
+type managedIdentityCredentialFunc func(options *azidentity.ManagedIdentityCredentialOptions) (TokenGetter, error)
 
 // TokenGetter defines an interface for obtaining Microsoft Entra ID access tokens.
 type TokenGetter interface {
@@ -128,7 +131,7 @@ func (g *Generator) generate(
 			res.Spec.Auth.ServicePrincipal.SecretRef,
 		)
 	case res.Spec.Auth.ManagedIdentity != nil:
-		accessToken, err = accessTokenForManagedIdentity(
+		accessToken, err = g.accessTokenForManagedIdentity(
 			ctx,
 			res.Spec.EnvironmentType,
 			resource,
@@ -216,7 +219,12 @@ func (g *Generator) accessTokenForServicePrincipal(
 	return accessToken.Token, nil
 }
 
-func accessTokenForManagedIdentity(ctx context.Context, envType esv1.AzureEnvironmentType, resource, identityID string, identityType genv1alpha1.AzureManagedIdentityIDType) (string, error) {
+func (g *Generator) accessTokenForManagedIdentity(
+	ctx context.Context,
+	envType esv1.AzureEnvironmentType,
+	resource, identityID string,
+	identityType genv1alpha1.AzureManagedIdentityIDType,
+) (string, error) {
 	opts := &azidentity.ManagedIdentityCredentialOptions{}
 	// Honor the requested sovereign cloud, consistent with the service-principal and
 	// workload-identity paths and with the Key Vault provider's managed-identity flow.
@@ -241,7 +249,7 @@ func accessTokenForManagedIdentity(ctx context.Context, envType esv1.AzureEnviro
 		}
 		// lacking an ID, az will default to the system-assigned identity.
 	}
-	creds, err := azidentity.NewManagedIdentityCredential(opts)
+	creds, err := g.managedIdentityCreds(opts)
 	if err != nil {
 		return "", err
 	}
@@ -363,6 +371,9 @@ func NewGenerator() genv1alpha1.Generator {
 				return nil, fmt.Errorf("unable to parse service principal certificate: %w", err)
 			}
 			return azidentity.NewClientCertificateCredential(tenantID, clientID, certs, key, options)
+		},
+		managedIdentityCreds: func(options *azidentity.ManagedIdentityCredentialOptions) (TokenGetter, error) {
+			return azidentity.NewManagedIdentityCredential(options)
 		},
 	}
 }
