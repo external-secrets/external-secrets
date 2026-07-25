@@ -53,6 +53,8 @@ After installation, you need to get the installation ID to authenticate API requ
 
 Instead of embedding `appID` and `installID` as plain strings, you can reference them from a Kubernetes Secret using `appIDRef` and `installIDRef`. This is useful when your organization requires all configuration to come from Secrets.
 
+The referenced Secrets must reside in the same namespace as the `GithubAccessToken` generator. Any `namespace` field set on `appIDRef` or `installIDRef` is ignored.
+
 ```yaml
 {% include 'generator-github-secretref.yaml' %}
 ```

@@ -61,7 +61,7 @@ func TestGenerate(t *testing.T) {
 	assert.NoError(t, err, "Should not error when reading privateKey")
 
 	validResponce := []byte(`{
-		"token": "ghs_16C7e42F292c6912E7710c838347Ae178B4a",
+		"token": "test-token",
 		"expires_at": "2016-07-11T22:14:10Z",
 		"permissions": {
 		  "contents": "read"
@@ -135,7 +135,7 @@ spec:
 				},
 			},
 			want: map[string][]byte{
-				"token": []byte("ghs_16C7e42F292c6912E7710c838347Ae178B4a"),
+				"token": []byte("test-token"),
 			},
 			assertErr: func(t *testing.T, err error) {
 				require.NoError(t, err)
@@ -182,7 +182,7 @@ spec:
 				},
 			},
 			want: map[string][]byte{
-				"token": []byte("ghs_16C7e42F292c6912E7710c838347Ae178B4a"),
+				"token": []byte("test-token"),
 			},
 			assertErr: func(t *testing.T, err error) {
 				require.NoError(t, err)
