@@ -30,9 +30,12 @@ import (
 	"gopkg.in/yaml.v3"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 type testCase struct {
@@ -831,6 +834,173 @@ func TestDeleteSecret(t *testing.T) {
 
 			if receivedMethod != tt.expectMethod {
 				t.Errorf("DeleteSecret() used method %v, want %v", receivedMethod, tt.expectMethod)
+			}
+		})
+	}
+}
+
+// makeWebhookStoreWithSecrets builds a ClusterSecretStore whose webhook URL and
+// secrets list can be customized, used to exercise Validate()'s template
+// resolution behavior.
+func makeWebhookStoreWithSecrets(url string, secrets []esv1.WebhookSecret) *esv1.ClusterSecretStore {
+	return &esv1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{
+			Kind: "ClusterSecretStore",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "webhook-store",
+			Namespace: "default",
+		},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Webhook: &esv1.WebhookProvider{
+					URL:     url,
+					Secrets: secrets,
+				},
+			},
+		},
+	}
+}
+
+func buildFakeClient(secrets []esv1.WebhookSecret, objects []client.Object) client.Client {
+	if objects != nil {
+		return fake.NewClientBuilder().WithObjects(objects...).Build()
+	}
+	if secrets != nil {
+		return fake.NewClientBuilder().Build()
+	}
+	return nil
+}
+
+func assertValidateError(t *testing.T, err error, wantErrContains string) {
+	t.Helper()
+	if wantErrContains == "" {
+		return
+	}
+	if err == nil {
+		t.Errorf("Validate() expected error containing %q, got nil", wantErrContains)
+		return
+	}
+	if !strings.Contains(err.Error(), wantErrContains) {
+		t.Errorf("Validate() error = %v, want error containing %q", err, wantErrContains)
+	}
+}
+
+func TestValidate(t *testing.T) {
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+
+	secretNamespace := "default"
+
+	tests := []struct {
+		name            string
+		url             string
+		secrets         []esv1.WebhookSecret
+		mockObjects     []client.Object
+		wantResult      esv1.ValidationResult
+		wantErrContains string
+	}{
+		{
+			name:       "hardcoded url validates successfully",
+			url:        ts.URL,
+			wantResult: esv1.ValidationResultReady,
+		},
+		{
+			name: "templated url resolves via provider secrets and validates successfully",
+			url:  "{{ .myconfig.host }}",
+			secrets: []esv1.WebhookSecret{
+				{
+					Name: "myconfig",
+					SecretRef: esmeta.SecretKeySelector{
+						Name:      "webhook-validate-secret",
+						Namespace: &secretNamespace,
+					},
+				},
+			},
+			mockObjects: []client.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: secretNamespace,
+					Name:      "webhook-validate-secret",
+					Labels: map[string]string{
+						"external-secrets.io/type": "webhook",
+					},
+				},
+				Data: map[string][]byte{
+					"host": []byte(ts.URL),
+				},
+			}},
+			wantResult: esv1.ValidationResultReady,
+		},
+		{
+			name: "templated url resolves but host unreachable returns validation error",
+			url:  "{{ .myconfig.host }}",
+			secrets: []esv1.WebhookSecret{
+				{
+					Name: "myconfig",
+					SecretRef: esmeta.SecretKeySelector{
+						Name:      "webhook-validate-secret-unreachable",
+						Namespace: &secretNamespace,
+					},
+				},
+			},
+			mockObjects: []client.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: secretNamespace,
+					Name:      "webhook-validate-secret-unreachable",
+					Labels: map[string]string{
+						"external-secrets.io/type": "webhook",
+					},
+				},
+				Data: map[string][]byte{
+					"host": []byte("http://127.0.0.1:1"),
+				},
+			}},
+			wantResult: esv1.ValidationResultError,
+		},
+		{
+			name:            "malformed template string surfaces execute template error",
+			url:             "{{ .unclosed.template",
+			wantResult:      esv1.ValidationResultError,
+			wantErrContains: "failed to parse url",
+		},
+		{
+			name: "missing referenced secret surfaces template data error",
+			url:  "{{ .myconfig.host }}",
+			secrets: []esv1.WebhookSecret{
+				{
+					Name: "myconfig",
+					SecretRef: esmeta.SecretKeySelector{
+						Name:      "does-not-exist",
+						Namespace: &secretNamespace,
+					},
+				},
+			},
+			wantResult:      esv1.ValidationResultError,
+			wantErrContains: "failed to get template data",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			store := makeWebhookStoreWithSecrets(tt.url, tt.secrets)
+			mockClient := buildFakeClient(tt.secrets, tt.mockObjects)
+
+			prov := &Provider{}
+			c, err := prov.NewClient(context.Background(), store, mockClient, "testnamespace")
+			if err != nil {
+				t.Fatalf("failed to create client: %v", err)
+			}
+
+			result, err := c.Validate()
+
+			if wantErr := tt.wantResult == esv1.ValidationResultError; (err != nil) != wantErr {
+				t.Errorf("Validate() error = %v, wantErr %v", err, wantErr)
+			}
+			assertValidateError(t, err, tt.wantErrContains)
+			if result != tt.wantResult {
+				t.Errorf("Validate() = %v, want %v", result, tt.wantResult)
 			}
 		})
 	}

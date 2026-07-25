@@ -52,7 +52,6 @@ type WebHook struct {
 	wh        webhook.Webhook
 	store     esv1.GenericStore
 	storeKind string
-	url       string
 }
 
 // Capabilities return the provider-supported capabilities (ReadOnly, WriteOnly, ReadWrite).
@@ -80,7 +79,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	if err != nil {
 		return nil, err
 	}
-	whClient.url = provider.URL
 
 	whClient.wh.HTTP, err = whClient.wh.GetHTTPClient(ctx, provider)
 	if err != nil {
@@ -317,7 +315,23 @@ func (w *WebHook) Close(_ context.Context) error {
 // Validate checks if the webhook provider is configured correctly.
 func (w *WebHook) Validate() (esv1.ValidationResult, error) {
 	timeout := 15 * time.Second
-	url := w.url
+
+	provider, err := getProvider(w.store)
+	if err != nil {
+		return esv1.ValidationResultError, fmt.Errorf(errFailedToGetStore, err)
+	}
+
+	// The URL may be templated (e.g. using provider.webhook.secrets), so it
+	// must be resolved before attempting to validate network reachability.
+	escapedData, err := w.wh.GetTemplateData(context.Background(), nil, provider.Secrets, true)
+	if err != nil {
+		return esv1.ValidationResultError, fmt.Errorf("failed to get template data: %w", err)
+	}
+
+	url, err := webhook.ExecuteTemplateString(provider.URL, escapedData)
+	if err != nil {
+		return esv1.ValidationResultError, fmt.Errorf("failed to parse url: %w", err)
+	}
 
 	if err := esutils.NetworkValidate(url, timeout); err != nil {
 		return esv1.ValidationResultError, err
