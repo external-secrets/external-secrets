@@ -323,7 +323,9 @@ func (w *WebHook) Validate() (esv1.ValidationResult, error) {
 
 	// The URL may be templated (e.g. using provider.webhook.secrets), so it
 	// must be resolved before attempting to validate network reachability.
-	escapedData, err := w.wh.GetTemplateData(context.Background(), nil, provider.Secrets, true)
+	// urlEncode has no effect when ref is nil (only remoteRef values are
+	// escaped), but is set explicitly to make the intent unambiguous.
+	escapedData, err := w.wh.GetTemplateData(context.Background(), nil, provider.Secrets, false)
 	if err != nil {
 		return esv1.ValidationResultError, fmt.Errorf("failed to get template data: %w", err)
 	}
