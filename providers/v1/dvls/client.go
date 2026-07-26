@@ -37,18 +37,39 @@ const (
 
 var errNotImplemented = errors.New("not implemented")
 
+// vaultError reports a failure to resolve or reach a vault, as opposed to a missing entry.
+// isNotFoundError rejects it outright, so a 404 from a vault endpoint cannot become
+// NoSecretErr and let deletionPolicy: Delete prune a live Secret.
+type vaultError struct {
+	vaultRef string
+	err      error
+}
+
+func (e *vaultError) Error() string {
+	if e.vaultRef == "" {
+		return fmt.Sprintf("failed to list DVLS vaults: %v", e.err)
+	}
+	return fmt.Sprintf("vault %q was not found or is unreachable: %v", e.vaultRef, e.err)
+}
+
+func (e *vaultError) Unwrap() error { return e.err }
+
 var _ esv1.SecretsClient = &Client{}
 
 // Client implements the SecretsClient interface for DVLS.
-// The nameCache maps entry name/path keys to resolved UUIDs, avoiding
-// repeated GetEntries calls during a single reconciliation. The cache is
-// not persisted: each reconciliation creates a new Client via NewClient,
-// so stale entries (e.g. deleted or renamed) are naturally discarded.
+// The nameCache maps vault-scoped entry name/path keys to resolved UUIDs, avoiding
+// repeated GetEntries calls during a single reconciliation. vaultIndex does the same
+// for vault names. Neither is persisted: each reconciliation creates a new Client via
+// NewClient, so stale entries (e.g. deleted or renamed) are naturally discarded.
 type Client struct {
-	cred      credentialClient
-	vaultID   string
-	mu        sync.RWMutex
-	nameCache map[string]string
+	cred        credentialClient
+	vaults      vaultGetter
+	vaultID     string
+	pinnedVault bool
+	mu          sync.RWMutex
+	nameCache   map[string]string
+	indexMu     sync.Mutex
+	vaultIndex  map[string]string
 }
 
 type credentialClient interface {
@@ -60,6 +81,8 @@ type credentialClient interface {
 
 type vaultGetter interface {
 	GetByName(ctx context.Context, name string) (dvls.Vault, error)
+	Get(ctx context.Context, id string) (dvls.Vault, error)
+	List(ctx context.Context) ([]dvls.Vault, error)
 }
 
 type realCredentialClient struct {
@@ -82,9 +105,16 @@ func (r *realCredentialClient) DeleteByID(ctx context.Context, vaultID, entryID 
 	return r.cred.DeleteByIdWithContext(ctx, vaultID, entryID)
 }
 
-// NewClient creates a new DVLS secrets client.
-func NewClient(cred credentialClient, vaultID string) *Client {
-	return &Client{cred: cred, vaultID: vaultID, nameCache: make(map[string]string)}
+// NewClient creates a new DVLS secrets client. When pinnedVault is true the store
+// configured a vault and vaultID holds it; otherwise the vault comes from the key.
+func NewClient(cred credentialClient, vaults vaultGetter, vaultID string, pinnedVault bool) *Client {
+	return &Client{
+		cred:        cred,
+		vaults:      vaults,
+		vaultID:     vaultID,
+		pinnedVault: pinnedVault,
+		nameCache:   make(map[string]string),
+	}
 }
 
 // GetSecret retrieves a secret from DVLS.
@@ -102,6 +132,9 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		return nil, fmt.Errorf(errVaultNotFound, vaultID, err)
 	}
 	if isNotFoundError(err) {
+		if vaultErr := c.confirmVault(ctx, vaultID); vaultErr != nil {
+			return nil, vaultErr
+		}
 		return nil, esv1.NoSecretErr
 	}
 	if err != nil {
@@ -141,6 +174,9 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 		return nil, fmt.Errorf(errVaultNotFound, vaultID, err)
 	}
 	if isNotFoundError(err) {
+		if vaultErr := c.confirmVault(ctx, vaultID); vaultErr != nil {
+			return nil, vaultErr
+		}
 		return nil, esv1.NoSecretErr
 	}
 	if err != nil {
@@ -161,9 +197,6 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return errors.New("secret is required for DVLS push")
 	}
 	vaultID, entryID, err := c.resolveRef(ctx, data.GetRemoteKey())
-	if isVaultNotFoundError(err) {
-		return fmt.Errorf(errVaultNotFound, c.vaultID, err)
-	}
 	if isNotFoundError(err) {
 		return fmt.Errorf("entry %q not found: entry must exist before pushing secrets", data.GetRemoteKey())
 	}
@@ -181,6 +214,9 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return fmt.Errorf(errVaultNotFound, vaultID, err)
 	}
 	if isNotFoundError(err) {
+		if vaultErr := c.confirmVault(ctx, vaultID); vaultErr != nil {
+			return vaultErr
+		}
 		return fmt.Errorf("entry %s not found in vault %s: entry must exist before pushing secrets", entryID, vaultID)
 	}
 	if err != nil {
@@ -210,6 +246,10 @@ func (c *Client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	}
 	if err := c.cred.DeleteByID(ctx, vaultID, entryID); err != nil {
 		if isNotFoundError(err) {
+			// Only idempotent once the vault is known to be reachable.
+			if vaultErr := c.confirmVault(ctx, vaultID); vaultErr != nil {
+				return vaultErr
+			}
 			return nil
 		}
 		return fmt.Errorf("failed to delete entry %q from vault %q: %w", entryID, vaultID, err)
@@ -229,6 +269,9 @@ func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 
 	_, err = c.cred.GetByID(ctx, vaultID, entryID)
 	if isNotFoundError(err) {
+		if vaultErr := c.confirmVault(ctx, vaultID); vaultErr != nil {
+			return false, vaultErr
+		}
 		return false, nil
 	}
 	if err != nil {
@@ -242,6 +285,10 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	if c.cred == nil {
 		return esv1.ValidationResultError, errors.New("DVLS client is not initialized")
 	}
+	// Without a pinned vault, keys name their own vault and need a vault client to resolve it.
+	if !c.pinnedVault && c.vaults == nil {
+		return esv1.ValidationResultError, errors.New("DVLS vault client is not initialized")
+	}
 	return esv1.ValidationResultReady, nil
 }
 
@@ -251,22 +298,103 @@ func (c *Client) Close(_ context.Context) error {
 }
 
 // resolveRef resolves a key to a vault ID and entry ID.
-// When c.vaultID is set, the key is treated as an entry reference.
-// When c.vaultID is empty, the key is parsed as the legacy "<vault-uuid>/<entry-uuid>" format.
+// When the store pins a vault, the whole key is an entry reference inside it.
+// Otherwise the first separator splits a vault reference from the entry reference:
+//
+//	"my-vault/db-creds"             → vault "my-vault", entry "db-creds"
+//	"my-vault/folder/db-creds"      → vault "my-vault", path "folder", entry "db-creds"
+//	"<vault-uuid>/<entry-uuid>"     → both used directly
 func (c *Client) resolveRef(ctx context.Context, key string) (vaultID, entryID string, err error) {
-	if c.vaultID == "" {
-		return parseLegacyRef(key)
+	if c.pinnedVault {
+		entryID, err = c.resolveEntryRef(ctx, c.vaultID, key)
+		return c.vaultID, entryID, err
 	}
-	entryID, err = c.resolveEntryRef(ctx, key)
-	return c.vaultID, entryID, err
+
+	vaultRef, entryRef, err := splitVaultRef(key)
+	if err != nil {
+		return "", "", err
+	}
+	vaultID, err = c.resolveVault(ctx, vaultRef)
+	if err != nil {
+		return "", "", err
+	}
+	entryID, err = c.resolveEntryRef(ctx, vaultID, entryRef)
+	return vaultID, entryID, err
 }
 
-// resolveEntryRef resolves an entry reference to a UUID.
+// confirmVault reports whether a 404 from the entry endpoint really means the entry is gone.
+// The SDK addresses entries as /vault/{vaultID}/entry/{entryID}, so a 404 is ambiguous: an
+// unreachable vault looks identical to a deleted entry. Returning nil means the vault is
+// reachable and the caller may treat the entry as absent.
+func (c *Client) confirmVault(ctx context.Context, vaultID string) error {
+	if c.vaults == nil {
+		return nil
+	}
+	if _, err := c.vaults.Get(ctx, vaultID); err != nil {
+		return &vaultError{vaultRef: vaultID, err: err}
+	}
+	return nil
+}
+
+// resolveVault resolves a vault reference (name or UUID) to a vault UUID, caching names.
+func (c *Client) resolveVault(ctx context.Context, vaultRef string) (string, error) {
+	if isUUID(vaultRef) {
+		return vaultRef, nil
+	}
+	if c.vaults == nil {
+		return "", fmt.Errorf("cannot resolve vault %q by name: no vault client configured", vaultRef)
+	}
+
+	index, err := c.loadVaultIndex(ctx)
+	if err != nil {
+		return "", err
+	}
+
+	id, ok := index[vaultRef]
+	if !ok {
+		return "", &vaultError{vaultRef: vaultRef, err: dvls.ErrVaultNotFound}
+	}
+	return id, nil
+}
+
+// loadVaultIndex lists every visible vault once and indexes it by name. GetByName would
+// enumerate all vaults per lookup, so a single index keeps a multi-vault key set to one call.
+// The lock is held across List so concurrent callers share one enumeration.
+func (c *Client) loadVaultIndex(ctx context.Context) (map[string]string, error) {
+	c.indexMu.Lock()
+	defer c.indexMu.Unlock()
+
+	if c.vaultIndex != nil {
+		return c.vaultIndex, nil
+	}
+
+	vaults, err := c.vaults.List(ctx)
+	if err != nil {
+		return nil, &vaultError{err: err}
+	}
+
+	index := make(map[string]string, len(vaults))
+	for _, v := range vaults {
+		// DVLS enforces unique vault names; fail loudly rather than pick one arbitrarily.
+		if _, dup := index[v.Name]; dup {
+			return nil, fmt.Errorf("found multiple vaults named %q; use the vault UUID to select one", v.Name)
+		}
+		if !isUUID(v.Id) {
+			return nil, fmt.Errorf("vault %q has an invalid UUID: %q", v.Name, v.Id)
+		}
+		index[v.Name] = v.Id
+	}
+
+	c.vaultIndex = index
+	return index, nil
+}
+
+// resolveEntryRef resolves an entry reference to a UUID within the given vault.
 // The key can be:
 //   - A UUID: used directly.
 //   - A name: looked up via GetEntries.
 //   - A path/name: "folder/subfolder/entry-name" — path is used to filter.
-func (c *Client) resolveEntryRef(ctx context.Context, key string) (entryID string, err error) {
+func (c *Client) resolveEntryRef(ctx context.Context, vaultID, key string) (entryID string, err error) {
 	key = strings.TrimSpace(key)
 	if key == "" {
 		return "", errors.New("entry reference cannot be empty")
@@ -277,9 +405,10 @@ func (c *Client) resolveEntryRef(ctx context.Context, key string) (entryID strin
 		return key, nil
 	}
 
-	// Return cached result if available.
+	// Return cached result if available. Scoped by vault: one client can serve several.
+	cacheKey := vaultID + "/" + key
 	c.mu.RLock()
-	id, ok := c.nameCache[key]
+	id, ok := c.nameCache[cacheKey]
 	c.mu.RUnlock()
 	if ok {
 		return id, nil
@@ -296,11 +425,12 @@ func (c *Client) resolveEntryRef(ctx context.Context, key string) (entryID strin
 		opts.Path = &entryPath
 	}
 
-	entries, err := c.cred.GetEntries(ctx, c.vaultID, opts)
-	if isVaultNotFoundError(err) {
-		return "", fmt.Errorf(errVaultNotFound, c.vaultID, err)
-	}
+	entries, err := c.cred.GetEntries(ctx, vaultID, opts)
 	if err != nil {
+		// A missing entry yields an empty list, so a not-found here is about the vault.
+		if isNotFoundError(err) || isVaultNotFoundError(err) {
+			return "", &vaultError{vaultRef: vaultID, err: err}
+		}
 		return "", fmt.Errorf("failed to resolve entry %q: %w", key, err)
 	}
 
@@ -309,7 +439,7 @@ func (c *Client) resolveEntryRef(ctx context.Context, key string) (entryID strin
 		return "", fmt.Errorf("entry %q not found in vault: %w", key, dvls.ErrEntryNotFound)
 	case 1:
 		c.mu.Lock()
-		c.nameCache[key] = entries[0].Id
+		c.nameCache[cacheKey] = entries[0].Id
 		c.mu.Unlock()
 		return entries[0].Id, nil
 	default:
@@ -321,31 +451,38 @@ func (c *Client) resolveEntryRef(ctx context.Context, key string) (entryID strin
 	}
 }
 
-// parseLegacyRef parses the legacy secret reference format "<vault-uuid>/<entry-uuid>".
-// This preserves backward compatibility for users who don't set the vault field.
-func parseLegacyRef(key string) (vaultID, entryID string, err error) {
-	parts := strings.SplitN(key, "/", 2)
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("invalid key format: expected '<vault-id>/<entry-id>', got %q", key)
+// splitVaultRef splits "<vault-ref>/<entry-ref>" on the first separator. Both forward
+// slashes and backslashes are accepted, matching parseEntryRef.
+// Empty segments are rejected, and a UUID entry segment must be the whole entry reference,
+// so keys that failed validation before vault names were supported keep failing.
+func splitVaultRef(key string) (vaultRef, entryRef string, err error) {
+	key = strings.TrimSpace(key)
+	idx := strings.IndexAny(key, `/\`)
+	if idx < 0 {
+		return "", "", fmt.Errorf("invalid key format: expected '<vault>/<entry>', got %q", key)
 	}
 
-	vaultID = strings.TrimSpace(parts[0])
-	entryID = strings.TrimSpace(parts[1])
+	vaultRef = strings.TrimSpace(key[:idx])
+	entryRef = strings.TrimSpace(key[idx+1:])
 
-	if vaultID == "" {
-		return "", "", errors.New("vault ID cannot be empty")
+	if vaultRef == "" {
+		return "", "", errors.New("vault reference cannot be empty")
 	}
-	if entryID == "" {
-		return "", "", errors.New("entry ID cannot be empty")
-	}
-	if !isUUID(vaultID) {
-		return "", "", fmt.Errorf("invalid vault UUID: %q", vaultID)
-	}
-	if !isUUID(entryID) {
-		return "", "", fmt.Errorf("invalid entry UUID: %q", entryID)
+	if entryRef == "" {
+		return "", "", errors.New("entry reference cannot be empty")
 	}
 
-	return vaultID, entryID, nil
+	segments := strings.Split(strings.ReplaceAll(entryRef, "/", `\`), `\`)
+	for _, segment := range segments {
+		if strings.TrimSpace(segment) == "" {
+			return "", "", fmt.Errorf("invalid key format: empty path segment in %q", key)
+		}
+	}
+	if len(segments) > 1 && isUUID(strings.TrimSpace(segments[0])) {
+		return "", "", fmt.Errorf("invalid key format: entry UUID %q must be the whole entry reference", segments[0])
+	}
+
+	return vaultRef, entryRef, nil
 }
 
 // resolveVaultRef resolves a vault reference (name or UUID) to a vault UUID.
@@ -356,6 +493,9 @@ func resolveVaultRef(ctx context.Context, vaultRef string, vc vaultGetter) (stri
 	vault, err := vc.GetByName(ctx, vaultRef)
 	if err != nil {
 		return "", fmt.Errorf("failed to resolve vault %q: %w", vaultRef, err)
+	}
+	if !isUUID(vault.Id) {
+		return "", fmt.Errorf("vault %q resolved to an invalid UUID: %q", vaultRef, vault.Id)
 	}
 	return vault.Id, nil
 }
@@ -419,6 +559,11 @@ func extractPushValue(secret *corev1.Secret, data esv1.PushSecretData) ([]byte, 
 
 func isNotFoundError(err error) bool {
 	if err == nil {
+		return false
+	}
+
+	// A vault-stage failure is never a missing secret, even when the cause is a 404.
+	if _, ok := errors.AsType[*vaultError](err); ok {
 		return false
 	}
 
