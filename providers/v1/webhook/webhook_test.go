@@ -892,6 +892,12 @@ func TestValidate(t *testing.T) {
 	}))
 	defer ts.Close()
 
+	unreachableTS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	unreachableURL := unreachableTS.URL
+	unreachableTS.Close()
+
 	secretNamespace := "default"
 
 	tests := []struct {
@@ -954,7 +960,7 @@ func TestValidate(t *testing.T) {
 					},
 				},
 				Data: map[string][]byte{
-					"host": []byte("http://127.0.0.1:1"),
+					"host": []byte(unreachableURL),
 				},
 			}},
 			wantResult: esv1.ValidationResultError,
