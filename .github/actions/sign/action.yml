@@ -45,9 +45,25 @@ runs:
       with:
         go-version-file: go.mod
 
-    - name: Set up crane
+    - name: Install crane
       shell: bash
-      run: go install github.com/google/go-containerregistry/cmd/crane@v0.11.0
+      env:
+        CRANE_VERSION: v0.21.7
+      run: |
+        set -euo pipefail
+        base="https://github.com/google/go-containerregistry/releases/download/${CRANE_VERSION}"
+        curl_opts=(
+          --fail --silent --show-error --location
+          --proto '=https' --proto-redir '=https'
+          --tlsv1.2
+          --retry 5 --retry-delay 1 --retry-all-errors
+          --remote-name
+        )
+        curl "${curl_opts[@]}" "${base}/go-containerregistry_Linux_x86_64.tar.gz"
+        curl "${curl_opts[@]}" "${base}/checksums.txt"
+        grep ' go-containerregistry_Linux_x86_64.tar.gz$' checksums.txt | sha256sum -c -
+        tar -xzf go-containerregistry_Linux_x86_64.tar.gz crane
+        sudo install crane /usr/local/bin/
 
     - name: Get docker image tag
       id: container_info
