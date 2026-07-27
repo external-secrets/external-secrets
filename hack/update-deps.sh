@@ -8,6 +8,7 @@ set -euo pipefail
 # - APIs module
 # - Runtime module
 # - E2E module
+# - Build tools module
 # - All provider modules (providers/v1/*)
 # - All generator modules (generators/v1/*)
 #
@@ -104,7 +105,13 @@ main() {
     fi
     echo ""
     
-    # 5. Update all provider modules
+    # 5. Update build tools module
+    if ! update_module "hack/tools" "build tools"; then
+        failed_modules+=("build tools")
+    fi
+    echo ""
+
+    # 6. Update all provider modules
     info "Updating provider modules..."
     for provider_dir in "$REPO_ROOT"/providers/v1/*/; do
         if [ -f "$provider_dir/go.mod" ]; then
@@ -117,7 +124,7 @@ main() {
     done
     echo ""
     
-    # 6. Update all generator modules
+    # 7. Update all generator modules
     info "Updating generator modules..."
     for generator_dir in "$REPO_ROOT"/generators/v1/*/; do
         if [ -f "$generator_dir/go.mod" ]; then
@@ -149,4 +156,3 @@ main() {
 
 # Run main function
 main
-

@@ -34,3 +34,9 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 10
+
+  - package-ecosystem: gomod
+    directory: /hack/tools
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10

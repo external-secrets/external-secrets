@@ -8,7 +8,6 @@ on:
 
 env:
   # Common versions
-  GOLANGCI_VERSION: 'v2.11.3'
   KUBERNETES_VERSION: '1.33.x'
 
 permissions:
@@ -172,4 +171,3 @@ jobs:
       ref: ${{ github.ref }}
     secrets:
       IS_FORK: ${{ secrets.GHCR_USERNAME }} # this is just a secret to verify it is a fork or not, no other utility
-
