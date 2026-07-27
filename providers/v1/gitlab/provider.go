@@ -110,11 +110,10 @@ func (g *gitlabBase) getClient(ctx context.Context, provider *esv1.GitlabProvide
 			return nil, errors.New("failed to append ca bundle")
 		}
 
-		transport := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs:    caCertPool,
-				MinVersion: tls.VersionTLS12,
-			},
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.TLSClientConfig = &tls.Config{
+			RootCAs:    caCertPool,
+			MinVersion: tls.VersionTLS12,
 		}
 
 		httpClient := &http.Client{Transport: transport}

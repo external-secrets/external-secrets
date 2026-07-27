@@ -41,8 +41,8 @@ const (
 	apiVersionHeader = "bt-secrets-api-version"
 	apiVersion       = "2026-04-28"
 
-	// Default timeout for HTTP requests.
-	defaultTimeout = 30 * time.Second
+	// DefaultTimeout is used for the HTTP client and store validation.
+	DefaultTimeout = 30 * time.Second
 
 	// Maximum response body size to prevent unbounded memory allocation.
 	maxResponseBytes = 10 << 20 // 10 MiB
@@ -68,7 +68,7 @@ func NewClient(serverURL, token string) (*Client, error) {
 
 	return &Client{
 		httpClient: &http.Client{
-			Timeout: defaultTimeout,
+			Timeout: DefaultTimeout,
 		},
 		baseURL: parsedURL,
 		token:   token,
@@ -87,7 +87,7 @@ func NewClientWithCustomCA(serverURL, token string, caBundlePEM []byte) (*Client
 	}
 
 	httpClient := &http.Client{
-		Timeout: defaultTimeout,
+		Timeout: DefaultTimeout,
 	}
 
 	if len(caBundlePEM) > 0 {

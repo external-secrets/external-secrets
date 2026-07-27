@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
@@ -33,7 +32,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	obclient "github.com/external-secrets/external-secrets/providers/v1/onboardbase/client"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/find"
 )
 
@@ -111,15 +109,9 @@ func (c *Client) setAuth(ctx context.Context) error {
 	return nil
 }
 
-// Validate performs validation of the Onboardbase client configuration.
+// Validate checks that the store can authenticate with Onboardbase using the same
+// client path ExternalSecret sync uses, so Ready reflects real operational readiness.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
-	timeout := 15 * time.Second
-	clientURL := c.onboardbase.BaseURL().String()
-
-	if err := esutils.NetworkValidate(clientURL, timeout); err != nil {
-		return esv1.ValidationResultError, err
-	}
-
 	if err := c.onboardbase.Authenticate(); err != nil {
 		return esv1.ValidationResultError, err
 	}

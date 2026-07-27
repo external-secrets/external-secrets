@@ -150,10 +150,9 @@ func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*Onboa
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 	}
-	httpTransport := &http.Transport{
-		DisableKeepAlives: true,
-		TLSClientConfig:   tlsConfig,
-	}
+	httpTransport := http.DefaultTransport.(*http.Transport).Clone()
+	httpTransport.DisableKeepAlives = true
+	httpTransport.TLSClientConfig = tlsConfig
 	client := &OnboardbaseClient{
 		OnboardbaseAPIKey:   onboardbaseAPIKey,
 		OnboardbasePassCode: onboardbasePasscode,

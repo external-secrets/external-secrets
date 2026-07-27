@@ -173,10 +173,9 @@ func (dsm *DSM) FetchSecrets() (respObj IsoDappResponse, err error) {
 	u, _ := url.ParseRequestURI(dsm.isoSession.URL)
 	u.Path = "/iso/dapp/application"
 
-	tr := &http.Transport{
-		//nolint
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: dsm.isoSession.IgnoreSslCertificate},
-	}
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	//nolint
+	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: dsm.isoSession.IgnoreSslCertificate}
 
 	client := &http.Client{Transport: tr}
 

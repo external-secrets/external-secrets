@@ -146,9 +146,8 @@ func newHTTPSClient(ctx context.Context, c client.Client, storeKind, namespace s
 		return nil, errors.New("failed to append caBundle")
 	}
 
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
-	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
 
-	return &http.Client{Transport: tr, Timeout: time.Second * 10}, nil
+	return &http.Client{Transport: transport, Timeout: time.Second * 10}, nil
 }

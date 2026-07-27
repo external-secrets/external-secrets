@@ -25,23 +25,17 @@ import (
 	"path"
 	"regexp"
 	"strings"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/httpclient"
 	btwcutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/util"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 const (
 	// ErrMsgNotImplemented is the error message for unimplemented methods.
 	ErrMsgNotImplemented = "not implemented: %s"
-
-	// validationTimeout is the timeout for SecretStore validation operations (network check and session validation).
-	// Set to 15 seconds to balance between allowing sufficient time for API responses and failing fast on connectivity issues.
-	validationTimeout = 15 * time.Second
 )
 
 // Client implements the SecretsClient interface for BeyondTrust Secrets.
@@ -50,9 +44,8 @@ type Client struct {
 	store                                *esv1.BeyondtrustWorkloadCredentialsProvider
 }
 
-// Validate checks if the client is configured correctly
-// and is able to retrieve secrets from the BeyondTrust Secrets provider.
-// If the validation result is unknown it will be ignored.
+// Validate checks that the store can authenticate with BeyondTrust using the same
+// client path ExternalSecret sync uses, so Ready reflects real operational readiness.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
 	// Check for nil receiver
 	if c == nil {
@@ -70,13 +63,7 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 		return esv1.ValidationResultError, fmt.Errorf("base URL is not configured")
 	}
 
-	clientURL := baseURL.String()
-	if err := esutils.NetworkValidate(clientURL, validationTimeout); err != nil {
-		return esv1.ValidationResultError, err
-	}
-
-	// Validate authentication by checking session
-	ctx, cancel := context.WithTimeout(context.Background(), validationTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), httpclient.DefaultTimeout)
 	defer cancel()
 
 	if err := c.beyondtrustWorkloadCredentialsClient.CheckSession(ctx); err != nil {
