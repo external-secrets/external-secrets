@@ -75,6 +75,7 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
 	@go mod tidy
 	@cd hack/tools/ && go mod tidy
+	@cd hack/tools/golangci-lint/ && go mod tidy
 	@cd e2e/ && go mod tidy
 	@cd apis/ && go mod tidy
 	@cd runtime/ && go mod tidy
@@ -440,22 +441,22 @@ CTY_VERSION := 1.1.3
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
-	GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly sigs.k8s.io/controller-runtime/tools/setup-envtest
+	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly sigs.k8s.io/controller-runtime/tools/setup-envtest
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
-$(GOLANGCI_LINT): hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
-	GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+$(GOLANGCI_LINT): hack/tools/golangci-lint/go.mod hack/tools/golangci-lint/go.sum | $(LOCALBIN)
+	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools/golangci-lint install -mod=readonly github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 
 .PHONY: dlv
 dlv: $(DLV) ## Build Delve locally for the Tilt debug image.
 $(DLV): hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
-	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/go-delve/delve/cmd/dlv
+	GOWORK=off CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/go-delve/delve/cmd/dlv
 
 .PHONY: crane
 crane: $(CRANE) ## Build crane locally if necessary.
 $(CRANE): hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
-	GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/google/go-containerregistry/cmd/crane
+	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/google/go-containerregistry/cmd/crane
 
 .PHONY: tilt
 .PHONY: $(TILT)

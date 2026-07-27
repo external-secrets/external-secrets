@@ -111,6 +111,11 @@ main() {
     fi
     echo ""
 
+    if ! update_module "hack/tools/golangci-lint" "golangci-lint"; then
+        failed_modules+=("golangci-lint")
+    fi
+    echo ""
+
     # 6. Update all provider modules
     info "Updating provider modules..."
     for provider_dir in "$REPO_ROOT"/providers/v1/*/; do
