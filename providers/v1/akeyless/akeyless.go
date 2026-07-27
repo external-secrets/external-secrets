@@ -54,6 +54,8 @@ const (
 	defaultAPIUrl           = "https://api.akeyless.io"
 	extSecretManagedTag     = "k8s-external-secrets"
 	aKeylessToken       Ctx = "AKEYLESS_TOKEN"
+	// defaultTimeout is used for the Akeyless HTTP client and store validation.
+	defaultTimeout = 30 * time.Second
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -229,13 +231,13 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		return nil, errors.New("missing Auth in store config")
 	}
 
-	client, err := akl.getAkeylessHTTPClient(ctx, spec)
+	c, err := akl.getAkeylessHTTPClient(ctx, spec)
 	if err != nil {
 		return nil, err
 	}
 
 	RestAPIClient := akeyless.NewAPIClient(&akeyless.Configuration{
-		HTTPClient: client,
+		HTTPClient: c,
 		Servers: []akeyless.ServerConfiguration{
 			{
 				URL: akeylessGwAPIURL,
@@ -265,13 +267,18 @@ func (a *Akeyless) Close(_ context.Context) error {
 	return nil
 }
 
-// Validate validates the Akeyless connection by testing network connectivity.
+// Validate checks that the store can authenticate with Akeyless using the same
+// client path ExternalSecret sync uses, so Ready reflects real operational readiness.
 func (a *Akeyless) Validate() (esv1.ValidationResult, error) {
-	timeout := 15 * time.Second
-	serviceURL := a.url
+	if esutils.IsNil(a.Client) {
+		return esv1.ValidationResultError, errors.New(errUninitalizedAkeylessProvider)
+	}
 
-	if err := esutils.NetworkValidate(serviceURL, timeout); err != nil {
-		return esv1.ValidationResultError, err
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	if _, err := a.Client.TokenFromSecretRef(ctx); err != nil {
+		return esv1.ValidationResultError, fmt.Errorf("authentication validation failed: %w", err)
 	}
 
 	return esv1.ValidationResultReady, nil
@@ -553,9 +560,9 @@ func (a *Akeyless) DeleteSecret(ctx context.Context, psr esv1.PushSecretRemoteRe
 }
 
 func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1.AkeylessProvider) (*http.Client, error) {
-	client := &http.Client{Timeout: 30 * time.Second}
+	c := &http.Client{Timeout: defaultTimeout}
 	if len(provider.CABundle) == 0 && provider.CAProvider == nil {
-		return client, nil
+		return c, nil
 	}
 
 	cert, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
@@ -575,12 +582,13 @@ func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1
 		return nil, errors.New("failed to append caBundle")
 	}
 
-	tlsConf := &tls.Config{
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.TLSClientConfig = &tls.Config{
 		RootCAs:    caCertPool,
 		MinVersion: tls.VersionTLS12,
 	}
-	client.Transport = &http.Transport{TLSClientConfig: tlsConf}
-	return client, nil
+	c.Transport = transport
+	return c, nil
 }
 
 // NewProvider creates a new Provider instance.

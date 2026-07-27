@@ -20,16 +20,17 @@ package fake
 import (
 	"context"
 
-	akeyless "github.com/akeylesslabs/akeyless-go/v4"
+	"github.com/akeylesslabs/akeyless-go/v4"
 )
 
 // AkeylessMockClient implements a mock client for Akeyless API operations.
 type AkeylessMockClient struct {
-	getSecret    func(secretName string, version int32) (string, error)
-	createSecret func(ctx context.Context, remoteKey, data string) error
-	updateSecret func(ctx context.Context, remoteKey, data string) error
-	deleteSecret func(ctx context.Context, remoteKey string) error
-	describeItem func(ctx context.Context, itemName string) (*akeyless.Item, error)
+	getSecret          func(secretName string, version int32) (string, error)
+	createSecret       func(ctx context.Context, remoteKey, data string) error
+	updateSecret       func(ctx context.Context, remoteKey, data string) error
+	deleteSecret       func(ctx context.Context, remoteKey string) error
+	describeItem       func(ctx context.Context, itemName string) (*akeyless.Item, error)
+	tokenFromSecretRef func(ctx context.Context) (string, error)
 }
 
 // New creates and returns a new AkeylessMockClient.
@@ -87,8 +88,17 @@ func (mc *AkeylessMockClient) UpdateSecret(ctx context.Context, remoteKey, data 
 	return mc.updateSecret(ctx, remoteKey, data)
 }
 
+// SetTokenFromSecretRefFn sets the function to be called when TokenFromSecretRef is invoked.
+func (mc *AkeylessMockClient) SetTokenFromSecretRefFn(f func(ctx context.Context) (string, error)) *AkeylessMockClient {
+	mc.tokenFromSecretRef = f
+	return mc
+}
+
 // TokenFromSecretRef returns a new token for the mock Akeyless client.
-func (mc *AkeylessMockClient) TokenFromSecretRef(_ context.Context) (string, error) {
+func (mc *AkeylessMockClient) TokenFromSecretRef(ctx context.Context) (string, error) {
+	if mc.tokenFromSecretRef != nil {
+		return mc.tokenFromSecretRef(ctx)
+	}
 	return "newToken", nil
 }
 
