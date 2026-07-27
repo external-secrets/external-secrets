@@ -200,7 +200,6 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1.PushS
 		return nil
 	}
 	if len(data.ReplicationStatus) > 0 {
-		log.Info("detaching replication regions", "replication status", data.ReplicationStatus)
 		regions := make([]string, 0, len(data.ReplicationStatus))
 		for _, replicationStatus := range data.ReplicationStatus {
 			regions = append(regions, aws.ToString(replicationStatus.Region))
