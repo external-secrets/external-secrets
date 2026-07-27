@@ -83,6 +83,7 @@ if settings.get('debug').get('enabled'):
     gcflags = '-N -l'
     build_command_prefix = 'make dlv && '
     binary_deps += [
+        "Makefile",
         "hack/tools/go.mod",
         "hack/tools/go.sum",
     ]

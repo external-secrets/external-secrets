@@ -2,7 +2,7 @@
 # in your own venv to generate the requirements.txt:
 # pip-compile --generate-hashes --output-file=requirements.txt requirements.in
 # mkdocs if fetched as deps of mkdocs-material
-mkdocs-material
+mkdocs-material==9.7.7
 # mike version 2.0.0 or above is required for using GIT_COMMITTER_NAME, requested in
 # https://github.com/external-secrets/external-secrets/pull/2421#issuecomment-1593845147
 mike>=2.0.0

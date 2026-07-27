@@ -50,6 +50,7 @@ error() {
 update_module() {
     local module_path="$1"
     local module_name="$2"
+    local package_pattern="${3:-.}"
     
     info "Updating dependencies for $module_name..."
     
@@ -57,7 +58,7 @@ update_module() {
     
     # Run go get -u to update dependencies
     # Some updates may fail due to dependency constraints - this is expected
-    if go get -u 2>&1; then
+    if go get -u "$package_pattern" 2>&1; then
         success "Updated dependencies for $module_name"
     else
         warn "Failed to update some dependencies for $module_name (continuing...)"
@@ -106,12 +107,12 @@ main() {
     echo ""
     
     # 5. Update build tools module
-    if ! update_module "hack/tools" "build tools"; then
+    if ! update_module "hack/tools" "build tools" tool; then
         failed_modules+=("build tools")
     fi
     echo ""
 
-    if ! update_module "hack/tools/golangci-lint" "golangci-lint"; then
+    if ! update_module "hack/tools/golangci-lint" "golangci-lint" tool; then
         failed_modules+=("golangci-lint")
     fi
     echo ""
