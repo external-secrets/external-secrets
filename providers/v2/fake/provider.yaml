@@ -1,0 +1,23 @@
+provider:
+  name: fake
+  displayName: "Fake Provider"
+  v2Package: "github.com/external-secrets/external-secrets/apis/provider/fake/v2alpha1"
+
+stores:
+  - gvk:
+      group: "provider.external-secrets.io"
+      version: "v2alpha1"
+      kind: "Fake"
+    v1Provider: "github.com/external-secrets/external-secrets/providers/v2/fake/store"
+    v1ProviderFunc: "NewProvider"
+
+generators:
+  - gvk:
+      group: "generators.external-secrets.io"
+      version: "v1alpha1"
+      kind: "Fake"
+    v1Generator: "github.com/external-secrets/external-secrets/providers/v2/fake/generator"
+    v1GeneratorFunc: "NewGenerator"
+
+configPackage: "."
+

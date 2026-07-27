@@ -1,0 +1,71 @@
+syntax = "proto3";
+
+package generator.v1;
+
+option go_package = "github.com/external-secrets/external-secrets/proto/generator;generator";
+
+// GeneratorProvider is the service interface that generator implementations must satisfy.
+service GeneratorProvider {
+  // Generate creates a new secret or set of secrets.
+  // The returned map is a mapping of secret names to their respective values.
+  // The state is an optional field that can be used to store any generator-specific
+  // state which can be used during the Cleanup phase.
+  rpc Generate(GenerateRequest) returns (GenerateResponse);
+  
+  // Cleanup deletes any resources created during the Generate phase.
+  // Cleanup is idempotent and should not return an error if the resources
+  // have already been deleted.
+  rpc Cleanup(CleanupRequest) returns (CleanupResponse);
+}
+
+// GeneratorRef references a generator custom resource.
+message GeneratorRef {
+  // Specify the apiVersion of the generator resource
+  string api_version = 1;
+  
+  // Specify the Kind of the generator resource
+  string kind = 2;
+  
+  // Specify the name of the generator resource
+  string name = 3;
+  
+  // Namespace of the generator resource (optional for cluster-scoped generators)
+  string namespace = 4;
+}
+
+// GenerateRequest contains the information needed to generate secrets
+message GenerateRequest {
+  // Reference to the generator resource
+  GeneratorRef generator_ref = 1;
+  
+  // Namespace of the ExternalSecret making the request (for validation)
+  string source_namespace = 2;
+}
+
+// GenerateResponse contains the generated secrets and optional state
+message GenerateResponse {
+  // Map of secret keys to their values
+  map<string, bytes> secrets = 1;
+  
+  // Optional state that can be used during cleanup
+  // This is provider-specific and opaque to the controller
+  bytes state = 2;
+}
+
+// CleanupRequest contains the information needed to cleanup resources
+message CleanupRequest {
+  // Reference to the generator resource
+  GeneratorRef generator_ref = 1;
+  
+  // State returned from the Generate call
+  bytes state = 2;
+  
+  // Namespace of the ExternalSecret making the request (for validation)
+  string source_namespace = 3;
+}
+
+// CleanupResponse is the response from cleanup
+message CleanupResponse {
+  // Empty response - errors are communicated via gRPC status
+}
+

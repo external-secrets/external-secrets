@@ -1,6 +1,0 @@
-apiVersion: generators.external-secrets.io/v1alpha1
-kind: Fake
-metadata: {}
-spec:
-  controller: string
-  data: {}

@@ -70,15 +70,37 @@ OK		= echo ${TIME} ${GREEN}[ OK ]${CNone}
 FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 
 # ====================================================================================
+# Protobuf
+
+.PHONY: proto
+proto: ## Generate protobuf code
+	@$(INFO) generating protobuf code
+	@protoc --go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		-I. \
+		providers/v2/common/proto/provider/secretstore.proto
+	@protoc --go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		-I. \
+		providers/v2/common/proto/generator/generator.proto
+	@for file in \
+		providers/v2/common/proto/provider/secretstore.pb.go \
+		providers/v2/common/proto/provider/secretstore_grpc.pb.go \
+		providers/v2/common/proto/generator/generator.pb.go \
+		providers/v2/common/proto/generator/generator_grpc.pb.go; do \
+		tmp=$$(mktemp); \
+		cat hack/boilerplate.go.txt "$$file" > "$$tmp"; \
+		mv "$$tmp" "$$file"; \
+	done
+	@$(OK) protobuf code generated
+
+# ====================================================================================
 # Conformance
 
 reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
-	@go mod tidy
-	@cd e2e/ && go mod tidy
-	@cd apis/ && go mod tidy
-	@cd runtime/ && go mod tidy
-	@for provider in providers/v1/*/; do (cd $$provider && go mod tidy); done
-	@for generator in generators/v1/*/; do (cd $$generator && go mod tidy); done
+	@for module in . e2e apis runtime $$(find providers/v1 generators/v1 providers/v2 -name go.mod -not -path '*/vendor/*' -exec dirname {} \; | sort); do \
+		(cd "$$module" && GOWORK=off go mod tidy); \
+	done
 
 check-diff: reviewable ## Ensure branch is clean.
 	@$(INFO) checking that branch is clean
@@ -99,10 +121,10 @@ license.check:
 go-work:
 	@$(INFO) creating go workspace
 	@rm -rf go.work go.work.sum
-	@go work init
-	@go work use -r .
-	@go work edit -dropuse ./e2e
-	@go work sync
+	@GOWORK=off go work init
+	@GOWORK="$(shell pwd)/go.work" go work use -r .
+	@GOWORK="$(shell pwd)/go.work" go work edit -dropuse ./e2e
+	@GOWORK="$(shell pwd)/go.work" go work sync
 	@$(OK) created go workspace
 
 .PHONY: test
@@ -206,7 +228,7 @@ manifests: helm.generate ## Generate manifests from helm chart
 	helm template external-secrets $(HELM_DIR) -f deploy/manifests/helm-values.yaml > $(OUTPUT_DIR)/deploy/manifests/external-secrets.yaml
 
 crds.install: generate ## Install CRDs into a cluster. This is for convenience
-	kubectl apply -f $(BUNDLE_DIR) --server-side
+	kubectl apply -f $(BUNDLE_DIR) --server-side --force-conflicts
 
 crds.uninstall: ## Uninstall CRDs from a cluster. This is for convenience
 	kubectl delete -f $(BUNDLE_DIR)
@@ -329,17 +351,45 @@ docker.tag:  ## Emit IMAGE_TAG
 	@echo $(IMAGE_TAG)
 
 .PHONY: docker.build
-docker.build: $(addprefix build-,$(ARCH)) ## Build the docker image
-	@$(INFO) $(DOCKER) build
-	echo $(DOCKER) buildx build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
-	$(DOCKER) buildx build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
-	@$(OK) $(DOCKER) build
+docker.build: docker.build.controller docker.build.providers ## Build all docker images (controller + providers)
+
+.PHONY: docker.build.controller
+docker.build.controller: $(addprefix build-,$(ARCH)) ## Build the controller docker image
+	@$(INFO) $(DOCKER) build controller
+	@echo $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	@DOCKER_BUILDKIT=1 $(DOCKER) build -f $(DOCKERFILE) . $(DOCKER_BUILD_ARGS) -t $(IMAGE_NAME):$(IMAGE_TAG)
+	@$(OK) $(DOCKER) build controller
+
+.PHONY: docker.build.providers
+docker.build.providers: docker.build.provider.fake ## Build all provider images
+
+.PHONY: docker.build.provider.fake
+docker.build.provider.fake: ## Build Fake provider image
+	@$(INFO) $(DOCKER) build Fake provider
+	@DOCKER_BUILDKIT=1 $(DOCKER) build \
+		-f providers/v2/fake/Dockerfile \
+		. \
+		$(DOCKER_BUILD_ARGS) \
+		-t $(IMAGE_REGISTRY)/external-secrets/provider-fake:$(IMAGE_TAG)
+	@$(OK) $(DOCKER) build Fake provider
 
 .PHONY: docker.push
-docker.push: ## Push the docker image to the registry
-	@$(INFO) $(DOCKER) push
+docker.push: docker.push.controller docker.push.providers ## Push all docker images to the registry
+
+.PHONY: docker.push.controller
+docker.push.controller: ## Push the controller docker image to the registry
+	@$(INFO) $(DOCKER) push controller
 	@$(DOCKER) push $(IMAGE_NAME):$(IMAGE_TAG)
-	@$(OK) $(DOCKER) push
+	@$(OK) $(DOCKER) push controller
+
+.PHONY: docker.push.providers
+docker.push.providers: docker.push.provider.fake ## Push all provider images
+
+.PHONY: docker.push.provider.fake
+docker.push.provider.fake: ## Push Fake provider image
+	@$(INFO) $(DOCKER) push Fake provider
+	@$(DOCKER) push $(IMAGE_REGISTRY)/external-secrets/provider-fake:$(IMAGE_TAG)
+	@$(OK) $(DOCKER) push Fake provider
 
 # RELEASE_TAG is tag to promote. Default is promoting to main branch, but can be overriden
 # to promote a tag to a specific version.

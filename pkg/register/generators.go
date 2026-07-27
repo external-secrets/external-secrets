@@ -22,7 +22,6 @@ import (
 	beyondtrustworkloadcredentials "github.com/external-secrets/external-secrets/generators/v1/beyondtrustworkloadcredentials"
 	cloudsmith "github.com/external-secrets/external-secrets/generators/v1/cloudsmith"
 	ecr "github.com/external-secrets/external-secrets/generators/v1/ecr"
-	fakegen "github.com/external-secrets/external-secrets/generators/v1/fake"
 	gcr "github.com/external-secrets/external-secrets/generators/v1/gcr"
 	githubgen "github.com/external-secrets/external-secrets/generators/v1/github"
 	gitlabgen "github.com/external-secrets/external-secrets/generators/v1/gitlab"
@@ -35,14 +34,16 @@ import (
 	uuid "github.com/external-secrets/external-secrets/generators/v1/uuid"
 	vaultgen "github.com/external-secrets/external-secrets/generators/v1/vault"
 	webhookgen "github.com/external-secrets/external-secrets/generators/v1/webhook"
+	fakegen "github.com/external-secrets/external-secrets/providers/v2/fake/generator"
 )
 
 func init() {
 	// Register all generators
 	genv1alpha1.Register(acr.Kind(), acr.NewGenerator())
 	genv1alpha1.Register(beyondtrustworkloadcredentials.Kind(), beyondtrustworkloadcredentials.NewGenerator())
-	genv1alpha1.Register(cloudsmith.Kind(), cloudsmith.NewGenerator())
 	genv1alpha1.Register(ecr.Kind(), ecr.NewGenerator())
+	genv1alpha1.Register(sts.Kind(), sts.NewGenerator())
+	genv1alpha1.Register(cloudsmith.Kind(), cloudsmith.NewGenerator())
 	genv1alpha1.Register(fakegen.Kind(), fakegen.NewGenerator())
 	genv1alpha1.Register(gcr.Kind(), gcr.NewGenerator())
 	genv1alpha1.Register(githubgen.Kind(), githubgen.NewGenerator())
@@ -52,7 +53,6 @@ func init() {
 	genv1alpha1.Register(password.Kind(), password.NewGenerator())
 	genv1alpha1.Register(quay.Kind(), quay.NewGenerator())
 	genv1alpha1.Register(sshkey.Kind(), sshkey.NewGenerator())
-	genv1alpha1.Register(sts.Kind(), sts.NewGenerator())
 	genv1alpha1.Register(uuid.Kind(), uuid.NewGenerator())
 	genv1alpha1.Register(vaultgen.Kind(), vaultgen.NewGenerator())
 	genv1alpha1.Register(webhookgen.Kind(), webhookgen.NewGenerator())

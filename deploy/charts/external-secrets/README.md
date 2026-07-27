@@ -121,6 +121,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | crds.conversion.enabled | bool | `false` | Conversion is disabled by default as we stopped supporting v1alpha1. |
 | crds.createClusterExternalSecret | bool | `true` | If true, create CRDs for Cluster External Secret. If set to false you must also set processClusterExternalSecret: false. |
 | crds.createClusterGenerator | bool | `true` | If true, create CRDs for Cluster Generator. If set to false you must also set processClusterGenerator: false. |
+| crds.createClusterProviderClass | bool | `true` | If true, create CRDs for Cluster Provider Class. |
 | crds.createClusterPushSecret | bool | `true` | If true, create CRDs for Cluster Push Secret. If set to false you must also set processClusterPushSecret: false. |
 | crds.createClusterSecretStore | bool | `true` | If true, create CRDs for Cluster Secret Store. If set to false you must also set processClusterStore: false. |
 | crds.createPushSecret | bool | `true` | If true, create CRDs for Push Secret. If set to false you must also set processPushSecret: false. |
@@ -265,6 +266,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | systemAuthDelegator | bool | `false` | If true the system:auth-delegator ClusterRole will be added to RBAC |
 | tolerations | list | `[]` |  |
 | topologySpreadConstraints | list | `[]` |  |
+| v2 | object | `{"enabled":true}` | Experimental v2 out-of-process provider runtime support. Enables SecretStore runtimeRef compatibility flows. |
 | vault | object | `{"enableTokenCache":false,"tokenCacheSize":262144}` | Vault token cache configuration |
 | vault.enableTokenCache | bool | `false` | Enable Vault token cache. External secrets will reuse the Vault token without creating a new one on each request. |
 | vault.tokenCacheSize | int | `262144` | Maximum size of Vault token cache. Only used if enableTokenCache is true. |

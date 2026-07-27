@@ -13,10 +13,24 @@ metadata:
   labels:
     {{- include "external-secrets.labels" . | nindent 4 }}
 rules:
+  {{- if .Values.v2.enabled }}
+  - apiGroups:
+    - "provider.external-secrets.io"
+    resources:
+    - "fakes"
+    verbs:
+    - "get"
+    - "list"
+    - "watch"
+  {{- end }}
   - apiGroups:
     - "external-secrets.io"
     resources:
     - "secretstores"
+    {{- if .Values.v2.enabled }}
+    - "clusterproviderclasses"
+    - "providerclasses"
+    {{- end }}
     {{- if .Values.processClusterStore }}
     - "clustersecretstores"
     {{- end }}
@@ -37,6 +51,12 @@ rules:
   - apiGroups:
     - "external-secrets.io"
     resources:
+    {{- if .Values.v2.enabled }}
+    - "clusterproviderclasses"
+    - "clusterproviderclasses/status"
+    - "providerclasses"
+    - "providerclasses/status"
+    {{- end }}
     - "externalsecrets"
     - "externalsecrets/status"
     {{- if .Values.openshiftFinalizers }}

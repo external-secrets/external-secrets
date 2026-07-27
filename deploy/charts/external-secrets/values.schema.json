@@ -414,6 +414,9 @@
                 "createClusterGenerator": {
                     "type": "boolean"
                 },
+                "createClusterProviderClass": {
+                    "type": "boolean"
+                },
                 "createClusterPushSecret": {
                     "type": "boolean"
                 },
@@ -1025,6 +1028,14 @@
         },
         "topologySpreadConstraints": {
             "type": "array"
+        },
+        "v2": {
+            "type": "object",
+            "properties": {
+                "enabled": {
+                    "type": "boolean"
+                }
+            }
         },
         "vault": {
             "type": "object",

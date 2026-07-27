@@ -68,6 +68,15 @@ func validateStore(store GenericStore) (admission.Warnings, error) {
 	if err := validateConditions(store); err != nil {
 		return nil, err
 	}
+	if err := validateProviderMode(store); err != nil {
+		return nil, err
+	}
+	if err := validateRuntimeRef(store); err != nil {
+		return nil, err
+	}
+	if store.GetSpec() != nil && store.GetSpec().ProviderRef != nil {
+		return nil, nil
+	}
 
 	provider, err := GetProvider(store)
 	if err != nil {
@@ -88,4 +97,55 @@ func validateConditions(store GenericStore) error {
 	}
 
 	return errs
+}
+
+func validateProviderMode(store GenericStore) error {
+	if store == nil || store.GetSpec() == nil {
+		return nil
+	}
+	spec := store.GetSpec()
+	hasProvider := spec.Provider != nil
+	hasProviderRef := spec.ProviderRef != nil
+	if hasProvider == hasProviderRef {
+		return fmt.Errorf("exactly one of spec.provider or spec.providerRef must be set")
+	}
+	if hasProvider {
+		if spec.RuntimeRef != nil {
+			return fmt.Errorf("spec.runtimeRef must be empty when spec.provider is set")
+		}
+		return nil
+	}
+	if spec.ProviderRef.APIVersion == "" {
+		return fmt.Errorf("spec.providerRef.apiVersion is required")
+	}
+	if spec.ProviderRef.Kind == "" {
+		return fmt.Errorf("spec.providerRef.kind is required")
+	}
+	if spec.ProviderRef.Name == "" {
+		return fmt.Errorf("spec.providerRef.name is required")
+	}
+	if spec.RuntimeRef == nil {
+		return fmt.Errorf("spec.runtimeRef is required when spec.providerRef is set")
+	}
+	if store.GetKind() == SecretStoreKind {
+		namespace := spec.ProviderRef.Namespace
+		if namespace != "" && namespace != store.GetObjectMeta().Namespace {
+			return fmt.Errorf("spec.providerRef.namespace must be empty or match metadata.namespace")
+		}
+	}
+	return nil
+}
+
+func validateRuntimeRef(store GenericStore) error {
+	if store == nil || store.GetSpec() == nil {
+		return nil
+	}
+	runtimeRef := store.GetSpec().RuntimeRef
+	if runtimeRef == nil {
+		return nil
+	}
+	if store.GetKind() == ClusterSecretStoreKind && runtimeRef.Kind == StoreRuntimeRefKindProviderClass {
+		return fmt.Errorf("%s runtimeRef.kind must not be %q", store.GetKind(), runtimeRef.Kind)
+	}
+	return nil
 }

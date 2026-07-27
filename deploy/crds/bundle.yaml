@@ -189,7 +189,7 @@ spec:
                                 properties:
                                   kind:
                                     description: |-
-                                      Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                       Defaults to `SecretStore`
                                     enum:
                                       - SecretStore
@@ -438,7 +438,7 @@ spec:
                                 properties:
                                   kind:
                                     description: |-
-                                      Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                       Defaults to `SecretStore`
                                     enum:
                                       - SecretStore
@@ -480,7 +480,7 @@ spec:
                       properties:
                         kind:
                           description: |-
-                            Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                            Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                             Defaults to `SecretStore`
                           enum:
                             - SecretStore
@@ -1064,7 +1064,7 @@ spec:
                                 properties:
                                   kind:
                                     description: |-
-                                      Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                       Defaults to `SecretStore`
                                     enum:
                                       - SecretStore
@@ -1257,7 +1257,7 @@ spec:
                                 properties:
                                   kind:
                                     description: |-
-                                      Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                      Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                       Defaults to `SecretStore`
                                     enum:
                                       - SecretStore
@@ -1299,7 +1299,7 @@ spec:
                       properties:
                         kind:
                           description: |-
-                            Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                            Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                             Defaults to `SecretStore`
                           enum:
                             - SecretStore
@@ -1643,6 +1643,127 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
+  name: clusterproviderclasses.external-secrets.io
+spec:
+  group: external-secrets.io
+  names:
+    categories:
+      - externalsecrets
+    kind: ClusterProviderClass
+    listKind: ClusterProviderClassList
+    plural: clusterproviderclasses
+    shortNames:
+      - cpc
+    singular: clusterproviderclass
+  scope: Cluster
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.address
+          name: Address
+          type: string
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: ClusterProviderClass is a cluster-scoped store runtime class.
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: ClusterProviderClassSpec defines the desired state of ClusterProviderClass.
+              properties:
+                address:
+                  minLength: 1
+                  type: string
+              required:
+                - address
+              type: object
+            status:
+              description: ClusterProviderClassStatus defines the observed state of ClusterProviderClass.
+              properties:
+                conditions:
+                  items:
+                    description: Condition contains details for one aspect of the current state of this API Resource.
+                    properties:
+                      lastTransitionTime:
+                        description: |-
+                          lastTransitionTime is the last time the condition transitioned from one status to another.
+                          This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description: |-
+                          message is a human readable message indicating details about the transition.
+                          This may be an empty string.
+                        maxLength: 32768
+                        type: string
+                      observedGeneration:
+                        description: |-
+                          observedGeneration represents the .metadata.generation that the condition was set based upon.
+                          For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                          with respect to the current state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description: |-
+                          reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                          Producers of specific condition types may define expected values and meanings for this field,
+                          and whether the values are considered a guaranteed API.
+                          The value should be a CamelCase string.
+                          This field may not be empty.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                    type: object
+                  type: array
+              type: object
+          required:
+            - spec
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: clusterpushsecrets.external-secrets.io
@@ -1879,9 +2000,13 @@ spec:
                           storeRef:
                             description: StoreRef specifies which SecretStore to push to. Required.
                             properties:
+                              apiVersion:
+                                description: |-
+                                  APIVersion of the referenced store resource.
+                                  This field is optional and depends on the selected store kind.
+                                type: string
                               kind:
-                                default: SecretStore
-                                description: Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                 enum:
                                   - SecretStore
                                   - ClusterSecretStore
@@ -1959,9 +2084,13 @@ spec:
                       items:
                         description: PushSecretStoreRef contains a reference on how to sync to a SecretStore.
                         properties:
+                          apiVersion:
+                            description: |-
+                              APIVersion of the referenced store resource.
+                              This field is optional and depends on the selected store kind.
+                            type: string
                           kind:
-                            default: SecretStore
-                            description: Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                            description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                             enum:
                               - SecretStore
                               - ClusterSecretStore
@@ -2893,7 +3022,6 @@ spec:
                                 ForceDeleteWithoutRecovery in the same call. If you don't use either,
                                 then by default Secrets Manager uses a 30-day recovery window.
                                 see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays
-                              format: int64
                               type: integer
                           type: object
                         service:
@@ -4942,7 +5070,6 @@ spec:
                       properties:
                         appID:
                           description: appID specifies the Github APP that will be used to authenticate the client
-                          format: int64
                           type: integer
                         auth:
                           description: auth configures how secret-manager authenticates with a Github instance.
@@ -4983,7 +5110,6 @@ spec:
                           type: string
                         installationID:
                           description: installationID specifies the Github APP installation that will be used to authenticate the client
-                          format: int64
                           type: integer
                         orgSecretVisibility:
                           description: |-
@@ -8300,7 +8426,6 @@ spec:
 
                                         Deprecated: this will be removed in the future.
                                         Defaults to 10 minutes.
-                                      format: int64
                                       type: integer
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
@@ -9215,6 +9340,34 @@ spec:
                         - auth
                       type: object
                   type: object
+                providerRef:
+                  description: ProviderRef references a provider configuration managed externally.
+                  properties:
+                    apiVersion:
+                      description: APIVersion identifies the API schema version for the provider resource.
+                      minLength: 1
+                      type: string
+                    kind:
+                      description: Kind identifies the provider resource type referenced by this store.
+                      minLength: 1
+                      type: string
+                    name:
+                      description: Name is the provider resource name referenced by this store.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                    namespace:
+                      description: Namespace is the provider resource namespace referenced by this store.
+                      maxLength: 63
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                  required:
+                    - apiVersion
+                    - kind
+                    - name
+                  type: object
                 refreshInterval:
                   anyOf:
                     - type: integer
@@ -9228,14 +9381,36 @@ spec:
                   description: Used to configure HTTP retries on failures.
                   properties:
                     maxRetries:
-                      format: int32
                       type: integer
                     retryInterval:
                       type: string
                   type: object
-              required:
-                - provider
+                runtimeRef:
+                  description: RuntimeRef points to runtime configuration for this store.
+                  properties:
+                    kind:
+                      description: Kind identifies the runtime resource type referenced by this store.
+                      enum:
+                        - ProviderClass
+                        - ClusterProviderClass
+                      type: string
+                    name:
+                      description: Name is the runtime resource name referenced by this store.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                  required:
+                    - name
+                  type: object
               type: object
+              x-kubernetes-validations:
+                - message: exactly one of spec.provider or spec.providerRef must be set
+                  rule: (has(self.provider) && !has(self.providerRef)) || (!has(self.provider) && has(self.providerRef))
+                - message: spec.runtimeRef must be empty when spec.provider is set
+                  rule: '!(has(self.provider) && has(self.runtimeRef))'
+                - message: spec.runtimeRef is required when spec.providerRef is set
+                  rule: '!has(self.providerRef) || has(self.runtimeRef)'
             status:
               description: SecretStoreStatus defines the observed state of the SecretStore.
               properties:
@@ -9857,7 +10032,6 @@ spec:
                                 ForceDeleteWithoutRecovery in the same call. If you don't use either,
                                 then by default Secrets Manager uses a 30 day recovery window.
                                 see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays
-                              format: int64
                               type: integer
                           type: object
                         service:
@@ -11050,7 +11224,6 @@ spec:
                       properties:
                         appID:
                           description: appID specifies the Github APP that will be used to authenticate the client
-                          format: int64
                           type: integer
                         auth:
                           description: auth configures how secret-manager authenticates with a Github instance.
@@ -11091,7 +11264,6 @@ spec:
                           type: string
                         installationID:
                           description: installationID specifies the Github APP installation that will be used to authenticate the client
-                          format: int64
                           type: integer
                         organization:
                           description: organization will be used to fetch secrets from the Github organization
@@ -12652,7 +12824,6 @@ spec:
 
                                         Deprecated: this will be removed in the future.
                                         Defaults to 10 minutes.
-                                      format: int64
                                       type: integer
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
@@ -13418,6 +13589,34 @@ spec:
                         - auth
                       type: object
                   type: object
+                providerRef:
+                  description: ProviderRef references a provider configuration managed externally.
+                  properties:
+                    apiVersion:
+                      description: APIVersion identifies the API schema version for the provider resource.
+                      minLength: 1
+                      type: string
+                    kind:
+                      description: Kind identifies the provider resource type referenced by this store.
+                      minLength: 1
+                      type: string
+                    name:
+                      description: Name is the provider resource name referenced by this store.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                    namespace:
+                      description: Namespace is the provider resource namespace referenced by this store.
+                      maxLength: 63
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                  required:
+                    - apiVersion
+                    - kind
+                    - name
+                  type: object
                 refreshInterval:
                   description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
                   type: integer
@@ -13432,9 +13631,32 @@ spec:
                       description: RetryInterval is the interval between retry attempts.
                       type: string
                   type: object
-              required:
-                - provider
+                runtimeRef:
+                  description: RuntimeRef points to runtime configuration for this store.
+                  properties:
+                    kind:
+                      description: Kind identifies the runtime resource type referenced by this store.
+                      enum:
+                        - ProviderClass
+                        - ClusterProviderClass
+                      type: string
+                    name:
+                      description: Name is the runtime resource name referenced by this store.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                  required:
+                    - name
+                  type: object
               type: object
+              x-kubernetes-validations:
+                - message: exactly one of spec.provider or spec.providerRef must be set
+                  rule: (has(self.provider) && !has(self.providerRef)) || (!has(self.provider) && has(self.providerRef))
+                - message: spec.runtimeRef must be empty when spec.provider is set
+                  rule: '!(has(self.provider) && has(self.runtimeRef))'
+                - message: spec.runtimeRef is required when spec.providerRef is set
+                  rule: '!has(self.providerRef) || has(self.runtimeRef)'
             status:
               description: SecretStoreStatus defines the observed state of the SecretStore.
               properties:
@@ -13648,7 +13870,7 @@ spec:
                             properties:
                               kind:
                                 description: |-
-                                  Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                   Defaults to `SecretStore`
                                 enum:
                                   - SecretStore
@@ -13897,7 +14119,7 @@ spec:
                             properties:
                               kind:
                                 description: |-
-                                  Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                   Defaults to `SecretStore`
                                 enum:
                                   - SecretStore
@@ -13939,7 +14161,7 @@ spec:
                   properties:
                     kind:
                       description: |-
-                        Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                        Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                         Defaults to `SecretStore`
                       enum:
                         - SecretStore
@@ -14409,7 +14631,7 @@ spec:
                             properties:
                               kind:
                                 description: |-
-                                  Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                   Defaults to `SecretStore`
                                 enum:
                                   - SecretStore
@@ -14602,7 +14824,7 @@ spec:
                             properties:
                               kind:
                                 description: |-
-                                  Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                                  Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                                   Defaults to `SecretStore`
                                 enum:
                                   - SecretStore
@@ -14644,7 +14866,7 @@ spec:
                   properties:
                     kind:
                       description: |-
-                        Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                        Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                         Defaults to `SecretStore`
                       enum:
                         - SecretStore
@@ -14883,6 +15105,127 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.19.0
+  name: providerclasses.external-secrets.io
+spec:
+  group: external-secrets.io
+  names:
+    categories:
+      - externalsecrets
+    kind: ProviderClass
+    listKind: ProviderClassList
+    plural: providerclasses
+    shortNames:
+      - pc
+    singular: providerclass
+  scope: Namespaced
+  versions:
+    - additionalPrinterColumns:
+        - jsonPath: .spec.address
+          name: Address
+          type: string
+      name: v1alpha1
+      schema:
+        openAPIV3Schema:
+          description: ProviderClass is a namespaced store runtime class.
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: ProviderClassSpec defines the desired state of ProviderClass.
+              properties:
+                address:
+                  minLength: 1
+                  type: string
+              required:
+                - address
+              type: object
+            status:
+              description: ProviderClassStatus defines the observed state of ProviderClass.
+              properties:
+                conditions:
+                  items:
+                    description: Condition contains details for one aspect of the current state of this API Resource.
+                    properties:
+                      lastTransitionTime:
+                        description: |-
+                          lastTransitionTime is the last time the condition transitioned from one status to another.
+                          This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                        format: date-time
+                        type: string
+                      message:
+                        description: |-
+                          message is a human readable message indicating details about the transition.
+                          This may be an empty string.
+                        maxLength: 32768
+                        type: string
+                      observedGeneration:
+                        description: |-
+                          observedGeneration represents the .metadata.generation that the condition was set based upon.
+                          For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                          with respect to the current state of the instance.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                      reason:
+                        description: |-
+                          reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                          Producers of specific condition types may define expected values and meanings for this field,
+                          and whether the values are considered a guaranteed API.
+                          The value should be a CamelCase string.
+                          This field may not be empty.
+                        maxLength: 1024
+                        minLength: 1
+                        pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                        type: string
+                      status:
+                        description: status of the condition, one of True, False, Unknown.
+                        enum:
+                          - "True"
+                          - "False"
+                          - Unknown
+                        type: string
+                      type:
+                        description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                        maxLength: 316
+                        pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                        type: string
+                    required:
+                      - lastTransitionTime
+                      - message
+                      - reason
+                      - status
+                      - type
+                    type: object
+                  type: array
+              type: object
+          required:
+            - spec
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
   labels:
     external-secrets.io/component: controller
   name: pushsecrets.external-secrets.io
@@ -15051,9 +15394,13 @@ spec:
                       storeRef:
                         description: StoreRef specifies which SecretStore to push to. Required.
                         properties:
+                          apiVersion:
+                            description: |-
+                              APIVersion of the referenced store resource.
+                              This field is optional and depends on the selected store kind.
+                            type: string
                           kind:
-                            default: SecretStore
-                            description: Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                            description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                             enum:
                               - SecretStore
                               - ClusterSecretStore
@@ -15131,9 +15478,13 @@ spec:
                   items:
                     description: PushSecretStoreRef contains a reference on how to sync to a SecretStore.
                     properties:
+                      apiVersion:
+                        description: |-
+                          APIVersion of the referenced store resource.
+                          This field is optional and depends on the selected store kind.
+                        type: string
                       kind:
-                        default: SecretStore
-                        description: Kind of the SecretStore resource (SecretStore or ClusterSecretStore)
+                        description: Kind of the SecretStore resource (SecretStore, ClusterSecretStore)
                         enum:
                           - SecretStore
                           - ClusterSecretStore
@@ -16093,7 +16444,6 @@ spec:
                                 ForceDeleteWithoutRecovery in the same call. If you don't use either,
                                 then by default Secrets Manager uses a 30-day recovery window.
                                 see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays
-                              format: int64
                               type: integer
                           type: object
                         service:
@@ -18142,7 +18492,6 @@ spec:
                       properties:
                         appID:
                           description: appID specifies the Github APP that will be used to authenticate the client
-                          format: int64
                           type: integer
                         auth:
                           description: auth configures how secret-manager authenticates with a Github instance.
@@ -18183,7 +18532,6 @@ spec:
                           type: string
                         installationID:
                           description: installationID specifies the Github APP installation that will be used to authenticate the client
-                          format: int64
                           type: integer
                         orgSecretVisibility:
                           description: |-
@@ -21500,7 +21848,6 @@ spec:
 
                                         Deprecated: this will be removed in the future.
                                         Defaults to 10 minutes.
-                                      format: int64
                                       type: integer
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
@@ -22415,6 +22762,34 @@ spec:
                         - auth
                       type: object
                   type: object
+                providerRef:
+                  description: ProviderRef references a provider configuration managed externally.
+                  properties:
+                    apiVersion:
+                      description: APIVersion identifies the API schema version for the provider resource.
+                      minLength: 1
+                      type: string
+                    kind:
+                      description: Kind identifies the provider resource type referenced by this store.
+                      minLength: 1
+                      type: string
+                    name:
+                      description: Name is the provider resource name referenced by this store.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                    namespace:
+                      description: Namespace is the provider resource namespace referenced by this store.
+                      maxLength: 63
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                  required:
+                    - apiVersion
+                    - kind
+                    - name
+                  type: object
                 refreshInterval:
                   anyOf:
                     - type: integer
@@ -22428,14 +22803,36 @@ spec:
                   description: Used to configure HTTP retries on failures.
                   properties:
                     maxRetries:
-                      format: int32
                       type: integer
                     retryInterval:
                       type: string
                   type: object
-              required:
-                - provider
+                runtimeRef:
+                  description: RuntimeRef points to runtime configuration for this store.
+                  properties:
+                    kind:
+                      description: Kind identifies the runtime resource type referenced by this store.
+                      enum:
+                        - ProviderClass
+                        - ClusterProviderClass
+                      type: string
+                    name:
+                      description: Name is the runtime resource name referenced by this store.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                  required:
+                    - name
+                  type: object
               type: object
+              x-kubernetes-validations:
+                - message: exactly one of spec.provider or spec.providerRef must be set
+                  rule: (has(self.provider) && !has(self.providerRef)) || (!has(self.provider) && has(self.providerRef))
+                - message: spec.runtimeRef must be empty when spec.provider is set
+                  rule: '!(has(self.provider) && has(self.runtimeRef))'
+                - message: spec.runtimeRef is required when spec.providerRef is set
+                  rule: '!has(self.providerRef) || has(self.runtimeRef)'
             status:
               description: SecretStoreStatus defines the observed state of the SecretStore.
               properties:
@@ -23057,7 +23454,6 @@ spec:
                                 ForceDeleteWithoutRecovery in the same call. If you don't use either,
                                 then by default Secrets Manager uses a 30 day recovery window.
                                 see: https://docs.aws.amazon.com/secretsmanager/latest/apireference/API_DeleteSecret.html#SecretsManager-DeleteSecret-request-RecoveryWindowInDays
-                              format: int64
                               type: integer
                           type: object
                         service:
@@ -24250,7 +24646,6 @@ spec:
                       properties:
                         appID:
                           description: appID specifies the Github APP that will be used to authenticate the client
-                          format: int64
                           type: integer
                         auth:
                           description: auth configures how secret-manager authenticates with a Github instance.
@@ -24291,7 +24686,6 @@ spec:
                           type: string
                         installationID:
                           description: installationID specifies the Github APP installation that will be used to authenticate the client
-                          format: int64
                           type: integer
                         organization:
                           description: organization will be used to fetch secrets from the Github organization
@@ -25852,7 +26246,6 @@ spec:
 
                                         Deprecated: this will be removed in the future.
                                         Defaults to 10 minutes.
-                                      format: int64
                                       type: integer
                                     serviceAccountRef:
                                       description: Service account field containing the name of a kubernetes ServiceAccount.
@@ -26618,6 +27011,34 @@ spec:
                         - auth
                       type: object
                   type: object
+                providerRef:
+                  description: ProviderRef references a provider configuration managed externally.
+                  properties:
+                    apiVersion:
+                      description: APIVersion identifies the API schema version for the provider resource.
+                      minLength: 1
+                      type: string
+                    kind:
+                      description: Kind identifies the provider resource type referenced by this store.
+                      minLength: 1
+                      type: string
+                    name:
+                      description: Name is the provider resource name referenced by this store.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                    namespace:
+                      description: Namespace is the provider resource namespace referenced by this store.
+                      maxLength: 63
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                      type: string
+                  required:
+                    - apiVersion
+                    - kind
+                    - name
+                  type: object
                 refreshInterval:
                   description: Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
                   type: integer
@@ -26632,9 +27053,32 @@ spec:
                       description: RetryInterval is the interval between retry attempts.
                       type: string
                   type: object
-              required:
-                - provider
+                runtimeRef:
+                  description: RuntimeRef points to runtime configuration for this store.
+                  properties:
+                    kind:
+                      description: Kind identifies the runtime resource type referenced by this store.
+                      enum:
+                        - ProviderClass
+                        - ClusterProviderClass
+                      type: string
+                    name:
+                      description: Name is the runtime resource name referenced by this store.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                  required:
+                    - name
+                  type: object
               type: object
+              x-kubernetes-validations:
+                - message: exactly one of spec.provider or spec.providerRef must be set
+                  rule: (has(self.provider) && !has(self.providerRef)) || (!has(self.provider) && has(self.providerRef))
+                - message: spec.runtimeRef must be empty when spec.provider is set
+                  rule: '!(has(self.provider) && has(self.runtimeRef))'
+                - message: spec.runtimeRef is required when spec.providerRef is set
+                  rule: '!has(self.providerRef) || has(self.runtimeRef)'
             status:
               description: SecretStoreStatus defines the observed state of the SecretStore.
               properties:
@@ -27077,7 +27521,6 @@ spec:
                     If not specified, uses the default retry settings.
                   properties:
                     maxRetries:
-                      format: int32
                       type: integer
                     retryInterval:
                       type: string
@@ -27539,7 +27982,6 @@ spec:
                             If not specified, uses the default retry settings.
                           properties:
                             maxRetries:
-                              format: int32
                               type: integer
                             retryInterval:
                               type: string
@@ -29037,7 +29479,6 @@ spec:
 
                                             Deprecated: this will be removed in the future.
                                             Defaults to 10 minutes.
-                                          format: int64
                                           type: integer
                                         serviceAccountRef:
                                           description: Service account field containing the name of a kubernetes ServiceAccount.
@@ -29510,7 +29951,6 @@ spec:
                           description: Used to configure http retries if failed
                           properties:
                             maxRetries:
-                              format: int32
                               type: integer
                             retryInterval:
                               type: string
@@ -31908,7 +32348,6 @@ spec:
 
                                     Deprecated: this will be removed in the future.
                                     Defaults to 10 minutes.
-                                  format: int64
                                   type: integer
                                 serviceAccountRef:
                                   description: Service account field containing the name of a kubernetes ServiceAccount.
@@ -32381,7 +32820,6 @@ spec:
                   description: Used to configure http retries if failed
                   properties:
                     maxRetries:
-                      format: int32
                       type: integer
                     retryInterval:
                       type: string
@@ -32611,6 +33049,79 @@ spec:
               required:
                 - result
                 - url
+              type: object
+          type: object
+      served: true
+      storage: true
+      subresources:
+        status: {}
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: fakes.provider.external-secrets.io
+spec:
+  group: provider.external-secrets.io
+  names:
+    categories:
+      - external-secrets
+    kind: Fake
+    listKind: FakeList
+    plural: fakes
+    shortNames:
+      - fake
+    singular: fake
+  scope: Namespaced
+  versions:
+    - name: v2alpha1
+      schema:
+        openAPIV3Schema:
+          description: |-
+            Fake defines the configuration for the Fake provider.
+            This provider returns static key-value pairs for testing purposes.
+          properties:
+            apiVersion:
+              description: |-
+                APIVersion defines the versioned schema of this representation of an object.
+                Servers should convert recognized schemas to the latest internal value, and
+                may reject unrecognized values.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+              type: string
+            kind:
+              description: |-
+                Kind is a string value representing the REST resource this object represents.
+                Servers may infer this from the endpoint the client submits requests to.
+                Cannot be updated.
+                In CamelCase.
+                More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+              type: string
+            metadata:
+              type: object
+            spec:
+              description: FakeProvider configures a fake provider that returns static values.
+              properties:
+                data:
+                  items:
+                    description: FakeProviderData defines a key-value pair with optional version for the fake provider.
+                    properties:
+                      key:
+                        type: string
+                      value:
+                        type: string
+                      version:
+                        type: string
+                    required:
+                      - key
+                      - value
+                    type: object
+                  type: array
+                validationResult:
+                  description: ValidationResult is defined type for the number of validation results.
+                  type: integer
+              required:
+                - data
               type: object
           type: object
       served: true
