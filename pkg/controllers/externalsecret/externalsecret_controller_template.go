@@ -56,6 +56,12 @@ func (r *Reconciler) ApplyTemplate(ctx context.Context, es *esv1.ExternalSecret,
 		return nil
 	}
 
+	// defense in depth: the admission webhook rejects these targets already, but a cluster
+	// running with failurePolicy=Ignore or without the webhook must not render them either.
+	if err := esv1.ValidateSecretTemplateFromTargets(es.Spec.Target.Template); err != nil {
+		return err
+	}
+
 	// set the secret type if it is defined in the template, otherwise keep the existing type
 	if es.Spec.Target.Template.Type != "" {
 		secret.Type = es.Spec.Target.Template.Type

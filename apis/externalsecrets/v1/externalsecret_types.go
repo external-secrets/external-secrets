@@ -160,7 +160,8 @@ type TemplateFrom struct {
 	Secret    *TemplateRef `json:"secret,omitempty"`
 
 	// Target specifies where to place the template result.
-	// For Secret resources, common values are: "Data", "Annotations", "Labels".
+	// For Secret resources the accepted values are empty, "Data", "Annotations" and "Labels";
+	// any other value is rejected because it would allow writes to privilege Secret fields.
 	// For custom resources (when spec.target.manifest is set), this supports
 	// nested paths like "spec.database.config" or "data".
 	// +optional
@@ -186,7 +187,8 @@ const (
 	TemplateScopeKeysAndValues TemplateScope = "KeysAndValues"
 )
 
-// These constants are provided for convenience but Target accepts any string.
+// These constants are the only Target values accepted when the ExternalSecret renders
+// into a Secret. Custom resource targets additionally accept nested paths.
 const (
 	TemplateTargetData        = "Data"
 	TemplateTargetAnnotations = "Annotations"
