@@ -325,7 +325,12 @@ func (w *WebHook) Validate() (esv1.ValidationResult, error) {
 	// must be resolved before attempting to validate network reachability.
 	// urlEncode has no effect when ref is nil (only remoteRef values are
 	// escaped), but is set explicitly to make the intent unambiguous.
-	escapedData, err := w.wh.GetTemplateData(context.Background(), nil, provider.Secrets, false)
+	// Bound the Kubernetes secret lookup with the same timeout used for the
+	// network check below, so Validate() cannot hang indefinitely if the
+	// Kubernetes API is slow or unresponsive.
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	escapedData, err := w.wh.GetTemplateData(ctx, nil, provider.Secrets, false)
 	if err != nil {
 		return esv1.ValidationResultError, fmt.Errorf("failed to get template data: %w", err)
 	}
