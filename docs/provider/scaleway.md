@@ -30,7 +30,7 @@ spec:
 
 Secrets can be referenced by name, id or path, using the prefixes `"name:"`, `"id:"` and `"path:"` respectively.
 
-A PushSecret resource can only use a name reference.
+A PushSecret resource can use name or path references.
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -87,4 +87,62 @@ spec:
       key: id:<SECRET_UUID>
       property: last # Anderson
 ```
+
+## PushSecret
+
+The provider supports `PushSecret` with name (`name:<NAME>`) and path (`path:/<PATH>/<NAME>`) references.
+Secret versions are immutable in Scaleway: every update creates a new version and disables the previous one.
+
+With `property` set, the pushed value is merged into the remote secret's JSON object — only that
+property is created or updated, other properties are preserved. Keys containing dots (e.g. `tls.crt`)
+are stored as literal top-level keys, unless the remote JSON already contains a matching nested
+structure (e.g. `{"tls":{"crt":...}}`), in which case the nested value is updated in place.
+If the existing remote value is not a JSON object, the push fails: the provider refuses to
+overwrite a value it did not write. Delete or migrate the remote secret first.
+With `deletionPolicy: Delete`, deleting a pushed property removes only that key (as a new version);
+the remote secret itself is deleted when the last property is removed.
+
+```yaml
+apiVersion: external-secrets.io/v1alpha1
+kind: PushSecret
+metadata:
+  name: push-tls
+spec:
+  refreshInterval: 1h
+  secretStoreRefs:
+    - kind: SecretStore
+      name: secret-store
+  selector:
+    secret:
+      name: my-tls-secret
+  data:
+    - match:
+        secretKey: tls.crt
+        remoteRef:
+          remoteKey: "path:/certificates/my-cert"
+          property: tls.crt
+    - match:
+        secretKey: tls.key
+        remoteRef:
+          remoteKey: "path:/certificates/my-cert"
+          property: tls.key
+```
+
+Without `secretKey` (or with `spec.dataTo`), the whole Kubernetes Secret is serialized as a JSON
+object of its keys and pushed as the remote secret's value. `dataTo` filtering (`match.regexp`) is
+applied by the controller before the push.
+
+```yaml
+  dataTo:
+    - remoteKey: "path:/certificates/my-cert-bundle"
+      storeRef:
+        kind: SecretStore
+        name: secret-store
+```
+
+Note: Scaleway limits a secret's payload to 64KiB; the JSON object holding all pushed
+properties (or the whole serialized Secret) must stay under that limit. Values pushed with
+`property` (or via a whole-secret push) must be valid UTF-8 — binary values cannot be stored
+inside a JSON object and are rejected; push them as a single raw secret (a `data` entry
+without `property`) instead.
 

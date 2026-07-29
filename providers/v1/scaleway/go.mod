@@ -9,6 +9,7 @@ require (
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.35
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
+	github.com/tidwall/sjson v1.2.5
 	k8s.io/api v0.35.2
 	sigs.k8s.io/controller-runtime v0.23.3
 )
