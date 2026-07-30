@@ -78,7 +78,6 @@ require (
 	github.com/IBM/secrets-manager-go-sdk/v2 v2.0.16 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect
 	github.com/PaesslerAG/jsonpath v0.1.1 // indirect
-	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0
 	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.7 // indirect
 	github.com/aws/aws-sdk-go v1.55.8 // indirect
 	github.com/go-logr/logr v1.4.3
@@ -423,7 +422,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/common v0.67.5 // indirect
 	github.com/prometheus/procfs v0.20.1 // indirect
-	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/sony/gobreaker v1.0.0 // indirect
@@ -446,8 +444,6 @@ require (
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	k8s.io/gengo v0.0.0-20250922181213-ec3ebc5fd46b // indirect
-	k8s.io/klog v1.0.0 // indirect
 	k8s.io/klog/v2 v2.140.0
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 )
