@@ -86,8 +86,11 @@ build.publish: image generate $(SOURCES)
 		$(MKDOCS_IMAGE) \
 		$(SHELL) -c "cd /repo && $(MIKE) deploy --update-aliases -p -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: generate
-generate:
+generate: $(ROOT)/bin/gen-crd-api-reference-docs
 	./generate.sh $(SRCDIR)/api/spec.md
+
+$(ROOT)/bin/gen-crd-api-reference-docs:
+	$(MAKE) -C $(ROOT) gen-crd-api-reference-docs
 
 .PHONY: clean
 clean:
