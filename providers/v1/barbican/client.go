@@ -27,6 +27,7 @@ import (
 
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/gophercloud/gophercloud/v2/openstack/keymanager/v1/secrets"
+	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -126,7 +127,14 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esapi.ExternalSecretDataR
 
 	secretMap := make(map[string][]byte, len(rawJSON))
 	for k, v := range rawJSON {
-		secretMap[k] = []byte(v)
+		// Numbers stay raw; decoding into float64 would drop precision on
+		// large integers.
+		var strVal string
+		if err := json.Unmarshal(v, &strVal); err == nil {
+			secretMap[k] = []byte(strVal)
+		} else {
+			secretMap[k] = v
+		}
 	}
 
 	return secretMap, nil
@@ -163,17 +171,24 @@ func getSecretPayloadProperty(payload []byte, property string) ([]byte, error) {
 		return payload, nil
 	}
 
-	var rawJSON map[string]json.RawMessage
-	if err := json.Unmarshal(payload, &rawJSON); err != nil {
-		return nil, fmt.Errorf(errClientJSONUnmarshal, err)
+	if !json.Valid(payload) {
+		return nil, fmt.Errorf(errClientJSONUnmarshal, errors.New("payload is not valid json"))
 	}
 
-	value, ok := rawJSON[property]
-	if !ok {
+	// gjson treats '.' as a path separator, so a dotted property is tried as an
+	// escaped literal key first, then as a nested path, like the gcp provider.
+	if strings.Contains(property, ".") {
+		if escaped := gjson.GetBytes(payload, strings.ReplaceAll(property, ".", "\\.")); escaped.Exists() {
+			return []byte(escaped.String()), nil
+		}
+	}
+
+	value := gjson.GetBytes(payload, property)
+	if !value.Exists() {
 		return nil, fmt.Errorf(errClientGeneric, fmt.Errorf("property %s not found in secret payload", property))
 	}
 
-	return value, nil
+	return []byte(value.String()), nil
 }
 
 // extractUUIDFromRef extracts the UUID from a Barbican secret reference URL.
