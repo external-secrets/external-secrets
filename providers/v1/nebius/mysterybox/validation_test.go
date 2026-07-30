@@ -72,13 +72,22 @@ func TestValidateStore(t *testing.T) {
 			wantErr: errMissingAuthOptions,
 		},
 		{
-			name: "invalid auth: both provided",
+			name: "invalid auth: 2 provided",
 			store: mkStore(func(s *esv1.SecretStore) {
 				nm := s.Spec.Provider.NebiusMysterybox
 				nm.Auth.Token = esmeta.SecretKeySelector{Name: "a", Key: "k"}
 				nm.Auth.ServiceAccountCreds = esmeta.SecretKeySelector{Name: "b", Key: "k"}
 			}),
-			wantErr: errInvalidAuthConfig,
+			wantErr: errTooManyAuthConfigs,
+		},
+		{
+			name: "invalid auth: 3 provided",
+			store: mkStore(func(s *esv1.SecretStore) {
+				nm := s.Spec.Provider.NebiusMysterybox
+				nm.Auth.Token = esmeta.SecretKeySelector{Name: "a", Key: "k"}
+				nm.Auth.WorkloadIdentity = &esv1.NebiusWorkloadIdentity{}
+			}),
+			wantErr: errTooManyAuthConfigs,
 		},
 		{
 			name: "invalid token auth: missing key",
@@ -191,6 +200,31 @@ func TestValidateStore(t *testing.T) {
 			}),
 			wantErr: "",
 		},
+		{
+			name: "correct workload identity config",
+			store: mkStore(func(s *esv1.SecretStore) {
+				nm := s.Spec.Provider.NebiusMysterybox
+				nm.Auth.WorkloadIdentity = &esv1.NebiusWorkloadIdentity{
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name: "serviceaccount",
+					},
+					IAMServiceAccountID: "serviceaccount-e00test",
+				}
+			}),
+			wantErr: "",
+		},
+		{
+			name: "workload identity config missing IAM service account id",
+			store: mkStore(func(s *esv1.SecretStore) {
+				nm := s.Spec.Provider.NebiusMysterybox
+				nm.Auth.WorkloadIdentity = &esv1.NebiusWorkloadIdentity{
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name: "serviceaccount",
+					},
+				}
+			}),
+			wantErr: errEmptyWorkloadIdentityIAMAccount,
+		},
 	}
 
 	for _, tt := range tests {
@@ -254,6 +288,31 @@ func TestValidateStoreClusterScope(t *testing.T) {
 			name: "cluster: namespaced sa creds passes",
 			store: makeStore(func(nm *esv1.NebiusMysteryboxProvider) {
 				nm.Auth.ServiceAccountCreds = esmeta.SecretKeySelector{Name: "tok", Key: "k", Namespace: new("ns1")}
+			}),
+			wantErr: "",
+		},
+		{
+			name: "cluster: sa ref selector requires namespace",
+			store: makeStore(func(nm *esv1.NebiusMysteryboxProvider) {
+				nm.Auth.WorkloadIdentity = &esv1.NebiusWorkloadIdentity{
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name: "serviceaccount",
+					},
+					IAMServiceAccountID: "serviceaccount-e00test",
+				}
+			}),
+			wantErr: utilsErrRequireNamespace,
+		},
+		{
+			name: "cluster: namespaced sa ref passes",
+			store: makeStore(func(nm *esv1.NebiusMysteryboxProvider) {
+				nm.Auth.WorkloadIdentity = &esv1.NebiusWorkloadIdentity{
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name:      "serviceaccount",
+						Namespace: new("ns1"),
+					},
+					IAMServiceAccountID: "serviceaccount-e00test",
+				}
 			}),
 			wantErr: "",
 		},
