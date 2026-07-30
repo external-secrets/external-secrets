@@ -114,7 +114,7 @@ require (
 	k8s.io/client-go v0.36.3
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	sigs.k8s.io/controller-runtime v0.24.1
-	sigs.k8s.io/controller-tools v0.19.0
+	sigs.k8s.io/controller-tools v0.19.0 // indirect
 )
 
 require github.com/1Password/connect-sdk-go v1.5.3 // indirect
@@ -181,10 +181,11 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/webhook v0.0.0-20251103080423-08fa383f42e5
 	github.com/external-secrets/external-secrets/providers/v1/yandex v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/runtime v0.0.0
-	github.com/maxbrunsfeld/counterfeiter/v6 v6.12.0
 	github.com/robfig/cron/v3 v3.0.1
 	sigs.k8s.io/yaml v1.6.0
 )
+
+tool sigs.k8s.io/controller-tools/cmd/controller-gen
 
 require (
 	al.essio.dev/pkg/shellescape v1.6.0 // indirect
