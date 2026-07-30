@@ -61,7 +61,7 @@ func validateExternalSecret(es *ExternalSecret) (admission.Warnings, error) {
 		errs = errors.Join(errs, errors.New("either data or dataFrom should be specified"))
 	}
 
-	if err := validatePrivilegedTemplate(es); err != nil {
+	if err := validatePrivilegedTemplate(es.Spec.Target.Template); err != nil {
 		errs = errors.Join(errs, err)
 	}
 
@@ -130,8 +130,7 @@ func validatePolicies(es *ExternalSecret) error {
 
 // validatePrivilegedTemplate rejects templates with specific types and annotations combinations
 // to prevent users from creating long-lived tokens beyond the scope of the defined RBAC.
-func validatePrivilegedTemplate(es *ExternalSecret) error {
-	tpl := es.Spec.Target.Template
+func validatePrivilegedTemplate(tpl *ExternalSecretTemplate) error {
 	if tpl == nil {
 		return nil
 	}
@@ -150,6 +149,17 @@ func validatePrivilegedTemplate(es *ExternalSecret) error {
 		return fmt.Errorf("template.type=%q is not allowed", corev1.SecretTypeBootstrapToken)
 	}
 	return nil
+}
+
+// ValidateSecretTemplate applies every template restriction that must hold when an
+// ExternalSecret renders into a Secret. The admission webhook reaches these rules through
+// validateExternalSecret; the controller calls this so the same set is enforced when no
+// webhook sits in front of it.
+func ValidateSecretTemplate(tpl *ExternalSecretTemplate) error {
+	return errors.Join(
+		validatePrivilegedTemplate(tpl),
+		ValidateSecretTemplateFromTargets(tpl),
+	)
 }
 
 // isManifestSecretTarget reports whether the ExternalSecret renders into a core/v1 Secret.
