@@ -152,10 +152,10 @@ func validatePrivilegedTemplate(es *ExternalSecret) error {
 	return nil
 }
 
-// targetsSecret reports whether the ExternalSecret renders into a core/v1 Secret.
+// isManifestSecretTarget reports whether the ExternalSecret renders into a core/v1 Secret.
 // That is the default target, and it is also reachable through an explicit manifest
 // reference naming a Secret.
-func targetsSecret(es *ExternalSecret) bool {
+func isManifestSecretTarget(es *ExternalSecret) bool {
 	manifest := es.Spec.Target.Manifest
 	if manifest == nil {
 		return true
@@ -166,7 +166,7 @@ func targetsSecret(es *ExternalSecret) bool {
 // validateTemplateFromTarget restricts templateFrom targets whenever the ExternalSecret
 // renders into a Secret.
 func validateTemplateFromTarget(es *ExternalSecret) error {
-	if !targetsSecret(es) {
+	if !isManifestSecretTarget(es) {
 		return nil
 	}
 

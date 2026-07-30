@@ -12158,7 +12158,7 @@ string
 <em>(Optional)</em>
 <p>Target specifies where to place the template result.
 For Secret resources the accepted values are empty, &ldquo;Data&rdquo;, &ldquo;Annotations&rdquo; and &ldquo;Labels&rdquo;;
-any other value is rejected because it would allow writes to privilege Secret fields.
+any other value is rejected because it would allow writes to privileged Secret fields.
 For custom resources (when spec.target.manifest is set), this supports
 nested paths like &ldquo;spec.database.config&rdquo; or &ldquo;data&rdquo;.</p>
 </td>
