@@ -25,6 +25,7 @@ import (
 	fakegen "github.com/external-secrets/external-secrets/generators/v1/fake"
 	gcr "github.com/external-secrets/external-secrets/generators/v1/gcr"
 	githubgen "github.com/external-secrets/external-secrets/generators/v1/github"
+	gitlabgen "github.com/external-secrets/external-secrets/generators/v1/gitlab"
 	grafana "github.com/external-secrets/external-secrets/generators/v1/grafana"
 	mfa "github.com/external-secrets/external-secrets/generators/v1/mfa"
 	password "github.com/external-secrets/external-secrets/generators/v1/password"
@@ -45,6 +46,7 @@ func init() {
 	genv1alpha1.Register(fakegen.Kind(), fakegen.NewGenerator())
 	genv1alpha1.Register(gcr.Kind(), gcr.NewGenerator())
 	genv1alpha1.Register(githubgen.Kind(), githubgen.NewGenerator())
+	genv1alpha1.Register(gitlabgen.Kind(), gitlabgen.NewGenerator())
 	genv1alpha1.Register(grafana.Kind(), grafana.NewGenerator())
 	genv1alpha1.Register(mfa.Kind(), mfa.NewGenerator())
 	genv1alpha1.Register(password.Kind(), password.NewGenerator())

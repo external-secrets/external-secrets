@@ -26,6 +26,7 @@ import (
 	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/providers/v1/openbao/internal/auth"
 )
 
 var (
@@ -35,6 +36,7 @@ var (
 // Provider implements the ESO Provider interface for OpenBao.
 type Provider struct {
 	HTTPClientFactory httpClientFactory
+	AuthMethodFactory auth.Factory
 }
 
 type httpClientFactory func() *http.Client
@@ -54,7 +56,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	if client.storeKind != esv1.ClusterSecretStoreKind || namespace != "" || !isReferentSpec(spec) {
-		err := client.setup(ctx, kube, namespace, p.HTTPClientFactory)
+		err := client.setup(ctx, kube, namespace, p)
 		if err != nil {
 			return nil, err
 		}
@@ -66,6 +68,18 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 func isReferentSpec(prov *esv1.OpenBaoProvider) bool {
 	if prov.Auth != nil {
 		auth := prov.Auth
+
+		if auth.AppRole != nil {
+			appRole := auth.AppRole
+
+			if appRole.RoleRef != nil && appRole.RoleRef.Namespace == nil {
+				return true
+			}
+
+			if appRole.SecretRef.Namespace == nil {
+				return true
+			}
+		}
 
 		if auth.TokenSecretRef != nil && auth.TokenSecretRef.Namespace == nil {
 			return true
@@ -91,6 +105,7 @@ func NewProvider() esv1.Provider {
 				Transport: http.DefaultTransport.(*http.Transport).Clone(),
 			}
 		},
+		AuthMethodFactory: auth.DefaultAuthMethodFactory,
 	}
 }
 

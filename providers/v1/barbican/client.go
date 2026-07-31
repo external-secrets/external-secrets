@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/gophercloud/gophercloud/v2"
@@ -54,11 +55,15 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esapi.ExternalSecretFind
 		return nil, fmt.Errorf(errClientMissingField, errors.New("name and/or regexp"))
 	}
 
-	opts := secrets.ListOpts{
-		Name: ref.Name.RegExp,
+	// Barbican's list API only supports exact-name matching, so we can't push
+	// the regexp down to the server. List everything and match client-side, the
+	// same way the other ESO providers treat find.name.regexp.
+	nameMatcher, err := regexp.Compile(ref.Name.RegExp)
+	if err != nil {
+		return nil, fmt.Errorf(errClientGeneric, fmt.Errorf("invalid name regexp %q: %w", ref.Name.RegExp, err))
 	}
 
-	allPages, err := secrets.List(c.keyManager, opts).AllPages(ctx)
+	allPages, err := secrets.List(c.keyManager, secrets.ListOpts{}).AllPages(ctx)
 	if err != nil {
 		return nil, fmt.Errorf(errClientListAllSecrets, err)
 	}
@@ -68,20 +73,23 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esapi.ExternalSecretFind
 		return nil, fmt.Errorf(errClientExtractSecrets, err)
 	}
 
-	if len(allSecrets) == 0 {
-		return nil, fmt.Errorf(errClientGeneric, errors.New("no secrets found"))
-	}
-
 	var secretsMap = make(map[string][]byte)
 
-	// return a secret map with all found secrets.
 	for _, secret := range allSecrets {
+		if !nameMatcher.MatchString(secret.Name) {
+			continue
+		}
 		secretUUID := extractUUIDFromRef(secret.SecretRef)
 		secretsMap[secretUUID], err = secrets.GetPayload(ctx, c.keyManager, secretUUID, nil).Extract()
 		if err != nil {
 			return nil, fmt.Errorf(errClientGetSecretPayload, fmt.Errorf("failed to get secret payload for secret %s: %w", secretUUID, err))
 		}
 	}
+
+	if len(secretsMap) == 0 {
+		return nil, fmt.Errorf(errClientGeneric, errors.New("no secrets found"))
+	}
+
 	return secretsMap, nil
 }
 
@@ -131,7 +139,7 @@ func (c *Client) PushSecret(_ context.Context, _ *corev1.Secret, _ esapi.PushSec
 
 // SecretExists is not implemented right now for Barbican.
 func (c *Client) SecretExists(_ context.Context, _ esapi.PushSecretRemoteRef) (bool, error) {
-	return false, fmt.Errorf("barbican provider does not pushing secrets with update policy IfNotExists")
+	return false, errors.New("barbican provider does not support checking secret existence (read-only)")
 }
 
 // DeleteSecret is not implemented right now for Barbican.

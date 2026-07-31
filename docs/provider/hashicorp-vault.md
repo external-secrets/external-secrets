@@ -100,6 +100,17 @@ spec:
 
 Keep in mind that fetching the labels with `metadataPolicy: Fetch` only works with KV sercrets engine version v2.
 
+In addition to the labels defined under `custom_metadata`, `metadataPolicy: Fetch` also exposes the following system metadata of the secret: `created_time`, `current_version` and `delete_version_after`. All values are returned as strings. If a `custom_metadata` label uses the same name as one of these keys, the `custom_metadata` value takes precedence.
+
+```yaml
+  # metadataPolicy to fetch the current version of the secret
+  - secretKey: version
+    remoteRef:
+      metadataPolicy: Fetch
+      key: foo
+      property: current_version
+```
+
 #### Fetching Raw Values
 
 You can fetch all key/value pairs for a given path If you leave the `remoteRef.property` empty. This returns the json-encoded secret value for that path.

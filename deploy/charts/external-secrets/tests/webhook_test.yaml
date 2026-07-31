@@ -560,3 +560,41 @@ tests:
             - ip: "192.168.1.100"
               hostnames:
                 - "webhook.example.com"
+  - it: should have startup probe on the readiness port when enabled
+    set:
+      webhook.startupProbe.enabled: true
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe
+          value:
+            httpGet:
+              path: /readyz
+              port: ready
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            failureThreshold: 30
+      - equal:
+          path: spec.template.spec.containers[0].ports[2].name
+          value: ready
+      - notExists:
+          path: spec.template.spec.containers[0].ports[3]
+  - it: should override the startup probe timing
+    set:
+      webhook.startupProbe.enabled: true
+      webhook.startupProbe.initialDelaySeconds: 5
+      webhook.startupProbe.periodSeconds: 15
+      webhook.startupProbe.failureThreshold: 40
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].startupProbe
+          value:
+            httpGet:
+              path: /readyz
+              port: ready
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            failureThreshold: 40

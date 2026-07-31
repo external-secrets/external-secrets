@@ -48,6 +48,10 @@ const (
 	// folderPrefix is the prefix used to encode a folder ID in a remote key.
 	// Format: "folderId:<id>/<name>" (e.g. "folderId:73/my-secret").
 	folderPrefix = "folderId:"
+	// validateSearchText is intentionally unlikely to match a real secret. The
+	// Secret Server search call authenticates the client and returns an empty
+	// result set when no records match.
+	validateSearchText = "external-secrets-validation-check"
 )
 
 // isNotFoundError checks if an error indicates a secret was not found.
@@ -377,14 +381,33 @@ func (c *client) SecretExists(_ context.Context, ref esv1.PushSecretRemoteRef) (
 	return true, nil
 }
 
-// Validate not supported at this time.
 func (c *client) Validate() (esv1.ValidationResult, error) {
+	if c.api == nil {
+		return esv1.ValidationResultError, errors.New("secret server API client is not initialized")
+	}
+	if _, err := c.api.Secrets(validateSearchText, "Name"); err != nil {
+		return esv1.ValidationResultError, fmt.Errorf("failed to validate Secret Server credentials: %w", err)
+	}
 	return esv1.ValidationResultReady, nil
 }
 
 // GetSecretMap retrieves the secret referenced by ref from the Secret Server API
 // and returns it as a map of byte slices.
 func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
+	// When a property is requested, GetSecret already fetches the secret and
+	// applies its own empty-fields guard, so resolve it here and avoid the
+	// second round-trip a separate getSecret call would incur.
+	if ref.Property != "" {
+		value, err := c.GetSecret(ctx, ref)
+		if err != nil {
+			return nil, err
+		}
+		if data, ok, err := jsonObjectToByteMap(string(value)); ok || err != nil {
+			return data, err
+		}
+		return map[string][]byte{ref.Property: value}, nil
+	}
+
 	secret, err := c.getSecret(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -394,21 +417,55 @@ func (c *client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 		return nil, errors.New("secret contains no fields")
 	}
 
-	secretData := make(map[string]any)
+	if data, ok, err := jsonObjectToByteMap(secret.Fields[0].ItemValue); ok || err != nil {
+		return data, err
+	}
 
-	err = json.Unmarshal([]byte(secret.Fields[0].ItemValue), &secretData)
+	return fieldsToByteMap(secret.Fields)
+}
+
+func jsonObjectToByteMap(value string) (map[string][]byte, bool, error) {
+	trimmed := strings.TrimSpace(value)
+	// Require a valid JSON object: gating on validity (not just a leading "{")
+	// means a value that merely starts with "{" but is not valid JSON falls
+	// through to the plain-text/field-map path instead of hard-failing, so the
+	// json.Unmarshal error below is effectively defensive only.
+	if !strings.HasPrefix(trimmed, "{") || !gjson.Valid(trimmed) {
+		return nil, false, nil
+	}
+
+	secretData := make(map[string]any)
+	err := json.Unmarshal([]byte(value), &secretData)
 	if err != nil {
 		// Do not return the raw error as json.Unmarshal errors may contain
 		// sensitive secret data in the error message
-		return nil, errors.New("failed to unmarshal secret: invalid JSON format")
+		return nil, true, errors.New("failed to unmarshal secret: invalid JSON format")
 	}
 
 	data := make(map[string][]byte)
-	for k, v := range secretData {
-		data[k], err = esutils.GetByteValue(v)
+	for k := range secretData {
+		data[k], err = esutils.GetByteValueFromMap(secretData, k)
 		if err != nil {
-			return nil, err
+			return nil, true, err
 		}
+	}
+	return data, true, nil
+}
+
+func fieldsToByteMap(fields []server.SecretField) (map[string][]byte, error) {
+	data := make(map[string][]byte, len(fields))
+	for _, field := range fields {
+		key := field.Slug
+		if key == "" {
+			key = field.FieldName
+		}
+		if key == "" && field.FieldID > 0 {
+			key = strconv.Itoa(field.FieldID)
+		}
+		if key == "" {
+			return nil, errors.New("secret field has no slug, field name, or field ID")
+		}
+		data[key] = []byte(field.ItemValue)
 	}
 	return data, nil
 }

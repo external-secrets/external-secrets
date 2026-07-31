@@ -38,9 +38,6 @@ import (
 )
 
 const (
-	base64DecodedValue         string = "foo%_?bar"
-	base64EncodedValue         string = "Zm9vJV8/YmFy"
-	base64URLEncodedValue      string = "Zm9vJV8_YmFy"
 	keyWithEmojis              string = "😀foo😁bar😂baz😈bing"
 	keyWithInvalidChars        string = "some-array[0].entity"
 	keyWithEncodedInvalidChars string = "some-array_U005b_0_U005d_.entity"
@@ -247,6 +244,55 @@ func TestConvertKeys(t *testing.T) {
 	}
 }
 
+func TestTransformKeys(t *testing.T) {
+	tests := []struct {
+		name      string
+		in        map[string][]byte
+		transform func(string) string
+		want      map[string][]byte
+		wantErr   bool
+	}{
+		{
+			name: "transforms keys and preserves values",
+			in: map[string][]byte{
+				"foo": []byte("bar"),
+				"baz": []byte("qux"),
+			},
+			transform: func(key string) string {
+				return key + "-transformed"
+			},
+			want: map[string][]byte{
+				"foo-transformed": []byte("bar"),
+				"baz-transformed": []byte("qux"),
+			},
+		},
+		{
+			name: "errors on transformed key collision",
+			in: map[string][]byte{
+				"foo": []byte("bar"),
+				"baz": []byte("qux"),
+			},
+			transform: func(string) string {
+				return "collision"
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := transformKeys(tt.in, tt.transform)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("transformKeys() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("transformKeys() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReverseKeys(t *testing.T) {
 	type args struct {
 		encodingStrategy esv1.ExternalSecretConversionStrategy
@@ -318,103 +364,6 @@ func TestReverseKeys(t *testing.T) {
 	}
 }
 
-func TestDecode(t *testing.T) {
-	type args struct {
-		strategy esv1.ExternalSecretDecodingStrategy
-		in       map[string][]byte
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    map[string][]byte
-		wantErr bool
-	}{
-		{
-			name: "base64 decoded",
-			args: args{
-				strategy: esv1.ExternalSecretDecodeBase64,
-				in: map[string][]byte{
-					"foo": []byte("YmFy"),
-				},
-			},
-			want: map[string][]byte{
-				"foo": []byte("bar"),
-			},
-		},
-		{
-			name: "invalid base64",
-			args: args{
-				strategy: esv1.ExternalSecretDecodeBase64,
-				in: map[string][]byte{
-					"foo": []byte("foo"),
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "base64url decoded",
-			args: args{
-				strategy: esv1.ExternalSecretDecodeBase64URL,
-				in: map[string][]byte{
-					"foo": []byte(base64URLEncodedValue),
-				},
-			},
-			want: map[string][]byte{
-				"foo": []byte(base64DecodedValue),
-			},
-		},
-		{
-			name: "invalid base64url",
-			args: args{
-				strategy: esv1.ExternalSecretDecodeBase64URL,
-				in: map[string][]byte{
-					"foo": []byte("foo"),
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "none",
-			args: args{
-				strategy: esv1.ExternalSecretDecodeNone,
-				in: map[string][]byte{
-					"foo": []byte(base64URLEncodedValue),
-				},
-			},
-			want: map[string][]byte{
-				"foo": []byte(base64URLEncodedValue),
-			},
-		},
-		{
-			name: "auto",
-			args: args{
-				strategy: esv1.ExternalSecretDecodeAuto,
-				in: map[string][]byte{
-					"b64":        []byte(base64EncodedValue),
-					"invalidb64": []byte("foo"),
-					"b64url":     []byte(base64URLEncodedValue),
-				},
-			},
-			want: map[string][]byte{
-				"b64":        []byte(base64DecodedValue),
-				"invalidb64": []byte("foo"),
-				"b64url":     []byte(base64DecodedValue),
-			},
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := DecodeMap(tt.args.strategy, tt.args.in)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("DecodeMap() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("DecodeMap() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
 func TestValidate(t *testing.T) {
 	err := NetworkValidate("http://google.com", 10*time.Second)
 	if err != nil {
@@ -970,6 +919,35 @@ func TestFetchValueFromMetadata(t *testing.T) {
 			assert.Equal(t, tt.wantT, gotT)
 		})
 	}
+}
+
+func TestJSONToSecretDataMap(t *testing.T) {
+	t.Run("string values", func(t *testing.T) {
+		got, err := JSONToSecretDataMap([]byte(`{"foo":"bar"}`))
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{"foo": []byte("bar")}, got)
+	})
+
+	t.Run("nested and non-string values", func(t *testing.T) {
+		got, err := JSONToSecretDataMap([]byte(`{"username":"my_user","port":5432,"nested":{"baz":"nestedval"}}`))
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{
+			"username": []byte("my_user"),
+			"port":     []byte("5432"),
+			"nested":   []byte(`{"baz":"nestedval"}`),
+		}, got)
+	})
+
+	t.Run("null value", func(t *testing.T) {
+		got, err := JSONToSecretDataMap([]byte(`{"key":null}`))
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{"key": []byte("")}, got)
+	})
+
+	t.Run("invalid json", func(t *testing.T) {
+		_, err := JSONToSecretDataMap([]byte(`not-json`))
+		assert.Error(t, err)
+	})
 }
 
 func TestGetByteValue(t *testing.T) {

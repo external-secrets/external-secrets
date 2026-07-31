@@ -69,6 +69,46 @@ func TestValidateStore(t *testing.T) {
 			store:       makeValidSecretStore(),
 			expectError: false,
 		},
+		{
+			name:        "username as value should pass validation",
+			store:       makeSecretStoreWithValueUsername(),
+			expectError: false,
+		},
+		{
+			name:        "nil barbican provider should return error",
+			store:       makeSecretStoreWithNilBarbican(),
+			expectError: true,
+			errorMsg:    "provider barbican is nil",
+		},
+		{
+			name:        "missing authURL should return error",
+			store:       makeSecretStoreWithMissingAuthURL(),
+			expectError: true,
+			errorMsg:    "authURL is required",
+		},
+		{
+			name:        "username without value or secretRef should return error",
+			store:       makeSecretStoreWithEmptyUsername(),
+			expectError: true,
+			errorMsg:    "auth.username",
+		},
+		{
+			name:        "missing password secretRef should return error",
+			store:       makeSecretStoreWithNoPasswordRef(),
+			expectError: true,
+			errorMsg:    "auth.password",
+		},
+		{
+			name:        "cluster store without secretRef namespace should return error",
+			store:       makeClusterSecretStoreNoNamespace(),
+			expectError: true,
+			errorMsg:    "namespace",
+		},
+		{
+			name:        "cluster store with secretRef namespace should pass",
+			store:       makeClusterSecretStoreWithNamespace(),
+			expectError: false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -261,6 +301,34 @@ func makeSecretStoreWithNilBarbican() *esv1.SecretStore {
 func makeSecretStoreWithMissingAuthURL() *esv1.SecretStore {
 	store := makeValidSecretStore()
 	store.Spec.Provider.Barbican.AuthURL = ""
+	return store
+}
+
+func makeSecretStoreWithEmptyUsername() *esv1.SecretStore {
+	store := makeValidSecretStore()
+	store.Spec.Provider.Barbican.Auth.Username = esv1.BarbicanProviderUsernameRef{}
+	return store
+}
+
+func makeSecretStoreWithNoPasswordRef() *esv1.SecretStore {
+	store := makeValidSecretStore()
+	store.Spec.Provider.Barbican.Auth.Password = esv1.BarbicanProviderPasswordRef{}
+	return store
+}
+
+func makeClusterSecretStoreNoNamespace() *esv1.ClusterSecretStore {
+	return &esv1.ClusterSecretStore{
+		TypeMeta:   metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+		ObjectMeta: metav1.ObjectMeta{Name: "test-cluster-store"},
+		Spec:       makeValidSecretStore().Spec,
+	}
+}
+
+func makeClusterSecretStoreWithNamespace() *esv1.ClusterSecretStore {
+	store := makeClusterSecretStoreNoNamespace()
+	ns := testNamespace
+	store.Spec.Provider.Barbican.Auth.Username.SecretRef.Namespace = &ns
+	store.Spec.Provider.Barbican.Auth.Password.SecretRef.Namespace = &ns
 	return store
 }
 

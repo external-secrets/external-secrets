@@ -70,22 +70,30 @@ load('ext://restart_process', 'docker_build_with_restart')
 # Once done, rebuilding now should be a lot faster since only the relevant
 # binary is rebuilt and the hot swat wrapper takes care of the rest.
 gcflags = ''
+build_command_prefix = ''
+binary_deps = [
+    "main.go",
+    "go.mod",
+    "go.sum",
+    "apis",
+    "cmd",
+    "pkg",
+]
 if settings.get('debug').get('enabled'):
     gcflags = '-N -l'
+    build_command_prefix = 'make dlv && '
+    binary_deps += [
+        "Makefile",
+        "hack/tools/go.mod",
+        "hack/tools/go.sum",
+    ]
 
 buildtags = settings.get('buildtags', 'all_providers')
 
 local_resource(
     'external-secret-binary',
-    "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags '{buildtags}' -gcflags '{gcflags}' -v -o bin/external-secrets ./".format(buildtags=buildtags, gcflags=gcflags),
-    deps = [
-        "main.go",
-        "go.mod",
-        "go.sum",
-        "apis",
-        "cmd",
-        "pkg",
-    ],
+    "{prefix}CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags '{buildtags}' -gcflags '{gcflags}' -v -o bin/external-secrets ./".format(prefix=build_command_prefix, buildtags=buildtags, gcflags=gcflags),
+    deps = binary_deps,
 )
 
 # Build the docker image for our controller. We use a specific Dockerfile

@@ -1,10 +1,10 @@
-## Delinea DevOps Secrets Vault
+# Delinea DevOps Secrets Vault
 
 External Secrets Operator integrates with [Delinea DevOps Secrets Vault](https://docs.delinea.com/online-help/products/devops-secrets-vault/current).
 
-Please note that the [Delinea Secret Server](https://delinea.com/products/secret-server) product is NOT in scope of this integration.
+Please note that the [Delinea Secret Server](https://delinea.com/products/secret-server) product is not covered by this provider. ESO integrates with Secret Server through the separate [Secret Server provider](secretserver.md).
 
-### Creating a SecretStore
+## Creating a SecretStore
 
 You need client ID, client secret and tenant to authenticate with DSV.
 Both client ID and client secret can be specified either directly in the config, or by referencing a kubernetes secret.
@@ -35,11 +35,11 @@ The `tenant` field must correspond to the host name / site name of your DevOps v
 
 If required, the URL template (`urlTemplate`) can be customized as well.
 
-### Referencing Secrets
+## Referencing Secrets
 
 Secrets can be referenced by path. Getting a specific version of a secret is not yet supported.
 
-Note that because all DSV secrets are JSON objects, you must specify `remoteRef.property`. You can access nested values or arrays using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md).
+Because all DSV secrets are JSON objects, omitting `remoteRef.property` returns the whole secret as a JSON object. To extract a single field, set `remoteRef.property`; nested values and arrays are addressable with [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md).
 
 ```yaml
 apiVersion: external-secrets.io/v1

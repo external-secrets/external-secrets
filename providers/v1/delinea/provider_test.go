@@ -30,6 +30,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 func TestDoesConfigDependOnNamespace(t *testing.T) {
@@ -110,7 +111,7 @@ func TestValidateStore(t *testing.T) {
 				ClientID:     ambiguousSecretRef,
 				ClientSecret: validSecretRefUsingValue,
 			},
-			want: errSecretRefAndValueConflict,
+			want: esutils.ErrValueAndRefConflict,
 		},
 		"invalid with ambiguous clientSecret": {
 			cfg: esv1.DelineaProvider{
@@ -118,7 +119,7 @@ func TestValidateStore(t *testing.T) {
 				ClientID:     validSecretRefUsingValue,
 				ClientSecret: ambiguousSecretRef,
 			},
-			want: errSecretRefAndValueConflict,
+			want: esutils.ErrValueAndRefConflict,
 		},
 		"invalid with invalid clientID": {
 			cfg: esv1.DelineaProvider{
@@ -126,7 +127,7 @@ func TestValidateStore(t *testing.T) {
 				ClientID:     makeSecretRefUsingValue(""),
 				ClientSecret: validSecretRefUsingValue,
 			},
-			want: errSecretRefAndValueMissing,
+			want: esutils.ErrValueOrRefMissing,
 		},
 		"invalid with invalid clientSecret": {
 			cfg: esv1.DelineaProvider{
@@ -134,7 +135,7 @@ func TestValidateStore(t *testing.T) {
 				ClientID:     validSecretRefUsingValue,
 				ClientSecret: makeSecretRefUsingValue(""),
 			},
-			want: errSecretRefAndValueMissing,
+			want: esutils.ErrValueOrRefMissing,
 		},
 		"valid with tenant/clientID/clientSecret": {
 			cfg: esv1.DelineaProvider{

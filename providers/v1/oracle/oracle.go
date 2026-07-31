@@ -44,6 +44,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/cache"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
@@ -63,10 +64,17 @@ const (
 	errMissingKey                 = "missing Key in secret: %s"
 	errUnexpectedContent          = "unexpected secret bundle content"
 	errSettingOCIEnvVariables     = "unable to set OCI SDK environment variable %s: %w"
+	errUnsettingOCIEnvVariables   = "unable to unset OCI SDK environment variable %s: %w"
 )
 
 const (
-	authConfigurationsCachePoolSize = 50
+	// auth config cache LRU cache size.
+	authConfigurationsCacheSize = 50
+	// cache kind for using operator's default service account.
+	defaultSACacheKind = "oke-workload-identity-default-sa"
+	// cache version for using operator's default service account provider.
+	// depends only on the region and doesn't need version-based invalidation.
+	defaultSACacheVersion = "v0"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -82,7 +90,7 @@ type VaultManagementService struct {
 	compartment             string
 	encryptionKey           string
 	workloadIdentityMutex   sync.Mutex
-	authConfigurationsCache map[string]auth.ConfigurationProviderWithClaimAccess
+	authConfigurationsCache *cache.Cache[auth.ConfigurationProviderWithClaimAccess]
 }
 
 // VMInterface defines the interface for OCI Secrets Management Client operations.
@@ -587,34 +595,65 @@ func (vms *VaultManagementService) ValidateStore(store esv1.GenericStore) (admis
 	return nil, nil
 }
 
-func (vms *VaultManagementService) getWorkloadIdentityProvider(
-	store esv1.GenericStore,
-	serviceAcccountRef *esmeta.ServiceAccountSelector,
-	region, namespace string,
-) (configurationProvider common.ConfigurationProvider, err error) {
+func (vms *VaultManagementService) withOCIWorkloadIdentityEnv(
+	region string,
+	fn func() (auth.ConfigurationProviderWithClaimAccess, error),
+) (provider auth.ConfigurationProviderWithClaimAccess, err error) {
 	defer func() {
 		if uerr := os.Unsetenv(auth.ResourcePrincipalVersionEnvVar); uerr != nil {
-			err = errors.Join(err, fmt.Errorf(errSettingOCIEnvVariables, auth.ResourcePrincipalRegionEnvVar, uerr))
+			err = errors.Join(err, fmt.Errorf(errUnsettingOCIEnvVariables, auth.ResourcePrincipalVersionEnvVar, uerr))
 		}
 		if uerr := os.Unsetenv(auth.ResourcePrincipalRegionEnvVar); uerr != nil {
-			err = errors.Join(err, fmt.Errorf("unabled to unset OCI SDK environment variable %s: %w", auth.ResourcePrincipalVersionEnvVar, uerr))
+			err = errors.Join(err, fmt.Errorf(errUnsettingOCIEnvVariables, auth.ResourcePrincipalRegionEnvVar, uerr))
 		}
 		vms.workloadIdentityMutex.Unlock()
 	}()
 	vms.workloadIdentityMutex.Lock()
 	// OCI SDK requires specific environment variables for workload identity.
-	if err := os.Setenv(auth.ResourcePrincipalVersionEnvVar, auth.ResourcePrincipalVersion2_2); err != nil {
+	if err = os.Setenv(auth.ResourcePrincipalVersionEnvVar, auth.ResourcePrincipalVersion2_2); err != nil {
 		return nil, fmt.Errorf(errSettingOCIEnvVariables, auth.ResourcePrincipalVersionEnvVar, err)
 	}
-	if err := os.Setenv(auth.ResourcePrincipalRegionEnvVar, region); err != nil {
+	if err = os.Setenv(auth.ResourcePrincipalRegionEnvVar, region); err != nil {
 		return nil, fmt.Errorf(errSettingOCIEnvVariables, auth.ResourcePrincipalRegionEnvVar, err)
 	}
-	// If no service account is specified, use the pod service account to create the Workload Identity provider.
-	if serviceAcccountRef == nil {
-		return auth.OkeWorkloadIdentityConfigurationProvider()
+	return fn()
+}
+
+func (vms *VaultManagementService) getWorkloadIdentityProvider(
+	store esv1.GenericStore,
+	serviceAccountRef *esmeta.ServiceAccountSelector,
+	region, namespace string,
+) (configurationProvider common.ConfigurationProvider, err error) {
+	// when no service account is specified, use the pod's default service account.
+	// this OkeWorkloadIdentityConfigurationProvider depends only on the region, so cache it by region.
+	if serviceAccountRef == nil {
+		key := cache.Key{
+			Name: region,
+			Kind: defaultSACacheKind,
+		}
+		if provider, ok := vms.authConfigurationsCache.Get(defaultSACacheVersion, key); ok {
+			return provider, nil
+		}
+
+		provider, err := vms.withOCIWorkloadIdentityEnv(region, auth.OkeWorkloadIdentityConfigurationProvider)
+		if err != nil {
+			return nil, err
+		}
+		vms.authConfigurationsCache.Add(defaultSACacheVersion, key, provider)
+		return provider, nil
 	}
+
+	key := cache.Key{
+		Name:      store.GetName(),
+		Namespace: store.GetNamespace(),
+		Kind:      store.GetKind(),
+	}
+	if provider, ok := vms.authConfigurationsCache.Get(store.GetResourceVersion(), key); ok {
+		return provider, nil
+	}
+
 	// Ensure the service account ref is being used appropriately, so arbitrary tokens are not minted by the provider.
-	if err = esutils.ValidateServiceAccountSelector(store, *serviceAcccountRef); err != nil {
+	if err := esutils.ValidateServiceAccountSelector(store, *serviceAccountRef); err != nil {
 		return nil, fmt.Errorf("invalid ServiceAccountRef: %w", err)
 	}
 	cfg, err := ctrlcfg.GetConfig()
@@ -625,24 +664,17 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(
 	if err != nil {
 		return nil, err
 	}
-	tokenProvider := NewTokenProvider(clientset, serviceAcccountRef, namespace)
+	tokenProvider := NewTokenProvider(clientset, serviceAccountRef, namespace)
 
-	// Cache OKE token providers per SecretStore to avoid creating multiple providers for the same store.
-	// We also reset the cache if it exceeds a certain size to avoid unbounded memory growth.
-	if vms.authConfigurationsCache == nil || len(vms.authConfigurationsCache) >= authConfigurationsCachePoolSize {
-		vms.authConfigurationsCache = make(map[string]auth.ConfigurationProviderWithClaimAccess)
+	provider, err := vms.withOCIWorkloadIdentityEnv(region, func() (auth.ConfigurationProviderWithClaimAccess, error) {
+		return auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	// Caching by resource version to ensure that updates to the SecretStore are reflected in the cached provider.
-	_, ok := vms.authConfigurationsCache[store.GetResourceVersion()]
-	if !ok {
-		vms.authConfigurationsCache[store.GetResourceVersion()], err = auth.OkeWorkloadIdentityConfigurationProviderWithServiceAccountTokenProvider(tokenProvider)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return vms.authConfigurationsCache[store.GetResourceVersion()], nil
+	vms.authConfigurationsCache.Add(store.GetResourceVersion(), key, provider)
+	return provider, nil
 }
 
 func (vms *VaultManagementService) constructProvider(
@@ -719,7 +751,9 @@ func sanitizeOCISDKErr(err error) error {
 
 // NewProvider creates a new Provider instance.
 func NewProvider() esv1.Provider {
-	return &VaultManagementService{}
+	return &VaultManagementService{
+		authConfigurationsCache: cache.Must[auth.ConfigurationProviderWithClaimAccess](authConfigurationsCacheSize, nil),
+	}
 }
 
 // ProviderSpec returns the provider specification for registration.

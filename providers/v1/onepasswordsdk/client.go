@@ -936,7 +936,7 @@ func (p *SecretsClient) findItem(ctx context.Context, name string) (onepassword.
 // GetAllSecrets/GetSecretMap, avoiding a Resolve API call. It only handles plain field
 // lookups; files, sections, and cache misses return false so the caller falls back to Resolve.
 func (p *SecretsClient) resolveFieldFromCachedItem(refKey string) ([]byte, bool) {
-	itemName, property, ok := strings.Cut(refKey, "/")
+	itemName, property, ok := strings.Cut(refKey, prefixSplitter)
 	if !ok || property == "" {
 		return nil, false
 	}
