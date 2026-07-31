@@ -181,8 +181,6 @@ var webhookCmd = &cobra.Command{
 // to the values accepted by tls.Config (for example 0x301).
 func tlsVersion(version string) uint16 {
 	switch version {
-	case "":
-		return tls.VersionTLS10
 	case "1.0":
 		return tls.VersionTLS10
 	case "1.1":
@@ -192,7 +190,7 @@ func tlsVersion(version string) uint16 {
 	case "1.3":
 		return tls.VersionTLS13
 	default:
-		return tls.VersionTLS13
+		return tls.VersionTLS12
 	}
 }
 

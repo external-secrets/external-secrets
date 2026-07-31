@@ -441,9 +441,11 @@ func buildTLSConfigFuncs(ciphers string, minVer string, curves []string, http2 b
 		}
 	}
 
-	opts = append(opts, func(cfg *tls.Config) {
-		cfg.MinVersion = tlsVersion(minVer)
-	})
+	if minVer != "" {
+		opts = append(opts, func(cfg *tls.Config) {
+			cfg.MinVersion = tlsVersion(minVer)
+		})
+	}
 
 	if len(curves) > 0 {
 		curveIDs, err := parseTLSCurvePreferences(curves)
