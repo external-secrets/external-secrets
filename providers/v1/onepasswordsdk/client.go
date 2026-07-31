@@ -43,7 +43,7 @@ const (
 	vaultCachePrefix  = "vault:"
 	itemCachePrefix   = "item:"
 	fileCachePrefix   = "file:"
- 	envAllCachePrefix = "env-all:"  
+	envAllCachePrefix = "env-all:"
 	defaultFieldLabel = "password"
 
 	errMsgUpdateItem       = "failed to update item: %w"
@@ -51,8 +51,6 @@ const (
 	errMsgParsePushMeta    = "failed to parse push secret metadata: %w"
 	errMsgExpectedOneField = "found more than 1 fields with title '%s' in '%s', got %d"
 	errMsgExpectedOneFile  = "found more than 1 files with title '%s' in '%s', got %d"
-	errMsgFieldNotFound    = "field with label '%s' not found in item '%s'"
-	errMsgFileNotFound     = "file with title '%s' not found in item '%s'"
 )
 
 // ErrKeyNotFound is returned when a key is not found in the 1Password Vaults.
@@ -271,18 +269,18 @@ func deleteField(fields []onepassword.ItemField, title string) ([]onepassword.It
 
 // GetAllSecrets syncs multiple 1Password Items into a single Kubernetes Secret, for dataFrom.find.
 func (p *SecretsClient) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-  if p.source == sourceEnvironment {
-    vars, err := p.fetchEnvironmentVariables(ctx)
-    if err != nil {
-      return nil, err
-    }
-    out := make(map[string][]byte, len(vars))
-    for _, v := range vars {
-      out[v.Name] = []byte(v.Value)
-    }
-    return out, nil    
-  }
-  
+	if p.source == sourceEnvironment {
+		vars, err := p.fetchEnvironmentVariables(ctx)
+		if err != nil {
+			return nil, err
+		}
+		out := make(map[string][]byte, len(vars))
+		for _, v := range vars {
+			out[v.Name] = []byte(v.Value)
+		}
+		return out, nil
+	}
+
 	items, err := p.listItems(ctx)
 	if err != nil {
 		return nil, err
