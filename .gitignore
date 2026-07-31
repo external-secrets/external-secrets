@@ -32,6 +32,10 @@ e2e/suites/flux/flux.test
 e2e/suites/provider/provider.test
 e2e/suites/generator/generator.test
 
+# python bytecode cache (e.g. from e2e/matrix.py)
+__pycache__/
+*.pyc
+
 # tf ignores
 # Local .terraform directories
 **/.terraform/*
