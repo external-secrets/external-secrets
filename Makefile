@@ -75,7 +75,6 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
 	@go mod tidy
 	@cd hack/tools/ && go mod tidy
-	@cd hack/tools/gen-crd-api-reference-docs/ && go mod tidy
 	@cd hack/tools/golangci-lint/ && go mod tidy
 	@cd e2e/ && go mod tidy
 	@cd apis/ && go mod tidy
@@ -433,7 +432,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 DLV ?= $(LOCALBIN)/dlv
 CRANE ?= $(LOCALBIN)/crane
-GEN_CRD_API_REFERENCE_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
+CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
 LINT_TARGET ?= ""
 ## Tool Versions
 KUBERNETES_VERSION := 1.33.x
@@ -445,10 +444,10 @@ envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
 	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly sigs.k8s.io/controller-runtime/tools/setup-envtest
 
-.PHONY: gen-crd-api-reference-docs
-gen-crd-api-reference-docs: $(GEN_CRD_API_REFERENCE_DOCS) ## Download gen-crd-api-reference-docs locally if necessary.
-$(GEN_CRD_API_REFERENCE_DOCS): Makefile hack/tools/gen-crd-api-reference-docs/go.mod hack/tools/gen-crd-api-reference-docs/go.sum | $(LOCALBIN)
-	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools/gen-crd-api-reference-docs install -mod=readonly github.com/ahmetb/gen-crd-api-reference-docs
+.PHONY: crd-ref-docs
+crd-ref-docs: $(CRD_REF_DOCS) ## Build crd-ref-docs locally if necessary.
+$(CRD_REF_DOCS): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
+	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/elastic/crd-ref-docs
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.

@@ -20,16 +20,19 @@ set -o pipefail
 
 readonly HERE=$(cd $(dirname $0) && pwd)
 readonly REPO=$(cd ${HERE}/../.. && pwd)
-readonly GEN_CRD_API_REFERENCE_DOCS=${REPO}/bin/gen-crd-api-reference-docs
+readonly CRD_REF_DOCS=${REPO}/bin/crd-ref-docs
 
 # Exec the doc generator.
 gendoc::exec() {
     local readonly confdir="${REPO}/hack/api-docs"
 
-    ${GEN_CRD_API_REFERENCE_DOCS} \
-        -template-dir ${confdir} \
-        -config ${confdir}/config.json \
-        "$@"
+    ${CRD_REF_DOCS} \
+        --source-path="${REPO}/apis" \
+        --config="${confdir}/config.yaml" \
+        --renderer=markdown \
+        --output-mode=single \
+        --output-path="$1"
+    sed -z -i 's/\n*$/\n/' "$1"
 }
 
 if [ "$#" != "1" ]; then
@@ -37,6 +40,4 @@ if [ "$#" != "1" ]; then
     exit 2
 fi
 
-gendoc::exec \
-    -api-dir github.com/external-secrets/external-secrets/apis \
-    -out-file "$1"
+gendoc::exec "$1"

@@ -333,7 +333,7 @@ gcloud secrets add-iam-policy-binding "${SECRET_NAME}" \
 
 If the principal does **not** have `secretmanager.secrets.get` / accessor on a secret, sync fails with `PermissionDenied` on `secretmanager.versions.access` even when the `SecretStore` is `Ready`—bind IAM to the identity that actually reaches Secret Manager after impersonation (see below).
 
-Example `SecretStore` when Kubernetes is the external identity provider (see the [WorkloadIdentityFederation API](https://external-secrets.io/latest/api/spec/#external-secrets.io/v1.GCPWorkloadIdentityFederation)):
+Example `SecretStore` when Kubernetes is the external identity provider (see the [WorkloadIdentityFederation API](https://external-secrets.io/latest/api/spec/#gcpworkloadidentityfederation)):
 
 ```yaml
 {% include 'gcpsm-wif-non-native-iam-secret-store.yaml' %}
@@ -387,7 +387,7 @@ See [Manage workload identity pools and providers](https://cloud.google.com/iam/
 
 #### Other API surfaces
 
-The same `workloadIdentityFederation` block (including `serviceAccountRef`, `credConfig`, `awsSecurityCredentials`, `audience`, and `gcpServiceAccountEmail`) is available on **`GCRAccessToken`** and **`ClusterGenerator`** resources that talk to Google APIs; see the [API spec](https://external-secrets.io/latest/api/spec/#external-secrets.io/v1.GCPWorkloadIdentityFederation).
+The same `workloadIdentityFederation` block (including `serviceAccountRef`, `credConfig`, `awsSecurityCredentials`, `audience`, and `gcpServiceAccountEmail`) is available on **`GCRAccessToken`** and **`ClusterGenerator`** resources that talk to Google APIs; see the [API spec](https://external-secrets.io/latest/api/spec/#gcpworkloadidentityfederation).
 
 #### References
 
