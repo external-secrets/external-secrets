@@ -121,11 +121,11 @@ spec:
           {{- if .Values.enableHTTP2 }}
           - --enable-http2=true
           {{- end }}
-          {{- with .Values.tls.minVersion }}
-          - --tls-min-version={{ . }}
+          {{- if .Values.tls.minVersion }}
+          - --tls-min-version={{ .Values.tls.minVersion }}
           {{- end }}
-          {{- with .Values.tls.ciphers }}
-          - --tls-ciphers={{ . }}
+          {{- if .Values.tls.ciphers }}
+          - --tls-ciphers={{ .Values.tls.ciphers }}
           {{- end }}
           {{- if .Values.tls.curvePreferences }}
           - --tls-curve-preferences={{ join "," .Values.tls.curvePreferences }}
