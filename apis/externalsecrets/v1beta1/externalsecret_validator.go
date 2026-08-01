@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -135,7 +136,7 @@ func validatePrivilegedTemplate(es *ExternalSecret) error {
 			return fmt.Errorf("template.type=%q with annotation %q is not allowed", corev1.SecretTypeServiceAccountToken, corev1.ServiceAccountNameKey)
 		}
 		for _, tf := range tpl.TemplateFrom {
-			if tf.Target == TemplateTargetAnnotations {
+			if strings.EqualFold(string(tf.Target), string(TemplateTargetAnnotations)) {
 				return fmt.Errorf("template.type=%q with templateFrom target=%q is not allowed", corev1.SecretTypeServiceAccountToken, TemplateTargetAnnotations)
 			}
 		}

@@ -8,6 +8,7 @@ set -euo pipefail
 # - APIs module
 # - Runtime module
 # - E2E module
+# - Build tools module
 # - All provider modules (providers/v1/*)
 # - All generator modules (generators/v1/*)
 #
@@ -49,6 +50,7 @@ error() {
 update_module() {
     local module_path="$1"
     local module_name="$2"
+    local package_pattern="${3:-.}"
     
     info "Updating dependencies for $module_name..."
     
@@ -56,7 +58,7 @@ update_module() {
     
     # Run go get -u to update dependencies
     # Some updates may fail due to dependency constraints - this is expected
-    if go get -u 2>&1; then
+    if go get -u "$package_pattern" 2>&1; then
         success "Updated dependencies for $module_name"
     else
         warn "Failed to update some dependencies for $module_name (continuing...)"
@@ -104,7 +106,18 @@ main() {
     fi
     echo ""
     
-    # 5. Update all provider modules
+    # 5. Update build tools module
+    if ! update_module "hack/tools" "build tools" tool; then
+        failed_modules+=("build tools")
+    fi
+    echo ""
+
+    if ! update_module "hack/tools/golangci-lint" "golangci-lint" tool; then
+        failed_modules+=("golangci-lint")
+    fi
+    echo ""
+
+    # 6. Update all provider modules
     info "Updating provider modules..."
     for provider_dir in "$REPO_ROOT"/providers/v1/*/; do
         if [ -f "$provider_dir/go.mod" ]; then
@@ -117,7 +130,7 @@ main() {
     done
     echo ""
     
-    # 6. Update all generator modules
+    # 7. Update all generator modules
     info "Updating generator modules..."
     for generator_dir in "$REPO_ROOT"/generators/v1/*/; do
         if [ -f "$generator_dir/go.mod" ]; then
@@ -149,4 +162,3 @@ main() {
 
 # Run main function
 main
-
