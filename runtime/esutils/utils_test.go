@@ -244,6 +244,55 @@ func TestConvertKeys(t *testing.T) {
 	}
 }
 
+func TestTransformKeys(t *testing.T) {
+	tests := []struct {
+		name      string
+		in        map[string][]byte
+		transform func(string) string
+		want      map[string][]byte
+		wantErr   bool
+	}{
+		{
+			name: "transforms keys and preserves values",
+			in: map[string][]byte{
+				"foo": []byte("bar"),
+				"baz": []byte("qux"),
+			},
+			transform: func(key string) string {
+				return key + "-transformed"
+			},
+			want: map[string][]byte{
+				"foo-transformed": []byte("bar"),
+				"baz-transformed": []byte("qux"),
+			},
+		},
+		{
+			name: "errors on transformed key collision",
+			in: map[string][]byte{
+				"foo": []byte("bar"),
+				"baz": []byte("qux"),
+			},
+			transform: func(string) string {
+				return "collision"
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := transformKeys(tt.in, tt.transform)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("transformKeys() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("transformKeys() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestReverseKeys(t *testing.T) {
 	type args struct {
 		encodingStrategy esv1.ExternalSecretConversionStrategy
@@ -870,6 +919,35 @@ func TestFetchValueFromMetadata(t *testing.T) {
 			assert.Equal(t, tt.wantT, gotT)
 		})
 	}
+}
+
+func TestJSONToSecretDataMap(t *testing.T) {
+	t.Run("string values", func(t *testing.T) {
+		got, err := JSONToSecretDataMap([]byte(`{"foo":"bar"}`))
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{"foo": []byte("bar")}, got)
+	})
+
+	t.Run("nested and non-string values", func(t *testing.T) {
+		got, err := JSONToSecretDataMap([]byte(`{"username":"my_user","port":5432,"nested":{"baz":"nestedval"}}`))
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{
+			"username": []byte("my_user"),
+			"port":     []byte("5432"),
+			"nested":   []byte(`{"baz":"nestedval"}`),
+		}, got)
+	})
+
+	t.Run("null value", func(t *testing.T) {
+		got, err := JSONToSecretDataMap([]byte(`{"key":null}`))
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{"key": []byte("")}, got)
+	})
+
+	t.Run("invalid json", func(t *testing.T) {
+		_, err := JSONToSecretDataMap([]byte(`not-json`))
+		assert.Error(t, err)
+	})
 }
 
 func TestGetByteValue(t *testing.T) {

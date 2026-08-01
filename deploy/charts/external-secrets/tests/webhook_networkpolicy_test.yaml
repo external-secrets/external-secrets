@@ -1,0 +1,99 @@
+suite: test webhook networkpolicy
+templates:
+  - webhook-networkpolicy.yaml
+tests:
+  - it: should create a networkPolicy
+    set:
+      webhook.networkPolicy.enabled: true
+    asserts:
+      - equal:
+          path: spec.policyTypes
+          value:
+            - Egress
+            - Ingress
+  - it: should not create a networkPolicy
+    set:
+      webhook.networkPolicy.enabled: false
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should set correct pod selector
+    set:
+      webhook.networkPolicy.enabled: true
+    asserts:
+      - isNotEmpty:
+          path: spec.podSelector.matchLabels
+      - equal:
+          path: spec.podSelector.matchLabels["app.kubernetes.io/name"]
+          value: external-secrets-webhook
+  - it: should apply default ingress ports
+    set:
+      webhook.networkPolicy.enabled: true
+    asserts:
+      - equal:
+          path: spec.ingress[0].ports
+          value:
+            - protocol: TCP
+              port: 8080
+            - protocol: TCP
+              port: 8081
+            - protocol: TCP
+              port: 10250
+  - it: should allow custom ingress CIDR blocks
+    set:
+      webhook.networkPolicy.enabled: true
+      webhook.networkPolicy.ingress:
+        - from:
+            - ipBlock:
+                cidr: 192.168.0.0/16
+          ports:
+            - protocol: TCP
+              port: 10250
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[0].ipBlock.cidr
+          value: 192.168.0.0/16
+  - it: should allow custom ingress pod selector
+    set:
+      webhook.networkPolicy.enabled: true
+      webhook.networkPolicy.ingress:
+        - from:
+            - podSelector:
+                matchLabels:
+                  app: api-server
+          ports:
+            - protocol: TCP
+              port: 10250
+    asserts:
+      - equal:
+          path: spec.ingress[0].from[0].podSelector.matchLabels.app
+          value: api-server
+  - it: should allow custom egress CIDR blocks
+    set:
+      webhook.networkPolicy.enabled: true
+      webhook.networkPolicy.egress:
+        - to:
+            - ipBlock:
+                cidr: 0.0.0.0/0
+          ports:
+            - protocol: TCP
+              port: 443
+    asserts:
+      - equal:
+          path: spec.egress[0].to[0].ipBlock.cidr
+          value: 0.0.0.0/0
+  - it: should allow custom egress pod selector
+    set:
+      webhook.networkPolicy.enabled: true
+      webhook.networkPolicy.egress:
+        - to:
+            - podSelector:
+                matchLabels:
+                  k8s-app: kube-dns
+          ports:
+            - protocol: UDP
+              port: 53
+    asserts:
+      - equal:
+          path: spec.egress[0].to[0].podSelector.matchLabels["k8s-app"]
+          value: kube-dns

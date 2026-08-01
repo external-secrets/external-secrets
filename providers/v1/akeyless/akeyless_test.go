@@ -378,6 +378,32 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.expectedVal = map[string][]byte{"foo": []byte("bar")}
 	}
 
+	// good case: nested json values are kept as raw json bytes
+	setNestedJSON := func(smtc *akeylessTestCase) {
+		smtc.apiOutput.Value = `{"foobar":{"baz":"nestedval"}}`
+		smtc.expectedVal = map[string][]byte{"foobar": []byte(`{"baz":"nestedval"}`)}
+	}
+
+	// good case: extract a nested json object into multiple keys
+	setExtractProperty := func(smtc *akeylessTestCase) {
+		smtc.apiOutput.Value = `{"db":{"username":"my_user","password":"my_pass"},"apiKey":"myApiKey"}`
+		smtc.ref.Property = "db"
+		smtc.expectedVal = map[string][]byte{
+			"username": []byte("my_user"),
+			"password": []byte("my_pass"),
+		}
+	}
+
+	// good case: extract property with non-string values
+	setExtractPropertyWithNonStringValues := func(smtc *akeylessTestCase) {
+		smtc.apiOutput.Value = `{"db":{"username":"my_user","port":5432}}`
+		smtc.ref.Property = "db"
+		smtc.expectedVal = map[string][]byte{
+			"username": []byte("my_user"),
+			"port":     []byte("5432"),
+		}
+	}
+
 	// bad case: invalid json
 	setInvalidJSON := func(smtc *akeylessTestCase) {
 		smtc.apiOutput.Value = `-----------------`
@@ -386,6 +412,9 @@ func TestGetSecretMap(t *testing.T) {
 
 	successCases := []*akeylessTestCase{
 		makeValidAkeylessTestCaseCustom(setDeserialization),
+		makeValidAkeylessTestCaseCustom(setNestedJSON),
+		makeValidAkeylessTestCaseCustom(setExtractProperty),
+		makeValidAkeylessTestCaseCustom(setExtractPropertyWithNonStringValues),
 		makeValidAkeylessTestCaseCustom(setInvalidJSON).SetExpectVal(map[string][]byte(nil)),
 		makeValidAkeylessTestCaseCustom(setAPIErr).SetExpectVal(map[string][]byte(nil)),
 		makeValidAkeylessTestCaseCustom(setNilMockClient).SetExpectVal(map[string][]byte(nil)),

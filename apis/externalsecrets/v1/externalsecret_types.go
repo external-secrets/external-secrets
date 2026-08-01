@@ -37,7 +37,7 @@ type SecretStoreRef struct {
 }
 
 // ExternalSecretCreationPolicy defines rules on how to create the resulting Secret.
-// +kubebuilder:validation:Enum=Owner;Orphan;Merge;None
+// +kubebuilder:validation:Enum=Owner;Orphan;Merge;None;CreateOrMerge
 type ExternalSecretCreationPolicy string
 
 const (
@@ -53,6 +53,12 @@ const (
 
 	// CreatePolicyNone does not create a Secret (future use with injector).
 	CreatePolicyNone ExternalSecretCreationPolicy = "None"
+
+	// CreatePolicyCreateOrMerge creates the Secret if it is missing and merges
+	// data fields into it if it exists, without an ownerReference. A deleted
+	// target is recreated while the ExternalSecret exists, and the Secret is
+	// retained when the ExternalSecret is deleted.
+	CreatePolicyCreateOrMerge ExternalSecretCreationPolicy = "CreateOrMerge"
 )
 
 // ExternalSecretDeletionPolicy defines rules on how to delete the resulting Secret.
@@ -154,7 +160,8 @@ type TemplateFrom struct {
 	Secret    *TemplateRef `json:"secret,omitempty"`
 
 	// Target specifies where to place the template result.
-	// For Secret resources, common values are: "Data", "Annotations", "Labels".
+	// For Secret resources the accepted values are empty, "Data", "Annotations" and "Labels";
+	// any other value is rejected because it would allow writes to privileged Secret fields.
 	// For custom resources (when spec.target.manifest is set), this supports
 	// nested paths like "spec.database.config" or "data".
 	// +optional
@@ -180,7 +187,8 @@ const (
 	TemplateScopeKeysAndValues TemplateScope = "KeysAndValues"
 )
 
-// These constants are provided for convenience but Target accepts any string.
+// These constants are the only Target values accepted when the ExternalSecret renders
+// into a Secret. Custom resource targets additionally accept nested paths.
 const (
 	TemplateTargetData        = "Data"
 	TemplateTargetAnnotations = "Annotations"

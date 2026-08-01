@@ -378,6 +378,34 @@ func JSONDataFromSync(f *framework.Framework) (string, func(*framework.TestCase)
 	}
 }
 
+// JSONDataFromExtractProperty syncs a nested JSON subtree using dataFrom.extract.property.
+func JSONDataFromExtractProperty(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[common] should sync nested json secrets with dataFrom extract property", func(tc *framework.TestCase) {
+		secretKey := fmt.Sprintf("%s-%s", f.Namespace.Name, "json-property")
+		remoteRefKey := f.MakeRemoteRefKey(secretKey)
+		secretValue := `{"db":{"username":"my_user","password":"my_pass","port":5432},"apiKey":"myApiKey"}`
+		tc.Secrets = map[string]framework.SecretEntry{
+			remoteRefKey: {Value: secretValue},
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				"username": []byte("my_user"),
+				"password": []byte("my_pass"),
+				"port":     []byte("5432"),
+			},
+		}
+		tc.ExternalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1.ExternalSecretDataRemoteRef{
+					Key:      remoteRefKey,
+					Property: "db",
+				},
+			},
+		}
+	}
+}
+
 // This case creates one secret with json values and syncs them using a single .Spec.DataFrom block.
 func JSONDataFromRewrite(f *framework.Framework) (string, func(*framework.TestCase)) {
 	return "[common] should sync and rewrite secrets with dataFrom", func(tc *framework.TestCase) {

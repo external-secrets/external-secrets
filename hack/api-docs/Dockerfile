@@ -25,11 +25,11 @@ RUN apk add -U --no-cache \
     python3-dev
 
 ENV PATH=$PATH:/.venv/bin
-COPY requirements.txt /
+COPY build-requirements.txt requirements.txt /
 RUN python3 -m venv .venv && \
     source .venv/bin/activate && \
-    pip3 install --upgrade pip wheel setuptools && \
-    pip3 install -r /requirements.txt
+    pip3 install --require-hashes --only-binary=:all: -r /build-requirements.txt && \
+    pip3 install --require-hashes --only-binary=:all: --no-binary=watchdog --no-build-isolation -r /requirements.txt
 
 # Disable the top-level directory owner check
 # https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9

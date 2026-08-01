@@ -15,11 +15,11 @@ During a minor version support time, we cover:
 - regular go dependency updates
 
 We do not do test coverage for any other kubernetes version than the ones running on our test suites.
-As of version 0.14.x , this is the only kubernetes version that we will guarantee support for.
 
 | ESO Version | Kubernetes Version | Release Date | End of Life    |
 |-------------|--------------------|--------------|----------------|
-| 2.7         | 1.35               | Jun 26, 2026 | Release of 2.8 |
+| 2.8         | 1.35-1.36          | Jul 18, 2026 | Release of 2.9 |
+| 2.7         | 1.35               | Jun 26, 2026 | July 18, 2026  |
 | 2.6         | 1.34-1.35          | Jun 05, 2026 | Jun 26, 2026   |
 | 2.5         | 1.34-1.35          | May 15, 2026 | Jun 05, 2026   |
 | 2.4.1       | 1.34-1.35          | Apr 28, 2026 | May 15, 2026   |
@@ -67,6 +67,7 @@ The following table describes the stability level of each provider and who's res
 |----------------------------------------------------------------------------------------------------------------|----------:| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------: |
 | [AWS Secrets Manager](https://external-secrets.io/latest/provider/aws-secrets-manager/)                        |    stable | [external-secrets](https://github.com/external-secrets)                                             |
 | [AWS Parameter Store](https://external-secrets.io/latest/provider/aws-parameter-store/)                        |    stable | [external-secrets](https://github.com/external-secrets)                                             |
+| [AWS Certificate Manager](https://external-secrets.io/latest/provider/aws-certificate-manager/)                |     alpha | [external-secrets](https://github.com/external-secrets)                                             |
 | [Akeyless](https://external-secrets.io/latest/provider/akeyless)                                               |    stable | [external-secrets](https://github.com/external-secrets)                                             |
 | [Azure Keyvault](https://external-secrets.io/latest/provider/azure-key-vault/)                                 |    stable | [external-secrets](https://github.com/external-secrets)                                             |
 | [Barbican](https://external-secrets.io/latest/provider/barbican)                                               |     alpha | [@rkferreira](https://github.com/rkferreira)                                                        |
@@ -117,6 +118,7 @@ The following table show the support for features across different providers.
 | Akeyless                         |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | AWS Secrets Manager              |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | AWS Parameter Store              |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
+| AWS Certificate Manager          |              |              |                      |            x            |        x         |      x      |              x              |
 | Azure Keyvault                   |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Barbican                         |      x       |              |                      |                         |        x         |             |                             |
 | Beyondtrust                      |              |              |                      |                         |        x         |      x      |                             |

@@ -41,6 +41,8 @@ const (
 	errSecretKeyFmt                 = "cannot find secret data for key: %q"
 )
 
+var systemMetadataKeys = []string{"created_time", "current_version", "delete_version_after"}
+
 // GetSecret supports two types:
 //  1. get the full secret as json-encoded value
 //     by leaving the ref.Property empty.
@@ -200,16 +202,27 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 	if secret == nil {
 		return nil, errors.New(errNotFound)
 	}
+	if c.store.Version == esv1.VaultKVStoreV2 {
+		for _, key := range systemMetadataKeys {
+			if v, ok := secret.Data[key]; ok && v != nil {
+				metadata[key] = fmt.Sprintf("%v", v)
+			}
+		}
+	}
 	t, ok := secret.Data["custom_metadata"]
 	if !ok {
-		return nil, nil
+		return metadata, nil
 	}
 	d, ok := t.(map[string]any)
 	if !ok {
 		return metadata, nil
 	}
 	for k, v := range d {
-		metadata[k] = v.(string)
+		if s, ok := v.(string); ok {
+			metadata[k] = s
+		} else {
+			metadata[k] = fmt.Sprintf("%v", v)
+		}
 	}
 	return metadata, nil
 }

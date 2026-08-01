@@ -26,6 +26,11 @@ type AkeylessProvider struct {
 	// Akeyless GW API Url from which the secrets to be fetched from.
 	AkeylessGWApiURL *string `json:"akeylessGWApiURL"`
 
+	// IgnoreCache bypasses the Gateway cache for secret reads when true.
+	// Only relevant when akeylessGWApiURL points to an Akeyless Gateway.
+	// +optional
+	IgnoreCache *bool `json:"ignoreCache,omitempty"`
+
 	// Auth configures how the operator authenticates with Akeyless.
 	Auth *AkeylessAuth `json:"authSecretRef"`
 
