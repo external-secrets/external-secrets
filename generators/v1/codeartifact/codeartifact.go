@@ -91,7 +91,7 @@ func (g *Generator) generate(
 		return nil, nil, fmt.Errorf(errCreateSess, err)
 	}
 
-	return fetchCodeArtifactToken(ctx, cfg, res.Spec.Domain, res.Spec.DomainOwner, caFactory)
+	return fetchCodeArtifactToken(ctx, cfg, res.Spec.Domain, res.Spec.DomainOwner, res.Spec.DurationSeconds, caFactory)
 }
 
 func fetchCodeArtifactToken(
@@ -99,12 +99,14 @@ func fetchCodeArtifactToken(
 	cfg *aws.Config,
 	domain string,
 	domainOwner string,
+	durationSeconds *int64,
 	caFactory codeArtifactFactoryFunc,
 ) (map[string][]byte, genv1alpha1.GeneratorProviderState, error) {
 	caClient := caFactory(cfg)
 	input := &codeartifact.GetAuthorizationTokenInput{
-		Domain:      &domain,
-		DomainOwner: &domainOwner,
+		Domain:          &domain,
+		DomainOwner:     &domainOwner,
+		DurationSeconds: durationSeconds,
 	}
 	out, err := caClient.GetAuthorizationToken(ctx, input)
 	if err != nil {

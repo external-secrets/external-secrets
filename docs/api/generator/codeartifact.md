@@ -3,12 +3,23 @@ The authorization token is a temporary bearer token that can be used to authenti
 
 The token is valid for up to 12 hours (the maximum allowed by the CodeArtifact API).
 
+## Spec Fields
+
+| Field             | Required | Description                                                                                                                                                                                                                                    |
+| ----------------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `region`          | yes      | AWS region to call `GetAuthorizationToken` in.                                                                                                                                                                                                 |
+| `domain`          | yes      | Name of the CodeArtifact domain.                                                                                                                                                                                                               |
+| `domainOwner`     | yes      | 12-digit AWS account ID that owns the CodeArtifact domain.                                                                                                                                                                                     |
+| `auth`            | no       | Authentication method (see [Authentication](#authentication) below). When omitted, the controller's default AWS credentials chain is used.                                                                                                     |
+| `role`            | no       | ARN of an IAM role to assume before calling `GetAuthorizationToken`.                                                                                                                                                                           |
+| `durationSeconds` | no       | Token lifetime in seconds. Valid values are `0` or any integer between `900` (15 minutes) and `43200` (12 hours). `0` matches the caller's temporary-credentials expiration. AWS defaults to `43200` when omitted. Validated by the API server. |
+
 ## Output Keys and Values
 
 | Key                  | Description                                                               |
 | -------------------- | ------------------------------------------------------------------------- |
-| authorizationToken   | The bearer token used to authenticate against CodeArtifact.               |
-| expiration           | Time when the token expires in UNIX time (seconds since 1970-01-01 UTC).  |
+| `authorizationToken` | The bearer token used to authenticate against CodeArtifact.               |
+| `expiration`         | Time when the token expires in UNIX time (seconds since 1970-01-01 UTC).  |
 
 ## Authentication
 

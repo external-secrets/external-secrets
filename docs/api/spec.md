@@ -27337,6 +27337,21 @@ string
 <p>DomainOwner is the AWS account ID that owns the CodeArtifact domain.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>durationSeconds</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DurationSeconds is the time, in seconds, that the generated authorization token is valid.
+Valid values are 0 and any number between 900 (15 minutes) and 43200 (12 hours).
+A value of 0 sets the expiration to match the expiration of the caller&rsquo;s temporary credentials.
+When omitted, AWS applies its default of 43200 (12 hours).</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -27418,6 +27433,21 @@ string
 </td>
 <td>
 <p>DomainOwner is the AWS account ID that owns the CodeArtifact domain.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>durationSeconds</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DurationSeconds is the time, in seconds, that the generated authorization token is valid.
+Valid values are 0 and any number between 900 (15 minutes) and 43200 (12 hours).
+A value of 0 sets the expiration to match the expiration of the caller&rsquo;s temporary credentials.
+When omitted, AWS applies its default of 43200 (12 hours).</p>
 </td>
 </tr>
 </tbody>

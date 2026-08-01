@@ -27736,6 +27736,17 @@ spec:
                           description: DomainOwner is the AWS account ID that owns the CodeArtifact domain.
                           minLength: 1
                           type: string
+                        durationSeconds:
+                          description: |-
+                            DurationSeconds is the time, in seconds, that the generated authorization token is valid.
+                            Valid values are 0 and any number between 900 (15 minutes) and 43200 (12 hours).
+                            A value of 0 sets the expiration to match the expiration of the caller's temporary credentials.
+                            When omitted, AWS applies its default of 43200 (12 hours).
+                          format: int64
+                          type: integer
+                          x-kubernetes-validations:
+                            - message: durationSeconds must be 0 or between 900 and 43200
+                              rule: self == 0 || (self >= 900 && self <= 43200)
                         region:
                           description: Region specifies the region to operate in.
                           minLength: 1
@@ -30062,6 +30073,17 @@ spec:
                   description: DomainOwner is the AWS account ID that owns the CodeArtifact domain.
                   minLength: 1
                   type: string
+                durationSeconds:
+                  description: |-
+                    DurationSeconds is the time, in seconds, that the generated authorization token is valid.
+                    Valid values are 0 and any number between 900 (15 minutes) and 43200 (12 hours).
+                    A value of 0 sets the expiration to match the expiration of the caller's temporary credentials.
+                    When omitted, AWS applies its default of 43200 (12 hours).
+                  format: int64
+                  type: integer
+                  x-kubernetes-validations:
+                    - message: durationSeconds must be 0 or between 900 and 43200
+                      rule: self == 0 || (self >= 900 && self <= 43200)
                 region:
                   description: Region specifies the region to operate in.
                   minLength: 1

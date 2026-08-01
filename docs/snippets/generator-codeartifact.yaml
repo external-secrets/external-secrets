@@ -16,6 +16,10 @@ spec:
   # assume role with the given authentication credentials
   role: "arn:aws:iam::123456789012:role/codeartifact-readonly"
 
+  # optional: token lifetime in seconds. valid values are 0 or 900-43200 (15m-12h).
+  # 0 matches the caller's temporary-credentials expiration. AWS defaults to 43200 when omitted.
+  durationSeconds: 3600
+
   # choose an authentication strategy
   # if no auth strategy is defined it falls back to using
   # credentials from the environment of the controller.

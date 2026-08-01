@@ -19,6 +19,7 @@ package codeartifact
 import (
 	"context"
 	"errors"
+	"fmt"
 	"reflect"
 	"testing"
 	"time"
@@ -84,6 +85,9 @@ func TestGenerate(t *testing.T) {
 					},
 				}).Build(),
 				authTokenFunc: func(in *codeartifact.GetAuthorizationTokenInput) (*codeartifact.GetAuthorizationTokenOutput, error) {
+					if in.DurationSeconds != nil {
+						return nil, errors.New("expected DurationSeconds to be nil when unset")
+					}
 					expiry := time.Unix(1234, 0)
 					return &codeartifact.GetAuthorizationTokenOutput{
 						AuthorizationToken: aws.String("my-secret-token"),
@@ -98,6 +102,55 @@ spec:
   role: "my-role"
   domain: "my-domain"
   domainOwner: "123456789012"
+  auth:
+    secretRef:
+      accessKeyIDSecretRef:
+        name: "my-aws-creds"
+        key: "key-id"
+      secretAccessKeySecretRef:
+        name: "my-aws-creds"
+        key: "access-secret"`),
+				},
+			},
+			want: map[string][]byte{
+				"authorizationToken": []byte("my-secret-token"),
+				"expiration":         []byte("1234"),
+			},
+		},
+		{
+			name: "durationSeconds is forwarded to the SDK input",
+			args: args{
+				ctx:       context.Background(),
+				namespace: "foobar",
+				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "my-aws-creds",
+						Namespace: "foobar",
+					},
+					Data: map[string][]byte{
+						"key-id":        []byte("foo"),
+						"access-secret": []byte("bar"),
+					},
+				}).Build(),
+				authTokenFunc: func(in *codeartifact.GetAuthorizationTokenInput) (*codeartifact.GetAuthorizationTokenOutput, error) {
+					if in.DurationSeconds == nil || *in.DurationSeconds != 900 {
+						return nil, fmt.Errorf("expected DurationSeconds=900, got %v", in.DurationSeconds)
+					}
+					expiry := time.Unix(1234, 0)
+					return &codeartifact.GetAuthorizationTokenOutput{
+						AuthorizationToken: aws.String("my-secret-token"),
+						Expiration:         &expiry,
+					}, nil
+				},
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: CodeArtifactAuthorizationToken
+spec:
+  region: us-east-1
+  role: "my-role"
+  domain: "my-domain"
+  domainOwner: "123456789012"
+  durationSeconds: 900
   auth:
     secretRef:
       accessKeyIDSecretRef:

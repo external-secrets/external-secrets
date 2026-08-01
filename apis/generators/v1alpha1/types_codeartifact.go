@@ -42,6 +42,14 @@ type CodeArtifactAuthorizationTokenSpec struct {
 	// DomainOwner is the AWS account ID that owns the CodeArtifact domain.
 	// +kubebuilder:validation:MinLength=1
 	DomainOwner string `json:"domainOwner"`
+
+	// DurationSeconds is the time, in seconds, that the generated authorization token is valid.
+	// Valid values are 0 and any number between 900 (15 minutes) and 43200 (12 hours).
+	// A value of 0 sets the expiration to match the expiration of the caller's temporary credentials.
+	// When omitted, AWS applies its default of 43200 (12 hours).
+	// +optional
+	// +kubebuilder:validation:XValidation:rule="self == 0 || (self >= 900 && self <= 43200)",message="durationSeconds must be 0 or between 900 and 43200"
+	DurationSeconds *int64 `json:"durationSeconds,omitempty"`
 }
 
 // CodeArtifactAuthorizationToken uses the GetAuthorizationToken API to retrieve an

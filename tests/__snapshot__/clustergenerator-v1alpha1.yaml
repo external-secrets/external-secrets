@@ -78,6 +78,7 @@ spec:
             namespace: string
       domain: string
       domainOwner: string
+      durationSeconds: 1
       region: string
       role: string
     ecrAuthorizationTokenSpec:
