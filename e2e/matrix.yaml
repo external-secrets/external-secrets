@@ -56,8 +56,11 @@ areas:
   # The CRD provider reads arbitrary custom resources from the local cluster
   # API, so it needs no credentials and no addon. It gets its own leg rather
   # than joining core-smoke because its specs install a cluster-scoped test CRD
-  # and cluster-wide RBAC; keeping that out of the branch-protection floor means
-  # a failure here is attributable and never destabilises the required gate.
+  # and cluster-wide RBAC, heavier setup than the rest of that leg carries.
+  # Like every enabled area it feeds e2e-required, so a failure here does turn
+  # the gate red; the split buys attribution (the failing leg names the
+  # provider) and keeps a crd break from also failing the fake, kubernetes, and
+  # template specs.
   - name: crd
     suite: provider
     labels: "crd && !managed"
