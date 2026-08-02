@@ -170,10 +170,18 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, clusterExte
 
 		return ctrl.Result{}, err
 	}
-
 	failedNamespaces := r.deleteOutdatedExternalSecrets(ctx, namespaces, esName, clusterExternalSecret.Name, clusterExternalSecret.Status.ProvisionedNamespaces)
 
+	// Snapshot which namespaces failed cleanup before gatherProvisionedNamespaces
+	// adds unrelated provisioning failures into the same map, so we can keep
+	// them provisioned and retry cleanup on the next reconcile pass.
+	unfinishedCleanup := make([]string, 0, len(failedNamespaces))
+	for ns := range failedNamespaces {
+		unfinishedCleanup = append(unfinishedCleanup, ns)
+	}
+
 	provisionedNamespaces := r.gatherProvisionedNamespaces(ctx, log, clusterExternalSecret, namespaces, esName, failedNamespaces)
+	provisionedNamespaces = append(provisionedNamespaces, unfinishedCleanup...)
 
 	condition := NewClusterExternalSecretCondition(failedNamespaces)
 	SetClusterExternalSecretCondition(clusterExternalSecret, *condition)
@@ -487,28 +495,16 @@ func (r *Reconciler) deferPatch(ctx context.Context, log logr.Logger, clusterExt
 
 func (r *Reconciler) deleteOutdatedExternalSecrets(ctx context.Context, namespaces []v1.Namespace, esName, cesName string, provisionedNamespaces []string) map[string]error {
 	failedNamespaces := map[string]error{}
-	// Loop through existing namespaces first to make sure they still have our labels
 	for _, namespace := range getRemovedNamespaces(namespaces, provisionedNamespaces) {
-		var ns v1.Namespace
-		err := r.Get(ctx, types.NamespacedName{Name: namespace}, &ns)
+		err := r.deleteExternalSecret(ctx, esName, cesName, namespace)
 		if err != nil {
-			if apierrors.IsNotFound(err) {
-				continue
-			}
-			r.Log.Error(err, "unable to get namespace for finalizer cleanup")
+			r.Log.Error(err, "unable to delete external secret", "namespace", namespace)
 			failedNamespaces[namespace] = err
 			continue
 		}
 
-		err = r.deleteExternalSecret(ctx, esName, cesName, namespace)
-		if err != nil {
-			r.Log.Error(err, "unable to delete external secret")
-			failedNamespaces[namespace] = err
-			continue
-		}
-
-		if err := r.removeNamespaceFinalizer(ctx, r.Log, &ns, cesName); err != nil {
-			r.Log.Error(err, "unable to remove namespace finalizer")
+		if err := r.updateNamespaceRemoveFinalizer(ctx, r.Log, namespace, r.buildCESFinalizer(cesName)); err != nil {
+			r.Log.Error(err, "unable to remove namespace finalizer", "namespace", namespace)
 			failedNamespaces[namespace] = err
 		}
 	}
