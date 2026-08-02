@@ -213,4 +213,124 @@ spec:
 ```
 
 ### Webhook as generators
-You can also leverage webhooks as generators, following the same syntax. The only difference is that the webhook generator needs its source secrets to be labeled, as opposed to webhook secretstores. Please see the [generator-webhook](../api/generator/webhook.md) documentation for more information.
+You can also leverage webhooks as generators, following the same syntax. Please see the
+[generator-webhook](../api/generator/webhook.md) documentation for more information.
+
+Note that source secrets must be labeled for both secretstores and generators, see
+[Referenced secrets must be labeled](#referenced-secrets-must-be-labeled) below.
+
+### Debugging
+
+#### Start with the store status and events
+
+Most webhook problems surface on the `SecretStore` itself rather than in the logs:
+
+```sh
+kubectl describe secretstore <name> -n <namespace>
+```
+
+A `Ready` condition of `False` with reason `InvalidProviderConfig` means the client could
+not be created or that store validation failed. The accompanying event carries the
+underlying error, which is usually more specific than the condition message.
+
+For per-secret failures, check the `ExternalSecret` instead:
+
+```sh
+kubectl describe externalsecret <name> -n <namespace>
+```
+
+#### Increase the operator log level
+
+Run the controller with `--loglevel debug` to get the reconcile decisions for each object.
+This logs what the operator did and why, but it deliberately does not log HTTP request or
+response contents, see below.
+
+#### Why there is no built-in request or response dump
+
+The webhook provider renders `url`, `headers` and `body` through the templating engine, and
+those templates typically contain credentials pulled from the referenced secrets. Dumping
+requests or responses would therefore write those credentials to the operator log, where
+anyone with log access could read them. That is why no trace or wire-dump option is
+provided, and why one is unlikely to be added.
+
+!!! warning
+      Setting `GODEBUG=http2debug=2` on the operator does produce HTTP/2 frame dumps
+      including authorization headers and full bodies, entirely unredacted. It only covers
+      HTTP/2, it is not a supported debugging path, and it must not be enabled against a
+      production instance.
+
+#### Inspecting traffic with a logging proxy
+
+The supported way to see the traffic is to put a proxy between the operator and the target
+service, and read the proxy's logs. Point the webhook `url` at the proxy over plain HTTP so
+the request is readable there, and let the proxy terminate TLS towards the real endpoint.
+Running it as a sidecar keeps the plaintext hop inside the pod.
+
+```yaml
+# Sidecar on the external-secrets deployment. Logs every request line and header,
+# then forwards to the real endpoint over HTTPS.
+- name: debug-proxy
+  image: nginx:alpine
+  ports:
+    - containerPort: 8080
+  volumeMounts:
+    - name: debug-proxy-config
+      mountPath: /etc/nginx/conf.d
+```
+
+```nginx
+# debug-proxy-config
+log_format dump escape=none '$request_method $uri $args -> $upstream_status'
+                            ' req_headers="$http_authorization"';
+
+server {
+  listen 8080;
+  access_log /dev/stdout dump;
+  location / {
+    proxy_pass https://secrets.example.com;
+    proxy_set_header Host secrets.example.com;
+  }
+}
+```
+
+Then set `url: "http://localhost:8080/..."` on the store while debugging. Remember that the
+proxy log now contains the same credentials the operator refuses to log, so treat it as
+sensitive and remove the sidecar when you are done.
+
+#### Referenced secrets must be labeled
+
+Every secret referenced from `provider.webhook.secrets` must carry the label
+`external-secrets.io/type: webhook`. This applies to both secretstores and generators.
+Without it the lookup fails with:
+
+```
+secret does not contain needed label 'external-secrets.io/type: webhook'. Update secret label to use it with webhook
+```
+
+#### Template values are two levels deep
+
+Secrets listed under `secrets` are exposed as `.<name>.<keyInSecret>`, not `.<name>`. For:
+
+```yaml
+secrets:
+  - name: creds
+    secretRef:
+      name: webhook-credentials
+```
+
+the values are `{{ .creds.username }}` and `{{ .creds.password }}`. Referring to
+`{{ .creds }}` renders a Go map rather than a value. Note also that every key of the
+referenced secret is exposed; a `key` field on the `secretRef` does not narrow it.
+
+#### A templated `url` is validated before templating
+
+Store validation performs a reachability check against `spec.provider.webhook.url` as
+written, before the templating engine runs. A url whose host comes from a template
+therefore fails validation with a message such as:
+
+```
+error accessing external store: dial tcp :443: connect: connection refused
+```
+
+even when the templated request itself would succeed. Keep the host literal and template
+only the path or query string.
