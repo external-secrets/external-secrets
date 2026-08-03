@@ -18,6 +18,7 @@ package fake
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 
@@ -28,16 +29,19 @@ import (
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/mysterybox"
 )
 
+// FakeMysteryboxClient is an in-memory Mysterybox client for tests.
 type FakeMysteryboxClient struct {
 	mysteryboxService *MysteryboxService
 	Closed            int32
 }
 
+// Close records that the fake client was closed.
 func (f *FakeMysteryboxClient) Close() error {
 	atomic.AddInt32(&f.Closed, 1)
 	return nil
 }
 
+// GetSecret returns a secret payload from the fake service.
 func (f *FakeMysteryboxClient) GetSecret(_ context.Context, _, secretId, versionId string) (*mysterybox.Payload, error) {
 	secret, err := f.mysteryboxService.GetSecret(secretId, versionId)
 	if err != nil {
@@ -49,6 +53,7 @@ func (f *FakeMysteryboxClient) GetSecret(_ context.Context, _, secretId, version
 	}, nil
 }
 
+// GetSecretByKey returns a single secret entry from the fake service.
 func (f *FakeMysteryboxClient) GetSecretByKey(_ context.Context, _, secretID, versionID, key string) (*mysterybox.PayloadEntry, error) {
 	secret, err := f.mysteryboxService.GetSecret(secretID, versionID)
 	if err != nil {
@@ -66,17 +71,20 @@ func (f *FakeMysteryboxClient) GetSecretByKey(_ context.Context, _, secretID, ve
 	return nil, notFoundError()
 }
 
+// MysteryboxService stores fake Mysterybox secrets in memory.
 type MysteryboxService struct {
 	mu         sync.RWMutex
 	secretData map[string]map[string][]mysterybox.Entry
 }
 
+// InitMysteryboxService creates an empty fake Mysterybox service.
 func InitMysteryboxService() *MysteryboxService {
 	return &MysteryboxService{
 		secretData: make(map[string]map[string][]mysterybox.Entry),
 	}
 }
 
+// GetSecret returns a secret version from the fake service.
 func (s *MysteryboxService) GetSecret(secretId, versionId string) (*Secret, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -96,9 +104,10 @@ func (s *MysteryboxService) GetSecret(secretId, versionId string) (*Secret, erro
 	}, nil
 }
 
+// CreateSecret creates a secret with an initial version.
 func (s *MysteryboxService) CreateSecret(payloadEntries []mysterybox.Entry) *Secret {
 	if len(payloadEntries) == 0 {
-		return nil
+		panic(errors.New("payload entries should not be empty"))
 	}
 	secretId := uuid.NewString()
 	versionId := uuid.NewString()
@@ -118,6 +127,7 @@ func (s *MysteryboxService) CreateSecret(payloadEntries []mysterybox.Entry) *Sec
 	}
 }
 
+// CreateNewSecretVersion adds a new version to an existing secret.
 func (s *MysteryboxService) CreateNewSecretVersion(secretId string, payloadEntries []mysterybox.Entry) (string, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -132,12 +142,14 @@ func (s *MysteryboxService) CreateNewSecretVersion(secretId string, payloadEntri
 	return versionId, nil
 }
 
+// NewFakeMysteryboxClient creates a fake client backed by the provided service.
 func NewFakeMysteryboxClient(service *MysteryboxService) *FakeMysteryboxClient {
 	return &FakeMysteryboxClient{
 		mysteryboxService: service,
 	}
 }
 
+// Secret represents a secret stored by the fake Mysterybox service.
 type Secret struct {
 	Id        string
 	VersionId string

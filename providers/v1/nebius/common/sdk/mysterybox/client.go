@@ -21,8 +21,11 @@ import "context"
 
 // Client is an interface that contains the main methods to interact with Secret Service.
 type Client interface {
+	// GetSecret returns a secret payload for the requested version.
 	GetSecret(ctx context.Context, token, secretID, versionID string) (*Payload, error)
+	// GetSecretByKey returns a single entry from the requested secret version.
 	GetSecretByKey(ctx context.Context, token, secretID, versionID, key string) (*PayloadEntry, error)
+	// Close releases resources held by the client.
 	Close() error
 }
 
