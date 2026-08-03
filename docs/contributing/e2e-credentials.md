@@ -196,23 +196,48 @@ export ORACLE_FINGERPRINT=..
 export ORACLE_KEY="$(cat ~/.oci/eso-e2e.pem)"
 ```
 
-### Quota
+### Quota, and why this leg is not in CI
 
-Deleting a secret is a scheduled operation, and `timeOfDeletion` defaults to **30 days**
-out. The accepted range is 1 to 30 days. A secret pending deletion keeps both its name
-and its slot, so leaving the default in place means a suite run's secrets occupy the
-tenancy for a month. At roughly 15 to 20 secrets per run that exhausts the 150 always
-free secrets in about seven runs, after which creates start failing for a reason that
-looks nothing like a quota problem.
+**This suite is a local pre-submit tool. It will not be enabled as a CI leg while the
+only account available is always-free.** That is a deliberate position, not a missing
+task, and the numbers behind it are below.
 
-Anything creating secrets here should schedule deletion at the 1 day minimum.
+Deleting a secret is scheduled rather than immediate. `timeOfDeletion` defaults to 30
+days out and the accepted range is 1 to 30 days. **The 24 hour floor is enforced**:
+values of 5m, 1h, 6h, 12h, 23h and 23h55m are all rejected with
+`400 InvalidParameter: ScheduledTimeOfDeletion is in invalid range`. A secret pending
+deletion keeps both its name and its slot, so there is no way to return one to the pool
+sooner than a day.
 
-Every state transition in the Vault service is also asynchronous, and the next operation
-is rejected with `409 IncorrectState` until the previous one settles. Creating then
-immediately deleting fails, because the secret is still `CREATING`; cancelling a pending
-deletion then immediately rescheduling fails, because it is still `CANCELLING_DELETION`.
-Measured latencies are a few seconds each, but they are not zero and they are not
-bounded by anything documented.
+An always-free tenancy gets 150 secrets. A full run of this suite creates **15**, one per
+remote secret across the twelve common cases. That is **10 runs per rolling 24 hours**,
+starting from an empty vault. Anything creating secrets here should therefore schedule
+deletion at the 1 day minimum rather than accept the 30 day default, which would cut the
+same budget to roughly one run per two days.
+
+Two runner behaviours make the ceiling lower than 10 in practice:
+
+- `entrypoint.sh` passes `--flake-attempts=2`, so a failing spec re-runs from
+  `BeforeEach` and creates its secrets again, up to 3x for a spec that never passes.
+- `entrypoint.sh` runs `-p -nodes=5`, so five specs create and delete concurrently. The
+  Vaults service rate-limits: eight schedule calls in quick succession return
+  `429 TooManyRequests`. `E2E_NODES` is read inside the pod but is not in `run.sh`'s
+  `--env` allowlist, so parallelism cannot be lowered from outside without editing
+  `run.sh`.
+
+A CI leg on those numbers would exhaust the quota partway through a busy day and then
+fail for a reason unrelated to the change under test. A leg that goes red at random is
+worse than no leg at all, because it teaches reviewers to disregard the colour. Enabling
+this in CI needs a tenancy without the always-free secret cap. Note that the blocker is
+the cap rather than the bill: OCI does not price secrets individually, charging instead
+for HSM keys and virtual private vaults, neither of which this suite needs.
+
+Separately, every state transition in the Vault service is asynchronous, and the next
+operation is rejected with `409 IncorrectState` until the previous settles. Creating then
+immediately deleting fails because the secret is still `CREATING`; cancelling a pending
+deletion then immediately rescheduling fails because it is still `CANCELLING_DELETION`.
+Measured latencies are a few seconds, but they are neither zero nor documented as
+bounded.
 
 ### Why it does not run yet
 

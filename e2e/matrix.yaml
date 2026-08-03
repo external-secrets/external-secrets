@@ -209,6 +209,13 @@ areas:
       - "e2e/suites/provider/cases/gitlab/**"
     enabled: false
 
+  # Oracle stays disabled by policy, not just for want of credentials. An
+  # always-free OCI tenancy caps secrets at 150, and a deleted secret cannot
+  # return to the pool for 24h (the floor is enforced). One run of this suite
+  # costs 15 secrets, so a free account sustains ten runs a day before creates
+  # start failing for reasons unrelated to the change under test. Enabling this
+  # leg needs a tenancy without that cap. Until then the suite is a local
+  # pre-submit tool; see docs/contributing/e2e-credentials.md.
   - name: oracle
     suite: provider
     labels: "oracle && !managed"
