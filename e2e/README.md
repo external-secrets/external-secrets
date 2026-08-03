@@ -159,6 +159,15 @@ make -C e2e matrix.plan
 make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="vault && !managed"
 ```
 
+The akeyless suite names its items at the account root by default, which needs
+credentials with account-wide capabilities. Set `AKEYLESS_PATH_PREFIX` to run it
+against a folder your role is scoped to instead:
+
+```bash
+AKEYLESS_PATH_PREFIX=/my-sandbox \
+  make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="akeyless && !managed"
+```
+
 ## Adding or enabling a provider
 
 1. Add the provider case under `e2e/suites/provider/cases/<name>/` and blank
@@ -170,6 +179,7 @@ make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="vault && !managed"
 4. Set `enabled: true` when you want CI to run it.
 
 `matrix.py check` (run in `prepare-matrix`) enforces steps 1-3: it fails the
-build if a provider is compiled into the suite but not covered by an area, if
-`needs_secrets` disagrees with `secret_groups`, or if an area names a secret
-group that the workflow does not wire.
+build if a provider is compiled into the suite but not covered by an area, if a
+suite directory exists but is never blank imported (so it would never run at
+all), if `needs_secrets` disagrees with `secret_groups`, or if an area names a
+secret group that the workflow does not wire.

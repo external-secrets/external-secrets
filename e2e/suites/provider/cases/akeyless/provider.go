@@ -84,7 +84,29 @@ func newFromEnv(f *framework.Framework) *akeylessProvider {
 	accessID := os.Getenv("AKEYLESS_ACCESS_ID")
 	accessType := os.Getenv("AKEYLESS_ACCESS_TYPE")
 	accessTypeParam := os.Getenv("AKEYLESS_ACCESS_TYPE_PARAM")
+	scopeToPathPrefix(f)
 	return newAkeylessProvider(f, accessID, accessType, accessTypeParam)
+}
+
+// scopeToPathPrefix moves every item the suite creates under the Akeyless path
+// in AKEYLESS_PATH_PREFIX. By default the suite names items at the account
+// root, which needs credentials with account-wide capabilities; a prefix lets a
+// contributor run with a role scoped to one folder instead. Unset, the keys are
+// unchanged.
+//
+// Item names are already unique per spec, because they derive from the test
+// namespace and the API server generates that name. Two runs sharing one
+// account and one prefix are therefore safe today. Give them distinct prefixes
+// before adding any spec that enumerates (find by name or tag), since that
+// would otherwise match items belonging to a concurrent run.
+func scopeToPathPrefix(f *framework.Framework) {
+	prefix := strings.Trim(os.Getenv("AKEYLESS_PATH_PREFIX"), "/")
+	if prefix == "" {
+		return
+	}
+	f.MakeRemoteRefKey = func(base string) string {
+		return fmt.Sprintf("/%s/%s", prefix, base)
+	}
 }
 
 // CreateSecret creates a secret.
