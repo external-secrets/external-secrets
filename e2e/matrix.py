@@ -4,8 +4,9 @@
 Subcommands:
   check   Fail early if the matrix is inconsistent: a provider compiled into
           the suite (suites/provider/cases/import.go) is not covered by any
-          area, needs_secrets disagrees with secret_groups, or an area names a
-          secret group that the reusable workflow does not wire up.
+          area, a suite directory is not compiled in at all, needs_secrets
+          disagrees with secret_groups, or an area names a secret group that
+          the reusable workflow does not wire up.
   json    Print the GitHub Actions matrix (enabled areas only) as compact JSON
           for the workflow's strategy.matrix.
   plan    Print, per enabled leg, exactly which credential env vars it will
@@ -51,6 +52,36 @@ def imported_providers() -> list[str]:
     return sorted({m.group(1) for m in re.finditer(r"cases/([a-z0-9]+)", text)})
 
 
+def imported_paths() -> set[str]:
+    """Suite paths compiled into the suite binary, relative to cases/
+    (cases/aws/secretsmanager -> aws/secretsmanager). Unlike
+    imported_providers this keeps the sub-package, so it can be compared
+    against the directories on disk."""
+    text = IMPORT.read_text()
+    return {m.group(1) for m in re.finditer(r"cases/([\w/-]+)\"", text)}
+
+
+# Package-level Ginkgo container nodes. Anything that registers specs at
+# package scope counts, not just Describe, so a suite cannot dodge the check
+# below by using a different node type.
+SUITE_NODE = re.compile(r"^var _ = (?:F|P|X)?(?:Describe|DescribeTable)\(", re.M)
+
+
+def suite_dirs() -> set[str]:
+    """Directories under cases/ that define a suite, relative to cases/.
+
+    A directory is a suite when one of its own .go files registers a
+    package-level Ginkgo node. That distinguishes real suites from the
+    common/ helper package and from aws/, which only holds a shared
+    common.go beside its three sub-suites."""
+    root = IMPORT.parent
+    found = set()
+    for path in root.rglob("*.go"):
+        if SUITE_NODE.search(path.read_text()):
+            found.add(path.parent.relative_to(root).as_posix())
+    return found
+
+
 def group_to_vars() -> dict[str, list[str]]:
     """Map each secret group to the env vars the reusable workflow gates on it,
     parsed from lines like:
@@ -81,6 +112,18 @@ def cmd_check(matrix: dict) -> int:
             "providers imported into the e2e suite but not covered by any "
             "area (add each to an area's providers list and a leg):\n  - "
             + "\n  - ".join(missing)
+        )
+
+    # 1b. Every suite on disk is compiled into the binary. Without this the
+    # check only runs one way: a suite added under cases/ but never blank
+    # imported is silently dead, which is how the akeyless, gitlab and oracle
+    # suites went unrun for months while still passing this validation.
+    unimported = sorted(suite_dirs() - imported_paths())
+    if unimported:
+        errors.append(
+            "suite directories that are not blank imported in import.go, so "
+            "they are never compiled into the suite binary and never run:\n  - "
+            + "\n  - ".join(unimported)
         )
 
     # 2. needs_secrets must mirror "secret_groups is non-empty".

@@ -177,6 +177,49 @@ areas:
       - "e2e/suites/provider/cases/secretserver/**"
     enabled: true
 
+  # The three legs below are defined but disabled, because their credentials do
+  # not exist. Each secret group is gated in e2e-reusable.yml, but none of
+  # AKEYLESS_*, GITLAB_* or ORACLE_* is set as a repo secret, an organisation
+  # secret available to this repo, or an environment secret, so enabling a leg
+  # would only produce a permanent failure.
+  #
+  # The suites themselves are complete and compile, and they are blank imported
+  # in import.go so that matrix.py check can see them. Defining the areas here
+  # keeps them counted for coverage and records the intended matrix; flip
+  # enabled to true once the credentials are added, no other change needed.
+  - name: akeyless
+    suite: provider
+    labels: "akeyless && !managed"
+    providers: [akeyless]
+    secret_groups: [akeyless]
+    needs_secrets: true
+    paths:
+      - "providers/v1/akeyless/**"
+      - "e2e/suites/provider/cases/akeyless/**"
+    enabled: false
+
+  - name: gitlab
+    suite: provider
+    labels: "gitlab && !managed"
+    providers: [gitlab]
+    secret_groups: [gitlab]
+    needs_secrets: true
+    paths:
+      - "providers/v1/gitlab/**"
+      - "e2e/suites/provider/cases/gitlab/**"
+    enabled: false
+
+  - name: oracle
+    suite: provider
+    labels: "oracle && !managed"
+    providers: [oracle]
+    secret_groups: [oracle]
+    needs_secrets: true
+    paths:
+      - "providers/v1/oracle/**"
+      - "e2e/suites/provider/cases/oracle/**"
+    enabled: false
+
   # Infisical runs against an in-cluster Infisical addon (addon.NewInfisical),
   # not an external tenant, so it needs no repo secrets despite being a SaaS.
   - name: infisical
