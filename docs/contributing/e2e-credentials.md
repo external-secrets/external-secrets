@@ -123,32 +123,113 @@ not point two runs at the same project at once.
 
 ## Oracle
 
-| Variable | Meaning |
-| --- | --- |
-| `OCI_TENANCY_OCID` | Tenancy OCID |
-| `OCI_USER_OCID` | User OCID the API key belongs to |
-| `OCI_REGION` | Region identifier, for example `uk-london-1` |
-| `OCI_FINGERPRINT` | Fingerprint of the uploaded API key |
-| `OCI_PRIVATE_KEY` | PEM private key matching that fingerprint |
+An always-free OCI account is sufficient. Every tenancy gets 150 Always Free Vault
+secrets, and master encryption keys protected by software are free, which covers
+everything this suite needs.
 
-An OCI account is needed. Check the current always-free limits before relying on
-them: the suite uses the Vault service, whose secret storage is not necessarily
-covered.
+**This suite cannot run as currently written**, so the setup below prepares the
+tenancy but will not yet produce a passing run. See the gaps at the end of this
+section.
 
-In the OCI console, under your user's API keys, add a key pair. The console
-shows the fingerprint and offers the private key for download, and prints a
+### What to create in the tenancy
+
+**A vault.** Identity & Security, then Vault, then Create Vault. Leave the virtual
+private vault option unticked; that variant is billed. Creation takes several
+minutes. Reuse one vault rather than making throwaways: deleting a vault is
+scheduled a minimum of seven days out and it stays in the tenancy meanwhile.
+
+**A master encryption key inside that vault.** Open the vault, then Master Encryption
+Keys, then Create Key. Protection Mode `Software` (HSM-protected keys give only 20
+free key versions), algorithm `AES`, length 256 bits. The key must be symmetric and
+must live in the vault above: OCI rejects asymmetric keys for secrets and rejects a
+key from a different vault.
+
+```bash
+oci kms management key create \
+  --compartment-id <compartment OCID> \
+  --display-name eso-e2e \
+  --protection-mode SOFTWARE \
+  --key-shape '{"algorithm":"AES","length":32}' \
+  --endpoint <the vault's management endpoint>
+```
+
+The endpoint is per-vault, shown on the vault's detail page, and the CLI takes the
+AES length in bytes rather than bits.
+
+**An API signing key.** Under your user's settings, add an API key. Let the console
+generate the pair: the key must have **no passphrase**, because the suite passes
+`nil` in the passphrase slot of `common.NewRawConfigurationProvider`. The console
+shows the fingerprint, offers the private key for download, and prints a
 configuration snippet containing the tenancy, user and region OCIDs.
 
-**This suite cannot run as currently written.** Two things need fixing first:
+**An IAM policy**, unless you are the tenancy administrator, in which case you
+already have this:
 
-- The names do not match. `e2e-reusable.yml` and `run.sh` supply `ORACLE_USER_OCID`,
-  `ORACLE_TENANCY_OCID`, `ORACLE_REGION`, `ORACLE_FINGERPRINT` and `ORACLE_KEY`,
-  while `suites/provider/cases/oracle/provider.go` reads the `OCI_*` names in
-  the table above. Nothing bridges them, so every value arrives empty.
-- The vault is hardcoded. The `SecretStore` is built with
-  `Vault: "vaultOCID"`, a placeholder rather than a real OCID, and no variable
-  exists to supply one.
+```
+Allow group <group> to manage secret-family in compartment <name>
+Allow group <group> to read vaults in compartment <name>
+Allow group <group> to read keys in compartment <name>
+```
 
-Anyone enabling this leg should expect to fix both, and to add whichever
-variable ends up carrying the vault OCID to all three places listed at the top
-of this page.
+`read vaults` is required even though the suite never reads the vault itself.
+ESO's own `newClient` calls `KmsVaultClient.GetVault` when it builds the client
+(`providers/v1/oracle/oracle.go`), so the store fails validation without it.
+
+If the vault sits in the root compartment, its compartment OCID and the tenancy
+OCID are the same value.
+
+### Variables
+
+| Variable | Meaning |
+| --- | --- |
+| `ORACLE_TENANCY_OCID` | Tenancy OCID |
+| `ORACLE_USER_OCID` | User OCID the API key belongs to |
+| `ORACLE_REGION` | Region identifier, for example `uk-london-1` |
+| `ORACLE_FINGERPRINT` | Fingerprint of the uploaded API key |
+| `ORACLE_KEY` | PEM private key matching that fingerprint, contents not a path |
+
+```bash
+export ORACLE_TENANCY_OCID=ocid1.tenancy.oc1..
+export ORACLE_USER_OCID=ocid1.user.oc1..
+export ORACLE_REGION=uk-london-1
+export ORACLE_FINGERPRINT=..
+export ORACLE_KEY="$(cat ~/.oci/eso-e2e.pem)"
+```
+
+### Quota
+
+Deleting a secret is a scheduled operation, and `timeOfDeletion` defaults to **30 days**
+out. The accepted range is 1 to 30 days. A secret pending deletion keeps both its name
+and its slot, so leaving the default in place means a suite run's secrets occupy the
+tenancy for a month. At roughly 15 to 20 secrets per run that exhausts the 150 always
+free secrets in about seven runs, after which creates start failing for a reason that
+looks nothing like a quota problem.
+
+Anything creating secrets here should schedule deletion at the 1 day minimum.
+
+Every state transition in the Vault service is also asynchronous, and the next operation
+is rejected with `409 IncorrectState` until the previous one settles. Creating then
+immediately deleting fails, because the secret is still `CREATING`; cancelling a pending
+deletion then immediately rescheduling fails, because it is still `CANCELLING_DELETION`.
+Measured latencies are a few seconds each, but they are not zero and they are not
+bounded by anything documented.
+
+### Why it does not run yet
+
+Tracked in
+[#6767](https://github.com/external-secrets/external-secrets/issues/6767). Two of
+the gaps affect the variables on this page:
+
+- **The names disagree.** `e2e-reusable.yml` and `run.sh` supply the `ORACLE_*`
+  names above, while `suites/provider/cases/oracle/provider.go` reads `OCI_TENANCY_OCID`,
+  `OCI_USER_OCID`, `OCI_REGION`, `OCI_FINGERPRINT` and `OCI_PRIVATE_KEY`. Nothing
+  bridges them, so every value arrives empty.
+- **Three OCIDs have no variable at all.** Creating a secret through the Vault API
+  requires the vault, compartment and encryption key OCIDs, and the `SecretStore`
+  requires the vault OCID, which is currently hardcoded to the placeholder
+  `"vaultOCID"`. Whatever names those end up taking have to be added to all three
+  places listed at the top of this page.
+
+The rest of the gaps are in the suite's use of the OCI API rather than in its
+configuration. Anyone picking this up should read #6767 first rather than assuming
+the two points above are the whole of it.
