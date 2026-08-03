@@ -54,6 +54,10 @@ var apiErr akeyless.GenericOpenAPIError
 
 const DefServiceAccountFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
+// akeylessGWAPIURL is the public Akeyless gateway. Both the suite's own API
+// client and the SecretStore it creates point here.
+var akeylessGWAPIURL = "https://api.akeyless.io"
+
 func newAkeylessProvider(f *framework.Framework, accessID, accessType, accessTypeParam string) *akeylessProvider {
 	prov := &akeylessProvider{
 		accessID:        accessID,
@@ -65,7 +69,7 @@ func newAkeylessProvider(f *framework.Framework, accessID, accessType, accessTyp
 	restAPIClient := akeyless.NewAPIClient(&akeyless.Configuration{
 		Servers: []akeyless.ServerConfiguration{
 			{
-				URL: "https://api.akeyless.io",
+				URL: akeylessGWAPIURL,
 			},
 		},
 	}).V2Api
@@ -136,18 +140,22 @@ func (a *akeylessProvider) BeforeEach() {
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Akeyless: &esv1.AkeylessProvider{
+					// Required by the CRD. Points at the same gateway the
+					// suite's own client uses, so the operator and the test
+					// harness talk to one endpoint.
+					AkeylessGWApiURL: &akeylessGWAPIURL,
 					Auth: &esv1.AkeylessAuth{
 						SecretRef: esv1.AkeylessAuthSecretRef{
 							AccessID: esmeta.SecretKeySelector{
-								Name: "access-id-secret",
+								Name: "provider-secret",
 								Key:  "access-id",
 							},
 							AccessType: esmeta.SecretKeySelector{
-								Name: "access-type-secret",
+								Name: "provider-secret",
 								Key:  "access-type",
 							},
 							AccessTypeParam: esmeta.SecretKeySelector{
-								Name: "access-type-param-secert",
+								Name: "provider-secret",
 								Key:  "access-type-param",
 							},
 						},
@@ -178,7 +186,7 @@ func (a *akeylessProvider) GetToken() (string, error) {
 	} else {
 		cloudID, err := a.getCloudID(a.accessType, a.accessTypeParam)
 		if err != nil {
-			return "", fmt.Errorf("Require Cloud ID " + err.Error())
+			return "", fmt.Errorf("require Cloud ID: %w", err)
 		}
 		authBody.AccessType = akeyless.PtrString(a.accessType)
 		authBody.CloudId = akeyless.PtrString(cloudID)
