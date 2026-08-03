@@ -1,4 +1,4 @@
-## BeyondTrust Workload Credentials
+# BeyondTrust Workload Credentials
 
 External Secrets Operator integrates with [BeyondTrust Workload Credentials](https://docs.beyondtrust.com/bt-docs/docs/secrets-api) for secret management.
 
@@ -6,7 +6,7 @@ The provider supports static key-value secrets stored in folders. For dynamic se
 
 For complete BeyondTrust Workload Credentials API documentation, see: [https://docs.beyondtrust.com/bt-docs/docs/secrets-api](https://docs.beyondtrust.com/bt-docs/docs/secrets-api)
 
-### Example
+## Example
 
 First, create a SecretStore with a BeyondTrust Workload Credentials backend. You'll need an API token and the server configuration:
 
@@ -36,9 +36,9 @@ Now create an ExternalSecret that uses the above SecretStore:
 
 This will automatically create a Kubernetes Secret with the synced data.
 
-### Fetching Secret Properties
+## Fetching Secret Properties
 
-#### Single Property Retrieval
+### Single Property Retrieval
 
 You can fetch a specific property from a secret by specifying the `property` field:
 
@@ -67,7 +67,7 @@ spec:
 ```
 This creates a secret with individual keys for `username` and `password`.
 
-#### Fetching All Properties as JSON
+### Fetching All Properties as JSON
 
 If you omit the `property` field, you'll get all key-value pairs as a single JSON string:
 
@@ -92,7 +92,7 @@ spec:
 
 This returns: `{"username":"user","password":"pass"}` as the value of `credentials`.
 
-#### Extracting All Properties as Separate Keys
+### Extracting All Properties as Separate Keys
 
 To sync all properties of a secret as individual keys in the target Kubernetes secret, use `dataFrom` with `extract`:
 
@@ -121,7 +121,7 @@ data:
   password: cGFzcw==     # base64("pass")
 ```
 
-### Getting Multiple Secrets
+## Getting Multiple Secrets
 
 You can extract multiple secrets from a folder by using `dataFrom.find`.
 
@@ -130,7 +130,7 @@ Given a folder `eso/static` with these secrets:
 - `mySecret`: `{"myKey": "value2", "someKey": "value3"}`
 - `postgresCreds`: `{"username": "user", "password": "pass"}`
 
-#### Fetch All Secrets in Folder
+### Fetch All Secrets in Folder
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -151,9 +151,9 @@ spec:
           regexp: ".*"
 ```
 
-This merges all key-value pairs from all secrets in the folder into a single Kubernetes secret.
+This merges the matching secrets in the folder into a single Kubernetes secret. Each resulting key is the secret's full path joined with its property name (for example `eso/static/postgresCreds/username`). Because `/` is not valid in a Kubernetes secret key, ESO rewrites it through the ExternalSecret `find.conversionStrategy` (the default replaces invalid characters with `_`), so the example above becomes `eso_static_postgresCreds_username`.
 
-#### Regex Pattern Filtering
+### Regex Pattern Filtering
 
 To sync only secrets matching a specific pattern:
 
@@ -178,7 +178,33 @@ spec:
 
 This will only sync secrets whose names end with "Secret" (e.g., `anotherSecret`, `mySecret`).
 
-#### Specifying a Different Folder
+### Filtering by Tags
+
+You can also filter by the tags attached to each secret in BeyondTrust Workload Credentials using `find.tags`. A secret is synced only if its metadata contains every key/value pair listed:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: tagged-secrets
+  namespace: external-secrets
+spec:
+  refreshInterval: 1m
+  secretStoreRef:
+    name: beyondtrustworkloadcredentials-ss
+    kind: SecretStore
+  target:
+    name: tagged-folder-secrets
+  dataFrom:
+    - find:
+        tags:
+          env: production
+          team: platform
+```
+
+When both `name.regexp` and `tags` are set, a secret must satisfy both to be synced.
+
+### Specifying a Different Folder
 
 By default, `find` uses the `folderPath` from the SecretStore. To search a different folder, use the `path` field:
 
@@ -206,7 +232,7 @@ This will list all secrets in the `eso/production` folder, regardless of the `fo
 
 **Note:** The `path` field specifies a folder path, not a path to a specific secret. To fetch a single secret, use `data` with `extract` or individual `remoteRef` entries.
 
-### Handling Source Secret Deletion
+## Handling Source Secret Deletion
 
 By default, when a source secret is deleted from BeyondTrust Workload Credentials, the managed Kubernetes secret is retained. You can change this behavior using `deletionPolicy`:
 
@@ -234,7 +260,7 @@ Valid values:
 - `Retain` (default): Keep the Kubernetes secret even if the source is deleted
 - `Delete`: Remove the Kubernetes secret when the source is deleted
 
-### Authentication
+## Authentication
 
 BeyondTrust Workload Credentials uses API key authentication. The API key is stored in a Kubernetes Secret and referenced in the SecretStore:
 
@@ -266,7 +292,7 @@ auth:
       key: token
 ```
 
-### Server Configuration
+## Server Configuration
 
 The server configuration consists of:
 - `apiUrl`: The base URL of your BeyondTrust Workload Credentials API
@@ -274,13 +300,13 @@ The server configuration consists of:
 
 The provider automatically constructs the full API endpoint as: `{apiUrl}/{siteId}/secrets`
 
-### Certificate Trust
+## Certificate Trust
 
 BeyondTrust Workload Credentials typically uses certificates signed by public CAs, requiring no additional configuration.
 
 If using self-signed certificates, configure trust using either `caBundle` or `caProvider`:
 
-#### Using caProvider (Recommended)
+### Using caProvider (Recommended)
 
 ```yaml
 spec:
@@ -301,7 +327,7 @@ kubectl create secret generic my-ca-bundle \
   -n external-secrets
 ```
 
-#### Using caBundle
+### Using caBundle
 
 Alternatively, embed the base64-encoded PEM certificate directly:
 
@@ -321,7 +347,7 @@ To generate the base64 string:
 cat /path/to/ca.crt | base64 -w 0
 ```
 
-### Folder Path
+## Folder Path
 
 The `folderPath` specifies the default folder containing your secrets. This should be a folder path, not the full path to a specific secret.
 
@@ -333,7 +359,7 @@ For example, if your secrets are stored at:
 Set `folderPath: "eso/static"` in your SecretStore.
 
 When using `data` or `dataFrom.extract`, secret names are relative to this folder. When using `dataFrom.find`, this folder is searched by default (unless overridden with the `path` field).
-### Refresh Interval
+## Refresh Interval
 The `refreshInterval` controls how often the ExternalSecret checks for updates:
 
 ```yaml
@@ -345,7 +371,7 @@ Supported units: `s` (seconds), `m` (minutes), `h` (hours).
 
 **Best Practice:** Balance between keeping secrets up-to-date and minimizing API calls. For most use cases, `1m` to `15m` is appropriate.
 
-### ClusterSecretStore
+## ClusterSecretStore
 
 To use a ClusterSecretStore (accessible across all namespaces):
 
@@ -382,3 +408,9 @@ spec:
     kind: ClusterSecretStore  # Specify ClusterSecretStore
   # ... rest of spec
 ```
+
+## Limitations
+
+- This provider is **read-only**. It reads secrets via `data[].remoteRef` and `dataFrom` (both `extract` and `find`), but does not implement `PushSecret`, `DeleteSecret`, or secret-existence checks, so it cannot create, update, or delete secrets in BeyondTrust Workload Credentials.
+- The `target.deletionPolicy: Delete` shown above removes the **Kubernetes** secret when the source secret no longer exists in BeyondTrust; it never deletes anything in BeyondTrust itself.
+- For dynamic, short-lived credentials (such as temporary AWS credentials), use the [BeyondTrust Workload Credentials Generator](../api/generator/beyondtrustworkloadcredentials.md) instead.

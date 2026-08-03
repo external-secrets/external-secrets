@@ -27,7 +27,6 @@ import (
 	"strings"
 
 	aws_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/aws"
-	azure_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/azure"
 	gcp_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/gcp"
 	"github.com/akeylesslabs/akeyless-go/v4"
 	authenticationv1 "k8s.io/api/authentication/v1"
@@ -43,7 +42,6 @@ import (
 )
 
 var (
-	apiErr akeyless.GenericOpenAPIError
 	// ErrItemNotExists is returned when a requested item doesn't exist in Akeyless vault.
 	ErrItemNotExists = errors.New("item does not exist")
 	// ErrTokenNotExists is returned when the authentication token is not available.
@@ -62,13 +60,16 @@ type Tokener interface {
 // GetToken retrieves an authentication token from Akeyless Gateway.
 // It supports various authentication methods including API key, access key,
 // Kubernetes service account token, and cloud provider-specific methods.
-func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeParam string, k8sAuth *esv1.AkeylessKubernetesAuth) (string, error) {
+func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeParam string, auth *esv1.AkeylessAuth) (string, error) {
 	authBody := akeyless.NewAuthWithDefaults()
 	authBody.AccessId = new(accessID)
 	if accType == "api_key" || accType == "access_key" {
 		authBody.AccessKey = new(accTypeParam)
 	} else if accType == "k8s" {
-		jwtString, err := a.getK8SServiceAccountJWT(ctx, k8sAuth)
+		if auth == nil || auth.KubernetesAuth == nil {
+			return "", errors.New("kubernetes auth configuration is required")
+		}
+		jwtString, err := a.getK8SServiceAccountJWT(ctx, auth.KubernetesAuth)
 		if err != nil {
 			return "", fmt.Errorf("failed to read JWT with Kubernetes Auth from %v. error: %w", DefServiceAccountFile, err)
 		}
@@ -78,7 +79,7 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 		authBody.K8sServiceAccountToken = new(jwtStringBase64)
 		authBody.K8sAuthConfigName = new(K8SAuthConfigName)
 	} else {
-		cloudID, err := a.getCloudID(accType, accTypeParam)
+		cloudID, err := a.getCloudID(ctx, accType, accTypeParam, auth)
 		if err != nil {
 			return "", errors.New("Require Cloud ID " + err.Error())
 		}
@@ -88,6 +89,7 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 
 	authOut, res, err := a.RestAPI.Auth(ctx).Body(*authBody).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMAuth, err)
+	var apiErr akeyless.GenericOpenAPIError
 	if errors.As(err, &apiErr) {
 		return "", fmt.Errorf("authentication failed: %v", string(apiErr.Body()))
 	}
@@ -148,6 +150,7 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName string) (*akey
 	}
 	gsvOut, res, err := a.RestAPI.DescribeItem(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDescribeItem, err)
+	var apiErr akeyless.GenericOpenAPIError
 	if errors.As(err, &apiErr) {
 		var item *Item
 		err = json.Unmarshal(apiErr.Body(), &item)
@@ -170,11 +173,15 @@ func (a *akeylessBase) GetCertificate(ctx context.Context, certificateName strin
 		Name:    certificateName,
 		Version: &version,
 	}
+	if a.ignoreCache {
+		body.SetIgnoreCache("true")
+	}
 	if err := SetBodyToken(ctx, &body); err != nil {
 		return "", err
 	}
 	gcvOut, res, err := a.RestAPI.GetCertificateValue(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetCertificateValue, err)
+	var apiErr akeyless.GenericOpenAPIError
 	if errors.As(err, &apiErr) {
 		return "", fmt.Errorf("can't get certificate value: %v", string(apiErr.Body()))
 	}
@@ -198,11 +205,15 @@ func (a *akeylessBase) GetRotatedSecrets(ctx context.Context, secretName string,
 		Names:   secretName,
 		Version: &version,
 	}
+	if a.ignoreCache {
+		body.SetIgnoreCache("true")
+	}
 	if err := SetBodyToken(ctx, &body); err != nil {
 		return "", err
 	}
 	gsvOut, res, err := a.RestAPI.GetRotatedSecretValue(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetRotatedSecretValue, err)
+	var apiErr akeyless.GenericOpenAPIError
 	if errors.As(err, &apiErr) {
 		return "", fmt.Errorf("can't get rotated secret value: %v", string(apiErr.Body()))
 	}
@@ -244,6 +255,7 @@ func (a *akeylessBase) GetDynamicSecrets(ctx context.Context, secretName string)
 	}
 	gsvOut, res, err := a.RestAPI.GetDynamicSecretValue(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetDynamicSecretValue, err)
+	var apiErr akeyless.GenericOpenAPIError
 	if errors.As(err, &apiErr) {
 		return "", fmt.Errorf("can't get dynamic secret value: %v", string(apiErr.Body()))
 	}
@@ -265,11 +277,15 @@ func (a *akeylessBase) GetStaticSecret(ctx context.Context, secretName string, v
 		Names:   []string{secretName},
 		Version: &version,
 	}
+	if a.ignoreCache {
+		body.SetIgnoreCache("true")
+	}
 	if err := SetBodyToken(ctx, &body); err != nil {
 		return "", err
 	}
 	gsvOut, res, err := a.RestAPI.GetSecretValue(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetSecretValue, err)
+	var apiErr akeyless.GenericOpenAPIError
 	if errors.As(err, &apiErr) {
 		return "", fmt.Errorf("can't get secret value: %v", string(apiErr.Body()))
 	}
@@ -290,21 +306,17 @@ func (a *akeylessBase) GetStaticSecret(ctx context.Context, secretName string, v
 	return valStr, nil
 }
 
-func (a *akeylessBase) getCloudID(provider, accTypeParam string) (string, error) {
-	var cloudID string
-	var err error
-
+func (a *akeylessBase) getCloudID(ctx context.Context, provider, accTypeParam string, auth *esv1.AkeylessAuth) (string, error) {
 	switch provider {
 	case "azure_ad":
-		cloudID, err = azure_cloud_id.GetCloudId(accTypeParam)
+		return a.getAzureCloudID(ctx, accTypeParam, auth)
 	case "aws_iam":
-		cloudID, err = aws_cloud_id.GetCloudId()
+		return aws_cloud_id.GetCloudId()
 	case "gcp":
-		cloudID, err = gcp_cloud_id.GetCloudID(accTypeParam)
+		return gcp_cloud_id.GetCloudID(accTypeParam)
 	default:
 		return "", fmt.Errorf("unable to determine provider: %s", provider)
 	}
-	return cloudID, err
 }
 
 func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag string) ([]string, error) {
@@ -324,6 +336,7 @@ func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag string) ([]str
 	}
 	lipOut, res, err := a.RestAPI.ListItems(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMListItems, err)
+	var apiErr akeyless.GenericOpenAPIError
 	if errors.As(err, &apiErr) {
 		return nil, fmt.Errorf("can't get secrets list: %v", string(apiErr.Body()))
 	}

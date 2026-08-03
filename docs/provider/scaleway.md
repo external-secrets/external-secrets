@@ -1,8 +1,8 @@
-## Scaleway Secret Manager
+# Scaleway Secret Manager
 
 External Secrets Operator integrates with [Scaleway's Secret Manager](https://developers.scaleway.com/en/products/secret_manager/api/v1alpha1/).
 
-### Creating a SecretStore
+## Creating a SecretStore
 
 You need an api key (access key + secret key) to authenticate with the secret manager.
 Both access and secret keys can be specified either directly in the config, or by referencing
@@ -26,7 +26,7 @@ spec:
           key: <KEY_IN_KUBE_SECRET>
 ```
 
-### Referencing Secrets
+## Referencing Secrets
 
 Secrets can be referenced by name, id or path, using the prefixes `"name:"`, `"id:"` and `"path:"` respectively.
 
@@ -49,7 +49,7 @@ spec:
           version: latest_enabled
 ```
 
-### JSON Secret Values
+## JSON Secret Values
 
 Scaleway Secret Manager supports storing JSON objects as secrets. You can access values using [gjson syntax](https://github.com/tidwall/gjson/blob/master/SYNTAX.md):
 

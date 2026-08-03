@@ -1,7 +1,7 @@
 
 ![Onboardbase External Secrets Provider](../pictures/onboardbase-provider.png)
 
-## Onboardbase Secret Management
+# Onboardbase Secret Management
 
 Sync secrets from [Onboardbase](https://www.onboardbase.com/) to Kubernetes using the External Secrets Operator.
 

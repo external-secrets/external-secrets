@@ -1,0 +1,10 @@
+# We need this since python 3.12.
+# Since python3.12, setuptools is not provided by default in venvs.
+# However, before the complete isolation we would fetch it immediately and we would have never have seen that,
+# particularily because it's only used when we need to build a wheel, which only happens for
+# watchdog, which is only needed for make.serve
+# When we'll move to hugo, all of this can go away.
+# Build backend for the pinned watchdog source distribution.
+# Regenerate with:
+# pip-compile --allow-unsafe --generate-hashes --output-file=build-requirements.txt build-requirements.in
+setuptools

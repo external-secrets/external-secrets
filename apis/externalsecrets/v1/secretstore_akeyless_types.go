@@ -26,6 +26,11 @@ type AkeylessProvider struct {
 	// Akeyless GW API Url from which the secrets to be fetched from.
 	AkeylessGWApiURL *string `json:"akeylessGWApiURL"`
 
+	// IgnoreCache bypasses the Gateway cache for secret reads when true.
+	// Only relevant when akeylessGWApiURL points to an Akeyless Gateway.
+	// +optional
+	IgnoreCache *bool `json:"ignoreCache,omitempty"`
+
 	// Auth configures how the operator authenticates with Akeyless.
 	Auth *AkeylessAuth `json:"authSecretRef"`
 
@@ -52,6 +57,13 @@ type AkeylessAuth struct {
 	// token stored in the named Secret resource.
 	// +optional
 	KubernetesAuth *AkeylessKubernetesAuth `json:"kubernetesAuth,omitempty"`
+
+	// ServiceAccountRef specifies a Kubernetes ServiceAccount used for azure_ad
+	// authentication on AKS Workload Identity. The operator obtains a federated
+	// identity token from this ServiceAccount via the TokenRequest API instead
+	// of using the ESO controller pod identity. Ignored for other access types.
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
 
 // AkeylessAuthSecretRef references a Secret that contains the details

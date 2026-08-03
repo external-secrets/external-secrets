@@ -26,6 +26,7 @@ import (
 	"github.com/akeylesslabs/akeyless-go/v4"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -201,6 +202,111 @@ func TestValidateStore(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("secret auth with serviceAccountRef", func(t *testing.T) {
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							SecretRef: esv1.AkeylessAuthSecretRef{
+								AccessID: esmeta.SecretKeySelector{
+									Name: "accessId",
+									Key:  "key-1",
+								},
+								AccessType: esmeta.SecretKeySelector{
+									Name: "accessId",
+									Key:  "key-1",
+								},
+							},
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name: "akeyless-wi-sa",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.NoError(t, err)
+	})
+
+	t.Run("secret auth with serviceAccountRef in different namespace", func(t *testing.T) {
+		ns := "other-ns"
+		store := &esv1.SecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "app-test",
+			},
+			TypeMeta: metav1.TypeMeta{
+				Kind: esv1.SecretStoreKind,
+			},
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							SecretRef: esv1.AkeylessAuthSecretRef{
+								AccessID: esmeta.SecretKeySelector{
+									Name: "accessId",
+									Key:  "key-1",
+								},
+								AccessType: esmeta.SecretKeySelector{
+									Name: "accessId",
+									Key:  "key-1",
+								},
+							},
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name:      "akeyless-wi-sa",
+								Namespace: &ns,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.Error(t, err)
+	})
+
+	t.Run("cluster secret auth with serviceAccountRef namespace", func(t *testing.T) {
+		ns := "app-test"
+		store := &esv1.ClusterSecretStore{
+			TypeMeta: metav1.TypeMeta{
+				Kind: esv1.ClusterSecretStoreKind,
+			},
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							SecretRef: esv1.AkeylessAuthSecretRef{
+								AccessID: esmeta.SecretKeySelector{
+									Name:      "accessId",
+									Key:       "key-1",
+									Namespace: &ns,
+								},
+								AccessType: esmeta.SecretKeySelector{
+									Name:      "accessId",
+									Key:       "key-1",
+									Namespace: &ns,
+								},
+							},
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name:      "akeyless-wi-sa",
+								Namespace: &ns,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.NoError(t, err)
+	})
+
 	t.Run("k8s auth", func(t *testing.T) {
 		store := &esv1.SecretStore{
 			Spec: esv1.SecretStoreSpec{
@@ -272,6 +378,32 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.expectedVal = map[string][]byte{"foo": []byte("bar")}
 	}
 
+	// good case: nested json values are kept as raw json bytes
+	setNestedJSON := func(smtc *akeylessTestCase) {
+		smtc.apiOutput.Value = `{"foobar":{"baz":"nestedval"}}`
+		smtc.expectedVal = map[string][]byte{"foobar": []byte(`{"baz":"nestedval"}`)}
+	}
+
+	// good case: extract a nested json object into multiple keys
+	setExtractProperty := func(smtc *akeylessTestCase) {
+		smtc.apiOutput.Value = `{"db":{"username":"my_user","password":"my_pass"},"apiKey":"myApiKey"}`
+		smtc.ref.Property = "db"
+		smtc.expectedVal = map[string][]byte{
+			"username": []byte("my_user"),
+			"password": []byte("my_pass"),
+		}
+	}
+
+	// good case: extract property with non-string values
+	setExtractPropertyWithNonStringValues := func(smtc *akeylessTestCase) {
+		smtc.apiOutput.Value = `{"db":{"username":"my_user","port":5432}}`
+		smtc.ref.Property = "db"
+		smtc.expectedVal = map[string][]byte{
+			"username": []byte("my_user"),
+			"port":     []byte("5432"),
+		}
+	}
+
 	// bad case: invalid json
 	setInvalidJSON := func(smtc *akeylessTestCase) {
 		smtc.apiOutput.Value = `-----------------`
@@ -280,6 +412,9 @@ func TestGetSecretMap(t *testing.T) {
 
 	successCases := []*akeylessTestCase{
 		makeValidAkeylessTestCaseCustom(setDeserialization),
+		makeValidAkeylessTestCaseCustom(setNestedJSON),
+		makeValidAkeylessTestCaseCustom(setExtractProperty),
+		makeValidAkeylessTestCaseCustom(setExtractPropertyWithNonStringValues),
 		makeValidAkeylessTestCaseCustom(setInvalidJSON).SetExpectVal(map[string][]byte(nil)),
 		makeValidAkeylessTestCaseCustom(setAPIErr).SetExpectVal(map[string][]byte(nil)),
 		makeValidAkeylessTestCaseCustom(setNilMockClient).SetExpectVal(map[string][]byte(nil)),
