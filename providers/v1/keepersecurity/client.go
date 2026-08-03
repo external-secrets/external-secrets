@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"maps"
 	"regexp"
+	"sort"
 	"strings"
 
 	ksm "github.com/keeper-security/secrets-manager-go/core"
@@ -215,16 +216,13 @@ func (c *Client) Close(_ context.Context) error {
 // PushSecret creates or updates a secret in Keeper Security.
 func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	if data.GetSecretKey() == "" {
-		return errors.New("pushing the whole secret is not yet implemented")
+		return c.pushWholeSecret(secret, data.GetRemoteKey())
 	}
 
-	// Close implements cleanup operations for the Keeper Security client
 	value := secret.Data[data.GetSecretKey()]
 	parts, err := c.buildSecretNameAndKey(data)
 	if err != nil {
 		return err
-		// PushSecret creates or updates a secret in Keeper Security.
-		// Currently only supports pushing individual secret values, not entire secrets.
 	}
 
 	record, err := c.findSecretByName(parts[0])
@@ -240,6 +238,36 @@ func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.
 	}
 
 	_, err = c.createSecret(parts[0], parts[1], value)
+	return err
+}
+
+func (c *Client) pushWholeSecret(secret *corev1.Secret, name string) error {
+	record, err := c.findSecretByName(name)
+	if err != nil {
+		return err
+	}
+
+	if record == nil {
+		_, err = c.createSecretWithCustomFields(name, secret.Data)
+		return err
+	}
+
+	if record.Type() != externalSecretType {
+		return fmt.Errorf(errInvalidSecretType, externalSecretType, record.Title(), record.Type())
+	}
+
+	for key, value := range secret.Data {
+		if len(record.GetCustomFieldsByLabel(key)) > 0 {
+			record.SetCustomFieldValueSingle(key, string(value))
+			continue
+		}
+		if err := record.AddCustomField(newCustomSecretField(key, value)); err != nil {
+			return err
+		}
+	}
+
+	err = c.ksmClient.Save(record)
+	metrics.ObserveAPICall(constants.ProviderKeeperSecurity, constants.CallKeeperSecuritySave, err)
 	return err
 }
 
@@ -303,15 +331,35 @@ func (c *Client) createSecret(name, key string, value []byte) (string, error) {
 			ksm.NewUrl(string(value)),
 		)
 	default:
-		field := ksm.KeeperRecordField{Type: secretType, Label: key}
-		externalSecretRecord.Custom = append(externalSecretRecord.Custom,
-			ksm.Secret{KeeperRecordField: field, Value: []string{string(value)}},
-		)
+		externalSecretRecord.Custom = append(externalSecretRecord.Custom, newCustomSecretField(key, value))
 	}
 
 	uid, err := c.ksmClient.CreateSecretWithRecordData("", c.folderID, externalSecretRecord)
 	metrics.ObserveAPICall(constants.ProviderKeeperSecurity, constants.CallKeeperSecurityCreateSecretWithRecordData, err)
 	return uid, err
+}
+
+func (c *Client) createSecretWithCustomFields(name string, data map[string][]byte) (string, error) {
+	externalSecretRecord := ksm.NewRecordCreate(externalSecretType, name)
+	keys := make([]string, 0, len(data))
+	for key := range data {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	for _, key := range keys {
+		externalSecretRecord.Custom = append(externalSecretRecord.Custom, newCustomSecretField(key, data[key]))
+	}
+
+	uid, err := c.ksmClient.CreateSecretWithRecordData("", c.folderID, externalSecretRecord)
+	metrics.ObserveAPICall(constants.ProviderKeeperSecurity, constants.CallKeeperSecurityCreateSecretWithRecordData, err)
+	return uid, err
+}
+
+func newCustomSecretField(key string, value []byte) ksm.Secret {
+	return ksm.Secret{
+		KeeperRecordField: ksm.KeeperRecordField{Type: secretType, Label: key},
+		Value:             []string{string(value)},
+	}
 }
 
 func (c *Client) updateSecret(secret *ksm.Record, key string, value []byte) error {
