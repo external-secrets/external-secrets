@@ -34,7 +34,7 @@ You can also have GitLab expire the token server-side as a backstop, using exact
 
 `spec.expiresAt` and `spec.expiresAfter` are mutually exclusive (enforced by a CEL rule). Two things to keep in mind for `expiresAfter`:
 
-- **Minimum `24h`.** The GitLab deploy-token API keeps hourly resolution on the expiry (only the GitLab web UI displays whole days), so `expiresAfter` enforces a conservative `24h` minimum via a CEL rule rather than accepting arbitrarily short lifetimes.
+- **Minimum `24h`.** GitLab stores and enforces `expires_at` to the second, so the `24h` minimum (a CEL rule) is a deliberately conservative floor, not a GitLab limitation. Only the web UI and the `expired` flag in the API response are day-granular: a token whose `expires_at` has passed is refused for authentication straight away, but keeps reporting `expired: false` until the following UTC midnight. Do not read that flag to decide whether a token is still usable.
 - **Keep it larger than `refreshInterval`.** If `expiresAfter` is shorter than the consuming `ExternalSecret`'s `refreshInterval`, a token can expire before the next refresh mints its replacement, leaving a gap. Set `expiresAfter` comfortably larger than `refreshInterval`.
 
 ### Example Manifest
