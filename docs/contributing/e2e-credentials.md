@@ -82,17 +82,31 @@ concurrent run, and runs would need distinct prefixes from then on.
 | --- | --- |
 | `GITLAB_TOKEN` | Token with `api` scope on the project |
 | `GITLAB_PROJECT_ID` | Numeric ID of the project the suite writes to |
-| `GITLAB_ENVIRONMENT` | Environment scope for the variables it creates |
+| `GITLAB_ENVIRONMENT` | Read into the credentials Secret, but unused. Set it to `*` |
 
-A free gitlab.com account is sufficient. The suite creates and deletes
-**project CI/CD variables** (`ProjectVariables.CreateVariable`), so use a
-throwaway project rather than one that matters, and a token scoped to it:
+A free gitlab.com account is sufficient. The suite creates and deletes **project
+CI/CD variables** (`ProjectVariables.CreateVariable`), so point it at a
+throwaway project rather than one that matters. Nothing needs to be created
+inside the project beforehand; the suite makes and removes every variable
+itself.
 
-1. Create an empty project. Its numeric ID is on the project overview page.
-2. Create a project access token (or a personal token limited to that project)
-   with the `api` scope.
-3. Create the environment named in `GITLAB_ENVIRONMENT`, or set it to an
-   existing one such as `*`.
+1. Create a group, then create the throwaway project **inside that group**. The
+   project alone is enough for the suite as it stands, but the provider also
+   supports resolving variables from a project's groups, and covering that needs
+   a group to hang variables on. Starting with one costs nothing and saves
+   moving the project later.
+2. Take the numeric project ID from the project overview page, under the project
+   name.
+3. Create a personal access token with the `api` scope. A project access token
+   scoped to the one project is tighter if your plan offers it. Either way the
+   identity needs at least Maintainer on the project, which you have if you
+   created it.
+4. Leave `GITLAB_ENVIRONMENT` as `*`. The suite reads it into the credentials
+   Secret, but it never reaches the `SecretStore` and variables are created with
+   a nil environment scope, so it changes nothing.
+
+There is no URL variable. `GitlabProvider.URL` is only applied when non-empty
+(`providers/v1/gitlab/provider.go:93`), so an unset value uses gitlab.com.
 
 ```bash
 export GITLAB_TOKEN=glpat-...
@@ -101,6 +115,11 @@ export GITLAB_ENVIRONMENT='*'
 
 make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="gitlab && !managed"
 ```
+
+Ginkgo runs specs in parallel, so this is several concurrent variable
+create/delete cycles against one project, and GitLab rate-limits. Project
+variables are also a flat namespace per project with no prefix equivalent, so do
+not point two runs at the same project at once.
 
 ## Oracle
 
