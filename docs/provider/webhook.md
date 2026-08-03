@@ -152,6 +152,8 @@ kind: Secret
 metadata:
   name: webhook-credentials
   namespace: externalsecrets
+  labels:
+    external-secrets.io/type: webhook # Also required for auth.ntlm secrets
 data:
   username: dGVzdA== # "test"
   password: dGVzdA== # "test"
@@ -227,6 +229,8 @@ Most webhook problems surface on the `SecretStore` itself rather than in the log
 
 ```sh
 kubectl describe secretstore <name> -n <namespace>
+# or, for a cluster-scoped store
+kubectl describe clustersecretstore <name>
 ```
 
 A `Ready` condition of `False` with reason `InvalidProviderConfig` means the client could
@@ -266,9 +270,11 @@ service, and read the proxy's logs. Point the webhook `url` at the proxy over pl
 the request is readable there, and let the proxy terminate TLS towards the real endpoint.
 Running it as a sidecar keeps the plaintext hop inside the pod.
 
+Add the sidecar and its config volume to the external-secrets deployment. Only the fields
+relevant to the proxy are shown; keep the rest of the pod spec as it is.
+
 ```yaml
-# Sidecar on the external-secrets deployment. Logs every request line and header,
-# then forwards to the real endpoint over HTTPS.
+# spec.template.spec.containers
 - name: debug-proxy
   image: nginx:alpine
   ports:
@@ -276,32 +282,60 @@ Running it as a sidecar keeps the plaintext hop inside the pod.
   volumeMounts:
     - name: debug-proxy-config
       mountPath: /etc/nginx/conf.d
+# spec.template.spec.volumes
+- name: debug-proxy-config
+  configMap:
+    name: debug-proxy-config
 ```
 
-```nginx
-# debug-proxy-config
-log_format dump escape=none '$request_method $uri $args -> $upstream_status'
-                            ' req_headers="$http_authorization"';
+The key must end in `.conf`, because the stock nginx config only includes
+`/etc/nginx/conf.d/*.conf`. With any other key the sidecar starts and serves the default
+nginx page instead of proxying.
 
-server {
-  listen 8080;
-  access_log /dev/stdout dump;
-  location / {
-    proxy_pass https://secrets.example.com;
-    proxy_set_header Host secrets.example.com;
-  }
-}
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: debug-proxy-config
+data:
+  debug-proxy.conf: |
+    log_format dump escape=none '$request_method $uri $args -> $upstream_status'
+                                ' authorization="$http_authorization"';
+
+    server {
+      listen 8080;
+      access_log /dev/stdout dump;
+      location / {
+        proxy_pass https://secrets.example.com;
+        proxy_set_header Host secrets.example.com;
+        # nginx sends no SNI by default, which breaks endpoints that select a
+        # certificate by server name.
+        proxy_ssl_server_name on;
+      }
+    }
 ```
+
+That logs the request method, path and query, the upstream status, and the `Authorization`
+header. Add more `$http_<header>` variables to the `log_format` for other headers. Request
+and response bodies are not captured; use `mirror` or a dedicated capture proxy if you need
+them.
 
 Then set `url: "http://localhost:8080/..."` on the store while debugging. Remember that the
 proxy log now contains the same credentials the operator refuses to log, so treat it as
 sensitive and remove the sidecar when you are done.
 
+!!! warning
+      nginx does not verify the upstream certificate unless `proxy_ssl_verify on` and
+      `proxy_ssl_trusted_certificate` are set, so this proxy is deliberately more permissive
+      than the operator. Do not use it to diagnose TLS trust problems: a `caProvider` or
+      certificate error will appear to go away as soon as the proxy is in the path.
+
 #### Referenced secrets must be labeled
 
-Every secret referenced from `provider.webhook.secrets` must carry the label
-`external-secrets.io/type: webhook`. This applies to both secretstores and generators.
-Without it the lookup fails with:
+Every Secret the webhook reads must carry the label `external-secrets.io/type: webhook`.
+That covers `spec.provider.webhook.secrets` on a `SecretStore` or `ClusterSecretStore`,
+`spec.secrets` on a `Webhook` generator, and the `usernameSecret` and `passwordSecret` of
+`auth.ntlm`, which resolve through the same code path. Without it the lookup fails with:
 
 ```
 secret does not contain needed label 'external-secrets.io/type: webhook'. Update secret label to use it with webhook
