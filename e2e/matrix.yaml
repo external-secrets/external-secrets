@@ -53,6 +53,25 @@ areas:
       - "e2e/suites/provider/cases/common/**"
     enabled: true
 
+  # The CRD provider reads arbitrary custom resources from the local cluster
+  # API, so it needs no credentials and no addon. It gets its own leg rather
+  # than joining core-smoke because its specs install a cluster-scoped test CRD
+  # and cluster-wide RBAC, heavier setup than the rest of that leg carries.
+  # Like every enabled area it feeds e2e-required, so a failure here does turn
+  # the gate red; the split buys attribution (the failing leg names the
+  # provider) and keeps a crd break from also failing the fake, kubernetes, and
+  # template specs.
+  - name: crd
+    suite: provider
+    labels: "crd && !managed"
+    providers: [crd]
+    secret_groups: []
+    needs_secrets: false
+    paths:
+      - "providers/v1/crd/**"
+      - "e2e/suites/provider/cases/crd/**"
+    enabled: true
+
   # Self-hosted secret backends, installed as in-cluster addons (no cloud
   # creds). One leg per provider so a broken addon (e.g. conjur) fails only its
   # own leg, not the others, and the leg name matches what it runs.
