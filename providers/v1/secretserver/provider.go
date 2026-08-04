@@ -27,6 +27,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
@@ -35,14 +36,11 @@ var (
 	errEmptyUserName                 = errors.New("username must not be empty")
 	errEmptyPassword                 = errors.New("password must be set")
 	errEmptyServerURL                = errors.New("serverURL must be set")
-	errSecretRefAndValueConflict     = errors.New("cannot specify both secret reference and value")
-	errSecretRefAndValueMissing      = errors.New("must specify either secret reference or direct value")
 	errMissingStore                  = errors.New("missing store specification")
 	errInvalidSpec                   = errors.New("invalid specification for secret server provider")
 	errClusterStoreRequiresNamespace = errors.New("when using a ClusterSecretStore, namespaces must be explicitly set")
 	errMissingSecretName             = errors.New("must specify a secret name")
-
-	errMissingSecretKey = errors.New("must specify a secret key")
+	errMissingSecretKey              = errors.New("must specify a secret key")
 )
 
 // Provider struct that implements the ESO esv1.Provider.
@@ -148,30 +146,33 @@ func loadCredentials(ctx context.Context, store esv1.GenericStore, cfg *esv1.Sec
 	}, nil
 }
 
-func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.SecretServerProviderRef) error {
-	if ref.SecretRef != nil {
-		if err := esutils.ValidateReferentSecretSelector(store, *ref.SecretRef); err != nil {
-			return err
-		}
+// secretServerCredentialRefPolicy returns the validation policy for Secret Server credential fields.
+func secretServerCredentialRefPolicy(store esv1.GenericStore) esutils.ValueOrRefPolicy[esmeta.SecretKeySelector] {
+	return esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
+		Presence:    esutils.RequireValueOrRef,
+		ValidateRef: validateSecretServerCredentialSecretRef(store),
 	}
-	return validateSecretRef(ref)
 }
 
-func validateSecretRef(ref *esv1.SecretServerProviderRef) error {
-	if ref.SecretRef != nil {
-		if ref.Value != "" {
-			return errSecretRefAndValueConflict
+// validateSecretServerCredentialSecretRef validates a Secret Server credential secret reference against the store scope.
+func validateSecretServerCredentialSecretRef(store esv1.GenericStore) func(esmeta.SecretKeySelector) error {
+	return func(ref esmeta.SecretKeySelector) error {
+		if err := esutils.ValidateReferentSecretSelector(store, ref); err != nil {
+			return err
 		}
-		if ref.SecretRef.Name == "" {
+		if ref.Name == "" {
 			return errMissingSecretName
 		}
-		if ref.SecretRef.Key == "" {
+		if ref.Key == "" {
 			return errMissingSecretKey
 		}
-	} else if ref.Value == "" {
-		return errSecretRefAndValueMissing
+		return nil
 	}
-	return nil
+}
+
+// validateStoreSecretRef validates a Secret Server credential reference against the store scope.
+func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.SecretServerProviderRef) error {
+	return esutils.ValidateValueOrRef(ref.Value, ref.SecretRef, secretServerCredentialRefPolicy(store))
 }
 
 func doesConfigDependOnNamespace(cfg *esv1.SecretServerProvider) bool {
@@ -219,12 +220,10 @@ func getConfig(store esv1.GenericStore) (*esv1.SecretServerProvider, error) {
 		return nil, errEmptyPassword
 	}
 
-	err := validateStoreSecretRef(store, cfg.Username)
-	if err != nil {
+	if err := validateStoreSecretRef(store, cfg.Username); err != nil {
 		return nil, err
 	}
-	err = validateStoreSecretRef(store, cfg.Password)
-	if err != nil {
+	if err := validateStoreSecretRef(store, cfg.Password); err != nil {
 		return nil, err
 	}
 	return cfg, nil

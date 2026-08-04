@@ -523,8 +523,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			r.markAsDone(externalSecret, start, log, esv1.ConditionReasonSecretMissing, msgMissing)
 			return r.getRequeueResult(externalSecret), nil
 		}
-	case esv1.CreatePolicyOrphan:
-		// create the secret, if it does not exist
+	case esv1.CreatePolicyOrphan, esv1.CreatePolicyCreateOrMerge:
+		// create the secret if it does not exist, otherwise update it.
+		// CreateOrMerge behaves like Orphan here (create-or-update, no
+		// ownerReference); it differs only in that ApplyTemplate keeps existing
+		// keys for it (see externalsecret_controller_template.go).
 		if existingSecret.UID == "" {
 			err = r.createSecret(ctx, mutationFunc, externalSecret, secretName)
 		} else {
@@ -596,7 +599,8 @@ func (r *Reconciler) reconcileGenericTarget(
 	var existing *unstructured.Unstructured
 	if externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
 		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOrphan ||
-		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner {
+		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyOwner ||
+		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyCreateOrMerge {
 		var getErr error
 		existing, getErr = r.getGenericResource(ctx, log, externalSecret)
 		if getErr != nil && !apierrors.IsNotFound(getErr) {
@@ -649,10 +653,12 @@ func (r *Reconciler) reconcileGenericTarget(
 		}
 	}
 
-	// For Merge policy with existing resource, pass it to applyTemplateToManifest
-	// so templates are applied to the existing resource instead of creating a new one
+	// For Merge and CreateOrMerge with an existing resource, pass it to
+	// applyTemplateToManifest so templates are applied to the existing resource
+	// instead of creating a new one.
 	var baseObj *unstructured.Unstructured
-	if externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge && existing != nil {
+	if (externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
+		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyCreateOrMerge) && existing != nil {
 		baseObj = existing
 	}
 
@@ -681,7 +687,7 @@ func (r *Reconciler) reconcileGenericTarget(
 
 		// update the existing resource
 		err = r.updateGenericResource(ctx, log, externalSecret, obj)
-	case esv1.CreatePolicyOrphan, esv1.CreatePolicyOwner:
+	case esv1.CreatePolicyOrphan, esv1.CreatePolicyOwner, esv1.CreatePolicyCreateOrMerge:
 		if existing != nil {
 			obj.SetResourceVersion(existing.GetResourceVersion())
 			obj.SetUID(existing.GetUID())

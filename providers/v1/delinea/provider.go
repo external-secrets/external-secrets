@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
@@ -33,8 +34,6 @@ var (
 	errEmptyTenant                   = errors.New("tenant must not be empty")
 	errEmptyClientID                 = errors.New("clientID must be set")
 	errEmptyClientSecret             = errors.New("clientSecret must be set")
-	errSecretRefAndValueConflict     = errors.New("cannot specify both secret reference and value")
-	errSecretRefAndValueMissing      = errors.New("must specify either secret reference or direct value")
 	errMissingStore                  = errors.New("missing store specification")
 	errInvalidSpec                   = errors.New("invalid specification for delinea provider")
 	errMissingSecretName             = errors.New("must specify a secret name")
@@ -93,6 +92,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}, nil
 }
 
+// loadConfigSecret resolves a Delinea credential from either an inline value or a secret reference.
 func loadConfigSecret(
 	ctx context.Context,
 	storeKind string,
@@ -108,31 +108,40 @@ func loadConfigSecret(
 	return resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, ref.SecretRef)
 }
 
-func validateStoreSecretRef(store esv1.GenericStore, ref *esv1.DelineaProviderSecretRef) error {
-	if ref.SecretRef != nil {
-		if err := esutils.ValidateReferentSecretSelector(store, *ref.SecretRef); err != nil {
-			return err
-		}
+// delineaCredentialRefPolicy returns the validation policy for Delinea credential fields.
+func delineaCredentialRefPolicy(store esv1.GenericStore) esutils.ValueOrRefPolicy[esmeta.SecretKeySelector] {
+	return esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
+		Presence:    esutils.RequireValueOrRef,
+		ValidateRef: validateDelineaCredentialSecretRef(store),
 	}
-
-	return validateSecretRef(ref)
 }
 
-func validateSecretRef(ref *esv1.DelineaProviderSecretRef) error {
-	if ref.SecretRef != nil {
-		if ref.Value != "" {
-			return errSecretRefAndValueConflict
+// validateDelineaCredentialSecretRef validates a Delinea credential secret reference against the store scope.
+func validateDelineaCredentialSecretRef(store esv1.GenericStore) func(esmeta.SecretKeySelector) error {
+	return func(ref esmeta.SecretKeySelector) error {
+		if err := esutils.ValidateReferentSecretSelector(store, ref); err != nil {
+			return err
 		}
-		if ref.SecretRef.Name == "" {
-			return errMissingSecretName
-		}
-		if ref.SecretRef.Key == "" {
-			return errMissingSecretKey
-		}
-	} else if ref.Value == "" {
-		return errSecretRefAndValueMissing
+		return validateDelineaCredentialSecretRefNameAndKey(ref)
 	}
+}
 
+// validateSecretRef validates a Delinea credential reference independently of a store.
+func validateSecretRef(ref *esv1.DelineaProviderSecretRef) error {
+	return esutils.ValidateValueOrRef(ref.Value, ref.SecretRef, esutils.ValueOrRefPolicy[esmeta.SecretKeySelector]{
+		Presence:    esutils.RequireValueOrRef,
+		ValidateRef: validateDelineaCredentialSecretRefNameAndKey,
+	})
+}
+
+// validateDelineaCredentialSecretRefNameAndKey ensures a Delinea credential secret reference has both name and key.
+func validateDelineaCredentialSecretRefNameAndKey(ref esmeta.SecretKeySelector) error {
+	if ref.Name == "" {
+		return errMissingSecretName
+	}
+	if ref.Key == "" {
+		return errMissingSecretKey
+	}
 	return nil
 }
 
@@ -171,13 +180,11 @@ func getConfig(store esv1.GenericStore) (*esv1.DelineaProvider, error) {
 		return nil, errEmptyClientSecret
 	}
 
-	err := validateStoreSecretRef(store, cfg.ClientID)
-	if err != nil {
+	if err := esutils.ValidateValueOrRef(cfg.ClientID.Value, cfg.ClientID.SecretRef, delineaCredentialRefPolicy(store)); err != nil {
 		return nil, err
 	}
 
-	err = validateStoreSecretRef(store, cfg.ClientSecret)
-	if err != nil {
+	if err := esutils.ValidateValueOrRef(cfg.ClientSecret.Value, cfg.ClientSecret.SecretRef, delineaCredentialRefPolicy(store)); err != nil {
 		return nil, err
 	}
 

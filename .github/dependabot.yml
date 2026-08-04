@@ -6,6 +6,10 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 10
+    groups:
+      codeql:
+        patterns:
+          - "github/codeql-action/*"
 
   - package-ecosystem: "docker"
     directory: "/"
@@ -29,4 +33,20 @@ updates:
     directory: /hack/api-docs
     schedule:
       interval: weekly
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: gomod
+    directory: /hack/tools
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10
+
+  - package-ecosystem: gomod
+    directory: /hack/tools/golangci-lint
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10

@@ -39,6 +39,8 @@ type HelmChart struct {
 	Vars         []StringTuple
 	Values       []string
 	Args         []string
+	// InstallTimeout overrides `helm install --timeout` (empty = default).
+	InstallTimeout string
 
 	config *Config
 }
@@ -60,6 +62,10 @@ func (c *HelmChart) Setup(cfg *Config) error {
 	return nil
 }
 
+// defaultInstallTimeout is the `helm install --wait` timeout used when a chart
+// does not set InstallTimeout.
+const defaultInstallTimeout = "600s"
+
 // Install adds the chart repo and installs the helm chart.
 func (c *HelmChart) Install() error {
 	args := []string{
@@ -77,11 +83,16 @@ func (c *HelmChart) Install() error {
 		return err
 	}
 
+	timeout := c.InstallTimeout
+	if timeout == "" {
+		timeout = defaultInstallTimeout
+	}
+
 	args = []string{"install", c.ReleaseName, c.Chart,
 		"--dependency-update",
 		"--debug",
 		"--wait",
-		"--timeout", "600s",
+		"--timeout", timeout,
 		"-o", "yaml",
 		"--namespace", c.Namespace,
 	}
