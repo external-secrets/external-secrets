@@ -133,10 +133,9 @@ var _ = Describe("[webhook]", Label("webhook"), func() {
 			Namespace: f.Namespace.Name, Name: f.Namespace.Name,
 		}, store)).To(Succeed())
 		base := store.DeepCopy()
-		// The url and headers have to switch to .remoteRef.remoteKey: the push
-		// path never populates .remoteRef.key, and referencing it would render
-		// the literal "<no value>" into the path. See the note on
-		// readKeyTemplate.
+		// The url and headers switch to .remoteRef.remoteKey: the push path never
+		// populates .remoteRef.key, so naming it would render the literal
+		// "<no value>" into the path. See the note on readKeyTemplate.
 		store.Spec = prov.storeSpec(authSecretName, pushKeyTemplate)
 		store.Spec.Provider.Webhook.Body = `{"pushed":"{{ .remoteRef.` + remoteKey + ` }}"}`
 		Expect(f.CRClient.Patch(GinkgoT().Context(), store, client.MergeFrom(base))).To(Succeed())

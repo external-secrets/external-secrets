@@ -84,9 +84,11 @@ const (
 	// The read and the push code paths template spec.url from disjoint variable
 	// sets: a read exposes .remoteRef.key, while a push and a delete expose
 	// .remoteRef.remoteKey. text/template runs with missingkey=default, so
-	// referencing the absent one renders the literal "<no value>" rather than an
-	// empty string, which means one url template cannot serve both. Specs pick
-	// the template that matches what they exercise.
+	// naming the absent one renders the literal "<no value>" rather than an
+	// empty string. Concatenating both therefore does not work, though a
+	// fallback does ("{{ or .remoteRef.key .remoteRef.remoteKey }}"). The specs
+	// use one explicit template per path anyway, so it stays obvious which
+	// variable set each one exercises.
 	readKeyTemplate = "{{ .remoteRef.key }}"
 	pushKeyTemplate = "{{ .remoteRef.remoteKey }}"
 )
