@@ -80,8 +80,10 @@ Notes:
   `argocd` are their own suites.
 - **`!managed` everywhere.** This workflow runs only the non-managed specs; the
   managed IRSA / workload-identity specs run in `e2e-managed.yml`.
-- **`enabled`** lets the matrix grow gradually. Disabled areas still count for
-  coverage and document the intended full matrix; flip to `true` to run them.
+- **`enabled`** parks a leg briefly. A disabled area does **not** count as
+  coverage: `matrix.py check` rejects an imported provider whose only area is
+  disabled, since it would compile and run nowhere. To record that a provider has
+  no leg on purpose, list it under `local_only` instead.
 
 ## Credential scoping (no secret spread)
 
@@ -159,27 +161,43 @@ make -C e2e matrix.plan
 make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="vault && !managed"
 ```
 
-The akeyless suite names its items at the account root by default, which needs
-credentials with account-wide capabilities. Set `AKEYLESS_PATH_PREFIX` to run it
-against a folder your role is scoped to instead:
+## Providers that only run locally
+
+`matrix.yaml` lists some providers under `local_only`: compiled into the suite,
+but with no leg. Currently `akeyless`, `gitlab` and `oracle`.
+
+The project is not taking on further external accounts for e2e. These providers
+are community maintained, and holding a leg green against a third-party account
+(quotas, rate limits, credential rotation, vendor-side breakage) is upkeep that
+falls on maintainers rather than on whoever owns the provider. The external legs
+that already exist, such as `aws`, `gcp`, `azure` and `scaleway`, predate this and
+are unaffected.
+
+They are still blank imported, so they compile into `provider.test` and a label
+filter selects them. Whoever maintains one runs it with their own account:
 
 ```bash
-AKEYLESS_PATH_PREFIX=/my-sandbox \
-  make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="akeyless && !managed"
+make -C e2e start-kind
+make test.e2e GINKGO_LABELS="gitlab && !managed"
 ```
+
+`docs/contributing/e2e-credentials.md` has the per-provider setup: which account,
+which scopes, and which env vars `run.sh` forwards. Note that the oracle suite
+cannot pass as currently written, tracked in #6767; the other two do.
 
 ## Adding or enabling a provider
 
 1. Add the provider case under `e2e/suites/provider/cases/<name>/` and blank
    import it in `import.go`.
-2. Add an `area` for it in `matrix.yaml` (its label, `providers: [<name>]`, and
-   `paths`).
-3. If it needs external credentials, add its secret group to `secret_groups`
-   and wire that group's env vars in `e2e-reusable.yml`.
+2. Give it either an `area` in `matrix.yaml` (its label, `providers: [<name>]`,
+   and `paths`) or an entry in `local_only` if it needs an external account.
+3. For an area needing credentials the project holds, add its secret group to
+   `secret_groups` and wire that group's env vars in `e2e-reusable.yml`.
 4. Set `enabled: true` when you want CI to run it.
 
 `matrix.py check` (run in `prepare-matrix`) enforces steps 1-3: it fails the
-build if a provider is compiled into the suite but not covered by an area, if a
-suite directory exists but is never blank imported (so it would never run at
-all), if `needs_secrets` disagrees with `secret_groups`, or if an area names a
-secret group that the workflow does not wire.
+build if a provider is compiled into the suite but neither covered by an area nor
+declared `local_only`, if `local_only` names something that is not imported or
+that also has a leg, if a suite directory exists but is never blank imported (so
+it would never run at all), if `needs_secrets` disagrees with `secret_groups`, or
+if an area names a secret group that the workflow does not wire.

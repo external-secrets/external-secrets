@@ -1,31 +1,39 @@
 # Setting up e2e credentials
 
 Most e2e legs run entirely in kind against an in-cluster backend and need no
-credentials at all. A few talk to a real vendor account. Those legs carry a
-`secret_groups` entry in `e2e/matrix.yaml`, run only when a maintainer issues
-`/ok-to-test`, and stay disabled until someone provisions the account.
+credentials at all. The providers on this page instead need an account on an
+external service, so they are **not** wired into CI: they are listed under
+`local_only` in `e2e/matrix.yaml` and have no leg.
 
-This page records how to obtain and scope the credentials for the providers
-whose suites exist but do not yet run. It is a reference for whoever picks that
-up; it is not part of the user documentation.
+That is a maintenance decision rather than a missing task. The project is not
+taking on further external accounts for e2e: these providers are community
+maintained, and holding a leg green against a third-party account costs more than
+maintainers should carry for a provider they do not own (quotas and rate limits,
+credential rotation, vendor-side breakage that reddens the leg for reasons
+unrelated to the change). Legs like `aws`, `gcp`, `azure` and `scaleway` predate
+this and are unaffected.
+
+So this page is for running them yourself. Create the account, scope a credential
+to something you do not mind the suite writing to, export the variables below,
+and run the one suite you maintain:
+
+```bash
+make -C e2e start-kind     # once
+make test.e2e GINKGO_LABELS="gitlab && !managed"
+```
+
+`test.e2e` builds the images and runs them against that cluster. `make -C e2e
+test.run` only works once `test.build` has produced the image tarballs. The suites
+are compiled into `provider.test` regardless, so a label filter is all that
+selects them.
 
 ## How a credential reaches the suite
 
-Three places have to agree on the variable name, and nothing checks that they
-do. A mismatch is silent: the suite reads an empty string and fails somewhere
-far from the cause.
-
-1. The secret is stored on the repository (or on the organisation, scoped to
-   this repository).
-2. `.github/workflows/e2e-reusable.yml` maps it to an env var, gated on the
-   leg's `secret_groups`, so a leg only ever sees its own provider's
-   credentials.
-3. `e2e/run.sh` forwards that env var into the test pod. This is an explicit
-   allowlist; a variable missing here never reaches the suite even when it is
-   set on the runner.
-
-The suite then reads it with `os.Getenv`. `make -C e2e matrix.plan` prints which
-variables each enabled leg receives, without reading any value.
+`e2e/run.sh` forwards an explicit allowlist of variables into the test pod, and
+the suite reads them with `os.Getenv`. A variable missing from that allowlist
+never reaches the suite even when it is set in your shell, and the failure is
+silent: the suite reads an empty string and fails somewhere far from the cause.
+So if you add a variable, add it to `run.sh` too.
 
 ## Akeyless
 
@@ -61,7 +69,7 @@ export AKEYLESS_ACCESS_TYPE=api_key
 export AKEYLESS_ACCESS_TYPE_PARAM=...
 export AKEYLESS_PATH_PREFIX=/eso-e2e
 
-make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="akeyless && !managed"
+make test.e2e GINKGO_LABELS="akeyless && !managed"
 ```
 
 Note that authorization is evaluated before existence, so a role that is missing
@@ -113,7 +121,7 @@ export GITLAB_TOKEN=glpat-...
 export GITLAB_PROJECT_ID=12345678
 export GITLAB_ENVIRONMENT='*'
 
-make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="gitlab && !managed"
+make test.e2e GINKGO_LABELS="gitlab && !managed"
 ```
 
 Ginkgo runs specs in parallel, so this is several concurrent variable
@@ -196,11 +204,11 @@ export ORACLE_FINGERPRINT=..
 export ORACLE_KEY="$(cat ~/.oci/eso-e2e.pem)"
 ```
 
-### Quota, and why this leg is not in CI
+### Quota, and a second reason there is no leg
 
-**This suite is a local pre-submit tool. It will not be enabled as a CI leg while the
-only account available is always-free.** That is a deliberate position, not a missing
-task, and the numbers behind it are below.
+**This suite is a local pre-submit tool.** It has no leg for the `local_only` reason
+above, and the quota numbers below are an independent reason why one would be unreliable
+even with an account in hand.
 
 Deleting a secret is scheduled rather than immediate. `timeOfDeletion` defaults to 30
 days out and the accepted range is 1 to 30 days. **The 24 hour floor is enforced**:
@@ -227,10 +235,11 @@ Two runner behaviours make the ceiling lower than 10 in practice:
 
 A CI leg on those numbers would exhaust the quota partway through a busy day and then
 fail for a reason unrelated to the change under test. A leg that goes red at random is
-worse than no leg at all, because it teaches reviewers to disregard the colour. Enabling
-this in CI needs a tenancy without the always-free secret cap. Note that the blocker is
-the cap rather than the bill: OCI does not price secrets individually, charging instead
-for HSM keys and virtual private vaults, neither of which this suite needs.
+worse than no leg at all, because it teaches reviewers to disregard the colour. This is a
+concrete instance of why `local_only` exists: even with an account in hand, the always-free
+cap alone would make the leg unreliable. Note that the cap is the blocker rather than the
+bill: OCI does not price secrets individually, charging instead for HSM keys and virtual
+private vaults, neither of which this suite needs.
 
 Separately, every state transition in the Vault service is asynchronous, and the next
 operation is rejected with `409 IncorrectState` until the previous settles. Creating then
