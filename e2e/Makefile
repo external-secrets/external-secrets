@@ -8,6 +8,10 @@ DOCKER_BUILD_ARGS     ?=
 export E2E_IMAGE_NAME ?= ghcr.io/external-secrets/external-secrets-e2e
 export GINKGO_LABELS ?= !managed
 export TEST_SUITES ?= provider generator flux argocd
+# Leave the global addons installed on the way out. Only sensible for a cluster
+# you are about to delete; ignored when TEST_SUITES names more than one suite,
+# since the suites share a cluster. Off by default, CI sets it per leg.
+export E2E_SKIP_GLOBAL_TEARDOWN ?=
 
 export OCI_IMAGE_NAME = ghcr.io/external-secrets/external-secrets
 
@@ -46,6 +50,12 @@ test.run: ## Load prebuilt image tarballs into kind and run the e2e suite
 	kind load image-archive --name="external-secrets" $(E2E_ARTIFACT_DIR)/e2e.tar
 	./run.sh
 
+# This target runs against whatever the current kube context points at, which is
+# not ours to leave dirty. Makefile exports are file scoped, so without this an
+# exported E2E_SKIP_GLOBAL_TEARDOWN would reach the recipe and leave ESO
+# installed on a real cluster. override also beats a command-line assignment,
+# which a plain target-specific value would not.
+test.managed: override E2E_SKIP_GLOBAL_TEARDOWN =
 test.managed: e2e-image ## Run e2e tests against current kube context
 	$(MAKE) -C ../ docker.build \
 		VERSION=$(VERSION) \

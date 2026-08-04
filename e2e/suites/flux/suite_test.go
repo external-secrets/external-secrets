@@ -41,23 +41,32 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 var _ = SynchronizedAfterSuite(func() {
 	// noop
 }, func() {
-	cfg := &addon.Config{}
-	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
-	By("Deleting any pending generator states")
-	generatorStates := &genv1alpha1.GeneratorStateList{}
-	err := cfg.CRClient.List(GinkgoT().Context(), generatorStates)
-	Expect(err).ToNot(HaveOccurred())
-	for _, generatorState := range generatorStates.Items {
-		err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
+	// uninstallFlux is gated together with the global addons, not left running.
+	// FluxHelmRelease.Uninstall deletes the HelmRelease and waits for its
+	// finalizers.fluxcd.io finalizer to clear; without that, uninstallFlux's
+	// `kubectl delete -f install.yaml` removes the flux-system namespace while
+	// helm-controller is still needed to release that finalizer, and kubectl
+	// waits on it with a 168h default. That hangs the suite until ginkgo's
+	// timeout, on a leg whose specs all passed.
+	if !addon.SkipGlobalTeardown() {
+		cfg := &addon.Config{}
+		cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
+		By("Deleting any pending generator states")
+		generatorStates := &genv1alpha1.GeneratorStateList{}
+		err := cfg.CRClient.List(GinkgoT().Context(), generatorStates)
 		Expect(err).ToNot(HaveOccurred())
-	}
+		for _, generatorState := range generatorStates.Items {
+			err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
+			Expect(err).ToNot(HaveOccurred())
+		}
 
-	By("Cleaning up global addons")
-	addon.UninstallGlobalAddons()
+		By("Cleaning up global addons")
+		addon.UninstallGlobalAddons()
+		uninstallFlux()
+	}
 	if CurrentSpecReport().Failed() {
 		addon.PrintLogs()
 	}
-	uninstallFlux()
 })
 
 func TestE2E(t *testing.T) {

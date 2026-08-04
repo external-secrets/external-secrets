@@ -17,8 +17,11 @@ limitations under the License.
 package addon
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -76,6 +79,69 @@ func UninstallGlobalAddons() {
 		err := addon.Uninstall()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	}
+}
+
+// skipGlobalTeardownVar opts a run out of uninstalling the global addons.
+// e2e/run.sh forwards it into the e2e pod; CI sets it per leg.
+const skipGlobalTeardownVar = "E2E_SKIP_GLOBAL_TEARDOWN"
+
+// SkipGlobalTeardown reports whether a suite should leave the global addons
+// installed instead of uninstalling them on the way out.
+//
+// CI runs every leg against a kind cluster that is discarded immediately
+// afterwards, so uninstalling the ESO release costs about a minute per leg and
+// buys nothing. It is also the only step that can fail a leg whose specs all
+// passed: the release owns the CRDs, so `helm uninstall --wait` waits for CRD
+// deletion, which blocks on finalizers that the controller being removed by the
+// same uninstall is no longer around to release.
+//
+// Off unless asked for, so a run against a cluster it does not own (notably
+// `make test.managed`) keeps cleaning up exactly as before.
+//
+// The TEST_SUITES check is not optional. entrypoint.sh runs each suite binary in
+// turn against one cluster, and the provider and generator suites both install
+// an "eso" release with different values, so a suite that left its release
+// behind would break the next suite's install. A multi-suite run therefore tears
+// down as normal and logs why the request was refused.
+func SkipGlobalTeardown() bool {
+	raw, ok := os.LookupEnv(skipGlobalTeardownVar)
+	if !ok || raw == "" {
+		return false
+	}
+	skip, err := strconv.ParseBool(raw)
+	if err != nil {
+		// Fall back to tearing down, which is the safe answer, and say so
+		// loudly. Failing here instead would unwind the whole AfterSuite, so a
+		// typo would leave the cluster with neither a teardown nor its logs.
+		teardownLogf("%s is not a boolean (%q), so the teardown will run: %v",
+			skipGlobalTeardownVar, raw, err)
+		return false
+	}
+	if !skip {
+		return false
+	}
+	// Only covers suites sharing one process's cluster, which is what
+	// entrypoint.sh does. Two separate single-suite runs pointed at the same
+	// cluster are indistinguishable from here and would still collide.
+	if suites := strings.Fields(os.Getenv("TEST_SUITES")); len(suites) > 1 {
+		teardownLogf("%s ignored: suites %q share one cluster, so the global "+
+			"addons have to come out between them", skipGlobalTeardownVar,
+			strings.Join(suites, " "))
+		return false
+	}
+	teardownLogf("%s set: leaving the global addons installed for the cluster to "+
+		"be discarded with", skipGlobalTeardownVar)
+	return true
+}
+
+// teardownLogf reports a teardown decision on stderr.
+//
+// Not log.Logf: that writes to GinkgoWriter, and ginkgo drops a passing node's
+// writer output unless the suite runs with -v, which CI does not. These lines
+// have to survive a green run, since they are the only evidence of whether the
+// skip took effect.
+func teardownLogf(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, format+"\n", args...)
 }
 
 // AssetDir returns the path to the k8s asset directory

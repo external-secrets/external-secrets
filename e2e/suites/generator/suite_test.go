@@ -44,18 +44,22 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 var _ = SynchronizedAfterSuite(func() {
 	// noop
 }, func() {
-	cfg := &addon.Config{}
-	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
-	By("Deleting any pending generator states")
-	generatorStates := &genv1alpha1.GeneratorStateList{}
-	err := cfg.CRClient.List(GinkgoT().Context(), generatorStates)
-	Expect(err).ToNot(HaveOccurred())
-	for _, generatorState := range generatorStates.Items {
-		err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
+	// The pre-deletion below exists only so the uninstall that follows it can
+	// complete, so it is skipped together with it.
+	if !addon.SkipGlobalTeardown() {
+		cfg := &addon.Config{}
+		cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
+		By("Deleting any pending generator states")
+		generatorStates := &genv1alpha1.GeneratorStateList{}
+		err := cfg.CRClient.List(GinkgoT().Context(), generatorStates)
 		Expect(err).ToNot(HaveOccurred())
+		for _, generatorState := range generatorStates.Items {
+			err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
+			Expect(err).ToNot(HaveOccurred())
+		}
+		By("Cleaning up global addons")
+		addon.UninstallGlobalAddons()
 	}
-	By("Cleaning up global addons")
-	addon.UninstallGlobalAddons()
 	if CurrentSpecReport().Failed() {
 		addon.PrintLogs()
 	}

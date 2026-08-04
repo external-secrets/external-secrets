@@ -44,29 +44,33 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 var _ = SynchronizedAfterSuite(func() {
 	// noop
 }, func() {
-	cfg := &addon.Config{}
-	cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
+	// The pre-deletions below exist only so the uninstall that follows them can
+	// complete, so they are skipped together with it.
+	if !addon.SkipGlobalTeardown() {
+		cfg := &addon.Config{}
+		cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()
 
-	By("Deleting any pending generator states")
-	generatorStates := &genv1alpha1.GeneratorStateList{}
-	err := cfg.CRClient.List(GinkgoT().Context(), generatorStates)
-	Expect(err).ToNot(HaveOccurred())
-	for _, generatorState := range generatorStates.Items {
-		err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
+		By("Deleting any pending generator states")
+		generatorStates := &genv1alpha1.GeneratorStateList{}
+		err := cfg.CRClient.List(GinkgoT().Context(), generatorStates)
 		Expect(err).ToNot(HaveOccurred())
-	}
+		for _, generatorState := range generatorStates.Items {
+			err = cfg.CRClient.Delete(GinkgoT().Context(), &generatorState)
+			Expect(err).ToNot(HaveOccurred())
+		}
 
-	By("Deleting all ClusterExternalSecrets")
-	externalSecretsList := &v1.ClusterExternalSecretList{}
-	err = cfg.CRClient.List(GinkgoT().Context(), externalSecretsList)
-	Expect(err).ToNot(HaveOccurred())
-	for _, externalSecret := range externalSecretsList.Items {
-		err = cfg.CRClient.Delete(GinkgoT().Context(), &externalSecret)
+		By("Deleting all ClusterExternalSecrets")
+		externalSecretsList := &v1.ClusterExternalSecretList{}
+		err = cfg.CRClient.List(GinkgoT().Context(), externalSecretsList)
 		Expect(err).ToNot(HaveOccurred())
-	}
+		for _, externalSecret := range externalSecretsList.Items {
+			err = cfg.CRClient.Delete(GinkgoT().Context(), &externalSecret)
+			Expect(err).ToNot(HaveOccurred())
+		}
 
-	By("Cleaning up global addons")
-	addon.UninstallGlobalAddons()
+		By("Cleaning up global addons")
+		addon.UninstallGlobalAddons()
+	}
 	if CurrentSpecReport().Failed() {
 		addon.PrintLogs()
 	}
