@@ -56,8 +56,9 @@ var tplFuncs = tpl.FuncMap{
 	"jwkPublicKeyPem":  jwkPublicKeyPem,
 	"jwkPrivateKeyPem": jwkPrivateKeyPem,
 
-	"toYaml":   toYAML,
-	"fromYaml": fromYAML,
+	"toYaml":         toYAML,
+	"fromYaml":       fromYAML,
+	"fromProperties": fromProperties,
 
 	"rsaDecrypt": rsaDecrypt,
 }
