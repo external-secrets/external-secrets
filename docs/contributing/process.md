@@ -91,11 +91,9 @@ run managed tests.
 make test.e2e GINKGO_LABELS='gcp&&!managed'
 ```
 
-Setting `E2E_SKIP_GLOBAL_TEARDOWN=true` leaves the global addons (the ESO release
-itself) installed when the suite finishes, which saves about a minute. Only do
-that against a throwaway cluster you are about to delete: it is exported like the
-other variables above, so it applies to whatever your kube context points at.
-CI sets it on the kind legs, and `make test.managed` clears it.
+`E2E_SKIP_GLOBAL_TEARDOWN=true` leaves the ESO release installed when the suite
+finishes, saving about a minute. Only for a throwaway cluster: it applies to
+whatever your kube context points at. `make test.managed` clears it.
 
 #### Managed Kubernetes e2e tests
 

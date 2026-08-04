@@ -41,13 +41,9 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 var _ = SynchronizedAfterSuite(func() {
 	// noop
 }, func() {
-	// uninstallFlux is gated together with the global addons, not left running.
-	// FluxHelmRelease.Uninstall deletes the HelmRelease and waits for its
-	// finalizers.fluxcd.io finalizer to clear; without that, uninstallFlux's
-	// `kubectl delete -f install.yaml` removes the flux-system namespace while
-	// helm-controller is still needed to release that finalizer, and kubectl
-	// waits on it with a 168h default. That hangs the suite until ginkgo's
-	// timeout, on a leg whose specs all passed.
+	// uninstallFlux is gated too: on its own it deletes the flux-system namespace
+	// while helm-controller is still needed to clear the HelmRelease finalizer
+	// that UninstallGlobalAddons clears first, and kubectl waits 168h on that.
 	if !addon.SkipGlobalTeardown() {
 		cfg := &addon.Config{}
 		cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()

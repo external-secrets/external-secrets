@@ -158,18 +158,10 @@ make -C e2e matrix.plan
 # run a single provider locally (overrides the Makefile defaults)
 make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="vault && !managed"
 
-# skip uninstalling the global addons on the way out, for a cluster you are
-# about to delete anyway. Saves about a minute per run on the provider,
-# generator and argocd suites; every kind leg in e2e-reusable.yml sets it, and
-# e2e-managed.yml deliberately does not.
-#
-# Refused, with a line on stderr, when TEST_SUITES names more than one suite:
-# entrypoint.sh runs those against one cluster and two of them install an "eso"
-# release with different values. That guard only sees its own process, so two
-# separate single-suite runs against one cluster would still collide.
-#
-# Do not use it against a cluster you did not create. make test.managed clears
-# it for that reason.
+# leave the global addons installed, for a cluster you are about to delete.
+# Saves about a minute; the kind legs set it, e2e-managed.yml does not.
+# Refused (stderr) when TEST_SUITES names several suites, and that guard sees
+# only its own process, so two single-suite runs on one cluster still collide.
 make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="vault && !managed" \
   E2E_SKIP_GLOBAL_TEARDOWN=true
 ```

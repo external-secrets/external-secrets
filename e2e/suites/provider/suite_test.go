@@ -44,8 +44,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 var _ = SynchronizedAfterSuite(func() {
 	// noop
 }, func() {
-	// The pre-deletions below exist only so the uninstall that follows them can
-	// complete, so they are skipped together with it.
+	// The pre-deletions serve only the uninstall, so they are skipped with it.
 	if !addon.SkipGlobalTeardown() {
 		cfg := &addon.Config{}
 		cfg.KubeConfig, cfg.KubeClientSet, cfg.CRClient = util.NewConfig()

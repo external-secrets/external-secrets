@@ -41,8 +41,7 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 var _ = SynchronizedAfterSuite(func() {
 	// noop
 }, func() {
-	// The pre-deletion below exists only so the uninstall that follows it can
-	// complete, so it is skipped together with it.
+	// The pre-deletion serves only the uninstall, so it is skipped with it.
 	if !addon.SkipGlobalTeardown() {
 		_, _, cl := util.NewConfig()
 		By("Deleting any pending generator states")
