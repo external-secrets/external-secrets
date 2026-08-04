@@ -959,12 +959,17 @@ func TestClientPushSecretWholeSecretCreatesCustomFields(t *testing.T) {
 	}
 
 	got := make(map[string]string, len(created.Custom))
+	labels := make([]string, 0, len(created.Custom))
 	for _, rawField := range created.Custom {
 		field, ok := rawField.(ksm.Secret)
 		if !ok {
 			t.Fatalf("created custom field has type %T, want ksm.Secret", rawField)
 		}
+		labels = append(labels, field.Label)
 		got[field.Label] = field.Value[0]
+	}
+	if !reflect.DeepEqual(labels, []string{"token", "username"}) {
+		t.Fatalf("created custom field labels = %v, want %v", labels, []string{"token", "username"})
 	}
 	want := map[string]string{"token": "secret", "username": "alice"}
 	if !reflect.DeepEqual(got, want) {
