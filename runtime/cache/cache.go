@@ -27,6 +27,7 @@ import (
 // lookup values using a key and a version.
 // By design, this cache allows access to only a single version of a given key.
 // A version mismatch is considered a cache miss and the key gets evicted if it exists.
+// ContainsOrAdd is first-writer-wins: any existing version counts as present.
 // When a key is evicted an optional cleanup function is called.
 type Cache[T any] struct {
 	lru         *lru.Cache
@@ -94,6 +95,16 @@ func (c *Cache[T]) Get(version string, key Key) (T, bool) {
 // Add adds a new value for the given key/version.
 func (c *Cache[T]) Add(version string, key Key, client T) {
 	c.lru.Add(key, value[T]{Version: version, Client: client})
+}
+
+// ContainsOrAdd atomically checks whether the key exists and adds the value if
+// it does not. An existing key counts as present even when its version differs,
+// preventing a concurrent constructor from overwriting the cached value.
+// It returns true when the key already exists. Rejected values are not passed
+// to the cleanup function because they never become owned by the cache.
+func (c *Cache[T]) ContainsOrAdd(version string, key Key, client T) bool {
+	exists, _ := c.lru.ContainsOrAdd(key, value[T]{Version: version, Client: client})
+	return exists
 }
 
 // Contains returns true if a value with the given key exists.
