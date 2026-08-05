@@ -323,6 +323,24 @@ func initCache(size int) {
 	})
 }
 
+// resolveVaultCacheConfig applies the deprecated experimental cache flags on top of
+// the supported flags, but only when the deprecated flag was explicitly set by the
+// user. It returns the effective (enableCache, cacheSize) and warns for each
+// experimental flag actually used. Guarding on fs.Changed rather than the flag value
+// avoids the non-zero default of --experimental-vault-token-cache-size silently
+// overriding --vault-token-cache-size on every start (issue #6733).
+func resolveVaultCacheConfig(fs *pflag.FlagSet, enableCache, experimentalEnableCache bool, tokenCacheSize, experimentalCacheSize int) (bool, int) {
+	if fs.Changed("experimental-enable-vault-token-cache") {
+		logger.Info("DEPRECATION WARNING: --experimental-enable-vault-token-cache is deprecated. Please use --enable-vault-token-cache instead. This flag will be removed in a future release.")
+		enableCache = experimentalEnableCache
+	}
+	if fs.Changed("experimental-vault-token-cache-size") {
+		logger.Info("DEPRECATION WARNING: --experimental-vault-token-cache-size is deprecated. Please use --vault-token-cache-size instead. This flag will be removed in a future release.")
+		tokenCacheSize = experimentalCacheSize
+	}
+	return enableCache, tokenCacheSize
+}
+
 func init() {
 	var (
 		vaultTokenCacheSize     int
@@ -360,16 +378,9 @@ func init() {
 	feature.Register(feature.Feature{
 		Flags: fs,
 		Initialize: func() {
-			// Check for deprecated experimental flags and warn users
-			if experimentalEnableCache {
-				logger.Info("DEPRECATION WARNING: --experimental-enable-vault-token-cache is deprecated. Please use --enable-vault-token-cache instead. This flag will be removed in a future release.")
-				enableCache = true
-			}
-			if experimentalCacheSize > 0 {
-				logger.Info("DEPRECATION WARNING: --experimental-vault-token-cache-size is deprecated. Please use --vault-token-cache-size instead. This flag will be removed in a future release.")
-				vaultTokenCacheSize = experimentalCacheSize
-			}
-			initCache(vaultTokenCacheSize)
+			var size int
+			enableCache, size = resolveVaultCacheConfig(fs, enableCache, experimentalEnableCache, vaultTokenCacheSize, experimentalCacheSize)
+			initCache(size)
 		},
 	})
 }
