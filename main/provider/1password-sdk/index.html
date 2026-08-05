@@ -3725,6 +3725,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#environments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environments
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supported-functionality" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5140,6 +5151,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#environments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Environments
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#supported-functionality" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5331,6 +5353,17 @@ policy is set to <code>delete</code>.</p>
 <span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">tags</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="s">&quot;tag1&quot;</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="s">&quot;tag2&quot;</span><span class="p p-Indicator">]</span><span class="w">  </span><span class="c1"># (Optional) tags on the 1Password item</span>
 </code></pre></div>
+<h3 id="environments">Environments</h3>
+<p>1Password has added <a href="https://developer.1password.com/docs/environments">Environments</a> functionality as a BETA feature.
+This is only supported by 1Password SDK and not the connect server.</p>
+<p>Environments are an alternative to Vaults. To use the environment define the <code>environment</code> id in your Store configuration
+instead of the <code>vault</code> value.</p>
+<p>The rest of the settings should remain the same.</p>
+<p>The SDK, as of this writing, does not support filtering client side, which means that each call always returns everything.
+To tackle this problem, the cache will cache the individual values so if ever the same object is requested again within the
+TTL of the cache it will only fetch that single value.</p>
+<p>It also caches ALL the values with a special key, so if repeated All calls are made, that shouldn't be a problem either.</p>
+<p>This is a BETA feature. Please use with caution.</p>
 <h3 id="supported-functionality">Supported Functionality</h3>
 <p>Please check the documentation on 1password for <a href="https://developer.1password.com/docs/sdks/functionality">Supported Functionality</a>.</p>
 
