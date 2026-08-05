@@ -38,6 +38,7 @@ replace (
 	github.com/external-secrets/external-secrets/providers/v1/fake => ./providers/v1/fake
 	github.com/external-secrets/external-secrets/providers/v1/fortanix => ./providers/v1/fortanix
 	github.com/external-secrets/external-secrets/providers/v1/gcp => ./providers/v1/gcp
+	github.com/external-secrets/external-secrets/providers/v1/gitea => ./providers/v1/gitea
 	github.com/external-secrets/external-secrets/providers/v1/github => ./providers/v1/github
 	github.com/external-secrets/external-secrets/providers/v1/gitlab => ./providers/v1/gitlab
 	github.com/external-secrets/external-secrets/providers/v1/ibm => ./providers/v1/ibm
@@ -156,6 +157,7 @@ require (
 	github.com/external-secrets/external-secrets/providers/v1/fake v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/fortanix v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-20251104073127-4d2c8fd13e10
+	github.com/external-secrets/external-secrets/providers/v1/gitea v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/github v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/gitlab v0.0.0-00010101000000-000000000000
 	github.com/external-secrets/external-secrets/providers/v1/ibm v0.0.0-00010101000000-000000000000
@@ -194,8 +196,10 @@ require (
 	cloud.google.com/go/auth v0.18.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
+	code.gitea.io/sdk/gitea v0.20.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/1password/onepassword-sdk-go v0.3.1 // indirect
+	github.com/42wim/httpsig v1.2.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.19.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.13.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azcertificates v1.4.0 // indirect
@@ -242,12 +246,18 @@ require (
 	github.com/cloudru-tech/secret-manager-sdk v1.1.1 // indirect
 	github.com/cyberark/conjur-api-go v0.14.1 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
+	github.com/davidmz/go-pageant v1.0.2 // indirect
+	github.com/djherbis/times v1.6.0 // indirect
 	github.com/dylibso/observe-sdk/go v0.0.0-20240828172851-9145d8ad07e1 // indirect
 	github.com/extism/go-sdk v1.7.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/fortanix/sdkms-client-go v0.4.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.13 // indirect
+	github.com/go-fed/httpsig v1.1.0 // indirect
+	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
+	github.com/go-git/go-billy/v5 v5.9.0 // indirect
+	github.com/go-git/go-git/v5 v5.19.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/analysis v0.24.0 // indirect
@@ -286,6 +296,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.7 // indirect
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.3.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
+	github.com/hashicorp/go-version v1.6.0 // indirect
 	github.com/hashicorp/golang-lru v1.0.2 // indirect
 	github.com/hashicorp/golang-lru/v2 v2.0.7 // indirect
 	github.com/hashicorp/vault/api/auth/aws v0.11.0 // indirect
