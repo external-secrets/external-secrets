@@ -261,16 +261,19 @@ func (w *Webhook) PushWebhookData(ctx context.Context, provider *Spec, data []by
 		return fmt.Errorf("failed to parse url: %w", err)
 	}
 
-	bodyt := provider.Body
-	if bodyt == "" {
-		bodyt = fmt.Sprintf("{{ .remoteRef.%s }}", remoteKey.GetRemoteKey())
-	}
-	body, err := ExecuteTemplate(bodyt, rawData)
-	if err != nil {
-		return fmt.Errorf("failed to parse body: %w", err)
+	// With no spec.body the payload is only the value being pushed, so write
+	// it directly. Splicing the remote key into a template made it a field
+	// expression, which silently broke dotted keys. See issue #6776.
+	body := data
+	if provider.Body != "" {
+		rendered, err := ExecuteTemplate(provider.Body, rawData)
+		if err != nil {
+			return fmt.Errorf("failed to parse body: %w", err)
+		}
+		body = rendered.Bytes()
 	}
 
-	if _, err := w.executeRequest(ctx, provider, body.Bytes(), url, method, rawData); err != nil {
+	if _, err := w.executeRequest(ctx, provider, body, url, method, rawData); err != nil {
 		return fmt.Errorf("failed to push webhook data: %w", err)
 	}
 
