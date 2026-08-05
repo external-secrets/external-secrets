@@ -79,6 +79,78 @@ func TestApplyTemplateRejectsPathStyleTemplateFromTarget(t *testing.T) {
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "is not allowed when targeting a Secret")
 			assert.NotEqual(t, v1.SecretTypeServiceAccountToken, secret.Type)
+			assert.NotContains(t, secret.Annotations, v1.ServiceAccountNameKey)
+		})
+	}
+}
+
+func TestApplyTemplateRejectsPrivilegedTemplate(t *testing.T) {
+	literal := "irrelevant"
+	tests := []struct {
+		name     string
+		template *esv1.ExternalSecretTemplate
+		wantErr  string
+	}{
+		{
+			name: "service account token type with a service account annotation",
+			template: &esv1.ExternalSecretTemplate{
+				EngineVersion: esv1.TemplateEngineV2,
+				Type:          v1.SecretTypeServiceAccountToken,
+				Metadata: esv1.ExternalSecretTemplateMetadata{
+					Annotations: map[string]string{
+						v1.ServiceAccountNameKey: "kube-system-admin-sa",
+					},
+				},
+			},
+			wantErr: `template.type="kubernetes.io/service-account-token" with annotation "kubernetes.io/service-account.name" is not allowed`,
+		},
+		{
+			name: "service account token type with a templateFrom annotations target",
+			template: &esv1.ExternalSecretTemplate{
+				EngineVersion: esv1.TemplateEngineV2,
+				Type:          v1.SecretTypeServiceAccountToken,
+				TemplateFrom: []esv1.TemplateFrom{
+					{Literal: &literal, Target: esv1.TemplateTargetAnnotations},
+				},
+			},
+			wantErr: `template.type="kubernetes.io/service-account-token" with templateFrom target="Annotations" is not allowed`,
+		},
+		{
+			name: "bootstrap token type",
+			template: &esv1.ExternalSecretTemplate{
+				EngineVersion: esv1.TemplateEngineV2,
+				Type:          v1.SecretTypeBootstrapToken,
+			},
+			wantErr: `template.type="bootstrap.kubernetes.io/token" is not allowed`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_ = esv1.AddToScheme(scheme.Scheme)
+			r := &Reconciler{
+				Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
+				Scheme: scheme.Scheme,
+			}
+
+			es := &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-es", Namespace: "default"},
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Name:     "test-secret",
+						Template: tt.template,
+					},
+				},
+			}
+
+			secret := &v1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: "default"},
+			}
+
+			err := r.ApplyTemplate(context.Background(), es, secret, map[string][]byte{})
+
+			require.EqualError(t, err, tt.wantErr)
+			assert.Empty(t, secret.Type)
+			assert.NotContains(t, secret.Annotations, v1.ServiceAccountNameKey)
 		})
 	}
 }

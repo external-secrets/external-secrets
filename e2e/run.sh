@@ -85,5 +85,6 @@ kubectl run --rm \
   --env="GRAFANA_TOKEN=${GRAFANA_TOKEN:-}" \
   --env="VERSION=${VERSION}" \
   --env="TEST_SUITES=${TEST_SUITES}" \
+  --env="E2E_SKIP_GLOBAL_TEARDOWN=${E2E_SKIP_GLOBAL_TEARDOWN:-}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \
   e2e --image=${E2E_IMAGE_NAME}:${VERSION}

@@ -42,9 +42,18 @@ const (
 	errOnePasswordSdkStoreNilSpecProviderOnePasswordSdk = "nil spec.provider.onepasswordsdk"
 	errOnePasswordSdkStoreMissingRefName                = "missing: spec.provider.onepasswordsdk.auth.secretRef.serviceAccountTokenSecretRef.name"
 	errOnePasswordSdkStoreMissingRefKey                 = "missing: spec.provider.onepasswordsdk.auth.secretRef.serviceAccountTokenSecretRef.key"
-	errOnePasswordSdkStoreMissingVaultKey               = "missing: spec.provider.onepasswordsdk.vault"
+	errOnePasswordSdkStoreMissingTarget                 = "missing: exactly one of spec.provider.onepasswordsdk.vault or spec.provider.onepasswordsdk.environment must be set"
+	errOnePasswordSdkStoreBothTargets                   = "spec.provider.onepasswordsdk.vault and spec.provider.onepasswordsdk.environment are mutually exclusive"
+	errOnePasswordSdkEnvironmentReadOnly                = "1Password Environment is read-only: %s is not supported"
 	errVersionNotImplemented                            = "'remoteRef.version' is not implemented in the 1Password SDK provider"
 	errNotImplemented                                   = "not implemented"
+)
+
+type secretSource int
+
+const (
+	sourceVault secretSource = iota
+	sourceEnvironment
 )
 
 // Provider contains the main cache for onepasswordsdk provider.
@@ -52,12 +61,13 @@ type Provider struct {
 	clientCache *cache.Cache[esv1.SecretsClient]
 }
 
-// SecretsClient wraps a 1Password SDK client for a specific vault.
+// SecretsClient wraps a 1Password SDK client for a specific vault or environment.
 type SecretsClient struct {
-	client      *onepassword.Client
-	vaultPrefix string
-	vaultID     string
-	cache       *expirable.LRU[string, []byte]
+	client       *onepassword.Client
+	source       secretSource
+	targetPrefix string
+	targetID     string
+	cache        *expirable.LRU[string, []byte]
 }
 
 // NewClient will create a new client.
@@ -101,15 +111,24 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	sc := &SecretsClient{
-		client:      c,
-		vaultPrefix: "op://" + config.Vault + "/",
+		client: c,
 	}
 
-	vaultID, err := sc.GetVault(ctx, config.Vault)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get store ID: %w", err)
+	switch {
+	case config.Environment != "":
+		// As of this writing, the environment doesn't have a way of validation.
+		sc.source = sourceEnvironment
+		sc.targetID = config.Environment
+		sc.targetPrefix = "op://env/" + config.Environment + "/"
+	default:
+		sc.source = sourceVault
+		sc.targetPrefix = "op://" + config.Vault + "/"
+		vaultID, err := sc.GetVault(ctx, config.Vault)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get store ID: %w", err)
+		}
+		sc.targetID = vaultID
 	}
-	sc.vaultID = vaultID
 
 	if config.Cache != nil {
 		ttl := 5 * time.Minute
@@ -151,8 +170,13 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, fmt.Errorf(errOnePasswordSdkStore, errors.New(errOnePasswordSdkStoreMissingRefKey))
 	}
 
-	if config.Vault == "" {
-		return nil, fmt.Errorf(errOnePasswordSdkStore, errors.New(errOnePasswordSdkStoreMissingVaultKey))
+	hasVault := config.Vault != ""
+	hasEnv := config.Environment != ""
+	if hasVault && hasEnv {
+		return nil, fmt.Errorf(errOnePasswordSdkStore, errors.New(errOnePasswordSdkStoreBothTargets))
+	}
+	if !hasVault && !hasEnv {
+		return nil, fmt.Errorf(errOnePasswordSdkStore, errors.New(errOnePasswordSdkStoreMissingTarget))
 	}
 
 	// check namespace compared to kind
