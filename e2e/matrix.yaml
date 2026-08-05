@@ -95,6 +95,11 @@ areas:
       - "e2e/suites/provider/cases/kubernetes/**"
       - "e2e/suites/provider/cases/template/**"
       - "e2e/suites/provider/cases/common/**"
+      # The providers these specs drive through the controller. Listed even
+      # though always: true already forces this leg, so coverage does not
+      # silently depend on that flag staying set.
+      - "providers/v1/fake/**"
+      - "providers/v1/kubernetes/**"
     always: true
     enabled: true
 
@@ -270,7 +275,10 @@ areas:
     needs_secrets: true
     paths:
       - "generators/v1/grafana/**"
-      - "e2e/suites/generator/grafana.go"
+      # The whole suite dir, not just grafana.go: the bootstrap and the shared
+      # assertion helper live beside it, and naming files one by one would miss
+      # the next shared one somebody adds.
+      - "e2e/suites/generator/**"
     enabled: true
 
   - name: flux
@@ -284,6 +292,7 @@ areas:
       - "pkg/**"
       - "runtime/**"
       - "e2e/suites/flux/**"
+      - "e2e/suites/provider/cases/fake/**" # flux.go drives the fake provider
     enabled: true
 
   - name: argocd
@@ -297,4 +306,5 @@ areas:
       - "pkg/**"
       - "runtime/**"
       - "e2e/suites/argocd/**"
+      - "e2e/suites/provider/cases/fake/**" # argocd.go drives the fake provider
     enabled: true

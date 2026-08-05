@@ -255,6 +255,14 @@ SELFTEST_CASES: list[tuple[list[str], set[str] | None]] = [
     (["e2e/entrypoint.sh"], ALL),
     (["e2e/k8s/vault.values.yaml"], ALL),
     (["e2e/kind.yaml"], ALL),
+    # Found by auditing each leg's imports against its globs: these four
+    # dependencies are real but not obvious from the leg's name.
+    (["e2e/suites/generator/testcase.go"],
+     {"core-smoke", "generator", "grafana"}),
+    (["e2e/suites/provider/cases/fake/fake.go"],
+     {"core-smoke", "flux", "argocd"}),
+    (["providers/v1/kubernetes/client.go"], {"core-smoke"}),
+    (["providers/v1/fake/fake.go"], {"core-smoke"}),
     # Unrelated changes still run the floor, never an empty matrix. e2e docs
     # are deliberately not shared machinery.
     (["docs/introduction/faq.md"], {"core-smoke"}),
