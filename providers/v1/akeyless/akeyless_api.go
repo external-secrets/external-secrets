@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
@@ -152,11 +153,10 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName string) (*akey
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDescribeItem, err)
 	var apiErr akeyless.GenericOpenAPIError
 	if errors.As(err, &apiErr) {
-		var item *Item
-		err = json.Unmarshal(apiErr.Body(), &item)
-		if err != nil {
-			return nil, fmt.Errorf("can't describe item: %v, error: %v", itemName, string(apiErr.Body()))
+		if res.StatusCode == http.StatusNotFound {
+			return nil, ErrItemNotExists
 		}
+		return nil, fmt.Errorf("can't describe item: %v, error: %v", itemName, string(apiErr.Body()))
 	}
 	if err != nil {
 		return nil, fmt.Errorf("can't describe item: %w", err)
