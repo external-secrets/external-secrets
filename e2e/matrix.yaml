@@ -10,10 +10,10 @@
 #   labels        Ginkgo -label-filter (GINKGO_LABELS). This workflow is
 #                 non-managed only; the managed IRSA/workload-identity specs run
 #                 in e2e-managed.yml, so every filter ends with "&& !managed".
-#   providers     provider case names this leg covers. Used only by
-#                 check-matrix.sh to prove every provider compiled into the suite
-#                 (suites/provider/cases/import.go) is tested somewhere. Not read
-#                 by CI at run time.
+#   providers     provider case names this leg covers. Used only by matrix.py
+#                 check, to prove every provider compiled into the suite
+#                 (suites/provider/cases/import.go) is classified: covered by an
+#                 enabled leg, or listed under local_only. Not read at run time.
 #   secret_groups external credential groups this leg receives. The reusable
 #                 workflow injects a provider's secrets only when its group is
 #                 listed here, so a vault leg never sees AWS creds. Empty means
@@ -24,12 +24,13 @@
 #   paths         globs whose change should trigger this leg. Seed for the
 #                 phase 2 affected-only resolver; ignored by the static phase 1
 #                 matrix, which runs every enabled area.
-#   enabled       whether phase 1 CI runs this leg now. Disabled areas still
-#                 count for coverage and document the target matrix; flip to true
-#                 to expand the fan-out.
+#   enabled       whether CI runs this leg. A disabled area does NOT count as
+#                 coverage: an imported provider whose only area is disabled runs
+#                 nowhere, which matrix.py check now rejects. Use it to park a
+#                 leg briefly, not to record an intention.
 #
-# All legs are enabled. Set enabled: false on an area to skip it (e.g. while a
-# provider's e2e is being fixed) without deleting its definition.
+# All legs are enabled. A second top-level key, local_only, lists providers that
+# are compiled in but deliberately have no leg; see the end of this file.
 
 areas:
   # In-cluster only, no external credentials. The required floor: this leg runs
@@ -253,3 +254,20 @@ areas:
       - "runtime/**"
       - "e2e/suites/argocd/**"
     enabled: true
+
+# Suites that are compiled in but deliberately have no leg. They need an account
+# on an external service, and the project is not taking on further external
+# accounts: these providers are community maintained, and holding a leg green
+# against a third-party account (quotas, rate limits, credential rotation,
+# vendor-side breakage) is upkeep that falls on maintainers rather than on
+# whoever owns the provider. Existing external legs above predate this and stay.
+#
+# Whoever maintains one of these runs its suite locally with their own account;
+# see docs/contributing/e2e-credentials.md. They are still blank imported, so
+# they compile and a local GINKGO_LABELS selects them. matrix.py check requires
+# every imported provider to be covered by an enabled area or listed here, so a
+# new suite cannot end up running nowhere.
+local_only:
+  - akeyless
+  - gitlab
+  - oracle

@@ -54,6 +54,10 @@ var apiErr akeyless.GenericOpenAPIError
 
 const DefServiceAccountFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
 
+// akeylessGWAPIURL is the public Akeyless gateway. Both the suite's own API
+// client and the SecretStore it creates point here.
+var akeylessGWAPIURL = "https://api.akeyless.io"
+
 func newAkeylessProvider(f *framework.Framework, accessID, accessType, accessTypeParam string) *akeylessProvider {
 	prov := &akeylessProvider{
 		accessID:        accessID,
@@ -65,7 +69,7 @@ func newAkeylessProvider(f *framework.Framework, accessID, accessType, accessTyp
 	restAPIClient := akeyless.NewAPIClient(&akeyless.Configuration{
 		Servers: []akeyless.ServerConfiguration{
 			{
-				URL: "https://api.akeyless.io",
+				URL: akeylessGWAPIURL,
 			},
 		},
 	}).V2Api
@@ -80,7 +84,29 @@ func newFromEnv(f *framework.Framework) *akeylessProvider {
 	accessID := os.Getenv("AKEYLESS_ACCESS_ID")
 	accessType := os.Getenv("AKEYLESS_ACCESS_TYPE")
 	accessTypeParam := os.Getenv("AKEYLESS_ACCESS_TYPE_PARAM")
+	scopeToPathPrefix(f)
 	return newAkeylessProvider(f, accessID, accessType, accessTypeParam)
+}
+
+// scopeToPathPrefix moves every item the suite creates under the Akeyless path
+// in AKEYLESS_PATH_PREFIX. By default the suite names items at the account
+// root, which needs credentials with account-wide capabilities; a prefix lets a
+// contributor run with a role scoped to one folder instead. Unset, the keys are
+// unchanged.
+//
+// Item names are already unique per spec, because they derive from the test
+// namespace and the API server generates that name. Two runs sharing one
+// account and one prefix are therefore safe today. Give them distinct prefixes
+// before adding any spec that enumerates (find by name or tag), since that
+// would otherwise match items belonging to a concurrent run.
+func scopeToPathPrefix(f *framework.Framework) {
+	prefix := strings.Trim(os.Getenv("AKEYLESS_PATH_PREFIX"), "/")
+	if prefix == "" {
+		return
+	}
+	f.MakeRemoteRefKey = func(base string) string {
+		return fmt.Sprintf("/%s/%s", prefix, base)
+	}
 }
 
 // CreateSecret creates a secret.
@@ -136,18 +162,22 @@ func (a *akeylessProvider) BeforeEach() {
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Akeyless: &esv1.AkeylessProvider{
+					// Required by the CRD. Points at the same gateway the
+					// suite's own client uses, so the operator and the test
+					// harness talk to one endpoint.
+					AkeylessGWApiURL: &akeylessGWAPIURL,
 					Auth: &esv1.AkeylessAuth{
 						SecretRef: esv1.AkeylessAuthSecretRef{
 							AccessID: esmeta.SecretKeySelector{
-								Name: "access-id-secret",
+								Name: "provider-secret",
 								Key:  "access-id",
 							},
 							AccessType: esmeta.SecretKeySelector{
-								Name: "access-type-secret",
+								Name: "provider-secret",
 								Key:  "access-type",
 							},
 							AccessTypeParam: esmeta.SecretKeySelector{
-								Name: "access-type-param-secert",
+								Name: "provider-secret",
 								Key:  "access-type-param",
 							},
 						},
@@ -178,7 +208,7 @@ func (a *akeylessProvider) GetToken() (string, error) {
 	} else {
 		cloudID, err := a.getCloudID(a.accessType, a.accessTypeParam)
 		if err != nil {
-			return "", fmt.Errorf("Require Cloud ID " + err.Error())
+			return "", fmt.Errorf("require Cloud ID: %w", err)
 		}
 		authBody.AccessType = akeyless.PtrString(a.accessType)
 		authBody.CloudId = akeyless.PtrString(cloudID)

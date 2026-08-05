@@ -3,8 +3,9 @@
 
 Subcommands:
   check   Fail early if the matrix is inconsistent: a provider compiled into
-          the suite (suites/provider/cases/import.go) is not covered by any
-          area, needs_secrets disagrees with secret_groups, or an area names a
+          the suite (suites/provider/cases/import.go) is neither covered by an
+          area nor declared local_only, a suite directory is not compiled in at
+          all, needs_secrets disagrees with secret_groups, or an area names a
           secret group that the reusable workflow does not wire up.
   json    Print the GitHub Actions matrix (enabled areas only) as compact JSON
           for the workflow's strategy.matrix.
@@ -45,10 +46,46 @@ def load_yaml(path: Path):
 
 
 def imported_providers() -> list[str]:
-    """Provider names compiled into the suite: the segment after cases/ in
-    each blank import of import.go (cases/aws/secretsmanager -> aws)."""
+    """Provider names blank imported into the suite binary.
+
+    Taken as the first path segment of each import, not a character class, or a
+    directory like cases/gitlab-ce would resolve to "gitlab" and silently
+    inherit that provider's policy."""
+    return sorted({p.split("/")[0] for p in imported_paths()})
+
+
+def imported_paths() -> set[str]:
+    """Suite paths compiled into the suite binary, relative to cases/
+    (cases/aws/secretsmanager -> aws/secretsmanager). Unlike
+    imported_providers this keeps the sub-package, so it can be compared
+    against the directories on disk."""
     text = IMPORT.read_text()
-    return sorted({m.group(1) for m in re.finditer(r"cases/([a-z0-9]+)", text)})
+    return {m.group(1) for m in re.finditer(r"cases/([\w/-]+)\"", text)}
+
+
+# Package-level Ginkgo container nodes. Context/When are literal aliases of
+# Describe in the ginkgo DSL, and a bare It/Specify registers a spec too, so all
+# of them have to count or an unimported suite using one stays invisible here.
+SUITE_NODE = re.compile(
+    r"^var _ = (?:F|P|X)?"
+    r"(?:Describe|DescribeTable|DescribeTableSubtree|Context|When|It|Specify)\(",
+    re.M,
+)
+
+
+def suite_dirs() -> set[str]:
+    """Directories under cases/ that define a suite, relative to cases/.
+
+    A directory is a suite when one of its own .go files registers a
+    package-level Ginkgo node. That distinguishes real suites from the
+    common/ helper package and from aws/, which only holds a shared
+    common.go beside its three sub-suites."""
+    root = IMPORT.parent
+    found = set()
+    for path in root.rglob("*.go"):
+        if SUITE_NODE.search(path.read_text()):
+            found.add(path.parent.relative_to(root).as_posix())
+    return found
 
 
 def group_to_vars() -> dict[str, list[str]]:
@@ -73,14 +110,55 @@ def cmd_check(matrix: dict) -> int:
     areas = matrix["areas"]
     errors: list[str] = []
 
-    # 1. Every imported provider is covered by some area.
-    covered = {p for a in areas for p in (a.get("providers") or [])}
-    missing = [p for p in imported_providers() if p not in covered]
+    # 1. Every imported provider is either covered by an area or declared
+    # local_only. local_only is for suites that need an account on an external
+    # service; see the comment on the list in matrix.yaml.
+    covered = {
+        p for a in areas if a.get("enabled") for p in (a.get("providers") or [])
+    }
+    declared = {p for a in areas for p in (a.get("providers") or [])}
+    local_only = set(matrix.get("local_only") or [])
+    imported = imported_providers()
+    missing = [p for p in imported if p not in covered and p not in local_only]
     if missing:
         errors.append(
-            "providers imported into the e2e suite but not covered by any "
-            "area (add each to an area's providers list and a leg):\n  - "
-            + "\n  - ".join(missing)
+            "providers imported into the e2e suite but neither covered by an "
+            "enabled area nor listed in local_only, so they compile and run "
+            "nowhere (give each a leg, or declare it local_only with a "
+            "reason):\n  - " + "\n  - ".join(missing)
+        )
+
+    # 1a. local_only must stay honest: entries have to be imported, or the list
+    # is stale, and must not also have a leg, or the intent is contradictory.
+    stale = sorted(local_only - set(imported))
+    if stale:
+        errors.append(
+            "local_only names providers that are not imported in import.go, so "
+            "they cannot run even locally:\n  - " + "\n  - ".join(stale)
+        )
+    unknown = sorted(declared - set(imported))
+    if unknown:
+        errors.append(
+            "areas name providers that are not imported in import.go, so the "
+            "leg would select nothing:\n  - " + "\n  - ".join(unknown)
+        )
+    both = sorted(local_only & covered)
+    if both:
+        errors.append(
+            "providers are both local_only and covered by an area, so it is "
+            "unclear whether CI should run them:\n  - " + "\n  - ".join(both)
+        )
+
+    # 1b. Every suite on disk is compiled into the binary. Without this the
+    # check only runs one way: a suite added under cases/ but never blank
+    # imported is silently dead, which is how the akeyless, gitlab and oracle
+    # suites went unrun for months while still passing this validation.
+    unimported = sorted(suite_dirs() - imported_paths())
+    if unimported:
+        errors.append(
+            "suite directories that are not blank imported in import.go, so "
+            "they are never compiled into the suite binary and never run:\n  - "
+            + "\n  - ".join(unimported)
         )
 
     # 2. needs_secrets must mirror "secret_groups is non-empty".
@@ -110,8 +188,9 @@ def cmd_check(matrix: dict) -> int:
 
     enabled = sum(1 for a in areas if a.get("enabled"))
     print(
-        f"matrix.yaml ok: {len(imported_providers())} providers covered, "
-        f"{enabled} leg(s) enabled"
+        f"matrix.yaml ok: {len(imported_providers())} providers imported, "
+        f"{enabled} leg(s) enabled, {len(local_only)} local only "
+        f"({', '.join(sorted(local_only)) or 'none'})"
     )
     return 0
 
