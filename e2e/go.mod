@@ -64,7 +64,7 @@ require (
 	github.com/grafana/grafana-openapi-client-go v0.0.0-20250925215610-d92957c70d5c
 	github.com/hashicorp/vault/api v1.22.0
 	github.com/infisical/go-sdk v0.5.100
-	github.com/onsi/ginkgo/v2 v2.28.0
+	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
 	github.com/oracle/oci-go-sdk/v65 v65.103.0
 	github.com/scaleway/scaleway-sdk-go v1.0.0-beta.35
