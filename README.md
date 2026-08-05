@@ -66,6 +66,7 @@ You can find the roadmap in our documentation: https://external-secrets.io/lates
 
 ## Sponsored by
 
+![Roche](assets/Roche_logo_blue_200px.png)
 ![External Secrets Inc.](assets/ESI_Logo.svg)
 ![Container Solutions](assets/CS_logo_1.png)
 ![Form 3](assets/form3_logo.png)
