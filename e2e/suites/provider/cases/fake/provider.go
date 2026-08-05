@@ -105,3 +105,6 @@ func (s *Provider) CreateStore() {
 	err := s.framework.CRClient.Create(GinkgoT().Context(), fakeStore)
 	Expect(err).ToNot(HaveOccurred())
 }
+
+// Probe for the affected-only matrix (external-secrets#6785). Should select
+// core-smoke, flux and argocd. Throwaway; do not merge.
