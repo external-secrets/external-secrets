@@ -28,6 +28,7 @@ jobs:
     permissions:
       id-token: write # for oidc auth with aws/gcp/azure
       contents: read  # for checkout
+      pull-requests: read # prepare-matrix lists changed files to pick legs
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor !='dependabot[bot]'
     uses: ./.github/workflows/e2e-reusable.yml
     secrets:
@@ -135,6 +136,7 @@ jobs:
     permissions:
       id-token: write # for oidc auth with aws/gcp/azure
       contents: read  # for checkout
+      pull-requests: read # prepare-matrix lists changed files to pick legs
     needs: guard-fork
     if: github.event_name == 'repository_dispatch'
     uses: ./.github/workflows/e2e-reusable.yml
