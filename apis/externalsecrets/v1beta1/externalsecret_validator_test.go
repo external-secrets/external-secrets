@@ -272,6 +272,29 @@ either data or dataFrom should be specified`,
 			expectedErr: `template.type="kubernetes.io/service-account-token" with templateFrom target="Annotations" is not allowed`,
 		},
 		{
+			name: "service account token template with lowercase templateFrom annotations target is rejected",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					DataFrom: []ExternalSecretDataFromRemoteRef{
+						{
+							SourceRef: &StoreGeneratorSourceRef{
+								GeneratorRef: &GeneratorRef{},
+							},
+						},
+					},
+					Target: ExternalSecretTarget{
+						Template: &ExternalSecretTemplate{
+							Type: corev1.SecretTypeServiceAccountToken,
+							TemplateFrom: []TemplateFrom{
+								{Target: "annotations"},
+							},
+						},
+					},
+				},
+			},
+			expectedErr: `template.type="kubernetes.io/service-account-token" with templateFrom target="Annotations" is not allowed`,
+		},
+		{
 			name: "service account token template with templateFrom data target is allowed",
 			obj: &ExternalSecret{
 				Spec: ExternalSecretSpec{

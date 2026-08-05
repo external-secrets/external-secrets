@@ -84,13 +84,6 @@ type Akeyless struct {
 	url    string
 }
 
-// Item represents an item in the Akeyless Vault.
-type Item struct {
-	ItemName    string `json:"item_name"`
-	ItemType    string `json:"item_type"`
-	LastVersion int32  `json:"last_version"`
-}
-
 type akeylessVaultInterface interface {
 	GetSecretByType(ctx context.Context, secretName string, version int32) (string, error)
 	TokenFromSecretRef(ctx context.Context) (string, error)
