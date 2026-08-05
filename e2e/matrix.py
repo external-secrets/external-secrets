@@ -6,8 +6,10 @@ Subcommands:
           the suite (suites/provider/cases/import.go) is not covered by any
           area, needs_secrets disagrees with secret_groups, or an area names a
           secret group that the reusable workflow does not wire up.
-  json    Print the GitHub Actions matrix (enabled areas only) as compact JSON
-          for the workflow's strategy.matrix.
+  json    Print the GitHub Actions matrix as compact JSON for the workflow's
+          strategy.matrix. With --changed <file|->, keep only the legs that
+          change can affect. See "Affected-only selection" in e2e/README.md.
+  selftest Check the affected-only resolver against a table of known cases.
   plan    Print, per enabled leg, exactly which credential env vars it will
           receive. Derived from each area's secret_groups and the group -> var
           mapping parsed out of e2e-reusable.yml. This reads NO secret values
@@ -19,11 +21,17 @@ matter. YAML is read with PyYAML when present, else via yq (mikefarah), so no
 new runtime dependency is required in CI.
 """
 
+import io
 import json
 import re
 import subprocess
 import sys
+from contextlib import redirect_stderr
+from fnmatch import fnmatchcase
 from pathlib import Path
+
+USAGE = "usage: matrix.py [check|json [--changed <file|->]|plan|selftest]"
+Match = tuple[str, str] | None
 
 HERE = Path(__file__).resolve().parent
 MATRIX = HERE / "matrix.yaml"
@@ -102,6 +110,15 @@ def cmd_check(matrix: dict) -> int:
                     f"in {WORKFLOW.name} (no env var gates on it)"
                 )
 
+    # 4. Selection depends on paths, so an enabled area without them would run
+    # only when full_matrix_paths hits and silently sit out every other PR.
+    for a in areas:
+        if a.get("enabled") and not a.get("paths"):
+            errors.append(
+                f"area {a['name']!r}: enabled but declares no paths, so "
+                "affected-only selection would almost never run it"
+            )
+
     if errors:
         print("ERROR: matrix.yaml is inconsistent:", file=sys.stderr)
         for e in errors:
@@ -116,7 +133,71 @@ def cmd_check(matrix: dict) -> int:
     return 0
 
 
-def cmd_json(matrix: dict) -> int:
+def parse_changed(text: str, source: str) -> list[str] | None:
+    """Non-blank lines of text, or None for "nothing usable, run everything".
+    An empty list is indistinguishable from a diff step that produced
+    nothing, so it must not narrow the matrix."""
+    paths = [line.strip() for line in text.splitlines() if line.strip()]
+    if not paths:
+        print(f"WARNING: no changed paths in {source}; running the full matrix",
+              file=sys.stderr)
+        return None
+    return paths
+
+
+def read_changed(source: str) -> list[str] | None:
+    """Changed paths, one per line, from a file or stdin ("-"). None means
+    "run everything": an unreadable file is a broken diff step, not an empty
+    diff, so it may not narrow the matrix either."""
+    try:
+        text = sys.stdin.read() if source == "-" else Path(source).read_text()
+    except OSError as err:
+        print(f"WARNING: cannot read changed paths from {source!r} ({err}); "
+              "running the full matrix", file=sys.stderr)
+        return None
+    return parse_changed(text, repr(source))
+
+
+def first_match(patterns: list[str], paths: list[str]) -> Match:
+    """First (pattern, path) pair that matches, else None. fnmatchcase, not
+    fnmatch: the latter normalises case per platform, so a laptop and a Linux
+    runner would disagree."""
+    for pattern in patterns:
+        for path in paths:
+            if fnmatchcase(path, pattern):
+                return pattern, path
+    return None
+
+
+def select_areas(matrix: dict, changed: list[str] | None) -> list[dict]:
+    """Enabled areas a change can affect; changed=None runs all of them. An
+    area is kept when it is always-on or one of its paths globs matches, and
+    full_matrix_paths keeps every area. See matrix.yaml for why that is not
+    merely defensive."""
+    enabled = [a for a in matrix["areas"] if a.get("enabled")]
+    if changed is None:
+        return enabled
+
+    if hit := first_match(matrix.get("full_matrix_paths") or [], changed):
+        print(f"full matrix: {hit[1]} matches full_matrix_paths {hit[0]!r}",
+              file=sys.stderr)
+        return enabled
+
+    selected, dropped = [], []
+    for a in enabled:
+        if a.get("always") or first_match(a.get("paths") or [], changed):
+            selected.append(a)
+        else:
+            dropped.append(a["name"])
+    if dropped:
+        print(f"affected-only: {len(selected)} of {len(enabled)} leg(s) "
+              f"selected from {len(changed)} changed file(s); skipping "
+              + ", ".join(dropped), file=sys.stderr)
+    return selected
+
+
+def cmd_json(matrix: dict, changed_from: str | None = None) -> int:
+    changed = read_changed(changed_from) if changed_from else None
     include = [
         {
             "name": a["name"],
@@ -124,8 +205,7 @@ def cmd_json(matrix: dict) -> int:
             "labels": a["labels"],
             "secret_groups": a.get("secret_groups") or [],
         }
-        for a in matrix["areas"]
-        if a.get("enabled")
+        for a in select_areas(matrix, changed)
     ]
     print(json.dumps({"include": include}, separators=(",", ":")))
     return 0
@@ -146,13 +226,116 @@ def cmd_plan(matrix: dict) -> int:
     return 0
 
 
+# (changed paths, expected leg names or ALL) for the resolver. Guards the two
+# rules whose silent failure costs coverage: fail open, and a shared-machinery
+# change running every leg. See cmd_selftest.
+ALL = None  # in the table below: expect every enabled leg
+SELFTEST_CASES: list[tuple[list[str], set[str] | None]] = [
+    # A provider change runs that provider plus the always-on floor.
+    (["providers/v1/vault/client.go"], {"core-smoke", "vault"}),
+    (["e2e/suites/provider/cases/aws/secretsmanager.go"],
+     {"core-smoke", "aws"}),
+    # grafana.go selects the generator leg too: both legs run the same suite
+    # binary from the same Go package, so a change here can break its compile.
+    (["e2e/suites/generator/grafana.go"],
+     {"core-smoke", "generator", "grafana"}),
+    # Two providers at once select both.
+    (["providers/v1/vault/x.go", "providers/v1/gcp/y.go"],
+     {"core-smoke", "vault", "gcp"}),
+    # Shared machinery runs everything, even though most areas do not list it.
+    (["runtime/reconciler.go"], ALL),
+    (["apis/externalsecrets/v1/types.go"], ALL),
+    (["e2e/framework/util.go"], ALL),
+    (["e2e/matrix.yaml"], ALL),
+    ([".github/workflows/e2e-reusable.yml"], ALL),
+    # Every leg runs the same image and cluster, so these are shared too. They
+    # were missed once; a change here skipping the vault leg is the exact
+    # coverage loss affected-only selection must never cause.
+    (["e2e/Dockerfile"], ALL),
+    (["e2e/entrypoint.sh"], ALL),
+    (["e2e/k8s/vault.values.yaml"], ALL),
+    (["e2e/kind.yaml"], ALL),
+    # Unrelated changes still run the floor, never an empty matrix. e2e docs
+    # are deliberately not shared machinery.
+    (["docs/introduction/faq.md"], {"core-smoke"}),
+    (["e2e/README.md"], {"core-smoke"}),
+    # A near miss must not match: awsx is not aws.
+    (["providers/v1/awsx/client.go"], {"core-smoke"}),
+    # Fail open: nothing to go on means run everything.
+    ([], ALL),
+]
+
+
+def cmd_selftest(matrix: dict) -> int:
+    """Exercise select_areas against SELFTEST_CASES. Runs in prepare-matrix
+    beside check, so a regression in the resolver fails the build rather than
+    quietly shrinking the fan-out."""
+    every = {a["name"] for a in matrix["areas"] if a.get("enabled")}
+    failures = 0
+
+    def fail(what: str, detail: str) -> None:
+        nonlocal failures
+        failures += 1
+        print(f"FAIL {what}\n  {detail}", file=sys.stderr)
+
+    for changed, expected in SELFTEST_CASES:
+        want = every if expected is None else expected
+        # select_areas narrates its decision on stderr; capture it so a real
+        # failure is not buried, and so the narration can be asserted on.
+        log = io.StringIO()
+        with redirect_stderr(log):
+            got = {a["name"] for a in select_areas(matrix, changed or None)}
+        if got != want:
+            fail(f"changed={changed}",
+                 f"want {sorted(want)}\n  got  {sorted(got)}")
+        # A wrongly skipped leg is diagnosed from this log, so it has to name
+        # the legs it dropped, or the reason a change ran everything.
+        if changed and got != every and "skipping" not in log.getvalue():
+            fail(f"changed={changed}", "narrowed the matrix, logged no why")
+        if changed and got == every and "full matrix" not in log.getvalue():
+            fail(f"changed={changed}", "ran every leg without logging why")
+
+    # These two own the remaining fail-open rules and select_areas never
+    # reaches them, so exercise them directly rather than trusting them.
+    with redirect_stderr(io.StringIO()):
+        cases = [
+            ("unreadable file", read_changed(str(HERE / "no-such-file")), None),
+            ("blank text", parse_changed("  \n\t\n", "<test>"), None),
+            ("two paths", parse_changed("a/b.go\n c/d.go \n", "<test>"),
+             ["a/b.go", "c/d.go"]),
+        ]
+    for what, got_paths, want_paths in cases:
+        if got_paths != want_paths:
+            fail(f"read_changed/parse_changed on {what}",
+                 f"want {want_paths}, got {got_paths}")
+
+    total = len(SELFTEST_CASES) + len(cases)
+    if failures:
+        print(f"ERROR: {failures} of {total} selftest assertion(s) failed",
+              file=sys.stderr)
+        return 1
+    print(f"matrix.py selftest ok: {total} cases")
+    return 0
+
+
 def main() -> int:
-    cmd = sys.argv[1] if len(sys.argv) > 1 else "check"
-    if cmd not in ("check", "json", "plan"):
-        print(f"usage: {sys.argv[0]} [check|json|plan]", file=sys.stderr)
+    argv = sys.argv[1:]
+    cmd = argv[0] if argv else "check"
+    others = {"check": cmd_check, "plan": cmd_plan, "selftest": cmd_selftest}
+    changed_from = None
+    if cmd == "json":
+        if len(argv) > 1:
+            if argv[1] != "--changed" or len(argv) != 3:
+                print(USAGE, file=sys.stderr)
+                return 2
+            changed_from = argv[2]
+    elif len(argv) > 1 or cmd not in others:
+        print(USAGE, file=sys.stderr)
         return 2
     matrix = load_yaml(MATRIX)
-    return {"check": cmd_check, "json": cmd_json, "plan": cmd_plan}[cmd](matrix)
+    if cmd == "json":
+        return cmd_json(matrix, changed_from)
+    return others[cmd](matrix)
 
 
 if __name__ == "__main__":
