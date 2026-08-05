@@ -242,10 +242,12 @@ func TestIDBTokenGen(t *testing.T) {
 	gen := &gcpIDBindTokenGenerator{
 		targetURL: srv.URL,
 	}
+	before := time.Now()
 	token, err := gen.Generate(context.Background(), http.DefaultClient, "some-token", "some-idpool", "some-id-provider")
+	after := time.Now()
 	assert.Nil(t, err)
 	assert.Equal(t, token.AccessToken, "12345")
-	assert.WithinDuration(t, time.Now().Add(time.Hour), token.Expiry, time.Second)
+	assert.WithinRange(t, token.Expiry, before.Add(time.Hour), after.Add(time.Hour))
 }
 
 type testCaseMutator func(tc *workloadIdentityTest)
