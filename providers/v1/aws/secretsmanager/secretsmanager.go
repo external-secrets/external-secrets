@@ -1083,6 +1083,10 @@ func buildExistingReplicationRegionsSlice(existingReplicationRegions []types.Rep
 }
 
 func buildReplicationRegionType(regions []string, kmsKeyID *string) []types.ReplicaRegionType {
+	if len(regions) == 0 {
+		return nil
+	}
+
 	replicationRegionsType := make([]types.ReplicaRegionType, 0, len(regions))
 	for _, region := range regions {
 		replicationRegionType := types.ReplicaRegionType{
