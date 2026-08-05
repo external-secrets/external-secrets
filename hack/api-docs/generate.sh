@@ -20,19 +20,17 @@ set -o pipefail
 
 readonly HERE=$(cd $(dirname $0) && pwd)
 readonly REPO=$(cd ${HERE}/../.. && pwd)
-readonly CRD_REF_DOCS=${REPO}/bin/crd-ref-docs
 
 # Exec the doc generator.
 gendoc::exec() {
     local readonly confdir="${REPO}/hack/api-docs"
 
-    ${CRD_REF_DOCS} \
+    "${CRD_REF_DOCS}" \
         --source-path="${REPO}/apis" \
         --config="${confdir}/config.yaml" \
         --renderer=markdown \
         --output-mode=single \
         --output-path="$1"
-    sed -z -i 's/\n*$/\n/' "$1"
 }
 
 if [ "$#" != "1" ]; then

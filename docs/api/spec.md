@@ -9850,3 +9850,5 @@ _Appears in:_
 | `secrets` _[WebhookSecret](#webhooksecret) array_ | Secrets to fill in templates<br />These secrets will be passed to the templating function as key value pairs under the given name |  | Optional: \{\} <br /> |
 | `caBundle` _integer array_ | PEM encoded CA bundle used to validate webhook server certificate. Only used<br />if the Server URL is using HTTPS protocol. This parameter is ignored for<br />plain HTTP protocol connection. If not set the system root certificates<br />are used to validate the TLS connection. |  | Optional: \{\} <br /> |
 | `caProvider` _[WebhookCAProvider](#webhookcaprovider)_ | The provider for the CA bundle to use to validate webhook server certificate. |  | Optional: \{\} <br /> |
+
+
