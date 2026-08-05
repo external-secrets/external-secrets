@@ -77,3 +77,6 @@ func (c *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1.V
 	}
 	return nil
 }
+
+// Probe for the affected-only matrix (external-secrets#6785). Reverted
+// before this branch is dropped; do not merge.
