@@ -3,7 +3,7 @@ module github.com/external-secrets/external-secrets/providers/v1/aws
 go 1.26.5
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.43.0
+	github.com/aws/aws-sdk-go-v2 v1.43.3
 	github.com/aws/aws-sdk-go-v2/config v1.31.19
 	github.com/aws/aws-sdk-go-v2/credentials v1.18.23
 	github.com/aws/aws-sdk-go-v2/service/acm v1.43.0
@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.39.12
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.67.1
 	github.com/aws/aws-sdk-go-v2/service/sts v1.40.1
-	github.com/aws/smithy-go v1.27.3
+	github.com/aws/smithy-go v1.27.6
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/google/go-cmp v0.7.0

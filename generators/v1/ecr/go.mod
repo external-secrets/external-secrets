@@ -3,10 +3,10 @@ module github.com/external-secrets/external-secrets/generators/v1/ecr
 go 1.26.5
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.43.0
+	github.com/aws/aws-sdk-go-v2 v1.43.3
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.51.3
 	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.38.3
-	github.com/aws/smithy-go v1.27.3
+	github.com/aws/smithy-go v1.27.6
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/providers/v1/aws v0.0.0-20251103072335-a9b233b6936f
 	k8s.io/api v0.36.3
