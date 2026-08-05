@@ -17,8 +17,11 @@ limitations under the License.
 package addon
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
 	"github.com/onsi/ginkgo/v2"
 	"github.com/onsi/gomega"
@@ -76,6 +79,46 @@ func UninstallGlobalAddons() {
 		err := addon.Uninstall()
 		gomega.Expect(err).NotTo(gomega.HaveOccurred())
 	}
+}
+
+const skipGlobalTeardownVar = "E2E_SKIP_GLOBAL_TEARDOWN"
+
+// SkipGlobalTeardown reports whether to leave the global addons installed, for a
+// cluster that is about to be discarded. Off unless asked for, and refused when
+// several suites share the cluster, since two of them install the same release.
+func SkipGlobalTeardown() bool {
+	raw, ok := os.LookupEnv(skipGlobalTeardownVar)
+	if !ok || raw == "" {
+		return false
+	}
+	skip, err := strconv.ParseBool(raw)
+	if err != nil {
+		// Failing here would unwind the whole AfterSuite, losing the teardown
+		// and the logs, so fall back to tearing down and say so.
+		teardownLogf("%s is not a boolean (%q), so the teardown will run: %v",
+			skipGlobalTeardownVar, raw, err)
+		return false
+	}
+	if !skip {
+		return false
+	}
+	// Only sees this process. Two separate single-suite runs against one cluster
+	// would still collide.
+	if suites := strings.Fields(os.Getenv("TEST_SUITES")); len(suites) > 1 {
+		teardownLogf("%s ignored: suites %q share one cluster, so the global "+
+			"addons have to come out between them", skipGlobalTeardownVar,
+			strings.Join(suites, " "))
+		return false
+	}
+	teardownLogf("%s set: leaving the global addons installed for the cluster to "+
+		"be discarded with", skipGlobalTeardownVar)
+	return true
+}
+
+// teardownLogf logs to stderr, not log.Logf: ginkgo drops GinkgoWriter output
+// for a passing node without -v, and these lines must survive a green run.
+func teardownLogf(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, format+"\n", args...)
 }
 
 // AssetDir returns the path to the k8s asset directory
