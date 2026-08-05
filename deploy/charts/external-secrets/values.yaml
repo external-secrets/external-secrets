@@ -447,6 +447,12 @@ affinity: {}
 # -- Pod priority class name.
 priorityClassName: ""
 
+# -- Pod scheduler name.
+schedulerName: ""
+
+# -- Pod runtime class name.
+runtimeClassName: ""
+
 # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
 podDisruptionBudget:
   enabled: false
@@ -617,6 +623,12 @@ webhook:
 
     # -- Pod priority class name.
   priorityClassName: ""
+
+    # -- Pod scheduler name.
+  schedulerName: ""
+
+    # -- Pod runtime class name.
+  runtimeClassName: ""
 
   # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
   podDisruptionBudget:
@@ -824,6 +836,12 @@ certController:
 
     # -- Pod priority class name.
   priorityClassName: ""
+
+    # -- Pod scheduler name.
+  schedulerName: ""
+
+    # -- Pod runtime class name.
+  runtimeClassName: ""
 
   # -- Pod disruption budget - for more details see https://kubernetes.io/docs/concepts/workloads/pods/disruptions/
   podDisruptionBudget:
