@@ -21,7 +21,7 @@ scoped per provider, and how to add or enable a provider.
 | `e2e/suites/provider/cases/import.go` | Blank-imports every provider case into the single `provider.test` binary. Providers are told apart at run time by Ginkgo label. |
 | `e2e/matrix.yaml` | Source of truth for the fan-out: one `area` (leg) per provider, with its suite, label filter, secret groups, and trigger paths. |
 | `e2e/matrix.py` | Validates the matrix (`check`), emits the CI matrix JSON (`json`), and prints the per-leg credential plan (`plan`). |
-| `e2e/run.sh` | Host-side launcher. Runs `kubectl run` to start the e2e pod, forwarding `TEST_SUITES`, `GINKGO_LABELS`, and the (scoped) credentials as pod env. |
+| `e2e/run.sh` | Host-side launcher. Runs `kubectl run` to start the e2e pod, forwarding `TEST_SUITES`, `GINKGO_LABELS`, `E2E_SKIP_GLOBAL_TEARDOWN`, and the (scoped) credentials as pod env. |
 | `e2e/entrypoint.sh` | In-pod entry (image `CMD`). Loops over `TEST_SUITES` and runs `ginkgo -label-filter="$GINKGO_LABELS"` against each `<suite>.test`. |
 | `.github/workflows/e2e.yml` | Non-managed e2e. Fans out into per-provider legs. Owns the `e2e-required` gate. |
 | `.github/workflows/e2e-reusable.yml` | The reusable build + matrix-test pipeline that `e2e.yml` calls. |
@@ -157,6 +157,13 @@ make -C e2e matrix.plan
 
 # run a single provider locally (overrides the Makefile defaults)
 make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="vault && !managed"
+
+# leave the global addons installed, for a cluster you are about to delete.
+# Saves about a minute; the kind legs set it, e2e-managed.yml does not.
+# Refused (stderr) when TEST_SUITES names several suites, and that guard sees
+# only its own process, so two single-suite runs on one cluster still collide.
+make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="vault && !managed" \
+  E2E_SKIP_GLOBAL_TEARDOWN=true
 ```
 
 ## Adding or enabling a provider

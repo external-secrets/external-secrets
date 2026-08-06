@@ -237,6 +237,10 @@ jobs:
       # both into the e2e pod; entrypoint.sh runs ginkgo with them.
       TEST_SUITES: ${{ matrix.suite }}
       GINKGO_LABELS: ${{ matrix.labels }}
+      # The kind cluster goes away with the runner, so uninstalling the global
+      # addons costs about a minute and buys nothing. Safe because TEST_SUITES
+      # above is a single suite; the helper refuses this for several.
+      E2E_SKIP_GLOBAL_TEARDOWN: "true"
     steps:
       - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:

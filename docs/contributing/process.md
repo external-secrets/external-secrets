@@ -91,6 +91,10 @@ run managed tests.
 make test.e2e GINKGO_LABELS='gcp&&!managed'
 ```
 
+`E2E_SKIP_GLOBAL_TEARDOWN=true` leaves the ESO release installed when the suite
+finishes, saving about a minute. Only for a throwaway cluster: it applies to
+whatever your kube context points at. `make test.managed` clears it.
+
 #### Managed Kubernetes e2e tests
 
 There's another suite of e2e tests that integrate with managed Kubernetes offerings.

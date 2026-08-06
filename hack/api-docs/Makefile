@@ -37,6 +37,9 @@ GENROOT := $(ROOT)/site
 # Grab the uid/gid to fix permissions due to running in a docker container.
 GID := $(shell id -g)
 UID := $(shell id -u)
+GIT_DIR := $(shell git rev-parse --path-format=absolute --git-dir)
+GIT_COMMON_DIR := $(shell git rev-parse --path-format=absolute --git-common-dir)
+GIT_MOUNT := $(if $(filter $(GIT_DIR),$(GIT_COMMON_DIR)),,--mount type=bind,source=$(GIT_COMMON_DIR),target=$(GIT_COMMON_DIR))
 
 # SOURCES is a list of a source files used to generate the documentation.
 SOURCES := $(shell find $(SRCDIR) -name \*.md)
@@ -60,6 +63,7 @@ build: image generate $(SOURCES)
 	mkdir -p $(GENROOT)
 	$(DOCKER) run \
 	    --mount type=bind,source=$(ROOT),target=/repo \
+	    $(GIT_MOUNT) \
 		--sig-proxy=true \
 		--rm \
 		--env "GIT_COMMITTER_NAME=$(shell git config user.name)" \
@@ -72,6 +76,7 @@ build.publish: image generate $(SOURCES)
 	mkdir -p $(GENROOT)
 	$(DOCKER) run \
 	    --mount type=bind,source=$(ROOT),target=/repo \
+	    $(GIT_MOUNT) \
 		--sig-proxy=true \
 		--rm \
 		--user $(UID):$(GID) \
