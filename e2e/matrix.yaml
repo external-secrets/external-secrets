@@ -74,10 +74,15 @@ full_matrix_paths:
   - "e2e/k8s/**"
   - "e2e/suites/provider/cases/common/**"
   - "e2e/suites/provider/cases/import.go"
+  # The provider suite's bootstrap sits one level above every provider leg's
+  # cases/<name>/** globs, so nothing else selects it. check rule 6 keeps any
+  # future sibling from going uncovered the same way.
+  - "e2e/suites/provider/suite_test.go"
 
 areas:
-  # In-cluster only, no external credentials. The required floor: this leg runs
-  # on every PR (including forks) and is the stable branch-protection gate.
+  # In-cluster only, no external credentials. The required floor: never
+  # filtered out, so it runs whatever a pull request changed. Not "including
+  # forks": a fork PR runs no leg at all until /ok-to-test dispatches.
   - name: core-smoke
     suite: provider
     labels: "(fake || kubernetes || template) && !managed"

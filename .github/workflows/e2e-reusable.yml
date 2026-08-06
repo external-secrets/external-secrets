@@ -99,10 +99,11 @@ env:
   # trusted pull_request path, where the checkout falls back to github.sha (the
   # PR merge ref).
   TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha }}
-  # PR under test, for the affected-only matrix filter. Set on the trusted
-  # pull_request path and in the fork dispatch payload; empty on any other
-  # event, which means run every enabled leg.
-  PR_NUMBER: ${{ github.event.pull_request.number || github.event.client_payload.pull_request.number }}
+  # Base branch the change is measured against, for the affected-only matrix.
+  # The comment path gets it from the dispatched PR object, the review path
+  # from an explicit field in ok-to-test-review.yml. Anything absent or empty
+  # falls back to main, which over-selects rather than under-selects.
+  BASE_REF: ${{ github.event.pull_request.base.ref || github.event.client_payload.pull_request.base.ref || 'main' }}
   # Ephemeral tag: images are only ever loaded into kind, never pushed, so a
   # fixed tag keeps the build and test jobs in sync without passing a version.
   VERSION: "e2e"
@@ -115,7 +116,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read # list the PR's changed files, to narrow the matrix
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
     steps:
@@ -127,33 +127,25 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ env.TARGET_SHA || github.sha }}
+          # Full history, blobless, so the affected-only diff below can find a
+          # merge base without paying for file contents it never reads.
+          fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
 
-      # Only narrows the matrix, so every failure path here must end with no
-      # changed.txt, which the next step reads as "run everything". A partial
-      # list is the dangerous case: it looks valid and would silently drop
-      # legs, so publish the file only once its length matches the PR.
-      - name: List the PR's changed files
-        if: env.PR_NUMBER != ''
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
+      # Diff the revision that was actually checked out, never the live PR
+      # endpoint: the fork path pins TARGET_SHA so that a push landing after
+      # /ok-to-test cannot change which legs run against the approved commit.
+      # Any failure leaves changed.txt absent, which runs every leg.
+      - name: List the changed files
         run: |
-          if ! gh api "repos/${REPO}/pulls/${PR_NUMBER}/files" \
-               --paginate --jq '.[].filename' > fetched.txt; then
-            echo "::warning::could not list changed files; running every leg"
-            exit 0
+          if git rev-parse --verify --quiet "origin/${BASE_REF}" >/dev/null &&
+             git diff --name-only "origin/${BASE_REF}...HEAD" > fetched.txt; then
+            mv fetched.txt changed.txt
+            echo "changed files: $(grep -c '' < changed.txt)"
+          else
+            echo "::warning::cannot diff against origin/${BASE_REF}; running every leg"
           fi
-          # --paginate stops silently at the API's 3000-file cap, and a
-          # mid-pagination error still leaves the earlier pages on disk.
-          want="$(gh api "repos/${REPO}/pulls/${PR_NUMBER}" --jq '.changed_files')" || want=""
-          got="$(grep -c '' < fetched.txt)"
-          if [ -z "${want}" ] || [ "${want}" != "${got}" ]; then
-            echo "::warning::changed-file list looks incomplete (${got} fetched, PR reports ${want:-unknown}); running every leg"
-            exit 0
-          fi
-          mv fetched.txt changed.txt
-          echo "changed files: ${got}"
 
       - name: Validate and build the e2e matrix
         id: set

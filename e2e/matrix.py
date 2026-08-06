@@ -77,6 +77,16 @@ def group_to_vars() -> dict[str, list[str]]:
     return mapping
 
 
+def tracked_files() -> list[str]:
+    """Repo-relative tracked paths. The glob rules in check need to know that a
+    pattern corresponds to something real."""
+    out = subprocess.run(
+        ["git", "-C", str(HERE.parent), "ls-files"],
+        check=True, capture_output=True, text=True,
+    ).stdout
+    return out.splitlines()
+
+
 def cmd_check(matrix: dict) -> int:
     areas = matrix["areas"]
     errors: list[str] = []
@@ -118,6 +128,33 @@ def cmd_check(matrix: dict) -> int:
                 f"area {a['name']!r}: enabled but declares no paths, so "
                 "affected-only selection would almost never run it"
             )
+
+    shared = matrix.get("full_matrix_paths") or []
+    live = [a for a in areas if a.get("enabled")]
+    files = tracked_files()
+
+    # 5. Every glob must match something. A typo like providers/v1/Azure/**
+    # stops selecting its leg while check and selftest stay green, and unlike
+    # enabled: false it leaves no trace on later pull requests.
+    labelled = [("full_matrix_paths", g) for g in shared]
+    labelled += [(f"area {a['name']!r}", g) for a in live
+                 for g in (a.get("paths") or [])]
+    for where, glob in labelled:
+        if not any(fnmatchcase(f, glob) for f in files):
+            errors.append(f"{where}: glob {glob!r} matches no tracked file")
+
+    # 6. Every suite's own files must reach some leg. They sit one level above
+    # the per-case globs, so the provider suite's bootstrap was selected by
+    # nothing until it was listed explicitly.
+    selectable = shared + [g for a in live for g in (a.get("paths") or [])]
+    for f in files:
+        parts = f.split("/")
+        if len(parts) == 4 and parts[:2] == ["e2e", "suites"]:
+            if not any(fnmatchcase(f, g) for g in selectable):
+                errors.append(
+                    f"suite file {f} is selected by no enabled leg, so a "
+                    "change to it would skip the legs that run it"
+                )
 
     if errors:
         print("ERROR: matrix.yaml is inconsistent:", file=sys.stderr)
@@ -251,6 +288,9 @@ SELFTEST_CASES: list[tuple[list[str], set[str] | None]] = [
     # Every leg runs the same image and cluster, so these are shared too. They
     # were missed once; a change here skipping the vault leg is the exact
     # coverage loss affected-only selection must never cause.
+    # Every provider leg compiles this bootstrap, and it sits above their
+    # cases/<name>/** globs, so nothing else would select it.
+    (["e2e/suites/provider/suite_test.go"], ALL),
     (["e2e/Dockerfile"], ALL),
     (["e2e/entrypoint.sh"], ALL),
     (["e2e/k8s/vault.values.yaml"], ALL),

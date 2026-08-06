@@ -89,14 +89,15 @@ Three rules keep this from quietly reducing coverage, all enforced in
   `paths`, so per-area matching alone would skip every provider leg on a core
   change.
 - **Fail open.** No `--changed`, an unreadable file, or an empty list all run
-  the full matrix. A broken diff step must not look like an empty diff. The
-  workflow holds up its end too: it publishes the changed-file list only when
-  the line count matches the PR's own `changed_files`, because `gh api
-  --paginate` stops silently at the API's 3000-file cap and leaves earlier
-  pages on disk if it fails midway. A truncated list is worse than no list,
-  since it narrows the matrix while looking complete.
+  the full matrix. A broken diff step must not look like an empty diff.
 - **Something always runs.** `core-smoke` is `always: true`, so the matrix is
   never empty and the required floor keeps its promise.
+- **The diff comes from the revision under test.** `prepare-matrix` runs
+  `git diff --name-only origin/$BASE_REF...HEAD` on what it checked out, not a
+  query against the live pull request. That matters on the fork path, which
+  pins `TARGET_SHA` so a push landing after `/ok-to-test` cannot change which
+  legs run against the approved commit. It also means the list cannot arrive
+  truncated, the way a paginated API result can.
 
 Matching is `fnmatch.fnmatchcase`, so `providers/v1/aws/**` covers
 `providers/v1/aws/secretsmanager/client.go` but not `providers/v1/awsx/`. Case
@@ -220,8 +221,19 @@ make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="vault && !managed" \
    and wire that group's env vars in `e2e-reusable.yml`.
 4. Set `enabled: true` when you want CI to run it.
 
-`matrix.py check` (run in `prepare-matrix`) enforces steps 1-3: it fails the
-build if a provider is compiled into the suite but not covered by an area, if
-`needs_secrets` disagrees with `secret_groups`, if an area names a secret group
-that the workflow does not wire, or if an enabled area declares no `paths`,
-which would leave it sitting out nearly every PR.
+`matrix.py check` (run in `prepare-matrix`) enforces steps 1-3, and fails the
+build on any of:
+
+- a provider compiled into the suite but not covered by an area;
+- `needs_secrets` disagreeing with `secret_groups`;
+- an area naming a secret group the workflow does not wire;
+- an enabled area declaring no `paths`, which would leave it sitting out
+  nearly every PR;
+- a glob that matches no tracked file, so a typo cannot quietly stop selecting
+  its leg;
+- a suite's own file that no enabled leg selects, which is how the provider
+  suite's bootstrap slipped through once.
+
+The last two exist because a wrong glob is invisible in a way that
+`enabled: false` never was: the leg keeps passing on every PR that happens to
+touch shared machinery, so nothing looks broken.
