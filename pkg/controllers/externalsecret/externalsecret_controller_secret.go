@@ -131,6 +131,10 @@ func (r *Reconciler) handleSecretData(ctx context.Context, externalSecret *esv1.
 	// get a single secret from the store
 	secretData, err := client.GetSecret(ctx, secretRef.RemoteRef)
 	if err != nil {
+		if shouldIgnoreEmptyResult(secretRef.RemoteRef.EmptyResultPolicy, err) {
+			r.Log.V(1).Info("data secret not found; ignoring per emptyResultPolicy", "key", secretRef.RemoteRef.Key)
+			return nil
+		}
 		return err
 	}
 
@@ -226,6 +230,10 @@ func (r *Reconciler) handleExtractSecrets(
 	// get multiple secrets from the store
 	secretMap, err := client.GetSecretMap(ctx, *remoteRef.Extract)
 	if err != nil {
+		if shouldIgnoreEmptyResult(remoteRef.Extract.EmptyResultPolicy, err) {
+			r.Log.V(1).Info("extract returned no secret; ignoring per emptyResultPolicy", "dataFrom", i)
+			return map[string][]byte{}, nil
+		}
 		return nil, err
 	}
 
@@ -277,6 +285,10 @@ func (r *Reconciler) handleFindAllSecrets(
 	// get all secrets from the store that match the selector
 	secretMap, err := client.GetAllSecrets(ctx, *remoteRef.Find)
 	if err != nil {
+		if shouldIgnoreEmptyResult(remoteRef.Find.EmptyResultPolicy, err) {
+			r.Log.V(1).Info("find returned no secrets; ignoring per emptyResultPolicy", "dataFrom", i)
+			return map[string][]byte{}, nil
+		}
 		return nil, fmt.Errorf("error getting all secrets: %w", err)
 	}
 
@@ -310,6 +322,14 @@ func (r *Reconciler) handleFindAllSecrets(
 		genState.EnqueueFlagLatestStateForGC(generatorStateKey(i))
 	}
 	return secretMap, nil
+}
+
+// shouldIgnoreEmptyResult reports whether an empty or absent provider result,
+// signaled via esv1.NoSecretErr, should be tolerated for a reference based on
+// its emptyResultPolicy. Only an explicit Ignore tolerates the error; unset and
+// Fail preserve the historical error behavior.
+func shouldIgnoreEmptyResult(policy esv1.ExternalSecretEmptyResultPolicy, err error) bool {
+	return policy == esv1.ExternalSecretEmptyResultPolicyIgnore && errors.Is(err, esv1.NoSecretErr)
 }
 
 func validateFetchedSecretValue(policy esv1.ExternalSecretNullBytePolicy, key string, value []byte) error {

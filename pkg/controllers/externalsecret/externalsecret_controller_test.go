@@ -2234,6 +2234,171 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			}, time.Second, interval).Should(BeTrue())
 		}
 	}
+	// A find that returns NoSecretErr with emptyResultPolicy=Ignore contributes
+	// nothing; a second find that returns data is still synced (the merge case).
+	ignoreEmptyFindMergesRemaining := func(tc *testCase) {
+		expVal := []byte("1234")
+		present := "present"
+		absent := "absent"
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esv1.ExternalSecretFind{
+					Path: &present,
+					Name: &esv1.FindName{RegExp: ".*"},
+				},
+			},
+			{
+				Find: &esv1.ExternalSecretFind{
+					Path:              &absent,
+					Name:              &esv1.FindName{RegExp: ".*"},
+					EmptyResultPolicy: esv1.ExternalSecretEmptyResultPolicyIgnore,
+				},
+			},
+		}
+		fakeProvider.WithGetAllSecretsFn(func(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+			if ref.Path != nil && *ref.Path == present {
+				return map[string][]byte{"foo": expVal}, nil
+			}
+			return nil, esv1.NoSecretErr
+		})
+		tc.checkSecret = func(_ *esv1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.Data["foo"]).To(Equal(expVal))
+			Expect(secret.Data).To(HaveLen(1))
+		}
+	}
+	// emptyResultPolicy=Ignore must tolerate NoSecretErr independently of
+	// deletionPolicy. Same merge scenario as above but with deletionPolicy=Delete:
+	// the absent find is still skipped, the present find still syncs, no error.
+	ignoreEmptyFindDeletionPolicyDelete := func(tc *testCase) {
+		expVal := []byte("1234")
+		present := "present"
+		absent := "absent"
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.Target.DeletionPolicy = esv1.DeletionPolicyDelete
+		tc.externalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esv1.ExternalSecretFind{
+					Path: &present,
+					Name: &esv1.FindName{RegExp: ".*"},
+				},
+			},
+			{
+				Find: &esv1.ExternalSecretFind{
+					Path:              &absent,
+					Name:              &esv1.FindName{RegExp: ".*"},
+					EmptyResultPolicy: esv1.ExternalSecretEmptyResultPolicyIgnore,
+				},
+			},
+		}
+		fakeProvider.WithGetAllSecretsFn(func(_ context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+			if ref.Path != nil && *ref.Path == present {
+				return map[string][]byte{"foo": expVal}, nil
+			}
+			return nil, esv1.NoSecretErr
+		})
+		tc.checkSecret = func(_ *esv1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.Data["foo"]).To(Equal(expVal))
+			Expect(secret.Data).To(HaveLen(1))
+		}
+	}
+	// A find that returns NoSecretErr with the policy unset (Fail) errors, as today.
+	failWhenFindEmptyAndPolicyUnset := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Find: &esv1.ExternalSecretFind{
+					Name: &esv1.FindName{RegExp: ".*"},
+				},
+			},
+		}
+		fakeProvider.WithGetAllSecrets(map[string][]byte{}, esv1.NoSecretErr)
+		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			return cond != nil && cond.Status == v1.ConditionFalse && cond.Reason == esv1.ConditionReasonSecretSyncedError
+		}
+	}
+	// An extract that returns NoSecretErr with emptyResultPolicy=Ignore contributes
+	// nothing and reconciliation succeeds.
+	ignoreEmptyExtract := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1.ExternalSecretDataRemoteRef{
+					Key:               "does/not/exist",
+					EmptyResultPolicy: esv1.ExternalSecretEmptyResultPolicyIgnore,
+				},
+			},
+		}
+		fakeProvider.WithGetSecretMap(nil, esv1.NoSecretErr)
+		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			return cond != nil && cond.Status == v1.ConditionTrue && cond.Reason == esv1.ConditionReasonSecretSynced
+		}
+	}
+	// An extract that returns NoSecretErr with the policy unset (Fail) errors.
+	failWhenExtractEmptyAndPolicyUnset := func(tc *testCase) {
+		tc.externalSecret.Spec.Data = nil
+		tc.externalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{
+				Extract: &esv1.ExternalSecretDataRemoteRef{
+					Key: "does/not/exist",
+				},
+			},
+		}
+		fakeProvider.WithGetSecretMap(nil, esv1.NoSecretErr)
+		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			return cond != nil && cond.Status == v1.ConditionFalse && cond.Reason == esv1.ConditionReasonSecretSyncedError
+		}
+	}
+	// A single data ref whose secret is missing (NoSecretErr) with
+	// emptyResultPolicy=Ignore is skipped; reconciliation succeeds and the key is
+	// simply absent.
+	ignoreMissingSingleData := func(tc *testCase) {
+		tc.externalSecret.Spec.DataFrom = nil
+		tc.externalSecret.Spec.Data = []esv1.ExternalSecretData{
+			{
+				SecretKey: "present-key",
+				RemoteRef: esv1.ExternalSecretDataRemoteRef{Key: "present"},
+			},
+			{
+				SecretKey: "missing-key",
+				RemoteRef: esv1.ExternalSecretDataRemoteRef{
+					Key:               "missing",
+					EmptyResultPolicy: esv1.ExternalSecretEmptyResultPolicyIgnore,
+				},
+			},
+		}
+		fakeProvider.WithGetSecretFn(func(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
+			if ref.Key == "present" {
+				return []byte("1234"), nil
+			}
+			return nil, esv1.NoSecretErr
+		})
+		tc.checkSecret = func(_ *esv1.ExternalSecret, secret *v1.Secret) {
+			Expect(secret.Data["present-key"]).To(Equal([]byte("1234")))
+			_, ok := secret.Data["missing-key"]
+			Expect(ok).To(BeFalse())
+		}
+	}
+	// A single data ref whose secret is missing with policy unset errors when
+	// deletionPolicy=Retain (current behavior).
+	failWhenSingleDataMissingAndPolicyUnset := func(tc *testCase) {
+		tc.externalSecret.Spec.DataFrom = nil
+		tc.externalSecret.Spec.Target.DeletionPolicy = esv1.DeletionPolicyRetain
+		tc.externalSecret.Spec.Data = []esv1.ExternalSecretData{
+			{
+				SecretKey: "missing-key",
+				RemoteRef: esv1.ExternalSecretDataRemoteRef{Key: "missing"},
+			},
+		}
+		fakeProvider.WithGetSecret(nil, esv1.NoSecretErr)
+		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
+			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
+			return cond != nil && cond.Status == v1.ConditionFalse && cond.Reason == esv1.ConditionReasonSecretSyncedError
+		}
+	}
 	useClusterSecretStore := func(tc *testCase) {
 		tc.secretStore = &esv1.ClusterSecretStore{
 			ObjectMeta: metav1.ObjectMeta{
@@ -2510,6 +2675,13 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Entry("should fail when fetched secret data contains null bytes and remoteRef.nullBytePolicy=Fail", failWhenFetchedSecretContainsNullBytes),
 		Entry("should fail when extracted secret data contains null bytes and extract.nullBytePolicy=Fail", failWhenExtractedSecretContainsNullBytes),
 		Entry("should fail when found secret data contains null bytes and find.nullBytePolicy=Fail", failWhenFoundSecretContainsNullBytes),
+		Entry("should ignore an empty find and merge remaining data when emptyResultPolicy=Ignore", ignoreEmptyFindMergesRemaining),
+		Entry("should ignore an empty find under deletionPolicy=Delete when emptyResultPolicy=Ignore", ignoreEmptyFindDeletionPolicyDelete),
+		Entry("should fail on an empty find when emptyResultPolicy is unset", failWhenFindEmptyAndPolicyUnset),
+		Entry("should ignore an empty extract when emptyResultPolicy=Ignore", ignoreEmptyExtract),
+		Entry("should fail on an empty extract when emptyResultPolicy is unset", failWhenExtractEmptyAndPolicyUnset),
+		Entry("should ignore a missing single data key when emptyResultPolicy=Ignore", ignoreMissingSingleData),
+		Entry("should fail on a missing single data key when emptyResultPolicy is unset and deletionPolicy=Retain", failWhenSingleDataMissingAndPolicyUnset),
 		Entry("should update template if ExternalSecret is updated", templateShouldRewrite),
 		Entry("should keep data with templates if MergePolicy=Merge", templateShouldMerge),
 		Entry("should refresh secret from template", refreshWithTemplate),
