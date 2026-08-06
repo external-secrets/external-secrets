@@ -9112,9 +9112,10 @@ External Secrets meta/v1.ServiceAccountSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Optional service account field containing the name of a kubernetes ServiceAccount.
-If the service account is specified, the service account secret token JWT will be used
-for authenticating with OpenBao.</p>
+<p>Optional service account field containing the name of a Kubernetes ServiceAccount.
+If the service account is specified, a token will be requested from the Kubernetes
+TokenRequest API for authenticating with OpenBao.
+Any configured audiences will be passed to the TokenRequest as-is.</p>
 </td>
 </tr>
 <tr>

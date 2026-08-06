@@ -207,9 +207,10 @@ type OpenBaoKubernetesAuth struct {
 	// +kubebuilder:default=kubernetes
 	Path string `json:"path"`
 
-	// Optional service account field containing the name of a kubernetes ServiceAccount.
-	// If the service account is specified, the service account secret token JWT will be used
-	// for authenticating with OpenBao.
+	// Optional service account field containing the name of a Kubernetes ServiceAccount.
+	// If the service account is specified, a token will be requested from the Kubernetes
+	// TokenRequest API for authenticating with OpenBao.
+	// Any configured audiences will be passed to the TokenRequest as-is.
 	//
 	// +optional
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
