@@ -180,3 +180,32 @@ make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="vault && !managed" \
 build if a provider is compiled into the suite but not covered by an area, if
 `needs_secrets` disagrees with `secret_groups`, or if an area names a secret
 group that the workflow does not wire.
+
+## Oracle: local only, by design
+
+The oracle suite runs against a real OCI tenancy and takes eight variables:
+`ORACLE_TENANCY_OCID`, `ORACLE_USER_OCID`, `ORACLE_REGION`,
+`ORACLE_FINGERPRINT`, `ORACLE_KEY` (the PEM signing key itself, which must have
+no passphrase), plus `ORACLE_VAULT_OCID`, `ORACLE_COMPARTMENT_OCID` and
+`ORACLE_ENCRYPTION_KEY_OCID`. The last three identify where secrets are created;
+the Vault API requires all of them and the `SecretStore` requires the vault.
+
+Note that `ORACLE_KEY` and `ORACLE_ENCRYPTION_KEY_OCID` are unrelated. The first
+is an RSA key that authenticates the caller; the second is the OCID of a
+symmetric AES key inside the vault that encrypts secrets at rest.
+
+**This leg is not enabled in CI, and that is a decision rather than a gap.** An
+always-free OCI tenancy caps secrets at 150, and a deleted secret cannot return
+to that pool for 24 hours; the floor is enforced, so values below it are
+rejected outright. One run of this suite creates 15 secrets, which allows about
+ten runs a rolling day before creates start failing for reasons unrelated to the
+change under test. `--flake-attempts=2` and `-p -nodes=5` in `entrypoint.sh`
+lower that further, the latter also being enough concurrency for the Vaults
+service to return `429`. Enabling this leg needs a tenancy without that cap.
+
+Until then the suite is a pre-submit tool for contributors with their own
+tenancy:
+
+```bash
+make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="oracle && !managed"
+```
