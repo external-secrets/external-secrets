@@ -26,9 +26,9 @@ readonly GEN_CRD_API_REFERENCE_DOCS=${REPO}/bin/gen-crd-api-reference-docs
 gendoc::exec() {
     local readonly confdir="${REPO}/hack/api-docs"
 
-    ${GEN_CRD_API_REFERENCE_DOCS} \
-        -template-dir ${confdir} \
-        -config ${confdir}/config.json \
+    "${GEN_CRD_API_REFERENCE_DOCS}" \
+        -template-dir "${confdir}" \
+        -config "${confdir}/config.json" \
         "$@"
 }
 

@@ -73,10 +73,10 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # Conformance
 
 reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
+	@GOWORK=off go -C hack/tools mod tidy # Tools and their deps are not to be included in project's GOWORK.
+	@GOWORK=off go -C hack/tools/gen-crd-api-reference-docs mod tidy
+	@GOWORK=off go -C hack/tools/golangci-lint mod tidy
 	@go mod tidy
-	@GOWORK=off go -C hack/tools mod tidy
-	@cd hack/tools/gen-crd-api-reference-docs/ && go mod tidy
-	@cd hack/tools/golangci-lint/ && go mod tidy
 	@cd e2e/ && go mod tidy
 	@cd apis/ && go mod tidy
 	@cd runtime/ && go mod tidy
@@ -448,13 +448,15 @@ $(ENVTEST): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
 
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Build controller-gen locally if necessary.
-$(CONTROLLER_GEN): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
-	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly sigs.k8s.io/controller-tools/cmd/controller-gen
+$(CONTROLLER_GEN): Makefile hack/tools/go.mod hack/tools/go.sum
+	mkdir -p $(dir $@)
+	GOWORK=off go -C hack/tools build -mod=readonly -o $(abspath $@) sigs.k8s.io/controller-tools/cmd/controller-gen
 
 .PHONY: gen-crd-api-reference-docs
 gen-crd-api-reference-docs: $(GEN_CRD_API_REFERENCE_DOCS) ## Download gen-crd-api-reference-docs locally if necessary.
-$(GEN_CRD_API_REFERENCE_DOCS): Makefile hack/tools/gen-crd-api-reference-docs/go.mod hack/tools/gen-crd-api-reference-docs/go.sum | $(LOCALBIN)
-	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools/gen-crd-api-reference-docs install -mod=readonly github.com/ahmetb/gen-crd-api-reference-docs
+$(GEN_CRD_API_REFERENCE_DOCS): Makefile hack/tools/gen-crd-api-reference-docs/go.mod hack/tools/gen-crd-api-reference-docs/go.sum
+	mkdir -p $(dir $@)
+	GOWORK=off go -C hack/tools/gen-crd-api-reference-docs build -mod=readonly -o $(abspath $@) github.com/ahmetb/gen-crd-api-reference-docs
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.

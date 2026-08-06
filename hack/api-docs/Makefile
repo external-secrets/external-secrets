@@ -33,6 +33,7 @@ SRCDIR := $(ROOT)/docs
 CFGFILE := $(ROOT)/hack/api-docs/mkdocs.yml
 # GENROOT is the root of the generated documentation.
 GENROOT := $(ROOT)/site
+GEN_CRD_API_REFERENCE_DOCS ?= $(ROOT)/bin/gen-crd-api-reference-docs
 
 # Grab the uid/gid to fix permissions due to running in a docker container.
 GID := $(shell id -g)
@@ -86,11 +87,11 @@ build.publish: image generate $(SOURCES)
 		$(MKDOCS_IMAGE) \
 		$(SHELL) -c "cd /repo && $(MIKE) deploy --update-aliases -p -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: generate
-generate: $(ROOT)/bin/gen-crd-api-reference-docs
-	./generate.sh $(SRCDIR)/api/spec.md
+generate: $(GEN_CRD_API_REFERENCE_DOCS)
+	GEN_CRD_API_REFERENCE_DOCS=$(GEN_CRD_API_REFERENCE_DOCS) ./generate.sh $(SRCDIR)/api/spec.md
 
-$(ROOT)/bin/gen-crd-api-reference-docs:
-	$(MAKE) -C $(ROOT) gen-crd-api-reference-docs
+$(GEN_CRD_API_REFERENCE_DOCS): $(ROOT)/hack/tools/gen-crd-api-reference-docs/go.mod $(ROOT)/hack/tools/gen-crd-api-reference-docs/go.sum $(ROOT)/Makefile
+	$(MAKE) -C $(ROOT) GEN_CRD_API_REFERENCE_DOCS=$(GEN_CRD_API_REFERENCE_DOCS) gen-crd-api-reference-docs
 
 .PHONY: clean
 clean:
