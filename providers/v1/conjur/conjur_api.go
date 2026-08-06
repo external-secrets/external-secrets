@@ -33,22 +33,49 @@ type SecretsClientFactory interface {
 	NewClientFromKey(config conjurapi.Config, loginPair authn.LoginPair) (SecretsClient, error)
 	NewClientFromJWT(config conjurapi.Config) (SecretsClient, error)
 	NewClientFromCert(config conjurapi.Config) (SecretsClient, error)
+	NewClientFromIAM(config conjurapi.Config, creds *authn.IAMCredentials) (SecretsClient, error)
+	NewClientFromAzure(config conjurapi.Config) (SecretsClient, error)
+	NewClientFromGCP(config conjurapi.Config) (SecretsClient, error)
 }
 
 // ClientAPIImpl is an implementation of the ClientAPI interface.
 type ClientAPIImpl struct{}
 
+// telemetry reports this provider as the integration consuming conjur-api-go.
+var telemetry = conjurapi.NewTelemetry("external-secrets", "external-secrets-operator", "", "", "")
+
 // NewClientFromKey creates a new Conjur client using API key authentication.
 func (c *ClientAPIImpl) NewClientFromKey(config conjurapi.Config, loginPair authn.LoginPair) (SecretsClient, error) {
-	return conjurapi.NewClientFromKey(config, loginPair)
+	return conjurapi.NewClientFromKey(config, loginPair, telemetry)
 }
 
 // NewClientFromJWT creates a new Conjur client from a JWT token.
 func (c *ClientAPIImpl) NewClientFromJWT(config conjurapi.Config) (SecretsClient, error) {
-	return conjurapi.NewClientFromJwt(config)
+	return conjurapi.NewClientFromJwt(config, telemetry)
+}
+
+// NewClientFromIAM creates a new Conjur client using AWS IAM authentication.
+// When creds is non-nil its values are used as explicit credentials; otherwise
+// the ambient AWS SDK credential chain is used.
+func (c *ClientAPIImpl) NewClientFromIAM(config conjurapi.Config, creds *authn.IAMCredentials) (SecretsClient, error) {
+	return conjurapi.NewClientFromAWSCredentialsWith(config, creds, telemetry)
 }
 
 // NewClientFromCert creates a new Conjur client using certificate-based authentication.
 func (c *ClientAPIImpl) NewClientFromCert(config conjurapi.Config) (SecretsClient, error) {
-	return conjurapi.NewClientFromCertificate(config)
+	return conjurapi.NewClientFromCertificate(config, telemetry)
+}
+
+// NewClientFromAzure creates a new Conjur client using Azure authn-azure authentication.
+// The JWT token is set on config.JWTContent before calling; empty string causes conjur-api-go
+// to fetch a token from the Azure IMDS endpoint automatically.
+func (c *ClientAPIImpl) NewClientFromAzure(config conjurapi.Config) (SecretsClient, error) {
+	return conjurapi.NewClientFromAzureCredentials(config, telemetry)
+}
+
+// NewClientFromGCP creates a new Conjur client using GCP authn-gcp authentication.
+// The JWT token is set on config.JWTContent before calling; empty string causes conjur-api-go
+// to fetch a token from the GCP Metadata Service automatically.
+func (c *ClientAPIImpl) NewClientFromGCP(config conjurapi.Config) (SecretsClient, error) {
+	return conjurapi.NewClientFromGCPCredentials(config, "", telemetry)
 }

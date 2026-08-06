@@ -93,10 +93,19 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 	if prov.Auth.Jwt != nil {
 		return c.conjurClientFromJWT(ctx, config, prov)
 	}
+	if prov.Auth.Iam != nil {
+		return c.conjurClientFromIAM(ctx, config, prov)
+	}
 	if prov.Auth.Cert != nil {
 		return c.conjurClientFromCert(ctx, config, prov)
 	}
 
+	if prov.Auth.Azure != nil {
+		return c.conjurClientFromAzure(ctx, config, prov)
+	}
+	if prov.Auth.Gcp != nil {
+		return c.conjurClientFromGCP(ctx, config, prov)
+	}
 	// Should not happen because validate func should catch this
 	return nil, errors.New("no authentication method provided")
 }

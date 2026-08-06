@@ -64,6 +64,27 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		}
 	}
 
+	if prov.Auth.Iam != nil {
+		err := validateIAMStore(store, *prov.Auth.Iam)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if prov.Auth.Azure != nil {
+		err := validateAzureStore(store, *prov.Auth.Azure)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	if prov.Auth.Gcp != nil {
+		err := validateGCPStore(store, *prov.Auth.Gcp)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return nil, nil
 }
 
@@ -76,6 +97,15 @@ func validateAuthCount(auth esv1.ConjurAuth) error {
 		count++
 	}
 	if auth.Cert != nil {
+		count++
+	}
+	if auth.Iam != nil {
+		count++
+	}
+	if auth.Azure != nil {
+		count++
+	}
+	if auth.Gcp != nil {
 		count++
 	}
 	if count != 1 {
@@ -99,6 +129,65 @@ func validateAPIKeyStore(store esv1.GenericStore, auth esv1.ConjurAPIKey) error 
 	}
 	if err := esutils.ValidateReferentSecretSelector(store, *auth.APIKeyRef); err != nil {
 		return fmt.Errorf("invalid Auth.Apikey.ApiKeyRef: %w", err)
+	}
+	return nil
+}
+
+func validateIAMStore(store esv1.GenericStore, auth esv1.ConjurIAM) error {
+	if auth.Account == "" {
+		return errors.New("missing Auth.Iam.Account")
+	}
+	if auth.ServiceID == "" {
+		return errors.New("missing Auth.Iam.ServiceID")
+	}
+	if auth.HostID == "" {
+		return errors.New("missing Auth.Iam.HostID")
+	}
+	if auth.SecretRef != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, auth.SecretRef.AccessKeyIDSecretRef); err != nil {
+			return fmt.Errorf("invalid Auth.Iam.SecretRef.AccessKeyIDSecretRef: %w", err)
+		}
+		if err := esutils.ValidateReferentSecretSelector(store, auth.SecretRef.SecretAccessKeySecretRef); err != nil {
+			return fmt.Errorf("invalid Auth.Iam.SecretRef.SecretAccessKeySecretRef: %w", err)
+		}
+		if auth.SecretRef.SessionTokenSecretRef != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, *auth.SecretRef.SessionTokenSecretRef); err != nil {
+				return fmt.Errorf("invalid Auth.Iam.SecretRef.SessionTokenSecretRef: %w", err)
+			}
+		}
+	}
+	return nil
+}
+
+func validateAzureStore(store esv1.GenericStore, auth esv1.ConjurAzure) error {
+	if auth.Account == "" {
+		return errors.New("missing Auth.Azure.Account")
+	}
+	if auth.ServiceID == "" {
+		return errors.New("missing Auth.Azure.ServiceID")
+	}
+	if auth.HostID == "" {
+		return errors.New("missing Auth.Azure.HostID")
+	}
+	if auth.ServiceAccountRef != nil {
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *auth.ServiceAccountRef); err != nil {
+			return fmt.Errorf("invalid Auth.Azure.ServiceAccountRef: %w", err)
+		}
+	}
+	return nil
+}
+
+func validateGCPStore(store esv1.GenericStore, auth esv1.ConjurGCP) error {
+	if auth.Account == "" {
+		return errors.New("missing Auth.Gcp.Account")
+	}
+	if auth.HostID == "" {
+		return errors.New("missing Auth.Gcp.HostID")
+	}
+	if auth.SecretRef != nil {
+		if err := esutils.ValidateReferentSecretSelector(store, auth.SecretRef.JWT); err != nil {
+			return fmt.Errorf("invalid Auth.Gcp.SecretRef.JWT: %w", err)
+		}
 	}
 	return nil
 }
