@@ -432,6 +432,7 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 DLV ?= $(LOCALBIN)/dlv
 CRANE ?= $(LOCALBIN)/crane
+CRD_REF_DOCS ?= $(LOCALBIN)/crd-ref-docs
 LINT_TARGET ?= ""
 ## Tool Versions
 KUBERNETES_VERSION := 1.33.x
@@ -442,6 +443,11 @@ CTY_VERSION := 1.1.3
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
 	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly sigs.k8s.io/controller-runtime/tools/setup-envtest
+
+.PHONY: crd-ref-docs
+crd-ref-docs: $(CRD_REF_DOCS) ## Build crd-ref-docs locally if necessary.
+$(CRD_REF_DOCS): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
+	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/elastic/crd-ref-docs
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.

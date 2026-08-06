@@ -29,6 +29,7 @@ SHELL := /usr/bin/env bash
 TOP := $(dir $(firstword $(MAKEFILE_LIST)))
 # ROOT is the repository root.
 ROOT := $(abspath $(TOP))/../../
+CRD_REF_DOCS ?= $(ROOT)/bin/crd-ref-docs
 SRCDIR := $(ROOT)/docs
 CFGFILE := $(ROOT)/hack/api-docs/mkdocs.yml
 # GENROOT is the root of the generated documentation.
@@ -86,8 +87,11 @@ build.publish: image generate $(SOURCES)
 		$(MKDOCS_IMAGE) \
 		$(SHELL) -c "cd /repo && $(MIKE) deploy --update-aliases -p -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: generate
-generate:
-	./generate.sh $(SRCDIR)/api/spec.md
+generate: $(CRD_REF_DOCS)
+	CRD_REF_DOCS=$(CRD_REF_DOCS) ./generate.sh $(SRCDIR)/api/spec.md
+
+$(CRD_REF_DOCS):
+	$(MAKE) -C $(ROOT) CRD_REF_DOCS=$(CRD_REF_DOCS) crd-ref-docs
 
 .PHONY: clean
 clean:

@@ -77,7 +77,7 @@ type CRDProviderWhitelist struct {
 // (e.g. ConfigMap, addressed by setting resource.group to ""). Kubernetes
 // Secrets are intentionally blocked; use the Kubernetes provider for those.
 //
-// # Authentication modes
+// Authentication modes:
 //
 // In-cluster: set auth.serviceAccount and omit server. The server URL defaults
 // to the in-cluster API (kubernetes.default) and the controller mints a
@@ -86,7 +86,7 @@ type CRDProviderWhitelist struct {
 // Remote cluster: set server plus auth (serviceAccount, token, or cert) or
 // authRef (a kubeconfig Secret), exactly like the Kubernetes provider.
 //
-// # Remote reference keys
+// Remote reference keys:
 //
 //   - SecretStore: the key is the object name only; '/' is not allowed. The API
 //     namespace is always the store namespace, never part of the key.

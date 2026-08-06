@@ -1,0 +1,10 @@
+processor:
+  ignoreTypes:
+    - "ParseError$"
+    - "List$"
+    - "^StoreProvider$"
+  ignoreFields:
+    - "TypeMeta$"
+
+render:
+  kubernetesVersion: "1.33"
