@@ -74,7 +74,7 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 
 reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
 	@go mod tidy
-	@cd hack/tools/ && go mod tidy
+	@GOWORK=off go -C hack/tools mod tidy
 	@cd hack/tools/gen-crd-api-reference-docs/ && go mod tidy
 	@cd hack/tools/golangci-lint/ && go mod tidy
 	@cd e2e/ && go mod tidy
@@ -191,8 +191,8 @@ lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific mod
 		$(OK) Finished linting all modules; \
 	fi
 
-generate: ## Generate code and crds
-	@./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
+generate: controller-gen ## Generate code and crds
+	@CONTROLLER_GEN=$(CONTROLLER_GEN) ./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
 
 # ====================================================================================
@@ -430,6 +430,7 @@ $(LOCALBIN):
 TILT ?= $(LOCALBIN)/tilt
 CTY ?= $(LOCALBIN)/cty
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 DLV ?= $(LOCALBIN)/dlv
 CRANE ?= $(LOCALBIN)/crane
@@ -444,6 +445,11 @@ CTY_VERSION := 1.1.3
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
 	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly sigs.k8s.io/controller-runtime/tools/setup-envtest
+
+.PHONY: controller-gen
+controller-gen: $(CONTROLLER_GEN) ## Build controller-gen locally if necessary.
+$(CONTROLLER_GEN): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
+	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly sigs.k8s.io/controller-tools/cmd/controller-gen
 
 .PHONY: gen-crd-api-reference-docs
 gen-crd-api-reference-docs: $(GEN_CRD_API_REFERENCE_DOCS) ## Download gen-crd-api-reference-docs locally if necessary.

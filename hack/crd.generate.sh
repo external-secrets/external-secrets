@@ -2,16 +2,17 @@
 set -euo pipefail
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+: "${CONTROLLER_GEN:?CONTROLLER_GEN must point to controller-gen}"
 BUNDLE_DIR="${1}"
 CRD_DIR="${2}"
 BUNDLE_YAML="${BUNDLE_DIR}/bundle.yaml"
 
 cd "${SCRIPT_DIR}"/../
 
-go run sigs.k8s.io/controller-tools/cmd/controller-gen \
+"${CONTROLLER_GEN}" \
   object:headerFile="hack/boilerplate.go.txt" \
   paths="./apis/..."
-go run sigs.k8s.io/controller-tools/cmd/controller-gen crd \
+"${CONTROLLER_GEN}" crd \
   paths="./apis/..." \
   output:crd:artifacts:config="${CRD_DIR}/bases"
 
