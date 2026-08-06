@@ -488,7 +488,9 @@ func TestClientGetAllSecrets(t *testing.T) {
 			client: func() *Client { return ssClient(makeStore(wlRule("^app-.*$")), "ns1", objA, objB) },
 		},
 		{
-			name: "CSS namespaced kind uses namespace/name keys", wantKeys: []string{"ns1/app-a", "ns2/sys-b"},
+			// The provider builds namespace/name keys; the conversion strategy
+			// then replaces the slash so the key is valid in a Secret.
+			name: "CSS namespaced kind uses namespace/name keys", wantKeys: []string{"ns1_app-a", "ns2_sys-b"},
 			client: func() *Client {
 				return cssClient(makeStore(),
 					widget("app-a", "ns1", map[string]any{"password": "a"}),
@@ -686,9 +688,9 @@ func TestWhitelistGetAllSecrets(t *testing.T) {
 		rules    []esv1.CRDProviderWhitelistRule
 		wantKeys []string
 	}{
-		{name: "allow only ns1", rules: []esv1.CRDProviderWhitelistRule{wlRuleNS("^ns1$", "")}, wantKeys: []string{"ns1/app-a"}},
-		{name: "ns1 + name rule", rules: []esv1.CRDProviderWhitelistRule{wlRuleNS("^ns1$", ""), wlRuleNS("", "^app-b$")}, wantKeys: []string{"ns1/app-a", "ns2/app-b"}},
-		{name: "filter to ns2", rules: []esv1.CRDProviderWhitelistRule{wlRuleNS("^ns2$", "")}, wantKeys: []string{"ns2/app-b"}},
+		{name: "allow only ns1", rules: []esv1.CRDProviderWhitelistRule{wlRuleNS("^ns1$", "")}, wantKeys: []string{"ns1_app-a"}},
+		{name: "ns1 + name rule", rules: []esv1.CRDProviderWhitelistRule{wlRuleNS("^ns1$", ""), wlRuleNS("", "^app-b$")}, wantKeys: []string{"ns1_app-a", "ns2_app-b"}},
+		{name: "filter to ns2", rules: []esv1.CRDProviderWhitelistRule{wlRuleNS("^ns2$", "")}, wantKeys: []string{"ns2_app-b"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
