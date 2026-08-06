@@ -99,6 +99,11 @@ env:
   # trusted pull_request path, where the checkout falls back to github.sha (the
   # PR merge ref).
   TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha }}
+  # Base branch the change is measured against, for the affected-only matrix.
+  # The comment path gets it from the dispatched PR object, the review path
+  # from an explicit field in ok-to-test-review.yml. Anything absent or empty
+  # falls back to main, which over-selects rather than under-selects.
+  BASE_REF: ${{ github.event.pull_request.base.ref || github.event.client_payload.pull_request.base.ref || 'main' }}
   # Ephemeral tag: images are only ever loaded into kind, never pushed, so a
   # fixed tag keeps the build and test jobs in sync without passing a version.
   VERSION: "e2e"
@@ -122,7 +127,25 @@ jobs:
         uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ env.TARGET_SHA || github.sha }}
+          # Full history, blobless, so the affected-only diff below can find a
+          # merge base without paying for file contents it never reads.
+          fetch-depth: 0
+          filter: blob:none
           persist-credentials: false
+
+      # Diff the revision that was actually checked out, never the live PR
+      # endpoint: the fork path pins TARGET_SHA so that a push landing after
+      # /ok-to-test cannot change which legs run against the approved commit.
+      # Any failure leaves changed.txt absent, which runs every leg.
+      - name: List the changed files
+        run: |
+          if git rev-parse --verify --quiet "origin/${BASE_REF}" >/dev/null &&
+             git diff --name-only "origin/${BASE_REF}...HEAD" > fetched.txt; then
+            mv fetched.txt changed.txt
+            echo "changed files: $(grep -c '' < changed.txt)"
+          else
+            echo "::warning::cannot diff against origin/${BASE_REF}; running every leg"
+          fi
 
       - name: Validate and build the e2e matrix
         id: set
@@ -131,8 +154,13 @@ jobs:
         # without ever touching a secret value.
         run: |
           ./e2e/matrix.py check
+          ./e2e/matrix.py selftest
           ./e2e/matrix.py plan
-          matrix="$(./e2e/matrix.py json)"
+          if [ -s changed.txt ]; then
+            matrix="$(./e2e/matrix.py json --changed changed.txt)"
+          else
+            matrix="$(./e2e/matrix.py json)"
+          fi
           echo "matrix=${matrix}" >> "$GITHUB_OUTPUT"
 
   build:

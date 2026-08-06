@@ -67,10 +67,55 @@ Each `area` is one leg:
   providers: [aws]                # for the coverage check only
   secret_groups: [aws]            # which credential groups this leg receives
   needs_secrets: true             # mirror of "secret_groups is non-empty"
-  paths:                          # phase 2 seed (affected-only), unused today
+  paths:                          # globs that select this leg on a PR
     - "providers/v1/aws/**"
     - "e2e/suites/provider/cases/aws/**"
-  enabled: true                   # whether the phase 1 matrix runs it now
+  enabled: true                   # whether CI runs it at all
+```
+
+## Affected-only selection
+
+On a pull request, a leg runs only when the diff can affect it. `prepare-matrix`
+lists the PR's changed files and passes them to `matrix.py json --changed`,
+which keeps an enabled area when either its `paths` globs match or it is marked
+`always: true`. Any other event runs the full matrix.
+
+Three rules keep this from quietly reducing coverage, all enforced in
+`matrix.py` rather than in workflow YAML:
+
+- **Shared machinery runs everything.** A change matching the top-level
+  `full_matrix_paths` selects every enabled leg. This is load-bearing, not
+  belt-and-braces: `apis/`, `pkg/` and `runtime/` appear in only four areas'
+  `paths`, so per-area matching alone would skip every provider leg on a core
+  change.
+- **Fail open.** No `--changed`, an unreadable file, or an empty list all run
+  the full matrix. A broken diff step must not look like an empty diff.
+- **Something always runs.** `core-smoke` is `always: true`, so the matrix is
+  never empty and the required floor keeps its promise.
+- **The diff comes from the revision under test.** `prepare-matrix` runs
+  `git diff --name-only origin/$BASE_REF...HEAD` on what it checked out, not a
+  query against the live pull request. That matters on the fork path, which
+  pins `TARGET_SHA` so a push landing after `/ok-to-test` cannot change which
+  legs run against the approved commit. It also means the list cannot arrive
+  truncated, the way a paginated API result can.
+
+Matching is `fnmatch.fnmatchcase`, so `providers/v1/aws/**` covers
+`providers/v1/aws/secretsmanager/client.go` but not `providers/v1/awsx/`. Case
+is significant, so a laptop and a Linux runner agree.
+
+Careful when editing either list: `fnmatch`'s `*` crosses `/`, unlike a shell
+glob. `e2e/*` therefore matches `e2e/suites/provider/cases/aws/x.go` as well as
+`e2e/Dockerfile`, which would quietly make every change run the full matrix.
+That is why the shared `e2e` entries are listed file by file.
+
+`matrix.py selftest` checks the resolver against a table of changed-file sets
+and their expected legs, and runs in `prepare-matrix` beside `check`. Extend it
+when you change the selection rules.
+
+To see what a given diff would select:
+
+```bash
+git diff --name-only origin/main... | ./e2e/matrix.py json --changed -
 ```
 
 Notes:
@@ -176,7 +221,19 @@ make -C e2e test.run TEST_SUITES=provider GINKGO_LABELS="vault && !managed" \
    and wire that group's env vars in `e2e-reusable.yml`.
 4. Set `enabled: true` when you want CI to run it.
 
-`matrix.py check` (run in `prepare-matrix`) enforces steps 1-3: it fails the
-build if a provider is compiled into the suite but not covered by an area, if
-`needs_secrets` disagrees with `secret_groups`, or if an area names a secret
-group that the workflow does not wire.
+`matrix.py check` (run in `prepare-matrix`) enforces steps 1-3, and fails the
+build on any of:
+
+- a provider compiled into the suite but not covered by an area;
+- `needs_secrets` disagreeing with `secret_groups`;
+- an area naming a secret group the workflow does not wire;
+- an enabled area declaring no `paths`, which would leave it sitting out
+  nearly every PR;
+- a glob that matches no tracked file, so a typo cannot quietly stop selecting
+  its leg;
+- a suite's own file that no enabled leg selects, which is how the provider
+  suite's bootstrap slipped through once.
+
+The last two exist because a wrong glob is invisible in a way that
+`enabled: false` never was: the leg keeps passing on every PR that happens to
+touch shared machinery, so nothing looks broken.

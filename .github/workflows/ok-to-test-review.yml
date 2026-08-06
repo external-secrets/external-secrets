@@ -86,8 +86,9 @@ jobs:
         esac
 
     # Emit the client_payload fields e2e.yml consumes on the comment path:
-    # slash_command.args.named.sha (the target SHA) and pull_request.number
-    # (used by report-fork to comment the result). jq quotes both safely.
+    # slash_command.args.named.sha, pull_request.number (report-fork comments
+    # the result) and pull_request.base.ref (the affected-only matrix diffs
+    # against it). jq quotes all three safely.
     - name: Dispatch ok-to-test-command
       if: steps.cmd.outputs.match == 'true'
       env:
@@ -95,11 +96,13 @@ jobs:
         REPO: ${{ github.repository }}
         SHA: ${{ github.event.review.commit_id }}
         PR_NUMBER: ${{ github.event.pull_request.number }}
+        BASE_REF: ${{ github.event.pull_request.base.ref }}
       run: |
-        jq -cn --arg sha "$SHA" --argjson num "$PR_NUMBER" '{
+        jq -cn --arg sha "$SHA" --argjson num "$PR_NUMBER" \
+               --arg base "$BASE_REF" '{
           event_type: "ok-to-test-command",
           client_payload: {
             slash_command: { args: { named: { sha: $sha } } },
-            pull_request: { number: $num }
+            pull_request: { number: $num, base: { ref: $base } }
           }
         }' | gh api --method POST "repos/${REPO}/dispatches" --input -

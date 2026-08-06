@@ -1,7 +1,9 @@
 # Source of truth for the non-managed e2e fan-out (e2e.yml). Each area is one CI
 # leg: a suite binary run under a Ginkgo label filter. The build job compiles
-# the images once; every enabled area runs as its own matrix leg on its own kind
-# cluster, so a flaky addon in one provider cannot fail the others.
+# the images once; each selected area runs as its own matrix leg on its own kind
+# cluster, so a flaky addon in one provider cannot fail the others. On a pull
+# request the selection is the legs the diff can affect (see paths below); every
+# other event runs all enabled areas.
 #
 # Fields:
 #   name          leg id, shown as "test (<name>)" in the checks list.
@@ -21,19 +23,66 @@
 #                 names map to secret sets in e2e-reusable.yml.
 #   needs_secrets convenience mirror of "secret_groups is non-empty". Documents
 #                 intent; not read by CI.
-#   paths         globs whose change should trigger this leg. Seed for the
-#                 phase 2 affected-only resolver; ignored by the static phase 1
-#                 matrix, which runs every enabled area.
-#   enabled       whether phase 1 CI runs this leg now. Disabled areas still
-#                 count for coverage and document the target matrix; flip to true
-#                 to expand the fan-out.
+#   paths         globs whose change triggers this leg. Read by the resolver
+#                 (matrix.py json --changed) on pull requests; every enabled
+#                 area runs on other events. Required on enabled areas, or the
+#                 leg would sit out nearly every PR.
+#   always        opt this leg out of affected-only filtering, so it runs on
+#                 every PR whatever changed. Set on the required floor only:
+#                 something must always run, or the matrix could come out empty.
+#   enabled       whether CI runs this leg at all. Disabled areas still count
+#                 for coverage and document the target matrix; flip to true to
+#                 expand the fan-out.
 #
 # All legs are enabled. Set enabled: false on an area to skip it (e.g. while a
 # provider's e2e is being fixed) without deleting its definition.
 
+# Shared machinery no single leg owns: a change here runs every enabled leg.
+# Not belt-and-braces: apis/, pkg/ and runtime/ appear in only four areas'
+# paths, so per-area matching alone would skip every provider leg on a core
+# change, losing coverage exactly when it matters most.
+#
+# The e2e entries are listed file by file on purpose. Globs are fnmatch, where
+# * crosses /, so "e2e/*" would also match e2e/suites/... and make every change
+# run everything. e2e/README.md is left out so a docs edit stays cheap.
+full_matrix_paths:
+  - "apis/**"
+  - "pkg/**"
+  - "runtime/**"
+  - "cmd/**"
+  - "deploy/**"
+  - "hack/**"
+  - "go.mod"
+  - "go.sum"
+  - "Makefile"
+  - "Dockerfile*"
+  - ".github/workflows/**"
+  # Every leg runs the same image and the same kind cluster, so all of this is
+  # shared: the Dockerfile ADDs entrypoint.sh, k8s/ and all four suite
+  # binaries, and the Makefile creates the cluster from kind.yaml.
+  - "e2e/Dockerfile"
+  - "e2e/entrypoint.sh"
+  - "e2e/go.mod"
+  - "e2e/go.sum"
+  - "e2e/kind.yaml"
+  - "e2e/Makefile"
+  - "e2e/matrix.py"
+  - "e2e/matrix.yaml"
+  - "e2e/run.sh"
+  - "e2e/tools.go"
+  - "e2e/framework/**"
+  - "e2e/k8s/**"
+  - "e2e/suites/provider/cases/common/**"
+  - "e2e/suites/provider/cases/import.go"
+  # The provider suite's bootstrap sits one level above every provider leg's
+  # cases/<name>/** globs, so nothing else selects it. check rule 6 keeps any
+  # future sibling from going uncovered the same way.
+  - "e2e/suites/provider/suite_test.go"
+
 areas:
-  # In-cluster only, no external credentials. The required floor: this leg runs
-  # on every PR (including forks) and is the stable branch-protection gate.
+  # In-cluster only, no external credentials. The required floor: never
+  # filtered out, so it runs whatever a pull request changed. Not "including
+  # forks": a fork PR runs no leg at all until /ok-to-test dispatches.
   - name: core-smoke
     suite: provider
     labels: "(fake || kubernetes || template) && !managed"
@@ -51,6 +100,12 @@ areas:
       - "e2e/suites/provider/cases/kubernetes/**"
       - "e2e/suites/provider/cases/template/**"
       - "e2e/suites/provider/cases/common/**"
+      # The providers these specs drive through the controller. Listed even
+      # though always: true already forces this leg, so coverage does not
+      # silently depend on that flag staying set.
+      - "providers/v1/fake/**"
+      - "providers/v1/kubernetes/**"
+    always: true
     enabled: true
 
   # The CRD provider reads arbitrary custom resources from the local cluster
@@ -225,7 +280,10 @@ areas:
     needs_secrets: true
     paths:
       - "generators/v1/grafana/**"
-      - "e2e/suites/generator/grafana.go"
+      # The whole suite dir, not just grafana.go: the bootstrap and the shared
+      # assertion helper live beside it, and naming files one by one would miss
+      # the next shared one somebody adds.
+      - "e2e/suites/generator/**"
     enabled: true
 
   - name: flux
@@ -239,6 +297,7 @@ areas:
       - "pkg/**"
       - "runtime/**"
       - "e2e/suites/flux/**"
+      - "e2e/suites/provider/cases/fake/**" # flux.go drives the fake provider
     enabled: true
 
   - name: argocd
@@ -252,4 +311,5 @@ areas:
       - "pkg/**"
       - "runtime/**"
       - "e2e/suites/argocd/**"
+      - "e2e/suites/provider/cases/fake/**" # argocd.go drives the fake provider
     enabled: true
