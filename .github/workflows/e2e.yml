@@ -70,6 +70,9 @@ jobs:
       ORACLE_REGION: ${{ secrets.ORACLE_REGION }}
       ORACLE_FINGERPRINT: ${{ secrets.ORACLE_FINGERPRINT }}
       ORACLE_KEY: ${{ secrets.ORACLE_KEY }}
+      ORACLE_VAULT_OCID: ${{ secrets.ORACLE_VAULT_OCID }}
+      ORACLE_COMPARTMENT_OCID: ${{ secrets.ORACLE_COMPARTMENT_OCID }}
+      ORACLE_ENCRYPTION_KEY_OCID: ${{ secrets.ORACLE_ENCRYPTION_KEY_OCID }}
 
   # A /ok-to-test *comment* must carry an explicit sha=. A bare comment has no
   # trustworthy pinned commit (the dispatch would otherwise read the live PR
@@ -178,6 +181,9 @@ jobs:
       ORACLE_REGION: ${{ secrets.ORACLE_REGION }}
       ORACLE_FINGERPRINT: ${{ secrets.ORACLE_FINGERPRINT }}
       ORACLE_KEY: ${{ secrets.ORACLE_KEY }}
+      ORACLE_VAULT_OCID: ${{ secrets.ORACLE_VAULT_OCID }}
+      ORACLE_COMPARTMENT_OCID: ${{ secrets.ORACLE_COMPARTMENT_OCID }}
+      ORACLE_ENCRYPTION_KEY_OCID: ${{ secrets.ORACLE_ENCRYPTION_KEY_OCID }}
 
   # Report the fork run result back onto the originating pull request.
   report-fork:
