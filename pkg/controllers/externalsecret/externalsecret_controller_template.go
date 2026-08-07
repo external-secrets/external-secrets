@@ -36,15 +36,24 @@ import (
 // * template.Data (highest precedence)
 // * template.TemplateFrom
 // * secret via es.data or es.dataFrom (if template.MergePolicy is Merge, or there is no template)
-// * existing secret keys (if CreationPolicy is Merge).
+// * existing secret keys (if CreationPolicy is Merge or CreateOrMerge).
 func (r *Reconciler) ApplyTemplate(ctx context.Context, es *esv1.ExternalSecret, secret *v1.Secret, dataMap map[string][]byte) error {
+	// the admission webhook rejects these templates already, but a cluster
+	// running with failurePolicy=Ignore or without the webhook must not render them either.
+	// this runs before any mutation, so a rejected template leaves the secret untouched.
+	if err := esv1.ValidateSecretTemplate(es.Spec.Target.Template); err != nil {
+		return err
+	}
+
 	// update metadata (labels, annotations, finalizers) of the secret
 	if err := setMetadata(secret, es); err != nil {
 		return err
 	}
 
-	// we only keep existing keys if creation policy is Merge, otherwise we clear the secret
-	if es.Spec.Target.CreationPolicy != esv1.CreatePolicyMerge {
+	// we only keep existing keys if creation policy is Merge or CreateOrMerge,
+	// otherwise we clear the secret
+	if es.Spec.Target.CreationPolicy != esv1.CreatePolicyMerge &&
+		es.Spec.Target.CreationPolicy != esv1.CreatePolicyCreateOrMerge {
 		secret.Data = make(map[string][]byte)
 	}
 

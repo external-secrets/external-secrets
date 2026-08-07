@@ -28,7 +28,7 @@ jobs:
     outputs:
       check_run_id: ${{ steps.create_check.outputs.check_run_id }}
     steps:
-      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
           egress-policy: audit
 
@@ -82,18 +82,18 @@ jobs:
       TF_VAR_AWS_SA_NAME: ${{ secrets.AWS_SA_NAME }}
       TF_VAR_AWS_SA_NAMESPACE: ${{ secrets.AWS_SA_NAMESPACE }}
     steps:
-      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
           egress-policy: audit
 
       - name: Fork based /ok-to-test-managed checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
           persist-credentials: false
 
       - name: Setup Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
 
@@ -120,7 +120,7 @@ jobs:
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v3
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@254c19bd240aabef8777f48595e9d2d7b972184b
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
         with:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
@@ -132,7 +132,7 @@ jobs:
         run: aws --region $AWS_REGION eks update-kubeconfig --name $AWS_CLUSTER_NAME
 
       - name: Login to Docker
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         if: env.GHCR_USERNAME != ''
         with:
           registry: ghcr.io
@@ -169,18 +169,18 @@ jobs:
       GCP_FED_SERVICE_ACCOUNT_EMAIL: ${{ secrets.GCP_FED_SERVICE_ACCOUNT_EMAIL }}
       GCP_FED_WORKLOAD_IDENTITY_PROVIDER: ${{ secrets.GCP_FED_WORKLOAD_IDENTITY_PROVIDER }}
     steps:
-      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
           egress-policy: audit
 
       - name: Fork based /ok-to-test-managed checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
           persist-credentials: false
 
       - name: Setup Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
 
@@ -207,7 +207,7 @@ jobs:
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v3
 
       - name: Authenticate to Google Cloud
-        uses: 'google-github-actions/auth@fc2174804b84f912b1f6d334e9463f484f1c552d' # v3
+        uses: 'google-github-actions/auth@cd3439a4d2c29fd597fb063e209ee2c2d6128dcd' # v3
         with:
           project_id: ${{ env.GCP_FED_PROJECT_ID }}
           service_account: ${{ env.GCP_FED_SERVICE_ACCOUNT_EMAIL }}
@@ -230,7 +230,7 @@ jobs:
           project_id: '${{ env.GCP_FED_PROJECT_ID }}'
 
       - name: Login to Docker
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         if: env.GHCR_USERNAME != ''
         with:
           registry: ghcr.io
@@ -264,18 +264,18 @@ jobs:
       TFC_AZURE_SUBSCRIPTION_ID: ${{ secrets.TFC_AZURE_SUBSCRIPTION_ID }}
       TFC_VAULT_URL: ${{ secrets.TFC_VAULT_URL }}
     steps:
-      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
         with:
           egress-policy: audit
 
       - name: Fork based /ok-to-test-managed checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
           persist-credentials: false
 
       - name: Setup Go
-        uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
 
@@ -319,7 +319,7 @@ jobs:
         run: az aks get-credentials --admin --name eso-cluster --resource-group external-secrets-e2e
 
       - name: Login to Docker
-        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4.4.0
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4.6.0
         if: env.GHCR_USERNAME != ''
         with:
           registry: ghcr.io

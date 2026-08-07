@@ -18,9 +18,14 @@ package barbican
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
 	"testing"
 
 	"github.com/gophercloud/gophercloud/v2"
+	th "github.com/gophercloud/gophercloud/v2/testhelper"
+	thclient "github.com/gophercloud/gophercloud/v2/testhelper/client"
 	"github.com/stretchr/testify/assert"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -206,4 +211,68 @@ func TestGetAllSecretsValidation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetAllSecretsRegexpMatch(t *testing.T) {
+	type fakeSecret struct {
+		name    string
+		uuid    string
+		payload string
+	}
+	all := []fakeSecret{
+		{name: "db-a", uuid: "11111111-1111-1111-1111-111111111111", payload: "payload-db-a"},
+		{name: "db-b", uuid: "22222222-2222-2222-2222-222222222222", payload: "payload-db-b"},
+		{name: "web-a", uuid: "33333333-3333-3333-3333-333333333333", payload: "payload-web-a"},
+	}
+
+	fakeServer := th.SetupHTTP()
+	defer fakeServer.Teardown()
+
+	// Barbican's list endpoint only does exact-name matching, so mirror that
+	// here: honor the ?name= query with a literal comparison, like the real
+	// service does. A regexp value therefore matches nothing server-side, which
+	// is exactly the reported bug.
+	fakeServer.Mux.HandleFunc("/secrets", func(w http.ResponseWriter, r *http.Request) {
+		nameFilter := r.URL.Query().Get("name")
+		type listed struct {
+			Name      string `json:"name"`
+			SecretRef string `json:"secret_ref"`
+		}
+		var out []listed
+		for _, s := range all {
+			if nameFilter != "" && s.name != nameFilter {
+				continue
+			}
+			out = append(out, listed{
+				Name:      s.name,
+				SecretRef: fmt.Sprintf("http://barbican.example.com/v1/secrets/%s", s.uuid),
+			})
+		}
+		body, _ := json.Marshal(map[string]any{"secrets": out, "total": len(out)})
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write(body)
+	})
+
+	for _, s := range all {
+		payload := s.payload
+		fakeServer.Mux.HandleFunc("/secrets/"+s.uuid+"/payload", func(w http.ResponseWriter, _ *http.Request) {
+			w.Header().Set("Content-Type", "text/plain")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(payload))
+		})
+	}
+
+	client := &Client{keyManager: thclient.ServiceClient(fakeServer)}
+
+	result, err := client.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{
+		Name: &esv1.FindName{RegExp: "^db-"},
+	})
+	assert.NoError(t, err)
+	// Only the db-* secrets should match the pattern, not web-a and not just a
+	// literal secret named "^db-".
+	assert.Len(t, result, 2)
+	assert.Equal(t, []byte("payload-db-a"), result["11111111-1111-1111-1111-111111111111"])
+	assert.Equal(t, []byte("payload-db-b"), result["22222222-2222-2222-2222-222222222222"])
+	assert.NotContains(t, result, "33333333-3333-3333-3333-333333333333")
 }

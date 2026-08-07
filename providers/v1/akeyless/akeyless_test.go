@@ -20,12 +20,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/akeylesslabs/akeyless-go/v4"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -201,6 +204,111 @@ func TestValidateStore(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("secret auth with serviceAccountRef", func(t *testing.T) {
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							SecretRef: esv1.AkeylessAuthSecretRef{
+								AccessID: esmeta.SecretKeySelector{
+									Name: "accessId",
+									Key:  "key-1",
+								},
+								AccessType: esmeta.SecretKeySelector{
+									Name: "accessId",
+									Key:  "key-1",
+								},
+							},
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name: "akeyless-wi-sa",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.NoError(t, err)
+	})
+
+	t.Run("secret auth with serviceAccountRef in different namespace", func(t *testing.T) {
+		ns := "other-ns"
+		store := &esv1.SecretStore{
+			ObjectMeta: metav1.ObjectMeta{
+				Namespace: "app-test",
+			},
+			TypeMeta: metav1.TypeMeta{
+				Kind: esv1.SecretStoreKind,
+			},
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							SecretRef: esv1.AkeylessAuthSecretRef{
+								AccessID: esmeta.SecretKeySelector{
+									Name: "accessId",
+									Key:  "key-1",
+								},
+								AccessType: esmeta.SecretKeySelector{
+									Name: "accessId",
+									Key:  "key-1",
+								},
+							},
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name:      "akeyless-wi-sa",
+								Namespace: &ns,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.Error(t, err)
+	})
+
+	t.Run("cluster secret auth with serviceAccountRef namespace", func(t *testing.T) {
+		ns := "app-test"
+		store := &esv1.ClusterSecretStore{
+			TypeMeta: metav1.TypeMeta{
+				Kind: esv1.ClusterSecretStoreKind,
+			},
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							SecretRef: esv1.AkeylessAuthSecretRef{
+								AccessID: esmeta.SecretKeySelector{
+									Name:      "accessId",
+									Key:       "key-1",
+									Namespace: &ns,
+								},
+								AccessType: esmeta.SecretKeySelector{
+									Name:      "accessId",
+									Key:       "key-1",
+									Namespace: &ns,
+								},
+							},
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name:      "akeyless-wi-sa",
+								Namespace: &ns,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.NoError(t, err)
+	})
+
 	t.Run("k8s auth", func(t *testing.T) {
 		store := &esv1.SecretStore{
 			Spec: esv1.SecretStoreSpec{
@@ -272,6 +380,32 @@ func TestGetSecretMap(t *testing.T) {
 		smtc.expectedVal = map[string][]byte{"foo": []byte("bar")}
 	}
 
+	// good case: nested json values are kept as raw json bytes
+	setNestedJSON := func(smtc *akeylessTestCase) {
+		smtc.apiOutput.Value = `{"foobar":{"baz":"nestedval"}}`
+		smtc.expectedVal = map[string][]byte{"foobar": []byte(`{"baz":"nestedval"}`)}
+	}
+
+	// good case: extract a nested json object into multiple keys
+	setExtractProperty := func(smtc *akeylessTestCase) {
+		smtc.apiOutput.Value = `{"db":{"username":"my_user","password":"my_pass"},"apiKey":"myApiKey"}`
+		smtc.ref.Property = "db"
+		smtc.expectedVal = map[string][]byte{
+			"username": []byte("my_user"),
+			"password": []byte("my_pass"),
+		}
+	}
+
+	// good case: extract property with non-string values
+	setExtractPropertyWithNonStringValues := func(smtc *akeylessTestCase) {
+		smtc.apiOutput.Value = `{"db":{"username":"my_user","port":5432}}`
+		smtc.ref.Property = "db"
+		smtc.expectedVal = map[string][]byte{
+			"username": []byte("my_user"),
+			"port":     []byte("5432"),
+		}
+	}
+
 	// bad case: invalid json
 	setInvalidJSON := func(smtc *akeylessTestCase) {
 		smtc.apiOutput.Value = `-----------------`
@@ -280,6 +414,9 @@ func TestGetSecretMap(t *testing.T) {
 
 	successCases := []*akeylessTestCase{
 		makeValidAkeylessTestCaseCustom(setDeserialization),
+		makeValidAkeylessTestCaseCustom(setNestedJSON),
+		makeValidAkeylessTestCaseCustom(setExtractProperty),
+		makeValidAkeylessTestCaseCustom(setExtractPropertyWithNonStringValues),
 		makeValidAkeylessTestCaseCustom(setInvalidJSON).SetExpectVal(map[string][]byte(nil)),
 		makeValidAkeylessTestCaseCustom(setAPIErr).SetExpectVal(map[string][]byte(nil)),
 		makeValidAkeylessTestCaseCustom(setNilMockClient).SetExpectVal(map[string][]byte(nil)),
@@ -460,4 +597,111 @@ func TestCapabilities(t *testing.T) {
 	// must advertise ReadWrite; otherwise ESO skips push operations entirely.
 	p := &Provider{}
 	require.Equal(t, esv1.SecretStoreReadWrite, p.Capabilities())
+}
+
+// newDescribeItemServer serves a single canned response for /describe-item and
+// returns an akeylessBase wired to it.
+func newDescribeItemServer(t *testing.T, status int, body string) *akeylessBase {
+	t.Helper()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		_, _ = w.Write([]byte(body))
+	}))
+	t.Cleanup(srv.Close)
+	return &akeylessBase{
+		RestAPI: akeyless.NewAPIClient(&akeyless.Configuration{
+			Servers: []akeyless.ServerConfiguration{{URL: srv.URL}},
+		}).V2Api,
+	}
+}
+
+func describeItemCtx() context.Context {
+	return context.WithValue(context.Background(), aKeylessToken, "t-test-token")
+}
+
+// TestDescribeItemMapsAPIStatus pins which Akeyless responses mean "absent".
+// Akeyless answers 404 only for a caller allowed to know an item is missing,
+// and 401 for one that is not, so the HTTP status is the discriminator. The
+// wording of the error body is not part of the contract and is not matched on.
+func TestDescribeItemMapsAPIStatus(t *testing.T) {
+	const notFoundBody = `{"error":"failed to obtain item description: Desc: Failed to get item. ` +
+		`Status 404 Not Found, Error: NotFound. Message: account id: acc-x, access id: p-y. ` +
+		`failed to obtain item /some/item"}`
+	const deniedBody = `{"error":"failed to obtain item description: Desc: Failed to get item. ` +
+		`Status 401 Unauthorized, Error: UnauthorizedAccess. Message: account id: acc-x, ` +
+		`access id: p-y. unauthorized access for access id p-y"}`
+
+	tests := []struct {
+		name        string
+		status      int
+		body        string
+		notExists   bool
+		wantMessage string
+	}{
+		{
+			name:      "404 means the item is absent",
+			status:    http.StatusNotFound,
+			body:      notFoundBody,
+			notExists: true,
+		},
+		{
+			name:        "401 is an authorization failure, not an absent item",
+			status:      http.StatusUnauthorized,
+			body:        deniedBody,
+			wantMessage: "UnauthorizedAccess",
+		},
+		{
+			name:        "5xx is a server failure, not an absent item",
+			status:      http.StatusInternalServerError,
+			body:        `{"error":"internal server error"}`,
+			wantMessage: "internal server error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := newDescribeItemServer(t, tt.status, tt.body)
+
+			item, err := a.DescribeItem(describeItemCtx(), "/some/item")
+
+			require.Error(t, err)
+			require.Nil(t, item)
+			if tt.notExists {
+				require.ErrorIs(t, err, ErrItemNotExists)
+				return
+			}
+			// The caller must not mistake this for an absent item, and the
+			// operator needs the reason Akeyless gave.
+			require.NotErrorIs(t, err, ErrItemNotExists)
+			require.Contains(t, err.Error(), tt.wantMessage)
+		})
+	}
+}
+
+// TestGetSecretByTypeSurfacesAuthFailure covers the path from the bug report:
+// a denied describe used to reach the caller as ErrItemNotExists, which made
+// SecretExists report absence and PushSecret attempt a create.
+func TestGetSecretByTypeSurfacesAuthFailure(t *testing.T) {
+	a := newDescribeItemServer(t, http.StatusUnauthorized,
+		`{"error":"Status 401 Unauthorized, Error: UnauthorizedAccess. Message: sub claim mismatch"}`)
+
+	_, err := a.GetSecretByType(describeItemCtx(), "/some/item", 0)
+
+	require.Error(t, err)
+	require.NotErrorIs(t, err, ErrItemNotExists)
+	require.Contains(t, err.Error(), "UnauthorizedAccess")
+}
+
+// TestDescribeItemSuccess guards the happy path, since the fix reorders the
+// error branch that precedes it.
+func TestDescribeItemSuccess(t *testing.T) {
+	a := newDescribeItemServer(t, http.StatusOK,
+		`{"item_name":"/some/item","item_type":"STATIC_SECRET","last_version":3}`)
+
+	item, err := a.DescribeItem(describeItemCtx(), "/some/item")
+
+	require.NoError(t, err)
+	require.Equal(t, "/some/item", item.GetItemName())
+	require.Equal(t, "STATIC_SECRET", item.GetItemType())
 }

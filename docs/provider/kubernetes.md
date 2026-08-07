@@ -4,7 +4,7 @@ A `SecretStore` points to a **specific namespace** in the target Kubernetes Clus
 
 The `SecretStore` reconciler checks if you have read access for secrets in that namespace using `SelfSubjectRulesReview` and will fallback to `SelfSubjectAccessReview` when that fails. See below on how to set that up properly.
 
-### External Secret Spec
+## External Secret Spec
 
 This provider supports the use of the `Property` field. With it you point to the key of the remote secret. If you leave it empty it will json encode all key/value pairs.
 
@@ -42,18 +42,18 @@ spec:
     remoteRef:
       metadataPolicy: Fetch
       key: database-credentials
-	  property: labels
+      property: labels
 
   # metadataPolicy to fetch a specific label (dev) from the source secret
   - secretKey: developer
     remoteRef:
       metadataPolicy: Fetch
       key: database-credentials
-	  property: labels.dev
+      property: labels.dev
 
 ```
 
-#### find by tag & name
+### find by tag & name
 
 You can fetch secrets based on labels or names matching a regexp:
 
@@ -80,7 +80,7 @@ spec:
         app: "nginx"
 ```
 
-### Target API-Server Configuration
+## Target API-Server Configuration
 
 The servers `url` can be omitted and defaults to `kubernetes.default`. If no `caBundle` or `caProvider` is specified, the operator uses the system certificate roots from the container image. Both the default (`distroless/static`) and UBI images include standard CA certificates, so connections to servers using well-known CAs (e.g., Let's Encrypt) work without explicit CA configuration.
 For your convenience, each namespace has a ConfigMap `kube-root-ca.crt` that contains the CA certificate of the internal API Server (see `RootCAConfigMap` [feature gate](https://kubernetes.io/docs/reference/command-line-tools-reference/feature-gates/)).
@@ -130,7 +130,7 @@ spec:
             key: token
 ```
 
-### Authentication
+## Authentication
 
 It's possible to authenticate against the Kubernetes API using client certificates, a bearer token or service account. The operator enforces that exactly one authentication method is used. You can not use the service account that is mounted inside the operator, this is by design to avoid reading secrets across namespaces.
 
@@ -158,7 +158,7 @@ rules:
   - create
 ```
 
-#### Authenticating with BearerToken
+### Authenticating with BearerToken
 
 Create a Kubernetes secret with a client token. There are many ways to acquire such a token, please refer to the [Kubernetes Authentication docs](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#authentication-strategies).
 
@@ -192,7 +192,7 @@ spec:
             key: token
 ```
 
-#### Authenticating with ServiceAccount
+### Authenticating with ServiceAccount
 
 Create a Kubernetes Service Account, please refer to the [Service Account Tokens Documentation](https://kubernetes.io/docs/reference/access-authn-authz/authentication/#service-account-tokens) on how they work and how to create them.
 
@@ -225,7 +225,7 @@ spec:
           name: "my-store"
 ```
 
-#### Authenticating with Client Certificates
+### Authenticating with Client Certificates
 
 Create a Kubernetes secret which contains the client key and certificate. See [Generate Certificates Documentations](https://kubernetes.io/docs/tasks/administer-cluster/certificates/) on how to create them.
 
@@ -258,7 +258,7 @@ spec:
 ```
 
 
-### Access from different namespace in same cluster
+## Access from different namespace in same cluster
 
 If you don't have cluster wide access to create a `ClusterExternalSecret`, you can still access a secret from a dedicated namespace via a bearer token to a service connection within that namespace:
 
@@ -365,7 +365,7 @@ spec:
         property: username
 ```
 
-### PushSecret
+## PushSecret
 
 The PushSecret functionality facilitates the replication of a Kubernetes Secret from one namespace or cluster to another. This feature proves useful in scenarios where you need to share sensitive information, such as credentials or configuration data, across different parts of your infrastructure.
 
@@ -454,7 +454,7 @@ spec:
           property: ".dockerconfigjson"
 ```
 
-#### PushSecret Metadata
+### PushSecret Metadata
 
 The Kubernetes provider is able to manage both `metadata.labels` and `metadata.annotations` of the secret on the target cluster.
 
@@ -522,7 +522,7 @@ spec:
 | annotations       | `map[string]string`                  | The annotations.                                                                                                                                                                                                                                                                                                                                  |
 | remoteNamespace   | string                               | The Namespace in which the remote Secret will created in if defined.                                                                                                                                                                                                                                                                              |
 
-#### Implementation Considerations
+### Implementation Considerations
 
 When using the PushSecret feature and configuring the permissions for the SecretStore, consider the following:
 

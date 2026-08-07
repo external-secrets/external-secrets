@@ -37,6 +37,8 @@ var (
 	errConjurClient          = "cannot setup new Conjur client: %w"
 	errBadServiceUser        = "could not get Auth.Apikey.UserRef: %w"
 	errBadServiceAPIKey      = "could not get Auth.Apikey.ApiKeyRef: %w"
+	errBadClientCert         = "could not get Auth.Cert.ClientCertRef: %w"
+	errBadClientKey          = "could not get Auth.Cert.ClientKeyRef: %w"
 	errGetKubeSATokenRequest = "cannot request Kubernetes service account token for service account %q: %w"
 	errSecretKeyFmt          = "cannot find secret data for key: %q"
 )
@@ -91,6 +93,10 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 	if prov.Auth.Jwt != nil {
 		return c.conjurClientFromJWT(ctx, config, prov)
 	}
+	if prov.Auth.Cert != nil {
+		return c.conjurClientFromCert(ctx, config, prov)
+	}
+
 	// Should not happen because validate func should catch this
 	return nil, errors.New("no authentication method provided")
 }
@@ -169,6 +175,42 @@ func (c *Client) conjurClientFromJWT(ctx context.Context, config conjurapi.Confi
 	config.JWTContent = jwtToken
 
 	conjur, clientError := c.clientAPI.NewClientFromJWT(config)
+	if clientError != nil {
+		return nil, fmt.Errorf(errConjurClient, clientError)
+	}
+
+	c.client = conjur
+	return conjur, nil
+}
+
+func (c *Client) conjurClientFromCert(ctx context.Context, config conjurapi.Config, prov *esv1.ConjurProvider) (SecretsClient, error) {
+	config.AuthnType = "cert"
+	config.Account = prov.Auth.Cert.Account
+	config.ServiceID = prov.Auth.Cert.ServiceID
+	config.CertHostID = prov.Auth.Cert.HostID
+
+	clientCert, secErr := resolvers.SecretKeyRef(
+		ctx,
+		c.kube,
+		c.StoreKind,
+		c.namespace, prov.Auth.Cert.ClientCertRef)
+	if secErr != nil {
+		return nil, fmt.Errorf(errBadClientCert, secErr)
+	}
+	config.ClientCert = clientCert
+
+	clientKey, secErr := resolvers.SecretKeyRef(
+		ctx,
+		c.kube,
+		c.StoreKind,
+		c.namespace,
+		prov.Auth.Cert.ClientKeyRef)
+	if secErr != nil {
+		return nil, fmt.Errorf(errBadClientKey, secErr)
+	}
+	config.ClientCertKey = clientKey
+
+	conjur, clientError := c.clientAPI.NewClientFromCert(config)
 	if clientError != nil {
 		return nil, fmt.Errorf(errConjurClient, clientError)
 	}
