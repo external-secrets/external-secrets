@@ -270,7 +270,9 @@ func convert(strategy esv1.ExternalSecretConversionStrategy, str string) string 
 			rv != '.' &&
 			rv != '_' {
 			switch strategy {
-			case esv1.ExternalSecretConversionDefault:
+			// An empty strategy means the field was omitted, which the API
+			// documents as Default. Decode() folds "" in the same way.
+			case esv1.ExternalSecretConversionDefault, "":
 				newName[rk] = "_"
 			case esv1.ExternalSecretConversionUnicode:
 				newName[rk] = fmt.Sprintf("_U%04x_", rv)
