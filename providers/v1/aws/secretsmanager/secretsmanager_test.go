@@ -1724,6 +1724,146 @@ func TestPushSecretEmptyExistingResourcePolicy(t *testing.T) {
 	assert.True(t, putResourcePolicyCalled, "PutResourcePolicy should be called when existing policy is empty")
 }
 
+// A PushSecret that never declares resourcePolicy must not touch the resource policy at all,
+// so that secretsmanager:DeleteResourcePolicy stays optional and policies attached outside of
+// ESO survive. See #6806.
+func TestPushSecretSkipsResourcePolicyWhenNotDeclared(t *testing.T) {
+	metadataVariants := map[string]*apiextensionsv1.JSON{
+		"NoMetadata": nil,
+		"MetadataWithoutResourcePolicy": {
+			Raw: []byte(`{
+				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+				"kind": "PushSecretMetadata",
+				"spec": {
+					"tags": {"newTag": "newValue"}
+				}
+			}`),
+		},
+	}
+
+	for name, pushSecretMetadata := range metadataVariants {
+		t.Run(name, func(t *testing.T) {
+			secretKey := fakeSecretKey
+			secretValue := []byte("fake-value")
+			fakeSecret := &corev1.Secret{
+				Data: map[string][]byte{
+					secretKey: secretValue,
+				},
+			}
+			arn := testARN
+			defaultVersion := testDefaultVersion
+			managed := managedBy
+			manager := externalSecrets
+
+			deleteResourcePolicyCalled := false
+			getResourcePolicyCalled := false
+
+			client := fakesm.Client{
+				GetSecretValueFn: fakesm.NewGetSecretValueFn(&awssm.GetSecretValueOutput{
+					ARN:          &arn,
+					SecretBinary: secretValue,
+					VersionId:    &defaultVersion,
+				}, nil),
+				DescribeSecretFn: fakesm.NewDescribeSecretFn(&awssm.DescribeSecretOutput{
+					ARN: &arn,
+					Tags: []types.Tag{
+						{Key: &managed, Value: &manager},
+					},
+					VersionIdsToStages: map[string][]string{
+						defaultVersion: {"AWSCURRENT"},
+					},
+				}, nil),
+				PutSecretValueFn: fakesm.NewPutSecretValueFn(&awssm.PutSecretValueOutput{}, nil),
+				TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+				UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+				// Mimic a least-privilege principal: the calls are denied, so reaching them fails the push.
+				GetResourcePolicyFn: func(_ context.Context, _ *awssm.GetResourcePolicyInput, _ ...func(*awssm.Options)) (*awssm.GetResourcePolicyOutput, error) {
+					getResourcePolicyCalled = true
+					return nil, errors.New("AccessDeniedException: not authorized to perform secretsmanager:GetResourcePolicy")
+				},
+				DeleteResourcePolicyFn: func(_ context.Context, _ *awssm.DeleteResourcePolicyInput, _ ...func(*awssm.Options)) (*awssm.DeleteResourcePolicyOutput, error) {
+					deleteResourcePolicyCalled = true
+					return nil, errors.New("AccessDeniedException: not authorized to perform secretsmanager:DeleteResourcePolicy")
+				},
+			}
+
+			sm := SecretsManager{
+				client: &client,
+			}
+
+			err := sm.PushSecret(context.Background(), fakeSecret, fake.PushSecretData{
+				SecretKey: secretKey,
+				RemoteKey: fakeKey,
+				Metadata:  pushSecretMetadata,
+			})
+			require.NoError(t, err)
+			assert.False(t, deleteResourcePolicyCalled, "DeleteResourcePolicy should not be called when resourcePolicy is not declared")
+			assert.False(t, getResourcePolicyCalled, "GetResourcePolicy should not be called when resourcePolicy is not declared")
+		})
+	}
+}
+
+// An explicitly declared resourcePolicy without a policySourceRef is the opt-in way to remove a policy.
+func TestPushSecretDeletesResourcePolicyWhenDeclaredWithoutSource(t *testing.T) {
+	secretKey := fakeSecretKey
+	secretValue := []byte("fake-value")
+	fakeSecret := &corev1.Secret{
+		Data: map[string][]byte{
+			secretKey: secretValue,
+		},
+	}
+	arn := testARN
+	defaultVersion := testDefaultVersion
+	managed := managedBy
+	manager := externalSecrets
+
+	var capturedDeleteInput *awssm.DeleteResourcePolicyInput
+
+	client := fakesm.Client{
+		GetSecretValueFn: fakesm.NewGetSecretValueFn(&awssm.GetSecretValueOutput{
+			ARN:          &arn,
+			SecretBinary: secretValue,
+			VersionId:    &defaultVersion,
+		}, nil),
+		DescribeSecretFn: fakesm.NewDescribeSecretFn(&awssm.DescribeSecretOutput{
+			ARN: &arn,
+			Tags: []types.Tag{
+				{Key: &managed, Value: &manager},
+			},
+			VersionIdsToStages: map[string][]string{
+				defaultVersion: {"AWSCURRENT"},
+			},
+		}, nil),
+		PutSecretValueFn: fakesm.NewPutSecretValueFn(&awssm.PutSecretValueOutput{}, nil),
+		TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+		UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+		DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil, func(input *awssm.DeleteResourcePolicyInput) {
+			capturedDeleteInput = input
+		}),
+	}
+
+	sm := SecretsManager{
+		client: &client,
+	}
+
+	err := sm.PushSecret(context.Background(), fakeSecret, fake.PushSecretData{
+		SecretKey: secretKey,
+		RemoteKey: fakeKey,
+		Metadata: &apiextensionsv1.JSON{
+			Raw: []byte(`{
+				"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+				"kind": "PushSecretMetadata",
+				"spec": {
+					"resourcePolicy": {}
+				}
+			}`),
+		},
+	})
+	require.NoError(t, err)
+	require.NotNil(t, capturedDeleteInput, "DeleteResourcePolicy should be called when resourcePolicy is declared without a source")
+	assert.Equal(t, fakeKey, *capturedDeleteInput.SecretId)
+}
+
 func TestDeleteSecret(t *testing.T) {
 	fakeClient := fakesm.Client{}
 	managed := managedBy

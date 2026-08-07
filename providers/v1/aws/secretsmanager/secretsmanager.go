@@ -936,8 +936,15 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		return err
 	}
 
-	// Delete policy if policyRef is nil and the policy exists.
+	// NOTE: skip resource policy management completely unless explicitly set in the desired state.
+	// Deleting on absence would make secretsmanager:DeleteResourcePolicy mandatory for every push and
+	// would drop policies attached outside of ESO.
 	if meta.Spec.ResourcePolicy == nil {
+		return nil
+	}
+
+	// An explicitly declared resourcePolicy without a source means "no policy".
+	if meta.Spec.ResourcePolicy.PolicySourceRef == nil {
 		return sm.deleteResourcePolicy(ctx, secretID)
 	}
 
