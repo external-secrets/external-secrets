@@ -35,10 +35,12 @@ const (
 	notFoundError      = "not found"
 )
 
+// FakePayloadService provides in-memory payload data for tests.
 type FakePayloadService struct {
 	data map[string]map[string]*mbox.SecretPayload
 }
 
+// Get returns a payload from the fake service.
 func (f *FakePayloadService) Get(_ context.Context, r *mbox.GetPayloadRequest, _ ...grpc.CallOption) (*mbox.SecretPayload, error) {
 	version := extractVersionFromRequest(r.VersionId)
 	val, ok := f.data[r.GetSecretId()][version]
@@ -48,6 +50,7 @@ func (f *FakePayloadService) Get(_ context.Context, r *mbox.GetPayloadRequest, _
 	return val, nil
 }
 
+// GetByKey returns a payload entry from the fake service.
 func (f *FakePayloadService) GetByKey(_ context.Context, r *mbox.GetPayloadByKeyRequest, _ ...grpc.CallOption) (*mbox.SecretPayloadEntry, error) {
 	version := extractVersionFromRequest(r.VersionId)
 	payload, ok := f.data[r.GetSecretId()][version]
@@ -64,6 +67,7 @@ func (f *FakePayloadService) GetByKey(_ context.Context, r *mbox.GetPayloadByKey
 	return nil, errors.New(notFoundError)
 }
 
+// InitFakePayloadService creates a fake service populated with test data.
 func InitFakePayloadService() *FakePayloadService {
 	mysteryboxData := map[string]map[string]*mbox.SecretPayload{}
 	mysteryboxData["secret1Id"] = make(map[string]*mbox.SecretPayload)
