@@ -42,6 +42,18 @@ type fakeAPI struct {
 	secretsErr error
 }
 
+type siteValidatingAPI struct {
+	*fakeAPI
+}
+
+func (f *siteValidatingAPI) CreateSecret(secret server.Secret) (*server.Secret, error) {
+	if secret.SiteID < 1 {
+		return nil, errors.New(`400 Bad Request: {"message":"The request is invalid.","modelState":{"secretCreateArgs.SiteId":["The field SiteId must be between 1 and 2147483647."]}}`)
+	}
+
+	return f.fakeAPI.CreateSecret(secret)
+}
+
 const (
 	usernameSlug = "username"
 	passwordSlug = "password"
@@ -575,7 +587,7 @@ func TestPushSecret(t *testing.T) {
 	}
 
 	metadataJSON := apiextensionsv1.JSON{
-		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 1}}`),
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 1, "siteId": 1}}`),
 	}
 
 	// Create a new secret
@@ -631,11 +643,25 @@ func TestPushSecret(t *testing.T) {
 	}
 	err = c.PushSecret(ctx, secret, dataMissingMeta)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "folderId and secretTemplateId must be provided in metadata to create a new secret")
+	assert.Contains(t, err.Error(), "folderId, secretTemplateId, and siteId must be provided in metadata to create a new secret")
+
+	// Missing siteId for new secret
+	metadataWithoutSiteID := apiextensionsv1.JSON{
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId":1,"secretTemplateId":1}}`),
+	}
+	dataWithoutSiteID := fakePushSecretData{
+		remoteKey: "new-secret-no-site-id",
+		property:  "username",
+		secretKey: "my-key",
+		metadata:  &metadataWithoutSiteID,
+	}
+	err = c.PushSecret(ctx, secret, dataWithoutSiteID)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "folderId, secretTemplateId, and siteId must be provided in metadata to create a new secret")
 
 	// Invalid secretTemplateId in metadata
 	invalidMetadataJSON := apiextensionsv1.JSON{
-		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 999}}`), // non-existent template
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 999, "siteId": 1}}`), // non-existent template
 	}
 	dataInvalidMeta := fakePushSecretData{
 		remoteKey: "new-secret-invalid-meta",
@@ -671,7 +697,7 @@ func TestPushSecret(t *testing.T) {
 
 	// Update duplicate-named secret in specific folder (ID 9001 in FolderID 5)
 	metadataFolder5 := apiextensionsv1.JSON{
-		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 5, "secretTemplateId": 1}}`),
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 5, "secretTemplateId": 1, "siteId": 1}}`),
 	}
 	dataFolderUpdate := fakePushSecretData{
 		remoteKey: "FolderSecretname",
@@ -733,6 +759,28 @@ func TestPushSecret(t *testing.T) {
 	err = c.PushSecret(ctx, invalidUtf8Secret, dataInvalidUtf8)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "secret value is not valid UTF-8")
+}
+
+func TestPushSecretIncludesSiteIDWhenCreatingSecret(t *testing.T) {
+	ctx := t.Context()
+	testClient := newTestClient(t).(*client)
+	testClient.api = &siteValidatingAPI{fakeAPI: testClient.api.(*fakeAPI)}
+	secret := &corev1.Secret{Data: map[string][]byte{"my-key": []byte("my-value")}}
+	metadataJSON := apiextensionsv1.JSON{
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId":1,"secretTemplateId":1,"siteId":1}}`),
+	}
+
+	err := testClient.PushSecret(ctx, secret, fakePushSecretData{
+		remoteKey: "new-secret-with-site",
+		property:  "username",
+		secretKey: "my-key",
+		metadata:  &metadataJSON,
+	})
+
+	require.NoError(t, err)
+	created, err := testClient.api.SecretByPath("new-secret-with-site")
+	require.NoError(t, err)
+	assert.Equal(t, 1, created.SiteID)
 }
 
 // TestDeleteSecret tests the DeleteSecret functionality.
@@ -1170,7 +1218,7 @@ func TestPushSecretInvalidPathKeys(t *testing.T) {
 	}
 
 	metadataJSON := apiextensionsv1.JSON{
-		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 1}}`),
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 1, "siteId": 1}}`),
 	}
 
 	testCases := map[string]struct {
@@ -1314,7 +1362,7 @@ func TestPushSecretWithFolderPrefix(t *testing.T) {
 	}
 
 	metadataJSON := apiextensionsv1.JSON{
-		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 5, "secretTemplateId": 1}}`),
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 5, "secretTemplateId": 1, "siteId": 1}}`),
 	}
 
 	// Update an existing secret using folderId prefix — should target folder 5 (ID 9001)
@@ -1346,7 +1394,7 @@ func TestPushSecretWithFolderPrefix(t *testing.T) {
 
 	// Create a new secret using folderId prefix
 	metadataCreate := apiextensionsv1.JSON{
-		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 42, "secretTemplateId": 1}}`),
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 42, "secretTemplateId": 1, "siteId": 1}}`),
 	}
 	dataCreate := fakePushSecretData{
 		remoteKey: "folderId:42/brand-new-secret",
@@ -1366,7 +1414,7 @@ func TestPushSecretWithFolderPrefix(t *testing.T) {
 	// Test precedence: remoteKey folderId overrides metadata folderId for lookups.
 	// Metadata says folderId:4, but remoteKey says folderId:5 — should target folder 5.
 	metadataFolder4 := apiextensionsv1.JSON{
-		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 4, "secretTemplateId": 1}}`),
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 4, "secretTemplateId": 1, "siteId": 1}}`),
 	}
 	dataPrecedence := fakePushSecretData{
 		remoteKey: "folderId:5/FolderSecretname",
@@ -1581,7 +1629,7 @@ func TestPushSecretEmptyProperty(t *testing.T) {
 	}
 
 	metadataJSON := apiextensionsv1.JSON{
-		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 1}}`),
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 1, "siteId": 1}}`),
 	}
 
 	// Create new secret with empty property → uses first template field
@@ -1628,7 +1676,7 @@ func TestPushSecretConflictingFolderIDs(t *testing.T) {
 	// Metadata says folderId:99, but prefix says folderId:42.
 	// The prefix should win for creation.
 	metadataJSON := apiextensionsv1.JSON{
-		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 99, "secretTemplateId": 1}}`),
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 99, "secretTemplateId": 1, "siteId": 1}}`),
 	}
 
 	data := fakePushSecretData{
@@ -1704,7 +1752,7 @@ func TestCreateSecretFolderPrefixWithSlashes(t *testing.T) {
 	}
 
 	metadataJSON := apiextensionsv1.JSON{
-		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 73, "secretTemplateId": 1}}`),
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 73, "secretTemplateId": 1, "siteId": 1}}`),
 	}
 
 	data := fakePushSecretData{
@@ -1876,7 +1924,7 @@ func TestPushSecretMetadataNoFolderID(t *testing.T) {
 
 	// Metadata has secretTemplateId but no folderId
 	metadataJSON := apiextensionsv1.JSON{
-		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 0, "secretTemplateId": 1}}`),
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 0, "secretTemplateId": 1, "siteId": 1}}`),
 	}
 
 	data := fakePushSecretData{
@@ -1887,7 +1935,7 @@ func TestPushSecretMetadataNoFolderID(t *testing.T) {
 	}
 	err := c.PushSecret(ctx, secret, data)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "folderId and secretTemplateId must be provided")
+	assert.Contains(t, err.Error(), "folderId, secretTemplateId, and siteId must be provided")
 }
 
 // TestPushSecretCreateWithFolderPrefixNoMetadataFolder tests that PushSecret can
@@ -1905,7 +1953,7 @@ func TestPushSecretCreateWithFolderPrefixNoMetadataFolder(t *testing.T) {
 
 	// Metadata has secretTemplateId but folderId is 0; prefix provides the folder.
 	metadataJSON := apiextensionsv1.JSON{
-		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 0, "secretTemplateId": 1}}`),
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 0, "secretTemplateId": 1, "siteId": 1}}`),
 	}
 
 	data := fakePushSecretData{
@@ -1987,7 +2035,7 @@ func TestPushSecretNonExistentTemplateField(t *testing.T) {
 	}
 
 	metadataJSON := apiextensionsv1.JSON{
-		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 1}}`),
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId": 1, "secretTemplateId": 1, "siteId": 1}}`),
 	}
 
 	data := fakePushSecretData{

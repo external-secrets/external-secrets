@@ -136,6 +136,10 @@ func parseFolderPrefix(key string) (folderID int, name string, hasFolderPrefix b
 type PushSecretMetadataSpec struct {
 	FolderID         int `json:"folderId"`
 	SecretTemplateID int `json:"secretTemplateId"`
+	// SiteID is required when creating a secret, but not when updating an existing one.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:Minimum=1
+	SiteID int `json:"siteId"`
 }
 
 type client struct {
@@ -240,13 +244,13 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return c.updateSecret(existingSecret, data.GetProperty(), string(value))
 	}
 
-	if meta == nil || meta.Spec.SecretTemplateID <= 0 {
-		return errors.New("folderId and secretTemplateId must be provided in metadata to create a new secret")
+	if meta == nil || meta.Spec.SecretTemplateID <= 0 || meta.Spec.SiteID <= 0 {
+		return errors.New("folderId, secretTemplateId, and siteId must be provided in metadata to create a new secret")
 	}
 
 	// Use the effective folderID (prefix-overridden or metadata-supplied) for creation.
 	if folderID <= 0 {
-		return errors.New("folderId and secretTemplateId must be provided in metadata to create a new secret")
+		return errors.New("folderId, secretTemplateId, and siteId must be provided in metadata to create a new secret")
 	}
 
 	createSpec := meta.Spec
@@ -319,6 +323,7 @@ func (c *client) createSecret(name, property, value string, meta PushSecretMetad
 	newSecret := server.Secret{
 		Name:             normalizedName,
 		FolderID:         meta.FolderID,
+		SiteID:           meta.SiteID,
 		SecretTemplateID: meta.SecretTemplateID,
 		Fields:           make([]server.SecretField, 0),
 	}
