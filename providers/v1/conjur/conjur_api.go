@@ -37,6 +37,7 @@ type SecretsClient interface {
 type SecretsClientFactory interface {
 	NewClientFromKey(config conjurapi.Config, loginPair authn.LoginPair) (SecretsClient, error)
 	NewClientFromJWT(config conjurapi.Config) (SecretsClient, error)
+	NewClientFromCert(config conjurapi.Config) (SecretsClient, error)
 }
 
 // ClientAPIImpl is an implementation of the ClientAPI interface.
@@ -70,4 +71,9 @@ func (c *ClientAPIImpl) NewClientFromJWT(config conjurapi.Config) (SecretsClient
 		client,
 		&conjurapi.ClientV2{Client: client},
 	}, nil
+}
+
+// NewClientFromCert creates a new Conjur client using certificate-based authentication.
+func (c *ClientAPIImpl) NewClientFromCert(config conjurapi.Config) (SecretsClient, error) {
+	return conjurapi.NewClientFromCertificate(config)
 }

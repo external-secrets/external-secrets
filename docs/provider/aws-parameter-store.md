@@ -180,4 +180,6 @@ You should see something similar to the following output:
 }
 ```
 
---8<-- "snippets/provider-aws-access.md"
+## Authentication
+
+See [AWS Authentication](aws-access.md) for all supported methods: controller pod identity, IRSA, static credentials, session tokens, assuming roles, session tags, and remote key prefixes.

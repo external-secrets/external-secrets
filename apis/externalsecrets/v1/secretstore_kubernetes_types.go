@@ -31,7 +31,7 @@ type KubernetesServer struct {
 	// +optional
 	CABundle []byte `json:"caBundle,omitempty"`
 
-	// see: https://external-secrets.io/v0.4.1/spec/#external-secrets.io/v1alpha1.CAProvider
+	// see: https://external-secrets.io/latest/spec/#external-secrets.io/v1alpha1.CAProvider
 	// +optional
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }
@@ -78,11 +78,14 @@ type KubernetesAuth struct {
 
 // CertAuth defines certificate-based authentication configuration for Kubernetes.
 type CertAuth struct {
-	ClientCert esmeta.SecretKeySelector `json:"clientCert,omitempty"`
-	ClientKey  esmeta.SecretKeySelector `json:"clientKey,omitempty"`
+	// +kubebuilder:validation:Required
+	ClientCert esmeta.SecretKeySelector `json:"clientCert"`
+	// +kubebuilder:validation:Required
+	ClientKey esmeta.SecretKeySelector `json:"clientKey"`
 }
 
 // TokenAuth defines token-based authentication configuration for Kubernetes.
 type TokenAuth struct {
-	BearerToken esmeta.SecretKeySelector `json:"bearerToken,omitempty"`
+	// +kubebuilder:validation:Required
+	BearerToken esmeta.SecretKeySelector `json:"bearerToken"`
 }

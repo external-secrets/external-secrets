@@ -18,7 +18,7 @@ Multi-module repo: `apis/`, `runtime/`, `e2e/`, and each `providers/v1/*/` have 
 
 - `make reviewable` is the gate for PRs. Run it, not individual checks.
 - Helm chart is the source of truth for deploy manifests. `make manifests` generates static YAML from it.
-- Provider docs use MkDocs snippet transclusion (`--8<--`). Auth docs are shared across providers via `docs/snippets/`.
+- Provider docs `{% include %}` reusable YAML snippets from `docs/snippets/` (`macros` plugin). AWS authentication is documented once on the standalone `docs/provider/aws-access.md` page; the per-service pages (`aws-secrets-manager.md`, `aws-parameter-store.md`) link to it rather than transcluding it.
 - CRD tests use snapshot testing. Run `make test.crds.update` to update snapshots after CRD changes.
 - `make update-deps` updates dependencies across all modules at once.
 - Add a `git notes add HEAD` entry on every non-trivial commit. Record key design decisions, trade-offs, and gotchas. Queryable via `git notes show <sha>`.
@@ -215,7 +215,7 @@ pattern, but expect to be the first.
 ### Documentation
 
 - Generator docs live at `docs/api/generator/<name>.md`.
-- YAML snippets in `docs/snippets/<name>-...yaml`, transcluded via `--8<--`.
+- YAML snippets in `docs/snippets/<name>-...yaml`, transcluded via `{% include %}` (macros plugin).
 - Nav entry goes under `Reference: -> API: -> Generators:` in `hack/api-docs/mkdocs.yml`. Append at the bottom.
 
 ### Manual checklist after bootstrap
