@@ -10,3 +10,8 @@ can be found in our Github: {{ .Chart.Home }}
 {{- if and .Values.serviceMonitor.enabled (eq $shouldRenderStr "false") -}}
 WARNING: ServiceMonitors were not deployed due to missing CRD monitoring.coreos.com/v1/ServiceMonitor
 {{- end -}}
+{{- if .Values.disableExternalSecretCleanupFinalizer }}
+WARNING: The externalsecret-cleanup finalizer is disabled. Managed Kubernetes Secrets may
+not be cleaned up when ExternalSecrets are deleted. Existing finalizers are still removed
+during deletion, but new ExternalSecrets will not have one added.
+{{- end -}}
