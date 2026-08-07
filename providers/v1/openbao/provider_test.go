@@ -364,6 +364,9 @@ func TestProvider_KVv1(t *testing.T) {
 func TestProvider_Auth(t *testing.T) {
 	RegisterTestingT(t)
 
+	var tokenRequests []string
+	targetNamespace := "the-namespace"
+
 	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "shared-secret",
@@ -380,12 +383,19 @@ func TestProvider_Auth(t *testing.T) {
 			Name:      "the-serviceaccount",
 			Namespace: "default",
 		},
-	}).
+	},
+		&corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "the-serviceaccount",
+				Namespace: "the-namespace",
+			},
+		}).
 		// clientfake won't create service account token on its own. We use an interceptor to fake
 		// the jwt creation.
 		WithInterceptorFuncs(interceptor.Funcs{
 			SubResourceCreate: func(ctx context.Context, c client.Client, subResourceName string,
 				obj client.Object, subResource client.Object, _ ...client.SubResourceCreateOption) error {
+				tokenRequests = append(tokenRequests, obj.GetNamespace()+"/"+obj.GetName())
 				tr := subResource.(*authv1.TokenRequest)
 				tr.Status.Token = "the-serviceaccount-jwt"
 				return nil
@@ -395,9 +405,11 @@ func TestProvider_Auth(t *testing.T) {
 	provider := openbao.NewProvider().(*openbao.Provider)
 
 	cases := []struct {
-		name          string
-		auth          *esv1.OpenBaoAuth
-		expectedCalls []string
+		name                  string
+		clusterStore          bool
+		auth                  *esv1.OpenBaoAuth
+		expectedCalls         []string
+		expectedTokenRequests []string
 	}{{
 		name: "userpass",
 		auth: &esv1.OpenBaoAuth{
@@ -464,7 +476,23 @@ func TestProvider_Auth(t *testing.T) {
 				Role: "kubernetesrole",
 			},
 		},
-		expectedCalls: []string{`Kubernetes("kubernetesrole", "the-serviceaccount-jwt", "kubernetespath")`},
+		expectedTokenRequests: []string{"default/the-serviceaccount"},
+		expectedCalls:         []string{`Kubernetes("kubernetesrole", "the-serviceaccount-jwt", "kubernetespath")`},
+	}, {
+		name:         "kubernetes jwt from service account with clusterstore",
+		clusterStore: true,
+		auth: &esv1.OpenBaoAuth{
+			Kubernetes: &esv1.OpenBaoKubernetesAuth{
+				Path: "kubernetespath",
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{
+					Name:      "the-serviceaccount",
+					Namespace: &targetNamespace,
+				},
+				Role: "kubernetesrole",
+			},
+		},
+		expectedTokenRequests: []string{"the-namespace/the-serviceaccount"},
+		expectedCalls:         []string{`Kubernetes("kubernetesrole", "the-serviceaccount-jwt", "kubernetespath")`},
 	},
 	}
 
