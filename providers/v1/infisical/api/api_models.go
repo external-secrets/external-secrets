@@ -79,6 +79,7 @@ type SecretsV3 struct {
 	SecretKey     string `json:"secretKey"`
 	SecretValue   string `json:"secretValue"`
 	SecretComment string `json:"secretComment"`
+	SecretPath    string `json:"secretPath,omitempty"`
 }
 
 // ImportedSecretV3 represents an imported secret in V3 API format.
