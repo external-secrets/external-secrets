@@ -415,7 +415,7 @@ func IsNil(i any) bool {
 		return true
 	}
 	value := reflect.ValueOf(i)
-	if value.Type().Kind() == reflect.Ptr {
+	if value.Type().Kind() == reflect.Pointer {
 		return value.IsNil()
 	}
 	return false
