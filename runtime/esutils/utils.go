@@ -531,13 +531,6 @@ func Deref[V any](v *V) V {
 	return *v
 }
 
-// Ptr returns a pointer to the given value.
-//
-//go:fix inline
-func Ptr[T any](i T) *T {
-	return new(i)
-}
-
 // ConvertToType converts an object to the specified type using JSON marshaling.
 func ConvertToType[T any](obj any) (T, error) {
 	var v T
