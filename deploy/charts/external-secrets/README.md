@@ -40,6 +40,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.affinity | object | `{}` |  |
 | certController.create | bool | `true` | Specifies whether a certificate controller deployment be created. |
 | certController.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
+| certController.enablePartialCache | bool | `true` | Restrict the cert controller's informer cache to CustomResourceDefinitions and ValidatingWebhookConfigurations carrying the `external-secrets.io/component` label. Disable this only if the CRDs it manages were installed without that label. |
 | certController.extraArgs | object | `{}` |  |
 | certController.extraEnv | list | `[]` |  |
 | certController.extraInitContainers | list | `[]` |  |
