@@ -149,7 +149,7 @@ func (p *Provider) newClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	client, err := getVaultClient(ctx, p, store, cfg, namespace)
+	client, err := getVaultClient(p, store, cfg, namespace)
 	if err != nil {
 		return nil, fmt.Errorf(errVaultClient, err)
 	}
@@ -234,7 +234,7 @@ func (p *Provider) prepareConfig(
 	return c, cfg, nil
 }
 
-func getVaultClient(ctx context.Context, p *Provider, store esv1.GenericStore, cfg *vault.Config, namespace string) (vaultutil.Client, error) {
+func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config, namespace string) (vaultutil.Client, error) {
 	vaultProvider := store.GetSpec().Provider.Vault
 	auth := vaultProvider.Auth
 	isStaticToken := auth != nil && auth.TokenSecretRef != nil
@@ -266,13 +266,10 @@ func getVaultClient(ctx context.Context, p *Provider, store esv1.GenericStore, c
 	if useCache {
 		if clientCache.ContainsOrAdd(store.GetObjectMeta().ResourceVersion, key, client) {
 			// A concurrent constructor won the race and cached its own client.
-			// Ours is never owned by the cache, and Close skips revocation when
-			// caching is enabled, so without an explicit revoke its Vault token
-			// would leak until TTL. Revoke ours and hand back the winner.
+			// ContainsOrAdd passes the rejected value to the cache's cleanup
+			// function (which revokes our token), so hand back the cached
+			// winner rather than the client we just built.
 			if cached, ok := clientCache.Get(store.GetObjectMeta().ResourceVersion, key); ok {
-				if rerr := revokeTokenIfValid(ctx, client); rerr != nil {
-					return nil, fmt.Errorf(errVaultRevokeToken, rerr)
-				}
 				return cached, nil
 			}
 		}

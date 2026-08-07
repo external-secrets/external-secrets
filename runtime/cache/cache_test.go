@@ -84,19 +84,23 @@ func TestCacheContainsOrAddVersionMismatch(t *testing.T) {
 	assert.Equal(t, first, cached)
 }
 
-func TestCacheContainsOrAddDoesNotCleanUpRejectedValue(t *testing.T) {
+func TestCacheContainsOrAddCleansUpRejectedValue(t *testing.T) {
 	var cleaned []client
 	c := Must(1, func(value client) {
 		cleaned = append(cleaned, value)
 	})
 	first := client{id: 1}
+	rejected := client{id: 2}
 
 	assert.False(t, c.ContainsOrAdd("v1", cacheKey, first))
-	assert.True(t, c.ContainsOrAdd("v1", cacheKey, client{id: 2}))
-	assert.Empty(t, cleaned)
+	// The rejected value never becomes cache-owned, so without cleanup it
+	// would leak (e.g. a Vault token living until TTL). It is cleaned up
+	// exactly as an eviction would be.
+	assert.True(t, c.ContainsOrAdd("v1", cacheKey, rejected))
+	assert.Equal(t, []client{rejected}, cleaned)
 
 	assert.False(t, c.ContainsOrAdd("v1", Key{Name: "bar"}, client{id: 3}))
-	assert.Equal(t, []client{first}, cleaned)
+	assert.Equal(t, []client{rejected, first}, cleaned)
 }
 
 func TestCacheContainsOrAddConcurrent(t *testing.T) {

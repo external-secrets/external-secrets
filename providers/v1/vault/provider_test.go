@@ -810,13 +810,13 @@ func TestCache(t *testing.T) {
 	})
 
 	// first request creates a new client:
-	c1, err := getVaultClient(context.Background(), prov, store, nil, namespace)
+	c1, err := getVaultClient(prov, store, nil, namespace)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// seconds request should retrieve cached client instance:
-	c2, err := getVaultClient(context.Background(), prov, store, nil, namespace)
+	c2, err := getVaultClient(prov, store, nil, namespace)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -827,7 +827,7 @@ func TestCache(t *testing.T) {
 
 	// third request should retrieve cached client instance even when using a different namespace,
 	// because the ClusterSecretStore references a ServiceAccount of a specific namespace:
-	c3, err := getVaultClient(context.Background(), prov, store, nil, "another-namespace")
+	c3, err := getVaultClient(prov, store, nil, "another-namespace")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -853,13 +853,13 @@ func TestCacheWithReferentSpec(t *testing.T) {
 	})
 
 	// first request creates a new client:
-	c1, err := getVaultClient(context.Background(), prov, store, nil, "default")
+	c1, err := getVaultClient(prov, store, nil, "default")
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// seconds request should retrieve cached client instance:
-	c2, err := getVaultClient(context.Background(), prov, store, nil, "default")
+	c2, err := getVaultClient(prov, store, nil, "default")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -870,7 +870,7 @@ func TestCacheWithReferentSpec(t *testing.T) {
 
 	// third request should retrieve a new client instance,
 	// because the ServiceAccount namespace depends on the namespace of the referent:
-	c3, err := getVaultClient(context.Background(), prov, store, nil, "another-namespace")
+	c3, err := getVaultClient(prov, store, nil, "another-namespace")
 	if err != nil {
 		t.Fatal(err)
 	}
