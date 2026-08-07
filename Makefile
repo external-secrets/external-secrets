@@ -73,7 +73,7 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # Conformance
 
 reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
-	@GOWORK=off go -C hack/tools mod tidy # Tools and their deps are not to be included in project's GOWORK.
+	@GOWORK=off go -C hack/tools mod tidy # Tools and their deps are not to be included in project's GOWORK or in the project go.mod/sum. We consider them external.
 	@GOWORK=off go -C hack/tools/gen-crd-api-reference-docs mod tidy
 	@GOWORK=off go -C hack/tools/golangci-lint mod tidy
 	@go mod tidy
@@ -104,7 +104,7 @@ go-work:
 	@rm -rf go.work go.work.sum
 	@go work init
 	@go work use -r .
-	@go work edit -dropuse ./e2e
+	@go work edit -dropuse ./e2e -dropuse ./hack/tools -dropuse ./hack/tools/gen-crd-api-reference-docs -dropuse ./hack/tools/golangci-lint
 	@go work sync
 	@$(OK) created go workspace
 
