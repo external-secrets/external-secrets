@@ -6592,6 +6592,12 @@ spec:
                                 Format: duration string (e.g., "5m", "1h", "30s")
                               type: string
                           type: object
+                        environment:
+                          description: |-
+                            Environment defines the 1Password Environment ID to read variables from.
+                            Environments are read-only: PushSecret, DeleteSecret, and SecretExists return an error when set.
+                            Mutually exclusive with Vault.
+                          type: string
                         integrationInfo:
                           description: |-
                             IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.
@@ -6607,12 +6613,16 @@ spec:
                               type: string
                           type: object
                         vault:
-                          description: Vault defines the vault's name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
+                          description: |-
+                            Vault defines the vault's name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
+                            Mutually exclusive with Environment.
                           type: string
                       required:
                         - auth
-                        - vault
                       type: object
+                      x-kubernetes-validations:
+                        - message: at most one of the fields in [vault environment] may be set
+                          rule: '[has(self.vault),has(self.environment)].filter(x,x==true).size() <= 1'
                     openBao:
                       description: OpenBao configures this store to sync secrets using the OpenBao provider.
                       properties:
@@ -19794,6 +19804,12 @@ spec:
                                 Format: duration string (e.g., "5m", "1h", "30s")
                               type: string
                           type: object
+                        environment:
+                          description: |-
+                            Environment defines the 1Password Environment ID to read variables from.
+                            Environments are read-only: PushSecret, DeleteSecret, and SecretExists return an error when set.
+                            Mutually exclusive with Vault.
+                          type: string
                         integrationInfo:
                           description: |-
                             IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.
@@ -19809,12 +19825,16 @@ spec:
                               type: string
                           type: object
                         vault:
-                          description: Vault defines the vault's name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
+                          description: |-
+                            Vault defines the vault's name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
+                            Mutually exclusive with Environment.
                           type: string
                       required:
                         - auth
-                        - vault
                       type: object
+                      x-kubernetes-validations:
+                        - message: at most one of the fields in [vault environment] may be set
+                          rule: '[has(self.vault),has(self.environment)].filter(x,x==true).size() <= 1'
                     openBao:
                       description: OpenBao configures this store to sync secrets using the OpenBao provider.
                       properties:
