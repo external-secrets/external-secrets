@@ -316,8 +316,7 @@ func reverse(strategy esv1alpha1.PushSecretConversionStrategy, str string) strin
 	case esv1alpha1.PushSecretConversionReverseUnicode:
 		matches := unicodeRegex.FindAllStringSubmatchIndex(str, -1)
 
-		for i := len(matches) - 1; i >= 0; i-- {
-			match := matches[i]
+		for _, match := range slices.Backward(matches) {
 			start := match[0]
 			end := match[1]
 			unicodeHex := str[match[2]:match[3]]
