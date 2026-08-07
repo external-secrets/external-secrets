@@ -2,6 +2,8 @@ module github.com/external-secrets/external-secrets-e2e
 
 go 1.26.5
 
+tool github.com/onsi/ginkgo/v2/ginkgo
+
 replace github.com/external-secrets/external-secrets => ../
 
 replace (
