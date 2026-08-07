@@ -43,3 +43,24 @@ func (g *Client) orgListSecretsFn(ctx context.Context) (*github.Secrets, *github
 func (g *Client) orgDeleteSecretsFn(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (*github.Response, error) {
 	return g.baseClient.DeleteOrgSecret(ctx, g.provider.Organization, remoteRef.GetRemoteKey())
 }
+
+// orgListSelectedRepoIDs returns the IDs of all repositories currently granted
+// access to a "selected"-visibility organization secret, following pagination.
+func (g *Client) orgListSelectedRepoIDs(ctx context.Context, name string) (github.SelectedRepoIDs, error) {
+	ids := github.SelectedRepoIDs{}
+	opts := &github.ListOptions{PerPage: 100}
+	for {
+		repos, resp, err := g.baseClient.ListSelectedReposForOrgSecret(ctx, g.provider.Organization, name, opts)
+		if err != nil {
+			return nil, err
+		}
+		for _, repo := range repos.Repositories {
+			ids = append(ids, repo.GetID())
+		}
+		if resp == nil || resp.NextPage == 0 {
+			break
+		}
+		opts.Page = resp.NextPage
+	}
+	return ids, nil
+}

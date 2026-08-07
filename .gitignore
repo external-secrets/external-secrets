@@ -26,10 +26,15 @@ deploy/charts/external-secrets/templates/crds/*.yaml
 
 site/
 e2e/k8s/deploy
+e2e/image-artifacts/
 e2e/suites/argocd/argocd.test
 e2e/suites/flux/flux.test
 e2e/suites/provider/provider.test
 e2e/suites/generator/generator.test
+
+# python bytecode cache (e.g. from e2e/matrix.py)
+__pycache__/
+*.pyc
 
 # tf ignores
 # Local .terraform directories

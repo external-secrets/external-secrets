@@ -21,3 +21,27 @@ tests:
       - equal:
           path: metadata.name
           value: RELEASE-NAME-external-secrets-cert-controller-pdb
+  - it: should render minAvailable when set to zero
+    set:
+      certController.create: true
+      certController.podDisruptionBudget.enabled: true
+      webhook.certManager.enabled: false
+      certController.podDisruptionBudget.minAvailable: 0
+    asserts:
+      - equal:
+          path: spec.minAvailable
+          value: 0
+      - notExists:
+          path: spec.maxUnavailable
+  - it: should render maxUnavailable when set to zero
+    set:
+      certController.create: true
+      certController.podDisruptionBudget.enabled: true
+      webhook.certManager.enabled: false
+      certController.podDisruptionBudget.maxUnavailable: 0
+    asserts:
+      - equal:
+          path: spec.maxUnavailable
+          value: 0
+      - notExists:
+          path: spec.minAvailable

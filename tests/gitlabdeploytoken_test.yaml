@@ -1,0 +1,7 @@
+suite: test GitlabDeployToken
+template: tests/crds/gitlabdeploytoken.yml
+tests:
+  - it: matches GitlabDeployToken correctly
+    asserts:
+      - matchSnapshot:
+          path: tests/__snapshot__

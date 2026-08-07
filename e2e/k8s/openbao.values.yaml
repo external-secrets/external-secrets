@@ -1,0 +1,23 @@
+injector:
+  enabled: false
+
+server:
+  dev:
+    enabled: true
+
+  extraArgs: "-dev -config /etc/bao/config.hcl"
+
+  service:
+    extraPorts:
+      - name: https
+        port: 8300
+        targetPort: 8300
+
+  volumeMounts:
+    - name: config
+      mountPath: /etc/bao
+      readOnly: true
+  volumes:
+    - name: config
+      secret:
+        secretName: openbao-config

@@ -74,6 +74,9 @@ var (
 	controllerClass                       string
 	enableLeaderElection                  bool
 	leaderElectionID                      string
+	leaderElectionLeaseDuration           time.Duration
+	leaderElectionRenewDeadline           time.Duration
+	leaderElectionRetryPeriod             time.Duration
 	enableSecretsCache                    bool
 	enableConfigMapsCache                 bool
 	enableManagedSecretsCache             bool
@@ -182,6 +185,9 @@ var rootCmd = &cobra.Command{
 			},
 			LeaderElection:   enableLeaderElection,
 			LeaderElectionID: leaderElectionID,
+			LeaseDuration:    &leaderElectionLeaseDuration,
+			RenewDeadline:    &leaderElectionRenewDeadline,
+			RetryPeriod:      &leaderElectionRetryPeriod,
 		}
 		if namespace != "" {
 			mgrOpts.Cache.DefaultNamespaces = map[string]cache.Config{
@@ -347,6 +353,12 @@ func init() {
 			"Enabling this will ensure there is only one active controller manager.")
 	rootCmd.Flags().StringVar(&leaderElectionID, "leader-election-id", "external-secrets-controller",
 		"The ID of the lease object used for leader election. Set this to a unique value when running multiple deployments in the same namespace.")
+	rootCmd.Flags().DurationVar(&leaderElectionLeaseDuration, "leader-election-lease-duration", 15*time.Second,
+		"The duration that non-leader candidates will wait to force acquire leadership. This is measured against time of last observed ack.")
+	rootCmd.Flags().DurationVar(&leaderElectionRenewDeadline, "leader-election-renew-deadline", 10*time.Second,
+		"The interval between attempts by the acting leader to renew its leadership before it stops leading. This must be less than the lease duration.")
+	rootCmd.Flags().DurationVar(&leaderElectionRetryPeriod, "leader-election-retry-period", 2*time.Second,
+		"The duration the clients should wait between attempting acquisition and renewal of a leadership.")
 	rootCmd.Flags().IntVar(&concurrent, "concurrent", 1, "The number of concurrent reconciles.")
 	rootCmd.Flags().Float32Var(&clientQPS, "client-qps", 50, "QPS configuration to be passed to rest.Client")
 	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 100, "Maximum Burst allowed to be passed to rest.Client")

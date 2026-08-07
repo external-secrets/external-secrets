@@ -38,6 +38,20 @@ Both controllers manage the resources independently, at different moments, with 
 This means that we have a wonderful race condition where sometimes the CRs (`SecretStore`,`ClusterSecretStore`...) tries
 to be deployed before than the CRDs needed to recognize them.
 
+A second, subtler race exists around the **admission webhook**. External Secrets ships a `ValidatingWebhookConfiguration`
+that is registered in the API server as soon as the HelmRelease is applied, before the webhook pod has had time to start
+serving. If a Kustomization tries to apply an `ExternalSecret` or `ClusterSecretStore` in that brief window, the API
+server performs a dry-run validation, the webhook endpoint returns `connection refused`, and the reconciliation fails with:
+
+```
+Internal error occurred: failed calling webhook "validate.externalsecret.external-secrets.io": ...
+dial tcp <ip>:443: connect: connection refused
+```
+
+Flux retries after `interval` (typically 10 minutes), so everything works on the second attempt, but the initial
+deployment always fails. The fix is a three-level dependency chain that ensures the webhook pod is healthy before
+any CR is applied.
+
 ## The solution
 
 Let's see the conditions to start working on a solution:
@@ -45,8 +59,17 @@ Let's see the conditions to start working on a solution:
 * The External Secrets operator is deployed with Helm, and admits disabling the CRDs deployment
 * The race condition only affects the deployment of `CustomResourceDefinition` and the CRs needed later
 * CRDs can be deployed directly from the Git repository of the project using a Flux `Kustomization`
-* Required CRs can be deployed using a Flux `Kustomization` too, allowing dependency between CRDs and CRs
+* The operator HelmRelease is wrapped in its own Flux `Kustomization` with `wait: true` so it only
+  reports Ready after all deployed resources (including the webhook pod) are healthy
+* Required CRs can be deployed using a Flux `Kustomization` that depends on the operator Kustomization,
+  not just the CRDs, guaranteeing the webhook is serving before any CR dry-run is attempted
 * All previous manifests can be applied with a Kubernetes `kustomization`
+
+The dependency chain is:
+
+```
+external-secrets-crds --> external-secrets-operator (wait: true) --> external-secrets-crs
+```
 
 ## Create the main kustomization
 
@@ -87,13 +110,26 @@ from our git repository using a Kustomization manifest called `deployment-crds.y
 {% include 'gitops/deployment-crds.yaml' %}
 ```
 
+Note the `wait: true` field. This ensures the Kustomization only reports Ready after all CRDs have been fully
+established in the API server, so the operator can register its validation webhooks and controllers cleanly.
+
 ## Deploy the operator
 
-The operator is deployed using a HelmRelease manifest to deploy the Helm package, but due to the special race condition,
-the deployment must be disabled in the `values` of the manifest called `deployment.yaml`, as follows:
+The operator HelmRelease is placed inside an `operator/` subdirectory and wrapped with its own Flux Kustomization.
+Create a manifest called `deployment-operator.yaml`:
 
 ```yaml
-{% include 'gitops/deployment.yaml' %}
+{% include 'gitops/deployment-operator.yaml' %}
+```
+
+The `wait: true` here is the key to solving the webhook race condition: Flux will not mark
+`external-secrets-operator` as Ready until every resource the HelmRelease created -- including the webhook
+Deployment -- has reached a healthy state. Only then will the CRs Kustomization be allowed to proceed.
+
+Inside the `operator/` subdirectory, place the HelmRelease manifest (`operator/deployment.yaml`):
+
+```yaml
+{% include 'gitops/operator/deployment.yaml' %}
 ```
 
 ## Deploy the CRs
@@ -106,9 +142,11 @@ Now, be ready for the arcane magic. Create a Kustomization manifest called `depl
 
 There are several interesting details to see here, that finally solves the race condition:
 
-1. First one is the field `dependsOn`, which points to a previous Kustomization called `external-secrets-crds`. This
-   dependency forces this deployment to wait for the other to be ready, before start being deployed.
-2. The reference to the place where to find the CRs
+1. The `dependsOn` field now points to `external-secrets-operator` rather than `external-secrets-crds`. This
+   dependency forces this deployment to wait for the operator (including its webhook) to be fully ready before
+   any CR is applied, eliminating the webhook race condition.
+2. `retryInterval: 1m` makes Flux retry quickly if the very first reconcile still catches a brief startup window.
+3. The reference to the place where to find the CRs
    ```yaml
    path: ./infrastructure/external-secrets/crs
    sourceRef:
@@ -128,6 +166,21 @@ for example, a manifest `clusterSecretStore.yaml` to reach your Hashicorp Vault 
 
 ## Results
 
-At the end, the required files tree is shown in the following picture:
+At the end, the required files tree is:
 
-![FluxCD files tree](../pictures/screenshot_gitops_final_directory_tree.png)
+```
+./infrastructure/external-secrets/
+  kustomization.yaml
+  namespace.yaml
+  secret-token.yaml
+  repositories.yaml
+  deployment-crds.yaml
+  deployment-operator.yaml
+  operator/
+    kustomization.yaml
+    deployment.yaml
+  deployment-crs.yaml
+  crs/
+    kustomization.yaml
+    clusterSecretStore.yaml
+```

@@ -180,3 +180,92 @@ func TestSetExternalSecretCondition(t *testing.T) {
 		})
 	}
 }
+
+func TestDiffSecretDataKeys(t *testing.T) {
+	tests := []struct {
+		name        string
+		oldData     map[string][]byte
+		newData     map[string][]byte
+		wantAdded   []string
+		wantUpdated []string
+		wantRemoved []string
+		wantEmptied []string
+	}{
+		{
+			name:    "no change",
+			oldData: map[string][]byte{"a": []byte("1"), "b": []byte("2")},
+			newData: map[string][]byte{"a": []byte("1"), "b": []byte("2")},
+		},
+		{
+			name:      "key added",
+			oldData:   map[string][]byte{"a": []byte("1")},
+			newData:   map[string][]byte{"a": []byte("1"), "b": []byte("2")},
+			wantAdded: []string{"b"},
+		},
+		{
+			name:        "key removed",
+			oldData:     map[string][]byte{"a": []byte("1"), "b": []byte("2")},
+			newData:     map[string][]byte{"a": []byte("1")},
+			wantRemoved: []string{"b"},
+		},
+		{
+			name:        "value changed",
+			oldData:     map[string][]byte{"a": []byte("1")},
+			newData:     map[string][]byte{"a": []byte("2")},
+			wantUpdated: []string{"a"},
+		},
+		{
+			name:        "existing value emptied",
+			oldData:     map[string][]byte{"a": []byte("1")},
+			newData:     map[string][]byte{"a": []byte("")},
+			wantUpdated: []string{"a"},
+			wantEmptied: []string{"a"},
+		},
+		{
+			name:      "new key added empty",
+			oldData:   map[string][]byte{"a": []byte("1")},
+			newData:   map[string][]byte{"a": []byte("1"), "b": []byte("")},
+			wantAdded: []string{"b"},
+			// b is both added and emptied; emptied flags the empty value.
+			wantEmptied: []string{"b"},
+		},
+		{
+			name:      "results are sorted",
+			oldData:   map[string][]byte{},
+			newData:   map[string][]byte{"c": []byte("1"), "a": []byte("2"), "b": []byte("3")},
+			wantAdded: []string{"a", "b", "c"},
+		},
+		{
+			name:        "mixed add update remove empty",
+			oldData:     map[string][]byte{"keep": []byte("x"), "change": []byte("old"), "gone": []byte("y")},
+			newData:     map[string][]byte{"keep": []byte("x"), "change": []byte("new"), "fresh": []byte(""), "added": []byte("z")},
+			wantAdded:   []string{"added", "fresh"},
+			wantUpdated: []string{"change"},
+			wantRemoved: []string{"gone"},
+			wantEmptied: []string{"fresh"},
+		},
+		{
+			name:    "nil maps are safe",
+			oldData: nil,
+			newData: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			added, updated, removed, emptied := diffSecretDataKeys(tt.oldData, tt.newData)
+			if diff := cmp.Diff(tt.wantAdded, added); diff != "" {
+				t.Errorf("added (-want, +got)\n%s", diff)
+			}
+			if diff := cmp.Diff(tt.wantUpdated, updated); diff != "" {
+				t.Errorf("updated (-want, +got)\n%s", diff)
+			}
+			if diff := cmp.Diff(tt.wantRemoved, removed); diff != "" {
+				t.Errorf("removed (-want, +got)\n%s", diff)
+			}
+			if diff := cmp.Diff(tt.wantEmptied, emptied); diff != "" {
+				t.Errorf("emptied (-want, +got)\n%s", diff)
+			}
+		})
+	}
+}

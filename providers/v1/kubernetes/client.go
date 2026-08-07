@@ -176,9 +176,12 @@ func (c *Client) mergePushSecretData(remoteRef esv1.PushSecretData, pushMeta *me
 	remoteSecret.ObjectMeta.Labels = targetLabels
 	remoteSecret.ObjectMeta.Annotations = targetAnnotations
 
-	// case 1: push the whole secret
+	// case 1: push the whole secret so remote data is replaced entirely
 	if remoteRef.GetProperty() == "" {
-		maps.Copy(remoteSecret.Data, localSecret.Data)
+		remoteSecret.Data = maps.Clone(localSecret.Data)
+		if remoteSecret.Data == nil {
+			remoteSecret.Data = make(map[string][]byte)
+		}
 		return nil
 	}
 

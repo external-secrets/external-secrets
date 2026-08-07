@@ -75,6 +75,13 @@ func validateStore(store GenericStore) (admission.Warnings, error) {
 		return nil, err
 	}
 
+	// Reject an unparseable refreshInterval duration string at admission. The
+	// x-kubernetes-int-or-string schema accepts any string, so the duration
+	// format can only be validated here (or at reconcile).
+	if _, err := store.GetSpec().GetRefreshInterval(); err != nil {
+		return nil, err
+	}
+
 	provider, err := GetProvider(store)
 	if err != nil {
 		return nil, err

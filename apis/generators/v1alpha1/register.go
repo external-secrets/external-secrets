@@ -61,6 +61,8 @@ var (
 	VaultDynamicSecretKind = reflect.TypeFor[VaultDynamicSecret]().Name()
 	// GithubAccessTokenKind is the kind name for GithubAccessToken resource.
 	GithubAccessTokenKind = reflect.TypeFor[GithubAccessToken]().Name()
+	// GitlabDeployTokenKind is the kind name for GitlabDeployToken resource.
+	GitlabDeployTokenKind = reflect.TypeFor[GitlabDeployToken]().Name()
 	// QuayAccessTokenKind is the kind name for QuayAccessToken resource.
 	QuayAccessTokenKind = reflect.TypeFor[QuayAccessToken]().Name()
 	// UUIDKind is the kind name for UUID resource.
@@ -73,6 +75,8 @@ var (
 	ClusterGeneratorKind = reflect.TypeFor[ClusterGenerator]().Name()
 	// CloudsmithAccessTokenKind is the kind name for CloudsmithAccessToken resource.
 	CloudsmithAccessTokenKind = reflect.TypeFor[CloudsmithAccessToken]().Name()
+	// BeyondtrustWorkloadCredentialsDynamicSecretKind is the kind name for BeyondtrustWorkloadCredentialsDynamicSecret resource.
+	BeyondtrustWorkloadCredentialsDynamicSecretKind = reflect.TypeFor[BeyondtrustWorkloadCredentialsDynamicSecret]().Name()
 )
 
 func init() {
@@ -94,12 +98,14 @@ func init() {
 	*/
 
 	SchemeBuilder.Register(&ACRAccessToken{}, &ACRAccessTokenList{})
+	SchemeBuilder.Register(&BeyondtrustWorkloadCredentialsDynamicSecret{}, &BeyondtrustWorkloadCredentialsDynamicSecretList{})
 	SchemeBuilder.Register(&ClusterGenerator{}, &ClusterGeneratorList{})
 	SchemeBuilder.Register(&CloudsmithAccessToken{}, &CloudsmithAccessTokenList{})
 	SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationTokenList{})
 	SchemeBuilder.Register(&Fake{}, &FakeList{})
 	SchemeBuilder.Register(&GCRAccessToken{}, &GCRAccessTokenList{})
 	SchemeBuilder.Register(&GithubAccessToken{}, &GithubAccessTokenList{})
+	SchemeBuilder.Register(&GitlabDeployToken{}, &GitlabDeployTokenList{})
 	SchemeBuilder.Register(&QuayAccessToken{}, &QuayAccessTokenList{})
 	SchemeBuilder.Register(&Password{}, &PasswordList{})
 	SchemeBuilder.Register(&SSHKey{}, &SSHKeyList{})

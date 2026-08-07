@@ -34,6 +34,10 @@ import (
 
 const errWriteOnlyProvider = "not implemented - this provider supports write-only operations"
 
+// orgSecretVisibilitySelected is the GitHub org-secret visibility value that
+// restricts the secret to an explicit list of repositories.
+const orgSecretVisibilitySelected = "selected"
+
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &Client{}
 
@@ -61,6 +65,9 @@ type Client struct {
 	createOrUpdateFn func(ctx context.Context, eSecret *github.EncryptedSecret) (*github.Response, error)
 	listSecretsFn    func(ctx context.Context) (*github.Secrets, *github.Response, error)
 	deleteSecretFn   func(ctx context.Context, ref esv1.PushSecretRemoteRef) (*github.Response, error)
+	// listSelectedReposFn lists the repo IDs currently granted access to a
+	// "selected"-visibility org secret; nil for repo/env scopes.
+	listSelectedReposFn func(ctx context.Context, name string) (github.SelectedRepoIDs, error)
 }
 
 // DeleteSecret deletes a secret from GitHub Actions.
@@ -134,6 +141,19 @@ func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRe
 		KeyID:          keyID,
 		EncryptedValue: encryptedString,
 		Visibility:     visibility,
+	}
+
+	// A "selected"-visibility org secret restricts access to an explicit list
+	// of repositories. GitHub treats an update that omits
+	// selected_repository_ids as "clear all repositories", so without re-sending
+	// the current list an update silently revokes access for every previously
+	// selected repository. Preserve the existing associations on update.
+	if visibility == orgSecretVisibilitySelected && githubSecret != nil && g.listSelectedReposFn != nil {
+		repoIDs, err := g.listSelectedReposFn(ctx, name)
+		if err != nil {
+			return fmt.Errorf("failed to list selected repositories for org secret %q: %w", name, err)
+		}
+		encryptedSecret.SelectedRepositoryIDs = repoIDs
 	}
 
 	if _, err := g.createOrUpdateFn(ctx, encryptedSecret); err != nil {

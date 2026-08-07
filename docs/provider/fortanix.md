@@ -1,12 +1,12 @@
-## Fortanix DSM / SDKMS
+# Fortanix DSM / SDKMS
 
 Populate kubernetes secrets from OPAQUE or SECRET security objects in Fortanix.
 
-### Authentication
+## Authentication
 
 SDKMS [Application API Key](https://support.fortanix.com/hc/en-us/articles/360015941132-Authentication)
 
-### Creating a SecretStore
+## Creating a SecretStore
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -23,7 +23,7 @@ spec:
           key: <KEY_IN_KUBE_SECRET>
 ```
 
-### Referencing Secrets
+## Referencing Secrets
 
 ```yaml
 # Raw stored value
@@ -71,3 +71,8 @@ spec:
   - extract:
       key: <SDKMS_SECURITY_OBJECT_NAME>
 ```
+
+## Limitations
+
+- **Custom CA certificates**: connecting to an SDKMS endpoint that uses a self-signed or custom CA certificate is not currently supported (tracked in [issue #6400](https://github.com/external-secrets/external-secrets/issues/6400)).
+- **Read-only**: this provider only reads secrets. Pushing secrets (`PushSecret`) and discovering secrets (`dataFrom.find`) are not supported.

@@ -17,10 +17,11 @@ limitations under the License.
 package ngrok
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 
-	"github.com/ngrok/ngrok-api-go/v7"
+	"github.com/ngrok/ngrok-api-go/v9"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,60 +46,24 @@ func (p pushSecretRemoteRef) GetProperty() string {
 	return p.property
 }
 
-type testClientOpts struct {
-	vaults         []*ngrok.Vault
-	secrets        []*ngrok.Secret
-	secretsListErr error
-	vaultName      string
-}
-
-type testClientOpt func(opts *testClientOpts)
-
-func WithVaults(vaults ...*ngrok.Vault) testClientOpt {
-	return func(opts *testClientOpts) {
-		opts.vaults = vaults
-	}
-}
-
-func WithSecrets(secrets ...*ngrok.Secret) testClientOpt {
-	return func(opts *testClientOpts) {
-		opts.secrets = secrets
-	}
-}
-
-func WithSecretsListError(err error) testClientOpt {
-	return func(opts *testClientOpts) {
-		opts.secretsListErr = err
-	}
-}
-
-func WithVaultName(vaultName string) testClientOpt {
-	return func(opts *testClientOpts) {
-		opts.vaultName = vaultName
-	}
-}
-
 var _ = Describe("client", func() {
 	var (
-		s         *fake.Store
-		c         *client
-		vaultName string
-
-		listVaultsErr  error
-		listSecretsErr error
+		c          *client
+		vaultsAPI  *fake.VaultClient
+		secretsAPI *fake.SecretsClient
+		vaultName  string
 	)
 
 	BeforeEach(func() {
 		vaultName = "test-vault"
-		listSecretsErr = nil
-		listVaultsErr = nil
-		s = fake.NewStore()
+		vaultsAPI = &fake.VaultClient{}
+		secretsAPI = &fake.SecretsClient{}
 	})
 
 	JustBeforeEach(func() {
 		c = &client{
-			vaultClient:   s.VaultClient().WithListError(listVaultsErr),
-			secretsClient: s.SecretsClient().WithListError(listSecretsErr),
+			vaultClient:   vaultsAPI,
+			secretsClient: secretsAPI,
 			vaultName:     vaultName,
 		}
 	})
@@ -108,10 +73,12 @@ var _ = Describe("client", func() {
 			k8Secret        *corev1.Secret
 			pushData        v1alpha1.PushSecretData
 			vault           *ngrok.Vault
-			secret          *ngrok.Secret
 			ngrokSecretName string
 
 			pushErr error
+
+			createCalledWith *ngrok.SecretCreate
+			updateCalledWith *ngrok.SecretUpdate
 		)
 
 		BeforeEach(func() {
@@ -134,65 +101,120 @@ var _ = Describe("client", func() {
 				},
 			}
 			vault = nil
+			createCalledWith = nil
+			updateCalledWith = nil
 		})
 
 		JustBeforeEach(func(ctx SpecContext) {
 			if vault != nil {
-				// Set the client's vault ID. This is normally initialized by the provider's NewClient method.
 				c.setVaultID(vault.ID)
 			}
 			pushErr = c.PushSecret(ctx, k8Secret, pushData)
 		})
 
-		When("the vault exists", func() {
-			var (
-				getSecretErr error
-			)
+		When("the vault does not exist", func() {
+			BeforeEach(func() {
+				vaultsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+					return fake.NewIter([]*ngrok.Vault{}, nil)
+				}
+			})
+			It("should return an error", func(ctx SpecContext) {
+				Expect(pushErr).To(HaveOccurred())
+				Expect(pushErr.Error()).To(ContainSubstring("failed to verify vault name still matches ID: failed to refresh vault ID: vault does not exist"))
+			})
+		})
 
+		When("an error occurs listing vaults", func() {
+			BeforeEach(func() {
+				vaultsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+					return fake.NewIter([]*ngrok.Vault{}, errors.New("failed to list vaults"))
+				}
+			})
+			It("should return an error", func(ctx SpecContext) {
+				Expect(pushErr).To(HaveOccurred())
+				Expect(pushErr.Error()).To(ContainSubstring("failed to list vaults"))
+			})
+		})
+
+		When("the vault exists", func() {
 			BeforeEach(func(ctx SpecContext) {
-				var vaultCreateErr error
-				vault, vaultCreateErr = s.VaultClient().Create(ctx, &ngrok.VaultCreate{
-					Name: vaultName,
-				})
-				Expect(vaultCreateErr).ToNot(HaveOccurred())
+				vault = &ngrok.Vault{ID: "vault-123", Name: vaultName}
+				vaultsAPI.GetFn = func(ctx context.Context, id string) (*ngrok.Vault, error) {
+					if id == vault.ID {
+						return vault, nil
+					}
+					return nil, errors.New("not found")
+				}
+				vaultsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+					return fake.NewIter([]*ngrok.Vault{vault}, nil)
+				}
 			})
 
-			// Re-fetch the secret after the push to verify it was updated
-			JustBeforeEach(func(ctx SpecContext) {
-				secret = nil
-				iter := s.SecretsClient().List(nil)
-				for iter.Next(ctx) {
-					if iter.Item().Name == ngrokSecretName && iter.Item().Vault.ID == vault.ID {
-						secret = iter.Item()
-						break
+			When("an error occurs listing secrets", func() {
+				BeforeEach(func() {
+					secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+						return fake.NewIter([]*ngrok.Secret{}, errors.New("failed to list secrets"))
 					}
-				}
-				getSecretErr = iter.Err()
+				})
+				It("should return an error", func(ctx SpecContext) {
+					Expect(pushErr).To(HaveOccurred())
+					Expect(pushErr.Error()).To(ContainSubstring("failed to get secret: failed to list secrets"))
+				})
 			})
 
 			When("the secret does not exist", func() {
+				BeforeEach(func() {
+					secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+						return fake.NewIter([]*ngrok.Secret{}, nil)
+					}
+					secretsAPI.CreateFn = func(ctx context.Context, req *ngrok.SecretCreate) (*ngrok.Secret, error) {
+						createCalledWith = req
+						return &ngrok.Secret{ID: "sec-123", Name: req.Name, Description: req.Description}, nil
+					}
+				})
+
 				It("should not return an error", func(ctx SpecContext) {
 					Expect(pushErr).ToNot(HaveOccurred())
 				})
 
 				It("should create the ngrok secret", func(ctx SpecContext) {
-					Expect(getSecretErr).ToNot(HaveOccurred())
-					Expect(secret).ToNot(BeNil())
-					Expect(secret.Name).To(Equal(ngrokSecretName))
-					Expect(secret.ID).ToNot(BeEmpty())
-					Expect(secret.Description).To(Equal(defaultDescription))
+					Expect(createCalledWith).ToNot(BeNil())
+					Expect(createCalledWith.Name).To(Equal(ngrokSecretName))
+					Expect(createCalledWith.Description).To(Equal(defaultDescription))
+					Expect(createCalledWith.VaultID).To(Equal(vault.ID))
+					Expect(createCalledWith.Value).To(Equal("new value"))
+				})
+
+				When("secret creation fails", func() {
+					BeforeEach(func() {
+						secretsAPI.CreateFn = func(ctx context.Context, req *ngrok.SecretCreate) (*ngrok.Secret, error) {
+							return nil, errors.New("failed to create secret")
+						}
+					})
+					It("should return an error", func(ctx SpecContext) {
+						Expect(pushErr).To(HaveOccurred())
+						Expect(pushErr.Error()).To(ContainSubstring("failed to create secret"))
+					})
 				})
 			})
 
 			When("the secret exists", func() {
+				var existingSecret *ngrok.Secret
 				BeforeEach(func(ctx SpecContext) {
-					var createErr error
-					secret, createErr = s.SecretsClient().Create(ctx, &ngrok.SecretCreate{
-						VaultID: vault.ID,
-						Name:    ngrokSecretName,
-						Value:   "old-value",
-					})
-					Expect(createErr).ToNot(HaveOccurred())
+					existingSecret = &ngrok.Secret{
+						ID:   "sec-123",
+						Name: ngrokSecretName,
+						Vault: ngrok.Ref{
+							ID: vault.ID,
+						},
+					}
+					secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+						return fake.NewIter([]*ngrok.Secret{existingSecret}, nil)
+					}
+					secretsAPI.UpdateFn = func(ctx context.Context, req *ngrok.SecretUpdate) (*ngrok.Secret, error) {
+						updateCalledWith = req
+						return &ngrok.Secret{ID: req.ID}, nil
+					}
 				})
 
 				It("should not return an error", func(ctx SpecContext) {
@@ -200,13 +222,28 @@ var _ = Describe("client", func() {
 				})
 
 				It("should update the ngrok secret description", func(ctx SpecContext) {
-					Expect(secret.Description).To(Equal(defaultDescription))
+					Expect(updateCalledWith).ToNot(BeNil())
+					Expect(updateCalledWith.Description).ToNot(BeNil())
+					Expect(*updateCalledWith.Description).To(Equal(defaultDescription))
 				})
 
 				It("should update the ngrok secret metadata", func(ctx SpecContext) {
-					// The metadata should include the sha256 of the new value.
+					Expect(updateCalledWith).ToNot(BeNil())
+					Expect(updateCalledWith.Metadata).ToNot(BeNil())
 					// sha256sum "new value" = 9c51d0b0f64dfb3662ed85ce945dd1e8f6130665c289754e4e9257a58013e61d
-					Expect(secret.Metadata).To(Equal(`{"_sha256":"9c51d0b0f64dfb3662ed85ce945dd1e8f6130665c289754e4e9257a58013e61d"}`))
+					Expect(*updateCalledWith.Metadata).To(Equal(`{"_sha256":"9c51d0b0f64dfb3662ed85ce945dd1e8f6130665c289754e4e9257a58013e61d"}`))
+				})
+
+				When("secret update fails", func() {
+					BeforeEach(func() {
+						secretsAPI.UpdateFn = func(ctx context.Context, req *ngrok.SecretUpdate) (*ngrok.Secret, error) {
+							return nil, errors.New("failed to update secret")
+						}
+					})
+					It("should return an error", func(ctx SpecContext) {
+						Expect(pushErr).To(HaveOccurred())
+						Expect(pushErr.Error()).To(ContainSubstring("failed to update secret"))
+					})
 				})
 
 				When("The secret key is not specified on the push data", func() {
@@ -215,8 +252,11 @@ var _ = Describe("client", func() {
 					})
 
 					It("should marshal the entire secret data as JSON", func(ctx SpecContext) {
+						Expect(updateCalledWith).ToNot(BeNil())
+						Expect(updateCalledWith.Metadata).ToNot(BeNil())
+
 						data := map[string]string{}
-						err := json.Unmarshal([]byte(secret.Metadata), &data)
+						err := json.Unmarshal([]byte(*updateCalledWith.Metadata), &data)
 
 						Expect(err).ToNot(HaveOccurred())
 						Expect(data).To(HaveKeyWithValue("_sha256", "146ed8bb7a977ee78ee11cf262924e3ae93423c413ab6d612a8d159a0ae4e1ad"))
@@ -250,12 +290,16 @@ spec:
 						})
 
 						It("should update the ngrok secret description", func(ctx SpecContext) {
-							Expect(secret.Description).To(Equal("my custom description"))
+							Expect(updateCalledWith).ToNot(BeNil())
+							Expect(updateCalledWith.Description).ToNot(BeNil())
+							Expect(*updateCalledWith.Description).To(Equal("my custom description"))
 						})
 
 						It("should update the ngrok secret metadata", func(ctx SpecContext) {
+							Expect(updateCalledWith).ToNot(BeNil())
+							Expect(updateCalledWith.Metadata).ToNot(BeNil())
 							data := map[string]string{}
-							err := json.Unmarshal([]byte(secret.Metadata), &data)
+							err := json.Unmarshal([]byte(*updateCalledWith.Metadata), &data)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(data).To(HaveKeyWithValue("environment", "production"))
 							Expect(data).To(HaveKeyWithValue("team", "frontend"))
@@ -276,6 +320,33 @@ spec:
 						})
 					})
 				})
+			})
+		})
+
+		When("the cached vault ID no longer matches the vault name", func() {
+			BeforeEach(func() {
+				// Seed a stale cached vault ID. The vault it points to has since
+				// been renamed, so the client must refresh the ID before pushing.
+				vault = &ngrok.Vault{ID: "stale-vault-id", Name: vaultName}
+				vaultsAPI.GetFn = func(ctx context.Context, id string) (*ngrok.Vault, error) {
+					return &ngrok.Vault{ID: id, Name: "renamed-out-from-under-us"}, nil
+				}
+				vaultsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+					return fake.NewIter([]*ngrok.Vault{{ID: "fresh-vault-id", Name: vaultName}}, nil)
+				}
+				secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+					return fake.NewIter([]*ngrok.Secret{}, nil)
+				}
+				secretsAPI.CreateFn = func(ctx context.Context, req *ngrok.SecretCreate) (*ngrok.Secret, error) {
+					createCalledWith = req
+					return &ngrok.Secret{ID: "sec-123"}, nil
+				}
+			})
+
+			It("should refresh the vault ID and push using the refreshed ID", func(ctx SpecContext) {
+				Expect(pushErr).ToNot(HaveOccurred())
+				Expect(createCalledWith).ToNot(BeNil())
+				Expect(createCalledWith.VaultID).To(Equal("fresh-vault-id"))
 			})
 		})
 	})
@@ -299,6 +370,11 @@ spec:
 		})
 
 		When("the vault does not exist", func() {
+			BeforeEach(func() {
+				vaultsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+					return fake.NewIter([]*ngrok.Vault{}, nil)
+				}
+			})
 			It("should return exists as false without an error", func(ctx SpecContext) {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(exists).To(BeFalse())
@@ -306,17 +382,20 @@ spec:
 		})
 
 		When("the vault exists", func() {
-			var (
-				vault *ngrok.Vault
-			)
+			var vault *ngrok.Vault
 			BeforeEach(func(ctx SpecContext) {
-				vault, err = s.VaultClient().Create(ctx, &ngrok.VaultCreate{
-					Name: c.vaultName,
-				})
-				Expect(err).ToNot(HaveOccurred())
+				vault = &ngrok.Vault{ID: "vault-123", Name: vaultName}
+				vaultsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+					return fake.NewIter([]*ngrok.Vault{vault}, nil)
+				}
 			})
 
 			When("the secret does not exist", func() {
+				BeforeEach(func() {
+					secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+						return fake.NewIter([]*ngrok.Secret{}, nil)
+					}
+				})
 				It("should return exists as false without an error", func(ctx SpecContext) {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(exists).To(BeFalse())
@@ -325,12 +404,11 @@ spec:
 
 			When("the secret exists", func() {
 				BeforeEach(func(ctx SpecContext) {
-					_, err = s.SecretsClient().Create(ctx, &ngrok.SecretCreate{
-						VaultID: vault.ID,
-						Name:    secretName,
-						Value:   "supersecret",
-					})
-					Expect(err).ToNot(HaveOccurred())
+					secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+						return fake.NewIter([]*ngrok.Secret{
+							{ID: "sec-123", Name: secretName, Vault: ngrok.Ref{ID: vault.ID}},
+						}, nil)
+					}
 				})
 
 				It("should return exists as true without an error", func(ctx SpecContext) {
@@ -338,11 +416,26 @@ spec:
 					Expect(exists).To(BeTrue())
 				})
 			})
+
+			When("an error occurs listing secrets", func() {
+				BeforeEach(func(ctx SpecContext) {
+					secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+						return fake.NewIter([]*ngrok.Secret{}, errors.New("failed to list secrets"))
+					}
+				})
+
+				It("should return an error", func(ctx SpecContext) {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("error fetching secret: failed to list secrets"))
+				})
+			})
 		})
 
 		When("an error occurs listing vaults", func() {
 			BeforeEach(func() {
-				listVaultsErr = errors.New("failed to list vaults")
+				vaultsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+					return fake.NewIter([]*ngrok.Vault{}, errors.New("failed to list vaults"))
+				}
 			})
 
 			It("should return exists as false", func() {
@@ -356,15 +449,110 @@ spec:
 		})
 	})
 
+	Describe("getVaultByName", func() {
+		var (
+			vault      *ngrok.Vault
+			fetched    *ngrok.Vault
+			err        error
+			listPaging *ngrok.FilteredPaging
+		)
+
+		BeforeEach(func(ctx SpecContext) {
+			vault = &ngrok.Vault{ID: "vault-123", Name: vaultName}
+			vaultsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+				listPaging = paging
+				return fake.NewIter([]*ngrok.Vault{vault}, nil)
+			}
+		})
+
+		JustBeforeEach(func(ctx SpecContext) {
+			fetched, err = c.getVaultByName(ctx, vaultName)
+		})
+
+		It("should return the matching vault", func() {
+			Expect(err).ToNot(HaveOccurred())
+			Expect(fetched).ToNot(BeNil())
+			Expect(fetched.ID).To(Equal(vault.ID))
+		})
+
+		It("should filter vaults by name", func() {
+			Expect(listPaging).ToNot(BeNil())
+			Expect(listPaging.Filter).ToNot(BeNil())
+			Expect(*listPaging.Filter).To(Equal(`obj.name == "test-vault"`))
+		})
+	})
+
+	Describe("getSecretByVaultIDAndName", func() {
+		var (
+			targetVaultID string
+			found         *ngrok.Secret
+			err           error
+			secretName    string
+			listPaging    *ngrok.FilteredPaging
+		)
+
+		BeforeEach(func(ctx SpecContext) {
+			secretName = "shared-name"
+			targetVaultID = "vault-target"
+		})
+
+		JustBeforeEach(func(ctx SpecContext) {
+			found, err = c.getSecretByVaultIDAndName(ctx, targetVaultID, secretName)
+		})
+
+		When("a secret with the same name exists in multiple vaults", func() {
+			BeforeEach(func(ctx SpecContext) {
+				secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+					listPaging = paging
+					return fake.NewIter([]*ngrok.Secret{
+						{ID: "sec-1", Name: secretName, Vault: ngrok.Ref{ID: "vault-other"}},
+						{ID: "sec-2", Name: secretName, Vault: ngrok.Ref{ID: targetVaultID}},
+					}, nil)
+				}
+			})
+
+			It("should return the secret from the target vault", func() {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(found).ToNot(BeNil())
+				Expect(found.ID).To(Equal("sec-2"))
+				Expect(found.Vault.ID).To(Equal(targetVaultID))
+			})
+
+			It("should filter secrets by name before checking the vault", func() {
+				Expect(listPaging).ToNot(BeNil())
+				Expect(listPaging.Filter).ToNot(BeNil())
+				Expect(*listPaging.Filter).To(Equal(`obj.name == "shared-name"`))
+			})
+		})
+
+		When("only another vault has a secret with that name", func() {
+			BeforeEach(func(ctx SpecContext) {
+				secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+					return fake.NewIter([]*ngrok.Secret{
+						{ID: "sec-1", Name: secretName, Vault: ngrok.Ref{ID: "vault-other"}},
+					}, nil)
+				}
+			})
+
+			It("should report the secret as missing from the target vault", func() {
+				Expect(found).To(BeNil())
+				Expect(err).To(HaveOccurred())
+				Expect(err).To(MatchError(ContainSubstring("secret 'shared-name' does not exist")))
+				Expect(err).To(MatchError(ContainSubstring(errVaultSecretDoesNotExist.Error())))
+			})
+		})
+	})
+
 	Describe("DeleteSecret", func() {
 		var (
 			secretName string
-
-			err error
+			err        error
+			deletedID  string
 		)
 
 		BeforeEach(func() {
 			secretName = "my-secret"
+			deletedID = ""
 		})
 
 		JustBeforeEach(func(ctx SpecContext) {
@@ -374,6 +562,11 @@ spec:
 		})
 
 		When("the vault does not exist", func() {
+			BeforeEach(func() {
+				vaultsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+					return fake.NewIter([]*ngrok.Vault{}, nil)
+				}
+			})
 			It("should not return an error", func(ctx SpecContext) {
 				Expect(err).ToNot(HaveOccurred())
 			})
@@ -381,10 +574,12 @@ spec:
 
 		When("the vault exists but the secret does not", func() {
 			BeforeEach(func(ctx SpecContext) {
-				_, err := c.vaultClient.Create(ctx, &ngrok.VaultCreate{
-					Name: c.vaultName,
-				})
-				Expect(err).ToNot(HaveOccurred())
+				vaultsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+					return fake.NewIter([]*ngrok.Vault{{ID: "vault-123", Name: vaultName}}, nil)
+				}
+				secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+					return fake.NewIter([]*ngrok.Secret{}, nil)
+				}
 			})
 
 			It("should not return an error", func(ctx SpecContext) {
@@ -394,26 +589,60 @@ spec:
 
 		When("the vault and secret both exist", func() {
 			BeforeEach(func(ctx SpecContext) {
-				vault, err := s.VaultClient().Create(ctx, &ngrok.VaultCreate{
-					Name: c.vaultName,
-				})
-				Expect(err).ToNot(HaveOccurred())
-				_, err = s.SecretsClient().Create(ctx, &ngrok.SecretCreate{
-					VaultID: vault.ID,
-					Name:    secretName,
-					Value:   "supersecret",
-				})
-				Expect(err).ToNot(HaveOccurred())
+				vaultsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+					return fake.NewIter([]*ngrok.Vault{{ID: "vault-123", Name: vaultName}}, nil)
+				}
+				secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+					return fake.NewIter([]*ngrok.Secret{
+						{ID: "sec-123", Name: secretName, Vault: ngrok.Ref{ID: "vault-123"}},
+					}, nil)
+				}
+				secretsAPI.DeleteFn = func(ctx context.Context, id string) error {
+					deletedID = id
+					return nil
+				}
 			})
 
-			It("should not return an error", func(ctx SpecContext) {
+			It("should not return an error and delete is called", func(ctx SpecContext) {
 				Expect(err).ToNot(HaveOccurred())
+				Expect(deletedID).To(Equal("sec-123"))
+			})
+
+			When("secret deletion fails", func() {
+				BeforeEach(func(ctx SpecContext) {
+					secretsAPI.DeleteFn = func(ctx context.Context, id string) error {
+						return errors.New("failed to delete secret")
+					}
+				})
+
+				It("should return an error", func(ctx SpecContext) {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("failed to delete secret"))
+				})
+			})
+		})
+
+		When("an error occurs listing secrets", func() {
+			BeforeEach(func(ctx SpecContext) {
+				vaultsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+					return fake.NewIter([]*ngrok.Vault{{ID: "vault-123", Name: vaultName}}, nil)
+				}
+				secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+					return fake.NewIter([]*ngrok.Secret{}, errors.New("failed to list secrets"))
+				}
+			})
+
+			It("should return an error", func(ctx SpecContext) {
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(ContainSubstring("failed to list secrets"))
 			})
 		})
 
 		When("an error occurs listing vaults", func() {
 			BeforeEach(func() {
-				listVaultsErr = errors.New("failed to list vaults")
+				vaultsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Vault] {
+					return fake.NewIter([]*ngrok.Vault{}, errors.New("failed to list vaults"))
+				}
 			})
 
 			It("should return the listing error", func() {
@@ -435,6 +664,11 @@ spec:
 
 		When("the client can list secrets", func() {
 			When("there are no secrets", func() {
+				BeforeEach(func() {
+					secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+						return fake.NewIter([]*ngrok.Secret{}, nil)
+					}
+				})
 				It("should return ValidationResultReady without an error", func() {
 					Expect(err).To(BeNil())
 					Expect(result).To(Equal(esv1.ValidationResultReady))
@@ -443,16 +677,9 @@ spec:
 
 			When("there are some secrets", func() {
 				BeforeEach(func(ctx SpecContext) {
-					vault, err := s.VaultClient().Create(ctx, &ngrok.VaultCreate{
-						Name: c.vaultName,
-					})
-					Expect(err).ToNot(HaveOccurred())
-					_, err = s.SecretsClient().Create(ctx, &ngrok.SecretCreate{
-						VaultID: vault.ID,
-						Name:    "my-secret",
-						Value:   "supersecret",
-					})
-					Expect(err).ToNot(HaveOccurred())
+					secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+						return fake.NewIter([]*ngrok.Secret{{ID: "sec-1"}}, nil)
+					}
 				})
 
 				It("should return ValidationResultReady without an error", func() {
@@ -464,7 +691,9 @@ spec:
 
 		When("the client cannot list secrets", func() {
 			BeforeEach(func() {
-				listSecretsErr = errors.New("failed to list secrets")
+				secretsAPI.ListFn = func(paging *ngrok.FilteredPaging) ngrok.Iter[*ngrok.Secret] {
+					return fake.NewIter([]*ngrok.Secret{}, errors.New("failed to list secrets"))
+				}
 			})
 
 			It("should return ValidationResultError with the listing error", func() {

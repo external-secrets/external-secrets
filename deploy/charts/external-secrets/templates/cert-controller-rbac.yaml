@@ -14,6 +14,17 @@ rules:
     - "get"
     - "list"
     - "watch"
+  - apiGroups:
+    - "apiextensions.k8s.io"
+    resources:
+    - "customresourcedefinitions"
+    resourceNames:
+    - "externalsecrets.external-secrets.io"
+    - "secretstores.external-secrets.io"
+    {{- if .Values.crds.createClusterSecretStore }}
+    - "clustersecretstores.external-secrets.io"
+    {{- end }}
+    verbs:
     - "update"
     - "patch"
   - apiGroups:
@@ -65,6 +76,13 @@ rules:
     - "get"
     - "list"
     - "watch"
+  - apiGroups:
+    - ""
+    resources:
+    - "secrets"
+    resourceNames:
+    - {{ printf "%s-webhook" (include "external-secrets.fullname" .) | quote }}
+    verbs:
     - "update"
     - "patch"
   - apiGroups:

@@ -751,6 +751,30 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
+		"SetSecretWithNewSecretWithoutReplicationLocations": {
+			reason: "create a new secret without replica regions when replication locations are not set",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(blankDescribeSecretOutput, &getSecretCorrectErr),
+					CreateSecretFn: func(_ context.Context, input *awssm.CreateSecretInput, _ ...func(*awssm.Options)) (*awssm.CreateSecretOutput, error) {
+						assert.Nil(t, input.AddReplicaRegions)
+						return secretOutput, nil
+					},
+				},
+				pushSecretData: fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: "", Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{
+						"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+						"kind": "PushSecretMetadata",
+						"spec": {
+							"secretPushFormat": "string"
+						}
+					}`)}},
+			},
+			want: want{
+				err: nil,
+			},
+		},
 		"SetSecretWithPropertySucceedsWithExistingSecretAndNewPropertyBinary": {
 			reason: "when a pushSecretData property is specified, this property will be added to the sm secret if it is currently absent (sm secret is binary)",
 			args: args{
@@ -1251,6 +1275,178 @@ func TestSetSecret(t *testing.T) {
 			},
 			want: want{
 				err: nil,
+			},
+		},
+		"SetSecretWithRegionReplication": {
+			reason: "create a new secret with replication to extra regions",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(blankDescribeSecretOutput, &getSecretCorrectErr),
+					CreateSecretFn:   fakesm.NewCreateSecretFn(secretOutput, nil),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"replicationLocations": [
+									"eu-north-1",
+									"eu-central-1"
+								]
+							}
+						}`),
+					},
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetReplicationOnSecretWhileKeepingExistingReplication": {
+			reason: "sync an existing secret with existing replication region previously setup",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn: fakesm.NewDescribeSecretFn(&awssm.DescribeSecretOutput{
+						ARN:  &arn,
+						Tags: externalSecretsTag,
+						VersionIdsToStages: map[string][]string{
+							defaultVersion: {"AWSCURRENT"},
+						},
+						KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"),
+						ReplicationStatus: []types.ReplicationStatusType{
+							// Existing replication region not part of the desired state (to be removed)
+							{KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"), Region: aws.String("eu-west-3"), Status: types.StatusTypeInSync},
+							// Existing replication region part of the desired state (kept).
+							{KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"), Region: aws.String("eu-north-1"), Status: types.StatusTypeInSync},
+							// Existing replication region not part of the desired state with failed status
+							{KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"), Region: aws.String("sa-east-1"), Status: types.StatusTypeFailed},
+							// Existing replication region not part of the desired state with in-progress status
+							{KmsKeyId: aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c"), Region: aws.String("ap-southeast-2"), Status: types.StatusTypeInProgress},
+						},
+					}, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(nil, &types.ResourceNotFoundException{}),
+					ReplicateSecretToRegionsFn: fakesm.NewReplicateSecretToRegionsFn(
+						&awssm.ReplicateSecretToRegionsOutput{},
+						nil,
+						func(got *awssm.ReplicateSecretToRegionsInput) {
+							assert.Len(t, got.AddReplicaRegions, 1)
+							assert.EqualValues(t, got.AddReplicaRegions[0].Region, aws.String("eu-central-1"))
+						},
+					),
+					RemoveRegionsFromReplicationFn: fakesm.NewRemoveRegionsFromReplicationFn(
+						&awssm.RemoveRegionsFromReplicationOutput{},
+						nil,
+						func(got *awssm.RemoveRegionsFromReplicationInput) {
+							assert.ElementsMatch(t, []string{"eu-west-3", "sa-east-1", "ap-southeast-2"}, got.RemoveReplicaRegions)
+						},
+					),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"replicationLocations": [
+									"eu-north-1",
+									"eu-central-1"
+								]
+							}
+						}`),
+					},
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetReplicationOnSecretWithoutPreviousExistingReplications": {
+			reason: "sync an existing secret with no previous replication region previously setup",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueFn:       fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn:       fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn:       fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(nil, &types.ResourceNotFoundException{}),
+					ReplicateSecretToRegionsFn: fakesm.NewReplicateSecretToRegionsFn(
+						&awssm.ReplicateSecretToRegionsOutput{},
+						nil,
+						func(got *awssm.ReplicateSecretToRegionsInput) {
+							assert.EqualValues(t, got.AddReplicaRegions, []types.ReplicaRegionType{{Region: aws.String("eu-north-1")}, {Region: aws.String("eu-central-1")}})
+							assert.Len(t, got.AddReplicaRegions, 2)
+							assert.EqualValues(t, got.AddReplicaRegions[0].Region, aws.String("eu-north-1"))
+							assert.EqualValues(t, got.AddReplicaRegions[1].Region, aws.String("eu-central-1"))
+						},
+					),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"replicationLocations": [
+									"eu-north-1",
+									"eu-central-1"
+								]
+							}
+						}`),
+					},
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetReplicationForInvalidRegionFails": {
+			reason: "sync an existing secret with existing replication region previously setup",
+			args: args{
+				store: makeValidSecretStore().Spec.Provider.AWS,
+				client: fakesm.Client{
+					GetSecretValueFn:           fakesm.NewGetSecretValueFn(secretValueOutput, nil),
+					PutSecretValueFn:           fakesm.NewPutSecretValueFn(putSecretOutput, nil),
+					DescribeSecretFn:           fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
+					DeleteResourcePolicyFn:     fakesm.NewDeleteResourcePolicyFn(nil, &types.ResourceNotFoundException{}),
+					ReplicateSecretToRegionsFn: fakesm.NewReplicateSecretToRegionsFn(nil, &types.InvalidRequestException{}),
+				},
+				pushSecretData: fake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: fakeKey,
+					Property:  "",
+					Metadata: &apiextensionsv1.JSON{
+						Raw: []byte(`{
+							"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+							"kind": "PushSecretMetadata",
+							"spec": {
+								"secretPushFormat": "string",
+								"replicationLocations": [
+									"xx-invalid-1"
+								]
+							}
+						}`),
+					},
+				},
+			},
+			want: want{
+				err: errors.New("failed to replicate existing secret to regions"),
 			},
 		},
 	}
@@ -2594,6 +2790,24 @@ func TestPatchTags(t *testing.T) {
 			assert.Equal(t, tt.expectTag, calls.tagCalled)
 		})
 	}
+}
+
+func TestBuildReplicationRegionType(t *testing.T) {
+	t.Run("empty regions", func(t *testing.T) {
+		assert.Nil(t, buildReplicationRegionType(nil, nil))
+		assert.Nil(t, buildReplicationRegionType([]string{}, nil))
+	})
+
+	t.Run("configured regions", func(t *testing.T) {
+		kmsKeyID := aws.String("bb123123-b2b0-4f60-ac3a-44a13f0e6b6c")
+
+		got := buildReplicationRegionType([]string{"eu-north-1", "eu-central-1"}, kmsKeyID)
+
+		assert.Equal(t, []types.ReplicaRegionType{
+			{Region: aws.String("eu-north-1"), KmsKeyId: kmsKeyID},
+			{Region: aws.String("eu-central-1"), KmsKeyId: kmsKeyID},
+		}, got)
+	})
 }
 
 // FakeCredProvider implements the AWS credentials.Provider interface

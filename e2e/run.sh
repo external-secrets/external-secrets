@@ -15,11 +15,6 @@
 # limitations under the License.
 set -euo pipefail
 
-if ! command -v kind --version &> /dev/null; then
-  echo "kind is not installed. Use the package manager or visit the official site https://kind.sigs.k8s.io/"
-  exit 1
-fi
-
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd $DIR
 
@@ -38,11 +33,6 @@ echo -e "Granting anonymous access to service account issuer discovery"
 kubectl create clusterrolebinding service-account-issuer-discovery-binding \
   --clusterrole=system:service-account-issuer-discovery \
   --group=system:unauthenticated || true
-
-echo -e "Cleaning cache before running tests"
-docker system prune --force
-go clean -cache
-go clean -modcache
 
 echo -e "Starting the e2e test pod ${E2E_IMAGE_NAME}:${VERSION}"
 kubectl run --rm \
@@ -78,6 +68,9 @@ kubectl run --rm \
   --env="ORACLE_REGION=${ORACLE_REGION:-}" \
   --env="ORACLE_FINGERPRINT=${ORACLE_FINGERPRINT:-}" \
   --env="ORACLE_KEY=${ORACLE_KEY:-}" \
+  --env="ORACLE_VAULT_OCID=${ORACLE_VAULT_OCID:-}" \
+  --env="ORACLE_COMPARTMENT_OCID=${ORACLE_COMPARTMENT_OCID:-}" \
+  --env="ORACLE_ENCRYPTION_KEY_OCID=${ORACLE_ENCRYPTION_KEY_OCID:-}" \
   --env="SCALEWAY_API_URL=${SCALEWAY_API_URL:-}" \
   --env="SCALEWAY_REGION=${SCALEWAY_REGION:-}" \
   --env="SCALEWAY_PROJECT_ID=${SCALEWAY_PROJECT_ID:-}" \
@@ -95,5 +88,6 @@ kubectl run --rm \
   --env="GRAFANA_TOKEN=${GRAFANA_TOKEN:-}" \
   --env="VERSION=${VERSION}" \
   --env="TEST_SUITES=${TEST_SUITES}" \
+  --env="E2E_SKIP_GLOBAL_TEARDOWN=${E2E_SKIP_GLOBAL_TEARDOWN:-}" \
   --overrides='{ "apiVersion": "v1", "spec":{"serviceAccountName": "external-secrets-e2e"}}' \
   e2e --image=${E2E_IMAGE_NAME}:${VERSION}

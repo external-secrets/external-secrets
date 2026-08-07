@@ -125,7 +125,10 @@ func TestGetSecret(t *testing.T) {
 				assert.NoError(t, err)
 				assert.Equal(t, tc.Output, output)
 			} else {
-				assert.ErrorAs(t, err, &tc.Error)
+				// ErrorIs, not ErrorAs against an *error target: the latter
+				// matches any non-nil error and would not catch a regression
+				// where GetSecret returns the raw 404 instead of NoSecretErr.
+				assert.ErrorIs(t, err, tc.Error)
 			}
 		})
 	}

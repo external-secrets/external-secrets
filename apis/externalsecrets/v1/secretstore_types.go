@@ -17,8 +17,12 @@ limitations under the License.
 package v1
 
 import (
+	"fmt"
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 )
 
 // SecretStoreSpec defines the desired state of SecretStore.
@@ -35,13 +39,51 @@ type SecretStoreSpec struct {
 	// +optional
 	RetrySettings *SecretStoreRetrySettings `json:"retrySettings,omitempty"`
 
-	// Used to configure store refresh interval in seconds. Empty or 0 will default to the controller config.
+	// Used to configure store refresh interval. Accepts either an integer number
+	// of seconds (legacy) or a Go duration string such as "1h" or "5m". Empty or
+	// 0 will default to the controller config.
 	// +optional
-	RefreshInterval int `json:"refreshInterval,omitempty"`
+	// +kubebuilder:validation:XIntOrString
+	RefreshInterval *intstr.IntOrString `json:"refreshInterval,omitempty"`
 
 	// Used to constrain a ClusterSecretStore to specific namespaces. Relevant only to ClusterSecretStore.
 	// +optional
 	Conditions []ClusterSecretStoreCondition `json:"conditions,omitempty"`
+}
+
+// GetRefreshInterval resolves the refresh interval to a time.Duration. The field
+// accepts either an integer number of seconds (legacy) or a Go duration string
+// such as "1h" or "5m". A nil value (unset) returns 0, meaning the controller
+// default should be used. A negative value, or a string that is not a valid
+// duration, returns an error.
+//
+// TODO(v2): the int-or-string form is a non-breaking shim to accept duration
+// strings without changing the v1 field type. In the next major API version,
+// change RefreshInterval to a first-class *metav1.Duration and drop this
+// accessor. See issue #2977.
+func (s *SecretStoreSpec) GetRefreshInterval() (time.Duration, error) {
+	if s.RefreshInterval == nil {
+		return 0, nil
+	}
+	switch s.RefreshInterval.Type {
+	case intstr.Int:
+		secs := s.RefreshInterval.IntValue()
+		if secs < 0 {
+			return 0, fmt.Errorf("invalid refreshInterval %d: must not be negative", secs)
+		}
+		return time.Duration(secs) * time.Second, nil
+	case intstr.String:
+		d, err := time.ParseDuration(s.RefreshInterval.StrVal)
+		if err != nil {
+			return 0, fmt.Errorf("invalid refreshInterval %q: %w", s.RefreshInterval.StrVal, err)
+		}
+		if d < 0 {
+			return 0, fmt.Errorf("invalid refreshInterval %q: must not be negative", s.RefreshInterval.StrVal)
+		}
+		return d, nil
+	default:
+		return 0, fmt.Errorf("unsupported refreshInterval type %d", s.RefreshInterval.Type)
+	}
 }
 
 // ClusterSecretStoreCondition describes a condition by which to choose namespaces to process ExternalSecrets in
@@ -136,6 +178,14 @@ type SecretStoreProvider struct {
 	// +optional
 	Kubernetes *KubernetesProvider `json:"kubernetes,omitempty"`
 
+	// CRD configures this store to sync secrets from arbitrary Kubernetes resources,
+	// including both custom resources (CRDs) and core API resources. Resources are
+	// selected by API group, version and kind, where group can be "" (empty string)
+	// for core resources such as ConfigMap. Reading the core v1 Secret is
+	// intentionally blocked — use the Kubernetes provider for that.
+	// +optional
+	CRD *CRDProvider `json:"crd,omitempty"`
+
 	// Fake configures a store with static key/value pairs
 	// +optional
 	Fake *FakeProvider `json:"fake,omitempty"`
@@ -208,6 +258,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Beyondtrust *BeyondtrustProvider `json:"beyondtrust,omitempty"`
 
+	// BeyondtrustWorkloadCredentials configures this store to sync secrets using the BeyondTrust Workload Credentials provider.
+	// +optional
+	BeyondtrustWorkloadCredentials *BeyondtrustWorkloadCredentialsProvider `json:"beyondtrustworkloadcredentials,omitempty"`
+
 	// CloudruSM configures this store to sync secrets using the Cloud.ru Secret Manager provider
 	// +optional
 	CloudruSM *CloudruSMProvider `json:"cloudrusm,omitempty"`
@@ -227,6 +281,10 @@ type SecretStoreProvider struct {
 	// NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider
 	// +optional
 	NebiusMysterybox *NebiusMysteryboxProvider `json:"nebiusmysterybox,omitempty"`
+
+	// OpenBao configures this store to sync secrets using the OpenBao provider.
+	// +optional
+	OpenBao *OpenBaoProvider `json:"openBao,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.

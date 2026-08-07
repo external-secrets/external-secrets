@@ -393,6 +393,100 @@ func TestFindItem(t *testing.T) {
 	}
 }
 
+func TestProviderOnePasswordSecretExists(t *testing.T) {
+	connectErr := errors.New("1Password Connect unavailable")
+	testCases := []struct {
+		name        string
+		provider    *ProviderOnePassword
+		ref         fakeRef
+		expected    bool
+		expectedErr error
+	}{
+		{
+			name: "item does not exist",
+			provider: &ProviderOnePassword{
+				vaults: map[string]int{myVault: 1},
+				client: fake.NewMockClient().
+					AddPredictableVault(myVault),
+			},
+			ref: fakeRef{key: myItem},
+		},
+		{
+			name: "item exists without requested property",
+			provider: &ProviderOnePassword{
+				vaults: map[string]int{myVault: 1},
+				client: fake.NewMockClient().
+					AddPredictableVault(myVault).
+					AddPredictableItemWithField(myVault, myItem, key1, value1),
+			},
+			ref:      fakeRef{key: myItem},
+			expected: true,
+		},
+		{
+			name: "requested field exists",
+			provider: &ProviderOnePassword{
+				vaults: map[string]int{myVault: 1},
+				client: fake.NewMockClient().
+					AddPredictableVault(myVault).
+					AddPredictableItemWithField(myVault, myItem, key1, value1),
+			},
+			ref:      fakeRef{key: myItem, prop: key1},
+			expected: true,
+		},
+		{
+			name: "requested field does not exist",
+			provider: &ProviderOnePassword{
+				vaults: map[string]int{myVault: 1},
+				client: fake.NewMockClient().
+					AddPredictableVault(myVault).
+					AddPredictableItemWithField(myVault, myItem, key1, value1),
+			},
+			ref: fakeRef{key: myItem, prop: key2},
+		},
+		{
+			name: "duplicate items return an error",
+			provider: &ProviderOnePassword{
+				vaults: map[string]int{myVault: 1},
+				client: fake.NewMockClient().
+					AddPredictableVault(myVault).
+					AddPredictableItemWithField(myVault, myItem, key1, value1).
+					AppendItem(myVaultID, onepassword.Item{
+						ID:    "duplicate-item-id",
+						Title: myItem,
+						Vault: onepassword.ItemVault{ID: myVaultID},
+					}),
+			},
+			ref:         fakeRef{key: myItem},
+			expectedErr: ErrExpectedOneItem,
+		},
+		{
+			name: "Connect lookup errors are propagated",
+			provider: &ProviderOnePassword{
+				vaults: map[string]int{myVault: 1},
+				client: &mockClient{
+					getVaultFunc: func(string) (*onepassword.Vault, error) {
+						return nil, connectErr
+					},
+				},
+			},
+			ref:         fakeRef{key: myItem},
+			expectedErr: connectErr,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			exists, err := tc.provider.SecretExists(context.Background(), tc.ref)
+			if exists != tc.expected {
+				t.Errorf("expected exists=%v, got %v", tc.expected, exists)
+			}
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("expected error %v, got %v", tc.expectedErr, err)
+			}
+		})
+	}
+}
+
 func TestValidateStore(t *testing.T) {
 	type testCase struct {
 		checkNote    string
@@ -2447,10 +2541,16 @@ func TestProviderOnePasswordPushSecret(t *testing.T) {
 // mockClient implements connect.Client interface for testing.
 type mockClient struct {
 	getItemsFunc func(vaultQuery string) ([]onepassword.Item, error)
+	getVaultFunc func(vaultQuery string) (*onepassword.Vault, error)
 }
 
-func (m *mockClient) GetVaults() ([]onepassword.Vault, error)                   { return nil, nil }
-func (m *mockClient) GetVault(uuid string) (*onepassword.Vault, error)          { return nil, nil }
+func (m *mockClient) GetVaults() ([]onepassword.Vault, error) { return nil, nil }
+func (m *mockClient) GetVault(uuid string) (*onepassword.Vault, error) {
+	if m.getVaultFunc != nil {
+		return m.getVaultFunc(uuid)
+	}
+	return nil, nil
+}
 func (m *mockClient) GetVaultByUUID(uuid string) (*onepassword.Vault, error)    { return nil, nil }
 func (m *mockClient) GetVaultByTitle(title string) (*onepassword.Vault, error)  { return nil, nil }
 func (m *mockClient) GetVaultsByTitle(uuid string) ([]onepassword.Vault, error) { return nil, nil }

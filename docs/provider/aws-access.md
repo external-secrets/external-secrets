@@ -4,11 +4,11 @@
 
 ![Pod Identity Authentication](../pictures/diagrams-provider-aws-auth-pod-identity.png)
 
-Note: If you are using Parameter Store replace `service: SecretsManager` with `service: ParameterStore` in all examples below.
+Note: If you are using Parameter Store replace `service: SecretsManager` with `service: ParameterStore` in all examples below. For Certificate Manager use `service: CertificateManager`.
 
 This is basically a zero-configuration authentication method that inherits the credentials from the runtime environment using the [aws sdk default credential chain](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default).
 
-You can attach a role to the pod using [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html), [kiam](https://github.com/uswitch/kiam) or [kube2iam](https://github.com/jtblin/kube2iam). When no other authentication method is configured in the `Kind=Secretstore` this role is used to make all API calls against AWS Secrets Manager or SSM Parameter Store.
+You can attach a role to the pod using [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html), [kiam](https://github.com/uswitch/kiam) or [kube2iam](https://github.com/jtblin/kube2iam). When no other authentication method is configured in the `Kind=SecretStore` this role is used to make all API calls against AWS Secrets Manager, SSM Parameter Store or Certificate Manager.
 
 Based on the Pod's identity you can do a `sts:assumeRole` before fetching the secrets to limit access to certain keys in your provider. This is optional.
 
@@ -52,7 +52,13 @@ spec:
           secretAccessKeySecretRef:
             name: awssm-secret
             key: secret-access-key
+          # optional: only when using temporary (STS) credentials
+          sessionTokenSecretRef:
+            name: awssm-secret
+            key: session-token
 ```
+
+The optional `sessionTokenSecretRef` supplies an AWS session token alongside the access key and secret, which is required when the credentials are temporary (STS) rather than long-lived.
 
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `accessKeyIDSecretRef`, `secretAccessKeySecretRef` with the namespaces where the secrets reside.
 
@@ -94,6 +100,31 @@ spec:
 ```
 
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `serviceAccountRef` with the namespace where the service account resides.
+
+## Assuming Roles
+
+The optional `role` field makes ESO call `sts:AssumeRole` before accessing secrets, the recommended way to scope access per store. Two related fields refine role assumption:
+
+- `additionalRoles`: a chained list of Role ARNs the provider assumes sequentially *before* assuming `role`. Use it for cross-account role chaining.
+- `externalID`: the [external ID](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html) passed when assuming `role`, for third-party trust scenarios.
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: team-b-store
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: eu-central-1
+      role: arn:aws:iam::222222222222:role/team-b
+      # optional: assume these roles in order first (e.g. cross-account hops)
+      additionalRoles:
+        - arn:aws:iam::111111111111:role/hop
+      # optional: external ID required by the target role's trust policy
+      externalID: my-external-id
+```
 
 ## EKS Pod Identity Setup
 
@@ -182,7 +213,7 @@ _Note:_ For even more details you can follow this post for more setup and inform
 
 ## Custom Endpoints
 
-You can define custom AWS endpoints if you want to use regional, vpc or custom endpoints. See List of endpoints for [Secrets Manager](https://docs.aws.amazon.com/general/latest/gr/asm.html), [Secure Systems Manager](https://docs.aws.amazon.com/general/latest/gr/ssm.html) and [Security Token Service](https://docs.aws.amazon.com/general/latest/gr/sts.html).
+You can define custom AWS endpoints if you want to use regional, vpc or custom endpoints. See List of endpoints for [Secrets Manager](https://docs.aws.amazon.com/general/latest/gr/asm.html), [Secure Systems Manager](https://docs.aws.amazon.com/general/latest/gr/ssm.html), [Certificate Manager](https://docs.aws.amazon.com/general/latest/gr/acm.html) and [Security Token Service](https://docs.aws.amazon.com/general/latest/gr/sts.html).
 
 Use the following environment variables to point the controller to your custom endpoints. Note: All resources managed by this controller are affected.
 
@@ -190,6 +221,8 @@ Use the following environment variables to point the controller to your custom e
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | AWS_SECRETSMANAGER_ENDPOINT | Endpoint for the Secrets Manager Service. The controller uses this endpoint to fetch secrets from AWS Secrets Manager.                                               |
 | AWS_SSM_ENDPOINT            | Endpoint for the AWS Secure Systems Manager. The controller uses this endpoint to fetch secrets from SSM Parameter Store.                                            |
+| AWS_ACM_ENDPOINT            | Endpoint for the AWS Certificate Manager. The controller uses this endpoint to import and export certificates from ACM.                                              |
+| AWS_RESOURCE_GROUPS_TAGGING_API_ENDPOINT | Endpoint for the AWS Resource Groups Tagging API. The controller uses this endpoint to locate ACM certificates by their ESO management tags.           |
 | AWS_STS_ENDPOINT            | Endpoint for the Security Token Service. The controller uses this endpoint when creating a session and when doing `assumeRole` or `assumeRoleWithWebIdentity` calls. |
 | AWS_ECR_ENDPOINT            | Endpoint for the ECR Service. The controller uses this endpoint to fetch authorization tokens from ECR.                                                              |
 | AWS_ECR_PUBLIC_ENDPOINT     | Endpoint for the Public ECR Service. The controller uses this endpoint to fetch authorization tokens from ECR.                                                       |
@@ -259,6 +292,29 @@ Session tags will include the three automatically added tags, plus `env=producti
 
 **NOTE:** Custom tags with empty keys or empty values are silently ignored. Built-in tags (`esoNamespace`, `esoStoreName`, `esoStoreKind`) will always be included even when the sessionTagsPolicy is `Custom`. They cannot be overridden via `customSessionTags`.
 
+### Manually specified session tags
+
+Independent of `sessionTagsPolicy`, you can attach a fixed set of session tags to the assumed role with `spec.provider.aws.sessionTags`, and mark some of them transitive (kept across roles assumed afterwards in a chain) with `transitiveTagKeys`:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: team-b-store
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: eu-central-1
+      role: arn:aws:iam::222222222222:role/team-b
+      sessionTags:
+        - key: cost-center
+          value: team-b
+      # keys whose tags persist across roles assumed afterwards (additionalRoles)
+      transitiveTagKeys:
+        - cost-center
+```
+
 ### Required IAM Permissions
 
 When session tags are enabled, the role trust policy must allow `sts:TagSession`:
@@ -274,4 +330,21 @@ When session tags are enabled, the role trust policy must allow `sts:TagSession`
     }
   ]
 }
+```
+
+## Prefix
+
+`spec.provider.aws.prefix` prepends a fixed string to every remote key the store resolves, for both reads and writes. No separator is added, so include any trailing delimiter yourself. For example, with `prefix: prod/`, a `remoteRef.key` of `db-password` resolves to `prod/db-password` in Secrets Manager or Parameter Store.
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: team-b-store
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: eu-central-1
+      prefix: prod/
 ```

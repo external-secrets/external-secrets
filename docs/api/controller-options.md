@@ -41,6 +41,17 @@ reconciler.
 | `--store-requeue-interval`                    | duration | 5m0s    | Default Time duration between reconciling (Cluster)SecretStores                                                                                                    |
 | `--enable-http2`                              | boolean  | false   | If set, HTTP/2 will be enabled for the metrics server                                                                                                              |
 
+### Debug-level logging
+
+Setting `--loglevel=debug` (Helm: `log.level: debug`) enables additional log lines that are suppressed at the default `info` level. These include:
+
+- **Secret deletion** -- logged when the controller deletes a managed Secret because the provider returned no data and `DeletionPolicy=Delete` is set. Fields: `secret`, `namespace`, `reason`.
+- **Managed secret cleanup** -- logged when a managed Secret is deleted because its owning ExternalSecret was deleted. Fields: `secret`, `namespace`, `reason`.
+- **Orphaned secret cleanup** -- logged when an orphaned Secret is deleted. Fields: `secret`, `namespace`.
+- **Secret data key diff** -- logged after every update where data keys actually changed (keys added, updated, removed, or emptied). Only key names are logged, never their values. Fields: `secret`, `namespace`, `added`, `updated`, `removed`, `emptied`.
+
+These messages can be used to build alerting rules on destructive operations. The diff computation is skipped entirely when debug logging is not enabled, so there is no performance impact at the default log level.
+
 ## Cert Controller Flags
 
 | Name                       | Type     | Default                  | Descripton                                                                                                            |

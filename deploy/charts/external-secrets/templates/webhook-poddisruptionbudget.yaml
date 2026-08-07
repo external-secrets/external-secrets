@@ -8,9 +8,9 @@ metadata:
     {{- include "external-secrets-webhook.labels" . | nindent 4 }}
     external-secrets.io/component: webhook
 spec:
-  {{- if .Values.webhook.podDisruptionBudget.maxUnavailable }}
+  {{- if hasKey .Values.webhook.podDisruptionBudget "maxUnavailable" }}
   maxUnavailable: {{ .Values.webhook.podDisruptionBudget.maxUnavailable }}
-  {{- else if .Values.webhook.podDisruptionBudget.minAvailable }}
+  {{- else if hasKey .Values.webhook.podDisruptionBudget "minAvailable" }}
   minAvailable: {{ .Values.webhook.podDisruptionBudget.minAvailable }}
   {{- end }}
   selector:
