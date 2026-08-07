@@ -4747,7 +4747,7 @@ ExternalSecretConversionStrategy
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to define a conversion Strategy</p>
+<p>Used to define a conversion Strategy. Defaults to Default when omitted.</p>
 </td>
 </tr>
 <tr>
@@ -4761,7 +4761,7 @@ ExternalSecretDecodingStrategy
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to define a decoding Strategy</p>
+<p>Used to define a decoding Strategy. Defaults to None when omitted.</p>
 </td>
 </tr>
 <tr>
@@ -4913,7 +4913,7 @@ ExternalSecretConversionStrategy
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to define a conversion Strategy</p>
+<p>Used to define a conversion Strategy. Defaults to Default when omitted.</p>
 </td>
 </tr>
 <tr>
@@ -4927,7 +4927,7 @@ ExternalSecretDecodingStrategy
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to define a decoding Strategy</p>
+<p>Used to define a decoding Strategy. Defaults to None when omitted.</p>
 </td>
 </tr>
 <tr>
@@ -12202,7 +12202,8 @@ ExternalSecretDecodingStrategy
 </td>
 <td>
 <em>(Optional)</em>
-<p>Used to define a decoding Strategy for the rendered template values.</p>
+<p>Used to define a decoding Strategy for the rendered template values.
+Defaults to None when omitted.</p>
 </td>
 </tr>
 </tbody>

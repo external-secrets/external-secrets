@@ -50,3 +50,11 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 10
+
+  - package-ecosystem: gomod
+    directory: /hack/tools/gen-crd-api-reference-docs
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 10

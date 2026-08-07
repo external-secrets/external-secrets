@@ -267,9 +267,11 @@ func TestClientGetAllSecrets(t *testing.T) {
 				mock.MockAccessSecretVersion([]byte(`{"some": "value", "another": "value", "foo": {"bar": "baz"}}`), nil)
 				mock.MockAccessSecretVersion([]byte(`{"second_secret": "prop_value"}`), nil)
 			},
+			// The provider returns paths; the conversion strategy replaces the
+			// slash so the key is valid in a Secret.
 			wantPayload: map[string][]byte{
 				"secret1":        []byte(`{"some": "value", "another": "value", "foo": {"bar": "baz"}}`),
-				"storage/secret": []byte(`{"second_secret": "prop_value"}`),
+				"storage_secret": []byte(`{"second_secret": "prop_value"}`),
 			},
 			wantErr: nil,
 		},
@@ -293,7 +295,7 @@ func TestClientGetAllSecrets(t *testing.T) {
 			},
 			wantPayload: map[string][]byte{
 				"secret":         []byte(`{"some": "value", "another": "value", "foo": {"bar": "baz"}}`),
-				"storage/secret": []byte(`top_secret`),
+				"storage_secret": []byte(`top_secret`),
 			},
 			wantErr: nil,
 		},
@@ -312,7 +314,7 @@ func TestClientGetAllSecrets(t *testing.T) {
 				mock.MockAccessSecretVersion([]byte(`value1`), nil)
 			},
 			wantPayload: map[string][]byte{
-				"oss/snmp-auths/secret1": []byte(`value1`),
+				"oss_snmp-auths_secret1": []byte(`value1`),
 			},
 			wantErr: nil,
 		},
