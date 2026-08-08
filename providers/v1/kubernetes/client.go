@@ -27,6 +27,7 @@ import (
 
 	"github.com/tidwall/gjson"
 	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/api/equality"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -82,8 +83,16 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 
 // DeleteSecret removes a secret value from Kubernetes.
 // It requires a property to be specified in the RemoteRef.
+// When remoteRef carries PushSecretData metadata with remoteNamespace
+// (ClusterSecretStore), deletion targets that namespace, matching PushSecret.
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
-	extSecret, getErr := c.userSecretClient.Get(ctx, remoteRef.GetRemoteKey(), metav1.GetOptions{})
+	targetNamespace, err := c.namespaceFromPushRef(remoteRef)
+	if err != nil {
+		return err
+	}
+	secretClient := c.secretsClientFor(targetNamespace)
+
+	extSecret, getErr := secretClient.Get(ctx, remoteRef.GetRemoteKey(), metav1.GetOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, getErr)
 	if getErr != nil {
 		if apierrors.IsNotFound(getErr) {
@@ -99,15 +108,22 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 		}
 
 		if len(extSecret.Data) > 1 {
-			return c.removeProperty(ctx, extSecret, remoteRef)
+			return c.removeProperty(ctx, secretClient, extSecret, remoteRef)
 		}
 	}
-	return c.fullDelete(ctx, remoteRef.GetRemoteKey())
+	return c.fullDelete(ctx, secretClient, remoteRef.GetRemoteKey())
 }
 
 // SecretExists checks if a secret exists in Kubernetes.
+// Honors PushSecretData metadata.remoteNamespace the same way PushSecret does.
 func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
-	secret, err := c.userSecretClient.Get(ctx, ref.GetRemoteKey(), metav1.GetOptions{})
+	targetNamespace, err := c.namespaceFromPushRef(ref)
+	if err != nil {
+		return false, err
+	}
+	secretClient := c.secretsClientFor(targetNamespace)
+
+	secret, err := secretClient.Get(ctx, ref.GetRemoteKey(), metav1.GetOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, err)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
@@ -128,16 +144,13 @@ func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1.Pu
 		return errors.New("requires property in RemoteRef to push secret value if secret key is defined")
 	}
 
-	targetNamespace := c.store.RemoteNamespace
 	pushMeta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
 	if err != nil {
 		return fmt.Errorf("unable to parse metadata parameters: %w", err)
 	}
-	if pushMeta != nil && pushMeta.Spec.RemoteNamespace != "" {
-		if c.storeKind != esv1.ClusterSecretStoreKind {
-			return fmt.Errorf("remoteNamespace override is only supported with ClusterSecretStore")
-		}
-		targetNamespace = pushMeta.Spec.RemoteNamespace
+	targetNamespace, err := c.pushTargetNamespace(pushMeta)
+	if err != nil {
+		return err
 	}
 
 	secretClient := c.secretsClientFor(targetNamespace)
@@ -151,6 +164,35 @@ func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1.Pu
 	return c.createOrUpdate(ctx, secretClient, remoteSecret, func() error {
 		return c.mergePushSecretData(data, pushMeta, remoteSecret, secret)
 	})
+}
+
+// namespaceFromPushRef resolves the remote Kubernetes namespace for push/delete/exists.
+// When the controller passes full PushSecretData (not just Match.RemoteRef),
+// metadata.spec.remoteNamespace is honored for ClusterSecretStore.
+func (c *Client) namespaceFromPushRef(ref esv1.PushSecretRemoteRef) (string, error) {
+	var metaJSON *apiextensionsv1.JSON
+	if psd, ok := ref.(esv1.PushSecretData); ok {
+		metaJSON = psd.GetMetadata()
+	}
+	pushMeta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](metaJSON)
+	if err != nil {
+		return "", fmt.Errorf("unable to parse metadata parameters: %w", err)
+	}
+	return c.pushTargetNamespace(pushMeta)
+}
+
+func (c *Client) pushTargetNamespace(pushMeta *metadata.PushSecretMetadata[PushSecretMetadataSpec]) (string, error) {
+	var targetNamespace string
+	if c.store != nil {
+		targetNamespace = c.store.RemoteNamespace
+	}
+	if pushMeta != nil && pushMeta.Spec.RemoteNamespace != "" {
+		if c.storeKind != esv1.ClusterSecretStoreKind {
+			return "", fmt.Errorf("remoteNamespace override is only supported with ClusterSecretStore")
+		}
+		targetNamespace = pushMeta.Spec.RemoteNamespace
+	}
+	return targetNamespace, nil
 }
 
 func (c *Client) mergePushSecretData(remoteRef esv1.PushSecretData, pushMeta *metadata.PushSecretMetadata[PushSecretMetadataSpec], remoteSecret, localSecret *v1.Secret) error {
@@ -426,8 +468,8 @@ func convertMap(in map[string][]byte) map[string]string {
 }
 
 // fullDelete removes remote secret completely.
-func (c *Client) fullDelete(ctx context.Context, secretName string) error {
-	err := c.userSecretClient.Delete(ctx, secretName, metav1.DeleteOptions{})
+func (c *Client) fullDelete(ctx context.Context, secretClient KClient, secretName string) error {
+	err := secretClient.Delete(ctx, secretName, metav1.DeleteOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesDeleteSecret, err)
 
 	// gracefully return on not found
@@ -438,9 +480,9 @@ func (c *Client) fullDelete(ctx context.Context, secretName string) error {
 }
 
 // removeProperty removes single data property from remote secret.
-func (c *Client) removeProperty(ctx context.Context, extSecret *v1.Secret, remoteRef esv1.PushSecretRemoteRef) error {
+func (c *Client) removeProperty(ctx context.Context, secretClient KClient, extSecret *v1.Secret, remoteRef esv1.PushSecretRemoteRef) error {
 	delete(extSecret.Data, remoteRef.GetProperty())
-	_, err := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
+	_, err := secretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
 	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesUpdateSecret, err)
 	return err
 }
