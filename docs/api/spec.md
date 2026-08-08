@@ -30571,7 +30571,7 @@ int64
 <p>The issuer may return a shorter validity than requested: the API server
 enforces its own bounds and <code>--service-account-max-token-expiration</code> caps
 requests without reporting it. The generated <code>expirationTimestamp</code> is
-therefore authoritative, not this field. See <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-request-v1/">TokenRequest</a>.</p>
+therefore authoritative, not this field. See <a href="https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/">TokenRequest</a>.</p>
 <p>Defaults to the API server&rsquo;s own default when unset.</p>
 </td>
 </tr>
@@ -30628,7 +30628,7 @@ int64
 <p>The issuer may return a shorter validity than requested: the API server
 enforces its own bounds and <code>--service-account-max-token-expiration</code> caps
 requests without reporting it. The generated <code>expirationTimestamp</code> is
-therefore authoritative, not this field. See <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-request-v1/">TokenRequest</a>.</p>
+therefore authoritative, not this field. See <a href="https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/">TokenRequest</a>.</p>
 <p>Defaults to the API server&rsquo;s own default when unset.</p>
 </td>
 </tr>

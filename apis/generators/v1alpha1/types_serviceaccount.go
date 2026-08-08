@@ -43,7 +43,7 @@ type ServiceAccountTokenSpec struct {
 	// Defaults to the API server's own default when unset.
 	// +optional
 	//
-	// [TokenRequest]: https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-request-v1/
+	// [TokenRequest]: https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/
 	ExpirationSeconds *int64 `json:"expirationSeconds,omitempty"`
 }
 

@@ -1,5 +1,5 @@
 `ServiceAccountToken` issues a short-lived token for a Kubernetes ServiceAccount through the
-[TokenRequest API](https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-request-v1/).
+[TokenRequest API](https://kubernetes.io/docs/reference/access-authn-authz/service-accounts-admin/).
 
 It is the counterpart to the legacy `kubernetes.io/service-account-token` Secret, which never
 expires and is never rotated. Combined with `PushSecret`, it lets a token be minted in one
@@ -64,7 +64,25 @@ rules:
     resources: ['serviceaccounts/token']
     resourceNames: ['argocd-remote']
     verbs: ['create']
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: eso-token-argocd-remote
+  namespace: argocd
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: eso-token-argocd-remote
+subjects:
+  - kind: ServiceAccount
+    # the operator's own ServiceAccount, in the namespace ESO runs in
+    name: external-secrets
+    namespace: external-secrets
 ```
+
+The Role on its own grants nothing: without the binding, ESO still has no way to
+issue the token and the push fails with a plain `forbidden`.
 
 ## Example Manifest
 
