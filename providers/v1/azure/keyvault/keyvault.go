@@ -20,6 +20,7 @@ package keyvault
 
 import (
 	"context"
+	"crypto/sha3"
 	"crypto/x509"
 	b64 "encoding/base64"
 	"encoding/json"
@@ -48,7 +49,6 @@ import (
 	"github.com/aws/smithy-go/ptr"
 	"github.com/lestrrat-go/jwx/v2/jwk"
 	"github.com/tidwall/gjson"
-	"golang.org/x/crypto/sha3"
 	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

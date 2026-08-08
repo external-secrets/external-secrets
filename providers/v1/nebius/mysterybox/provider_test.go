@@ -556,11 +556,11 @@ func TestCreateOrGetMysteryboxClient_CachesByKey(t *testing.T) {
 
 	cache, err := lru.New(10)
 	tassert.NoError(t, err)
-	var factoryCalls int32
+	var factoryCalls atomic.Int32
 	p := &Provider{
 		Logger: logger,
 		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
-			atomic.AddInt32(&factoryCalls, 1)
+			factoryCalls.Add(1)
 			return fake.NewFakeMysteryboxClient(nil), nil
 		},
 		mysteryboxClientsCache: cache,
@@ -579,7 +579,7 @@ func TestCreateOrGetMysteryboxClient_CachesByKey(t *testing.T) {
 	_, err = p.createOrGetMysteryboxClient(ctx, "other.nebius.example", []byte("CA1"))
 	tassert.NoError(t, err)
 
-	tassert.Equal(t, int32(3), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d", atomic.LoadInt32(&factoryCalls), 3))
+	tassert.Equal(t, int32(3), factoryCalls.Load(), fmt.Sprintf("factory called %d times, want %d", factoryCalls.Load(), 3))
 }
 
 func TestCreateOrGetMysteryboxClient_EmptyCA_EqualsNil(t *testing.T) {
@@ -696,11 +696,11 @@ func TestCreateOrGetMysteryboxClient_Concurrent_MultipleClients(t *testing.T) {
 	ctx := context.Background()
 	cache, err := lru.New(10)
 	tassert.NoError(t, err)
-	var factoryCalls int32
+	var factoryCalls atomic.Int32
 	p := &Provider{
 		Logger: logger,
 		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
-			atomic.AddInt32(&factoryCalls, 1)
+			factoryCalls.Add(1)
 			return fake.NewFakeMysteryboxClient(nil), nil
 		},
 		mysteryboxClientsCache: cache,
@@ -728,7 +728,7 @@ func TestCreateOrGetMysteryboxClient_Concurrent_MultipleClients(t *testing.T) {
 		}
 	}
 
-	tassert.Equal(t, int32(4), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d", atomic.LoadInt32(&factoryCalls), 4))
+	tassert.Equal(t, int32(4), factoryCalls.Load(), fmt.Sprintf("factory called %d times, want %d", factoryCalls.Load(), 4))
 }
 
 func TestMysteryboxClientsCache_ConcurrentEviction_CloseOnce(t *testing.T) {

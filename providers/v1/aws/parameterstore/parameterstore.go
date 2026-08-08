@@ -171,14 +171,11 @@ func (pm *ParameterStore) SecretExists(ctx context.Context, pushSecretRef esv1.P
 		Name: &secretName,
 	}
 
-	var resourceNotFoundErr *ssmTypes.ResourceNotFoundException
-	var parameterNotFoundErr *ssmTypes.ParameterNotFound
-
 	if _, err := pm.client.GetParameter(ctx, &secretValue); err != nil {
-		if errors.As(err, &resourceNotFoundErr) {
+		if _, ok := errors.AsType[*ssmTypes.ResourceNotFoundException](err); ok {
 			return false, nil
 		}
-		if errors.As(err, &parameterNotFoundErr) {
+		if _, ok := errors.AsType[*ssmTypes.ParameterNotFound](err); ok {
 			return false, nil
 		}
 		return false, err

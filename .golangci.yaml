@@ -16,7 +16,6 @@ linters:
     - exhaustive
     - copyloopvar
     - goheader
-    - goconst
     - gocritic
     - godot
     - goprintffuncname
@@ -35,9 +34,6 @@ linters:
     - whitespace
     - revive
   settings:
-    goconst:
-      min-len: 3
-      min-occurrences: 3
     gocritic:
       enabled-tags:
         - diagnostic
