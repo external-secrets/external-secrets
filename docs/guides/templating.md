@@ -57,6 +57,36 @@ You do not have to define your templates inline in an ExternalSecret but you can
 
 Lastly, `TemplateFrom` also supports adding `Literal` blocks for quick templating. These `Literal` blocks differ from `Template.Data` as they are rendered as a a `key:value` pair (while the `Template.Data`, you can only template the value).
 
+#### Properties files
+
+Use `fromProperties` to parse a Java properties document stored in one provider value. Combined with a `Literal` template and `toYaml`, each property becomes a key in the resulting Kubernetes Secret:
+
+```yaml
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: application-secrets
+spec:
+  secretStoreRef:
+    kind: SecretStore
+    name: secret-store
+  data:
+  - secretKey: applicationProperties
+    remoteRef:
+      key: application.properties
+  target:
+    template:
+      engineVersion: v2
+      templateFrom:
+      - target: Data
+        literal: |
+          {{ .applicationProperties | fromProperties | toYaml }}
+{% endraw %}
+```
+
+The parser supports comments, `=` and `:` separators, escaped characters, Unicode escapes, and line continuations. Property values such as `${PASSWORD}` are kept as-is rather than expanded by the template helper.
+
 #### ValuesDecodingStrategy example
 
 `TemplateFrom` entries can also decode rendered values with `ValuesDecodingStrategy`. This is useful when the template selects Base64-encoded values from structured provider data and the final Kubernetes Secret must contain the decoded bytes.
@@ -317,6 +347,7 @@ In addition to that you can use over 200+ [sprig functions](http://masterminds.g
 | rsaDecrypt | Decrypts RSA ciphertext using a PEM private key. Usage: ``<rsaDecrypt "SCHEME" "HASH" ciphertext privateKeyPEM>`` or ``<privateKeyPEM \| rsaDecrypt "SCHEME" "HASH" ciphertext>``. **SCHEME**: supported values are `"None"` and `"RSA-OAEP"`. **HASH**: supported values are `"SHA1"` and `"SHA256"`. **Ciphertext** must be binary — use `b64dec` or `decodingStrategy: Base64` to convert Base64 payloads. |
 | toYaml           | Takes an interface, marshals it to yaml. It returns a string, even on marshal error (empty string).                                                                                                                          |
 | fromYaml         | Function converts a YAML document into a map[string]any.                                                                                                                                                             |
+| fromProperties   | Parses a Java properties document into a map. Property expansion is disabled, so values such as `${PASSWORD}` are preserved.                                                                                       |
 | hexdec           | decodes hexadecimal values                                                                                                                                                                                                   |
 
 ## Migrating from v1

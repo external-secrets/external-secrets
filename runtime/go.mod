@@ -14,6 +14,7 @@ require (
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/huandu/xstrings v1.5.0
 	github.com/lestrrat-go/jwx/v2 v2.1.6
+	github.com/magiconair/properties v1.8.10
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/oracle/oci-go-sdk/v65 v65.103.0
 	github.com/prometheus/client_golang v1.23.2

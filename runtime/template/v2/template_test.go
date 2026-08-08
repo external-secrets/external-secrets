@@ -315,6 +315,18 @@ func TestExecute(t *testing.T) {
 			},
 		},
 		{
+			name: "fromProperties & toYaml func",
+			tpl: map[string][]byte{
+				"foo": []byte("{{ .secret | fromProperties | toYaml }}"),
+			},
+			data: map[string][]byte{
+				"secret": []byte("username=admin\npassword=s3cr3t"),
+			},
+			expectedData: map[string][]byte{
+				"foo": []byte("password: s3cr3t\nusername: admin"),
+			},
+		},
+		{
 			name: "use sprig functions",
 			tpl: map[string][]byte{
 				"foo": []byte(`{{ .path | ext }}`),
@@ -912,6 +924,18 @@ func TestScopeKeysAndValues(t *testing.T) {
 			},
 			expectedStringData: map[string]string{
 				"foo": "bar",
+			},
+		},
+		{
+			name:   "properties document into secret keys",
+			tpl:    map[string][]byte{"literal": []byte("{{ .properties | fromProperties | toYaml }}")},
+			target: esapi.TemplateTargetData,
+			data: map[string][]byte{
+				"properties": []byte("username=admin\npassword=s3cr3t"),
+			},
+			expectedData: map[string][]byte{
+				"password": []byte("s3cr3t"),
+				"username": []byte("admin"),
 			},
 		},
 	}

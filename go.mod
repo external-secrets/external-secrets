@@ -294,6 +294,7 @@ require (
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/lestrrat-go/httprc v1.0.6 // indirect
 	github.com/lestrrat-go/jwx/v2 v2.1.6 // indirect
+	github.com/magiconair/properties v1.8.10 // indirect
 	github.com/nebius/gosdk v0.0.0-20260204094009-511fd4d4f7a1 // indirect
 	github.com/ngrok/ngrok-api-go/v9 v9.0.0 // indirect
 	github.com/oapi-codegen/runtime v1.1.2 // indirect
