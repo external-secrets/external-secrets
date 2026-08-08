@@ -45,11 +45,12 @@ var (
 )
 
 const (
-	errVaultStore    = "received invalid Vault SecretStore resource: %w"
-	errVaultClient   = "cannot setup new vault client: %w"
-	errVaultCert     = "cannot set Vault CA certificate: %w"
-	errClientTLSAuth = "error from Client TLS Auth: %q"
-	errCANamespace   = "missing namespace on caProvider secret"
+	errVaultStore     = "received invalid Vault SecretStore resource: %w"
+	errVaultClient    = "cannot setup new vault client: %w"
+	errVaultCert      = "cannot set Vault CA certificate: %w"
+	errClientTLSAuth  = "error from Client TLS Auth: %q"
+	errCANamespace    = "missing namespace on caProvider secret"
+	errVaultCacheRace = "vault client cache race: winner unavailable after ContainsOrAdd; retry"
 )
 
 const (
@@ -272,6 +273,9 @@ func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config, nam
 			if cached, ok := clientCache.Get(store.GetObjectMeta().ResourceVersion, key); ok {
 				return cached, nil
 			}
+			// Winner was removed between ContainsOrAdd and Get. Our client was
+			// already cleaned up (revoked); never return it.
+			return nil, errors.New(errVaultCacheRace)
 		}
 	}
 	return client, nil
