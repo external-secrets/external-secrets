@@ -152,11 +152,11 @@ To control this behavior set the following provider metadata:
 - `tags` Key-value map of user-defined tags that are attached to the secret.
 - `replicationLocations` takes a list of valid AWS region names where the secret should be replicated.
 
-**Note:** ESO treats the PushSecret as the **source of truth** for tags, resource policy, and replication locations. When any of these resources are specified in `metadata`, they will be added or updated, and resources NOT specified but existing will be removed from AWS. This synchronization happens on every reconciliation, even when the secret value hasn't changed.
+**Note:** ESO treats the PushSecret as the **source of truth** for tags, resource policy, and replication locations. When one of these is specified in `metadata`, its value is the desired state: what is listed is added or updated, and what exists in AWS but is not listed is removed. When one is omitted from `metadata` entirely, ESO does not manage it and leaves the existing AWS state alone. This synchronization happens on every reconciliation, even when the secret value hasn't changed.
 
 - `resourcePolicy` Attach a resource-based policy to the secret for cross-account access or advanced access control.
   - `blockPublicPolicy` (optional) - Set to `true` to validate that the policy doesn't grant public access before applying. Defaults to AWS behavior.
-  - `policySourceRef` (required) - Reference to a ConfigMap or Secret containing the policy JSON.
+  - `policySourceRef` (optional) - Reference to a ConfigMap or Secret containing the policy JSON. Declaring `resourcePolicy` without it means "no policy", and deletes any policy attached to the secret.
     - `kind` - Either `ConfigMap` or `Secret`.
     - `name` - Name of the ConfigMap or Secret.
     - `key` - Key within the ConfigMap/Secret data that contains the policy JSON.
@@ -233,7 +233,12 @@ data:
     }
 ```
 
-**Note:** The resource policy is synchronized on every reconciliation, even when the secret value hasn't changed. If the `resourcePolicy` field is removed from metadata, the existing policy will be deleted from the secret.
+**Note:** The resource policy is synchronized on every reconciliation, even when the secret value hasn't changed. If `resourcePolicy` is not set in the metadata, ESO does not manage the policy and leaves any existing one in place. To delete a policy, keep `resourcePolicy` declared but drop its `policySourceRef`:
+
+```yaml
+      metadata:
+        resourcePolicy: {}
+```
 
 ##### Location Replication
 
