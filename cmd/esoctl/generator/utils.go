@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"unicode"
 )
 
 // FindRootDir finds the root directory of the external-secrets repository.
@@ -41,4 +42,28 @@ func FindRootDir(startDir string) string {
 		dir = parent
 	}
 	return ""
+}
+
+// lowerCamel converts a PascalCase kind into the lowerCamelCase form used by the
+// json tags of GeneratorSpec. A leading acronym is lowered as a whole, so
+// ECRAuthorizationToken becomes ecrAuthorizationToken and UUID becomes uuid.
+func lowerCamel(name string) string {
+	runes := []rune(name)
+
+	// length of the leading run of upper-case letters
+	upper := 0
+	for upper < len(runes) && unicode.IsUpper(runes[upper]) {
+		upper++
+	}
+
+	switch {
+	case upper == 0:
+		return name
+	case upper == 1 || upper == len(runes):
+		// a single leading capital, or an all-caps name: lower the whole run
+		return strings.ToLower(string(runes[:upper])) + string(runes[upper:])
+	default:
+		// an acronym followed by another word: its last capital starts that word
+		return strings.ToLower(string(runes[:upper-1])) + string(runes[upper-1:])
+	}
 }

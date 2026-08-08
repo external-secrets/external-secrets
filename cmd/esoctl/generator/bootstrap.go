@@ -256,11 +256,9 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 	for i, line := range lines {
 		// Update the enum validation annotation
 		if !enumAdded && strings.Contains(line, "+kubebuilder:validation:Enum=") {
-			// Add the new generator to the enum list
-			line = strings.TrimRight(line, "\n")
-			if strings.HasSuffix(line, "Grafana") {
-				line = line + ";" + cfg.GeneratorName
-			}
+			// Append the new generator to the enum list. Anchoring on whichever
+			// kind happens to be last stops working as soon as one is added.
+			line = strings.TrimRight(line, "\n") + ";" + cfg.GeneratorName
 			enumAdded = true
 		}
 
@@ -285,7 +283,7 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 			// Look ahead to check if next line is closing brace of the struct
 			if i+1 < len(lines) && strings.TrimSpace(lines[i+1]) == "}" {
 				// Add the new spec field
-				jsonTag := strings.ToLower(cfg.GeneratorName) + "Spec"
+				jsonTag := lowerCamel(cfg.GeneratorName) + "Spec"
 				specLine := fmt.Sprintf("\t%sSpec             *%sSpec             `json:\"%s,omitempty\"`",
 					cfg.GeneratorName, cfg.GeneratorName, jsonTag)
 				newLines = append(newLines, specLine)
@@ -478,14 +476,14 @@ func updateRegisterKindFile(rootDir string, cfg Config) error {
 		newLines = append(newLines, line)
 
 		// Add Kind constant before closing paren of var block
-		if !kindAdded && strings.Contains(line, "Kind = reflect.TypeOf(") && strings.Contains(line, "{}).Name()") {
+		if !kindAdded && strings.Contains(line, "Kind = reflect.") && strings.HasSuffix(strings.TrimSpace(line), ".Name()") {
 			// Look ahead to see if next line is closing paren
 			if i+1 < len(lines) && strings.TrimSpace(lines[i+1]) == ")" {
 				// Add blank line and then the new kind
 				newLines = append(newLines, "")
 				kindComment := fmt.Sprintf("\t// %sKind is the kind name for %s resource.", cfg.GeneratorName, cfg.GeneratorName)
 				newLines = append(newLines, kindComment)
-				kindLine := fmt.Sprintf("\t%sKind = reflect.TypeOf(%s{}).Name()", cfg.GeneratorName, cfg.GeneratorName)
+				kindLine := fmt.Sprintf("\t%sKind = reflect.TypeFor[%s]().Name()", cfg.GeneratorName, cfg.GeneratorName)
 				newLines = append(newLines, kindLine)
 				kindAdded = true
 			}
@@ -505,7 +503,7 @@ func updateRegisterKindFile(rootDir string, cfg Config) error {
 	if !kindAdded || !schemeAdded {
 		fmt.Printf("⚠ Warning: Could not fully update register.go. Please manually add:\n")
 		if !kindAdded {
-			fmt.Printf("   1. Add Kind constant: %sKind = reflect.TypeOf(%s{}).Name()\n", cfg.GeneratorName, cfg.GeneratorName)
+			fmt.Printf("   1. Add Kind constant: %sKind = reflect.TypeFor[%s]().Name()\n", cfg.GeneratorName, cfg.GeneratorName)
 		}
 		if !schemeAdded {
 			fmt.Printf("   2. Add SchemeBuilder registration: SchemeBuilder.Register(&%s{}, &%sList{})\n", cfg.GeneratorName, cfg.GeneratorName)
