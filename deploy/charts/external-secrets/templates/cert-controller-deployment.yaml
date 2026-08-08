@@ -146,6 +146,10 @@ spec:
             periodSeconds: {{ .Values.certController.startupProbe.periodSeconds }}
             failureThreshold: {{ .Values.certController.startupProbe.failureThreshold }}
           {{- end }}
+          {{- with .Values.certController.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.certController.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}
