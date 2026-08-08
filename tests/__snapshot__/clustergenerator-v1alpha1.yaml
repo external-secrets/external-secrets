@@ -380,6 +380,15 @@ spec:
         name: string
         namespace: string
         type: "Secret" # "Secret", "ConfigMap"
+      clientTLS:
+        certSecretRef:
+          key: string
+          name: string
+          namespace: string
+        keySecretRef:
+          key: string
+          name: string
+          namespace: string
       headers: {}
       method: string
       result:

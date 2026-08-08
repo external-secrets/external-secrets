@@ -1,5 +1,6 @@
 /*
 Copyright © The ESO Authors
+Copyright © 2026 Apple Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -38,6 +39,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 	"github.com/external-secrets/external-secrets/runtime/template/v2"
 )
@@ -385,6 +387,10 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 			Renegotiation: tls.RenegotiateOnceAsClient,
 		}
 
+		if err := w.includeClientTLS(ctx, tlsConf, provider); err != nil {
+			return nil, err
+		}
+
 		c.Transport = &http.Transport{TLSClientConfig: tlsConf}
 	}
 	// add authentication method if it s there
@@ -449,4 +455,50 @@ func ExecuteTemplate(tmpl string, data map[string]map[string]string) (bytes.Buff
 		return result, err
 	}
 	return result, nil
+}
+
+// includeClientTLS resolves and appends the configured client certificate and key
+// to tlsConf.Certificates so the webhook client can authenticate to a server that
+// requires mutual TLS. It is a no-op when ClientTLS is not configured.
+func (w *Webhook) includeClientTLS(ctx context.Context, tlsConf *tls.Config, provider *Spec) error {
+	if provider.ClientTLS == nil {
+		return nil
+	}
+	if provider.ClientTLS.CertSecretRef == nil || provider.ClientTLS.KeySecretRef == nil {
+		return errors.New("clientTLS requires both certSecretRef and keySecretRef")
+	}
+
+	certSecretRef := esmeta.SecretKeySelector{
+		Name:      provider.ClientTLS.CertSecretRef.Name,
+		Namespace: provider.ClientTLS.CertSecretRef.Namespace,
+		Key:       provider.ClientTLS.CertSecretRef.Key,
+	}
+	if certSecretRef.Key == "" {
+		certSecretRef.Key = corev1.TLSCertKey
+	}
+	certv, err := resolvers.SecretKeyRef(ctx, w.Kube, w.StoreKind, w.Namespace, &certSecretRef)
+	if err != nil {
+		return err
+	}
+
+	keySecretRef := esmeta.SecretKeySelector{
+		Name:      provider.ClientTLS.KeySecretRef.Name,
+		Namespace: provider.ClientTLS.KeySecretRef.Namespace,
+		Key:       provider.ClientTLS.KeySecretRef.Key,
+	}
+	if keySecretRef.Key == "" {
+		keySecretRef.Key = corev1.TLSPrivateKeyKey
+	}
+	keyv, err := resolvers.SecretKeyRef(ctx, w.Kube, w.StoreKind, w.Namespace, &keySecretRef)
+	if err != nil {
+		return err
+	}
+
+	cert, err := tls.X509KeyPair([]byte(certv), []byte(keyv))
+	if err != nil {
+		return err
+	}
+
+	tlsConf.Certificates = append(tlsConf.Certificates, cert)
+	return nil
 }
