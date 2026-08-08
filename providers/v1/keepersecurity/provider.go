@@ -75,6 +75,10 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		folderID:           keeperStore.FolderID,
 		ksmClient:          ksmClient,
 		getByTitleFallback: keeperStore.GetByTitleFallback,
+		// Shared-cache identity: per device + folder. TTL is opt-in via
+		// KEEPER_RECORD_CACHE_TTL_MS (0 = disabled, default behavior unchanged).
+		cacheKey: hashConfig(clientConfig, keeperStore.FolderID),
+		cacheTTL: cacheTTL(),
 	}
 
 	return client, nil
