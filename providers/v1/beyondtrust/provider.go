@@ -121,14 +121,11 @@ func (*Provider) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemote
 	return make(map[string][]byte), errors.New(errNotImplemented)
 }
 
-// Validate implements v1beta1.SecretsClient.
+// Validate checks that the store can authenticate with BeyondTrust using the same
+// client path ExternalSecret sync uses, so Ready reflects real operational readiness.
 func (p *Provider) Validate() (esv1.ValidationResult, error) {
-	timeout := 15 * time.Second
-	clientURL := p.apiURL
-
-	if err := esutils.NetworkValidate(clientURL, timeout); err != nil {
-		ESOLogger.Error(err, "Network Validate", "clientURL:", clientURL)
-		return esv1.ValidationResultError, err
+	if _, err := p.authenticate.GetPasswordSafeAuthentication(); err != nil {
+		return esv1.ValidationResultError, fmt.Errorf("authentication validation failed: %w", err)
 	}
 
 	return esv1.ValidationResultReady, nil

@@ -385,18 +385,19 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 			Renegotiation: tls.RenegotiateOnceAsClient,
 		}
 
-		c.Transport = &http.Transport{TLSClientConfig: tlsConf}
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.TLSClientConfig = tlsConf
+		c.Transport = transport
 	}
-	// add authentication method if it s there
+	// add authentication method if it's there
 	if provider.Auth != nil {
 		if provider.Auth.NTLM != nil {
-			c.Transport =
-				&ntlmssp.Negotiator{
-					RoundTripper: &http.Transport{
-						TLSNextProto: map[string]func(authority string, c *tls.Conn) http.RoundTripper{}, // Needed to disable HTTP/2
-
-					},
-				}
+			transport, ok := c.Transport.(*http.Transport)
+			if !ok {
+				transport = http.DefaultTransport.(*http.Transport).Clone()
+			}
+			transport.TLSNextProto = map[string]func(authority string, c *tls.Conn) http.RoundTripper{} // Needed to disable HTTP/2
+			c.Transport = &ntlmssp.Negotiator{RoundTripper: transport}
 		}
 		// add additional auth methods here
 	}

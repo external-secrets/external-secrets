@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 	"strconv"
 	"time"
@@ -38,6 +39,9 @@ import (
 const (
 	errNotImplemented   = "not implemented"
 	errFailedToGetStore = "failed to get store: %w"
+	// defaultTimeout is used for store Validate() when the webhook HTTP client
+	// has no Timeout configured.
+	defaultTimeout = 30 * time.Second
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -314,14 +318,38 @@ func (w *WebHook) Close(_ context.Context) error {
 	return nil
 }
 
-// Validate checks if the webhook provider is configured correctly.
+// Validate checks reachability through the same HTTP client ExternalSecret sync
+// uses, so Ready reflects real operational readiness.
 func (w *WebHook) Validate() (esv1.ValidationResult, error) {
-	timeout := 15 * time.Second
-	url := w.url
-
-	if err := esutils.NetworkValidate(url, timeout); err != nil {
-		return esv1.ValidationResultError, err
+	if w.wh.HTTP == nil {
+		return esv1.ValidationResultError, errors.New("http client is not configured")
 	}
+
+	timeout := defaultTimeout
+	if w.wh.HTTP.Timeout > 0 {
+		timeout = w.wh.HTTP.Timeout
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, w.url, http.NoBody)
+	if err != nil {
+		return esv1.ValidationResultError, fmt.Errorf("failed to create validation request: %w", err)
+	}
+
+	resp, err := w.wh.HTTP.Do(req)
+	if err != nil {
+		return esv1.ValidationResultError, fmt.Errorf("error accessing external store: %w", err)
+	}
+	defer func() {
+		_ = resp.Body.Close()
+	}()
+	_, _ = io.Copy(io.Discard, resp.Body)
+
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return esv1.ValidationResultError, fmt.Errorf("error accessing external store: received %s status", resp.Status)
+	}
+
 	return esv1.ValidationResultReady, nil
 }
 

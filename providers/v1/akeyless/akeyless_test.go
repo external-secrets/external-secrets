@@ -18,17 +18,26 @@ package akeyless
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
 	"errors"
 	"fmt"
+	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/akeylesslabs/akeyless-go/v4"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -170,207 +179,206 @@ func TestAkeylessGetSecret(t *testing.T) {
 
 func TestValidateStore(t *testing.T) {
 	provider := Provider{}
-
 	akeylessGWApiURL := ""
+	otherNS := "other-ns"
+	appNS := "app-test"
 
-	t.Run("secret auth", func(t *testing.T) {
-		store := &esv1.SecretStore{
-			Spec: esv1.SecretStoreSpec{
-				Provider: &esv1.SecretStoreProvider{
-					Akeyless: &esv1.AkeylessProvider{
-						AkeylessGWApiURL: &akeylessGWApiURL,
-						Auth: &esv1.AkeylessAuth{
-							SecretRef: esv1.AkeylessAuthSecretRef{
-								AccessID: esmeta.SecretKeySelector{
-									Name: "accessId",
-									Key:  "key-1",
-								},
-								AccessType: esmeta.SecretKeySelector{
-									Name: "accessId",
-									Key:  "key-1",
-								},
-								AccessTypeParam: esmeta.SecretKeySelector{
-									Name: "accessId",
-									Key:  "key-1",
+	tests := []struct {
+		name    string
+		store   esv1.GenericStore
+		wantErr bool
+	}{
+		{
+			name: "secret auth",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Akeyless: &esv1.AkeylessProvider{
+							AkeylessGWApiURL: &akeylessGWApiURL,
+							Auth: &esv1.AkeylessAuth{
+								SecretRef: esv1.AkeylessAuthSecretRef{
+									AccessID: esmeta.SecretKeySelector{
+										Name: "accessId",
+										Key:  "key-1",
+									},
+									AccessType: esmeta.SecretKeySelector{
+										Name: "accessId",
+										Key:  "key-1",
+									},
+									AccessTypeParam: esmeta.SecretKeySelector{
+										Name: "accessId",
+										Key:  "key-1",
+									},
 								},
 							},
 						},
 					},
 				},
 			},
-		}
-
-		_, err := provider.ValidateStore(store)
-		require.NoError(t, err)
-	})
-
-	t.Run("secret auth with serviceAccountRef", func(t *testing.T) {
-		store := &esv1.SecretStore{
-			Spec: esv1.SecretStoreSpec{
-				Provider: &esv1.SecretStoreProvider{
-					Akeyless: &esv1.AkeylessProvider{
-						AkeylessGWApiURL: &akeylessGWApiURL,
-						Auth: &esv1.AkeylessAuth{
-							SecretRef: esv1.AkeylessAuthSecretRef{
-								AccessID: esmeta.SecretKeySelector{
-									Name: "accessId",
-									Key:  "key-1",
+		},
+		{
+			name: "secret auth with serviceAccountRef",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Akeyless: &esv1.AkeylessProvider{
+							AkeylessGWApiURL: &akeylessGWApiURL,
+							Auth: &esv1.AkeylessAuth{
+								SecretRef: esv1.AkeylessAuthSecretRef{
+									AccessID: esmeta.SecretKeySelector{
+										Name: "accessId",
+										Key:  "key-1",
+									},
+									AccessType: esmeta.SecretKeySelector{
+										Name: "accessId",
+										Key:  "key-1",
+									},
 								},
-								AccessType: esmeta.SecretKeySelector{
-									Name: "accessId",
-									Key:  "key-1",
-								},
-							},
-							ServiceAccountRef: &esmeta.ServiceAccountSelector{
-								Name: "akeyless-wi-sa",
-							},
-						},
-					},
-				},
-			},
-		}
-
-		_, err := provider.ValidateStore(store)
-		require.NoError(t, err)
-	})
-
-	t.Run("secret auth with serviceAccountRef in different namespace", func(t *testing.T) {
-		ns := "other-ns"
-		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "app-test",
-			},
-			TypeMeta: metav1.TypeMeta{
-				Kind: esv1.SecretStoreKind,
-			},
-			Spec: esv1.SecretStoreSpec{
-				Provider: &esv1.SecretStoreProvider{
-					Akeyless: &esv1.AkeylessProvider{
-						AkeylessGWApiURL: &akeylessGWApiURL,
-						Auth: &esv1.AkeylessAuth{
-							SecretRef: esv1.AkeylessAuthSecretRef{
-								AccessID: esmeta.SecretKeySelector{
-									Name: "accessId",
-									Key:  "key-1",
-								},
-								AccessType: esmeta.SecretKeySelector{
-									Name: "accessId",
-									Key:  "key-1",
-								},
-							},
-							ServiceAccountRef: &esmeta.ServiceAccountSelector{
-								Name:      "akeyless-wi-sa",
-								Namespace: &ns,
-							},
-						},
-					},
-				},
-			},
-		}
-
-		_, err := provider.ValidateStore(store)
-		require.Error(t, err)
-	})
-
-	t.Run("cluster secret auth with serviceAccountRef namespace", func(t *testing.T) {
-		ns := "app-test"
-		store := &esv1.ClusterSecretStore{
-			TypeMeta: metav1.TypeMeta{
-				Kind: esv1.ClusterSecretStoreKind,
-			},
-			Spec: esv1.SecretStoreSpec{
-				Provider: &esv1.SecretStoreProvider{
-					Akeyless: &esv1.AkeylessProvider{
-						AkeylessGWApiURL: &akeylessGWApiURL,
-						Auth: &esv1.AkeylessAuth{
-							SecretRef: esv1.AkeylessAuthSecretRef{
-								AccessID: esmeta.SecretKeySelector{
-									Name:      "accessId",
-									Key:       "key-1",
-									Namespace: &ns,
-								},
-								AccessType: esmeta.SecretKeySelector{
-									Name:      "accessId",
-									Key:       "key-1",
-									Namespace: &ns,
-								},
-							},
-							ServiceAccountRef: &esmeta.ServiceAccountSelector{
-								Name:      "akeyless-wi-sa",
-								Namespace: &ns,
-							},
-						},
-					},
-				},
-			},
-		}
-
-		_, err := provider.ValidateStore(store)
-		require.NoError(t, err)
-	})
-
-	t.Run("k8s auth", func(t *testing.T) {
-		store := &esv1.SecretStore{
-			Spec: esv1.SecretStoreSpec{
-				Provider: &esv1.SecretStoreProvider{
-					Akeyless: &esv1.AkeylessProvider{
-						AkeylessGWApiURL: &akeylessGWApiURL,
-						Auth: &esv1.AkeylessAuth{
-							KubernetesAuth: &esv1.AkeylessKubernetesAuth{
-								K8sConfName: "name",
-								AccessID:    "id",
 								ServiceAccountRef: &esmeta.ServiceAccountSelector{
-									Name: "name",
+									Name: "akeyless-wi-sa",
 								},
 							},
 						},
 					},
 				},
 			},
-		}
-
-		_, err := provider.ValidateStore(store)
-		require.NoError(t, err)
-	})
-
-	t.Run("bad conf auth", func(t *testing.T) {
-		store := &esv1.SecretStore{
-			Spec: esv1.SecretStoreSpec{
-				Provider: &esv1.SecretStoreProvider{
-					Akeyless: &esv1.AkeylessProvider{
-						AkeylessGWApiURL: &akeylessGWApiURL,
-						Auth:             &esv1.AkeylessAuth{},
-					},
+		},
+		{
+			name: "secret auth with serviceAccountRef in different namespace",
+			store: &esv1.SecretStore{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "app-test",
 				},
-			},
-		}
-
-		_, err := provider.ValidateStore(store)
-		require.Error(t, err)
-	})
-
-	t.Run("bad k8s conf auth", func(t *testing.T) {
-		store := &esv1.SecretStore{
-			Spec: esv1.SecretStoreSpec{
-				Provider: &esv1.SecretStoreProvider{
-					Akeyless: &esv1.AkeylessProvider{
-						AkeylessGWApiURL: &akeylessGWApiURL,
-						Auth: &esv1.AkeylessAuth{
-							KubernetesAuth: &esv1.AkeylessKubernetesAuth{
-								AccessID: "id",
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1.SecretStoreKind,
+				},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Akeyless: &esv1.AkeylessProvider{
+							AkeylessGWApiURL: &akeylessGWApiURL,
+							Auth: &esv1.AkeylessAuth{
+								SecretRef: esv1.AkeylessAuthSecretRef{
+									AccessID: esmeta.SecretKeySelector{
+										Name: "accessId",
+										Key:  "key-1",
+									},
+									AccessType: esmeta.SecretKeySelector{
+										Name: "accessId",
+										Key:  "key-1",
+									},
+								},
 								ServiceAccountRef: &esmeta.ServiceAccountSelector{
-									Name: "name",
+									Name:      "akeyless-wi-sa",
+									Namespace: &otherNS,
 								},
 							},
 						},
 					},
 				},
 			},
-		}
+			wantErr: true,
+		},
+		{
+			name: "cluster secret auth with serviceAccountRef namespace",
+			store: &esv1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{
+					Kind: esv1.ClusterSecretStoreKind,
+				},
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Akeyless: &esv1.AkeylessProvider{
+							AkeylessGWApiURL: &akeylessGWApiURL,
+							Auth: &esv1.AkeylessAuth{
+								SecretRef: esv1.AkeylessAuthSecretRef{
+									AccessID: esmeta.SecretKeySelector{
+										Name:      "accessId",
+										Key:       "key-1",
+										Namespace: &appNS,
+									},
+									AccessType: esmeta.SecretKeySelector{
+										Name:      "accessId",
+										Key:       "key-1",
+										Namespace: &appNS,
+									},
+								},
+								ServiceAccountRef: &esmeta.ServiceAccountSelector{
+									Name:      "akeyless-wi-sa",
+									Namespace: &appNS,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "k8s auth",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Akeyless: &esv1.AkeylessProvider{
+							AkeylessGWApiURL: &akeylessGWApiURL,
+							Auth: &esv1.AkeylessAuth{
+								KubernetesAuth: &esv1.AkeylessKubernetesAuth{
+									K8sConfName: "name",
+									AccessID:    "id",
+									ServiceAccountRef: &esmeta.ServiceAccountSelector{
+										Name: "name",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "bad conf auth",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Akeyless: &esv1.AkeylessProvider{
+							AkeylessGWApiURL: &akeylessGWApiURL,
+							Auth:             &esv1.AkeylessAuth{},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "bad k8s conf auth",
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						Akeyless: &esv1.AkeylessProvider{
+							AkeylessGWApiURL: &akeylessGWApiURL,
+							Auth: &esv1.AkeylessAuth{
+								KubernetesAuth: &esv1.AkeylessKubernetesAuth{
+									AccessID: "id",
+									ServiceAccountRef: &esmeta.ServiceAccountSelector{
+										Name: "name",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+	}
 
-		_, err := provider.ValidateStore(store)
-		require.Error(t, err)
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := provider.ValidateStore(tt.store)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
 }
 
 func TestGetSecretMap(t *testing.T) {
@@ -588,6 +596,150 @@ func TestDeleteSecret(t *testing.T) {
 			}
 			err := sm.DeleteSecret(context.Background(), v.input.(esv1.PushSecretData))
 			require.Truef(t, ErrorContains(err, v.expectError), fmtExpectedError, err, v.expectError)
+		})
+	}
+}
+
+func TestValidate(t *testing.T) {
+	tests := []struct {
+		name       string
+		client     akeylessVaultInterface
+		wantResult esv1.ValidationResult
+		wantErr    string
+	}{
+		{
+			name:       "success",
+			client:     fakeakeyless.New(),
+			wantResult: esv1.ValidationResultReady,
+		},
+		{
+			name: "auth failure",
+			client: fakeakeyless.New().SetTokenFromSecretRefFn(func(context.Context) (string, error) {
+				return "", errors.New("auth failed")
+			}),
+			wantResult: esv1.ValidationResultError,
+			wantErr:    "authentication validation failed",
+		},
+		{
+			name:       "uninitialized client",
+			wantResult: esv1.ValidationResultError,
+			wantErr:    errUninitalizedAkeylessProvider,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			sm := Akeyless{Client: tt.client}
+			result, err := sm.Validate()
+			require.Truef(t, ErrorContains(err, tt.wantErr), fmtExpectedError, err, tt.wantErr)
+			require.Equal(t, tt.wantResult, result)
+		})
+	}
+}
+
+func generateCABundlePEM(t *testing.T) []byte {
+	t.Helper()
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+
+	tmpl := &x509.Certificate{
+		SerialNumber:          big.NewInt(1),
+		Subject:               pkix.Name{CommonName: "akeyless-test-ca"},
+		NotBefore:             time.Now().Add(-time.Hour),
+		NotAfter:              time.Now().Add(time.Hour),
+		KeyUsage:              x509.KeyUsageCertSign | x509.KeyUsageCRLSign,
+		BasicConstraintsValid: true,
+		IsCA:                  true,
+	}
+	der, err := x509.CreateCertificate(rand.Reader, tmpl, tmpl, &key.PublicKey, key)
+	require.NoError(t, err)
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+}
+
+func TestGetAkeylessHTTPClient(t *testing.T) {
+	caPEM := generateCABundlePEM(t)
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: "akeyless-ca", Namespace: "ns"},
+			Data:       map[string][]byte{"ca.crt": caPEM},
+		},
+	).Build()
+
+	store := &esv1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{Name: "store", Namespace: "ns"},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Akeyless: &esv1.AkeylessProvider{},
+			},
+		},
+	}
+
+	base := &akeylessBase{
+		kube:      kube,
+		store:     store,
+		namespace: "ns",
+		storeKind: esv1.SecretStoreKind,
+	}
+
+	tests := []struct {
+		name             string
+		provider         *esv1.AkeylessProvider
+		wantNilTransport bool
+		wantProxy        bool
+		wantRootCAs      bool
+	}{
+		{
+			name:             "no CA uses default transport",
+			provider:         store.Spec.Provider.Akeyless,
+			wantNilTransport: true,
+		},
+		{
+			name: "inline caBundle clones default transport",
+			provider: &esv1.AkeylessProvider{
+				CABundle: caPEM,
+			},
+			wantProxy:   true,
+			wantRootCAs: true,
+		},
+		{
+			name: "caProvider clones default transport",
+			provider: &esv1.AkeylessProvider{
+				CAProvider: &esv1.CAProvider{
+					Type: esv1.CAProviderTypeSecret,
+					Name: "akeyless-ca",
+					Key:  "ca.crt",
+				},
+			},
+			wantProxy: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client, err := base.getAkeylessHTTPClient(t.Context(), tt.provider)
+			require.NoError(t, err)
+
+			if tt.wantNilTransport {
+				require.Nil(t, client.Transport)
+				return
+			}
+
+			transport, ok := client.Transport.(*http.Transport)
+			require.True(t, ok)
+			if tt.wantProxy {
+				require.NotNil(t, transport.Proxy)
+				require.Equal(t, http.DefaultTransport.(*http.Transport).MaxIdleConns, transport.MaxIdleConns)
+			}
+			if tt.wantRootCAs {
+				expectedPool := x509.NewCertPool()
+				require.True(t, expectedPool.AppendCertsFromPEM(caPEM))
+				require.NotNil(t, transport.TLSClientConfig.RootCAs)
+				require.True(t, transport.TLSClientConfig.RootCAs.Equal(expectedPool))
+			}
 		})
 	}
 }

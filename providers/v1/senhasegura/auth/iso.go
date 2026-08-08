@@ -123,10 +123,9 @@ func (s *SenhaseguraIsoSession) GetIsoToken(clientID, clientSecret, systemURL st
 	u, _ := url.ParseRequestURI(systemURL)
 	u.Path = "/iso/oauth2/token"
 
-	tr := &http.Transport{
-		//nolint
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: ignoreSslCertificate},
-	}
+	tr := http.DefaultTransport.(*http.Transport).Clone()
+	//nolint
+	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: ignoreSslCertificate}
 
 	client := &http.Client{Transport: tr}
 

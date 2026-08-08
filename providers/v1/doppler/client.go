@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
-	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -32,7 +31,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	dclient "github.com/external-secrets/external-secrets/providers/v1/doppler/client"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/find"
 )
@@ -114,15 +112,9 @@ func (c *Client) refreshAuthIfNeeded(ctx context.Context) error {
 	return nil
 }
 
-// Validate validates the Doppler client configuration.
+// Validate checks that the store can authenticate with Doppler using the same
+// client path ExternalSecret sync uses, so Ready reflects real operational readiness.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
-	timeout := 15 * time.Second
-	clientURL := c.doppler.BaseURL().String()
-
-	if err := esutils.NetworkValidate(clientURL, timeout); err != nil {
-		return esv1.ValidationResultError, err
-	}
-
 	if err := c.doppler.Authenticate(); err != nil {
 		return esv1.ValidationResultError, err
 	}

@@ -326,10 +326,10 @@ func (c *DopplerClient) performRequest(path, method string, headers headers, par
 		tlsConfig.InsecureSkipVerify = true
 	}
 
-	httpClient.Transport = &http.Transport{
-		DisableKeepAlives: true,
-		TLSClientConfig:   tlsConfig,
-	}
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.DisableKeepAlives = true
+	transport.TLSClientConfig = tlsConfig
+	httpClient.Transport = transport
 
 	r, err := httpClient.Do(req)
 	if err != nil {
