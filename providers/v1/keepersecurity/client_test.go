@@ -926,6 +926,116 @@ func TestClientPushSecret(t *testing.T) {
 	}
 }
 
+func TestClientPushSecretWholeSecretCreatesCustomFields(t *testing.T) {
+	var created *ksm.RecordCreate
+	c := &Client{
+		ksmClient: &fake.MockKeeperClient{
+			GetSecretsByTitleFn: func(recordTitle string) ([]*ksm.Record, error) {
+				return nil, nil
+			},
+			CreateSecretWithRecordDataFn: func(_, _ string, recordData *ksm.RecordCreate) (string, error) {
+				created = recordData
+				return "record5", nil
+			},
+		},
+		folderID: folderID,
+	}
+
+	err := c.PushSecret(context.Background(), &corev1.Secret{Data: map[string][]byte{
+		"username": []byte("alice"),
+		"token":    []byte("secret"),
+	}}, testingfake.PushSecretData{RemoteKey: "bundle"})
+	if err != nil {
+		t.Fatalf("PushSecret() error = %v", err)
+	}
+	if created == nil {
+		t.Fatal("PushSecret() did not create a record")
+	}
+	if created.RecordType != externalSecretType || created.Title != "bundle" {
+		t.Fatalf("created record metadata = (%q, %q), want (%q, %q)", created.RecordType, created.Title, externalSecretType, "bundle")
+	}
+	if len(created.Fields) != 0 {
+		t.Fatalf("created standard fields = %d, want 0", len(created.Fields))
+	}
+
+	got := make(map[string]string, len(created.Custom))
+	labels := make([]string, 0, len(created.Custom))
+	for _, rawField := range created.Custom {
+		field, ok := rawField.(ksm.Secret)
+		if !ok {
+			t.Fatalf("created custom field has type %T, want ksm.Secret", rawField)
+		}
+		labels = append(labels, field.Label)
+		got[field.Label] = field.Value[0]
+	}
+	if !reflect.DeepEqual(labels, []string{"token", "username"}) {
+		t.Fatalf("created custom field labels = %v, want %v", labels, []string{"token", "username"})
+	}
+	want := map[string]string{"token": "secret", "username": "alice"}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("created custom fields = %v, want %v", got, want)
+	}
+}
+
+func TestClientPushSecretWholeSecretUpdatesCustomFields(t *testing.T) {
+	record := &ksm.Record{
+		Uid: "record5",
+		RecordDict: map[string]any{
+			"type":  externalSecretType,
+			"title": "bundle",
+			"custom": []interface{}{
+				map[string]interface{}{
+					"type":  secretType,
+					"label": "existing",
+					"value": []interface{}{"old"},
+				},
+			},
+		},
+	}
+	var saved *ksm.Record
+	c := &Client{
+		ksmClient: &fake.MockKeeperClient{
+			GetSecretsByTitleFn: func(recordTitle string) ([]*ksm.Record, error) {
+				return []*ksm.Record{record}, nil
+			},
+			SaveFn: func(updated *ksm.Record) error {
+				saved = updated
+				return nil
+			},
+		},
+		folderID: folderID,
+	}
+
+	err := c.PushSecret(context.Background(), &corev1.Secret{Data: map[string][]byte{
+		"existing": []byte("updated"),
+		"new":      []byte("added"),
+	}}, testingfake.PushSecretData{RemoteKey: "bundle"})
+	if err != nil {
+		t.Fatalf("PushSecret() error = %v", err)
+	}
+	if saved == nil {
+		t.Fatal("PushSecret() did not save the existing record")
+	}
+	if got := customFieldValue(saved, "existing"); got != "updated" {
+		t.Errorf("existing custom field = %q, want %q", got, "updated")
+	}
+	if got := customFieldValue(saved, "new"); got != "added" {
+		t.Errorf("new custom field = %q, want %q", got, "added")
+	}
+}
+
+func customFieldValue(record *ksm.Record, label string) string {
+	fields := record.GetCustomFieldsByLabel(label)
+	if len(fields) == 0 {
+		return ""
+	}
+	values, ok := fields[0]["value"].([]interface{})
+	if !ok || len(values) == 0 {
+		return ""
+	}
+	return fmt.Sprint(values[0])
+}
+
 func generateRecords() []*ksm.Record {
 	records := make([]*ksm.Record, 0, 3)
 	for i := range 3 {
