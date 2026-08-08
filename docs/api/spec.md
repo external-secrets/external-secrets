@@ -27904,6 +27904,9 @@ string
 </tr><tr><td><p>&#34;STSSessionToken&#34;</p></td>
 <td><p>GeneratorKindSTSSessionToken represents an AWS STS session token generator.</p>
 </td>
+</tr><tr><td><p>&#34;ServiceAccountToken&#34;</p></td>
+<td><p>GeneratorKindServiceAccountToken represents a Kubernetes ServiceAccount token generator.</p>
+</td>
 </tr><tr><td><p>&#34;UUID&#34;</p></td>
 <td><p>GeneratorKindUUID represents a UUID generator.</p>
 </td>
@@ -28135,6 +28138,18 @@ GrafanaSpec
 <em>
 <a href="#generators.external-secrets.io/v1alpha1.MFASpec">
 MFASpec
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountTokenSpec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.ServiceAccountTokenSpec">
+ServiceAccountTokenSpec
 </a>
 </em>
 </td>
@@ -30482,6 +30497,139 @@ string
 </td>
 <td>
 <p>The key where the token is found.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.ServiceAccountToken">ServiceAccountToken
+</h3>
+<p>
+<p>ServiceAccountToken issues short-lived Kubernetes ServiceAccount tokens through the TokenRequest API.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>metadata</code></br>
+<em>
+<a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta">
+Kubernetes meta/v1.ObjectMeta
+</a>
+</em>
+</td>
+<td>
+Refer to the Kubernetes API documentation for the fields of the
+<code>metadata</code> field.
+</td>
+</tr>
+<tr>
+<td>
+<code>spec</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.ServiceAccountTokenSpec">
+ServiceAccountTokenSpec
+</a>
+</em>
+</td>
+<td>
+<br/>
+<br/>
+<table>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountRef names the ServiceAccount to issue a token for and carries
+the audiences to request.</p>
+<p>The token is always issued in the namespace this generator is evaluated in.
+Setting <code>namespace</code> is rejected rather than ignored, because issuing a token
+in another namespace would let the caller reach beyond it.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expirationSeconds</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExpirationSeconds is the requested lifetime of the token, in seconds.</p>
+<p>The issuer may return a shorter validity than requested: the API server
+enforces its own bounds and <code>--service-account-max-token-expiration</code> caps
+requests without reporting it. The generated <code>expirationTimestamp</code> is
+therefore authoritative, not this field. See <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-request-v1/">TokenRequest</a>.</p>
+<p>Defaults to the API server&rsquo;s own default when unset.</p>
+</td>
+</tr>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="generators.external-secrets.io/v1alpha1.ServiceAccountTokenSpec">ServiceAccountTokenSpec
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#generators.external-secrets.io/v1alpha1.GeneratorSpec">GeneratorSpec</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.ServiceAccountToken">ServiceAccountToken</a>)
+</p>
+<p>
+<p>ServiceAccountTokenSpec controls how a Kubernetes ServiceAccount token is issued.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountRef names the ServiceAccount to issue a token for and carries
+the audiences to request.</p>
+<p>The token is always issued in the namespace this generator is evaluated in.
+Setting <code>namespace</code> is rejected rather than ignored, because issuing a token
+in another namespace would let the caller reach beyond it.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expirationSeconds</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExpirationSeconds is the requested lifetime of the token, in seconds.</p>
+<p>The issuer may return a shorter validity than requested: the API server
+enforces its own bounds and <code>--service-account-max-token-expiration</code> caps
+requests without reporting it. The generated <code>expirationTimestamp</code> is
+therefore authoritative, not this field. See <a href="https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-request-v1/">TokenRequest</a>.</p>
+<p>Defaults to the API server&rsquo;s own default when unset.</p>
 </td>
 </tr>
 </tbody>

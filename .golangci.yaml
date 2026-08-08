@@ -99,6 +99,12 @@ linters:
         linters:
           - revive
 
+      # A kubebuilder marker is one line by definition. The validation enums that
+      # list every generator kind grow with each kind added and cannot be wrapped.
+      - source: '\+kubebuilder:validation:Enum='
+        linters:
+          - lll
+
       # Ease some gocritic warnings on test files.
       - path: _test\.go
         text: "(unnamedResult|exitAfterDefer)"
