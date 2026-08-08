@@ -241,11 +241,16 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 
 	content := string(data)
 	jsonTag := lowerCamel(cfg.GeneratorName) + "Spec"
+	lines := strings.Split(content, "\n")
+
+	// Only the enum attached to GeneratorKind is ours to read or write; another
+	// annotation in this file must neither satisfy the check nor receive the value.
+	enumLine := generatorKindEnumLine(lines)
 
 	// Each fragment is looked for on its own. A single check would refuse to touch a
 	// file that carries one of them and is missing the others, which is exactly the
 	// state an interrupted or partially matching run leaves behind.
-	enumAdded := enumListsKind(content, cfg.GeneratorName)
+	enumAdded := enumLine >= 0 && enumListsKind(lines[enumLine], cfg.GeneratorName)
 	constAdded := strings.Contains(content, cfg.GeneratorKind+" GeneratorKind = ")
 	specAdded := strings.Contains(content, fmt.Sprintf("json:%q", jsonTag+",omitempty"))
 
@@ -254,13 +259,12 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 		return nil
 	}
 
-	lines := strings.Split(content, "\n")
 	newLines := make([]string, 0, len(lines)+2)
 	changed := false
 
 	for i, line := range lines {
 		// Update the enum validation annotation
-		if !enumAdded && strings.Contains(line, "+kubebuilder:validation:Enum=") {
+		if !enumAdded && i == enumLine {
 			// Append the new generator to the enum list. Anchoring on whichever
 			// kind happens to be last stops working as soon as one is added.
 			line = strings.TrimRight(line, "\n") + ";" + cfg.GeneratorName

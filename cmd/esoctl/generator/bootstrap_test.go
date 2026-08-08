@@ -64,6 +64,33 @@ func init() {
 }
 `
 
+// A second enum in the same file, naming the kind we are about to add. Nothing
+// prevents one from appearing, and it must neither satisfy the presence check nor
+// receive the new value.
+const typesClusterForeignEnumFixture = `package v1alpha1
+
+// DecodingStrategy is unrelated to generators and happens to name the same value.
+// +kubebuilder:validation:Enum=ECRAuthorizationToken;None
+type DecodingStrategy string
+
+// GeneratorKind represents a kind of generator.
+// +kubebuilder:validation:Enum=Password;MFA
+type GeneratorKind string
+
+const (
+	// GeneratorKindPassword represents a password generator.
+	GeneratorKindPassword GeneratorKind = "Password"
+	// GeneratorKindMFA represents a Multi-Factor Authentication generator.
+	GeneratorKindMFA GeneratorKind = "MFA"
+)
+
+// GeneratorSpec defines the configuration for various supported generator types.
+type GeneratorSpec struct {
+	PasswordSpec *PasswordSpec ` + "`json:\"passwordSpec,omitempty\"`" + `
+	MFASpec      *MFASpec      ` + "`json:\"mfaSpec,omitempty\"`" + `
+}
+`
+
 func ecrConfig() Config {
 	return Config{
 		GeneratorName: "ECRAuthorizationToken",
@@ -189,6 +216,29 @@ func TestUpdateRegisterKindFileCompletesAPartialTree(t *testing.T) {
 	got := readFile(t, file)
 	assert.Contains(t, got, "SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationTokenList{})")
 	assert.Equal(t, 1, strings.Count(got, "ECRAuthorizationTokenKind = reflect."))
+}
+
+func TestUpdateTypesClusterFileIgnoresAForeignEnum(t *testing.T) {
+	root, file := writeFixture(t, typesClusterPath, typesClusterForeignEnumFixture)
+	require.NoError(t, updateTypesClusterFile(root, ecrConfig()))
+
+	got := readFile(t, file)
+
+	// The GeneratorKind enum is the one that must grow...
+	assert.Contains(t, got, "+kubebuilder:validation:Enum=Password;MFA;ECRAuthorizationToken")
+	// ...and the unrelated one must be left exactly as it was.
+	assert.Contains(t, got, "+kubebuilder:validation:Enum=ECRAuthorizationToken;None\n")
+}
+
+func TestGeneratorKindEnumLine(t *testing.T) {
+	lines := strings.Split(typesClusterForeignEnumFixture, "\n")
+
+	i := generatorKindEnumLine(lines)
+	require.GreaterOrEqual(t, i, 0)
+	assert.Equal(t, "// +kubebuilder:validation:Enum=Password;MFA", strings.TrimSpace(lines[i]))
+
+	// A file without the declaration yields no annotation rather than a wrong one.
+	assert.Equal(t, -1, generatorKindEnumLine([]string{"// +kubebuilder:validation:Enum=A", "type Other string"}))
 }
 
 func TestUpdateTypesClusterFileLeavesACompleteTreeAlone(t *testing.T) {
