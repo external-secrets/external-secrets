@@ -1684,3 +1684,71 @@ func TestPushSecretRemoteNamespaceRejectedForSecretStore(t *testing.T) {
 		t.Errorf("error should mention ClusterSecretStore, got: %v", err)
 	}
 }
+
+func TestDeleteSecretAndExistsHonorRemoteNamespace(t *testing.T) {
+	secretKey := "secret-key"
+	storeNamespace := "store-ns"
+	targetNamespace := "target-ns"
+
+	fakeClientset := fake.NewSimpleClientset()
+	coreV1 := fakeClientset.CoreV1()
+
+	p := &Client{
+		userCoreV1:       coreV1,
+		userSecretClient: coreV1.Secrets(storeNamespace),
+		storeKind:        esv1.ClusterSecretStoreKind,
+		store: &esv1.KubernetesProvider{
+			RemoteNamespace: storeNamespace,
+		},
+	}
+
+	localSecret := &v1.Secret{
+		Data: map[string][]byte{secretKey: []byte("bar")},
+	}
+	data := testingfake.PushSecretData{
+		SecretKey: secretKey,
+		RemoteKey: "mysec",
+		Property:  "secret",
+		Metadata: &apiextensionsv1.JSON{
+			Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", "spec": {"remoteNamespace": "` + targetNamespace + `"}}`),
+		},
+	}
+
+	if err := p.PushSecret(t.Context(), localSecret, data); err != nil {
+		t.Fatalf("PushSecret failed: %v", err)
+	}
+
+	// Same-name decoy in the store namespace: pre-fix DeleteSecret would hit this.
+	_, err := coreV1.Secrets(storeNamespace).Create(t.Context(), &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "mysec", Namespace: storeNamespace},
+		Data:       map[string][]byte{"secret": []byte("decoy")},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("create decoy secret: %v", err)
+	}
+
+	exists, err := p.SecretExists(t.Context(), data)
+	if err != nil {
+		t.Fatalf("SecretExists failed: %v", err)
+	}
+	if !exists {
+		t.Fatal("SecretExists should find the secret in the remoteNamespace override")
+	}
+
+	if err := p.DeleteSecret(t.Context(), data); err != nil {
+		t.Fatalf("DeleteSecret failed: %v", err)
+	}
+
+	_, err = coreV1.Secrets(targetNamespace).Get(t.Context(), "mysec", metav1.GetOptions{})
+	if !apierrors.IsNotFound(err) {
+		t.Fatalf("secret should be deleted from target namespace %q, got err: %v", targetNamespace, err)
+	}
+
+	decoy, err := coreV1.Secrets(storeNamespace).Get(t.Context(), "mysec", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("decoy in store namespace should be untouched: %v", err)
+	}
+	if string(decoy.Data["secret"]) != "decoy" {
+		t.Errorf("decoy data mutated: %q", decoy.Data["secret"])
+	}
+}
