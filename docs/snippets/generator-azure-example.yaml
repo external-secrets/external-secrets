@@ -1,0 +1,21 @@
+{% raw %}
+
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: ado-credentials
+spec:
+  refreshInterval: 30m
+  target:
+    name: ado-credentials
+    template:
+      data:
+        # the Microsoft self-hosted Azure DevOps agent reads AZP_TOKEN via envFrom
+        AZP_TOKEN: "{{ .token }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: AzureAccessToken
+          name: my-azure-token
+{% endraw %}

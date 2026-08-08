@@ -152,6 +152,17 @@ func clusterGeneratorToVirtual(gen *genv1alpha1.ClusterGenerator) (client.Object
 			},
 			Spec: *gen.Spec.Generator.ACRAccessTokenSpec,
 		}, nil
+	case genv1alpha1.GeneratorKindAzureAccessToken:
+		if gen.Spec.Generator.AzureAccessTokenSpec == nil {
+			return nil, fmt.Errorf("when kind is %s, AzureAccessTokenSpec must be set", gen.Spec.Kind)
+		}
+		return &genv1alpha1.AzureAccessToken{
+			TypeMeta: metav1.TypeMeta{
+				APIVersion: genv1alpha1.SchemeGroupVersion.String(),
+				Kind:       genv1alpha1.AzureAccessTokenKind,
+			},
+			Spec: *gen.Spec.Generator.AzureAccessTokenSpec,
+		}, nil
 	case genv1alpha1.GeneratorKindBeyondtrustWorkloadCredentialsDynamicSecret:
 		if gen.Spec.Generator.BeyondtrustWorkloadCredentialsDynamicSecretSpec == nil {
 			return nil, fmt.Errorf("when kind is %s, BeyondtrustWorkloadCredentialsDynamicSecretSpec must be set", gen.Spec.Kind)

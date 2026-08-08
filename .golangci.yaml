@@ -123,6 +123,12 @@ linters:
       - text: "Actual:"
         linters:
           - goheader
+
+      # kubebuilder Enum markers must list every allowed value on a single line;
+      # they cannot be wrapped, so exempt them from the line-length linter.
+      - source: "kubebuilder:validation:Enum="
+        linters:
+          - lll
 issues:
   # Maximum issues count per one linter. Set to 0 to disable. Default is 50.
   max-issues-per-linter: 0
