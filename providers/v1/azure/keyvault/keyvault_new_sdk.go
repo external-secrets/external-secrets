@@ -28,6 +28,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
+	azruntime "github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azcertificates"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azkeys"
@@ -67,6 +68,14 @@ func newSDKSecretUnchanged(existingValue, existingContentType *string, value []b
 		return true
 	}
 	return comp(existingContentType, contentType)
+}
+
+type newSecretClient interface {
+	DeleteSecret(ctx context.Context, name string, options *azsecrets.DeleteSecretOptions) (azsecrets.DeleteSecretResponse, error)
+	GetSecret(ctx context.Context, name string, version string, options *azsecrets.GetSecretOptions) (azsecrets.GetSecretResponse, error)
+	NewListSecretPropertiesPager(options *azsecrets.ListSecretPropertiesOptions) *azruntime.Pager[azsecrets.ListSecretPropertiesResponse]
+	RecoverDeletedSecret(ctx context.Context, name string, options *azsecrets.RecoverDeletedSecretOptions) (azsecrets.RecoverDeletedSecretResponse, error)
+	SetSecret(ctx context.Context, name string, parameters azsecrets.SetSecretParameters, options *azsecrets.SetSecretOptions) (azsecrets.SetSecretResponse, error)
 }
 
 // New SDK implementations for setter methods.
@@ -114,10 +123,46 @@ func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName stri
 
 	_, err = a.secretsClient.SetSecret(ctx, secretName, params, nil)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
+	if isNewSDKSoftDeletedSecretError(err) {
+		_, err = a.secretsClient.RecoverDeletedSecret(ctx, secretName, nil)
+		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVRecoverSecret, err)
+		if err != nil {
+			return fmt.Errorf("could not recover soft-deleted secret %v: %w", secretName, parseNewSDKError(err))
+		}
+		return fmt.Errorf("recovered soft-deleted secret %v; waiting for the next reconciliation to update it", secretName)
+	}
 	if err != nil {
 		return fmt.Errorf("could not set secret %v: %w", secretName, parseNewSDKError(err))
 	}
 	return nil
+}
+
+func isNewSDKSoftDeletedSecretError(err error) bool {
+	var responseErr *azcore.ResponseError
+	if !errors.As(err, &responseErr) || responseErr.StatusCode != 409 {
+		return false
+	}
+	if responseErr.ErrorCode == softDeletedSecretErrorCode {
+		return true
+	}
+	if responseErr.RawResponse == nil {
+		return false
+	}
+	payload, err := azruntime.Payload(responseErr.RawResponse)
+	if err != nil {
+		return false
+	}
+	var envelope struct {
+		Error struct {
+			InnerError struct {
+				Code string `json:"code"`
+			} `json:"innererror"`
+		} `json:"error"`
+	}
+	if err := json.Unmarshal(payload, &envelope); err != nil {
+		return false
+	}
+	return envelope.Error.InnerError.Code == softDeletedSecretErrorCode
 }
 
 func (a *Azure) setKeyVaultCertificateWithNewSDK(ctx context.Context, secretName string, value []byte, tags map[string]string) error {

@@ -116,6 +116,8 @@ const (
 
 	errMissingWorkloadEnvVars = "missing environment variables. AZURE_CLIENT_ID, AZURE_TENANT_ID and AZURE_FEDERATED_TOKEN_FILE must be set"
 	errReadTokenFile          = "unable to read token file %s: %w"
+
+	softDeletedSecretErrorCode = "ObjectIsDeletedButRecoverable"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -129,6 +131,7 @@ type SecretClient interface {
 	GetSecretsComplete(ctx context.Context, vaultBaseURL string, maxresults *int32) (result keyvault.SecretListResultIterator, err error)
 	GetCertificate(ctx context.Context, vaultBaseURL string, certificateName string, certificateVersion string) (result keyvault.CertificateBundle, err error)
 	SetSecret(ctx context.Context, vaultBaseURL string, secretName string, parameters keyvault.SecretSetParameters) (result keyvault.SecretBundle, err error)
+	RecoverDeletedSecret(ctx context.Context, vaultBaseURL string, secretName string) (result keyvault.SecretBundle, err error)
 	ImportKey(ctx context.Context, vaultBaseURL string, keyName string, parameters keyvault.KeyImportParameters) (result keyvault.KeyBundle, err error)
 	ImportCertificate(ctx context.Context, vaultBaseURL string, certificateName string, parameters keyvault.CertificateImportParameters) (result keyvault.CertificateBundle, err error)
 	DeleteCertificate(ctx context.Context, vaultBaseURL string, certificateName string) (result keyvault.DeletedCertificateBundle, err error)
@@ -148,7 +151,7 @@ type Azure struct {
 	baseClient SecretClient
 
 	// New Azure SDK clients (used when UseAzureSDK is true)
-	secretsClient *azsecrets.Client
+	secretsClient newSecretClient
 	keysClient    *azkeys.Client
 	certsClient   *azcertificates.Client
 }
@@ -615,10 +618,30 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 
 	_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
+	if isLegacySoftDeletedSecretError(err) {
+		_, err = a.baseClient.RecoverDeletedSecret(ctx, *a.provider.VaultURL, secretName)
+		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVRecoverSecret, err)
+		if err != nil {
+			return fmt.Errorf("could not recover soft-deleted secret %v: %w", secretName, err)
+		}
+		return fmt.Errorf("recovered soft-deleted secret %v; waiting for the next reconciliation to update it", secretName)
+	}
 	if err != nil {
 		return fmt.Errorf("could not set secret %v: %w", secretName, err)
 	}
 	return nil
+}
+
+func isLegacySoftDeletedSecretError(err error) bool {
+	var requestErr *azure.RequestError
+	if !errors.As(err, &requestErr) || requestErr.StatusCode != 409 || requestErr.ServiceError == nil {
+		return false
+	}
+	if requestErr.ServiceError.Code == softDeletedSecretErrorCode {
+		return true
+	}
+	innerCode, ok := requestErr.ServiceError.InnerError["code"].(string)
+	return ok && innerCode == softDeletedSecretErrorCode
 }
 
 func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, value []byte, tags map[string]string) error {
