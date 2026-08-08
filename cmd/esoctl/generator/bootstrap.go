@@ -240,18 +240,23 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 	}
 
 	content := string(data)
+	jsonTag := lowerCamel(cfg.GeneratorName) + "Spec"
 
-	// Check if already exists
-	if strings.Contains(content, cfg.GeneratorKind) {
+	// Each fragment is looked for on its own. A single check would refuse to touch a
+	// file that carries one of them and is missing the others, which is exactly the
+	// state an interrupted or partially matching run leaves behind.
+	enumAdded := enumListsKind(content, cfg.GeneratorName)
+	constAdded := strings.Contains(content, cfg.GeneratorKind+" GeneratorKind = ")
+	specAdded := strings.Contains(content, fmt.Sprintf("json:%q", jsonTag+",omitempty"))
+
+	if enumAdded && constAdded && specAdded {
 		fmt.Printf("⚠ Generator kind already exists in types_cluster.go\n")
 		return nil
 	}
 
 	lines := strings.Split(content, "\n")
 	newLines := make([]string, 0, len(lines)+2)
-	enumAdded := false
-	constAdded := false
-	specAdded := false
+	changed := false
 
 	for i, line := range lines {
 		// Update the enum validation annotation
@@ -260,6 +265,7 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 			// kind happens to be last stops working as soon as one is added.
 			line = strings.TrimRight(line, "\n") + ";" + cfg.GeneratorName
 			enumAdded = true
+			changed = true
 		}
 
 		newLines = append(newLines, line)
@@ -275,6 +281,7 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 					cfg.GeneratorKind, cfg.GeneratorName)
 				newLines = append(newLines, constValueLine)
 				constAdded = true
+				changed = true
 			}
 		}
 
@@ -283,13 +290,23 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 			// Look ahead to check if next line is closing brace of the struct
 			if i+1 < len(lines) && strings.TrimSpace(lines[i+1]) == "}" {
 				// Add the new spec field
-				jsonTag := lowerCamel(cfg.GeneratorName) + "Spec"
 				specLine := fmt.Sprintf("\t%sSpec             *%sSpec             `json:\"%s,omitempty\"`",
 					cfg.GeneratorName, cfg.GeneratorName, jsonTag)
 				newLines = append(newLines, specLine)
 				specAdded = true
+				changed = true
 			}
 		}
+	}
+
+	// Whatever could be placed is written, so that a later run can finish the job.
+	// Discarding the lot because one anchor did not match is how a tree ends up
+	// half-patched with nothing said about it.
+	if changed {
+		if err := os.WriteFile(filepath.Clean(typesClusterFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil { //nolint:gosec // paths are constructed internally
+			return err
+		}
+		fmt.Printf("✓ Updated types_cluster.go\n")
 	}
 
 	if !enumAdded || !constAdded || !specAdded {
@@ -301,14 +318,9 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 			fmt.Printf("   2. Add the const: %s GeneratorKind = \"%s\"\n", cfg.GeneratorKind, cfg.GeneratorName)
 		}
 		if !specAdded {
-			fmt.Printf("   3. Add to GeneratorSpec struct: %sSpec *%sSpec `json:\"%sSpec,omitempty\"`\n",
-				cfg.GeneratorName, cfg.GeneratorName, strings.ToLower(cfg.GeneratorName))
+			fmt.Printf("   3. Add to GeneratorSpec struct: %sSpec *%sSpec `json:\"%s,omitempty\"`\n",
+				cfg.GeneratorName, cfg.GeneratorName, jsonTag)
 		}
-	} else {
-		if err := os.WriteFile(filepath.Clean(typesClusterFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil { //nolint:gosec // paths are constructed internally
-			return err
-		}
-		fmt.Printf("✓ Updated types_cluster.go\n")
 	}
 
 	return nil
@@ -461,16 +473,19 @@ func updateRegisterKindFile(rootDir string, cfg Config) error {
 
 	content := string(data)
 
-	// Check if already exists
-	if strings.Contains(content, fmt.Sprintf("%sKind", cfg.GeneratorName)) {
+	// The constant and the scheme registration are checked apart from each other,
+	// so that a file carrying one of them can still receive the other.
+	kindAdded := strings.Contains(content, fmt.Sprintf("%sKind = reflect.", cfg.GeneratorName))
+	schemeAdded := strings.Contains(content, fmt.Sprintf("SchemeBuilder.Register(&%s{}", cfg.GeneratorName))
+
+	if kindAdded && schemeAdded {
 		fmt.Printf("⚠ Generator kind already exists in register.go\n")
 		return nil
 	}
 
 	lines := strings.Split(content, "\n")
 	newLines := make([]string, 0, len(lines)+4)
-	kindAdded := false
-	schemeAdded := false
+	changed := false
 
 	for i, line := range lines {
 		newLines = append(newLines, line)
@@ -486,6 +501,7 @@ func updateRegisterKindFile(rootDir string, cfg Config) error {
 				kindLine := fmt.Sprintf("\t%sKind = reflect.TypeFor[%s]().Name()", cfg.GeneratorName, cfg.GeneratorName)
 				newLines = append(newLines, kindLine)
 				kindAdded = true
+				changed = true
 			}
 		}
 
@@ -496,8 +512,16 @@ func updateRegisterKindFile(rootDir string, cfg Config) error {
 				registerLine := fmt.Sprintf("\tSchemeBuilder.Register(&%s{}, &%sList{})", cfg.GeneratorName, cfg.GeneratorName)
 				newLines = append(newLines, registerLine)
 				schemeAdded = true
+				changed = true
 			}
 		}
+	}
+
+	if changed {
+		if err := os.WriteFile(filepath.Clean(registerFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil { //nolint:gosec // paths are constructed internally
+			return err
+		}
+		fmt.Printf("✓ Updated register.go\n")
 	}
 
 	if !kindAdded || !schemeAdded {
@@ -508,11 +532,6 @@ func updateRegisterKindFile(rootDir string, cfg Config) error {
 		if !schemeAdded {
 			fmt.Printf("   2. Add SchemeBuilder registration: SchemeBuilder.Register(&%s{}, &%sList{})\n", cfg.GeneratorName, cfg.GeneratorName)
 		}
-	} else {
-		if err := os.WriteFile(filepath.Clean(registerFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil { //nolint:gosec // paths are constructed internally
-			return err
-		}
-		fmt.Printf("✓ Updated register.go\n")
 	}
 
 	return nil

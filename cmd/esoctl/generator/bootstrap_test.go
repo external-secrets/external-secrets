@@ -19,11 +19,15 @@ package generator
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+const typesClusterPath = "apis/generators/v1alpha1/types_cluster.go"
+const registerPath = "apis/generators/v1alpha1/register.go"
 
 const typesClusterFixture = `package v1alpha1
 
@@ -60,6 +64,36 @@ func init() {
 }
 `
 
+func ecrConfig() Config {
+	return Config{
+		GeneratorName: "ECRAuthorizationToken",
+		PackageName:   "ecr",
+		GeneratorKind: "GeneratorKindECRAuthorizationToken",
+	}
+}
+
+// writeFixture lays out the minimum tree the update functions expect and returns
+// the repository root together with the absolute path of the file.
+func writeFixture(t *testing.T, relPath, content string) (root, file string) {
+	t.Helper()
+
+	root = t.TempDir()
+	file = filepath.Join(root, filepath.FromSlash(relPath))
+	require.NoError(t, os.MkdirAll(filepath.Dir(file), 0o750))
+	require.NoError(t, os.WriteFile(file, []byte(content), 0o600))
+
+	return root, file
+}
+
+func readFile(t *testing.T, path string) string {
+	t.Helper()
+
+	data, err := os.ReadFile(path)
+	require.NoError(t, err)
+
+	return string(data)
+}
+
 func TestLowerCamel(t *testing.T) {
 	tests := []struct {
 		name string
@@ -81,37 +115,25 @@ func TestLowerCamel(t *testing.T) {
 	}
 }
 
-// writeFixture lays out the minimum tree the update functions expect and
-// returns the repository root.
-func writeFixture(t *testing.T, relPath, content string) string {
-	t.Helper()
+func TestEnumListsKindMatchesWholeValues(t *testing.T) {
+	const enum = "// +kubebuilder:validation:Enum=Password;MFA"
 
-	root := t.TempDir()
-	full := filepath.Join(root, relPath)
-	require.NoError(t, os.MkdirAll(filepath.Dir(full), 0o750))
-	require.NoError(t, os.WriteFile(full, []byte(content), 0o600))
-
-	return root
+	assert.True(t, enumListsKind(enum, "Password"))
+	assert.True(t, enumListsKind(enum, "MFA"))
+	// A prefix of a listed value is not a listed value.
+	assert.False(t, enumListsKind(enum, "Pass"))
+	assert.False(t, enumListsKind(enum, "SSHKey"))
 }
 
 func TestUpdateTypesClusterFile(t *testing.T) {
-	relPath := filepath.Join("apis", "generators", "v1alpha1", "types_cluster.go")
-	root := writeFixture(t, relPath, typesClusterFixture)
+	root, file := writeFixture(t, typesClusterPath, typesClusterFixture)
+	require.NoError(t, updateTypesClusterFile(root, ecrConfig()))
 
-	cfg := Config{
-		GeneratorName: "ECRAuthorizationToken",
-		PackageName:   "ecr",
-		GeneratorKind: "GeneratorKindECRAuthorizationToken",
-	}
-	require.NoError(t, updateTypesClusterFile(root, cfg))
-
-	data, err := os.ReadFile(filepath.Join(root, relPath))
-	require.NoError(t, err)
-	got := string(data)
+	got := readFile(t, file)
 
 	// The validation enum must list the new kind, otherwise a ClusterGenerator
-	// referencing it is rejected at admission time. This is not a compile error,
-	// so nothing else catches it.
+	// naming it is rejected at admission time. That is not a compile error, so
+	// nothing else catches it.
 	assert.Contains(t, got, "+kubebuilder:validation:Enum=Password;MFA;ECRAuthorizationToken")
 	assert.Contains(t, got, `GeneratorKindECRAuthorizationToken GeneratorKind = "ECRAuthorizationToken"`)
 
@@ -121,20 +143,70 @@ func TestUpdateTypesClusterFile(t *testing.T) {
 }
 
 func TestUpdateRegisterKindFile(t *testing.T) {
-	relPath := filepath.Join("apis", "generators", "v1alpha1", "register.go")
-	root := writeFixture(t, relPath, registerFixture)
+	root, file := writeFixture(t, registerPath, registerFixture)
+	require.NoError(t, updateRegisterKindFile(root, ecrConfig()))
 
-	cfg := Config{
-		GeneratorName: "ECRAuthorizationToken",
-		PackageName:   "ecr",
-		GeneratorKind: "GeneratorKindECRAuthorizationToken",
-	}
-	require.NoError(t, updateRegisterKindFile(root, cfg))
-
-	data, err := os.ReadFile(filepath.Join(root, relPath))
-	require.NoError(t, err)
-	got := string(data)
+	got := readFile(t, file)
 
 	assert.Contains(t, got, "ECRAuthorizationTokenKind = reflect.TypeFor[ECRAuthorizationToken]().Name()")
 	assert.Contains(t, got, "SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationTokenList{})")
+}
+
+// A run that placed some fragments and not others leaves the tree half-patched.
+// The next run has to finish the job, so presence is judged per fragment instead
+// of being inferred from any single one of them.
+func TestUpdateTypesClusterFileCompletesAPartialTree(t *testing.T) {
+	root, file := writeFixture(t, typesClusterPath, typesClusterFixture)
+	require.NoError(t, updateTypesClusterFile(root, ecrConfig()))
+
+	// Drop the enum value back out, leaving the constant and the spec field in
+	// place: this is the state the stale enum anchor used to produce.
+	partial := strings.Replace(readFile(t, file), ";ECRAuthorizationToken", "", 1)
+	require.NotContains(t, partial, ";ECRAuthorizationToken")
+	require.NoError(t, os.WriteFile(file, []byte(partial), 0o600))
+
+	require.NoError(t, updateTypesClusterFile(root, ecrConfig()))
+
+	got := readFile(t, file)
+	assert.Contains(t, got, "+kubebuilder:validation:Enum=Password;MFA;ECRAuthorizationToken")
+	// What was already there must not be duplicated.
+	assert.Equal(t, 1, strings.Count(got, `GeneratorKindECRAuthorizationToken GeneratorKind = "ECRAuthorizationToken"`))
+	assert.Equal(t, 1, strings.Count(got, `json:"ecrAuthorizationTokenSpec,omitempty"`))
+}
+
+func TestUpdateRegisterKindFileCompletesAPartialTree(t *testing.T) {
+	root, file := writeFixture(t, registerPath, registerFixture)
+	require.NoError(t, updateRegisterKindFile(root, ecrConfig()))
+
+	// Drop the scheme registration, keeping the kind constant.
+	partial := strings.Replace(readFile(t, file),
+		"\tSchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationTokenList{})\n", "", 1)
+	require.NotContains(t, partial, "SchemeBuilder.Register(&ECRAuthorizationToken{}")
+	require.NoError(t, os.WriteFile(file, []byte(partial), 0o600))
+
+	require.NoError(t, updateRegisterKindFile(root, ecrConfig()))
+
+	got := readFile(t, file)
+	assert.Contains(t, got, "SchemeBuilder.Register(&ECRAuthorizationToken{}, &ECRAuthorizationTokenList{})")
+	assert.Equal(t, 1, strings.Count(got, "ECRAuthorizationTokenKind = reflect."))
+}
+
+func TestUpdateTypesClusterFileLeavesACompleteTreeAlone(t *testing.T) {
+	root, file := writeFixture(t, typesClusterPath, typesClusterFixture)
+	require.NoError(t, updateTypesClusterFile(root, ecrConfig()))
+
+	complete := readFile(t, file)
+	require.NoError(t, updateTypesClusterFile(root, ecrConfig()))
+
+	assert.Equal(t, complete, readFile(t, file))
+}
+
+func TestUpdateRegisterKindFileLeavesACompleteTreeAlone(t *testing.T) {
+	root, file := writeFixture(t, registerPath, registerFixture)
+	require.NoError(t, updateRegisterKindFile(root, ecrConfig()))
+
+	complete := readFile(t, file)
+	require.NoError(t, updateRegisterKindFile(root, ecrConfig()))
+
+	assert.Equal(t, complete, readFile(t, file))
 }

@@ -19,6 +19,7 @@ package generator
 import (
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"unicode"
 )
@@ -42,6 +43,24 @@ func FindRootDir(startDir string) string {
 		dir = parent
 	}
 	return ""
+}
+
+// enumListsKind reports whether a kubebuilder validation enum in content already
+// carries kind as one of its values. Matching whole values rather than a substring
+// keeps a kind from being mistaken for the prefix of a longer one.
+func enumListsKind(content, kind string) bool {
+	for line := range strings.SplitSeq(content, "\n") {
+		_, values, found := strings.Cut(line, "+kubebuilder:validation:Enum=")
+		if !found {
+			continue
+		}
+
+		if slices.Contains(strings.Split(strings.TrimSpace(values), ";"), kind) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // lowerCamel converts a PascalCase kind into the lowerCamelCase form used by the
