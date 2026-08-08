@@ -30,7 +30,7 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;GitlabDeployToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
+// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;GitlabDeployToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA;ServiceAccountToken
 type GeneratorKind string
 
 const (
@@ -68,6 +68,8 @@ const (
 	GeneratorKindCloudsmithAccessToken GeneratorKind = "CloudsmithAccessToken"
 	// GeneratorKindBeyondtrustWorkloadCredentialsDynamicSecret represents a BeyondTrust Workload Credentials dynamic secret generator.
 	GeneratorKindBeyondtrustWorkloadCredentialsDynamicSecret GeneratorKind = "BeyondtrustWorkloadCredentialsDynamicSecret"
+	// GeneratorKindServiceAccountToken represents a Kubernetes ServiceAccount token generator.
+	GeneratorKindServiceAccountToken GeneratorKind = "ServiceAccountToken"
 )
 
 // GeneratorSpec defines the configuration for various supported generator types.
@@ -91,6 +93,7 @@ type GeneratorSpec struct {
 	WebhookSpec                                     *WebhookSpec                                     `json:"webhookSpec,omitempty"`
 	GrafanaSpec                                     *GrafanaSpec                                     `json:"grafanaSpec,omitempty"`
 	MFASpec                                         *MFASpec                                         `json:"mfaSpec,omitempty"`
+	ServiceAccountTokenSpec                         *ServiceAccountTokenSpec                         `json:"serviceAccountTokenSpec,omitempty"`
 }
 
 // ClusterGenerator represents a cluster-wide generator which can be referenced as part of `generatorRef` fields.

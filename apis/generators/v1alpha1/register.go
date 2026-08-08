@@ -77,6 +77,8 @@ var (
 	CloudsmithAccessTokenKind = reflect.TypeFor[CloudsmithAccessToken]().Name()
 	// BeyondtrustWorkloadCredentialsDynamicSecretKind is the kind name for BeyondtrustWorkloadCredentialsDynamicSecret resource.
 	BeyondtrustWorkloadCredentialsDynamicSecretKind = reflect.TypeFor[BeyondtrustWorkloadCredentialsDynamicSecret]().Name()
+	// ServiceAccountTokenKind is the kind name for ServiceAccountToken resource.
+	ServiceAccountTokenKind = reflect.TypeFor[ServiceAccountToken]().Name()
 )
 
 func init() {
@@ -115,4 +117,5 @@ func init() {
 	SchemeBuilder.Register(&Webhook{}, &WebhookList{})
 	SchemeBuilder.Register(&Grafana{}, &GrafanaList{})
 	SchemeBuilder.Register(&MFA{}, &MFAList{})
+	SchemeBuilder.Register(&ServiceAccountToken{}, &ServiceAccountTokenList{})
 }
