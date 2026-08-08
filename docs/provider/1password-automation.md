@@ -33,6 +33,7 @@ _**The 1Password API calls the entries in vaults 'Items'. These docs use the sam
     * `find.path` is equated to Item Title.
     * `find.name.regexp` is equated to field Labels.
     * `find.tags` fetches for Items with the same tags matching the keys of `find.tags`.
+    * `extract` / `find` may sync extra Item fields (for example `notesPlain`, empty `username` / `password`). Use [`dataFrom.select`](../guides/datafrom-select.md) to include or exclude keys after fetch.
 
 ### Prerequisites
 
