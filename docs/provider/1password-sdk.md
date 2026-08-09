@@ -86,6 +86,24 @@ To sync the entire secret into a single 1Password item, the following configurat
 {% include '1passwordsdk-push-secret-all-keys.yaml' %}
 ```
 
+### Environments
+
+1Password has added [Environments](https://developer.1password.com/docs/environments) functionality as a BETA feature.
+This is only supported by 1Password SDK and not the connect server.
+
+Environments are an alternative to Vaults. To use the environment define the `environment` id in your Store configuration
+instead of the `vault` value.
+
+The rest of the settings should remain the same.
+
+The SDK, as of this writing, does not support filtering client side, which means that each call always returns everything.
+To tackle this problem, the cache will cache the individual values so if ever the same object is requested again within the
+TTL of the cache it will only fetch that single value.
+
+It also caches ALL the values with a special key, so if repeated All calls are made, that shouldn't be a problem either.
+
+This is a BETA feature. Please use with caution.
+
 ### Supported Functionality
 
 Please check the documentation on 1password for [Supported Functionality](https://developer.1password.com/docs/sdks/functionality).

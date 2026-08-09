@@ -160,7 +160,8 @@ type TemplateFrom struct {
 	Secret    *TemplateRef `json:"secret,omitempty"`
 
 	// Target specifies where to place the template result.
-	// For Secret resources, common values are: "Data", "Annotations", "Labels".
+	// For Secret resources the accepted values are empty, "Data", "Annotations" and "Labels";
+	// any other value is rejected because it would allow writes to privileged Secret fields.
 	// For custom resources (when spec.target.manifest is set), this supports
 	// nested paths like "spec.database.config" or "data".
 	// +optional
@@ -171,8 +172,8 @@ type TemplateFrom struct {
 	Literal *string `json:"literal,omitempty"`
 
 	// Used to define a decoding Strategy for the rendered template values.
+	// Defaults to None when omitted.
 	// +optional
-	// +kubebuilder:default="None"
 	ValuesDecodingStrategy ExternalSecretDecodingStrategy `json:"valuesDecodingStrategy,omitempty"`
 }
 
@@ -186,7 +187,8 @@ const (
 	TemplateScopeKeysAndValues TemplateScope = "KeysAndValues"
 )
 
-// These constants are provided for convenience but Target accepts any string.
+// These constants are the only Target values accepted when the ExternalSecret renders
+// into a Secret. Custom resource targets additionally accept nested paths.
 const (
 	TemplateTargetData        = "Data"
 	TemplateTargetAnnotations = "Annotations"
@@ -295,7 +297,6 @@ type ExternalSecretDataRemoteRef struct {
 
 	// +optional
 	// Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
-	// +kubebuilder:default="None"
 	MetadataPolicy ExternalSecretMetadataPolicy `json:"metadataPolicy,omitempty"`
 
 	// +optional
@@ -307,13 +308,11 @@ type ExternalSecretDataRemoteRef struct {
 	Version string `json:"version,omitempty"`
 
 	// +optional
-	// Used to define a conversion Strategy
-	// +kubebuilder:default="Default"
+	// Used to define a conversion Strategy. Defaults to Default when omitted.
 	ConversionStrategy ExternalSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 
 	// +optional
-	// Used to define a decoding Strategy
-	// +kubebuilder:default="None"
+	// Used to define a decoding Strategy. Defaults to None when omitted.
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
 
 	// +optional
@@ -496,13 +495,11 @@ type ExternalSecretFind struct {
 	Tags map[string]string `json:"tags,omitempty"`
 
 	// +optional
-	// Used to define a conversion Strategy
-	// +kubebuilder:default="Default"
+	// Used to define a conversion Strategy. Defaults to Default when omitted.
 	ConversionStrategy ExternalSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 
 	// +optional
-	// Used to define a decoding Strategy
-	// +kubebuilder:default="None"
+	// Used to define a decoding Strategy. Defaults to None when omitted.
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
 
 	// +optional
