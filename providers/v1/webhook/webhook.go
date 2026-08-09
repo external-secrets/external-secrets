@@ -36,8 +36,8 @@ import (
 )
 
 const (
-	errNotImplemented   = "not implemented"
-	errFailedToGetStore = "failed to get store: %w"
+	errGetAllSecretsNotSupported = "GetAllSecrets is not supported by the Webhook provider"
+	errFailedToGetStore          = "failed to get store: %w"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -200,8 +200,6 @@ func (w *WebHook) PushSecret(ctx context.Context, secret *corev1.Secret, data es
 	}
 
 	provider, err := getProvider(w.store)
-
-	
 	if err != nil {
 		return fmt.Errorf(errFailedToGetStore, err)
 	}
@@ -222,7 +220,7 @@ func (w *WebHook) PushSecret(ctx context.Context, secret *corev1.Secret, data es
 // The webhook provider is designed for single secret retrieval and does not
 // support listing or finding secrets by name or tags.
 func (w *WebHook) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, fmt.Errorf("GetAllSecrets is not supported by the Webhook provider")
+	return nil, errors.New(errGetAllSecretsNotSupported)
 }
 
 // GetSecret gets a secret from the remote store.

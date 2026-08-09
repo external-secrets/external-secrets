@@ -837,13 +837,7 @@ func TestDeleteSecret(t *testing.T) {
 }
 
 func TestGetAllSecrets(t *testing.T) {
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"key":"value"}`))
-	}))
-	defer ts.Close()
-
-	store := makeClusterSecretStore(ts.URL, args{URL: "/api/secret"})
+	store := makeClusterSecretStore("http://fake-url", args{URL: "/api/secret"})
 	prov := &Provider{}
 	client, err := prov.NewClient(context.Background(), store, nil, "testnamespace")
 	if err != nil {
@@ -855,10 +849,9 @@ func TestGetAllSecrets(t *testing.T) {
 		t.Errorf("expected nil result, got %v", result)
 	}
 	if err == nil {
-		t.Error("expected error, got nil")
+		t.Fatal("expected error, got nil")
 	}
-	expected := "GetAllSecrets is not supported by the Webhook provider"
-	if err.Error() != expected {
-		t.Errorf("expected error %q, got %q", expected, err.Error())
+	if err.Error() != errGetAllSecretsNotSupported {
+		t.Errorf("expected error %q, got %q", errGetAllSecretsNotSupported, err.Error())
 	}
 }
