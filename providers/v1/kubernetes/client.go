@@ -170,6 +170,10 @@ func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1.Pu
 // When the controller passes full PushSecretData (not just Match.RemoteRef),
 // metadata.spec.remoteNamespace is honored for ClusterSecretStore.
 func (c *Client) namespaceFromPushRef(ref esv1.PushSecretRemoteRef) (string, error) {
+	// Callers are required to pass the full PushSecretData (see SecretsClient
+	// interface docs). The assertion remains as a defensive default: a bare
+	// PushSecretRemoteRef carries no metadata, so fall back to the store
+	// namespace rather than error.
 	var metaJSON *apiextensionsv1.JSON
 	if psd, ok := ref.(esv1.PushSecretData); ok {
 		metaJSON = psd.GetMetadata()
@@ -182,10 +186,10 @@ func (c *Client) namespaceFromPushRef(ref esv1.PushSecretRemoteRef) (string, err
 }
 
 func (c *Client) pushTargetNamespace(pushMeta *metadata.PushSecretMetadata[PushSecretMetadataSpec]) (string, error) {
-	var targetNamespace string
-	if c.store != nil {
-		targetNamespace = c.store.RemoteNamespace
-	}
+	// newClient always assigns store (erroring out when Provider.Kubernetes is
+	// nil), and secretsClientFor dereferences c.store unguarded, so no nil
+	// guard here: store is never nil on a constructed client.
+	targetNamespace := c.store.RemoteNamespace
 	if pushMeta != nil && pushMeta.Spec.RemoteNamespace != "" {
 		if c.storeKind != esv1.ClusterSecretStoreKind {
 			return "", fmt.Errorf("remoteNamespace override is only supported with ClusterSecretStore")
