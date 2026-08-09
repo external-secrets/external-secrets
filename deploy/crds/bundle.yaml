@@ -3194,6 +3194,7 @@ spec:
                                       type: string
                                   type: object
                                 value:
+                                  minLength: 1
                                   type: string
                               type: object
                             applicationCredentialSecret:
@@ -3309,6 +3310,7 @@ spec:
                                       type: string
                                   type: object
                                 value:
+                                  minLength: 1
                                   type: string
                               type: object
                           type: object
@@ -16134,6 +16136,7 @@ spec:
                                       type: string
                                   type: object
                                 value:
+                                  minLength: 1
                                   type: string
                               type: object
                             applicationCredentialSecret:
@@ -16249,6 +16252,7 @@ spec:
                                       type: string
                                   type: object
                                 value:
+                                  minLength: 1
                                   type: string
                               type: object
                           type: object

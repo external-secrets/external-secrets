@@ -35,6 +35,7 @@ const (
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
 type BarbicanProviderUsernameRef struct {
+	// +kubebuilder:validation:MinLength:=1
 	Value     string                    `json:"value,omitempty"`
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
@@ -48,6 +49,7 @@ type BarbicanProviderPasswordRef struct {
 // +kubebuilder:validation:MinProperties=1
 // +kubebuilder:validation:MaxProperties=1
 type BarbicanProviderAppCredIDRef struct {
+	// +kubebuilder:validation:MinLength:=1
 	Value     string                    `json:"value,omitempty"`
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 }
