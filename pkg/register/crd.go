@@ -1,4 +1,4 @@
-//go:build tools
+//go:build crd || all_providers
 
 /*
 Copyright © The ESO Authors
@@ -16,11 +16,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package tools
+package register
 
 import (
-	_ "github.com/ahmetb/gen-crd-api-reference-docs"
-	_ "github.com/maxbrunsfeld/counterfeiter/v6"
-	_ "github.com/onsi/ginkgo/v2/ginkgo"
-	_ "sigs.k8s.io/controller-tools/cmd/controller-gen"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	crd "github.com/external-secrets/external-secrets/providers/v1/crd"
 )
+
+func init() {
+	esv1.Register(crd.NewProvider(), crd.ProviderSpec(), crd.MaintenanceStatus())
+}

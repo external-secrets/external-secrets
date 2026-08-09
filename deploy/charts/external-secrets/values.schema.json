@@ -28,6 +28,9 @@
                 "deploymentAnnotations": {
                     "type": "object"
                 },
+                "enablePartialCache": {
+                    "type": "boolean"
+                },
                 "extraArgs": {
                     "type": "object"
                 },
@@ -291,6 +294,12 @@
                 },
                 "revisionHistoryLimit": {
                     "type": "integer"
+                },
+                "runtimeClassName": {
+                    "type": "string"
+                },
+                "schedulerName": {
+                    "type": "string"
                 },
                 "securityContext": {
                     "type": "object",
@@ -886,6 +895,12 @@
         "revisionHistoryLimit": {
             "type": "integer"
         },
+        "runtimeClassName": {
+            "type": "string"
+        },
+        "schedulerName": {
+            "type": "string"
+        },
         "scopedNamespace": {
             "type": "string"
         },
@@ -1358,6 +1373,12 @@
                 },
                 "revisionHistoryLimit": {
                     "type": "integer"
+                },
+                "runtimeClassName": {
+                    "type": "string"
+                },
+                "schedulerName": {
+                    "type": "string"
                 },
                 "secretAnnotations": {
                     "type": "object"

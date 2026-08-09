@@ -229,6 +229,31 @@ func TestConvertKeys(t *testing.T) {
 				"_U1f600_foo_U1f601_bar_U1f602_baz_U1f608_bing": []byte(`noop`),
 			},
 		},
+		{
+			// An omitted conversionStrategy must behave as Default, otherwise
+			// the key keeps characters a Secret cannot hold. See issue #6797.
+			name: "empty strategy converts as Default",
+			args: args{
+				strategy: "",
+				in: map[string][]byte{
+					"foo$bar%baz*bing": []byte(`noop`),
+				},
+			},
+			want: map[string][]byte{
+				"foo_bar_baz_bing": []byte(`noop`),
+			},
+		},
+		{
+			name: "empty strategy collides like Default",
+			args: args{
+				strategy: "",
+				in: map[string][]byte{
+					"foo$bar%baz*bing": []byte(`noop`),
+					"foo_bar_baz$bing": []byte(`noop`),
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

@@ -15,11 +15,12 @@ During a minor version support time, we cover:
 - regular go dependency updates
 
 We do not do test coverage for any other kubernetes version than the ones running on our test suites.
-As of version 0.14.x , this is the only kubernetes version that we will guarantee support for.
 
 | ESO Version | Kubernetes Version | Release Date | End of Life    |
 |-------------|--------------------|--------------|----------------|
-| 2.7         | 1.35               | Jun 26, 2026 | Release of 2.8 |
+| 2.9         | 1.36               | Aug 07, 2026 | Release of 2.9 |
+| 2.8         | 1.35-1.36          | Jul 18, 2026 | Aug 07, 2026   |
+| 2.7         | 1.35               | Jun 26, 2026 | July 18, 2026  |
 | 2.6         | 1.34-1.35          | Jun 05, 2026 | Jun 26, 2026   |
 | 2.5         | 1.34-1.35          | May 15, 2026 | Jun 05, 2026   |
 | 2.4.1       | 1.34-1.35          | Apr 28, 2026 | May 15, 2026   |
