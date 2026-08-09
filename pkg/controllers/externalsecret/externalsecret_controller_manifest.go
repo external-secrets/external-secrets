@@ -288,7 +288,7 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 			// Execute template directly against the unstructured object
 			out := make(map[string][]byte)
 			out[*tplFrom.Literal] = []byte(*tplFrom.Literal)
-			if err := execute(out, dataMap, esv1.TemplateScopeKeysAndValues, targetPath, obj); err != nil {
+			if err := execute(out, dataMap, esv1.TemplateScopeKeysAndValues, targetPath, obj, tplFrom.ValuesDecodingStrategy); err != nil {
 				return nil, fmt.Errorf("failed to execute literal template: %w", err)
 			}
 		}
@@ -316,7 +316,7 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 			}
 
 			// apply collected data to the target object
-			if err := execute(tempSecret.Data, dataMap, esv1.TemplateScopeValues, targetPath, obj); err != nil {
+			if err := execute(tempSecret.Data, dataMap, esv1.TemplateScopeValues, targetPath, obj, esv1.ExternalSecretDecodeNone); err != nil {
 				return nil, fmt.Errorf("failed to apply merged templates to path %s: %w", targetPath, err)
 			}
 		}
@@ -329,7 +329,7 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 			tplMap[k] = []byte(v)
 		}
 
-		if err := execute(tplMap, dataMap, esv1.TemplateScopeValues, esv1.TemplateTargetData, obj); err != nil {
+		if err := execute(tplMap, dataMap, esv1.TemplateScopeValues, esv1.TemplateTargetData, obj, esv1.ExternalSecretDecodeNone); err != nil {
 			return nil, fmt.Errorf("failed to execute template.data: %w", err)
 		}
 	}

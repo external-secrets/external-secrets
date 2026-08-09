@@ -149,20 +149,22 @@ func (m *BaseTokenManager) CreateServiceAccountToken(ctx context.Context) (strin
 		expirationSeconds = *m.ExpirationSeconds
 	}
 
+	// For ClusterSecretStore, the token must be requested from the SA's namespace.
+	// Both the URL and the request body namespace must match; the kube-apiserver
+	// rejects create subresource requests where they differ.
+	tokenNamespace := m.Namespace
+	if m.StoreKind == esv1.ClusterSecretStoreKind && m.SaRef.Namespace != nil {
+		tokenNamespace = *m.SaRef.Namespace
+	}
+
 	tokenRequest := &authv1.TokenRequest{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: m.Namespace,
+			Namespace: tokenNamespace,
 		},
 		Spec: authv1.TokenRequestSpec{
 			Audiences:         audiences,
 			ExpirationSeconds: &expirationSeconds,
 		},
-	}
-
-	// For ClusterSecretStore, use the namespace from the ServiceAccountRef if specified
-	tokenNamespace := m.Namespace
-	if m.StoreKind == esv1.ClusterSecretStoreKind && m.SaRef.Namespace != nil {
-		tokenNamespace = *m.SaRef.Namespace
 	}
 
 	tokenResponse, err := m.Corev1.ServiceAccounts(tokenNamespace).

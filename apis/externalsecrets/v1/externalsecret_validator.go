@@ -61,7 +61,11 @@ func validateExternalSecret(es *ExternalSecret) (admission.Warnings, error) {
 		errs = errors.Join(errs, errors.New("either data or dataFrom should be specified"))
 	}
 
-	if err := validatePrivilegedTemplate(es); err != nil {
+	if err := validatePrivilegedTemplate(es.Spec.Target.Template); err != nil {
+		errs = errors.Join(errs, err)
+	}
+
+	if err := validateTemplateFromTarget(es); err != nil {
 		errs = errors.Join(errs, err)
 	}
 
@@ -110,8 +114,10 @@ func validateExtractFindGenerator(ref ExternalSecretDataFromRemoteRef) error {
 
 func validatePolicies(es *ExternalSecret) error {
 	var errs error
-	if (es.Spec.Target.DeletionPolicy == DeletionPolicyDelete && es.Spec.Target.CreationPolicy == CreatePolicyMerge) ||
-		(es.Spec.Target.DeletionPolicy == DeletionPolicyDelete && es.Spec.Target.CreationPolicy == CreatePolicyNone) {
+	if es.Spec.Target.DeletionPolicy == DeletionPolicyDelete &&
+		(es.Spec.Target.CreationPolicy == CreatePolicyMerge ||
+			es.Spec.Target.CreationPolicy == CreatePolicyNone ||
+			es.Spec.Target.CreationPolicy == CreatePolicyCreateOrMerge) {
 		errs = errors.Join(errs, errors.New("deletionPolicy=Delete must not be used when the controller doesn't own the secret. Please set creationPolicy=Owner"))
 	}
 
@@ -124,8 +130,7 @@ func validatePolicies(es *ExternalSecret) error {
 
 // validatePrivilegedTemplate rejects templates with specific types and annotations combinations
 // to prevent users from creating long-lived tokens beyond the scope of the defined RBAC.
-func validatePrivilegedTemplate(es *ExternalSecret) error {
-	tpl := es.Spec.Target.Template
+func validatePrivilegedTemplate(tpl *ExternalSecretTemplate) error {
 	if tpl == nil {
 		return nil
 	}
@@ -144,6 +149,66 @@ func validatePrivilegedTemplate(es *ExternalSecret) error {
 		return fmt.Errorf("template.type=%q is not allowed", corev1.SecretTypeBootstrapToken)
 	}
 	return nil
+}
+
+// ValidateSecretTemplate applies every template restriction that must hold when an
+// ExternalSecret renders into a Secret. The admission webhook reaches these rules through
+// validateExternalSecret; the controller calls this so the same set is enforced when no
+// webhook sits in front of it.
+func ValidateSecretTemplate(tpl *ExternalSecretTemplate) error {
+	return errors.Join(
+		validatePrivilegedTemplate(tpl),
+		ValidateSecretTemplateFromTargets(tpl),
+	)
+}
+
+// isManifestSecretTarget reports whether the ExternalSecret renders into a core/v1 Secret.
+// That is the default target, and it is also reachable through an explicit manifest
+// reference naming a Secret.
+func isManifestSecretTarget(es *ExternalSecret) bool {
+	manifest := es.Spec.Target.Manifest
+	if manifest == nil {
+		return true
+	}
+	return manifest.APIVersion == "v1" && manifest.Kind == "Secret"
+}
+
+// validateTemplateFromTarget restricts templateFrom targets whenever the ExternalSecret
+// renders into a Secret.
+func validateTemplateFromTarget(es *ExternalSecret) error {
+	if !isManifestSecretTarget(es) {
+		return nil
+	}
+
+	return ValidateSecretTemplateFromTargets(es.Spec.Target.Template)
+}
+
+// ValidateSecretTemplateFromTargets restricts templateFrom targets to the well-known Secret
+// fields. The templating engine treats any other value as a dotted path into the rendered
+// object, which would let a user write privileged top-level fields such as type, immutable
+// or metadata.ownerReferences and so sidestep validatePrivilegedTemplate. Nested paths
+// remain available for custom resource targets.
+func ValidateSecretTemplateFromTargets(tpl *ExternalSecretTemplate) error {
+	if tpl == nil {
+		return nil
+	}
+
+	var errs error
+	for _, tf := range tpl.TemplateFrom {
+		switch {
+		case tf.Target == "",
+			strings.EqualFold(tf.Target, TemplateTargetData),
+			strings.EqualFold(tf.Target, TemplateTargetAnnotations),
+			strings.EqualFold(tf.Target, TemplateTargetLabels):
+			continue
+		}
+
+		errs = errors.Join(errs, fmt.Errorf(
+			"templateFrom target=%q is not allowed when targeting a Secret, must be one of %q, %q or %q",
+			tf.Target, TemplateTargetData, TemplateTargetAnnotations, TemplateTargetLabels))
+	}
+
+	return errs
 }
 
 func validateDuplicateKeys(es *ExternalSecret, errs error) error {

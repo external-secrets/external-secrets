@@ -27,6 +27,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 type fakeReviewClient struct {
@@ -367,8 +368,8 @@ func TestValidateStore(t *testing.T) {
 				if len(warnings) != 1 {
 					t.Fatalf("ProviderKubernetes.ValidateStore() expected exactly 1 warning, got %d: %v", len(warnings), warnings)
 				}
-				if warnings[0] != warnNoCAConfigured {
-					t.Errorf("ProviderKubernetes.ValidateStore() warning = %q, want %q", warnings[0], warnNoCAConfigured)
+				if warnings[0] != esutils.WarnNoCAConfigured {
+					t.Errorf("ProviderKubernetes.ValidateStore() warning = %q, want %q", warnings[0], esutils.WarnNoCAConfigured)
 				}
 			} else if len(warnings) > 0 {
 				t.Errorf("ProviderKubernetes.ValidateStore() unexpected warnings: %v", warnings)

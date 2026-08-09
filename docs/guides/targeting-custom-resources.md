@@ -56,6 +56,27 @@ When working with custom resources that have complex structures, you can use `ta
 
 The `target` field accepts dot-notation paths like `spec.database` or `spec.logging` to place the rendered template output at specific locations in the resource structure. When `target` is not specified it defaults to `Data` for backward compatibility with Secrets.
 
+### Array Index Notation
+
+Paths can navigate into arrays using `[n]` index notation, for example:
+
+```yaml
+target: spec.rules[0].from[0].source.notRemoteIpBlocks
+```
+
+This templates a resource like an Istio `AuthorizationPolicy`:
+
+```yaml
+spec:
+  rules:
+    - from:
+        - source:
+            notRemoteIpBlocks:
+              - 10.0.0.0/8
+```
+
+Intermediate maps and arrays are created if they don't exist yet, and existing sibling keys in the same array element are preserved. Paths must start with a key; a bare leading index like `[0].foo` is rejected.
+
 !!! note "Using `property` when templating `data`"
     The return of `data:` isn't an object on the template scope. If templated as a `string` it will fail in finding the right key. Therefore, something like this:
     ```yaml

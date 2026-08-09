@@ -240,8 +240,30 @@ func (provider *ProviderOnePassword) DeleteSecret(_ context.Context, ref esv1.Pu
 }
 
 // SecretExists checks if a secret exists in 1Password.
-func (provider *ProviderOnePassword) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New("not implemented")
+func (provider *ProviderOnePassword) SecretExists(_ context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+	provider.mu.Lock()
+	defer provider.mu.Unlock()
+
+	item, err := provider.findItem(ref.GetRemoteKey())
+	if errors.Is(err, ErrKeyNotFound) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	property := ref.GetProperty()
+	if property == "" {
+		return true, nil
+	}
+
+	for _, field := range item.Fields {
+		if field.Label == property {
+			return true, nil
+		}
+	}
+
+	return false, nil
 }
 
 const (

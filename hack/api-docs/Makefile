@@ -13,7 +13,7 @@
 # limitations under the License.
 
 DOCKER ?= docker
-MKDOCS_IMAGE ?= github.com/external-secrets-mkdocs:latest
+MKDOCS_IMAGE ?= eso-mkdocs:latest
 MKDOCS ?= mkdocs
 MIKE ?= mike
 DOCS_VERSION ?= main
@@ -33,10 +33,14 @@ SRCDIR := $(ROOT)/docs
 CFGFILE := $(ROOT)/hack/api-docs/mkdocs.yml
 # GENROOT is the root of the generated documentation.
 GENROOT := $(ROOT)/site
+GEN_CRD_API_REFERENCE_DOCS ?= $(ROOT)/bin/gen-crd-api-reference-docs
 
 # Grab the uid/gid to fix permissions due to running in a docker container.
 GID := $(shell id -g)
 UID := $(shell id -u)
+GIT_DIR := $(shell git rev-parse --path-format=absolute --git-dir)
+GIT_COMMON_DIR := $(shell git rev-parse --path-format=absolute --git-common-dir)
+GIT_MOUNT := $(if $(filter $(GIT_DIR),$(GIT_COMMON_DIR)),,--mount type=bind,source=$(GIT_COMMON_DIR),target=$(GIT_COMMON_DIR))
 
 # SOURCES is a list of a source files used to generate the documentation.
 SOURCES := $(shell find $(SRCDIR) -name \*.md)
@@ -47,7 +51,7 @@ all: build
 
 .PHONY: image
 image:
-	$(DOCKER) build -t $(MKDOCS_IMAGE) -f Dockerfile .
+	$(DOCKER) buildx build --load -t $(MKDOCS_IMAGE) -f Dockerfile .
 
 VERSION_TO_UPDATE ?= $(shell echo $(MAJOR_VERSION).$(MINOR_VERSION).x)
 
@@ -60,18 +64,20 @@ build: image generate $(SOURCES)
 	mkdir -p $(GENROOT)
 	$(DOCKER) run \
 	    --mount type=bind,source=$(ROOT),target=/repo \
+	    $(GIT_MOUNT) \
 		--sig-proxy=true \
 		--rm \
 		--env "GIT_COMMITTER_NAME=$(shell git config user.name)" \
 		--env "GIT_COMMITTER_EMAIL=$(shell git config user.email)" \
 		--env "GITHUB_TOKEN=$(GITHUB_TOKEN)" \
 		$(MKDOCS_IMAGE) \
-		$(SHELL) -c "cd /repo && $(MIKE) deploy --ignore --update-aliases -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
+		$(SHELL) -c "cd /repo && $(MIKE) deploy --ignore-remote-status --update-aliases -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: build.publish
 build.publish: image generate $(SOURCES)
 	mkdir -p $(GENROOT)
 	$(DOCKER) run \
 	    --mount type=bind,source=$(ROOT),target=/repo \
+	    $(GIT_MOUNT) \
 		--sig-proxy=true \
 		--rm \
 		--user $(UID):$(GID) \
@@ -81,8 +87,11 @@ build.publish: image generate $(SOURCES)
 		$(MKDOCS_IMAGE) \
 		$(SHELL) -c "cd /repo && $(MIKE) deploy --update-aliases -p -F hack/api-docs/mkdocs.yml $(DOCS_VERSION) $(DOCS_ALIAS);"
 .PHONY: generate
-generate:
-	./generate.sh $(SRCDIR)/api/spec.md
+generate: $(GEN_CRD_API_REFERENCE_DOCS)
+	GEN_CRD_API_REFERENCE_DOCS=$(GEN_CRD_API_REFERENCE_DOCS) ./generate.sh $(SRCDIR)/api/spec.md
+
+$(GEN_CRD_API_REFERENCE_DOCS): $(ROOT)/hack/tools/gen-crd-api-reference-docs/go.mod $(ROOT)/hack/tools/gen-crd-api-reference-docs/go.sum $(ROOT)/Makefile
+	$(MAKE) -C $(ROOT) GEN_CRD_API_REFERENCE_DOCS=$(GEN_CRD_API_REFERENCE_DOCS) gen-crd-api-reference-docs
 
 .PHONY: clean
 clean:

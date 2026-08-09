@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"maps"
+	"strconv"
 	"strings"
 	tpl "text/template"
 
@@ -30,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/decoding"
 	"github.com/external-secrets/external-secrets/runtime/feature"
 	"github.com/external-secrets/external-secrets/runtime/template/v2/sprig"
 )
@@ -94,8 +96,10 @@ func init() {
 }
 
 func applyToTarget(k string, val []byte, target string, obj client.Object) error {
-	target = strings.ToLower(target)
-	switch target {
+	// Match the well-known top-level targets case-insensitively, but keep the
+	// original case of target so nested custom-resource paths preserve
+	// mixed-case segments (e.g. spec.headers.customRequestHeaders). Issue #6458.
+	switch strings.ToLower(target) {
 	case "annotations":
 		annotations := obj.GetAnnotations()
 		if annotations == nil {
@@ -116,41 +120,18 @@ func applyToTarget(k string, val []byte, target string, obj client.Object) error
 		}
 	case "spec":
 		if err := setField(obj, "spec", k, val); err != nil {
-			return fmt.Errorf("failed to set data field on object: %w", err)
+			return fmt.Errorf("failed to set spec field on object: %w", err)
 		}
 	default:
-		parts := strings.Split(target, ".")
-		if len(parts) == 0 {
-			return fmt.Errorf("invalid path: %s", target)
-		}
-
-		unstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
+		tokens, err := parseTargetPath(target)
 		if err != nil {
-			return fmt.Errorf(errConvertingToUnstructured, err)
+			return err
 		}
-
-		// Navigate to the parent of the target field
-		current := unstructured
-		for i := range len(parts) - 1 {
-			part := parts[i]
-			if current[part] == nil {
-				current[part] = make(map[string]any)
-			}
-			next, ok := current[part].(map[string]any)
-			if !ok {
-				return fmt.Errorf("path %s is not a map at segment %s", target, part)
-			}
-			current = next
-		}
-
-		// Set the value at the final key
-		// Convert []byte to string to avoid base64 encoding when serializing
-		lastPart := parts[len(parts)-1]
-		current[lastPart] = tryParseYAML(string(val))
-
-		// Convert back to the original object type
-		if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, obj); err != nil {
-			return fmt.Errorf(errConvertingToObject, err)
+		// Set the value at the target path, converting []byte to string to avoid
+		// base64 encoding when serializing.
+		leaf := func(any) any { return tryParseYAML(string(val)) }
+		if err := applyAtPath(obj, target, tokens, leaf); err != nil {
+			return err
 		}
 	}
 
@@ -165,11 +146,15 @@ func applyToTarget(k string, val []byte, target string, obj client.Object) error
 	return nil
 }
 
-func valueScopeApply(tplMap, data map[string][]byte, target string, secret client.Object) error {
+func valueScopeApply(tplMap, data map[string][]byte, target string, secret client.Object, decodingStrategy esapi.ExternalSecretDecodingStrategy) error {
 	for k, v := range tplMap {
 		val, err := execute(k, string(v), data)
 		if err != nil {
 			return fmt.Errorf(errExecute, k, err)
+		}
+		val, err = decoding.Decode(decodingStrategy, val)
+		if err != nil {
+			return fmt.Errorf("failed to decode rendered template value for key %s: %w", k, err)
 		}
 		if err := applyToTarget(k, val, target, secret); err != nil {
 			return fmt.Errorf("failed to apply to target: %w", err)
@@ -178,14 +163,15 @@ func valueScopeApply(tplMap, data map[string][]byte, target string, secret clien
 	return nil
 }
 
-func mapScopeApply(tpl string, data map[string][]byte, target string, secret client.Object) error {
+func mapScopeApply(tpl string, data map[string][]byte, target string, secret client.Object, decodingStrategy esapi.ExternalSecretDecodingStrategy) error {
 	val, err := execute(tpl, tpl, data)
 	if err != nil {
 		return fmt.Errorf(errExecute, tpl, err)
 	}
 
-	target = strings.ToLower(target)
-	switch target {
+	// See applyToTarget: switch on the lowercased target but keep the original
+	// case so nested paths are not lowercased (issue #6458).
+	switch strings.ToLower(target) {
 	case "annotations", "labels", "data":
 		// normal route
 		src := make(map[string]string)
@@ -194,7 +180,11 @@ func mapScopeApply(tpl string, data map[string][]byte, target string, secret cli
 			return fmt.Errorf("could not unmarshal template to 'map[string][]byte': %w", err)
 		}
 		for k, val := range src {
-			if err := applyToTarget(k, []byte(val), target, secret); err != nil {
+			decodedVal, err := decoding.Decode(decodingStrategy, []byte(val))
+			if err != nil {
+				return fmt.Errorf("failed to decode rendered template value for key %s: %w", k, err)
+			}
+			if err := applyToTarget(k, decodedVal, target, secret); err != nil {
 				return fmt.Errorf("failed to apply to target: %w", err)
 			}
 		}
@@ -215,20 +205,20 @@ func mapScopeApply(tpl string, data map[string][]byte, target string, secret cli
 }
 
 // Execute renders the secret data as template. If an error occurs processing is stopped immediately.
-func Execute(tpl, data map[string][]byte, scope esapi.TemplateScope, target string, secret client.Object) error {
+func Execute(tpl, data map[string][]byte, scope esapi.TemplateScope, target string, secret client.Object, valueDecodingStrategy esapi.ExternalSecretDecodingStrategy) error {
 	if tpl == nil {
 		return nil
 	}
 	switch scope {
 	case esapi.TemplateScopeKeysAndValues:
 		for _, v := range tpl {
-			err := mapScopeApply(string(v), data, target, secret)
+			err := mapScopeApply(string(v), data, target, secret, valueDecodingStrategy)
 			if err != nil {
 				return err
 			}
 		}
 	case esapi.TemplateScopeValues:
-		err := valueScopeApply(tpl, data, target, secret)
+		err := valueScopeApply(tpl, data, target, secret, valueDecodingStrategy)
 		if err != nil {
 			return err
 		}
@@ -311,67 +301,214 @@ func tryParseYAML(value any) any {
 
 // applyParsedToPath applies a parsed YAML structure to a specific path in the object.
 func applyParsedToPath(parsed any, target string, obj client.Object) error {
+	tokens, err := parseTargetPath(target)
+	if err != nil {
+		return err
+	}
+
+	// navigate to the last element of the path and apply the entire struct at that location.
+	// MERGE the parsed content into existing map content instead of replacing it.
+	leaf := func(existing any) any {
+		existingMap, existingOk := existing.(map[string]any)
+		parsedMap, parsedOk := parsed.(map[string]any)
+		if existingOk && parsedOk {
+			maps.Copy(existingMap, parsedMap)
+			return existingMap
+		}
+		// existing or parsed value is not a map, replace entirely.
+		// this might break if people are trying to overwrite
+		// fields that aren't supposed to do that. but that's
+		// on the user to keep in mind. If they are trying to
+		// update a number field with a complex value, that's
+		// going to error on update anyway.
+		return parsed
+	}
+
+	// single value, aka "spec": replace entirely to preserve historical behavior.
+	if len(tokens) == 1 && tokens[0].kind == tokenKey {
+		leaf = func(any) any { return parsed }
+	}
+
+	return applyAtPath(obj, target, tokens, leaf)
+}
+
+// applyAtPath applies leaf at the token path within obj's unstructured form and
+// writes the result back into obj. target is used only for error messages.
+func applyAtPath(obj client.Object, target string, tokens []pathToken, leaf func(existing any) any) error {
 	unstructured, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 	if err != nil {
 		return fmt.Errorf(errConvertingToUnstructured, err)
 	}
 
-	parts := strings.Split(target, ".")
-	if len(parts) == 0 {
-		return fmt.Errorf("invalid path: %s", target)
+	updated, err := setAtPath(unstructured, tokens, leaf)
+	if err != nil {
+		return fmt.Errorf("failed to set path %s: %w", target, err)
 	}
 
-	// single value, aka "spec"
-	if len(parts) == 1 {
-		unstructured[parts[0]] = parsed
-	} else {
-		// navigate to the last element of the path and apply the entire struct at that location.
-		// build up the entire map structure that we are eventually going to apply.
-		current := unstructured
-		// this STOPS at the last part! That is important. for _, part := range parts does _include_ the last part
-		for i := 0; i < len(parts)-1; i++ {
-			part := parts[i]
-			if current[part] == nil {
-				current[part] = make(map[string]any)
-			}
-			next, ok := current[part].(map[string]any)
-			if !ok {
-				return fmt.Errorf("path %s is not a map at segment %s", target, part)
-			}
-			current = next
-		}
-
-		// once we constructed the entire segment, we finally apply our parsed object
-		// MERGE the parsed content into existing content instead of replacing it
-		lastPart := parts[len(parts)-1]
-		if existing, exists := current[lastPart]; exists {
-			// if both existing and new values are maps, merge them
-			existingMap, existingOk := existing.(map[string]any)
-			parsedMap, parsedOk := parsed.(map[string]any)
-
-			if existingOk && parsedOk {
-				maps.Copy(existingMap, parsedMap)
-
-				current[lastPart] = existingMap
-			} else {
-				// existing or parsed value is not a map, replace entirely.
-				// this might break if people are trying to overwrite
-				// fields that aren't supposed to do that. but that's
-				// on the user to keep in mind. If they are trying to
-				// update a number field with a complex value, that's
-				// going to error on update anyway.
-				current[lastPart] = parsed
-			}
-		} else {
-			// field doesn't exist yet, create it
-			current[lastPart] = parsed
-		}
+	updatedMap, ok := updated.(map[string]any)
+	if !ok {
+		return fmt.Errorf("failed to set path %s: expected object root, got %T", target, updated)
 	}
 
-	// convert back to original object
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(unstructured, obj); err != nil {
+	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(updatedMap, obj); err != nil {
 		return fmt.Errorf(errConvertingToObject, err)
 	}
 
+	return nil
+}
+
+// pathTokenKind distinguishes a map-key access from a slice-index access in a target path.
+type pathTokenKind int
+
+const (
+	tokenKey pathTokenKind = iota
+	tokenIndex
+)
+
+// pathToken is a single step in a parsed target path.
+type pathToken struct {
+	kind pathTokenKind
+	name string
+	idx  int
+}
+
+// maxArrayIndex limits the memory assignation for setAtPath.
+const maxArrayIndex = 10000
+
+// parseTargetPath is a pure function parsing and validating a dotted target path, with optional slice notation, into tokens.
+// Each step is a pathToken of kind "tokenKey" or "tokenIndex".
+//
+// e.g.
+//
+//		input:  "spec.rules[0].from[0].source.notRemoteIpBlocks"
+//		output: [
+//	  	{key,  "spec"},
+//	  	{key,  "rules"},
+//	  	{index, 0},
+//	  	{key,  "from"},
+//	  	{index, 0},
+//	  	{key,  "source"},
+//	  	{key,  "notRemoteIpBlocks"},
+//		]
+func parseTargetPath(target string) ([]pathToken, error) {
+	var tokens []pathToken
+	for seg := range strings.SplitSeq(target, ".") {
+		if seg == "" {
+			return nil, fmt.Errorf("invalid path %q: empty segment", target)
+		}
+
+		name, rest := seg, ""
+		if i := strings.IndexByte(seg, '['); i >= 0 {
+			name, rest = seg[:i], seg[i:]
+		}
+		if name != "" {
+			tokens = append(tokens, pathToken{kind: tokenKey, name: name})
+		} else if rest == "" {
+			return nil, fmt.Errorf("invalid path %q: empty segment", target)
+		}
+
+		for rest != "" {
+			if rest[0] != '[' {
+				return nil, fmt.Errorf("invalid path %q: expected '[' near %q", target, rest)
+			}
+			end := strings.IndexByte(rest, ']')
+			if end < 0 {
+				return nil, fmt.Errorf("invalid path %q: unterminated '['", target)
+			}
+			idx, err := strconv.Atoi(rest[1:end])
+			if err != nil {
+				return nil, fmt.Errorf("invalid path %q: bad index %q", target, rest[1:end])
+			}
+			if idx < 0 {
+				return nil, fmt.Errorf("invalid path %q: negative index %d", target, idx)
+			}
+			if idx > maxArrayIndex {
+				return nil, fmt.Errorf("invalid path %q: index %d exceeds maximum (10000)", target, idx)
+			}
+			tokens = append(tokens, pathToken{kind: tokenIndex, idx: idx})
+			rest = rest[end+1:]
+		}
+	}
+	if len(tokens) == 0 {
+		return nil, fmt.Errorf("invalid path: %s", target)
+	}
+	if tokens[0].kind != tokenKey {
+		return nil, fmt.Errorf("invalid path %q: path must start with a key", target)
+	}
+	return tokens, nil
+}
+
+// setAtPath walks node following tokens, creating intermediate maps and slices as needed,
+// and applies leaf to the value at the final location. It returns the possibly-reallocated
+// node, since growing a slice replaces its header.
+func setAtPath(node any, tokens []pathToken, leaf func(existing any) any) (any, error) {
+	tok := tokens[0]
+	switch tok.kind {
+	case tokenKey:
+		return setMap(node, tokens, leaf, tok)
+	case tokenIndex:
+		return setIndex(node, tokens, leaf, tok)
+	default:
+		return nil, fmt.Errorf("unknown path token kind %d", tok.kind)
+	}
+}
+
+// setIndex sets a value in a slice at index.
+func setIndex(node any, tokens []pathToken, leaf func(existing any) any, tok pathToken) (any, error) {
+	s, ok := node.([]any)
+	if !ok && node != nil {
+		return nil, fmt.Errorf("expected array at index %d but found %T", tok.idx, node)
+	}
+	if tok.idx >= len(s) {
+		grown := make([]any, tok.idx+1)
+		copy(grown, s)
+		s = grown
+	}
+	if err := setLeaf(
+		func() any { return s[tok.idx] },
+		func(v any) { s[tok.idx] = v },
+		tokens, leaf,
+	); err != nil {
+		return nil, err
+	}
+	return s, nil
+}
+
+// setMap sets a value in a map at token name.
+func setMap(node any, tokens []pathToken, leaf func(existing any) any, tok pathToken) (any, error) {
+	m, ok := node.(map[string]any)
+	if !ok && node != nil {
+		return nil, fmt.Errorf("expected map at key %q but found %T", tok.name, node)
+	}
+	if len(m) == 0 {
+		m = make(map[string]any)
+	}
+	if err := setLeaf(
+		func() any { return m[tok.name] },
+		func(v any) { m[tok.name] = v },
+		tokens, leaf,
+	); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// setLeaf writes leaf into a container via get/set closures, recursing when
+// the path continues. The closures capture the container (slice or map).
+// set is called to set a value in a container, be that a slice or a map.
+// get is called to retrieve a value from a container, either a slice or a map.
+// This abstraction is necessary because there are no shared slice/map operation even
+// in Typed Parameters, so these cannot be reasonably abstracted. At least, it makes
+// the entire logic a bit more readable.
+func setLeaf(get func() any, set func(any), tokens []pathToken, leaf func(existing any) any) error {
+	if len(tokens) == 1 {
+		set(leaf(get()))
+		return nil
+	}
+	child, err := setAtPath(get(), tokens[1:], leaf)
+	if err != nil {
+		return err
+	}
+	set(child)
 	return nil
 }

@@ -22,12 +22,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"path"
 	"strings"
 
 	infisical "github.com/infisical/go-sdk"
+	sdkErrors "github.com/infisical/go-sdk/packages/errors"
 	"github.com/tidwall/gjson"
-	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/infisical/constants"
@@ -36,7 +37,6 @@ import (
 )
 
 var (
-	errNotImplemented     = errors.New("not implemented")
 	errPropertyNotFound   = "property %s does not exist in secret %s"
 	errTagsNotImplemented = errors.New("find by tags not supported")
 )
@@ -45,6 +45,14 @@ const (
 	getSecretsV3     = "GetSecretsV3"
 	getSecretByKeyV3 = "GetSecretByKeyV3"
 )
+
+// isNotFoundError reports whether err is an Infisical API error with HTTP 404.
+// The go-sdk wraps transport failures in *sdkErrors.APIError, which carries the
+// upstream StatusCode.
+func isNotFoundError(err error) bool {
+	var apiErr *sdkErrors.APIError
+	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound
+}
 
 func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 	result := gjson.Get(jsonData, propertyName)
@@ -94,6 +102,12 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 	metrics.ObserveAPICall(constants.ProviderName, getSecretByKeyV3, err)
 
 	if err != nil {
+		// Translate a 404 into the NoSecret sentinel so deletionPolicy: Delete
+		// can prune the entry and a missing key reports as not-found rather
+		// than a generic sync error.
+		if isNotFoundError(err) {
+			return nil, esv1.NoSecretErr
+		}
 		return nil, err
 	}
 
@@ -206,22 +220,4 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 	}
 
 	return esv1.ValidationResultReady, nil
-}
-
-// PushSecret will write a single secret into the provider.
-// This is not implemented for this provider.
-func (p *Provider) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
-	return errNotImplemented
-}
-
-// DeleteSecret will delete the secret from a provider.
-// This is not implemented for this provider.
-func (p *Provider) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
-	return errNotImplemented
-}
-
-// SecretExists checks if a secret is already present in the provider at the given location.
-// This is not implemented for this provider.
-func (p *Provider) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errNotImplemented
 }

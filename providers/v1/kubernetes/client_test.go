@@ -904,7 +904,7 @@ func TestPushSecret(t *testing.T) {
 			},
 		},
 		{
-			name: "push the whole secret if neither remote property or secretKey is defined but keep existing keys",
+			name: "push the whole secret if neither remote property or secretKey is defined replacing the destination",
 			fields: fields{
 				Client: &fakeClient{
 					t: t,
@@ -931,8 +931,83 @@ func TestPushSecret(t *testing.T) {
 						Annotations: map[string]string{},
 					},
 					Data: map[string][]byte{
-						"token":  []byte(`foo`),
 						"token2": []byte(`foo`),
+					},
+				},
+			},
+		},
+		{
+			name: "push the whole secret removeing keys that no longer exist in source",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"a": []byte("a1"),
+								"b": []byte("b1"),
+								"c": []byte("c1"),
+							},
+						},
+					},
+				},
+			},
+			data: testingfake.PushSecretData{
+				RemoteKey: "mysec",
+			},
+			secret: &v1.Secret{
+				Data: map[string][]byte{
+					"a": []byte("a2"),
+					"b": []byte("b2"),
+				},
+			},
+			wantSecretMap: map[string]*v1.Secret{
+				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "mysec",
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
+					Data: map[string][]byte{
+						"a": []byte("a2"),
+						"b": []byte("b2"),
+					},
+				},
+			},
+		},
+		{
+			name: "push with property doesn't touch other properties on the remote",
+			fields: fields{
+				Client: &fakeClient{
+					t: t,
+					secretMap: map[string]*v1.Secret{
+						"mysec": {
+							Data: map[string][]byte{
+								"owned-by-other": []byte(`untouched`),
+								"token":          []byte(`old`),
+							},
+						},
+					},
+				},
+			},
+			data: testingfake.PushSecretData{
+				SecretKey: secretKey,
+				RemoteKey: "mysec",
+				Property:  "token",
+			},
+			secret: &v1.Secret{
+				Data: map[string][]byte{secretKey: []byte("new")},
+			},
+			wantSecretMap: map[string]*v1.Secret{
+				"mysec": {
+					ObjectMeta: metav1.ObjectMeta{
+						Name:        "mysec",
+						Labels:      map[string]string{},
+						Annotations: map[string]string{},
+					},
+					Data: map[string][]byte{
+						"owned-by-other": []byte(`untouched`),
+						"token":          []byte(`new`),
 					},
 				},
 			},

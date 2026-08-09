@@ -41,7 +41,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	sess, err := NewSession(ctx, volcengineProvider, kube, namespace)
+	sess, err := NewSession(ctx, volcengineProvider, kube, store.GetKind(), namespace)
 	if err != nil {
 		return nil, err
 	}

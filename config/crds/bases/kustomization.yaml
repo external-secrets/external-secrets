@@ -9,6 +9,7 @@ resources:
   - external-secrets.io_pushsecrets.yaml
   - external-secrets.io_secretstores.yaml
   - generators.external-secrets.io_acraccesstokens.yaml
+  - generators.external-secrets.io_beyondtrustworkloadcredentialsdynamicsecrets.yaml
   - generators.external-secrets.io_cloudsmithaccesstokens.yaml
   - generators.external-secrets.io_clustergenerators.yaml
   - generators.external-secrets.io_ecrauthorizationtokens.yaml
@@ -16,6 +17,7 @@ resources:
   - generators.external-secrets.io_gcraccesstokens.yaml
   - generators.external-secrets.io_generatorstates.yaml
   - generators.external-secrets.io_githubaccesstokens.yaml
+  - generators.external-secrets.io_gitlabdeploytokens.yaml
   - generators.external-secrets.io_grafanas.yaml
   - generators.external-secrets.io_mfas.yaml
   - generators.external-secrets.io_passwords.yaml

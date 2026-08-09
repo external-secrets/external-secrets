@@ -225,6 +225,32 @@ tests:
       - notContains:
           path: spec.template.spec.containers[0].args
           content: "--enable-http2"
+  - it: should render leader election timing args when set
+    set:
+      leaderElectionLeaseDuration: 60s
+      leaderElectionRenewDeadline: 40s
+      leaderElectionRetryPeriod: 5s
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--leader-election-lease-duration=60s"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--leader-election-renew-deadline=40s"
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--leader-election-retry-period=5s"
+  - it: should not render leader election timing args by default
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--leader-election-lease-duration=15s"
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--leader-election-renew-deadline=10s"
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--leader-election-retry-period=2s"
   - it: should default to hostUsers absent
     capabilities:
       majorVersion: '1'
@@ -472,3 +498,16 @@ tests:
       - contains:
           path: spec.template.spec.containers[0].args
           content: "--zap-time-encoding=epoch"
+  - it: should omit store-requeue-interval flag by default
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--store-requeue-interval"
+  - it: should render store-requeue-interval flag when set
+    set:
+      storeRequeueInterval: "30s"
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--store-requeue-interval=30s"
+

@@ -60,6 +60,23 @@ func TestGetSecret(t *testing.T) {
 		},
 		"json_number": json.Number("42"),
 	}
+	metadataWithSystemVal := map[string]any{
+		"custom_metadata": map[string]any{
+			"access_key":   "access_key",
+			"created_time": "custom-time",
+		},
+		"created_time":         "2026-04-27T12:32:50.049520998Z",
+		"current_version":      json.Number("2"),
+		"delete_version_after": "0s",
+		"max_versions":         json.Number("0"),
+		"cas_required":         false,
+	}
+	metadataNilCustomVal := map[string]any{
+		"custom_metadata":      nil,
+		"created_time":         "2026-04-27T12:32:50.049520998Z",
+		"current_version":      json.Number("2"),
+		"delete_version_after": "0s",
+	}
 
 	type args struct {
 		store    *esv1.VaultProvider
@@ -327,6 +344,55 @@ func TestGetSecret(t *testing.T) {
 			},
 			want: want{
 				err: errors.New(errUnsupportedMetadataKvVersion),
+			},
+		},
+		"ReadSecretMetadataWithSystemMetadata": {
+			reason: "Should return system metadata alongside custom metadata, custom keys taking precedence",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1.ExternalSecretDataRemoteRef{
+					MetadataPolicy: "Fetch",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadMetadataWithContextFn(metadataWithSystemVal, nil),
+				},
+			},
+			want: want{
+				err: nil,
+				val: []byte(`{"access_key":"access_key","created_time":"custom-time","current_version":"2","delete_version_after":"0s"}`),
+			},
+		},
+		"ReadSecretMetadataSystemProperty": {
+			reason: "Should return a single system metadata value via property",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1.ExternalSecretDataRemoteRef{
+					MetadataPolicy: "Fetch",
+					Property:       "current_version",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadMetadataWithContextFn(metadataWithSystemVal, nil),
+				},
+			},
+			want: want{
+				err: nil,
+				val: []byte("2"),
+			},
+		},
+		"ReadSecretMetadataNilCustomMetadata": {
+			reason: "Should return system metadata when custom_metadata is null",
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				data: esv1.ExternalSecretDataRemoteRef{
+					MetadataPolicy: "Fetch",
+				},
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadMetadataWithContextFn(metadataNilCustomVal, nil),
+				},
+			},
+			want: want{
+				err: nil,
+				val: []byte(`{"created_time":"2026-04-27T12:32:50.049520998Z","current_version":"2","delete_version_after":"0s"}`),
 			},
 		},
 	}

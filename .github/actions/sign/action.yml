@@ -45,9 +45,11 @@ runs:
       with:
         go-version-file: go.mod
 
-    - name: Set up crane
+    - name: Install crane
       shell: bash
-      run: go install github.com/google/go-containerregistry/cmd/crane@v0.11.0
+      run: |
+        make crane
+        echo "${GITHUB_WORKSPACE}/bin" >> "${GITHUB_PATH}"
 
     - name: Get docker image tag
       id: container_info

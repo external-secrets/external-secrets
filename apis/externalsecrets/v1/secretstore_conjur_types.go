@@ -21,6 +21,7 @@ import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 // ConjurProvider provides access to a Conjur provider.
 type ConjurProvider struct {
 	// URL is the endpoint of the Conjur instance.
+	// +required
 	URL string `json:"url"`
 
 	// CABundle is a PEM encoded CA bundle that will be used to validate the Conjur server certificate.
@@ -34,10 +35,13 @@ type ConjurProvider struct {
 	CAProvider *CAProvider `json:"caProvider,omitempty"`
 
 	// Defines authentication settings for connecting to Conjur.
+	// +required
 	Auth ConjurAuth `json:"auth"`
 }
 
 // ConjurAuth is the way to provide authentication credentials to the ConjurProvider.
+// +kubebuilder:validation:MaxProperties=1
+// +kubebuilder:validation:MinProperties=1
 type ConjurAuth struct {
 	// Authenticates with Conjur using an API key.
 	// +optional
@@ -46,29 +50,38 @@ type ConjurAuth struct {
 	// Jwt enables JWT authentication using Kubernetes service account tokens.
 	// +optional
 	Jwt *ConjurJWT `json:"jwt,omitempty"`
+
+	// Cert enables certificate-based authentication using a client certificate and key.
+	// +optional
+	Cert *ConjurCert `json:"cert,omitempty"`
 }
 
 // ConjurAPIKey contains references to a Secret resource that holds
 // the Conjur username and API key.
 type ConjurAPIKey struct {
 	// Account is the Conjur organization account name.
+	// +required
 	Account string `json:"account"`
 
 	// A reference to a specific 'key' containing the Conjur username
 	// within a Secret resource. In some instances, `key` is a required field.
+	// +required
 	UserRef *esmeta.SecretKeySelector `json:"userRef"`
 
 	// A reference to a specific 'key' containing the Conjur API key
 	// within a Secret resource. In some instances, `key` is a required field.
+	// +required
 	APIKeyRef *esmeta.SecretKeySelector `json:"apiKeyRef"`
 }
 
 // ConjurJWT defines the JWT authentication configuration for Conjur provider.
 type ConjurJWT struct {
 	// Account is the Conjur organization account name.
+	// +required
 	Account string `json:"account"`
 
 	// The conjur authn jwt webservice id
+	// +required
 	ServiceID string `json:"serviceID"`
 
 	// Optional HostID for JWT authentication. This may be used depending
@@ -85,4 +98,29 @@ type ConjurJWT struct {
 	// a token for with the `TokenRequest` API.
 	// +optional
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+}
+
+// ConjurCert defines the Cert authentication configuration for Conjur provider.
+type ConjurCert struct {
+	// Account is the Conjur organization account name.
+	// +required
+	Account string `json:"account"`
+
+	// The conjur authn cert webservice id
+	// +required
+	ServiceID string `json:"serviceID"`
+
+	// Optional HostID for cert authentication (can be omitted when using 'spiffe' mode).
+	// +optional
+	HostID string `json:"hostId,omitempty"`
+
+	// ClientCertRef is a reference to a specific 'key' containing the client certificate
+	// within a Secret resource. The certificate must be PEM-encoded.
+	// +required
+	ClientCertRef *esmeta.SecretKeySelector `json:"clientCertRef"`
+
+	// ClientKeyRef is a reference to a specific 'key' containing the private RSA client key
+	// within a Secret resource. The key must be PEM-encoded.
+	// +required
+	ClientKeyRef *esmeta.SecretKeySelector `json:"clientKeyRef"`
 }

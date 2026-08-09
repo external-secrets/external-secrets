@@ -1,0 +1,109 @@
+suite: test cert controller rbac
+templates:
+  - cert-controller-rbac.yaml
+tests:
+  - it: should keep get/list/watch on customresourcedefinitions cluster-wide
+    documentIndex: 0
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups:
+              - "apiextensions.k8s.io"
+            resources:
+              - "customresourcedefinitions"
+            verbs:
+              - "get"
+              - "list"
+              - "watch"
+  - it: should scope customresourcedefinitions update/patch to the managed CRDs by resourceNames
+    documentIndex: 0
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups:
+              - "apiextensions.k8s.io"
+            resources:
+              - "customresourcedefinitions"
+            resourceNames:
+              - "externalsecrets.external-secrets.io"
+              - "secretstores.external-secrets.io"
+              - "clustersecretstores.external-secrets.io"
+            verbs:
+              - "update"
+              - "patch"
+      - notContains:
+          path: rules
+          content:
+            apiGroups:
+              - "apiextensions.k8s.io"
+            resources:
+              - "customresourcedefinitions"
+            verbs:
+              - "get"
+              - "list"
+              - "watch"
+              - "update"
+              - "patch"
+  - it: should exclude clustersecretstores from the scoped CRD rule when createClusterSecretStore is false
+    documentIndex: 0
+    set:
+      crds:
+        createClusterSecretStore: false
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups:
+              - "apiextensions.k8s.io"
+            resources:
+              - "customresourcedefinitions"
+            resourceNames:
+              - "externalsecrets.external-secrets.io"
+              - "secretstores.external-secrets.io"
+            verbs:
+              - "update"
+              - "patch"
+  - it: should keep get/list/watch on secrets cluster-wide
+    documentIndex: 0
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups:
+              - ""
+            resources:
+              - "secrets"
+            verbs:
+              - "get"
+              - "list"
+              - "watch"
+  - it: should scope secret update/patch to the webhook secret by resourceNames
+    documentIndex: 0
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups:
+              - ""
+            resources:
+              - "secrets"
+            resourceNames:
+              - "RELEASE-NAME-external-secrets-webhook"
+            verbs:
+              - "update"
+              - "patch"
+      - notContains:
+          path: rules
+          content:
+            apiGroups:
+              - ""
+            resources:
+              - "secrets"
+            verbs:
+              - "get"
+              - "list"
+              - "watch"
+              - "update"
+              - "patch"

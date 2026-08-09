@@ -1,17 +1,17 @@
 
 ![Previder Secret Vault](../pictures/previder-provider.png)
 
-## Previder Secret Vault Manager
+# Previder Secret Vault Manager
 
 External Secrets Operator integrates with [Previder Secrets Vault](https://vault.previder.io) for secure secret management.
 
-### Authentication
+## Authentication
 
 We support Access Token authentication using a Secrets Vault ReadWrite or ReadOnly token.
 
 This token can be created with the [vault-cli](https://github.com/previder/vault-cli) using an Environment token which can be acquired via the [Previder Portal](https://portal.previder.nl).
 
-#### Access Token authentication
+### Access Token authentication
 
 To use the access token, first create it as a regular Kubernetes Secret and then associate it with the Previder Secret Store.
 
@@ -40,7 +40,7 @@ spec:
 ```
 
 
-### Creating external secret
+## Creating external secret
 
 To create a kubernetes secret from the Previder Secret Vault, create an ExternalSecret with a reference to a Vault secret.
 
