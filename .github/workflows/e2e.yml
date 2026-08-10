@@ -70,6 +70,9 @@ jobs:
       ORACLE_REGION: ${{ secrets.ORACLE_REGION }}
       ORACLE_FINGERPRINT: ${{ secrets.ORACLE_FINGERPRINT }}
       ORACLE_KEY: ${{ secrets.ORACLE_KEY }}
+      ORACLE_VAULT_OCID: ${{ secrets.ORACLE_VAULT_OCID }}
+      ORACLE_COMPARTMENT_OCID: ${{ secrets.ORACLE_COMPARTMENT_OCID }}
+      ORACLE_ENCRYPTION_KEY_OCID: ${{ secrets.ORACLE_ENCRYPTION_KEY_OCID }}
 
   # A /ok-to-test *comment* must carry an explicit sha=. A bare comment has no
   # trustworthy pinned commit (the dispatch would otherwise read the live PR
@@ -83,7 +86,7 @@ jobs:
       pull-requests: write # to explain a rejected /ok-to-test on the PR
       contents: read
     steps:
-    - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+    - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
       with:
         egress-policy: audit
 
@@ -178,6 +181,9 @@ jobs:
       ORACLE_REGION: ${{ secrets.ORACLE_REGION }}
       ORACLE_FINGERPRINT: ${{ secrets.ORACLE_FINGERPRINT }}
       ORACLE_KEY: ${{ secrets.ORACLE_KEY }}
+      ORACLE_VAULT_OCID: ${{ secrets.ORACLE_VAULT_OCID }}
+      ORACLE_COMPARTMENT_OCID: ${{ secrets.ORACLE_COMPARTMENT_OCID }}
+      ORACLE_ENCRYPTION_KEY_OCID: ${{ secrets.ORACLE_ENCRYPTION_KEY_OCID }}
 
   # Report the fork run result back onto the originating pull request.
   report-fork:
@@ -188,7 +194,7 @@ jobs:
       pull-requests: write # to publish the status as comments
       contents: read
     steps:
-    - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+    - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
       with:
         egress-policy: audit
 
@@ -234,7 +240,7 @@ jobs:
     permissions:
       contents: read
     steps:
-    - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+    - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
       with:
         egress-policy: audit
 

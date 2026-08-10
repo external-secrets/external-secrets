@@ -56,6 +56,7 @@ type CacheConfig struct {
 
 // OnePasswordSDKProvider configures a store to sync secrets using the 1Password sdk.
 // Exactly one of Vault or Environment must be set.
+// +kubebuilder:validation:AtMostOneOf=vault;environment
 type OnePasswordSDKProvider struct {
 	// Vault defines the vault's name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
 	// Mutually exclusive with Environment.
