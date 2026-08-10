@@ -4,12 +4,16 @@ go 1.26.5
 
 require (
 	github.com/cyberark/conjur-api-go v0.14.1
+	github.com/doodlesbykumbi/conjur-policy-go v0.0.0-20241022093904-5fc5921aee96
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/google/go-cmp v0.7.0
+	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
+	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.36.3
+	k8s.io/apiextensions-apiserver v0.36.3
 	k8s.io/apimachinery v0.36.3
 	k8s.io/client-go v0.36.3
 	sigs.k8s.io/controller-runtime v0.24.1
@@ -103,7 +107,6 @@ require (
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	k8s.io/apiextensions-apiserver v0.36.3 // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
 	k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a // indirect
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
