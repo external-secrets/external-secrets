@@ -66,6 +66,7 @@ type NebiusWorkloadIdentity struct {
 	// +kubebuilder:validation:Required
 	// +kubebuilder:validation:MinLength=1
 	// +kubebuilder:validation:Pattern:=`^serviceaccount-[a-z][a-z0-9]{2}`
+	// +kubebuilder:example="serviceaccount-e00example"
 	IAMServiceAccountID string `json:"iamServiceAccountID"`
 }
 

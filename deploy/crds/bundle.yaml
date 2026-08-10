@@ -6310,6 +6310,7 @@ spec:
                                   description: |-
                                     IAMServiceAccountID is the Nebius IAM service account identifier that the
                                     federated Kubernetes service account should impersonate during token exchange.
+                                  example: serviceaccount-e00example
                                   minLength: 1
                                   pattern: ^serviceaccount-[a-z][a-z0-9]{2}
                                   type: string
@@ -19564,6 +19565,7 @@ spec:
                                   description: |-
                                     IAMServiceAccountID is the Nebius IAM service account identifier that the
                                     federated Kubernetes service account should impersonate during token exchange.
+                                  example: serviceaccount-e00example
                                   minLength: 1
                                   pattern: ^serviceaccount-[a-z][a-z0-9]{2}
                                   type: string
