@@ -85,6 +85,7 @@ func TestValidateStore(t *testing.T) {
 			store: mkStore(func(s *esv1.SecretStore) {
 				nm := s.Spec.Provider.NebiusMysterybox
 				nm.Auth.Token = esmeta.SecretKeySelector{Name: "a", Key: "k"}
+				nm.Auth.ServiceAccountCreds = esmeta.SecretKeySelector{Name: "b", Key: "k"}
 				nm.Auth.WorkloadIdentity = &esv1.NebiusWorkloadIdentity{}
 			}),
 			wantErr: errTooManyAuthConfigs,

@@ -951,7 +951,8 @@ func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing
 	}
 	setTokenGetterWorkaround(tokenGetter, p)
 
-	creds := []byte(`{"private_key":"KEY","key_id":"id","subject":"sub","issuer":"iss"}`)
+	creds, err := json.Marshal(testSubjectCreds)
+	trequire.NoError(t, err)
 	createK8sSecret(ctx, t, k8sClient, namespace, authRefName, authRefKey, creds)
 
 	store := newNebiusMysteryboxSecretStoreWithServiceAccountAndPrivateKeyCreds(apiDomain, namespace, authRefName, authRefKey)
