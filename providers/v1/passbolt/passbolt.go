@@ -193,11 +193,6 @@ func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1.Ex
 	for _, resource := range resources {
 		secret, err := provider.getPassboltSecret(ctx, resource.ID)
 		if err != nil {
-			// A resource may have been deleted between listing and fetching;
-			// skip it rather than failing the entire find.
-			if errors.Is(err, esv1.NoSecretErr) {
-				continue
-			}
 			return nil, err
 		}
 
@@ -303,25 +298,16 @@ func (ps Secret) GetProp(key string) ([]byte, error) {
 func (provider *ProviderPassbolt) getPassboltSecret(ctx context.Context, id string) (*Secret, error) {
 	resource, err := provider.client.GetResource(ctx, id)
 	if err != nil {
-		if isPassboltNotFound(err) {
-			return nil, esv1.NoSecretErr
-		}
 		return nil, err
 	}
 
 	rType, err := provider.client.GetResourceType(ctx, resource.ResourceTypeID)
 	if err != nil {
-		if isPassboltNotFound(err) {
-			return nil, esv1.NoSecretErr
-		}
 		return nil, err
 	}
 
 	secretData, err := provider.client.GetSecret(ctx, resource.ID)
 	if err != nil {
-		if isPassboltNotFound(err) {
-			return nil, esv1.NoSecretErr
-		}
 		return nil, err
 	}
 
@@ -432,12 +418,6 @@ func assureLoggedIn(ctx context.Context, client *api.Client) error {
 		return nil
 	}
 	return client.Login(ctx)
-}
-
-// isPassboltNotFound reports whether err is a Passbolt API 404 (Not Found) response.
-func isPassboltNotFound(err error) bool {
-	var apiErr *api.APIError
-	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound
 }
 
 // buildHTTPClient returns an *http.Client configured with the provider's CA bundle

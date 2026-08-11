@@ -26,14 +26,12 @@ import (
 	"crypto/x509/pkix"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"math/big"
 	"net/http"
 	"testing"
 	"time"
 
 	g "github.com/onsi/gomega"
-	"github.com/passbolt/go-passbolt/api"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -413,23 +411,6 @@ func TestResolveCustomField(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestIsPassboltNotFound(t *testing.T) {
-	g.RegisterTestingT(t)
-
-	g.Expect(isPassboltNotFound(&api.APIError{StatusCode: http.StatusNotFound})).To(g.BeTrue())
-
-	// Other API status codes are not not-found.
-	g.Expect(isPassboltNotFound(&api.APIError{StatusCode: http.StatusForbidden})).To(g.BeFalse())
-	g.Expect(isPassboltNotFound(&api.APIError{StatusCode: http.StatusInternalServerError})).To(g.BeFalse())
-
-	// Non-API errors and nil are never not-found.
-	g.Expect(isPassboltNotFound(errors.New("some other error"))).To(g.BeFalse())
-	g.Expect(isPassboltNotFound(nil)).To(g.BeFalse())
-
-	// errors.As unwraps, so a wrapped APIError is still detected.
-	g.Expect(isPassboltNotFound(fmt.Errorf("wrapped: %w", &api.APIError{StatusCode: http.StatusNotFound}))).To(g.BeTrue())
 }
 
 func TestCapabilities(t *testing.T) {
