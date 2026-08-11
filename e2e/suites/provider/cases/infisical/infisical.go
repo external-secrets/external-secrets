@@ -37,8 +37,8 @@ const (
 // path through the provider's PushSecret implementation.
 // FindByTag is excluded because the provider does not implement tag lookup
 // (it returns "find by tags not supported"), and FindByNameWithPath is
-// excluded because the provider matches ref.Path as a prefix of the absolute
-// Infisical secret path, which a bare namespace name never satisfies.
+// excluded because it searches from a bare namespace name, while Infisical
+// wants an absolute folder path.
 var _ = Describe("[infisical]", Label("infisical"), Ordered, func() {
 	f := framework.New("infisical")
 	infisical := addon.NewInfisical()
