@@ -36,10 +36,11 @@ type LoadPolicyCall struct {
 }
 
 type ConjurMockClient struct {
-	AddSecretCalls  []AddSecretCall
-	LoadPolicyCalls []LoadPolicyCall
-	SecretDetails   map[string]*conjurapi.StaticSecretResponse
-	SecretValues    map[string][]byte
+	AddSecretCalls    []AddSecretCall
+	LoadPolicyCalls   []LoadPolicyCall
+	SecretDetails     map[string]*conjurapi.StaticSecretResponse
+	SecretValues      map[string][]byte
+	ResourceExistence map[string]bool
 }
 
 func (mc *ConjurMockClient) AddSecret(variable, secret string) error {
@@ -149,6 +150,13 @@ func (mc *ConjurMockClient) Resources(filter *conjurapi.ResourceFilter) (resourc
 
 	// Add 50 random secrets so we can simulate a partial "page" of 50 secrets
 	return generateRandomSecrets(50), nil
+}
+
+func (mc *ConjurMockClient) ResourceExists(resourceID string) (bool, error) {
+	if exists, ok := mc.ResourceExistence[resourceID]; ok {
+		return exists, nil
+	}
+	return false, nil
 }
 
 func generateRandomSecrets(count int) []map[string]any {
