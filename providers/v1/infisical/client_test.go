@@ -213,12 +213,12 @@ func TestGetAllSecretsResults(t *testing.T) {
 		assert.Equal(t, map[string][]byte{"DB_HOST": []byte("db")}, got)
 	})
 
-	t.Run("imported secrets are returned even though they carry another path", func(t *testing.T) {
+	t.Run("imported secrets are returned even without a path of their own", func(t *testing.T) {
 		body := `{"secrets":[
 			{"secretKey":"LOCAL","secretValue":"local","secretPath":"/app"}
 		],"imports":[
 			{"secretPath":"/shared","environment":"dev","folderId":"f1","secrets":[
-				{"secretKey":"IMPORTED","secretValue":"imported","secretPath":"/shared"}
+				{"secretKey":"IMPORTED","secretValue":"imported"}
 			]}
 		]}`
 

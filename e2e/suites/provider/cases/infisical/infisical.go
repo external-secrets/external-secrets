@@ -26,6 +26,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
+	v1 "k8s.io/api/core/v1"
 )
 
 const (
@@ -71,6 +72,7 @@ var _ = Describe("[infisical]", Label("infisical"), Ordered, func() {
 		// DeletionPolicyDelete depends on GetSecret returning NoSecretErr for a
 		// missing key, which the provider now does (see issue #6413).
 		framework.Compose(withUniversalAuth, f, common.DeletionPolicyDelete, useUniversalAuth(prov)),
+		framework.Compose(withUniversalAuth, f, findPathScopesTheSearch, useUniversalAuth(prov)),
 		// one case through a ClusterSecretStore to cover the cluster-scoped path
 		framework.Compose(withUniversalAuthCluster, f, common.JSONDataFromSync, useUniversalAuthClusterStore(prov)),
 	)
@@ -81,6 +83,33 @@ var _ = Describe("[infisical]", Label("infisical"), Ordered, func() {
 		framework.Compose(withUniversalAuth, f, pushSecretDeletesOnPolicy(prov), useUniversalAuthForPush(prov)),
 	)
 })
+
+// findPathScopesTheSearch covers #6685: the store is not recursive, so the
+// nested secret is only reachable if find.path is the path the provider asks
+// Infisical for. The sibling repeats DB_HOST, which is the #6230 layout, and
+// carries a key of its own, since the SDK collapses duplicates by key and
+// could leave the in-scope value standing even if the sibling leaked in.
+func findPathScopesTheSearch(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[infisical] should search from find.path and not into a folder that merely starts with it", func(tc *framework.TestCase) {
+		root := "/find-path-" + f.Namespace.Name
+		tc.Secrets = map[string]framework.SecretEntry{
+			root + "/DB_HOST":            {Value: "root-value"},
+			root + "/nested/API_KEY":     {Value: "nested-value"},
+			root + "-other/DB_HOST":      {Value: "sibling-value"},
+			root + "-other/OUT_OF_SCOPE": {Value: "sibling-only"},
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				"DB_HOST": []byte("root-value"),
+				"API_KEY": []byte("nested-value"),
+			},
+		}
+		tc.ExternalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{Find: &esv1.ExternalSecretFind{Path: &root}},
+		}
+	}
+}
 
 func useUniversalAuth(prov *infisicalProvider) func(*framework.TestCase) {
 	return func(tc *framework.TestCase) {
