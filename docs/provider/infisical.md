@@ -650,8 +650,8 @@ Use `dataFrom.find` to filter secrets by name regex and/or folder path:
 
 The following restrictions apply:
 
-- `find.name.regexp` matches against the secret name. With neither `find.name` nor `find.path` set, the provider lists `secretsScope.secretsPath` using the store's `recursive` setting.
-- `find.path` is the folder the search starts from. The value must be an absolute path starting with `/` (e.g. `/my-app`). It is sent to Infisical as the path of the list request and is searched recursively, so sub-folders are reachable without `recursive` on the store. For that `find` entry it takes precedence over `secretsScope.secretsPath`, and it may point outside it, as an absolute `remoteRef.key` already can.
+- `find.name.regexp` matches against the secret name. It filters what came back and does not change what was asked for.
+- `find.path` is the folder the search starts from. The value must be an absolute path starting with `/` (e.g. `/my-app`). It is sent to Infisical as the path of the list request. Whether sub-folders are read is the store's `recursive` setting, which a find path says nothing about. For that `find` entry it takes precedence over `secretsScope.secretsPath`, and it may point outside it, as an absolute `remoteRef.key` already can. A path naming a folder that does not exist fails the sync rather than returning nothing.
 - `find.tags` is **not supported** and returns an error if set.
 
 ---
