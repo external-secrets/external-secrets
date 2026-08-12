@@ -437,8 +437,8 @@ func resolveCustomField(item any, secretValByID map[string]secretValueEntry) (na
 }
 
 // stringifyCustomFieldValue renders a decoded JSON custom field value as a
-// string. Passbolt custom fields can be text, number, or boolean, which
-// json.Unmarshal yields as string, float64, and bool respectively.
+// string. json.Unmarshal yields text/number/boolean as string/float64/bool;
+// integers beyond 2^53 may lose precision as float64 before we see them.
 func stringifyCustomFieldValue(v any) string {
 	switch t := v.(type) {
 	case nil:
