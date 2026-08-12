@@ -1,9 +1,8 @@
 # [Sponsored by](https://opencollective.com/external-secrets-org)
 
+[![Roche](./pictures/Roche_logo_blue_200px.png)](https://www.roche.com/)
 [![cs-logo](./pictures/cs_logo.png)](https://container-solutions.com)
-[![External Secrets inc.](./pictures/ESI_Logo.svg)](https://externalsecrets.com)
 [![Form3](./pictures/form3_logo.png)](https://www.form3.tech/)
-[![Pento](./pictures/pento_logo.png)](https://www.pento.io)
 
 # Introduction
 
@@ -53,7 +52,13 @@ How to get involved:
 - [Contributing Process](contributing/process.md)
 - [Twitter](https://twitter.com/ExtSecretsOptr)
 
-### Kicked off by
+### Special thanks
+
+This project was kicked off by
 
 ![godaddy-logo](./pictures/godaddy_logo.png)
 
+It was also maintained and developed by the following companies:
+
+![External Secrets inc.](./pictures/ESI_Logo.svg)
+![Pento](./pictures/pento_logo.png)
