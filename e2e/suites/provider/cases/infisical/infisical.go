@@ -19,6 +19,7 @@ package infisical
 import (
 	//nolint
 	. "github.com/onsi/ginkgo/v2"
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
@@ -26,7 +27,6 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
-	v1 "k8s.io/api/core/v1"
 )
 
 const (
