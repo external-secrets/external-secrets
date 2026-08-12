@@ -140,13 +140,13 @@ func TestSecretGetPropCustomFieldNotFound(t *testing.T) {
 	// No custom fields set at all.
 	secret := Secret{Name: "test-name"}
 	_, err := secret.GetProp("custom_fields.missing")
-	g.Expect(err).To(g.MatchError(g.ContainSubstring(errPassboltCustomFieldNotFound)))
+	g.Expect(err).To(g.MatchError(errPassboltCustomFieldNotFound))
 	g.Expect(err).To(g.MatchError(g.ContainSubstring("missing")))
 
 	// Custom fields present but the requested key does not exist.
 	secret.CustomFields = map[string]string{"other-key": "v"}
 	_, err = secret.GetProp("custom_fields.nonexistent")
-	g.Expect(err).To(g.MatchError(g.ContainSubstring(errPassboltCustomFieldNotFound)))
+	g.Expect(err).To(g.MatchError(errPassboltCustomFieldNotFound))
 	g.Expect(err).To(g.MatchError(g.ContainSubstring("nonexistent")))
 }
 

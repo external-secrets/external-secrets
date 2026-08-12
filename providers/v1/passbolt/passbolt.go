@@ -22,7 +22,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -45,6 +44,8 @@ import (
 
 var log = ctrl.Log.WithName("provider").WithName("passbolt")
 
+var errPassboltCustomFieldNotFound = errors.New("custom field not found")
+
 const (
 	customFieldPrefix = "custom_fields."
 
@@ -56,7 +57,6 @@ const (
 	errPassboltExternalSecretMissingFindNameRegExp = "missing: find.name.regexp"
 	errPassboltStoreHostSchemeNotHTTPS             = "host Url has to be https scheme"
 	errPassboltSecretPropertyInvalid               = "property must be one of name, username, uri, password, description, or " + customFieldPrefix + "<name>"
-	errPassboltCustomFieldNotFound                 = "custom field not found"
 	errPassboltCAInvalid                           = "failed to parse CA certificate for Passbolt provider"
 	errPassboltUnexpectedTransport                 = "unexpected default http transport type"
 	errNotImplemented                              = "not implemented"
@@ -193,7 +193,7 @@ func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1.Ex
 	// even if they don't match the filter, which may impact performance with large
 	// secret stores.
 	for _, resource := range resources {
-		secret, err := provider.getPassboltSecret(ctx, resource.ID)
+		secret, err := provider.secretFromResource(ctx, &resource)
 		if err != nil {
 			return nil, err
 		}
@@ -289,7 +289,7 @@ func (ps Secret) GetProp(key string) ([]byte, error) {
 		if fieldName, ok := strings.CutPrefix(key, customFieldPrefix); ok {
 			val, exists := ps.CustomFields[fieldName]
 			if !exists {
-				return nil, fmt.Errorf("%s: %s", errPassboltCustomFieldNotFound, fieldName)
+				return nil, fmt.Errorf("%w: %s", errPassboltCustomFieldNotFound, fieldName)
 			}
 			return []byte(val), nil
 		}
@@ -302,7 +302,12 @@ func (provider *ProviderPassbolt) getPassboltSecret(ctx context.Context, id stri
 	if err != nil {
 		return nil, err
 	}
+	return provider.secretFromResource(ctx, resource)
+}
 
+// secretFromResource decrypts an already-fetched resource into a Secret,
+// sparing callers that hold the resource a redundant GetResource call.
+func (provider *ProviderPassbolt) secretFromResource(ctx context.Context, resource *api.Resource) (*Secret, error) {
 	rType, err := provider.client.GetResourceType(ctx, resource.ResourceTypeID)
 	if err != nil {
 		return nil, err
@@ -326,6 +331,13 @@ func (provider *ProviderPassbolt) getPassboltSecret(ctx context.Context, id stri
 		Description:  helper.GetStringField(metaFields, "description"),
 		CustomFields: buildCustomFields(metaFields, secretFields),
 	}, nil
+}
+
+// secretValueEntry records a secret-side custom field's value and whether a
+// secret_value was present (distinguishing an empty value from a stub entry).
+type secretValueEntry struct {
+	value    string
+	hasValue bool
 }
 
 // buildCustomFields extracts custom fields from the decrypted metadata and secret
@@ -356,11 +368,6 @@ func buildCustomFields(metaFields, secretFields map[string]any) map[string]strin
 		return nil
 	}
 	return result
-}
-
-type secretValueEntry struct {
-	value    string
-	hasValue bool
 }
 
 // indexSecretValues builds a UUID→secret_value index from the secret-side
@@ -442,8 +449,6 @@ func stringifyCustomFieldValue(v any) string {
 		return strconv.FormatBool(t)
 	case float64:
 		return strconv.FormatFloat(t, 'f', -1, 64)
-	case json.Number:
-		return t.String()
 	default:
 		return fmt.Sprintf("%v", t)
 	}
