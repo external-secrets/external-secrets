@@ -154,10 +154,18 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 		return nil, errTagsNotImplemented
 	}
 
+	// A find path says where to look, not how far: whether subfolders are read
+	// stays with the store's recursive setting. An empty one is not a path, and
+	// passing it on would ask the SDK for the whole project.
+	secretPath := p.apiScope.SecretPath
+	if ref.Path != nil && *ref.Path != "" {
+		secretPath = *ref.Path
+	}
+
 	secrets, err := p.sdkClient.Secrets().List(infisical.ListSecretsOptions{
 		Environment:            p.apiScope.EnvironmentSlug,
 		ProjectSlug:            p.apiScope.ProjectSlug,
-		SecretPath:             p.apiScope.SecretPath,
+		SecretPath:             secretPath,
 		Recursive:              p.apiScope.Recursive,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 		IncludeImports:         true,
@@ -167,29 +175,24 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 		return nil, err
 	}
 
-	secretMap := make(map[string][]byte)
-	for _, secret := range secrets {
-		secretMap[secret.SecretKey] = []byte(secret.SecretValue)
-	}
-	if ref.Name == nil && ref.Path == nil {
+	if ref.Name == nil {
+		secretMap := make(map[string][]byte, len(secrets))
+		for _, secret := range secrets {
+			secretMap[secret.SecretKey] = []byte(secret.SecretValue)
+		}
 		return secretMap, nil
 	}
 
-	var matcher *find.Matcher
-	if ref.Name != nil {
-		m, err := find.New(*ref.Name)
-		if err != nil {
-			return nil, err
-		}
-		matcher = m
+	matcher, err := find.New(*ref.Name)
+	if err != nil {
+		return nil, err
 	}
 
 	selected := map[string][]byte{}
 	for _, secret := range secrets {
-		if (matcher != nil && !matcher.MatchName(secret.SecretKey)) || (ref.Path != nil && !strings.HasPrefix(secret.SecretPath, *ref.Path)) {
-			continue
+		if matcher.MatchName(secret.SecretKey) {
+			selected[secret.SecretKey] = []byte(secret.SecretValue)
 		}
-		selected[secret.SecretKey] = []byte(secret.SecretValue)
 	}
 	return selected, nil
 }
