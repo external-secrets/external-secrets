@@ -259,6 +259,25 @@ func TestBuildCustomFields(t *testing.T) {
 			},
 			want: map[string]string{"empty-field": ""},
 		},
+		{
+			name: "numeric and boolean values are stringified",
+			metaFields: map[string]any{
+				"custom_fields": []any{
+					map[string]any{"id": idA, "metadata_key": "port"},
+					map[string]any{"id": idB, "metadata_key": "enabled", "metadata_value": true},
+				},
+			},
+			secretFields: map[string]any{
+				"custom_fields": []any{
+					map[string]any{"id": idA, "secret_value": float64(8080)},
+					map[string]any{"id": idB, "type": "boolean"},
+				},
+			},
+			want: map[string]string{
+				"port":    "8080",
+				"enabled": "true",
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -350,6 +369,15 @@ func TestIndexSecretValues(t *testing.T) {
 				idA: {value: "val-a", hasValue: true},
 				idB: {value: "", hasValue: false},
 			},
+		},
+		{
+			name: "numeric secret_value is stringified",
+			secretFields: map[string]any{
+				"custom_fields": []any{
+					map[string]any{"id": idA, "secret_value": float64(42)},
+				},
+			},
+			want: map[string]secretValueEntry{idA: {value: "42", hasValue: true}},
 		},
 	}
 

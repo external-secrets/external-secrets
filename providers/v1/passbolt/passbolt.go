@@ -22,11 +22,13 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/passbolt/go-passbolt/api"
@@ -382,9 +384,8 @@ func indexSecretValues(secretFields map[string]any, sizeHint int) map[string]sec
 			continue
 		}
 		entry := secretValueEntry{}
-		rawVal, hasSecretValue := m["secret_value"]
-		if hasSecretValue {
-			entry.value, _ = rawVal.(string)
+		if rawVal, hasSecretValue := m["secret_value"]; hasSecretValue {
+			entry.value = stringifyCustomFieldValue(rawVal)
 			entry.hasValue = true
 		}
 		idx[id] = entry
@@ -425,8 +426,27 @@ func resolveCustomField(item any, secretValByID map[string]secretValueEntry) (na
 		return fieldName, secretEntry.value, true
 	}
 
-	val, _ := m["metadata_value"].(string)
-	return fieldName, val, true
+	return fieldName, stringifyCustomFieldValue(m["metadata_value"]), true
+}
+
+// stringifyCustomFieldValue renders a decoded JSON custom field value as a
+// string. Passbolt custom fields can be text, number, or boolean, which
+// json.Unmarshal yields as string, float64, and bool respectively.
+func stringifyCustomFieldValue(v any) string {
+	switch t := v.(type) {
+	case nil:
+		return ""
+	case string:
+		return t
+	case bool:
+		return strconv.FormatBool(t)
+	case float64:
+		return strconv.FormatFloat(t, 'f', -1, 64)
+	case json.Number:
+		return t.String()
+	default:
+		return fmt.Sprintf("%v", t)
+	}
 }
 
 func assureLoggedIn(ctx context.Context, client *api.Client) error {
