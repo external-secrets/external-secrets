@@ -88,15 +88,13 @@ spec:
                               which secret (version/property/..) to fetch.
                             properties:
                               conversionStrategy:
-                                default: Default
-                                description: Used to define a conversion Strategy
+                                description: Used to define a conversion Strategy. Defaults to Default when omitted.
                                 enum:
                                   - Default
                                   - Unicode
                                 type: string
                               decodingStrategy:
-                                default: None
-                                description: Used to define a decoding Strategy
+                                description: Used to define a decoding Strategy. Defaults to None when omitted.
                                 enum:
                                   - Auto
                                   - Base64
@@ -107,7 +105,6 @@ spec:
                                 description: Key is the key used in the Provider, mandatory
                                 type: string
                               metadataPolicy:
-                                default: None
                                 description: Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
                                 enum:
                                   - None
@@ -223,15 +220,13 @@ spec:
                               Note: Extract does not support sourceRef.Generator or sourceRef.GeneratorRef.
                             properties:
                               conversionStrategy:
-                                default: Default
-                                description: Used to define a conversion Strategy
+                                description: Used to define a conversion Strategy. Defaults to Default when omitted.
                                 enum:
                                   - Default
                                   - Unicode
                                 type: string
                               decodingStrategy:
-                                default: None
-                                description: Used to define a decoding Strategy
+                                description: Used to define a decoding Strategy. Defaults to None when omitted.
                                 enum:
                                   - Auto
                                   - Base64
@@ -242,7 +237,6 @@ spec:
                                 description: Key is the key used in the Provider, mandatory
                                 type: string
                               metadataPolicy:
-                                default: None
                                 description: Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
                                 enum:
                                   - None
@@ -269,15 +263,13 @@ spec:
                               Note: Find does not support sourceRef.Generator or sourceRef.GeneratorRef.
                             properties:
                               conversionStrategy:
-                                default: Default
-                                description: Used to define a conversion Strategy
+                                description: Used to define a conversion Strategy. Defaults to Default when omitted.
                                 enum:
                                   - Default
                                   - Unicode
                                 type: string
                               decodingStrategy:
-                                default: None
-                                description: Used to define a decoding Strategy
+                                description: Used to define a decoding Strategy. Defaults to None when omitted.
                                 enum:
                                   - Auto
                                   - Base64
@@ -721,13 +713,15 @@ spec:
                                     default: Data
                                     description: |-
                                       Target specifies where to place the template result.
-                                      For Secret resources, common values are: "Data", "Annotations", "Labels".
+                                      For Secret resources the accepted values are empty, "Data", "Annotations" and "Labels";
+                                      any other value is rejected because it would allow writes to privileged Secret fields.
                                       For custom resources (when spec.target.manifest is set), this supports
                                       nested paths like "spec.database.config" or "data".
                                     type: string
                                   valuesDecodingStrategy:
-                                    default: None
-                                    description: Used to define a decoding Strategy for the rendered template values.
+                                    description: |-
+                                      Used to define a decoding Strategy for the rendered template values.
+                                      Defaults to None when omitted.
                                     enum:
                                       - Auto
                                       - Base64
@@ -2240,13 +2234,15 @@ spec:
                                 default: Data
                                 description: |-
                                   Target specifies where to place the template result.
-                                  For Secret resources, common values are: "Data", "Annotations", "Labels".
+                                  For Secret resources the accepted values are empty, "Data", "Annotations" and "Labels";
+                                  any other value is rejected because it would allow writes to privileged Secret fields.
                                   For custom resources (when spec.target.manifest is set), this supports
                                   nested paths like "spec.database.config" or "data".
                                 type: string
                               valuesDecodingStrategy:
-                                default: None
-                                description: Used to define a decoding Strategy for the rendered template values.
+                                description: |-
+                                  Used to define a decoding Strategy for the rendered template values.
+                                  Defaults to None when omitted.
                                 enum:
                                   - Auto
                                   - Base64
@@ -6590,6 +6586,12 @@ spec:
                                 Format: duration string (e.g., "5m", "1h", "30s")
                               type: string
                           type: object
+                        environment:
+                          description: |-
+                            Environment defines the 1Password Environment ID to read variables from.
+                            Environments are read-only: PushSecret, DeleteSecret, and SecretExists return an error when set.
+                            Mutually exclusive with Vault.
+                          type: string
                         integrationInfo:
                           description: |-
                             IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.
@@ -6605,12 +6607,16 @@ spec:
                               type: string
                           type: object
                         vault:
-                          description: Vault defines the vault's name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
+                          description: |-
+                            Vault defines the vault's name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
+                            Mutually exclusive with Environment.
                           type: string
                       required:
                         - auth
-                        - vault
                       type: object
+                      x-kubernetes-validations:
+                        - message: at most one of the fields in [vault environment] may be set
+                          rule: '[has(self.vault),has(self.environment)].filter(x,x==true).size() <= 1'
                     openBao:
                       description: OpenBao configures this store to sync secrets using the OpenBao provider.
                       properties:
@@ -13634,15 +13640,13 @@ spec:
                           which secret (version/property/..) to fetch.
                         properties:
                           conversionStrategy:
-                            default: Default
-                            description: Used to define a conversion Strategy
+                            description: Used to define a conversion Strategy. Defaults to Default when omitted.
                             enum:
                               - Default
                               - Unicode
                             type: string
                           decodingStrategy:
-                            default: None
-                            description: Used to define a decoding Strategy
+                            description: Used to define a decoding Strategy. Defaults to None when omitted.
                             enum:
                               - Auto
                               - Base64
@@ -13653,7 +13657,6 @@ spec:
                             description: Key is the key used in the Provider, mandatory
                             type: string
                           metadataPolicy:
-                            default: None
                             description: Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
                             enum:
                               - None
@@ -13769,15 +13772,13 @@ spec:
                           Note: Extract does not support sourceRef.Generator or sourceRef.GeneratorRef.
                         properties:
                           conversionStrategy:
-                            default: Default
-                            description: Used to define a conversion Strategy
+                            description: Used to define a conversion Strategy. Defaults to Default when omitted.
                             enum:
                               - Default
                               - Unicode
                             type: string
                           decodingStrategy:
-                            default: None
-                            description: Used to define a decoding Strategy
+                            description: Used to define a decoding Strategy. Defaults to None when omitted.
                             enum:
                               - Auto
                               - Base64
@@ -13788,7 +13789,6 @@ spec:
                             description: Key is the key used in the Provider, mandatory
                             type: string
                           metadataPolicy:
-                            default: None
                             description: Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
                             enum:
                               - None
@@ -13815,15 +13815,13 @@ spec:
                           Note: Find does not support sourceRef.Generator or sourceRef.GeneratorRef.
                         properties:
                           conversionStrategy:
-                            default: Default
-                            description: Used to define a conversion Strategy
+                            description: Used to define a conversion Strategy. Defaults to Default when omitted.
                             enum:
                               - Default
                               - Unicode
                             type: string
                           decodingStrategy:
-                            default: None
-                            description: Used to define a decoding Strategy
+                            description: Used to define a decoding Strategy. Defaults to None when omitted.
                             enum:
                               - Auto
                               - Base64
@@ -14267,13 +14265,15 @@ spec:
                                 default: Data
                                 description: |-
                                   Target specifies where to place the template result.
-                                  For Secret resources, common values are: "Data", "Annotations", "Labels".
+                                  For Secret resources the accepted values are empty, "Data", "Annotations" and "Labels";
+                                  any other value is rejected because it would allow writes to privileged Secret fields.
                                   For custom resources (when spec.target.manifest is set), this supports
                                   nested paths like "spec.database.config" or "data".
                                 type: string
                               valuesDecodingStrategy:
-                                default: None
-                                description: Used to define a decoding Strategy for the rendered template values.
+                                description: |-
+                                  Used to define a decoding Strategy for the rendered template values.
+                                  Defaults to None when omitted.
                                 enum:
                                   - Auto
                                   - Base64
@@ -15499,13 +15499,15 @@ spec:
                             default: Data
                             description: |-
                               Target specifies where to place the template result.
-                              For Secret resources, common values are: "Data", "Annotations", "Labels".
+                              For Secret resources the accepted values are empty, "Data", "Annotations" and "Labels";
+                              any other value is rejected because it would allow writes to privileged Secret fields.
                               For custom resources (when spec.target.manifest is set), this supports
                               nested paths like "spec.database.config" or "data".
                             type: string
                           valuesDecodingStrategy:
-                            default: None
-                            description: Used to define a decoding Strategy for the rendered template values.
+                            description: |-
+                              Used to define a decoding Strategy for the rendered template values.
+                              Defaults to None when omitted.
                             enum:
                               - Auto
                               - Base64
@@ -19877,6 +19879,12 @@ spec:
                                 Format: duration string (e.g., "5m", "1h", "30s")
                               type: string
                           type: object
+                        environment:
+                          description: |-
+                            Environment defines the 1Password Environment ID to read variables from.
+                            Environments are read-only: PushSecret, DeleteSecret, and SecretExists return an error when set.
+                            Mutually exclusive with Vault.
+                          type: string
                         integrationInfo:
                           description: |-
                             IntegrationInfo specifies the name and version of the integration built using the 1Password Go SDK.
@@ -19892,12 +19900,16 @@ spec:
                               type: string
                           type: object
                         vault:
-                          description: Vault defines the vault's name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
+                          description: |-
+                            Vault defines the vault's name or uuid to access. Do NOT add op:// prefix. This will be done automatically.
+                            Mutually exclusive with Environment.
                           type: string
                       required:
                         - auth
-                        - vault
                       type: object
+                      x-kubernetes-validations:
+                        - message: at most one of the fields in [vault environment] may be set
+                          rule: '[has(self.vault),has(self.environment)].filter(x,x==true).size() <= 1'
                     openBao:
                       description: OpenBao configures this store to sync secrets using the OpenBao provider.
                       properties:

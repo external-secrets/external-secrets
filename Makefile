@@ -73,6 +73,8 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # Conformance
 
 reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
+	@GOWORK=off go -C hack/tools mod tidy # Tools and their deps are not to be included in project's GOWORK or in the project go.mod/sum. We consider them external.
+	@GOWORK=off go -C hack/tools/gen-crd-api-reference-docs mod tidy
 	@go mod tidy
 	@cd e2e/ && go mod tidy
 	@cd apis/ && go mod tidy
@@ -82,7 +84,7 @@ reviewable: generate docs manifests helm.generate helm.schema.update helm.docs l
 
 check-diff: reviewable ## Ensure branch is clean.
 	@$(INFO) checking that branch is clean
-	@test -z "$$(git status --porcelain)" || (echo "$$(git status --porcelain)" && $(FAIL))
+	@status="$$(git status --porcelain)" && test -z "$$status" || (printf '%s\n' "$$status" && $(FAIL))
 	@$(OK) branch is clean
 
 update-deps: ## Update dependencies across all modules (root, apis, runtime, e2e, providers, generators)
@@ -101,7 +103,7 @@ go-work:
 	@rm -rf go.work go.work.sum
 	@go work init
 	@go work use -r .
-	@go work edit -dropuse ./e2e
+	@go work edit -dropuse ./e2e -dropuse ./hack/tools -dropuse ./hack/tools/gen-crd-api-reference-docs -dropuse ./hack/tools/golangci-lint
 	@go work sync
 	@$(OK) created go workspace
 
@@ -164,7 +166,7 @@ lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific mod
 		GOLANGCI=$(GOLANGCI_LINT); \
 		trap "rm -rf $$TMPDIR" EXIT; \
 		export TMPDIR GOLANGCI; \
-		find . -name go.mod -not -path "*/vendor/*" -not -path "*/e2e/*" -not -path "*/node_modules/*" -exec dirname {} \; | \
+		find . -name go.mod -not -path "*/vendor/*" -not -path "*/e2e/*" -not -path "*/hack/tools/*" -not -path "*/node_modules/*" -exec dirname {} \; | \
 		xargs -n 1 -P $$JOBS sh -c ' \
 			module="$$0"; \
 			name=$$(echo "$$module" | sed "s/[\/\.]/_/g"); \
@@ -188,8 +190,8 @@ lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific mod
 		$(OK) Finished linting all modules; \
 	fi
 
-generate: ## Generate code and crds
-	@./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
+generate: controller-gen ## Generate code and crds
+	@CONTROLLER_GEN=$(CONTROLLER_GEN) ./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
 
 # ====================================================================================
@@ -427,25 +429,48 @@ $(LOCALBIN):
 TILT ?= $(LOCALBIN)/tilt
 CTY ?= $(LOCALBIN)/cty
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
+DLV ?= $(LOCALBIN)/dlv
+CRANE ?= $(LOCALBIN)/crane
+GEN_CRD_API_REFERENCE_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
 LINT_TARGET ?= ""
 ## Tool Versions
-GOLANGCI_VERSION := 2.11.3
 KUBERNETES_VERSION := 1.33.x
 TILT_VERSION := 0.33.21
 CTY_VERSION := 1.1.3
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
-$(ENVTEST): $(LOCALBIN)
-	test -s $(LOCALBIN)/setup-envtest || GOBIN=$(LOCALBIN) go install sigs.k8s.io/controller-runtime/tools/setup-envtest@latest
+$(ENVTEST): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
+	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly sigs.k8s.io/controller-runtime/tools/setup-envtest
+
+.PHONY: controller-gen
+controller-gen: $(CONTROLLER_GEN) ## Build controller-gen locally if necessary.
+$(CONTROLLER_GEN): Makefile hack/tools/go.mod hack/tools/go.sum
+	mkdir -p $(dir $@)
+	GOWORK=off go -C hack/tools build -mod=readonly -o $(abspath $@) sigs.k8s.io/controller-tools/cmd/controller-gen
+
+.PHONY: gen-crd-api-reference-docs
+gen-crd-api-reference-docs: $(GEN_CRD_API_REFERENCE_DOCS) ## Download gen-crd-api-reference-docs locally if necessary.
+$(GEN_CRD_API_REFERENCE_DOCS): Makefile hack/tools/gen-crd-api-reference-docs/go.mod hack/tools/gen-crd-api-reference-docs/go.sum
+	mkdir -p $(dir $@)
+	GOWORK=off go -C hack/tools/gen-crd-api-reference-docs build -mod=readonly -o $(abspath $@) github.com/ahmetb/gen-crd-api-reference-docs
 
 .PHONY: golangci-lint
-.PHONY: $(GOLANGCI_LINT)
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
-$(GOLANGCI_LINT): $(LOCALBIN)
-	test -s $(LOCALBIN)/golangci-lint && $(LOCALBIN)/golangci-lint version | grep -q $(GOLANGCI_VERSION) || \
-	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(LOCALBIN) v$(GOLANGCI_VERSION)
+$(GOLANGCI_LINT): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
+	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+
+.PHONY: dlv
+dlv: $(DLV) ## Build Delve locally for the Tilt debug image.
+$(DLV): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
+	GOWORK=off CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/go-delve/delve/cmd/dlv
+
+.PHONY: crane
+crane: $(CRANE) ## Build crane locally if necessary.
+$(CRANE): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
+	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/google/go-containerregistry/cmd/crane
 
 .PHONY: tilt
 .PHONY: $(TILT)

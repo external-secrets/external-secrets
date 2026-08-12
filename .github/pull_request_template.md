@@ -22,7 +22,7 @@ ref(scope): refactor code
 clean(scope): provider cleanup
 test(scope): add tests
 perf(scope): improve performance
-desig(scope): improve design
+design(scope): improve design
 ```
 
 Where `scope` is _optionally_ one of:
