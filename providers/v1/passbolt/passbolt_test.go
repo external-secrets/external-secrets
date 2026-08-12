@@ -236,14 +236,18 @@ func TestBuildCustomFields(t *testing.T) {
 			},
 		},
 		{
-			name: "missing secret-side pair is skipped",
+			name: "secret_value takes precedence over metadata_value",
 			metaFields: map[string]any{
 				"custom_fields": []any{
-					map[string]any{"id": idA, "metadata_key": "env", "metadata_value": "staging"},
+					map[string]any{"id": idA, "metadata_key": "field", "metadata_value": "meta-val"},
 				},
 			},
-			secretFields: nil,
-			want:         nil,
+			secretFields: map[string]any{
+				"custom_fields": []any{
+					map[string]any{"id": idA, "secret_value": "secret-val"},
+				},
+			},
+			want: map[string]string{"field": "secret-val"},
 		},
 		{
 			name: "secret_value of empty string is preserved",
@@ -288,177 +292,92 @@ func TestBuildCustomFields(t *testing.T) {
 	}
 }
 
-func TestIndexSecretValues(t *testing.T) {
+func TestExtractCustomFields(t *testing.T) {
 	g.RegisterTestingT(t)
 
 	const idA = "11111111-1111-1111-1111-111111111111"
 	const idB = "22222222-2222-2222-2222-222222222222"
 
 	tests := []struct {
-		name         string
-		secretFields map[string]any
-		want         map[string]secretValueEntry
+		name   string
+		fields map[string]any
+		want   []map[string]any
+		wantOK bool
 	}{
 		{
-			name:         "nil secretFields returns empty map",
-			secretFields: nil,
-			want:         map[string]secretValueEntry{},
+			name:   "no custom_fields key",
+			fields: map[string]any{"password": "p"},
+			want:   nil,
+			wantOK: false,
 		},
 		{
-			name:         "no custom_fields key returns empty map",
-			secretFields: map[string]any{"password": "p"},
-			want:         map[string]secretValueEntry{},
+			name:   "custom_fields not a slice",
+			fields: map[string]any{"custom_fields": "not-a-slice"},
+			want:   nil,
+			wantOK: false,
 		},
 		{
-			name:         "custom_fields not a slice returns empty map",
-			secretFields: map[string]any{"custom_fields": "not-a-slice"},
-			want:         map[string]secretValueEntry{},
+			name: "already typed as []map[string]any",
+			fields: map[string]any{
+				"custom_fields": []map[string]any{
+					{"id": idA, "secret_value": "tok-abc"},
+				},
+			},
+			want:   []map[string]any{{"id": idA, "secret_value": "tok-abc"}},
+			wantOK: true,
 		},
 		{
-			name: "standard entry is indexed by id",
-			secretFields: map[string]any{
+			name: "entries are extracted, non-map items skipped",
+			fields: map[string]any{
 				"custom_fields": []any{
 					map[string]any{"id": idA, "secret_value": "tok-abc"},
-				},
-			},
-			want: map[string]secretValueEntry{idA: {value: "tok-abc", hasValue: true}},
-		},
-		{
-			name: "empty string secret_value is preserved in the index",
-			secretFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA, "secret_value": ""},
-				},
-			},
-			want: map[string]secretValueEntry{idA: {value: "", hasValue: true}},
-		},
-		{
-			name: "stub entry is indexed with hasValue=false",
-			secretFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA, "type": "text"},
-				},
-			},
-			want: map[string]secretValueEntry{idA: {value: "", hasValue: false}},
-		},
-		{
-			name: "entry with empty id is skipped",
-			secretFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": "", "secret_value": "v"},
-				},
-			},
-			want: map[string]secretValueEntry{},
-		},
-		{
-			name: "non-map item in slice is skipped",
-			secretFields: map[string]any{
-				"custom_fields": []any{"not-a-map"},
-			},
-			want: map[string]secretValueEntry{},
-		},
-		{
-			name: "multiple entries are all indexed",
-			secretFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA, "secret_value": "val-a"},
+					"not-a-map",
 					map[string]any{"id": idB, "type": "text"},
 				},
 			},
-			want: map[string]secretValueEntry{
-				idA: {value: "val-a", hasValue: true},
-				idB: {value: "", hasValue: false},
+			want: []map[string]any{
+				{"id": idA, "secret_value": "tok-abc"},
+				{"id": idB, "type": "text"},
 			},
+			wantOK: true,
 		},
 		{
-			name: "numeric secret_value is stringified",
-			secretFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA, "secret_value": float64(42)},
-				},
+			name: "empty custom_fields slice returns false",
+			fields: map[string]any{
+				"custom_fields": []any{},
 			},
-			want: map[string]secretValueEntry{idA: {value: "42", hasValue: true}},
+			want:   []map[string]any{},
+			wantOK: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := indexSecretValues(tt.secretFields, 0)
+			got, ok := extractCustomFields(tt.fields)
+			g.Expect(ok).To(g.Equal(tt.wantOK))
 			g.Expect(got).To(g.Equal(tt.want))
 		})
 	}
 }
 
-func TestResolveCustomField(t *testing.T) {
+func TestHasNonEmptyString(t *testing.T) {
 	g.RegisterTestingT(t)
 
-	const idA = "11111111-1111-1111-1111-111111111111"
-
 	tests := []struct {
-		name          string
-		item          any
-		secretValByID map[string]secretValueEntry
-		wantName      string
-		wantValue     string
-		wantOK        bool
+		name string
+		m    map[string]any
+		key  string
+		want bool
 	}{
-		{
-			name:   "non-map item returns false",
-			item:   "not-a-map",
-			wantOK: false,
-		},
-		{
-			name:   "no metadata_key (secret_key field) returns false",
-			item:   map[string]any{"id": idA},
-			wantOK: false,
-		},
-		{
-			name:   "empty id returns false",
-			item:   map[string]any{"metadata_key": "k", "id": ""},
-			wantOK: false,
-		},
-		{
-			name:          "secret_value takes precedence over metadata_value",
-			item:          map[string]any{"id": idA, "metadata_key": "field", "metadata_value": "meta-val"},
-			secretValByID: map[string]secretValueEntry{idA: {value: "secret-val", hasValue: true}},
-			wantName:      "field",
-			wantValue:     "secret-val",
-			wantOK:        true,
-		},
-		{
-			name:          "falls back to metadata_value when secret-side entry is a stub",
-			item:          map[string]any{"id": idA, "metadata_key": "env", "metadata_value": "production"},
-			secretValByID: map[string]secretValueEntry{idA: {value: "", hasValue: false}},
-			wantName:      "env",
-			wantValue:     "production",
-			wantOK:        true,
-		},
-		{
-			name:          "entry without secret-side pair is skipped",
-			item:          map[string]any{"id": idA, "metadata_key": "env", "metadata_value": "production"},
-			secretValByID: map[string]secretValueEntry{},
-			wantOK:        false,
-		},
-		{
-			// An empty-string secret_value must be returned as-is, not treated as
-			// "missing" and silently replaced by metadata_value.
-			name:          "empty string secret_value is preserved, not treated as missing",
-			item:          map[string]any{"id": idA, "metadata_key": "field", "metadata_value": "should-not-appear"},
-			secretValByID: map[string]secretValueEntry{idA: {value: "", hasValue: true}},
-			wantName:      "field",
-			wantValue:     "",
-			wantOK:        true,
-		},
+		{name: "missing key", m: map[string]any{}, key: "k", want: false},
+		{name: "non-empty string", m: map[string]any{"k": "v"}, key: "k", want: true},
+		{name: "empty string", m: map[string]any{"k": ""}, key: "k", want: false},
+		{name: "non-string value", m: map[string]any{"k": 42}, key: "k", want: false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			name, value, ok := resolveCustomField(tt.item, tt.secretValByID)
-			g.Expect(ok).To(g.Equal(tt.wantOK))
-			if tt.wantOK {
-				g.Expect(name).To(g.Equal(tt.wantName))
-				g.Expect(value).To(g.Equal(tt.wantValue))
-			}
+			g.Expect(hasNonEmptyString(tt.m, tt.key)).To(g.Equal(tt.want))
 		})
 	}
 }

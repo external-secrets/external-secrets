@@ -333,34 +333,46 @@ func (provider *ProviderPassbolt) secretFromResource(ctx context.Context, resour
 	}, nil
 }
 
-// secretValueEntry records a secret-side custom field's value and whether a
-// secret_value was present (distinguishing an empty value from a stub entry).
-type secretValueEntry struct {
-	value    string
-	hasValue bool
-}
-
 // buildCustomFields extracts custom fields from the decrypted metadata and secret
-// field maps returned by helper.GetResourceFieldMaps. It returns a map of field
-// name (metadata_key) to field value (secret_value for encrypted values, or
-// metadata_value for non-secret custom fields).
+// field maps returned by helper.GetResourceFieldMaps. A custom field is always a
+// metadata + secret pair sharing an id: the name comes from metadata_key and the
+// value from secret_value (encrypted) or metadata_value (cleartext), whichever
+// side carries it.
 //
-// Fields whose name is also encrypted (secret_key) are silently skipped because
-// they cannot be referenced by a stable, user-visible name.
+// Fields whose name is encrypted (secret_key, leaving metadata_key empty) are
+// skipped because they cannot be referenced by a stable, user-visible name.
 //
 // Returns nil when the resource has no custom fields.
 func buildCustomFields(metaFields, secretFields map[string]any) map[string]string {
-	metaCF, ok := metaFields["custom_fields"].([]any)
-	if !ok || len(metaCF) == 0 {
+	metaCF, ok := extractCustomFields(metaFields)
+	if !ok {
 		return nil
 	}
+	secretCF, _ := extractCustomFields(secretFields)
 
-	secretValByID := indexSecretValues(secretFields, len(metaCF))
+	secretByID := make(map[string]map[string]any, len(secretCF))
+	for _, cf := range secretCF {
+		if id, ok := cf["id"].(string); ok && id != "" {
+			secretByID[id] = cf
+		}
+	}
 
 	result := make(map[string]string, len(metaCF))
-	for _, item := range metaCF {
-		if name, val, ok := resolveCustomField(item, secretValByID); ok {
-			result[name] = val
+	for _, meta := range metaCF {
+		// A field without metadata_key stores its name encrypted (secret_key)
+		// and cannot be referenced by a stable, user-visible name.
+		if !hasNonEmptyString(meta, "metadata_key") {
+			continue
+		}
+		name, _ := meta["metadata_key"].(string)
+		id, _ := meta["id"].(string)
+
+		// secret_value (encrypted) takes precedence; otherwise the value is
+		// stored in cleartext as metadata_value.
+		if raw, ok := secretByID[id]["secret_value"]; ok {
+			result[name] = stringifyCustomFieldValue(raw)
+		} else {
+			result[name] = stringifyCustomFieldValue(meta["metadata_value"])
 		}
 	}
 
@@ -370,70 +382,45 @@ func buildCustomFields(metaFields, secretFields map[string]any) map[string]strin
 	return result
 }
 
-// indexSecretValues builds a UUID→secret_value index from the secret-side
-// custom_fields array for O(1) lookup during metadata processing.
-func indexSecretValues(secretFields map[string]any, sizeHint int) map[string]secretValueEntry {
-	idx := make(map[string]secretValueEntry, sizeHint)
-	if secretFields == nil {
-		return idx
-	}
-	secretCF, ok := secretFields["custom_fields"].([]any)
+// extractCustomFields is copied verbatim from go-passbolt's helper package,
+// where it is currently unexported. Replace this with the library function once
+// a release exports it.
+//
+// extractCustomFields extracts the custom_fields array from a field map.
+func extractCustomFields(fields map[string]any) ([]map[string]any, bool) {
+	raw, ok := fields["custom_fields"]
 	if !ok {
-		return idx
+		return nil, false
 	}
-	for _, item := range secretCF {
-		m, ok := item.(map[string]any)
-		if !ok {
-			continue
+	arr, ok := raw.([]any)
+	if !ok {
+		// Already typed as []map[string]any (unlikely from JSON but handle it)
+		if typed, ok := raw.([]map[string]any); ok {
+			return typed, true
 		}
-		id, _ := m["id"].(string)
-		if id == "" {
-			continue
-		}
-		entry := secretValueEntry{}
-		if rawVal, hasSecretValue := m["secret_value"]; hasSecretValue {
-			entry.value = stringifyCustomFieldValue(rawVal)
-			entry.hasValue = true
-		}
-		idx[id] = entry
+		return nil, false
 	}
-	return idx
+	result := make([]map[string]any, 0, len(arr))
+	for _, item := range arr {
+		if m, ok := item.(map[string]any); ok {
+			result = append(result, m)
+		}
+	}
+	return result, len(result) > 0
 }
 
-// resolveCustomField extracts the name and value from a metadata-side custom
-// field entry. Returns (name, value, true) on success, or ("", "", false) when
-// the entry should be skipped (missing id, or secret_key field whose name is
-// also encrypted).
-func resolveCustomField(item any, secretValByID map[string]secretValueEntry) (name, value string, ok bool) {
-	m, ok := item.(map[string]any)
+// hasNonEmptyString is copied verbatim from go-passbolt's helper package, where
+// it is currently unexported. Replace this with the library function once a
+// release exports it.
+//
+// hasNonEmptyString checks if a map entry exists and is a non-empty string.
+func hasNonEmptyString(m map[string]any, key string) bool {
+	v, ok := m[key]
 	if !ok {
-		return "", "", false
+		return false
 	}
-
-	fieldName, _ := m["metadata_key"].(string)
-	if fieldName == "" {
-		// Field name is also encrypted (secret_key); cannot reference by name.
-		return "", "", false
-	}
-
-	id, _ := m["id"].(string)
-	if id == "" {
-		return "", "", false
-	}
-
-	// Passbolt emits one entry per custom field on both metadata and secret
-	// sides. When value is cleartext (metadata_value), secret-side entry is a
-	// stub without secret_value.
-	secretEntry, hasSecretEntry := secretValByID[id]
-	if !hasSecretEntry {
-		return "", "", false
-	}
-
-	if secretEntry.hasValue {
-		return fieldName, secretEntry.value, true
-	}
-
-	return fieldName, stringifyCustomFieldValue(m["metadata_value"]), true
+	s, ok := v.(string)
+	return ok && s != ""
 }
 
 // stringifyCustomFieldValue renders a decoded JSON custom field value as a
