@@ -356,10 +356,15 @@ func buildCustomFields(metaFields, secretFields map[string]any) map[string]strin
 	return result
 }
 
+type secretValueEntry struct {
+	value    string
+	hasValue bool
+}
+
 // indexSecretValues builds a UUID→secret_value index from the secret-side
 // custom_fields array for O(1) lookup during metadata processing.
-func indexSecretValues(secretFields map[string]any, sizeHint int) map[string]string {
-	idx := make(map[string]string, sizeHint)
+func indexSecretValues(secretFields map[string]any, sizeHint int) map[string]secretValueEntry {
+	idx := make(map[string]secretValueEntry, sizeHint)
 	if secretFields == nil {
 		return idx
 	}
@@ -376,8 +381,13 @@ func indexSecretValues(secretFields map[string]any, sizeHint int) map[string]str
 		if id == "" {
 			continue
 		}
-		val, _ := m["secret_value"].(string)
-		idx[id] = val
+		entry := secretValueEntry{}
+		rawVal, hasSecretValue := m["secret_value"]
+		if hasSecretValue {
+			entry.value, _ = rawVal.(string)
+			entry.hasValue = true
+		}
+		idx[id] = entry
 	}
 	return idx
 }
@@ -386,7 +396,7 @@ func indexSecretValues(secretFields map[string]any, sizeHint int) map[string]str
 // field entry. Returns (name, value, true) on success, or ("", "", false) when
 // the entry should be skipped (missing id, or secret_key field whose name is
 // also encrypted).
-func resolveCustomField(item any, secretValByID map[string]string) (name, value string, ok bool) {
+func resolveCustomField(item any, secretValByID map[string]secretValueEntry) (name, value string, ok bool) {
 	m, ok := item.(map[string]any)
 	if !ok {
 		return "", "", false
@@ -403,13 +413,19 @@ func resolveCustomField(item any, secretValByID map[string]string) (name, value 
 		return "", "", false
 	}
 
-	// Secret-side value takes precedence; fall back to metadata_value for
-	// non-secret custom fields where the value is stored in cleartext.
-	val, hasSecretEntry := secretValByID[id]
+	// Passbolt emits one entry per custom field on both metadata and secret
+	// sides. When value is cleartext (metadata_value), secret-side entry is a
+	// stub without secret_value.
+	secretEntry, hasSecretEntry := secretValByID[id]
 	if !hasSecretEntry {
-		val, _ = m["metadata_value"].(string)
+		return "", "", false
 	}
 
+	if secretEntry.hasValue {
+		return fieldName, secretEntry.value, true
+	}
+
+	val, _ := m["metadata_value"].(string)
 	return fieldName, val, true
 }
 
