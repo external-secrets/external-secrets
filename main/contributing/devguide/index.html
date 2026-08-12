@@ -5209,9 +5209,8 @@ static code analysis.</p>
 make<span class="w"> </span>docker.build<span class="w"> </span><span class="nv">IMAGE_NAME</span><span class="o">=</span>external-secrets<span class="w"> </span><span class="nv">IMAGE_TAG</span><span class="o">=</span>latest
 </code></pre></div>
 <p>Run tests and lint the code:
-<div class="highlight"><pre><span></span><code>make<span class="w"> </span><span class="nb">test</span>
-make<span class="w"> </span>lint<span class="w"> </span><span class="c1"># OR</span>
-docker<span class="w"> </span>run<span class="w"> </span>--rm<span class="w"> </span>-v<span class="w"> </span><span class="k">$(</span><span class="nb">pwd</span><span class="k">)</span>:/app<span class="w"> </span>-w<span class="w"> </span>/app<span class="w"> </span>golangci/golangci-lint:v1.49.0<span class="w"> </span>golangci-lint<span class="w"> </span>run
+<div class="highlight"><pre><span></span><code><span class="go">make test</span>
+<span class="go">make lint</span>
 </code></pre></div></p>
 <p>Build the documentation:
 <div class="highlight"><pre><span></span><code>make<span class="w"> </span>docs
