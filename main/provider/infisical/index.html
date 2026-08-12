@@ -7061,14 +7061,16 @@
 <span class="w">        </span><span class="c1"># Filter by secret name using a regular expression.</span>
 <span class="w">        </span><span class="nt">name</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">regexp</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;^DB_.*&quot;</span>
-<span class="w">        </span><span class="c1"># Optionally also restrict to a folder path (must be an absolute path</span>
-<span class="w">        </span><span class="c1"># starting with `/`). Omit to search the entire secretsScope.secretsPath.</span>
+<span class="w">        </span><span class="c1"># Optionally also search from a folder (must be an absolute path</span>
+<span class="w">        </span><span class="c1"># starting with `/`). Whether sub-folders are read follows the store&#39;s</span>
+<span class="w">        </span><span class="c1"># recursive setting, and the name above still applies. Omit to search</span>
+<span class="w">        </span><span class="c1"># from the store&#39;s secretsScope.secretsPath instead.</span>
 <span class="w">        </span><span class="c1"># path: /my-app</span>
 </code></pre></div>
 <p>The following restrictions apply:</p>
 <ul>
-<li><code>find.name.regexp</code> matches against the secret name. At least one of <code>find.name</code> or <code>find.path</code> must be provided.</li>
-<li><code>find.path</code> filters by folder path prefix. The value must be an absolute path starting with <code>/</code> (e.g. <code>/my-app</code>). It is matched against the <code>secretPath</code> field of each secret.</li>
+<li><code>find.name.regexp</code> matches against the secret name. It filters what came back and does not change what was asked for.</li>
+<li><code>find.path</code> is the folder the search starts from. The value must be an absolute path starting with <code>/</code> (e.g. <code>/my-app</code>). It is sent to Infisical as the path of the list request. Whether sub-folders are read is the store's <code>recursive</code> setting, which a find path says nothing about. For that <code>find</code> entry it takes precedence over <code>secretsScope.secretsPath</code>, and it may point outside it, as an absolute <code>remoteRef.key</code> already can. A path naming a folder that does not exist fails the sync rather than returning nothing.</li>
 <li><code>find.tags</code> is <strong>not supported</strong> and returns an error if set.</li>
 </ul>
 <hr />
