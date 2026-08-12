@@ -377,3 +377,21 @@ tests:
       - contains:
           path: spec.template.spec.containers[0].args
           content: "--enable-leader-election=true"
+  - it: should have enable-partial-cache flag when installCRDs is false
+    set:
+      installCRDs: false
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-partial-cache=true"
+  - it: should not have enable-partial-cache flag when disabled
+    set:
+      certController.enablePartialCache: false
+    templates:
+      - cert-controller-deployment.yaml
+    asserts:
+      - notContains:
+          path: spec.template.spec.containers[0].args
+          content: "--enable-partial-cache=true"
