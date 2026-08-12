@@ -502,8 +502,20 @@ func TestProvider_Auth(t *testing.T) {
 			factory := &auth.MockFactory{}
 			provider.AuthMethodFactory = factory
 
-			store := makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2)
-			store.Spec.Provider.OpenBao.Auth = tc.auth
+			var store esv1.GenericStore
+			s := makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2)
+			s.Spec.Provider.OpenBao.Auth = tc.auth
+
+			if tc.clusterStore {
+				store = &esv1.ClusterSecretStore{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster-store",
+					},
+					Spec: s.Spec,
+				}
+			} else {
+				store = s
+			}
 
 			client, err := provider.NewClient(t.Context(), store, kube, "default")
 			Expect(err).NotTo(HaveOccurred())
