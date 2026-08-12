@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"sync"
 	"testing"
 
 	infisical "github.com/infisical/go-sdk"
@@ -82,7 +81,6 @@ func TestGetSecretAddress(t *testing.T) {
 // listStub answers the Infisical list endpoint with body and keeps the query it
 // was called with, so tests can assert on the request instead of the response.
 type listStub struct {
-	mu    sync.Mutex
 	query url.Values
 	calls int
 }
@@ -91,10 +89,8 @@ func (s *listStub) provider(t *testing.T, scope *ClientScope, body string, statu
 	t.Helper()
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.mu.Lock()
 		s.query = r.URL.Query()
 		s.calls++
-		s.mu.Unlock()
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
@@ -109,8 +105,6 @@ func (s *listStub) provider(t *testing.T, scope *ClientScope, body string, statu
 }
 
 func (s *listStub) get(key string) string {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	return s.query.Get(key)
 }
 
