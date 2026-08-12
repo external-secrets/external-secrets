@@ -135,11 +135,11 @@ func TestGetAllSecretsListRequest(t *testing.T) {
 		wantRecursive string
 	}{
 		{
-			name:          "find path becomes the request root and is searched recursively",
+			name:          "find path becomes the request root",
 			scope:         storeScope("/store-default", false),
 			find:          esv1.ExternalSecretFind{Path: new("/app")},
 			wantPath:      "/app",
-			wantRecursive: "true",
+			wantRecursive: "false",
 		},
 		{
 			name:          "without a find path the store scope is left alone",
@@ -156,11 +156,18 @@ func TestGetAllSecretsListRequest(t *testing.T) {
 			wantRecursive: "true",
 		},
 		{
+			name:          "a recursive store stays recursive under a find path",
+			scope:         storeScope("/store-default", true),
+			find:          esv1.ExternalSecretFind{Path: new("/app")},
+			wantPath:      "/app",
+			wantRecursive: "true",
+		},
+		{
 			name:          "the project root is a valid find path",
 			scope:         storeScope("/store-default", false),
 			find:          esv1.ExternalSecretFind{Path: new("/")},
 			wantPath:      "/",
-			wantRecursive: "true",
+			wantRecursive: "false",
 		},
 		{
 			// The SDK turns an empty SecretPath into "/", so an empty find path

@@ -154,21 +154,19 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 		return nil, errTagsNotImplemented
 	}
 
-	// A find path is the root to search from, so it replaces the store's scope
-	// and is searched recursively. An empty one is not a path, and passing it on
-	// would ask the SDK for the whole project.
+	// A find path says where to look, not how far: whether subfolders are read
+	// stays with the store's recursive setting. An empty one is not a path, and
+	// passing it on would ask the SDK for the whole project.
 	secretPath := p.apiScope.SecretPath
-	recursive := p.apiScope.Recursive
 	if ref.Path != nil && *ref.Path != "" {
 		secretPath = *ref.Path
-		recursive = true
 	}
 
 	secrets, err := p.sdkClient.Secrets().List(infisical.ListSecretsOptions{
 		Environment:            p.apiScope.EnvironmentSlug,
 		ProjectSlug:            p.apiScope.ProjectSlug,
 		SecretPath:             secretPath,
-		Recursive:              recursive,
+		Recursive:              p.apiScope.Recursive,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 		IncludeImports:         true,
 	})

@@ -84,13 +84,16 @@ var _ = Describe("[infisical]", Label("infisical"), Ordered, func() {
 	)
 })
 
-// findPathScopesTheSearch covers #6685: the store is not recursive, so the
-// nested secret is only reachable if find.path is the path the provider asks
-// Infisical for. The sibling repeats DB_HOST, which is the #6230 layout, and
-// carries a key of its own, since the SDK collapses duplicates by key and
-// could leave the in-scope value standing even if the sibling leaked in.
+// findPathScopesTheSearch covers #6685: without find.path reaching the request
+// the provider asks from the store's scope, which is the project root here, and
+// every seed below answers. Three of them are left out of the expectation for
+// three different reasons. The sibling repeats DB_HOST, which is the #6230
+// layout, and carries a key of its own, since the SDK collapses duplicates by
+// key and could leave the in-scope value standing even if the sibling leaked in.
+// The nested one is out because this store is not recursive, and a find path
+// says where to look rather than how far.
 func findPathScopesTheSearch(f *framework.Framework) (string, func(*framework.TestCase)) {
-	return "[infisical] should search from find.path and not into a folder that merely starts with it", func(tc *framework.TestCase) {
+	return "[infisical] should search from find.path, no deeper and not into a folder that merely starts with it", func(tc *framework.TestCase) {
 		root := "/find-path-" + f.Namespace.Name
 		tc.Secrets = map[string]framework.SecretEntry{
 			root + "/DB_HOST":            {Value: "root-value"},
@@ -102,7 +105,6 @@ func findPathScopesTheSearch(f *framework.Framework) (string, func(*framework.Te
 			Type: v1.SecretTypeOpaque,
 			Data: map[string][]byte{
 				"DB_HOST": []byte("root-value"),
-				"API_KEY": []byte("nested-value"),
 			},
 		}
 		tc.ExternalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
