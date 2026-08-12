@@ -24,6 +24,7 @@ import (
 	"time"
 
 	infisicalSdk "github.com/infisical/go-sdk"
+	"github.com/infisical/go-sdk/packages/models"
 
 	//nolint
 	. "github.com/onsi/ginkgo/v2"
@@ -42,8 +43,9 @@ const (
 	credentialsSecretName = "infisical-credentials"
 	clientIDKey           = "clientId"
 	clientSecretKey       = "clientSecret"
-	// scopePath is the secret path the store is scoped to. All e2e keys live
-	// directly under it; the provider resolves bare keys against this path.
+	// scopePath is the secret path the store is scoped to. The provider
+	// resolves bare keys against it; a case that needs a folder seeds an
+	// absolute key instead.
 	scopePath = "/"
 )
 
@@ -76,6 +78,7 @@ func newInfisicalProvider(f *framework.Framework, a *addon.Infisical) *infisical
 // suite writes through the SDK rather than via PushSecret.
 func (s *infisicalProvider) CreateSecret(key string, val framework.SecretEntry) {
 	secretPath, name := secretAddress(scopePath, key)
+	s.ensureFolder(secretPath)
 	_, err := s.addon.SDKClient.Secrets().Create(infisicalSdk.CreateSecretOptions{
 		ProjectID:             s.addon.ProjectID,
 		Environment:           s.addon.EnvironmentSlug,
@@ -108,6 +111,46 @@ func (s *infisicalProvider) DeleteSecret(key string) {
 		SecretKey:   name,
 	})
 	Expect(err).ToNot(HaveOccurred())
+}
+
+// Infisical answers a write into a folder that does not exist with a 404
+// rather than creating it, so a key seeded below scopePath needs its parents
+// first. Cases share parents, hence the lookup before each create.
+func (s *infisicalProvider) ensureFolder(secretPath string) {
+	trimmed := strings.Trim(secretPath, "/")
+	if trimmed == "" {
+		return
+	}
+
+	parent := "/"
+	for _, name := range strings.Split(trimmed, "/") {
+		existing, err := s.addon.SDKClient.Folders().List(infisicalSdk.ListFoldersOptions{
+			ProjectID:   s.addon.ProjectID,
+			Environment: s.addon.EnvironmentSlug,
+			Path:        parent,
+		})
+		Expect(err).ToNot(HaveOccurred())
+
+		if !hasFolder(existing, name) {
+			_, err = s.addon.SDKClient.Folders().Create(infisicalSdk.CreateFolderOptions{
+				ProjectID:   s.addon.ProjectID,
+				Environment: s.addon.EnvironmentSlug,
+				Path:        parent,
+				Name:        name,
+			})
+			Expect(err).ToNot(HaveOccurred())
+		}
+		parent = path.Join(parent, name)
+	}
+}
+
+func hasFolder(folders []models.Folder, name string) bool {
+	for _, f := range folders {
+		if f.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 // secretAddress mirrors the provider's key resolution so the seeded path
