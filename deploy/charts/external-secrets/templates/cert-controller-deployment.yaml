@@ -83,7 +83,7 @@ spec:
           - --crd-names=externalsecrets.external-secrets.io
           - --crd-names=secretstores.external-secrets.io
           {{- end }}
-          {{- if .Values.installCRDs }}
+          {{- if .Values.certController.enablePartialCache }}
           - --enable-partial-cache=true
           {{- end }}
           {{- if .Values.enableHTTP2 }}
