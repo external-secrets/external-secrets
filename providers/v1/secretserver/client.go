@@ -136,14 +136,16 @@ func parseFolderPrefix(key string) (folderID int, name string, hasFolderPrefix b
 type PushSecretMetadataSpec struct {
 	FolderID         int `json:"folderId"`
 	SecretTemplateID int `json:"secretTemplateId"`
-	// SiteID is required when creating a secret, but not when updating an existing one.
-	// +kubebuilder:validation:Required
+	// SiteID overrides the site ID from the SecretStore for one secret.
+	// +optional
 	// +kubebuilder:validation:Minimum=1
-	SiteID int `json:"siteId"`
+	SiteID *int `json:"siteId,omitempty"`
 }
 
 type client struct {
-	api secretAPI
+	api                     secretAPI
+	siteID                  int
+	disableSiteIDValidation bool
 }
 
 var _ esv1.SecretsClient = &client{}
@@ -244,18 +246,38 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return c.updateSecret(existingSecret, data.GetProperty(), string(value))
 	}
 
-	if meta == nil || meta.Spec.SecretTemplateID <= 0 || meta.Spec.SiteID <= 0 {
-		return errors.New("folderId, secretTemplateId, and siteId must be provided in metadata to create a new secret")
+	if meta == nil || meta.Spec.SecretTemplateID <= 0 {
+		return errors.New("folderId and secretTemplateId must be set in metadata to create a secret")
 	}
 
 	// Use the effective folderID (prefix-overridden or metadata-supplied) for creation.
 	if folderID <= 0 {
-		return errors.New("folderId, secretTemplateId, and siteId must be provided in metadata to create a new secret")
+		return errors.New("folderId and secretTemplateId must be set in metadata to create a secret")
+	}
+
+	siteID, err := c.resolveSiteID(meta.Spec.SiteID)
+	if err != nil {
+		return err
 	}
 
 	createSpec := meta.Spec
 	createSpec.FolderID = folderID
-	return c.createSecret(data.GetRemoteKey(), data.GetProperty(), string(value), createSpec)
+	return c.createSecret(data.GetRemoteKey(), data.GetProperty(), string(value), createSpec, siteID)
+}
+
+func (c *client) resolveSiteID(metadataSiteID *int) (int, error) {
+	if metadataSiteID != nil {
+		if *metadataSiteID <= 0 {
+			return 0, errors.New("siteId must be greater than zero")
+		}
+		return *metadataSiteID, nil
+	}
+
+	if c.siteID > 0 || c.disableSiteIDValidation {
+		return c.siteID, nil
+	}
+
+	return 0, errors.New("siteId must be set in PushSecret metadata or SecretStore configuration")
 }
 
 // updateSecret updates an existing secret in Delinea Secret Server.
@@ -291,7 +313,7 @@ func (c *client) updateSecret(secret *server.Secret, property, value string) err
 // createSecret creates a new secret in Delinea Secret Server.
 // Only the targeted field is populated; other required template fields
 // may cause an API error.
-func (c *client) createSecret(name, property, value string, meta PushSecretMetadataSpec) error {
+func (c *client) createSecret(name, property, value string, meta PushSecretMetadataSpec, siteID int) error {
 	template, err := c.api.SecretTemplate(meta.SecretTemplateID)
 	if err != nil {
 		return fmt.Errorf("failed to get secret template: %w", err)
@@ -323,7 +345,7 @@ func (c *client) createSecret(name, property, value string, meta PushSecretMetad
 	newSecret := server.Secret{
 		Name:             normalizedName,
 		FolderID:         meta.FolderID,
-		SiteID:           meta.SiteID,
+		SiteID:           siteID,
 		SecretTemplateID: meta.SecretTemplateID,
 		Fields:           make([]server.SecretField, 0),
 	}

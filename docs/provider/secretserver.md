@@ -548,3 +548,20 @@ spec:
           secretTemplateId: 6098
           siteId: 1
 ```
+
+### Site Configuration
+
+Secret Server uses a site ID when it creates a secret. The provider uses site ID `1` by default.
+
+Set `spec.provider.secretserver.siteId` if your installation uses a different ID. This setting applies to `SecretStore` and `ClusterSecretStore`.
+
+`PushSecret` metadata can set `siteId` for one secret. The metadata value overrides the store value.
+
+To find the site ID:
+
+1. Open **Admin > Distributed Engine > Manage Sites**.
+2. Select the site.
+3. Read the value after `SiteId=` in the `SiteView.aspx?SiteId=<id>` URL.
+
+If your server accepts a missing site ID, set `disableSiteIDValidation: true` in the store configuration.
+When the store and metadata omit `siteId`, the provider sends `0`.

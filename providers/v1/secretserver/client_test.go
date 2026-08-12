@@ -301,6 +301,7 @@ func newTestClient(t *testing.T) esv1.SecretsClient {
 		api: &fakeAPI{
 			secrets: secrets,
 		},
+		siteID: defaultSiteID,
 	}
 }
 
@@ -643,7 +644,7 @@ func TestPushSecret(t *testing.T) {
 	}
 	err = c.PushSecret(ctx, secret, dataMissingMeta)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "folderId, secretTemplateId, and siteId must be provided in metadata to create a new secret")
+	assert.Contains(t, err.Error(), "folderId and secretTemplateId must be set in metadata to create a secret")
 
 	// Missing siteId for new secret
 	metadataWithoutSiteID := apiextensionsv1.JSON{
@@ -656,8 +657,10 @@ func TestPushSecret(t *testing.T) {
 		metadata:  &metadataWithoutSiteID,
 	}
 	err = c.PushSecret(ctx, secret, dataWithoutSiteID)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "folderId, secretTemplateId, and siteId must be provided in metadata to create a new secret")
+	assert.NoError(t, err)
+	createdWithoutSiteID, err := c.(*client).api.SecretByPath("new-secret-no-site-id")
+	assert.NoError(t, err)
+	assert.Equal(t, defaultSiteID, createdWithoutSiteID.SiteID)
 
 	// Invalid secretTemplateId in metadata
 	invalidMetadataJSON := apiextensionsv1.JSON{
@@ -761,26 +764,72 @@ func TestPushSecret(t *testing.T) {
 	assert.Contains(t, err.Error(), "secret value is not valid UTF-8")
 }
 
-func TestPushSecretIncludesSiteIDWhenCreatingSecret(t *testing.T) {
-	ctx := t.Context()
-	testClient := newTestClient(t).(*client)
-	testClient.api = &siteValidatingAPI{fakeAPI: testClient.api.(*fakeAPI)}
-	secret := &corev1.Secret{Data: map[string][]byte{"my-key": []byte("my-value")}}
-	metadataJSON := apiextensionsv1.JSON{
-		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId":1,"secretTemplateId":1,"siteId":1}}`),
+func TestPushSecretSiteIDResolution(t *testing.T) {
+	tests := map[string]struct {
+		clientSiteID            int
+		disableSiteIDValidation bool
+		metadataSiteID          string
+		wantSiteID              int
+		wantErr                 string
+	}{
+		"metadata overrides store": {
+			clientSiteID:   2,
+			metadataSiteID: `,"siteId":3`,
+			wantSiteID:     3,
+		},
+		"store supplies site ID": {
+			clientSiteID: 2,
+			wantSiteID:   2,
+		},
+		"provider default supplies site ID": {
+			clientSiteID: defaultSiteID,
+			wantSiteID:   defaultSiteID,
+		},
+		"disabled validation permits missing site ID": {
+			disableSiteIDValidation: true,
+			wantSiteID:              0,
+		},
+		"enabled validation rejects missing site ID": {
+			wantErr: "siteId must be set in PushSecret metadata or SecretStore configuration",
+		},
+		"explicit zero is invalid": {
+			clientSiteID:   2,
+			metadataSiteID: `,"siteId":0`,
+			wantErr:        "siteId must be greater than zero",
+		},
 	}
 
-	err := testClient.PushSecret(ctx, secret, fakePushSecretData{
-		remoteKey: "new-secret-with-site",
-		property:  "username",
-		secretKey: "my-key",
-		metadata:  &metadataJSON,
-	})
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			testClient := newTestClient(t).(*client)
+			testClient.siteID = tc.clientSiteID
+			testClient.disableSiteIDValidation = tc.disableSiteIDValidation
+			if tc.wantSiteID > 0 {
+				testClient.api = &siteValidatingAPI{fakeAPI: testClient.api.(*fakeAPI)}
+			}
 
-	require.NoError(t, err)
-	created, err := testClient.api.SecretByPath("new-secret-with-site")
-	require.NoError(t, err)
-	assert.Equal(t, 1, created.SiteID)
+			metadataJSON := apiextensionsv1.JSON{
+				Raw: fmt.Appendf(nil, `{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"folderId":1,"secretTemplateId":1%s}}`, tc.metadataSiteID),
+			}
+			secret := &corev1.Secret{Data: map[string][]byte{"my-key": []byte("my-value")}}
+			err := testClient.PushSecret(t.Context(), secret, fakePushSecretData{
+				remoteKey: "new-secret-with-site",
+				property:  "username",
+				secretKey: "my-key",
+				metadata:  &metadataJSON,
+			})
+
+			if tc.wantErr != "" {
+				require.ErrorContains(t, err, tc.wantErr)
+				return
+			}
+
+			require.NoError(t, err)
+			created, err := testClient.api.SecretByPath("new-secret-with-site")
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantSiteID, created.SiteID)
+		})
+	}
 }
 
 // TestDeleteSecret tests the DeleteSecret functionality.
@@ -1777,7 +1826,7 @@ func TestCreateSecretEmptyTemplateFields(t *testing.T) {
 	err := c.createSecret("test-secret", "", "value", PushSecretMetadataSpec{
 		FolderID:         1,
 		SecretTemplateID: 888,
-	})
+	}, defaultSiteID)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "secret template has no fields")
 }
@@ -1935,7 +1984,7 @@ func TestPushSecretMetadataNoFolderID(t *testing.T) {
 	}
 	err := c.PushSecret(ctx, secret, data)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "folderId, secretTemplateId, and siteId must be provided")
+	assert.Contains(t, err.Error(), "folderId and secretTemplateId must be set")
 }
 
 // TestPushSecretCreateWithFolderPrefixNoMetadataFolder tests that PushSecret can

@@ -7663,6 +7663,11 @@ spec:
                             - name
                             - type
                           type: object
+                        disableSiteIDValidation:
+                          description: |-
+                            DisableSiteIDValidation permits a missing site ID for new secrets.
+                            The provider sends 0 if no site ID is set.
+                          type: boolean
                         domain:
                           description: Domain is the secret server domain.
                           type: string
@@ -7710,6 +7715,13 @@ spec:
                             ServerURL
                             URL to your secret server installation
                           type: string
+                        siteId:
+                          description: |-
+                            SiteID is the ID of the Secret Server site for new secrets.
+                            PushSecret metadata can override this value for one secret.
+                            The provider uses 1 if this field is not set.
+                          minimum: 1
+                          type: integer
                         token:
                           description: |-
                             Token is an access token used to authenticate to the secret server,
@@ -20869,6 +20881,11 @@ spec:
                             - name
                             - type
                           type: object
+                        disableSiteIDValidation:
+                          description: |-
+                            DisableSiteIDValidation permits a missing site ID for new secrets.
+                            The provider sends 0 if no site ID is set.
+                          type: boolean
                         domain:
                           description: Domain is the secret server domain.
                           type: string
@@ -20916,6 +20933,13 @@ spec:
                             ServerURL
                             URL to your secret server installation
                           type: string
+                        siteId:
+                          description: |-
+                            SiteID is the ID of the Secret Server site for new secrets.
+                            PushSecret metadata can override this value for one secret.
+                            The provider uses 1 if this field is not set.
+                          minimum: 1
+                          type: integer
                         token:
                           description: |-
                             Token is an access token used to authenticate to the secret server,

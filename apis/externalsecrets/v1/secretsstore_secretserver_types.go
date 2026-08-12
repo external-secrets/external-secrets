@@ -64,6 +64,18 @@ type SecretServerProvider struct {
 	// +required
 	ServerURL string `json:"serverURL"`
 
+	// SiteID is the ID of the Secret Server site for new secrets.
+	// PushSecret metadata can override this value for one secret.
+	// The provider uses 1 if this field is not set.
+	// +optional
+	// +kubebuilder:validation:Minimum=1
+	SiteID *int `json:"siteId,omitempty"`
+
+	// DisableSiteIDValidation permits a missing site ID for new secrets.
+	// The provider sends 0 if no site ID is set.
+	// +optional
+	DisableSiteIDValidation bool `json:"disableSiteIDValidation,omitempty"`
+
 	// PEM/base64 encoded CA bundle used to validate Secret ServerURL. Only used
 	// if the ServerURL URL is using HTTPS protocol. If not set the system root certificates
 	// are used to validate the TLS connection.
