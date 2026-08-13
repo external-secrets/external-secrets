@@ -20,6 +20,7 @@
 - [Loblaw](https://www.loblaw.ca/en/digital-and-technology/)
 - [Mercedes-Benz Tech Innovation](https://www.mercedes-benz-techinnovation.com/)
 - [Mixpanel](https://mixpanel.com)
+- [OpenChoreo](https://openchoreo.dev/)
 - [OpenClassrooms](https://openclassrooms.com)
 - [OVHcloud](https://www.ovhcloud.com)
 - [Pento](https://www.pento.io/)

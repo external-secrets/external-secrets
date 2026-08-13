@@ -159,8 +159,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 			Revision: "latest",
 		}, scw.WithContext(ctx))
 		if err != nil {
-			var errNotNound *scw.ResourceNotFoundError
-			if !errors.As(err, &errNotNound) {
+			if _, ok := errors.AsType[*scw.ResourceNotFoundError](err); !ok {
 				return err
 			}
 		} else {

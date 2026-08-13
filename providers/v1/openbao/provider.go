@@ -88,6 +88,18 @@ func isReferentSpec(prov *esv1.OpenBaoProvider) bool {
 		if auth.UserPass != nil && auth.UserPass.SecretRef.Namespace == nil {
 			return true
 		}
+
+		if auth.Kubernetes != nil {
+			kubernetes := auth.Kubernetes
+
+			if kubernetes.SecretRef != nil && kubernetes.SecretRef.Namespace == nil {
+				return true
+			}
+
+			if kubernetes.ServiceAccountRef != nil && kubernetes.ServiceAccountRef.Namespace == nil {
+				return true
+			}
+		}
 	}
 
 	if prov.CAProvider != nil && prov.CAProvider.Namespace == nil {
