@@ -239,6 +239,7 @@ require (
 	github.com/cloudru-tech/secret-manager-sdk v1.1.1 // indirect
 	github.com/cyberark/conjur-api-go v0.14.1 // indirect
 	github.com/danieljoos/wincred v1.2.3 // indirect
+	github.com/doodlesbykumbi/conjur-policy-go v0.0.0-20241022093904-5fc5921aee96 // indirect
 	github.com/dylibso/observe-sdk/go v0.0.0-20240828172851-9145d8ad07e1 // indirect
 	github.com/extism/go-sdk v1.7.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -298,6 +299,7 @@ require (
 	github.com/ngrok/ngrok-api-go/v9 v9.0.0 // indirect
 	github.com/oapi-codegen/runtime v1.1.2 // indirect
 	github.com/openbao/openbao/api/auth/approle/v2 v2.5.1 // indirect
+	github.com/openbao/openbao/api/auth/kubernetes/v2 v2.5.1 // indirect
 	github.com/openbao/openbao/api/auth/userpass/v2 v2.5.1 // indirect
 	github.com/openbao/openbao/api/v2 v2.5.1-0.20260603121413-a08669ff09ec // indirect
 	github.com/ovh/okms-sdk-go v0.5.1 // indirect

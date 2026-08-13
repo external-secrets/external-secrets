@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -332,8 +333,7 @@ func (g *gitlabBase) tryGroupVariables(ref esv1.ExternalSecretDataRemoteRef, gop
 		return nil, err
 	}
 
-	for i := len(g.store.GroupIDs) - 1; i >= 0; i-- {
-		groupID := g.store.GroupIDs[i]
+	for _, groupID := range slices.Backward(g.store.GroupIDs) {
 		groupVar, _, err := g.getGroupVariables(groupID, ref, gopts)
 		if err == nil {
 			return extractVariable(ref, groupVar.Value)

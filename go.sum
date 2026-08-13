@@ -307,6 +307,8 @@ github.com/docker/go-connections v0.6.0 h1:LlMG9azAe1TqfR7sO+NJttz1gy6KO7VJBh+pM
 github.com/docker/go-connections v0.6.0/go.mod h1:AahvXYshr6JgfUJGdDCs2b5EZG/vmaMAntpSFH5BFKE=
 github.com/docker/go-units v0.5.0 h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4=
 github.com/docker/go-units v0.5.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=
+github.com/doodlesbykumbi/conjur-policy-go v0.0.0-20241022093904-5fc5921aee96 h1:AkFmClMkf4kOmsgSO9UD+PAZINmON40m44PNucHuDlo=
+github.com/doodlesbykumbi/conjur-policy-go v0.0.0-20241022093904-5fc5921aee96/go.mod h1:3M6KY0++RSAgFkJlFYAkl2/kLdwT7j2Pr4L33dMAtrw=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/dylibso/observe-sdk/go v0.0.0-20240828172851-9145d8ad07e1 h1:idfl8M8rPW93NehFw5H1qqH8yG158t5POr+LX9avbJY=
 github.com/dylibso/observe-sdk/go v0.0.0-20240828172851-9145d8ad07e1/go.mod h1:C8DzXehI4zAbrdlbtOByKX6pfivJTBiV9Jjqv56Yd9Q=
@@ -852,6 +854,8 @@ github.com/onsi/gomega v1.39.1/go.mod h1:hL6yVALoTOxeWudERyfppUcZXjMwIMLnuSfruD2
 github.com/op/go-logging v0.0.0-20160315200505-970db520ece7/go.mod h1:HzydrMdWErDVzsI23lYNej1Htcns9BCg93Dk0bBINWk=
 github.com/openbao/openbao/api/auth/approle/v2 v2.5.1 h1:lg6EFF3ToQMITV+Kko773JqOEut9tE+P21dP8pgPaTg=
 github.com/openbao/openbao/api/auth/approle/v2 v2.5.1/go.mod h1:MVa7te0xhx07dldhEvCBxr5GZUUKuDrer60EKHdTmtQ=
+github.com/openbao/openbao/api/auth/kubernetes/v2 v2.5.1 h1:yaFaJh92q3uScugQVHDXr3kHYBfYoSkuRulNwHC8OzM=
+github.com/openbao/openbao/api/auth/kubernetes/v2 v2.5.1/go.mod h1:nb+BmPlRpz8EBFF/TUiziZGNjqiyXVFvCet/BfqA1OA=
 github.com/openbao/openbao/api/auth/userpass/v2 v2.5.1 h1:81YQNOT/0wZJtp6zka9KAdUSADShkhocgb35CJH7r28=
 github.com/openbao/openbao/api/auth/userpass/v2 v2.5.1/go.mod h1:uOtBhWrhgDf++LLD+XtdxKzDFv8cHUurnFz6kRw0+nE=
 github.com/openbao/openbao/api/v2 v2.5.1-0.20260603121413-a08669ff09ec h1:Cka9sTUAqBQBtTYSsOvkG99ojxUp1nlhixAbYl1wRYA=
