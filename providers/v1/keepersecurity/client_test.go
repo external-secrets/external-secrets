@@ -730,7 +730,7 @@ func TestClientGetSecretMap(t *testing.T) {
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
 					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
-						return nil, errors.New(errKeeperSecurityNoSecretsFound)
+						return nil, errors.New("keeper API unavailable")
 					},
 				},
 				folderID: folderID,

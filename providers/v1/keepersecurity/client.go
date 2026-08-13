@@ -37,7 +37,6 @@ const (
 	errKeeperSecuritySecretsNotFound            = "unable to find secrets. %w"
 	errKeeperSecuritySecretNotFound             = "unable to find secret %s. Error: %w"
 	errKeeperSecuritySecretNotUnique            = "more than 1 secret %s found"
-	errKeeperSecurityNoSecretsFound             = "no secrets found"
 	errKeeperSecurityRecordNotFound             = "%w: no record matched %s"
 	errKeeperSecurityInvalidSecretInvalidFormat = "invalid secret. Invalid format: %w"
 	errKeeperSecurityInvalidSecretDuplicatedKey = "invalid Secret. Following keys are duplicated %s"
