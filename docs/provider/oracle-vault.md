@@ -90,6 +90,18 @@ The operator will fetch the OCI Vault Secret and inject it as a `Kind=Secret`.
 kubectl get secret oracle-secret-to-create -o jsonpath='{.data.dev-secret-test}' | base64 -d
 ```
 
+### Deletion policy
+
+When a secret is removed from the OCI Vault the provider reports it as missing, so
+`spec.target.deletionPolicy` (`Delete` or `Merge`) applies to the Kubernetes Secret.
+
+!!! warning
+    OCI answers with `NotAuthorizedOrNotFound` both when a secret does not exist and
+    when the caller is not allowed to read it, and the two cannot be told apart from
+    outside. Revoking read access on a secret therefore looks exactly like deleting it,
+    and with `deletionPolicy: Delete` the Kubernetes Secret is removed. Use the default
+    `deletionPolicy: Retain` if you would rather keep the Secret when access is lost.
+
 ## PushSecrets and retrieving multiple secrets.
 When using [PushSecrets](https://external-secrets.io/latest/guides/pushsecrets/), the compartment OCID and encryption key OCID must be specified in the
 Oracle SecretStore. You can find your compartment and encryption key OCIDs in the OCI console.
