@@ -226,6 +226,20 @@ func TestValidateStore(t *testing.T) {
 			}),
 			wantErr: errEmptyWorkloadIdentityIAMAccount,
 		},
+		{
+			name: "workload identity config with custom audiences not allowed",
+			store: mkStore(func(s *esv1.SecretStore) {
+				nm := s.Spec.Provider.NebiusMysterybox
+				nm.Auth.WorkloadIdentity = &esv1.NebiusWorkloadIdentity{
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name:      "serviceaccount",
+						Audiences: []string{"custom.audience"},
+					},
+					IAMServiceAccountID: "serviceaccount-e00test",
+				}
+			}),
+			wantErr: errCustomAudienceIsNotAllowed,
+		},
 	}
 
 	for _, tt := range tests {

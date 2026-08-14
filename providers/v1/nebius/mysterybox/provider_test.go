@@ -68,7 +68,6 @@ const (
 
 var (
 	logger           = ctrl.Log.WithName("provider").WithName("nebius").WithName("mysterybox")
-	audiences        = []string{"test-nebius-audience"}
 	testSubjectCreds = &auth.ServiceAccountCredentials{
 		SubjectCredentials: auth.SubjectCredentials{
 			PrivateKey: correctPrivateKey,
@@ -87,6 +86,7 @@ func setupClientWithTokenAuth(t *testing.T, entries []mysterybox.Entry, tokenGet
 	k8sClient := clientfake.NewClientBuilder().Build()
 
 	secret := mysteryboxService.CreateSecret(entries)
+	tassert.NotNil(t, secret)
 
 	provider := newProvider(
 		t,
@@ -406,6 +406,7 @@ func TestNewClient_AuthWithSecretAccountCreds(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 
 	secret := mysteryboxService.CreateSecret([]mysterybox.Entry{{Key: "k", StringValue: "v"}})
+	tassert.NotNil(t, secret)
 
 	providedCreds, _ := json.Marshal(testSubjectCreds)
 
@@ -459,6 +460,7 @@ func TestNewClient_AuthWithWorkloadIdentityCreds(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 
 	secret := mysteryboxService.CreateSecret([]mysterybox.Entry{{Key: "k1", StringValue: "v1"}})
+	tassert.NotNil(t, secret)
 
 	tokenToIssue := tokenToBeIssued
 
@@ -474,7 +476,7 @@ func TestNewClient_AuthWithWorkloadIdentityCreds(t *testing.T) {
 		CoreV1Interface: utilfake.NewCreateTokenMock().
 			WithToken(workloadIdentityToken),
 		onTokenRequest: func(request *authenticationv1.TokenRequest) {
-			expectedAudiences := append([]string{nebiusauth.NebiusIamAudience}, audiences...)
+			expectedAudiences := []string{nebiusauth.NebiusIamAudience}
 			tassert.Equal(
 				t,
 				expectedAudiences,
@@ -494,70 +496,7 @@ func TestNewClient_AuthWithWorkloadIdentityCreds(t *testing.T) {
 	}
 
 	createK8sServiceAccount(ctx, t, k8sClient, namespace, serviceAccountName)
-	store := newNebiusMysteryboxSecretStoreWithK8sServiceAccountCreds(apiDomain, namespace, serviceAccountName, iamServiceAccount, audiences)
-
-	client, err := p.NewClient(ctx, store, k8sClient, namespace)
-	tassert.NoError(t, err)
-
-	msc, ok := client.(*SecretsClient)
-	tassert.True(t, ok, "expected *MysteryboxSecretsClient, got %T", client)
-	tassert.Equal(t, tokenToIssue, msc.token, fmt.Sprintf("token mismatch: got %q want %q (issued by TokenGetter)", msc.token, tokenToIssue))
-
-	// also ensure TokenExchanger was exercised with creds we expect
-	tassert.Equal(t, int64(1), tokenExchanger.Calls.Load(), "expected TokenExchanger to be called once")
-	tassert.Equal(t, apiDomain, tokenExchanger.DomainRequest, "expected TokenExchanger to be called with the correct domain")
-	tassert.Equal(t, workloadIdentityToken, tokenExchanger.TokenRequest, "expected jwt token to be received")
-	tassert.Equal(t, iamServiceAccount, tokenExchanger.ServiceAccountIDRequest, "expected serviceAccount to be correct ")
-	tassert.Nil(t, tokenExchanger.CaRequest, "expected TokenExchanger to be called without CA cert")
-
-	got, err := msc.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secret.Id, Property: "k1"})
-	tassert.NoError(t, err)
-	tassert.Equal(t, []byte("v1"), got)
-}
-
-func TestNewClient_AuthWithWorkloadIdentityCredsWithoutAudiences(t *testing.T) {
-	t.Parallel()
-	ctx := context.Background()
-	namespace := uuid.NewString()
-	mysteryboxService := fake.InitMysteryboxService()
-	k8sClient := clientfake.NewClientBuilder().Build()
-
-	secret := mysteryboxService.CreateSecret([]mysterybox.Entry{{Key: "k1", StringValue: "v1"}})
-
-	tokenToIssue := tokenToBeIssued
-
-	tokenExchanger := &nebiusiam.FakeTokenExchanger{
-		TokenToIssue: tokenToIssue,
-	}
-	tokenGetter := newTestCachedTokenGetter(t, tokenExchanger)
-
-	cache, err := lru.New(10)
-	tassert.NoError(t, err)
-
-	coreV1Client := &recordingCoreV1{
-		CoreV1Interface: utilfake.NewCreateTokenMock().
-			WithToken(workloadIdentityToken),
-		onTokenRequest: func(request *authenticationv1.TokenRequest) {
-			tassert.Equal(
-				t,
-				[]string{nebiusauth.NebiusIamAudience},
-				request.Spec.Audiences,
-			)
-		},
-	}
-
-	p := &Provider{
-		Logger: logger,
-		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
-			return fake.NewFakeMysteryboxClient(mysteryboxService), nil
-		},
-		coreV1Client:           coreV1Client,
-		mysteryboxClientsCache: cache,
-		TokenGetter:            tokenGetter,
-	}
-
-	createK8sServiceAccount(ctx, t, k8sClient, namespace, serviceAccountName)
-	store := newNebiusMysteryboxSecretStoreWithK8sServiceAccountCreds(apiDomain, namespace, serviceAccountName, iamServiceAccount, nil)
+	store := newNebiusMysteryboxSecretStoreWithK8sServiceAccountCreds(apiDomain, namespace, serviceAccountName, iamServiceAccount)
 
 	client, err := p.NewClient(ctx, store, k8sClient, namespace)
 	tassert.NoError(t, err)
@@ -936,6 +875,7 @@ func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing
 	k8sClient := clientfake.NewClientBuilder().Build()
 
 	secret := mboxSvc.CreateSecret([]mysterybox.Entry{{Key: "k", StringValue: "v"}})
+	tassert.NotNil(t, secret)
 
 	var factoryCalls int32
 	tokenToIssue := tokenToBeIssued
@@ -1031,7 +971,7 @@ func newNebiusMysteryboxSecretStoreWithServiceAccountAndPrivateKeyCreds(apiDomai
 		},
 	}
 }
-func newNebiusMysteryboxSecretStoreWithK8sServiceAccountCreds(apiDomain, namespace, serviceAccountName, iamServiceAccount string, audiences []string) esv1.GenericStore {
+func newNebiusMysteryboxSecretStoreWithK8sServiceAccountCreds(apiDomain, namespace, serviceAccountName, iamServiceAccount string) esv1.GenericStore {
 	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -1046,7 +986,6 @@ func newNebiusMysteryboxSecretStoreWithK8sServiceAccountCreds(apiDomain, namespa
 							ServiceAccountRef: &esmeta.ServiceAccountSelector{
 								Name:      serviceAccountName,
 								Namespace: &namespace,
-								Audiences: audiences,
 							},
 							IAMServiceAccountID: iamServiceAccount,
 						},

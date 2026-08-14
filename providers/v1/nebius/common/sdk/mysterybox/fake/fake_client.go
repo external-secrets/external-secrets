@@ -107,7 +107,7 @@ func (s *MysteryboxService) GetSecret(secretId, versionId string) (*Secret, erro
 // CreateSecret creates a secret with an initial version.
 func (s *MysteryboxService) CreateSecret(payloadEntries []mysterybox.Entry) *Secret {
 	if len(payloadEntries) == 0 {
-		panic(errors.New("payload entries should not be empty"))
+		return nil
 	}
 	secretId := uuid.NewString()
 	versionId := uuid.NewString()
@@ -130,7 +130,7 @@ func (s *MysteryboxService) CreateSecret(payloadEntries []mysterybox.Entry) *Sec
 // CreateNewSecretVersion adds a new version to an existing secret.
 func (s *MysteryboxService) CreateNewSecretVersion(secretId string, payloadEntries []mysterybox.Entry) (string, error) {
 	if len(payloadEntries) == 0 {
-		panic(errors.New("payload entries should not be empty"))
+		return "", errors.New("payload entries should not be empty")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()

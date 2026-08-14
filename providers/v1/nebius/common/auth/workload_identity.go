@@ -61,9 +61,7 @@ func NewFederatedAccountCredentialsRequest(
 				tokenNamespace = *serviceAccountRef.Namespace
 			}
 
-			audiences := make([]string, 1, 1+len(serviceAccountRef.Audiences))
-			audiences[0] = NebiusIamAudience
-			audiences = append(audiences, serviceAccountRef.Audiences...)
+			audiences := []string{NebiusIamAudience}
 
 			tokenRequest := &authenticationv1.TokenRequest{
 				Spec: authenticationv1.TokenRequestSpec{

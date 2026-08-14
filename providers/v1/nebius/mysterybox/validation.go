@@ -48,6 +48,7 @@ const (
 	errInvalidAPIDomainWithError               = errInvalidAPIDomain + ": %w"
 	errInvalidCertificateConfigNoNameSpecified = "invalid certificate configuration: no name specified"
 	errInvalidCertificateConfigNoKeySpecified  = "invalid certificate configuration: no key specified"
+	errCustomAudienceIsNotAllowed              = "custom audiences are not allowed for Nebius provider"
 )
 
 var labelRe = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`)
@@ -152,6 +153,12 @@ func validateProviderAuth(provider *esv1.NebiusMysteryboxProvider) error {
 	if provider.Auth.WorkloadIdentity != nil && strings.TrimSpace(provider.Auth.WorkloadIdentity.IAMServiceAccountID) == "" {
 		return errors.New(errEmptyWorkloadIdentityIAMAccount)
 	}
+
+	if provider.Auth.WorkloadIdentity != nil && provider.Auth.WorkloadIdentity.ServiceAccountRef != nil {
+		err := validateAudiences(provider.Auth.WorkloadIdentity.ServiceAccountRef.Audiences)
+		return err
+	}
+
 	return nil
 }
 
@@ -219,6 +226,13 @@ func validateCertificate(certificate *esmeta.SecretKeySelector) error {
 	}
 	if certificate.Key == "" {
 		return errors.New(errInvalidCertificateConfigNoKeySpecified)
+	}
+	return nil
+}
+
+func validateAudiences(audiences []string) error {
+	if audiences != nil && len(audiences) != 0 {
+		return errors.New(errCustomAudienceIsNotAllowed)
 	}
 	return nil
 }
