@@ -914,6 +914,14 @@ func TestValidate(t *testing.T) {
 			wantResult: esv1.ValidationResultReady,
 		},
 		{
+			// A URL templated on .remoteRef can't be resolved at store-validation
+			// time — that data only exists per-ExternalSecret, at fetch time. The
+			// store may be perfectly valid; we just can't prove reachability yet.
+			name:       "url templated on remoteRef cannot be resolved at store-validation time",
+			url:        "{{ .remoteRef.key }}",
+			wantResult: esv1.ValidationResultUnknown,
+		},
+		{
 			name: "templated url resolves via provider secrets and validates successfully",
 			url:  "{{ .myconfig.host }}",
 			secrets: []esv1.WebhookSecret{
@@ -969,7 +977,7 @@ func TestValidate(t *testing.T) {
 			name:            "malformed template string surfaces execute template error",
 			url:             "{{ .unclosed.template",
 			wantResult:      esv1.ValidationResultError,
-			wantErrContains: "failed to parse url",
+			wantErrContains: "failed to render URL template",
 		},
 		{
 			name: "missing referenced secret surfaces template data error",

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/PaesslerAG/jsonpath"
@@ -321,6 +322,14 @@ func (w *WebHook) Validate() (esv1.ValidationResult, error) {
 		return esv1.ValidationResultError, fmt.Errorf(errFailedToGetStore, err)
 	}
 
+	// The URL may reference .remoteRef (e.g. "{{ .remoteRef.key }}"), which is only
+	// known at fetch time, per-ExternalSecret — not at store-validation time. In that
+	// case the store itself may be perfectly valid; we just can't prove reachability
+	// yet, so report Unknown rather than Error.
+	if strings.Contains(provider.URL, ".remoteRef") {
+		return esv1.ValidationResultUnknown, nil
+	}
+
 	// The URL may be templated (e.g. using provider.webhook.secrets), so it
 	// must be resolved before attempting to validate network reachability.
 	// urlEncode has no effect when ref is nil (only remoteRef values are
@@ -337,7 +346,7 @@ func (w *WebHook) Validate() (esv1.ValidationResult, error) {
 
 	url, err := webhook.ExecuteTemplateString(provider.URL, escapedData)
 	if err != nil {
-		return esv1.ValidationResultError, fmt.Errorf("failed to parse url: %w", err)
+		return esv1.ValidationResultError, fmt.Errorf("failed to render URL template: %w", err)
 	}
 
 	if err := esutils.NetworkValidate(url, timeout); err != nil {
