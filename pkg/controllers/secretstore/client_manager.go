@@ -33,6 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	ctrlutil "github.com/external-secrets/external-secrets/pkg/controllers/util"
 )
 
 const (
@@ -41,6 +42,11 @@ const (
 	errSecretStoreNotReady   = "%s %q is not ready"
 	errClusterStoreMismatch  = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
 )
+
+// ErrProviderResolution marks a failure to resolve the provider named in the
+// store spec. It never reaches provider code, so the wrapped message is safe to
+// surface in the store status.
+var ErrProviderResolution = errors.New("could not resolve store provider")
 
 // Manager stores instances of provider clients
 // At any given time we must have no more than one instance
@@ -84,7 +90,7 @@ func NewManager(ctrlClient client.Client, controllerClass string, enableFloodgat
 func (m *Manager) GetFromStore(ctx context.Context, store esv1.GenericStore, namespace string) (esv1.SecretsClient, error) {
 	storeProvider, err := esv1.GetProvider(store)
 	if err != nil {
-		return nil, err
+		return nil, ctrlutil.Safe(fmt.Errorf("%w: %w", ErrProviderResolution, err))
 	}
 	secretClient := m.getStoredClient(ctx, storeProvider, store)
 	if secretClient != nil {
