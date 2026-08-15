@@ -8,6 +8,8 @@ You can authenticate against the Grafana instance using either a service account
 The credentials must have sufficient permissions to create service accounts and tokens.
 See the [Grafana RBAC documentation](https://grafana.com/docs/grafana/latest/administration/roles-and-permissions/access-control/rbac-fixed-basic-role-definitions/) for details on required roles.
 
+Secret references on this generator (`auth.token`, `auth.basic.password`, `urlFrom`) have no namespace field. They are always resolved in the namespace of the ExternalSecret that uses the generator. That is also true when the spec lives on a ClusterGenerator: two namespaces can talk to different Grafana instances if their local Secrets differ.
+
 ## Output Keys
 
 The generator produces two keys:
@@ -33,9 +35,7 @@ Use a Grafana [Service Account Token](https://grafana.com/docs/grafana/latest/ad
 
 ### Using a URL from a Secret
 
-When the Grafana URL is stored next to the token, use `urlFrom` instead of `url`. Exactly one of `url` or `urlFrom` must be set.
-
-`urlFrom` (like `auth.token`) is resolved in the namespace of the ExternalSecret that uses the generator. A ClusterGenerator does not change that: two namespaces can resolve different URLs if their local Secrets differ.
+When the Grafana URL is stored next to the token, use `urlFrom` instead of `url`. Exactly one of `url` or `urlFrom` must be set. `urlFrom` uses the same namespace rules as `auth.token` (see [Authentication](#authentication)).
 
 ```yaml
 {% include 'generator-grafana-urlfrom.yaml' %}
