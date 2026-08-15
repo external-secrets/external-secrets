@@ -31,6 +31,16 @@ Use a Grafana [Service Account Token](https://grafana.com/docs/grafana/latest/ad
 {% include 'generator-grafana.yaml' %}
 ```
 
+### Using a URL from a Secret
+
+When the Grafana URL is stored next to the token, use `urlFrom` instead of `url`. Exactly one of `url` or `urlFrom` must be set.
+
+`urlFrom` (like `auth.token`) is resolved in the namespace of the ExternalSecret that uses the generator. A ClusterGenerator does not change that: two namespaces can resolve different URLs if their local Secrets differ.
+
+```yaml
+{% include 'generator-grafana-urlfrom.yaml' %}
+```
+
 ### Using Basic Auth
 
 Use a Grafana user's username and password. The password is stored in a Kubernetes Secret and referenced via `spec.auth.basic.password`, while the username is set directly in the spec.

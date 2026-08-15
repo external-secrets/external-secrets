@@ -98,8 +98,37 @@ func (w *Grafana) Cleanup(ctx context.Context, jsonSpec *apiextensions.JSON, pre
 	return nil
 }
 
+func resolveURL(ctx context.Context, gen *genv1alpha1.Grafana, kclient client.Client, ns string) (string, error) {
+	hasURL := strings.TrimSpace(gen.Spec.URL) != ""
+	hasURLFrom := gen.Spec.URLFrom != nil
+	if hasURL == hasURLFrom {
+		return "", fmt.Errorf("exactly one of spec.url or spec.urlFrom must be set")
+	}
+	if hasURL {
+		return strings.TrimSpace(gen.Spec.URL), nil
+	}
+
+	urlStr, err := resolvers.SecretKeyRef(ctx, kclient, resolvers.EmptyStoreKind, ns, &esmeta.SecretKeySelector{
+		Namespace: &ns,
+		Name:      gen.Spec.URLFrom.Name,
+		Key:       gen.Spec.URLFrom.Key,
+	})
+	if err != nil {
+		return "", err
+	}
+	urlStr = strings.TrimSpace(urlStr)
+	if urlStr == "" {
+		return "", fmt.Errorf("grafana url from secret %q key %q is empty", gen.Spec.URLFrom.Name, gen.Spec.URLFrom.Key)
+	}
+	return urlStr, nil
+}
+
 func newClient(ctx context.Context, gen *genv1alpha1.Grafana, kclient client.Client, ns string) (*grafanaclient.GrafanaHTTPAPI, error) {
-	parsedURL, err := url.Parse(gen.Spec.URL)
+	grafanaURL, err := resolveURL(ctx, gen, kclient, ns)
+	if err != nil {
+		return nil, err
+	}
+	parsedURL, err := url.Parse(grafanaURL)
 	if err != nil {
 		return nil, err
 	}

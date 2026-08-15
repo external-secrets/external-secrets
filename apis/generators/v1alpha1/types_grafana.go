@@ -21,9 +21,18 @@ import (
 )
 
 // GrafanaSpec controls the behavior of the grafana generator.
+// +kubebuilder:validation:XValidation:rule="has(self.url) != has(self.urlFrom)",message="exactly one of url or urlFrom must be set"
 type GrafanaSpec struct {
 	// URL is the URL of the Grafana instance.
-	URL string `json:"url"`
+	// Exactly one of url or urlFrom must be set.
+	// +optional
+	URL string `json:"url,omitempty"`
+	// URLFrom selects a Secret key that contains the Grafana instance URL.
+	// The Secret is resolved in the namespace of the consuming ExternalSecret,
+	// including when this spec is used from a ClusterGenerator.
+	// Exactly one of url or urlFrom must be set.
+	// +optional
+	URLFrom *SecretKeySelector `json:"urlFrom,omitempty"`
 	// Auth is the authentication configuration to authenticate
 	// against the Grafana instance.
 	Auth GrafanaAuth `json:"auth"`

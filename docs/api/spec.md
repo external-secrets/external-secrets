@@ -29306,7 +29306,26 @@ string
 </em>
 </td>
 <td>
-<p>URL is the URL of the Grafana instance.</p>
+<em>(Optional)</em>
+<p>URL is the URL of the Grafana instance.
+Exactly one of url or urlFrom must be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>urlFrom</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.SecretKeySelector">
+SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>URLFrom selects a Secret key that contains the Grafana instance URL.
+The Secret is resolved in the namespace of the consuming ExternalSecret,
+including when this spec is used from a ClusterGenerator.
+Exactly one of url or urlFrom must be set.</p>
 </td>
 </tr>
 <tr>
@@ -29549,7 +29568,26 @@ string
 </em>
 </td>
 <td>
-<p>URL is the URL of the Grafana instance.</p>
+<em>(Optional)</em>
+<p>URL is the URL of the Grafana instance.
+Exactly one of url or urlFrom must be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>urlFrom</code></br>
+<em>
+<a href="#generators.external-secrets.io/v1alpha1.SecretKeySelector">
+SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>URLFrom selects a Secret key that contains the Grafana instance URL.
+The Secret is resolved in the namespace of the consuming ExternalSecret,
+including when this spec is used from a ClusterGenerator.
+Exactly one of url or urlFrom must be set.</p>
 </td>
 </tr>
 <tr>
@@ -30631,6 +30669,7 @@ RequestParameters
 (<em>Appears on:</em>
 <a href="#generators.external-secrets.io/v1alpha1.GrafanaAuth">GrafanaAuth</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.GrafanaBasicAuth">GrafanaBasicAuth</a>, 
+<a href="#generators.external-secrets.io/v1alpha1.GrafanaSpec">GrafanaSpec</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.WebhookSecret">WebhookSecret</a>)
 </p>
 <p>
