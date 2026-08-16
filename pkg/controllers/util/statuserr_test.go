@@ -127,7 +127,7 @@ func TestSafeMessageTruncates(t *testing.T) {
 	long := strings.Repeat("a", MaxConditionMessageLength+50)
 
 	got := SafeMessage(Safe(errors.New(long)))
-	want := strings.Repeat("a", MaxConditionMessageLength) + "..."
+	want := strings.Repeat("a", MaxConditionMessageLength-len("...")) + "..."
 	if got != want {
 		t.Errorf("SafeMessage() length = %d, want %d", len(got), len(want))
 	}
@@ -138,10 +138,17 @@ func TestSafeMessageTruncatesOnRunes(t *testing.T) {
 	long := strings.Repeat("é", MaxConditionMessageLength+10)
 
 	got := SafeMessage(Safe(errors.New(long)))
-	if runes := []rune(strings.TrimSuffix(got, "...")); len(runes) != MaxConditionMessageLength {
+	if runes := []rune(got); len(runes) != MaxConditionMessageLength {
 		t.Errorf("truncated to %d runes, want %d", len(runes), MaxConditionMessageLength)
 	}
 	if !strings.HasPrefix(got, "é") {
 		t.Errorf("truncation split a multi-byte rune: %q", got[:8])
+	}
+}
+
+// A limit too small to hold the marker still has to be respected.
+func TestTruncateLimitBelowMarker(t *testing.T) {
+	if got := truncate("abcdef", 2); got != "ab" {
+		t.Errorf("truncate() = %q, want %q", got, "ab")
 	}
 }

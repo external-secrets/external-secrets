@@ -115,7 +115,7 @@ func TestMarkAsFailedCapsMessageLength(t *testing.T) {
 	r.markAsFailed(msgErrorUpdateSecret, err, es, counter, esv1.ConditionReasonSecretSyncedError)
 
 	cond := readyCondition(t, es)
-	limit := len(msgErrorUpdateSecret) + ctrlutil.MaxConditionMessageLength + len(": ...")
+	limit := len(msgErrorUpdateSecret) + len(": ") + ctrlutil.MaxConditionMessageLength
 	if len(cond.Message) > limit {
 		t.Errorf("message length = %d, want at most %d", len(cond.Message), limit)
 	}

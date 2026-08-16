@@ -62,11 +62,16 @@ func SafeMessage(err error) string {
 	return truncate(innermost.Error(), MaxConditionMessageLength)
 }
 
-// truncate shortens msg to at most limit runes, marking that it was cut.
+// truncate shortens msg to at most limit runes in total, counting the marker
+// that says the text was cut.
 func truncate(msg string, limit int) string {
+	const marker = "..." // ASCII, so len is both its byte and its rune count
 	runes := []rune(msg)
 	if len(runes) <= limit {
 		return msg
 	}
-	return string(runes[:limit]) + "..."
+	if limit < len(marker) {
+		return string(runes[:limit])
+	}
+	return string(runes[:limit-len(marker)]) + marker
 }
