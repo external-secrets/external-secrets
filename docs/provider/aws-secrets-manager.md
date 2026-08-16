@@ -76,7 +76,8 @@ If you're planning to use `PushSecret`, ensure you also have the following permi
 }
 ```
 
-**Note:** The resource policy permissions (`GetResourcePolicy`, `PutResourcePolicy`, `DeleteResourcePolicy`) are only required if you're using the `resourcePolicy` metadata option to manage resource-based policies on secrets.
+**Note:** The resource policy permissions (`GetResourcePolicy`, `PutResourcePolicy`, `DeleteResourcePolicy`) are required for PushSecret against an existing secret, regardless of whether the `resourcePolicy` metadata option is configured. `DeleteResourcePolicy` is called whenever `resourcePolicy` is absent or empty, since ESO removes any existing resource policy in that case. `GetResourcePolicy` and `PutResourcePolicy` are called when a policy is configured through `resourcePolicy`.
+
 **Note:** The replication permissions (`ReplicateSecretToRegions`, `RemoveRegionsFromReplication`) are only required if you're using the `replicationLocations` metadata option to manage secret replication across multiple regions.
 
 Here's a more restrictive version of the IAM policy:
@@ -152,7 +153,18 @@ To control this behavior set the following provider metadata:
 - `tags` Key-value map of user-defined tags that are attached to the secret.
 - `replicationLocations` takes a list of valid AWS region names where the secret should be replicated.
 
-**Note:** ESO treats the PushSecret as the **source of truth** for tags, resource policy, and replication locations. When any of these resources are specified in `metadata`, they will be added or updated, and resources NOT specified but existing will be removed from AWS. This synchronization happens on every reconciliation, even when the secret value hasn't changed.
+**Note:** ESO reconciles tags, resource policies, and replication locations according to their individual metadata semantics. Tags and replication locations are managed only when their corresponding metadata fields are configured; if those fields are omitted, existing tags or replication settings in AWS are left unchanged. Resource policies behave differently for existing secrets: when `resourcePolicy` is configured, ESO adds or updates the policy, while an absent or empty `resourcePolicy` causes any existing resource policy to be removed. This reconciliation occurs on every refresh, even when the secret value itself has not changed.
+
+!!! warning "Resource policy ownership"
+    ESO treats the resource policy as owned by PushSecret once a secret is managed by ESO
+    (see `managed-by` tag). If `resourcePolicy` is omitted or empty, any existing resource
+    policy on that secret is deleted on the next reconciliation, even one applied by a
+    separate tool (Terraform, account security tooling). This runs on every reconciliation,
+    independent of whether the secret value changed.
+
+    If a target secret already has a resource policy managed outside ESO, provide it
+    explicitly through `resourcePolicy.policySourceRef` so ESO reasserts it instead of
+    deleting it.
 
 - `resourcePolicy` Attach a resource-based policy to the secret for cross-account access or advanced access control.
   - `blockPublicPolicy` (optional) - Set to `true` to validate that the policy doesn't grant public access before applying. Defaults to AWS behavior.
@@ -232,8 +244,6 @@ data:
       ]
     }
 ```
-
-**Note:** The resource policy is synchronized on every reconciliation, even when the secret value hasn't changed. If the `resourcePolicy` field is removed from metadata, the existing policy will be deleted from the secret.
 
 ##### Location Replication
 
