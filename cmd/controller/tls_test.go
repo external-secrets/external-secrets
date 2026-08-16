@@ -89,6 +89,11 @@ func TestBuildTLSConfigFuncs(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "invalid minVersion returns error",
+			minVer:  "1.4",
+			wantErr: true,
+		},
+		{
 			name:  "HTTP/2 enabled does not add disableHTTP2",
 			http2: true,
 		},

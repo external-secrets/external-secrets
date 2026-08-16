@@ -394,7 +394,8 @@ func init() {
 	rootCmd.Flags().StringVar(&tlsCiphers, "tls-ciphers", "", "comma separated list of tls ciphers allowed for the metrics server. "+
 		"This does not apply to TLS 1.3 as the ciphers are selected automatically. "+
 		"Full lists of available ciphers can be found at https://pkg.go.dev/crypto/tls#pkg-constants")
-	rootCmd.Flags().StringVar(&tlsMinVersion, "tls-min-version", "1.2", "minimum version of TLS supported for the metrics server")
+	rootCmd.Flags().StringVar(&tlsMinVersion, "tls-min-version", "", "minimum version of TLS supported for the metrics server. "+
+		"If not specified, Go's default minimum version is used. Valid values: 1.0, 1.1, 1.2, 1.3")
 	rootCmd.Flags().StringSliceVar(&tlsCurvePreferences, "tls-curve-preferences", nil,
 		"ordered list of TLS key exchange curves for the metrics server "+
 			"(for example X25519,CurveP256, or decimal tls.CurveID values supported by this Go toolchain). "+
@@ -434,7 +435,7 @@ func parseTLSCurvePreferences(names []string) ([]tls.CurveID, error) {
 
 // buildTLSConfigFuncs assembles a slice of tls.Config mutators from the current
 // flag values. It is shared across all subcommands (controller, webhook, certcontroller).
-func buildTLSConfigFuncs(ciphers string, minVer string, curves []string, http2 bool) ([]func(*tls.Config), error) {
+func buildTLSConfigFuncs(ciphers, minVer string, curves []string, http2 bool) ([]func(*tls.Config), error) {
 	var opts []func(*tls.Config)
 
 	if !http2 {
@@ -454,8 +455,12 @@ func buildTLSConfigFuncs(ciphers string, minVer string, curves []string, http2 b
 	}
 
 	if minVer != "" {
+		ver, err := tlsVersion(minVer)
+		if err != nil {
+			return nil, fmt.Errorf("unable to parse tls min version: %w", err)
+		}
 		opts = append(opts, func(cfg *tls.Config) {
-			cfg.MinVersion = tlsVersion(minVer)
+			cfg.MinVersion = ver
 		})
 	}
 
