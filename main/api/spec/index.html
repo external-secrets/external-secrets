@@ -15656,6 +15656,33 @@ URL to your secret server installation</p>
 </tr>
 <tr>
 <td>
+<code>siteId</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SiteID is the ID of the Secret Server site for new secrets.
+PushSecret metadata can override this value for one secret.
+The provider uses 1 if this field is not set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>disableSiteIDValidation</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DisableSiteIDValidation permits a missing site ID for new secrets.
+The provider sends 0 if no site ID is set.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>caBundle</code></br>
 <em>
 []byte

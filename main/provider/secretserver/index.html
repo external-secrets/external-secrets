@@ -4227,6 +4227,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#site-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Site Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -5635,6 +5646,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#site-configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Site Configuration
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -6101,11 +6123,11 @@ and will act on the <strong>first match</strong> returned by the API.</p>
 <p>By using the <code>folderId:&lt;id&gt;/&lt;name&gt;</code> format (e.g., <code>folderId:73/my-secret</code>), the folder ID is
 encoded directly in the key and is available to <strong>all</strong> operations, ensuring consistent behavior.</p>
 <p><strong>Precedence rule:</strong> If both a <code>folderId</code> in the <code>remoteKey</code> and a <code>folderId</code> in the metadata are
-specified, the value from the <code>remoteKey</code> takes precedence for lookups. The metadata <code>folderId</code> and
-<code>secretTemplateId</code> are still required when <strong>creating</strong> a new secret (they tell the API which folder
-and template to use for the new secret).</p>
+specified, the value from the <code>remoteKey</code> takes precedence for lookups. The metadata <code>folderId</code>,
+<code>secretTemplateId</code>, and <code>siteId</code> are still required when <strong>creating</strong> a new secret (they tell the API
+which folder, template, and site to use for the new secret).</p>
 <h3 id="requirements-for-creating-new-secrets">Requirements for Creating New Secrets</h3>
-<p>When creating a <strong>new</strong> secret in Secret Server, you must provide a <code>folderId</code> and a <code>secretTemplateId</code>. These are passed as <code>metadata</code> in the <code>PushSecret</code> spec:</p>
+<p>When creating a <strong>new</strong> secret in Secret Server, you must provide a <code>folderId</code>, <code>secretTemplateId</code>, and <code>siteId</code>. These are passed as <code>metadata</code> in the <code>PushSecret</code> spec:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -6130,6 +6152,7 @@ and template to use for the new secret).</p>
 <span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">folderId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">73</span><span class="w"> </span><span class="c1"># Required for new secrets: folder to create the secret in</span>
 <span class="w">          </span><span class="nt">secretTemplateId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6098</span><span class="w"> </span><span class="c1"># Required for new secrets: template to use</span>
+<span class="w">          </span><span class="nt">siteId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span><span class="w"> </span><span class="c1"># Required for new secrets: site where the secret is located</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
 <span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
@@ -6141,14 +6164,15 @@ and template to use for the new secret).</p>
 <span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">folderId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">73</span>
 <span class="w">          </span><span class="nt">secretTemplateId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6098</span>
+<span class="w">          </span><span class="nt">siteId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
 </code></pre></div>
 <blockquote>
 <p><strong>Note:</strong> The <code>folderId</code> in the <code>remoteKey</code> (<code>folderId:73/...</code>) is used when <strong>looking up</strong> the
-secret (for push, delete, and existence checks). The <code>folderId</code> and <code>secretTemplateId</code> in
-<code>metadata</code> are used when <strong>creating</strong> a new secret via the Secret Server API.</p>
+secret (for push, delete, and existence checks). The <code>folderId</code>, <code>secretTemplateId</code>, and <code>siteId</code>
+in <code>metadata</code> are used when <strong>creating</strong> a new secret via the Secret Server API.</p>
 </blockquote>
 <h3 id="updating-existing-secrets">Updating Existing Secrets</h3>
-<p>When updating an existing secret, you do not strictly need the <code>folderId</code> or <code>secretTemplateId</code> metadata, as the provider will fetch the existing secret by its name or ID to update the corresponding fields.</p>
+<p>When updating an existing secret, you do not strictly need the <code>folderId</code>, <code>secretTemplateId</code>, or <code>siteId</code> metadata, as the provider will fetch the existing secret by its name or ID to update the corresponding fields.</p>
 <p>However, if multiple secrets share the same name across different folders, you should use either the
 <code>folderId:&lt;id&gt;/&lt;name&gt;</code> format, a path-based key, or a numeric ID to ensure the correct secret is
 updated. Using a plain name will update the <strong>first match</strong> returned by the API.</p>
@@ -6190,7 +6214,20 @@ secret.</p>
 <span class="w">        </span><span class="nt">spec</span><span class="p">:</span>
 <span class="w">          </span><span class="nt">folderId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">73</span>
 <span class="w">          </span><span class="nt">secretTemplateId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">6098</span>
+<span class="w">          </span><span class="nt">siteId</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1</span>
 </code></pre></div>
+<h3 id="site-configuration">Site Configuration</h3>
+<p>Secret Server uses a site ID when it creates a secret. The provider uses site ID <code>1</code> by default.</p>
+<p>Set <code>spec.provider.secretserver.siteId</code> if your installation uses a different ID. This setting applies to <code>SecretStore</code> and <code>ClusterSecretStore</code>.</p>
+<p><code>PushSecret</code> metadata can set <code>siteId</code> for one secret. The metadata value overrides the store value.</p>
+<p>To find the site ID:</p>
+<ol>
+<li>Open <strong>Admin &gt; Distributed Engine &gt; Manage Sites</strong>.</li>
+<li>Select the site.</li>
+<li>Read the value after <code>SiteId=</code> in the <code>SiteView.aspx?SiteId=&lt;id&gt;</code> URL.</li>
+</ol>
+<p>If your server accepts a missing site ID, set <code>disableSiteIDValidation: true</code> in the store configuration.
+When the store and metadata omit <code>siteId</code>, the provider sends <code>0</code>.</p>
 
 
 
