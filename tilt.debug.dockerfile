@@ -1,4 +1,4 @@
-FROM golang:1.26.5@sha256:2005724102f45917a63e9d092fc0e4ea56ea575048ce147caad5f5f61502c365
+FROM golang:1.26.6@sha256:640a234f4bea3e399c056b7b8f9c667c4939befae8db2f14e9785e16eccd4205
 WORKDIR /
 COPY ./bin/external-secrets /external-secrets
 COPY ./bin/dlv /dlv
