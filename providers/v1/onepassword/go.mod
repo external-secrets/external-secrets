@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/onepassword
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/1Password/connect-sdk-go v1.5.3
