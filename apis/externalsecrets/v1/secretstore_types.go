@@ -343,11 +343,14 @@ const (
 
 	ReasonInvalidStore          = "InvalidStoreConfiguration"
 	ReasonInvalidProviderConfig = "InvalidProviderConfig"
-	ReasonValidationFailed      = "ValidationFailed"
-	ReasonValidationUnknown     = "ValidationUnknown"
-	ReasonStoreValid            = "Valid"
-	StoreUnmaintained           = "StoreUnmaintained"
-	StoreDeprecated             = "StoreDeprecated"
+	// ReasonProviderNotFound indicates the provider named in the store spec could
+	// not be resolved, as opposed to a client that failed to be built.
+	ReasonProviderNotFound  = "ProviderNotFound"
+	ReasonValidationFailed  = "ValidationFailed"
+	ReasonValidationUnknown = "ValidationUnknown"
+	ReasonStoreValid        = "Valid"
+	StoreUnmaintained       = "StoreUnmaintained"
+	StoreDeprecated         = "StoreDeprecated"
 )
 
 // SecretStoreStatusCondition contains condition information for a SecretStore.
