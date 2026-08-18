@@ -24,8 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/oracle/oci-go-sdk/v65/vault"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -133,11 +131,6 @@ func TestIsNil(t *testing.T) {
 		{
 			name: "empty str",
 			val:  "",
-			exp:  false,
-		},
-		{
-			name: "oracle vault",
-			val:  vault.VaultsClient{},
 			exp:  false,
 		},
 		{
@@ -1091,7 +1084,7 @@ func TestCompareStringAndByteSlices(t *testing.T) {
 		{
 			name: "same contents",
 			args: args{
-				stringValue:    aws.String("value"),
+				stringValue:    new("value"),
 				byteValueSlice: []byte("value"),
 			},
 			want:    true,
@@ -1099,7 +1092,7 @@ func TestCompareStringAndByteSlices(t *testing.T) {
 		}, {
 			name: "different contents",
 			args: args{
-				stringValue:    aws.String("value89"),
+				stringValue:    new("value89"),
 				byteValueSlice: []byte("value"),
 			},
 			want:    true,
@@ -1107,7 +1100,7 @@ func TestCompareStringAndByteSlices(t *testing.T) {
 		}, {
 			name: "same contents with random",
 			args: args{
-				stringValue:    aws.String("value89!3#@212"),
+				stringValue:    new("value89!3#@212"),
 				byteValueSlice: []byte("value89!3#@212"),
 			},
 			want:    true,
