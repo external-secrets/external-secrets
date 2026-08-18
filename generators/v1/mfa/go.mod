@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/generators/v1/mfa
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0

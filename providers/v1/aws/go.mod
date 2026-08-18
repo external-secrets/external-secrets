@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/aws
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.43.3
