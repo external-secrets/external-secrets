@@ -90,7 +90,18 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 }
 
 // ValidateStore validates the provider-specific store configuration.
-func (p *Provider) ValidateStore(_ esv1.GenericStore) (admission.Warnings, error) {
+func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
+	provider, err := getProvider(store)
+	if err != nil {
+		return nil, err
+	}
+	for _, s := range provider.Secrets {
+		if s.ServiceAccountRef != nil {
+			if err := esutils.ValidateServiceAccountSelector(store, *s.ServiceAccountRef); err != nil {
+				return nil, fmt.Errorf("invalid serviceAccountRef on webhook secret %q: %w", s.Name, err)
+			}
+		}
+	}
 	return nil, nil
 }
 

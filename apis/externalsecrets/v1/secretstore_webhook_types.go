@@ -130,11 +130,19 @@ type WebhookResult struct {
 	JSONPath string `json:"jsonPath,omitempty"`
 }
 
-// WebhookSecret defines a secret that will be passed to the webhook request.
+// WebhookSecret defines a credential source for the webhook request.
+// Exactly one of secretRef or serviceAccountRef must be set.
+// +kubebuilder:validation:XValidation:rule="has(self.secretRef) != has(self.serviceAccountRef)",message="exactly one of secretRef or serviceAccountRef must be set"
 type WebhookSecret struct {
 	// Name of this secret in templates
 	Name string `json:"name"`
 
 	// Secret ref to fill in credentials
-	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
+	// +optional
+	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+
+	// ServiceAccountRef requests a token for the referenced service account.
+	// The token is exposed to templates under the key `token`, e.g. `.<name>.token`.
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }

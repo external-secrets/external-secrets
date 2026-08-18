@@ -129,12 +129,20 @@ type WebhookResult struct {
 }
 
 // WebhookSecret defines a secret reference that will be used in webhook templates.
+// Exactly one of secretRef or serviceAccountRef must be set.
+// +kubebuilder:validation:XValidation:rule="has(self.secretRef) != has(self.serviceAccountRef)",message="exactly one of secretRef or serviceAccountRef must be set"
 type WebhookSecret struct {
 	// Name of this secret in templates
 	Name string `json:"name"`
 
 	// Secret ref to fill in credentials
-	SecretRef SecretKeySelector `json:"secretRef"`
+	// +optional
+	SecretRef *SecretKeySelector `json:"secretRef,omitempty"`
+
+	// ServiceAccountRef requests a token for the referenced service account.
+	// The token is exposed to templates under the key `token`, e.g. `.<name>.token`.
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
 
 // SecretKeySelector defines a reference to a specific key within a Kubernetes Secret.

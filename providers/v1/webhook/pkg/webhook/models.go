@@ -95,10 +95,17 @@ type Result struct {
 }
 
 // Secret defines a secret that can be used in webhook templates.
+// Exactly one of SecretRef or ServiceAccountRef must be set.
 type Secret struct {
 	// Name of this secret in templates
 	Name string `json:"name"`
 
 	// Secret ref to fill in credentials
-	SecretRef esmeta.SecretKeySelector `json:"secretRef"`
+	// +optional
+	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+
+	// ServiceAccountRef requests a token for the referenced service account.
+	// The token is exposed to templates under the key `token`, e.g. `.<name>.token`.
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }

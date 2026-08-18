@@ -119,6 +119,43 @@ If `secretKey` is not provided, the whole secret is provided JSON encoded.
 
 The secret will be added to the `remoteRef` object so that it is retrievable in the templating engine. The secret will be sent in the body when the body field of the provider is empty. In the rare case that the body should be empty, the provider can be configured to use `{% raw %}'{{ "" }}'{% endraw %}` for the body value.
 
+#### Service account tokens
+
+Instead of referencing a `Secret`, an entry in `secrets` can reference a Kubernetes `ServiceAccount`.
+The operator then requests a short-lived token for that service account via the Kubernetes TokenRequest
+API on every webhook call and exposes it to templates under the `token` key:
+
+```yaml
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: webhook-backend
+spec:
+  provider:
+    webhook:
+      url: "http://httpbin.org/get?parameter={{ .remoteRef.key }}"
+      result:
+        jsonPath: "$.args.parameter"
+      headers:
+        Content-Type: application/json
+        Authorization: Bearer {{ .auth.token }}
+      secrets:
+      - name: auth
+        serviceAccountRef:
+          name: webhook-sa
+{%- endraw %}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: webhook-sa
+  labels:
+    external-secrets.io/type: webhook # Needed to allow webhook to use this service account
+```
+
+**NOTE:** In case of a `ClusterSecretStore`, be sure to provide `namespace` in all `serviceAccountRef` references, just like for `secretRef`. The optional `audiences` field is passed to the TokenRequest API.
+
 #### Authentication
 
 Webhook also supports using NTLM for authorization:
@@ -198,13 +235,20 @@ spec:
         <Header-Name>: <header contents>
       # Body to sent as request, can be templated (optional)
       body: <body>
-      # List of secrets to expose to the templating engine
+      # List of secrets to expose to the templating engine.
+      # Each entry must set exactly one of secretRef or serviceAccountRef.
       secrets:
       # Use this name to refer to this secret in templating, above
       - name: <name>
         secretRef:
           namespace: <namespace> # Only used in ClusterSecretStores
           name: <name>
+      # A service account token, exposed to templates as `token`
+      - name: <name>
+        serviceAccountRef:
+          namespace: <namespace> # Only used in ClusterSecretStores
+          name: <name>
+          audiences: [<audience>] # Optional token audiences
       # Add CAs here for the TLS handshake
       caBundle: <base64 encoded cabundle>
       caProvider:
@@ -345,6 +389,9 @@ That covers `spec.provider.webhook.secrets` on a `SecretStore` or `ClusterSecret
 secret does not contain needed label 'external-secrets.io/type: webhook'. Update secret label to use it with webhook
 ```
 
+The same applies to every ServiceAccount referenced via `serviceAccountRef`; without the
+label, token creation fails with an analogous error.
+
 #### Template values are two levels deep
 
 Secrets listed under `secrets` are exposed as `.<name>.<keyInSecret>`, not `.<name>`. For:
@@ -359,6 +406,7 @@ secrets:
 the values are `{{ .creds.username }}` and `{{ .creds.password }}`. Referring to
 `{{ .creds }}` renders a Go map rather than a value. Note also that every key of the
 referenced secret is exposed; a `key` field on the `secretRef` does not narrow it.
+For `serviceAccountRef` entries the only exposed key is `token`, i.e. `{{ .<name>.token }}`.
 
 #### A templated `url` is validated before templating
 

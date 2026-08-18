@@ -14341,7 +14341,8 @@ string
 <a href="#external-secrets.io/v1.WebhookProvider">WebhookProvider</a>)
 </p>
 <p>
-<p>WebhookSecret defines a secret that will be passed to the webhook request.</p>
+<p>WebhookSecret defines a credential source for the webhook request.
+Exactly one of secretRef or serviceAccountRef must be set.</p>
 </p>
 <table>
 <thead>
@@ -14372,7 +14373,23 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Secret ref to fill in credentials</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef requests a token for the referenced service account.
+The token is exposed to templates under the key <code>token</code>, e.g. <code>.&lt;name&gt;.token</code>.</p>
 </td>
 </tr>
 </tbody>
@@ -31301,7 +31318,8 @@ string
 <a href="#generators.external-secrets.io/v1alpha1.WebhookSpec">WebhookSpec</a>)
 </p>
 <p>
-<p>WebhookSecret defines a secret reference that will be used in webhook templates.</p>
+<p>WebhookSecret defines a secret reference that will be used in webhook templates.
+Exactly one of secretRef or serviceAccountRef must be set.</p>
 </p>
 <table>
 <thead>
@@ -31332,7 +31350,23 @@ SecretKeySelector
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Secret ref to fill in credentials</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef requests a token for the referenced service account.
+The token is exposed to templates under the key <code>token</code>, e.g. <code>.&lt;name&gt;.token</code>.</p>
 </td>
 </tr>
 </tbody>
