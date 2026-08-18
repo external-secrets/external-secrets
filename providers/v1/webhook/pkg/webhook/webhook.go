@@ -248,7 +248,7 @@ func (w *Webhook) PushWebhookData(ctx context.Context, provider *Spec, data []by
 	if err != nil {
 		return err
 	}
-	escapedData["remoteRef"][remoteKey.GetRemoteKey()] = url.QueryEscape(string(data))
+	escapedData["remoteRef"][url.QueryEscape(remoteKey.GetRemoteKey())] = url.QueryEscape(string(data))
 
 	rawData, err := w.GetTemplatePushData(ctx, remoteKey, provider.Secrets, false)
 	if err != nil {
