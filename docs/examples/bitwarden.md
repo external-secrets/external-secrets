@@ -69,8 +69,32 @@ fi
 bw unlock --check
 
 echo 'Running `bw server` on port 8087'
-bw serve --hostname 0.0.0.0 #--disable-origin-protection
+bw serve --hostname all
 ```
+
+!!! warning "Bitwarden CLI 2026.6.0 and later: use `--hostname all`"
+
+    `bw serve` 2026.6.0 added a Host header allowlist on top of its existing
+    Origin header check. With `--hostname 0.0.0.0` the allowlist is built from
+    the bound hostname, so it contains only `localhost:8087`, `127.0.0.1:8087`,
+    `[::1]:8087` and `0.0.0.0:8087`.
+
+    The webhook provider reaches the CLI through a Kubernetes Service, so the
+    `Host` header is a service name such as `bitwarden-cli.bitwarden.svc:8087`.
+    That is not on the allowlist, so `bw serve` answers `403` and logs
+    `Blocking request with disallowed Host "..."`, and every ExternalSecret
+    backed by these stores fails.
+
+    `--hostname all` binds every interface and skips the Host allowlist, which
+    is why the example above uses it. It is also accepted by older releases, so
+    the same entrypoint works either way.
+
+    Prefer this over `--disable-origin-protection`. That flag turns off the
+    Origin header check as well, whereas `--hostname all` leaves it in place.
+    The webhook provider does not send an `Origin` header, so it is unaffected.
+
+    Neither option authenticates callers. The NetworkPolicy below is what
+    restricts access to `bw serve`, so deploy it.
 
 ## Deploy Bitwarden credentials
 
