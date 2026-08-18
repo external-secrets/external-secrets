@@ -924,7 +924,7 @@ func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing
 		tassert.Equal(t, []byte("v"), got)
 	}
 
-	tassert.Equal(t, int32(goroutines), atomic.LoadInt32(&tokenGetter.calls), fmt.Sprintf("TokenGetter.GetToken called %d times, want %d", factoryCalls, goroutines))
+	tassert.Equal(t, int32(goroutines), tokenGetter.calls.Load(), fmt.Sprintf("TokenGetter.GetToken called %d times, want %d", factoryCalls, goroutines))
 	tassert.Equal(t, int32(1), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("NewMysteryboxClient called %d times, want 1", factoryCalls))
 }
 
@@ -1047,7 +1047,7 @@ func newTestCachedTokenGetter(t *testing.T, tokenExchanger nebiusiam.TokenExchan
 }
 
 type faketokenGetter struct {
-	calls        int32
+	calls        atomic.Int32
 	tokenToIssue string
 	returnError  bool
 
@@ -1055,7 +1055,7 @@ type faketokenGetter struct {
 }
 
 func (f *faketokenGetter) GetToken(_ context.Context, _ string, _ *nebiusauth.CredentialRequest, _ []byte) (string, error) {
-	atomic.AddInt32(&f.calls, 1)
+	f.calls.Add(1)
 
 	if f.returnError {
 		return "", errors.New("internal error")
