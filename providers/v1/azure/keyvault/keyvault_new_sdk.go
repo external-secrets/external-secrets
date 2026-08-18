@@ -593,8 +593,7 @@ func buildWorkloadIdentityCredential(ctx context.Context, az *Azure, cloudConfig
 // canDeleteWithNewSDK checks if a resource can be deleted based on tags and error status.
 func canDeleteWithNewSDK(tags map[string]*string, err error) (bool, error) {
 	if err != nil {
-		var respErr *azcore.ResponseError
-		if errors.As(err, &respErr) {
+		if respErr, ok := errors.AsType[*azcore.ResponseError](err); ok {
 			if respErr.StatusCode == 404 {
 				// Resource doesn't exist, nothing to delete
 				return false, nil
@@ -750,8 +749,7 @@ func (a *Azure) secretExistsWithNewSDK(ctx context.Context, remoteRef esv1.PushS
 
 	err = parseNewSDKError(err)
 	if err != nil {
-		var noSecretErr esv1.NoSecretError
-		if errors.As(err, &noSecretErr) {
+		if _, ok := errors.AsType[esv1.NoSecretError](err); ok {
 			return false, nil
 		}
 		return false, err
@@ -766,8 +764,7 @@ func parseNewSDKError(err error) error {
 		return nil
 	}
 
-	var respErr *azcore.ResponseError
-	if errors.As(err, &respErr) {
+	if respErr, ok := errors.AsType[*azcore.ResponseError](err); ok {
 		if respErr.StatusCode == 404 {
 			return esv1.NoSecretError{}
 		}

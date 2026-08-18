@@ -19,6 +19,7 @@ package infisical
 import (
 	//nolint
 	. "github.com/onsi/ginkgo/v2"
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/framework/addon"
@@ -37,8 +38,8 @@ const (
 // path through the provider's PushSecret implementation.
 // FindByTag is excluded because the provider does not implement tag lookup
 // (it returns "find by tags not supported"), and FindByNameWithPath is
-// excluded because the provider matches ref.Path as a prefix of the absolute
-// Infisical secret path, which a bare namespace name never satisfies.
+// excluded because it searches from a bare namespace name, while Infisical
+// wants an absolute folder path.
 var _ = Describe("[infisical]", Label("infisical"), Ordered, func() {
 	f := framework.New("infisical")
 	infisical := addon.NewInfisical()
@@ -71,6 +72,7 @@ var _ = Describe("[infisical]", Label("infisical"), Ordered, func() {
 		// DeletionPolicyDelete depends on GetSecret returning NoSecretErr for a
 		// missing key, which the provider now does (see issue #6413).
 		framework.Compose(withUniversalAuth, f, common.DeletionPolicyDelete, useUniversalAuth(prov)),
+		framework.Compose(withUniversalAuth, f, findPathScopesTheSearch, useUniversalAuth(prov)),
 		// one case through a ClusterSecretStore to cover the cluster-scoped path
 		framework.Compose(withUniversalAuthCluster, f, common.JSONDataFromSync, useUniversalAuthClusterStore(prov)),
 	)
@@ -81,6 +83,35 @@ var _ = Describe("[infisical]", Label("infisical"), Ordered, func() {
 		framework.Compose(withUniversalAuth, f, pushSecretDeletesOnPolicy(prov), useUniversalAuthForPush(prov)),
 	)
 })
+
+// findPathScopesTheSearch covers #6685: without find.path reaching the request
+// the provider asks from the store's scope, which is the project root here, and
+// every seed below answers. Three of them are left out of the expectation for
+// three different reasons. The sibling repeats DB_HOST, which is the #6230
+// layout, and carries a key of its own, since the SDK collapses duplicates by
+// key and could leave the in-scope value standing even if the sibling leaked in.
+// The nested one is out because this store is not recursive, and a find path
+// says where to look rather than how far.
+func findPathScopesTheSearch(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[infisical] should search from find.path, no deeper and not into a folder that merely starts with it", func(tc *framework.TestCase) {
+		root := "/find-path-" + f.Namespace.Name
+		tc.Secrets = map[string]framework.SecretEntry{
+			root + "/DB_HOST":            {Value: "root-value"},
+			root + "/nested/API_KEY":     {Value: "nested-value"},
+			root + "-other/DB_HOST":      {Value: "sibling-value"},
+			root + "-other/OUT_OF_SCOPE": {Value: "sibling-only"},
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				"DB_HOST": []byte("root-value"),
+			},
+		}
+		tc.ExternalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{Find: &esv1.ExternalSecretFind{Path: &root}},
+		}
+	}
+}
 
 func useUniversalAuth(prov *infisicalProvider) func(*framework.TestCase) {
 	return func(tc *framework.TestCase) {

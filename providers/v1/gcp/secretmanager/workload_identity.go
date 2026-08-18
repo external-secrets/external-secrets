@@ -226,9 +226,13 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1.GCPSMAuth,
 	if err != nil {
 		return nil, fmt.Errorf(errGenAccessToken, err)
 	}
-	return oauth2.StaticTokenSource(&oauth2.Token{
+	token := &oauth2.Token{
 		AccessToken: gcpSAResp.GetAccessToken(),
-	}), nil
+	}
+	if expireTime := gcpSAResp.GetExpireTime(); expireTime != nil {
+		token.Expiry = expireTime.AsTime()
+	}
+	return oauth2.StaticTokenSource(token), nil
 }
 
 func (w *workloadIdentity) Close() error {
@@ -341,6 +345,9 @@ func (g *gcpIDBindTokenGenerator) Generate(ctx context.Context, client *http.Cli
 	idBindToken := &oauth2.Token{}
 	if err := json.Unmarshal(respBody, idBindToken); err != nil {
 		return nil, err
+	}
+	if idBindToken.ExpiresIn > 0 {
+		idBindToken.Expiry = time.Now().Add(time.Duration(idBindToken.ExpiresIn) * time.Second)
 	}
 	return idBindToken, nil
 }

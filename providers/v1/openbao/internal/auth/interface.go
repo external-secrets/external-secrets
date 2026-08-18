@@ -33,4 +33,5 @@ import (
 type Factory interface {
 	UserPass(username, password, mount string) (api.AuthMethod, error)
 	AppRole(id, secret, mount string) (api.AuthMethod, error)
+	Kubernetes(role, jwt, mount string) (api.AuthMethod, error)
 }

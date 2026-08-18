@@ -88,15 +88,13 @@ spec:
                               which secret (version/property/..) to fetch.
                             properties:
                               conversionStrategy:
-                                default: Default
-                                description: Used to define a conversion Strategy
+                                description: Used to define a conversion Strategy. Defaults to Default when omitted.
                                 enum:
                                   - Default
                                   - Unicode
                                 type: string
                               decodingStrategy:
-                                default: None
-                                description: Used to define a decoding Strategy
+                                description: Used to define a decoding Strategy. Defaults to None when omitted.
                                 enum:
                                   - Auto
                                   - Base64
@@ -107,7 +105,6 @@ spec:
                                 description: Key is the key used in the Provider, mandatory
                                 type: string
                               metadataPolicy:
-                                default: None
                                 description: Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
                                 enum:
                                   - None
@@ -223,15 +220,13 @@ spec:
                               Note: Extract does not support sourceRef.Generator or sourceRef.GeneratorRef.
                             properties:
                               conversionStrategy:
-                                default: Default
-                                description: Used to define a conversion Strategy
+                                description: Used to define a conversion Strategy. Defaults to Default when omitted.
                                 enum:
                                   - Default
                                   - Unicode
                                 type: string
                               decodingStrategy:
-                                default: None
-                                description: Used to define a decoding Strategy
+                                description: Used to define a decoding Strategy. Defaults to None when omitted.
                                 enum:
                                   - Auto
                                   - Base64
@@ -242,7 +237,6 @@ spec:
                                 description: Key is the key used in the Provider, mandatory
                                 type: string
                               metadataPolicy:
-                                default: None
                                 description: Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
                                 enum:
                                   - None
@@ -269,15 +263,13 @@ spec:
                               Note: Find does not support sourceRef.Generator or sourceRef.GeneratorRef.
                             properties:
                               conversionStrategy:
-                                default: Default
-                                description: Used to define a conversion Strategy
+                                description: Used to define a conversion Strategy. Defaults to Default when omitted.
                                 enum:
                                   - Default
                                   - Unicode
                                 type: string
                               decodingStrategy:
-                                default: None
-                                description: Used to define a decoding Strategy
+                                description: Used to define a decoding Strategy. Defaults to None when omitted.
                                 enum:
                                   - Auto
                                   - Base64
@@ -727,8 +719,9 @@ spec:
                                       nested paths like "spec.database.config" or "data".
                                     type: string
                                   valuesDecodingStrategy:
-                                    default: None
-                                    description: Used to define a decoding Strategy for the rendered template values.
+                                    description: |-
+                                      Used to define a decoding Strategy for the rendered template values.
+                                      Defaults to None when omitted.
                                     enum:
                                       - Auto
                                       - Base64
@@ -2247,8 +2240,9 @@ spec:
                                   nested paths like "spec.database.config" or "data".
                                 type: string
                               valuesDecodingStrategy:
-                                default: None
-                                description: Used to define a decoding Strategy for the rendered template values.
+                                description: |-
+                                  Used to define a decoding Strategy for the rendered template values.
+                                  Defaults to None when omitted.
                                 enum:
                                   - Auto
                                   - Base64
@@ -2525,8 +2519,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -2649,8 +2643,8 @@ spec:
                                 audiences:
                                   description: |-
                                     Audience specifies the `aud` claim for the service account token
-                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                    then this audiences will be appended to the list
+                                    Some providers automatically extend the audience field based on well-known annotations for workload
+                                    identity (e.g. IRSA or GCP Workload Identity)
                                   items:
                                     type: string
                                   type: array
@@ -2744,8 +2738,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -3120,8 +3114,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -3998,8 +3992,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -4158,8 +4152,8 @@ spec:
                                 audiences:
                                   description: |-
                                     Audience specifies the `aud` claim for the service account token
-                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                    then this audiences will be appended to the list
+                                    Some providers automatically extend the audience field based on well-known annotations for workload
+                                    identity (e.g. IRSA or GCP Workload Identity)
                                   items:
                                     type: string
                                   type: array
@@ -4470,8 +4464,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -4770,8 +4764,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -4897,8 +4891,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -6093,8 +6087,8 @@ spec:
                                 audiences:
                                   description: |-
                                     Audience specifies the `aud` claim for the service account token
-                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                    then this audiences will be appended to the list
+                                    Some providers automatically extend the audience field based on well-known annotations for workload
+                                    identity (e.g. IRSA or GCP Workload Identity)
                                   items:
                                     type: string
                                   type: array
@@ -6666,6 +6660,9 @@ spec:
                       required:
                         - auth
                       type: object
+                      x-kubernetes-validations:
+                        - message: at most one of the fields in [vault environment] may be set
+                          rule: '[has(self.vault),has(self.environment)].filter(x,x==true).size() <= 1'
                     openBao:
                       description: OpenBao configures this store to sync secrets using the OpenBao provider.
                       properties:
@@ -6758,6 +6755,93 @@ spec:
                               x-kubernetes-validations:
                                 - message: exactly one of the fields in [roleId roleRef] must be set
                                   rule: '[has(self.roleId),has(self.roleRef)].filter(x,x==true).size() == 1'
+                            kubernetes:
+                              description: |-
+                                Kubernetes authenticates with OpenBao by passing a ServiceAccount
+                                token to the [Kubernetes auth mechanism].
+
+                                [Kubernetes auth mechanism]: https://openbao.org/docs/auth/kubernetes/
+                              properties:
+                                path:
+                                  default: kubernetes
+                                  description: |-
+                                    Path where the Kubernetes authentication backend is mounted in OpenBao, e.g:
+                                    "kubernetes"
+                                  type: string
+                                role:
+                                  description: |-
+                                    A required field containing the OpenBao Role to assume. A Role binds a
+                                    Kubernetes ServiceAccount with a set of OpenBao policies.
+                                  minLength: 1
+                                  type: string
+                                secretRef:
+                                  description: |-
+                                    Optional secret field containing a Kubernetes ServiceAccount JWT used
+                                    for authenticating with OpenBao. If a name is specified without a key,
+                                    `token` is the default.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: |-
+                                    Optional service account field containing the name of a Kubernetes ServiceAccount.
+                                    If the service account is specified, a token will be requested from the Kubernetes
+                                    TokenRequest API for authenticating with OpenBao.
+                                    Any configured audiences will be passed to the TokenRequest as-is.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - path
+                                - role
+                              type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of the fields in [serviceAccountRef secretRef] must be set
+                                  rule: '[has(self.serviceAccountRef),has(self.secretRef)].filter(x,x==true).size() == 1'
                             namespace:
                               description: |-
                                 Name of the [OpenBao Namespace] to authenticate to. This can be different
@@ -6847,8 +6931,8 @@ spec:
                               type: object
                           type: object
                           x-kubernetes-validations:
-                            - message: exactly one of the fields in [appRole tokenSecretRef userPass] must be set
-                              rule: '[has(self.appRole),has(self.tokenSecretRef),has(self.userPass)].filter(x,x==true).size() == 1'
+                            - message: exactly one of the fields in [appRole tokenSecretRef userPass kubernetes] must be set
+                              rule: '[has(self.appRole),has(self.tokenSecretRef),has(self.userPass),has(self.kubernetes)].filter(x,x==true).size() == 1'
                         caBundle:
                           description: |-
                             PEM encoded CA bundle used to validate the OpenBao server certificate. If
@@ -7035,8 +7119,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -7530,8 +7614,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -7712,6 +7796,11 @@ spec:
                             - name
                             - type
                           type: object
+                        disableSiteIDValidation:
+                          description: |-
+                            DisableSiteIDValidation permits a missing site ID for new secrets.
+                            The provider sends 0 if no site ID is set.
+                          type: boolean
                         domain:
                           description: Domain is the secret server domain.
                           type: string
@@ -7759,6 +7848,13 @@ spec:
                             ServerURL
                             URL to your secret server installation
                           type: string
+                        siteId:
+                          description: |-
+                            SiteID is the ID of the Secret Server site for new secrets.
+                            PushSecret metadata can override this value for one secret.
+                            The provider uses 1 if this field is not set.
+                          minimum: 1
+                          type: integer
                         token:
                           description: |-
                             Token is an access token used to authenticate to the secret server,
@@ -8110,8 +8206,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -8156,8 +8252,8 @@ spec:
                                         audiences:
                                           description: |-
                                             Audience specifies the `aud` claim for the service account token
-                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                            then this audiences will be appended to the list
+                                            Some providers automatically extend the audience field based on well-known annotations for workload
+                                            identity (e.g. IRSA or GCP Workload Identity)
                                           items:
                                             type: string
                                           type: array
@@ -8201,8 +8297,8 @@ spec:
                                         audiences:
                                           description: |-
                                             Audience specifies the `aud` claim for the service account token
-                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                            then this audiences will be appended to the list
+                                            Some providers automatically extend the audience field based on well-known annotations for workload
+                                            identity (e.g. IRSA or GCP Workload Identity)
                                           items:
                                             type: string
                                           type: array
@@ -8363,8 +8459,8 @@ spec:
                                         audiences:
                                           description: |-
                                             Audience specifies the `aud` claim for the service account token
-                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                            then this audiences will be appended to the list
+                                            Some providers automatically extend the audience field based on well-known annotations for workload
+                                            identity (e.g. IRSA or GCP Workload Identity)
                                           items:
                                             type: string
                                           type: array
@@ -8486,8 +8582,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -9499,8 +9595,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -9771,8 +9867,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -10091,8 +10187,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -10666,8 +10762,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -11067,8 +11163,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -11538,8 +11634,8 @@ spec:
                                 audiences:
                                   description: |-
                                     Audience specifies the `aud` claim for the service account token
-                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                    then this audiences will be appended to the list
+                                    Some providers automatically extend the audience field based on well-known annotations for workload
+                                    identity (e.g. IRSA or GCP Workload Identity)
                                   items:
                                     type: string
                                   type: array
@@ -11918,8 +12014,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -12553,8 +12649,8 @@ spec:
                                         audiences:
                                           description: |-
                                             Audience specifies the `aud` claim for the service account token
-                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                            then this audiences will be appended to the list
+                                            Some providers automatically extend the audience field based on well-known annotations for workload
+                                            identity (e.g. IRSA or GCP Workload Identity)
                                           items:
                                             type: string
                                           type: array
@@ -12715,8 +12811,8 @@ spec:
                                         audiences:
                                           description: |-
                                             Audience specifies the `aud` claim for the service account token
-                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                            then this audiences will be appended to the list
+                                            Some providers automatically extend the audience field based on well-known annotations for workload
+                                            identity (e.g. IRSA or GCP Workload Identity)
                                           items:
                                             type: string
                                           type: array
@@ -12838,8 +12934,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -13602,15 +13698,13 @@ spec:
                           which secret (version/property/..) to fetch.
                         properties:
                           conversionStrategy:
-                            default: Default
-                            description: Used to define a conversion Strategy
+                            description: Used to define a conversion Strategy. Defaults to Default when omitted.
                             enum:
                               - Default
                               - Unicode
                             type: string
                           decodingStrategy:
-                            default: None
-                            description: Used to define a decoding Strategy
+                            description: Used to define a decoding Strategy. Defaults to None when omitted.
                             enum:
                               - Auto
                               - Base64
@@ -13621,7 +13715,6 @@ spec:
                             description: Key is the key used in the Provider, mandatory
                             type: string
                           metadataPolicy:
-                            default: None
                             description: Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
                             enum:
                               - None
@@ -13737,15 +13830,13 @@ spec:
                           Note: Extract does not support sourceRef.Generator or sourceRef.GeneratorRef.
                         properties:
                           conversionStrategy:
-                            default: Default
-                            description: Used to define a conversion Strategy
+                            description: Used to define a conversion Strategy. Defaults to Default when omitted.
                             enum:
                               - Default
                               - Unicode
                             type: string
                           decodingStrategy:
-                            default: None
-                            description: Used to define a decoding Strategy
+                            description: Used to define a decoding Strategy. Defaults to None when omitted.
                             enum:
                               - Auto
                               - Base64
@@ -13756,7 +13847,6 @@ spec:
                             description: Key is the key used in the Provider, mandatory
                             type: string
                           metadataPolicy:
-                            default: None
                             description: Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
                             enum:
                               - None
@@ -13783,15 +13873,13 @@ spec:
                           Note: Find does not support sourceRef.Generator or sourceRef.GeneratorRef.
                         properties:
                           conversionStrategy:
-                            default: Default
-                            description: Used to define a conversion Strategy
+                            description: Used to define a conversion Strategy. Defaults to Default when omitted.
                             enum:
                               - Default
                               - Unicode
                             type: string
                           decodingStrategy:
-                            default: None
-                            description: Used to define a decoding Strategy
+                            description: Used to define a decoding Strategy. Defaults to None when omitted.
                             enum:
                               - Auto
                               - Base64
@@ -14241,8 +14329,9 @@ spec:
                                   nested paths like "spec.database.config" or "data".
                                 type: string
                               valuesDecodingStrategy:
-                                default: None
-                                description: Used to define a decoding Strategy for the rendered template values.
+                                description: |-
+                                  Used to define a decoding Strategy for the rendered template values.
+                                  Defaults to None when omitted.
                                 enum:
                                   - Auto
                                   - Base64
@@ -15474,8 +15563,9 @@ spec:
                               nested paths like "spec.database.config" or "data".
                             type: string
                           valuesDecodingStrategy:
-                            default: None
-                            description: Used to define a decoding Strategy for the rendered template values.
+                            description: |-
+                              Used to define a decoding Strategy for the rendered template values.
+                              Defaults to None when omitted.
                             enum:
                               - Auto
                               - Base64
@@ -15780,8 +15870,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -15904,8 +15994,8 @@ spec:
                                 audiences:
                                   description: |-
                                     Audience specifies the `aud` claim for the service account token
-                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                    then this audiences will be appended to the list
+                                    Some providers automatically extend the audience field based on well-known annotations for workload
+                                    identity (e.g. IRSA or GCP Workload Identity)
                                   items:
                                     type: string
                                   type: array
@@ -15999,8 +16089,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -16375,8 +16465,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -17253,8 +17343,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -17413,8 +17503,8 @@ spec:
                                 audiences:
                                   description: |-
                                     Audience specifies the `aud` claim for the service account token
-                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                    then this audiences will be appended to the list
+                                    Some providers automatically extend the audience field based on well-known annotations for workload
+                                    identity (e.g. IRSA or GCP Workload Identity)
                                   items:
                                     type: string
                                   type: array
@@ -17725,8 +17815,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -18025,8 +18115,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -18152,8 +18242,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -19348,8 +19438,8 @@ spec:
                                 audiences:
                                   description: |-
                                     Audience specifies the `aud` claim for the service account token
-                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                    then this audiences will be appended to the list
+                                    Some providers automatically extend the audience field based on well-known annotations for workload
+                                    identity (e.g. IRSA or GCP Workload Identity)
                                   items:
                                     type: string
                                   type: array
@@ -19921,6 +20011,9 @@ spec:
                       required:
                         - auth
                       type: object
+                      x-kubernetes-validations:
+                        - message: at most one of the fields in [vault environment] may be set
+                          rule: '[has(self.vault),has(self.environment)].filter(x,x==true).size() <= 1'
                     openBao:
                       description: OpenBao configures this store to sync secrets using the OpenBao provider.
                       properties:
@@ -20013,6 +20106,93 @@ spec:
                               x-kubernetes-validations:
                                 - message: exactly one of the fields in [roleId roleRef] must be set
                                   rule: '[has(self.roleId),has(self.roleRef)].filter(x,x==true).size() == 1'
+                            kubernetes:
+                              description: |-
+                                Kubernetes authenticates with OpenBao by passing a ServiceAccount
+                                token to the [Kubernetes auth mechanism].
+
+                                [Kubernetes auth mechanism]: https://openbao.org/docs/auth/kubernetes/
+                              properties:
+                                path:
+                                  default: kubernetes
+                                  description: |-
+                                    Path where the Kubernetes authentication backend is mounted in OpenBao, e.g:
+                                    "kubernetes"
+                                  type: string
+                                role:
+                                  description: |-
+                                    A required field containing the OpenBao Role to assume. A Role binds a
+                                    Kubernetes ServiceAccount with a set of OpenBao policies.
+                                  minLength: 1
+                                  type: string
+                                secretRef:
+                                  description: |-
+                                    Optional secret field containing a Kubernetes ServiceAccount JWT used
+                                    for authenticating with OpenBao. If a name is specified without a key,
+                                    `token` is the default.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: |-
+                                    Optional service account field containing the name of a Kubernetes ServiceAccount.
+                                    If the service account is specified, a token will be requested from the Kubernetes
+                                    TokenRequest API for authenticating with OpenBao.
+                                    Any configured audiences will be passed to the TokenRequest as-is.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - path
+                                - role
+                              type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of the fields in [serviceAccountRef secretRef] must be set
+                                  rule: '[has(self.serviceAccountRef),has(self.secretRef)].filter(x,x==true).size() == 1'
                             namespace:
                               description: |-
                                 Name of the [OpenBao Namespace] to authenticate to. This can be different
@@ -20102,8 +20282,8 @@ spec:
                               type: object
                           type: object
                           x-kubernetes-validations:
-                            - message: exactly one of the fields in [appRole tokenSecretRef userPass] must be set
-                              rule: '[has(self.appRole),has(self.tokenSecretRef),has(self.userPass)].filter(x,x==true).size() == 1'
+                            - message: exactly one of the fields in [appRole tokenSecretRef userPass kubernetes] must be set
+                              rule: '[has(self.appRole),has(self.tokenSecretRef),has(self.userPass),has(self.kubernetes)].filter(x,x==true).size() == 1'
                         caBundle:
                           description: |-
                             PEM encoded CA bundle used to validate the OpenBao server certificate. If
@@ -20290,8 +20470,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -20785,8 +20965,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -20967,6 +21147,11 @@ spec:
                             - name
                             - type
                           type: object
+                        disableSiteIDValidation:
+                          description: |-
+                            DisableSiteIDValidation permits a missing site ID for new secrets.
+                            The provider sends 0 if no site ID is set.
+                          type: boolean
                         domain:
                           description: Domain is the secret server domain.
                           type: string
@@ -21014,6 +21199,13 @@ spec:
                             ServerURL
                             URL to your secret server installation
                           type: string
+                        siteId:
+                          description: |-
+                            SiteID is the ID of the Secret Server site for new secrets.
+                            PushSecret metadata can override this value for one secret.
+                            The provider uses 1 if this field is not set.
+                          minimum: 1
+                          type: integer
                         token:
                           description: |-
                             Token is an access token used to authenticate to the secret server,
@@ -21365,8 +21557,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -21411,8 +21603,8 @@ spec:
                                         audiences:
                                           description: |-
                                             Audience specifies the `aud` claim for the service account token
-                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                            then this audiences will be appended to the list
+                                            Some providers automatically extend the audience field based on well-known annotations for workload
+                                            identity (e.g. IRSA or GCP Workload Identity)
                                           items:
                                             type: string
                                           type: array
@@ -21456,8 +21648,8 @@ spec:
                                         audiences:
                                           description: |-
                                             Audience specifies the `aud` claim for the service account token
-                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                            then this audiences will be appended to the list
+                                            Some providers automatically extend the audience field based on well-known annotations for workload
+                                            identity (e.g. IRSA or GCP Workload Identity)
                                           items:
                                             type: string
                                           type: array
@@ -21618,8 +21810,8 @@ spec:
                                         audiences:
                                           description: |-
                                             Audience specifies the `aud` claim for the service account token
-                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                            then this audiences will be appended to the list
+                                            Some providers automatically extend the audience field based on well-known annotations for workload
+                                            identity (e.g. IRSA or GCP Workload Identity)
                                           items:
                                             type: string
                                           type: array
@@ -21741,8 +21933,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -22754,8 +22946,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -23026,8 +23218,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -23346,8 +23538,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -23921,8 +24113,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -24322,8 +24514,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -24793,8 +24985,8 @@ spec:
                                 audiences:
                                   description: |-
                                     Audience specifies the `aud` claim for the service account token
-                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                    then this audiences will be appended to the list
+                                    Some providers automatically extend the audience field based on well-known annotations for workload
+                                    identity (e.g. IRSA or GCP Workload Identity)
                                   items:
                                     type: string
                                   type: array
@@ -25173,8 +25365,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -25808,8 +26000,8 @@ spec:
                                         audiences:
                                           description: |-
                                             Audience specifies the `aud` claim for the service account token
-                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                            then this audiences will be appended to the list
+                                            Some providers automatically extend the audience field based on well-known annotations for workload
+                                            identity (e.g. IRSA or GCP Workload Identity)
                                           items:
                                             type: string
                                           type: array
@@ -25970,8 +26162,8 @@ spec:
                                         audiences:
                                           description: |-
                                             Audience specifies the `aud` claim for the service account token
-                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                            then this audiences will be appended to the list
+                                            Some providers automatically extend the audience field based on well-known annotations for workload
+                                            identity (e.g. IRSA or GCP Workload Identity)
                                           items:
                                             type: string
                                           type: array
@@ -26093,8 +26285,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -26920,8 +27112,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -27258,8 +27450,8 @@ spec:
                     audiences:
                       description: |-
                         Audience specifies the `aud` claim for the service account token
-                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                        then this audiences will be appended to the list
+                        Some providers automatically extend the audience field based on well-known annotations for workload
+                        identity (e.g. IRSA or GCP Workload Identity)
                       items:
                         type: string
                       type: array
@@ -27435,8 +27627,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -27672,8 +27864,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -27717,8 +27909,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -27911,8 +28103,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -28040,8 +28232,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -28450,8 +28642,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -28518,8 +28710,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -28902,8 +29094,8 @@ spec:
                                         audiences:
                                           description: |-
                                             Audience specifies the `aud` claim for the service account token
-                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                            then this audiences will be appended to the list
+                                            Some providers automatically extend the audience field based on well-known annotations for workload
+                                            identity (e.g. IRSA or GCP Workload Identity)
                                           items:
                                             type: string
                                           type: array
@@ -28948,8 +29140,8 @@ spec:
                                             audiences:
                                               description: |-
                                                 Audience specifies the `aud` claim for the service account token
-                                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                                then this audiences will be appended to the list
+                                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                                identity (e.g. IRSA or GCP Workload Identity)
                                               items:
                                                 type: string
                                               type: array
@@ -28993,8 +29185,8 @@ spec:
                                             audiences:
                                               description: |-
                                                 Audience specifies the `aud` claim for the service account token
-                                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                                then this audiences will be appended to the list
+                                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                                identity (e.g. IRSA or GCP Workload Identity)
                                               items:
                                                 type: string
                                               type: array
@@ -29155,8 +29347,8 @@ spec:
                                             audiences:
                                               description: |-
                                                 Audience specifies the `aud` claim for the service account token
-                                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                                then this audiences will be appended to the list
+                                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                                identity (e.g. IRSA or GCP Workload Identity)
                                               items:
                                                 type: string
                                               type: array
@@ -29278,8 +29470,8 @@ spec:
                                         audiences:
                                           description: |-
                                             Audience specifies the `aud` claim for the service account token
-                                            If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                            then this audiences will be appended to the list
+                                            Some providers automatically extend the audience field based on well-known annotations for workload
+                                            identity (e.g. IRSA or GCP Workload Identity)
                                           items:
                                             type: string
                                           type: array
@@ -29893,8 +30085,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -30187,8 +30379,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -30316,8 +30508,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -31125,8 +31317,8 @@ spec:
                     audiences:
                       description: |-
                         Audience specifies the `aud` claim for the service account token
-                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                        then this audiences will be appended to the list
+                        Some providers automatically extend the audience field based on well-known annotations for workload
+                        identity (e.g. IRSA or GCP Workload Identity)
                       items:
                         type: string
                       type: array
@@ -31293,8 +31485,8 @@ spec:
                             audiences:
                               description: |-
                                 Audience specifies the `aud` claim for the service account token
-                                If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                then this audiences will be appended to the list
+                                Some providers automatically extend the audience field based on well-known annotations for workload
+                                identity (e.g. IRSA or GCP Workload Identity)
                               items:
                                 type: string
                               type: array
@@ -31773,8 +31965,8 @@ spec:
                                 audiences:
                                   description: |-
                                     Audience specifies the `aud` claim for the service account token
-                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                    then this audiences will be appended to the list
+                                    Some providers automatically extend the audience field based on well-known annotations for workload
+                                    identity (e.g. IRSA or GCP Workload Identity)
                                   items:
                                     type: string
                                   type: array
@@ -31819,8 +32011,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -31864,8 +32056,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -32026,8 +32218,8 @@ spec:
                                     audiences:
                                       description: |-
                                         Audience specifies the `aud` claim for the service account token
-                                        If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                        then this audiences will be appended to the list
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
                                       items:
                                         type: string
                                       type: array
@@ -32149,8 +32341,8 @@ spec:
                                 audiences:
                                   description: |-
                                     Audience specifies the `aud` claim for the service account token
-                                    If the service account uses a well-known annotation for e.g. IRSA or GCP Workload Identity
-                                    then this audiences will be appended to the list
+                                    Some providers automatically extend the audience field based on well-known annotations for workload
+                                    identity (e.g. IRSA or GCP Workload Identity)
                                   items:
                                     type: string
                                   type: array
