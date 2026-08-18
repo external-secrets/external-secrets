@@ -31,6 +31,7 @@ import (
 
 	"github.com/Azure/go-ntlmssp"
 	"github.com/PaesslerAG/jsonpath"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -52,6 +53,11 @@ type Webhook struct {
 	EnforceLabels bool
 	ClusterScoped bool
 }
+
+// serviceAccountTokenExpiration is the requested lifetime of tokens created
+// for serviceAccountRef entries. Tokens are requested per webhook call and
+// are not cached, so a short lifetime is sufficient.
+const serviceAccountTokenExpiration = int64(600)
 
 func (w *Webhook) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelector) (*corev1.Secret, error) {
 	ke := client.ObjectKey{
@@ -78,6 +84,43 @@ func (w *Webhook) getStoreSecret(ctx context.Context, ref esmeta.SecretKeySelect
 		}
 	}
 	return secret, nil
+}
+
+func (w *Webhook) getStoreServiceAccountToken(ctx context.Context, ref esmeta.ServiceAccountSelector) (string, error) {
+	ke := client.ObjectKey{
+		Name:      ref.Name,
+		Namespace: w.Namespace,
+	}
+	if w.ClusterScoped {
+		if ref.Namespace == nil {
+			return "", fmt.Errorf("no namespace on ClusterScoped webhook service account %s", ref.Name)
+		}
+		ke.Namespace = *ref.Namespace
+	}
+	serviceAccount := &corev1.ServiceAccount{}
+	if err := w.Kube.Get(ctx, ke, serviceAccount); err != nil {
+		return "", fmt.Errorf("failed to get webhook service account %s: %w", ref.Name, err)
+	}
+	if w.EnforceLabels {
+		expected, ok := serviceAccount.Labels["external-secrets.io/type"]
+		if !ok {
+			return "", errors.New("service account does not contain needed label 'external-secrets.io/type: webhook'. Update service account label to use it with webhook")
+		}
+		if expected != "webhook" {
+			return "", errors.New("service account type is not 'webhook'")
+		}
+	}
+	expirationSeconds := serviceAccountTokenExpiration
+	tokenRequest := &authenticationv1.TokenRequest{
+		Spec: authenticationv1.TokenRequestSpec{
+			Audiences:         ref.Audiences,
+			ExpirationSeconds: &expirationSeconds,
+		},
+	}
+	if err := w.Kube.SubResource("token").Create(ctx, serviceAccount, tokenRequest); err != nil {
+		return "", fmt.Errorf("failed to create token for webhook service account %s: %w", ref.Name, err)
+	}
+	return tokenRequest.Status.Token, nil
 }
 
 // GetSecretMap retrieves a secret from a webhook endpoint and processes
@@ -184,12 +227,25 @@ func (w *Webhook) getTemplatedSecrets(ctx context.Context, secrets []Secret, dat
 		if _, ok := data[secref.Name]; !ok {
 			data[secref.Name] = make(map[string]string)
 		}
-		secret, err := w.getStoreSecret(ctx, secref.SecretRef)
-		if err != nil {
-			return err
-		}
-		for sKey, sVal := range secret.Data {
-			data[secref.Name][sKey] = string(sVal)
+		switch {
+		case secref.SecretRef != nil && secref.ServiceAccountRef != nil:
+			return fmt.Errorf("only one of secretRef and serviceAccountRef may be set on webhook secret %q", secref.Name)
+		case secref.SecretRef != nil:
+			secret, err := w.getStoreSecret(ctx, *secref.SecretRef)
+			if err != nil {
+				return err
+			}
+			for sKey, sVal := range secret.Data {
+				data[secref.Name][sKey] = string(sVal)
+			}
+		case secref.ServiceAccountRef != nil:
+			token, err := w.getStoreServiceAccountToken(ctx, *secref.ServiceAccountRef)
+			if err != nil {
+				return err
+			}
+			data[secref.Name]["token"] = token
+		default:
+			return fmt.Errorf("either secretRef or serviceAccountRef must be set on webhook secret %q", secref.Name)
 		}
 	}
 
