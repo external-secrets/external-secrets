@@ -22,65 +22,69 @@ Rules of thumb:
 * Matching uses the **current** key names (post-rewrite).
 * An invalid `regexp` puts the ExternalSecret into an error state.
 
-## How-to: drop unwanted 1Password fields
+## How-to: drop unwanted keys from a large secret
 
-Consider the following scenario:
-> "You are synchronizing secrets from 1Password to Kubernetes using External Secrets Operator. However, 1Password includes unnecessary fields by default, such as `notesPlain`, `username`, and `password`. These fields are synchronized even when they are blank, resulting in cluttered Kubernetes Secrets."
+When a secret stored in an external provider contains many key-value pairs, explicitly listing all desired fields using `spec.data` or templating can be impractical and error-prone. For example, a Vault KV path may accumulate many keys over time -- connection strings, feature flags, API endpoints -- alongside internal metadata fields prefixed with `_` (such as `_created_by`, `_last_rotated`, `_version`). Listing every wanted key individually in a template is tedious and breaks whenever a new key is added upstream. Instead, you can use `select` to exclude all keys that match the metadata prefix pattern.
 
 ### Without select
 
 Suppose the provider returns the following keys:
 ```text
-host: db.example.com
-port: "5432"
-password: secret
-username: ""
-notesPlain: ""
+db_host: db.example.com
+db_port: "5432"
+api_url: https://api.example.com
+feature_dark_mode: "true"
+_created_by: automation
+_last_rotated: "2026-07-01"
+_version: "42"
 ```
 
-Without any select rules, synchronizing these keys directly with `dataFrom.extract` produces a cluttered target Kubernetes Secret containing unnecessary empty/blank fields:
+Without any select rules, `dataFrom.extract` synchronizes every key into the Kubernetes Secret, including the internal metadata fields that the application does not need:
 
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
-  name: database-credentials
+  name: app-config
 type: Opaque
 data:
-  host: ZGIuZXhhbXBsZS5jb20=        # db.example.com
-  port: NTQzMg==                    # 5432
-  password: c2VjcmV0                # secret
-  username: ""                      # synchronized even though it is blank
-  notesPlain: ""                    # synchronized even though it is blank
+  db_host: ZGIuZXhhbXBsZS5jb20=
+  db_port: NTQzMg==
+  api_url: aHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20=
+  feature_dark_mode: dHJ1ZQ==
+  _created_by: YXV0b21hdGlvbg==       # unwanted metadata
+  _last_rotated: MjAyNi0wNy0wMQ==     # unwanted metadata
+  _version: NDI=                       # unwanted metadata
 ```
 
 ### The Solution using `dataFrom.select`
 
-To resolve this and keep the target Kubernetes Secret clean, it is possible to define a list of `select` rules under `dataFrom` to exclude the unwanted blank fields:
+A single `Exclude` rule with a regexp drops all metadata keys by pattern, regardless of how many there are or what new metadata keys appear in the future:
 
 ```yaml
 {% include 'datafrom-select-1password.yaml' %}
 ```
 
-Applying the ExternalSecret with the `Exclude` select rule results in a clean Kubernetes Secret containing only the active, desired keys:
+The resulting Kubernetes Secret contains only the application configuration keys:
 
 ```yaml
 apiVersion: v1
 kind: Secret
 metadata:
-  name: database-credentials
+  name: app-config
 type: Opaque
 data:
-  host: ZGIuZXhhbXBsZS5jb20=        # db.example.com
-  port: NTQzMg==                    # 5432
-  password: c2VjcmV0                # secret
+  db_host: ZGIuZXhhbXBsZS5jb20=
+  db_port: NTQzMg==
+  api_url: aHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20=
+  feature_dark_mode: dHJ1ZQ==
 ```
 
 ### How it works
 
-The `Exclude` operation matches `username` and `notesPlain` from the names list and drops them from the set of keys after they are fetched.
+The `Exclude` operation matches all keys starting with `_` using the regexp `^_` and removes them from the working set. Because the rule is pattern-based, any new metadata keys added upstream are automatically filtered without updating the ExternalSecret manifest.
 
-If an allow-list approach is preferred instead of specifying which fields to drop, `Include` rules can be used to keep only the specific keys, dropping all others by default.
+For an allow-list approach, `Include` rules can keep only keys matching a specific pattern, dropping all others by default.
 
 ## Include / Exclude semantics
 
