@@ -802,6 +802,41 @@ func TestSelectMap(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "defined but empty regexp matches all - exclude",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr(""),
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+				},
+				in: map[string][]byte{
+					"foo": []byte("a"),
+					"bar": []byte("b"),
+				},
+			},
+			want: map[string][]byte{},
+		},
+		{
+			name: "defined but empty regexp matches all - include",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr(""),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+				},
+				in: map[string][]byte{
+					"foo": []byte("a"),
+					"bar": []byte("b"),
+				},
+			},
+			want: map[string][]byte{
+				"foo": []byte("a"),
+				"bar": []byte("b"),
+			},
+		},
+		{
 			name: "empty input",
 			args: args{
 				operations: []esv1.ExternalSecretSelect{
@@ -853,11 +888,35 @@ func TestSelectMap(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "exclude then include all - sequential additive",
+			name: "exclude by name then include all - sequential additive",
 			args: args{
 				operations: []esv1.ExternalSecretSelect{
 					{
 						Names:     []string{"host"},
+						Operation: esv1.ExternalSecretSelectExclude,
+					},
+					{
+						Regexp:    ptrStr(".*"),
+						Operation: esv1.ExternalSecretSelectInclude,
+					},
+				},
+				in: map[string][]byte{
+					"host":     []byte("localhost"),
+					"port":     []byte("5432"),
+					"password": []byte("secret"),
+				},
+			},
+			want: map[string][]byte{
+				"port":     []byte("5432"),
+				"password": []byte("secret"),
+			},
+		},
+		{
+			name: "exclude by regexp then include all - sequential additive",
+			args: args{
+				operations: []esv1.ExternalSecretSelect{
+					{
+						Regexp:    ptrStr("^host$"),
 						Operation: esv1.ExternalSecretSelectExclude,
 					},
 					{
@@ -930,11 +989,11 @@ func TestSelectMap(t *testing.T) {
 					},
 				},
 				in: map[string][]byte{
-					"foo-one":  []byte("1"),
-					"foo-two":  []byte("2"),
-					"bar-one":  []byte("3"),
-					"bar-two":  []byte("4"),
-					"baz-one":  []byte("5"),
+					"foo-one": []byte("1"),
+					"foo-two": []byte("2"),
+					"bar-one": []byte("3"),
+					"bar-two": []byte("4"),
+					"baz-one": []byte("5"),
 				},
 			},
 			want: map[string][]byte{
