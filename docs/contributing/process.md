@@ -63,6 +63,24 @@ Pull requests that are labelled with _size/l_ and above _MUST_ have at least **T
 approvers for it to be merged. Please respect this policy to ensure the quality
 of code in this project.
 
+### How review is routed
+
+Review runs in two stages: automated review first, then a maintainer.
+
+While an automated reviewer still has unresolved findings on your pull request, it stays with
+you rather than entering the maintainer queue. Address them by pushing a fix, or by replying
+in the thread if you think a finding is wrong, and resolve the conversation. You do not need
+to change code you disagree with; say so in the thread and a maintainer will judge it. A
+maintainer can also apply `review/bots-overridden` to skip the gate entirely.
+
+You do not need to watch for this. When there is something to address, a comment appears on
+the pull request explaining what is outstanding, and it is updated in place once the queue
+picks your change up.
+
+A `review/*` label tracks where each pull request sits, and it is derived automatically. The
+ones that mean the ball is with the author are `review/draft`, `review/ci-red`,
+`review/changes-requested`, and `review/bot-findings-open`. The rest mean it is with us.
+
 ### Triggering e2e tests
 
 We have an extensive set of e2e tests that test the integration with *real* cloud provider APIs.

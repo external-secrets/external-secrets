@@ -1,0 +1,104 @@
+# Derives one review/* label per open pull request.
+# See design/015-review-routing.md for the rationale.
+#
+# Events keep it prompt; the hourly reconcile keeps it correct. If a trigger is
+# ever missed or a run fails, the next sweep repairs the state on its own.
+name: Review State
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, labeled, unlabeled]
+  pull_request_review:
+    types: [submitted, dismissed, edited]
+  pull_request_review_thread:
+    types: [resolved, unresolved]
+  check_suite:
+    types: [completed]
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'Pull request number to evaluate. Leave empty to sweep all open PRs.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: review-state-${{ github.event.pull_request.number || github.event.check_suite.id || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  review-state:
+    name: Derive review state
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read        # for reading .github/scripts
+      pull-requests: write  # for labelling pull requests
+      issues: write         # for the guidance comment
+    # Labels this workflow applies itself must not trigger it again. Events
+    # raised by GITHUB_TOKEN do not start new runs, so this is belt and braces
+    # against a future switch to an App token. The override label is exempt:
+    # applying it is precisely a request to re-evaluate.
+    if: >-
+      github.event_name != 'pull_request_target'
+      || !contains(fromJSON('["labeled", "unlabeled"]'), github.event.action)
+      || !startsWith(github.event.label.name, 'review/')
+      || github.event.label.name == 'review/bots-overridden'
+    steps:
+      # Never check out pull request code here: pull_request_target and the
+      # review events run against the base repo with a writable token.
+      - name: Checkout scripts from the base ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Resolve which pull requests to evaluate
+        id: resolve
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const event = context.eventName;
+            let numbers = [];
+
+            if (event === 'pull_request_target' || event === 'pull_request_review'
+                || event === 'pull_request_review_thread') {
+              numbers = [context.payload.pull_request.number];
+            } else if (event === 'check_suite') {
+              // check_suite.pull_requests is empty for pull requests from
+              // forks, so resolve by head SHA instead of trusting the payload.
+              const sha = context.payload.check_suite.head_sha;
+              const found = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+                owner, repo, commit_sha: sha,
+              });
+              numbers = found.data.filter(p => p.state === 'open').map(p => p.number);
+            } else {
+              const requested = (context.payload.inputs && context.payload.inputs.pr || '').trim();
+              if (requested) {
+                numbers = [Number(requested)];
+              } else {
+                const open = await github.paginate(github.rest.pulls.list, {
+                  owner, repo, state: 'open', per_page: 100,
+                });
+                numbers = open.map(p => p.number);
+              }
+            }
+            core.info(`evaluating ${numbers.length} pull request(s): ${numbers.join(', ') || 'none'}`);
+            core.setOutput('numbers', JSON.stringify(numbers));
+
+      - name: Apply review state
+        if: steps.resolve.outputs.numbers != '[]'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v7
+        env:
+          PR_NUMBERS: ${{ steps.resolve.outputs.numbers }}
+        with:
+          script: |
+            const { default: run } = await import(
+              `${process.env.GITHUB_WORKSPACE}/.github/scripts/review-state.js`
+            );
+            await run({ core, github, context, numbers: JSON.parse(process.env.PR_NUMBERS) });
