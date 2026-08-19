@@ -80,6 +80,21 @@ func TestParseCurvePreferences(t *testing.T) {
 			input: []string{"P-521"},
 			want:  []tls.CurveID{tls.CurveP521},
 		},
+		{
+			name:    "invalid numeric curve ID",
+			input:   []string{"9999"},
+			wantErr: true,
+		},
+		{
+			name:    "zero is not a valid curve ID",
+			input:   []string{"0"},
+			wantErr: true,
+		},
+		{
+			name:  "valid post-quantum hybrid curve by number",
+			input: []string{"4588"},
+			want:  []tls.CurveID{tls.X25519MLKEM768},
+		},
 	}
 
 	for _, tt := range tests {

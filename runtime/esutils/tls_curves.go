@@ -49,13 +49,33 @@ func ParseCurvePreferences(names []string) ([]tls.CurveID, error) {
 	return out, nil
 }
 
+var knownCurves = map[tls.CurveID]bool{
+	tls.CurveP256:          true,
+	tls.CurveP384:          true,
+	tls.CurveP521:          true,
+	tls.X25519:             true,
+	tls.X25519MLKEM768:     true,
+	tls.SecP256r1MLKEM768:  true,
+	tls.SecP384r1MLKEM1024: true,
+}
+
 func parseCurveID(name string) (tls.CurveID, error) {
 	if isAllDecimal(name) {
 		u, err := strconv.ParseUint(name, 10, 16)
 		if err != nil {
 			return 0, fmt.Errorf("invalid tls curve id %q: %w", name, err)
 		}
-		return tls.CurveID(u), nil
+		id := tls.CurveID(u)
+		if !knownCurves[id] {
+			return 0, fmt.Errorf(
+				"unsupported tls curve id %s: not a known CurveID"+
+					" (valid: 23=CurveP256, 24=CurveP384, 25=CurveP521,"+
+					" 29=X25519, 4587=SecP256r1MLKEM768,"+
+					" 4588=X25519MLKEM768, 4589=SecP384r1MLKEM1024)",
+				name,
+			)
+		}
+		return id, nil
 	}
 
 	switch name {
