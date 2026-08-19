@@ -122,9 +122,37 @@ linters:
       disable:
         - omitzero
   exclusions:
-    paths:
-      - runtime/template/v2/sprig
     rules:
+      # The in-tree sprig copy is excluded from legacy checks, but module boundaries still apply.
+      - path: runtime/template/v2/sprig
+        linters:
+          - asciicheck
+          - bodyclose
+          - copyloopvar
+          - dogsled
+          - dupl
+          - errcheck
+          - errorlint
+          - exhaustive
+          - gocritic
+          - godot
+          - goheader
+          - goprintffuncname
+          - gosec
+          - govet
+          - ineffassign
+          - lll
+          - misspell
+          - modernize
+          - nakedret
+          - nolintlint
+          - prealloc
+          - revive
+          - unconvert
+          - unparam
+          - unused
+          - whitespace
+
       # Exclude some linters from running on tests files.
       - path: _test(ing)?\.go
         linters:
@@ -179,6 +207,9 @@ formatters:
     - gofmt
     - goimports
     - golines
+  exclusions:
+    paths:
+      - runtime/template/v2/sprig
   settings:
     goimports:
       local-prefixes:
