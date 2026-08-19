@@ -14,7 +14,7 @@ document.
   They may import the standard library, packages in the `apis`
   module and an explicit allowlist of API dependencies (for example, k8s.io
   modules).
-- Packages in `runtime` are common utilies. They contain shared code
+- Packages in `runtime` are common utilities. They contain shared code
   (validation utilities, webhook helpers, metrics/logging tooling, ...).
   They may import the standard library, packages in `apis` or
   `runtime`, and an explicit allowlist of runtime dependencies.
@@ -30,10 +30,10 @@ document.
 
 ## Enforcement
 
-In a first stage, we use code reviews to highlight discrepencies and preserve
+In a first stage, we use code reviews to highlight discrepancies and preserve
 the module layout expressed above.
 
-In a second stage, we enable golangci-lint's existing `depguard` linter.
+In a second stage, we enable golangci-lint's existing `depguard` linter for `apis` and `runtime`; `pkg` and `e2e` remain review-only.
 It defines strict rules selected by path like `**/apis/**/*.go` or `**/runtime/**/*.go`.
 Each rule allows `$gostd`, the module's own package prefix, and the package prefixes belonging to its allowed current direct dependencies.
 
