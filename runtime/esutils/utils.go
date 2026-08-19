@@ -288,6 +288,7 @@ func matchKeys(op esv1.ExternalSecretSelect, current map[string][]byte) (map[str
 	}
 	return matched, nil
 }
+
 // ValidateKeys checks if the keys in the secret map are valid keys for a Kubernetes secret.
 func ValidateKeys(log logr.Logger, in map[string][]byte) error {
 	for key := range in {
