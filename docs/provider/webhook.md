@@ -356,9 +356,11 @@ secrets:
       name: webhook-credentials
 ```
 
+{% raw %}
 the values are `{{ .creds.username }}` and `{{ .creds.password }}`. Referring to
 `{{ .creds }}` renders a Go map rather than a value. Note also that every key of the
 referenced secret is exposed; a `key` field on the `secretRef` does not narrow it.
+{% endraw %}
 
 #### A templated `url` is validated before templating
 
