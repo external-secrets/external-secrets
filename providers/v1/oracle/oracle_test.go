@@ -630,6 +630,33 @@ func TestOracleVaultGetAllSecrets(t *testing.T) {
 				s2id: []byte(s2id),
 			},
 		},
+		// A summary listing and the per-secret reads are not atomic, so a secret
+		// can be deleted in between and answer 404. That must not fail the whole
+		// find: NoSecretErr escaping here would let deletionPolicy drop every key
+		// of the Kubernetes Secret because one member went away.
+		"skips a secret that disappeared after it was listed": {
+			&VaultManagementService{
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s1id: s1bundle,
+					},
+				},
+				VaultClient: &fakeoracle.OracleMockVaultClient{
+					SecretSummaries: []vault.SecretSummary{
+						s1summary,
+						s2summary,
+					},
+				},
+			},
+			esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
+					RegExp: ".*",
+				},
+			},
+			map[string][]byte{
+				s1id: []byte(s1id),
+			},
+		},
 	}
 	for name, testCase := range testCases {
 		t.Run(name, func(t *testing.T) {

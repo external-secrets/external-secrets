@@ -438,6 +438,14 @@ func (vms *VaultManagementService) filteredSummaryResult(ctx context.Context, se
 			Key: *summary.SecretName,
 		})
 		if err != nil {
+			// Listing the summaries and reading each secret are not atomic, so a
+			// secret can go away in between. Skip it and keep the rest of the
+			// result: letting NoSecretErr out of here would surface from
+			// GetAllSecrets as "the whole find is gone" and let deletionPolicy
+			// remove every key of the Kubernetes Secret because one member did.
+			if errors.Is(err, esv1.NoSecretErr) {
+				continue
+			}
 			return nil, err
 		}
 		secretMap[*summary.SecretName] = secret

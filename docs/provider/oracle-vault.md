@@ -99,8 +99,9 @@ When a secret is removed from the OCI Vault the provider reports it as missing, 
     OCI answers with `NotAuthorizedOrNotFound` both when a secret does not exist and
     when the caller is not allowed to read it, and the two cannot be told apart from
     outside. Revoking read access on a secret therefore looks exactly like deleting it,
-    and with `deletionPolicy: Delete` the Kubernetes Secret is removed. Use the default
-    `deletionPolicy: Retain` if you would rather keep the Secret when access is lost.
+    and with `deletionPolicy: Delete` or `deletionPolicy: Merge` the Kubernetes Secrets
+    WILL BE DELETED. Use the default `deletionPolicy: Retain` if you would rather keep
+    the Secret when access is lost.
 
 ## PushSecrets and retrieving multiple secrets.
 When using [PushSecrets](https://external-secrets.io/latest/guides/pushsecrets/), the compartment OCID and encryption key OCID must be specified in the
