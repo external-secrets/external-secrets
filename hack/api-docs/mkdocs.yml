@@ -154,6 +154,7 @@ nav:
       - Keeper Security: provider/keeper-security.md
       - Cloak End 2 End Encrypted Secrets: provider/cloak.md
       - Scaleway: provider/scaleway.md
+      - Safeguard: provider/safeguard.md
       - Delinea: provider/delinea.md
       - Secret Server: provider/secretserver.md
       - Passbolt: provider/passbolt.md

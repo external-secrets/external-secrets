@@ -223,6 +223,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Delinea *DelineaProvider `json:"delinea,omitempty"`
 
+	// Safeguard configures this store to sync secrets using One Identity Safeguard for Privileged Passwords.
+	// +optional
+	Safeguard *SafeguardProvider `json:"safeguard,omitempty"`
+
 	// SecretServer configures this store to sync secrets using SecretServer provider
 	// https://docs.delinea.com/online-help/secret-server/start.htm
 	// +optional
