@@ -33,6 +33,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/vault/fake"
+	vaultiamauth "github.com/external-secrets/external-secrets/providers/v1/vault/iamauth"
 	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
 	utilfake "github.com/external-secrets/external-secrets/runtime/util/fake"
 )
@@ -466,8 +467,12 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 						"secret-session-token": []byte("c2VjcmV0LXNlc3Npb24tdG9rZW4K"),
 					},
 				}).Build(),
-				corev1:        utilfake.NewCreateTokenMock().WithToken("ok"),
-				newClientFunc: fake.ClientWithLoginMock,
+				corev1: utilfake.NewCreateTokenMock().WithToken("ok"),
+				newClientFunc: fake.ModifiableClientWithLoginMock(func(cl *fake.VaultClient) {
+					cl.MockLogical.WriteWithContextFn = func(context.Context, string, map[string]any) (*vault.Secret, error) {
+						return &vault.Secret{Auth: &vault.SecretAuth{ClientToken: "test-token"}}, nil
+					}
+				}),
 			},
 			want: want{
 				err: nil,
@@ -731,6 +736,10 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
+			// Cleared for every case so the ones that resolve the STS
+			// endpoint (IAM auth) stay hermetic against an ambient override
+			// in the developer's shell.
+			t.Setenv(vaultiamauth.STSEndpointEnv, "")
 			vaultTest(t, name, tc)
 		})
 	}

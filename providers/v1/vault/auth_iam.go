@@ -18,16 +18,23 @@ package vault
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/base64"
+	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	v4 "github.com/aws/aws-sdk-go-v2/aws/signer/v4"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/golang-jwt/jwt/v5"
-	authaws "github.com/hashicorp/vault/api/auth/aws"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -38,14 +45,35 @@ import (
 )
 
 const (
+	// iamServerIDHeader carries the Vault server ID for AWS IAM auth
+	// replay-attack mitigation. Vault requires it to be part of the signed STS
+	// request when the auth mount configures iam_server_id_header_value.
+	iamServerIDHeader = "X-Vault-AWS-IAM-Server-ID"
+
+	// getCallerIdentityBody is the form-encoded body of the STS
+	// GetCallerIdentity call whose signature Vault verifies during IAM login.
+	getCallerIdentityBody = "Action=GetCallerIdentity&Version=2011-06-15"
+
 	defaultAWSRegion              = "us-east-1"
 	defaultAWSAuthMountPath       = "aws"
+	errAWSCredentialsRetrieve     = "could not retrieve AWS credentials for IAM auth: %w"
+	errAWSCredentialsEmpty        = "resolved AWS credentials are missing an access key ID or secret access key"
+	errSTSEndpointResolve         = "could not resolve STS endpoint for region %q: %w"
+	errSTSRequestSign             = "could not sign STS GetCallerIdentity request: %w"
 	errNoAWSAuthMethodFound       = "no AWS authentication method found: expected either IRSA or Pod Identity"
 	errIrsaTokenFileNotFoundOnPod = "web identity token file not found at %s location: %w"
 	errIrsaTokenFileNotReadable   = "could not read the web identity token from the file %s: %w"
 	errIrsaTokenNotValidJWT       = "could not parse web identity token available at %s. not a valid jwt?: %w"
 	errIrsaTokenNotValidClaims    = "could not find pod identity info on token %s"
+	errVaultLoginNoToken          = "vault login response did not return a client token"
 )
+
+// getCallerIdentityBodyHash is the hex-encoded SHA-256 of the constant
+// GetCallerIdentity body, required by the SigV4 signer as the payload hash.
+var getCallerIdentityBodyHash = func() string {
+	sum := sha256.Sum256([]byte(getCallerIdentityBody))
+	return hex.EncodeToString(sum[:])
+}()
 
 func setIamAuthToken(ctx context.Context, v *client, jwtProvider vaultutil.JwtProviderFactory, assumeRoler vaultiamauth.STSProvider) (bool, error) {
 	iamAuth := v.store.Auth.Iam
@@ -122,40 +150,103 @@ func (c *client) requestTokenWithIamAuth(
 		}
 	}
 
+	// Resolve the AWS credentials fresh on every login. For Pod Identity the
+	// underlying aws-sdk-go-v2 container provider auto-refreshes here, so we
+	// always sign the Vault login with non-expired credentials.
 	getCreds, err := cfg.Credentials.Retrieve(ctx)
+	if err != nil {
+		return fmt.Errorf(errAWSCredentialsRetrieve, err)
+	}
+
+	// The login must be signed from these just-resolved credentials on every
+	// call - never from a snapshot in env vars or a static provider - or the
+	// ~6h Pod Identity session-token rotation breaks logins until restart.
+	return c.loginWithIamCreds(ctx, getCreds, iamAuth, awsAuthMountPath, regionAWS)
+}
+
+// generateLoginData signs an STS GetCallerIdentity request with the supplied
+// AWS credentials using the aws-sdk-go-v2 SigV4 signer and packages it in the
+// form Vault's AWS IAM auth login endpoint expects. Vault validates the
+// server ID against the signed copy inside iam_request_headers; no header on
+// the Vault login request itself is consulted.
+//
+// The endpoint honors the AWS_STS_ENDPOINT override (signed with the store's
+// region) and otherwise comes from the v2 STS endpoint resolver. By default
+// (Legacy policy) the resolver reproduces the aws-sdk-go v1 behavior this
+// provider has always had: the global sts.amazonaws.com endpoint with a
+// us-east-1 signature scope for classic AWS regions - which every Vault AWS
+// auth mount accepts out of the box - and regional endpoints for newer
+// regions and non-default partitions. The Regional policy signs against
+// sts.<region>.amazonaws.com, which requires the Vault mount to be
+// configured with use_sts_region_from_client=true or a matching
+// sts_endpoint.
+func generateLoginData(ctx context.Context, creds aws.Credentials, serverID, region string, policy esv1.VaultIAMSTSEndpointPolicy) (map[string]any, error) {
+	// The signer produces a signature from whatever credentials it is given,
+	// even empty ones; reject keyless credentials up front instead of sending
+	// Vault an unverifiable request.
+	if !creds.HasKeys() {
+		return nil, errors.New(errAWSCredentialsEmpty)
+	}
+
+	// Empty (objects written before the field existed, or CRDs without the
+	// default) means Legacy, so behavior only changes on an explicit opt-in.
+	useGlobalEndpoint := policy != esv1.VaultIAMSTSEndpointPolicyRegional
+	endpoint, signingRegion, err := vaultiamauth.ResolveSTSEndpoint(ctx, region, useGlobalEndpoint)
+	if err != nil {
+		return nil, fmt.Errorf(errSTSEndpointResolve, region, err)
+	}
+	requestURL := endpoint.URI
+	if requestURL.Path == "" {
+		requestURL.Path = "/"
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL.String(), strings.NewReader(getCallerIdentityBody))
+	if err != nil {
+		return nil, fmt.Errorf("could not build STS GetCallerIdentity request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
+	if serverID != "" {
+		req.Header.Set(iamServerIDHeader, serverID)
+	}
+
+	if err := v4.NewSigner().SignHTTP(ctx, creds, req, getCallerIdentityBodyHash, "sts", signingRegion, time.Now()); err != nil {
+		return nil, fmt.Errorf(errSTSRequestSign, err)
+	}
+
+	headersJSON, err := json.Marshal(req.Header)
+	if err != nil {
+		return nil, fmt.Errorf("could not encode signed STS request headers: %w", err)
+	}
+	return map[string]any{
+		"iam_http_request_method": req.Method,
+		"iam_request_url":         base64.StdEncoding.EncodeToString([]byte(req.URL.String())),
+		"iam_request_headers":     base64.StdEncoding.EncodeToString(headersJSON),
+		"iam_request_body":        base64.StdEncoding.EncodeToString([]byte(getCallerIdentityBody)),
+	}, nil
+}
+
+// loginWithIamCreds signs an STS GetCallerIdentity request with the supplied
+// AWS credentials and posts the resulting login data to Vault's AWS IAM auth
+// login endpoint, then stores the returned client token on the Vault client.
+func (c *client) loginWithIamCreds(ctx context.Context, creds aws.Credentials, iamAuth *esv1.VaultIamAuth, awsAuthMountPath, regionAWS string) error {
+	loginData, err := generateLoginData(ctx, creds, iamAuth.VaultAWSIAMServerID, regionAWS, iamAuth.STSEndpointPolicy)
 	if err != nil {
 		return err
 	}
-	// Set environment variables. These would be fetched by Login
-	_ = os.Setenv("AWS_ACCESS_KEY_ID", getCreds.AccessKeyID)
-	_ = os.Setenv("AWS_SECRET_ACCESS_KEY", getCreds.SecretAccessKey)
-	_ = os.Setenv("AWS_SESSION_TOKEN", getCreds.SessionToken)
+	loginData["role"] = iamAuth.Role
 
-	var awsAuthClient *authaws.AWSAuth
-
-	if iamAuth.VaultAWSIAMServerID != "" {
-		awsAuthClient, err = authaws.NewAWSAuth(
-			authaws.WithRegion(regionAWS),
-			authaws.WithIAMAuth(),
-			authaws.WithRole(iamAuth.Role),
-			authaws.WithMountPath(awsAuthMountPath),
-			authaws.WithIAMServerIDHeader(iamAuth.VaultAWSIAMServerID),
-		)
-		if err != nil {
-			return err
-		}
-	} else {
-		awsAuthClient, err = authaws.NewAWSAuth(authaws.WithRegion(regionAWS), authaws.WithIAMAuth(), authaws.WithRole(iamAuth.Role), authaws.WithMountPath(awsAuthMountPath))
-		if err != nil {
-			return err
-		}
+	loginPath := fmt.Sprintf("auth/%s/login", awsAuthMountPath)
+	vaultResult, err := c.logical.WriteWithContext(ctx, loginPath, loginData)
+	// A token-less 200 must count as a failed login, both for the metric
+	// below and to avoid silently clearing the client token.
+	if err == nil && (vaultResult == nil || vaultResult.Auth == nil || vaultResult.Auth.ClientToken == "") {
+		err = errors.New(errVaultLoginNoToken)
 	}
-
-	_, err = c.auth.Login(ctx, awsAuthClient)
 	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
 	if err != nil {
 		return err
 	}
+	c.client.SetToken(vaultResult.Auth.ClientToken)
 	return nil
 }
 
