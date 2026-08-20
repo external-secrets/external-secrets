@@ -34,10 +34,11 @@ jobs:
           node-version: '22'
 
       # node --test exits 0 when its glob matches nothing, so a rename would
-      # turn CI green having run no tests at all. Count the files first.
+      # turn CI green having run no tests at all. Count first, recursively, so
+      # the guard covers the same set as the glob below.
       - name: Check test files are discoverable
         run: |
-          count=$(ls .github/scripts/*-test.js 2>/dev/null | wc -l | tr -d ' ')
+          count=$(find .github/scripts -type f -name '*-test.js' -printf '.' | wc -c | tr -d ' ')
           echo "found $count test file(s)"
           if [ "$count" -lt 3 ]; then
             echo "::error::expected at least 3 test files under .github/scripts, found $count"

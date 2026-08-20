@@ -6,7 +6,12 @@
 # because pull_request_review itself is read-only for pull requests from forks.
 name: Review State
 
-on:
+# zizmor flags pull_request_target and workflow_run as dangerous triggers on
+# sight. Both are used here in their documented safe form: the checkout takes
+# the base ref with no `ref:` and a sparse path, so no pull request code is ever
+# fetched or executed, and nothing interpolates attacker-controlled text.
+# See the security notes in design/015-review-routing.md.
+on: # zizmor: ignore[dangerous-triggers] base-ref checkout only, no PR code is executed
   pull_request_target:
     types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, labeled, unlabeled]
   workflow_run:

@@ -123,12 +123,16 @@ export function gateComment(count) {
     `Automated review has flagged ${items} on this pull request.`,
     '',
     'Review here runs in two stages: automated review first, then a maintainer.',
-    'This pull request moves into the human review queue once the automated',
-    'comments are addressed, either by pushing a fix or by replying in the thread.',
+    'This pull request moves into the human review queue once every automated',
+    'comment above is resolved.',
     '',
-    'You can resolve a thread yourself with **Resolve conversation**. If you think a',
-    'finding is wrong, say so in the thread and leave it open; a maintainer will',
-    'judge it. You are not expected to change code you disagree with.',
+    'Push a fix, or reply in the thread if you disagree with a finding, then mark it',
+    '**Resolve conversation**. Resolving is what moves this along: a reply on its own',
+    'leaves the thread open and the pull request here.',
+    '',
+    'You are not expected to change code you disagree with. If a finding is wrong and',
+    'you would rather a maintainer decided, say so and ask for the',
+    '`review/bots-overridden` label, which skips this stage entirely.',
     '',
     `Status: \`${STATE.BOT_FINDINGS_OPEN}\``,
   ].join('\n');
@@ -177,17 +181,21 @@ export async function fetchPullRequest(github, owner, repo, number, core) {
   const pr = data.repository && data.repository.pullRequest;
   if (!pr) return null;
 
-  // Truncation would silently change the derived state, so say so loudly.
-  if (core) {
-    if (pr.reviews.pageInfo.hasNextPage) {
-      core.warning(`PR #${number}: more than 100 reviews, verdicts may be incomplete`);
-    }
-    if (pr.reviewThreads.pageInfo.hasPreviousPage) {
-      core.warning(`PR #${number}: more than 100 review threads, oldest were dropped`);
-    }
+  // Truncated data would derive a state from an incomplete picture, so the
+  // caller must skip the pull request rather than write a label it cannot
+  // stand behind.
+  const truncated = [];
+  if (pr.reviews.pageInfo.hasNextPage) truncated.push('reviews');
+  if (pr.reviewThreads.pageInfo.hasPreviousPage) truncated.push('reviewThreads');
+  if (truncated.length > 0 && core) {
+    core.warning(
+      `PR #${number}: more than 100 ${truncated.join(' and ')}, skipping rather than `
+      + 'deriving a state from incomplete data',
+    );
   }
 
   return {
+    truncated: truncated.length > 0 ? truncated : null,
     number: pr.number,
     isDraft: pr.isDraft,
     reviewDecision: pr.reviewDecision,
@@ -209,9 +217,22 @@ export async function fetchPullRequest(github, owner, repo, number, core) {
 }
 
 export async function syncLabels(github, owner, repo, number, current, desired, { dryRun } = {}) {
-  const stale = current.filter((l) => ALL_STATES.includes(l) && l !== desired);
-  const missing = current.includes(desired) ? null : desired;
-  if (dryRun) return { added: missing, removed: stale, applied: false };
+  if (dryRun) {
+    const stale = current.filter((l) => ALL_STATES.includes(l) && l !== desired);
+    return { added: current.includes(desired) ? null : desired, removed: stale, applied: false };
+  }
+
+  // Re-read rather than trusting the classification-time snapshot. Runs for the
+  // same pull request cannot be fully serialised, because the concurrency group
+  // is evaluated before the pull request number is known for workflow_run and
+  // check_suite. Reading here shrinks the window to the read-write gap, and any
+  // residue is corrected by the next run, which removes every stale state.
+  const fresh = await github.rest.issues.listLabelsOnIssue({
+    owner, repo, issue_number: number, per_page: 100,
+  });
+  const live = fresh.data.map((l) => l.name);
+  const stale = live.filter((l) => ALL_STATES.includes(l) && l !== desired);
+  const missing = live.includes(desired) ? null : desired;
 
   for (const name of stale) {
     try {
@@ -235,7 +256,15 @@ export async function syncComment(github, owner, repo, number, result, { dryRun 
   const comments = await github.paginate(github.rest.issues.listComments, {
     owner, repo, issue_number: number, per_page: 100,
   });
-  const existing = comments.find((c) => c.body && c.body.includes(COMMENT_MARKER));
+  // Require the marker AND a bot author. The marker is public, so a human
+  // could otherwise post one and capture the slot, leaving this workflow
+  // trying to edit a comment it does not own and the guidance never shown.
+  const existing = comments.find(
+    (c) => c.body
+      && c.body.includes(COMMENT_MARKER)
+      && c.user
+      && c.user.type === 'Bot',
+  );
   const gated = result.state === STATE.BOT_FINDINGS_OPEN;
 
   // Never open the conversation unprompted: the comment appears only when
@@ -283,11 +312,16 @@ export default async function run({ core, github, context, numbers, dryRun = fal
   // still turn the run red rather than passing quietly.
   const results = [];
   const failures = [];
+  const skipped = [];
   for (const number of numbers) {
     try {
       const pr = await fetchPullRequest(github, owner, repo, number, core);
       if (!pr) {
         core.info(`PR #${number}: not found, skipping`);
+        continue;
+      }
+      if (pr.truncated) {
+        skipped.push(number);
         continue;
       }
       const result = classify(pr);
@@ -308,6 +342,9 @@ export default async function run({ core, github, context, numbers, dryRun = fal
       failures.push(number);
       core.error(`PR #${number}: ${error.message}`);
     }
+  }
+  if (skipped.length > 0) {
+    core.warning(`Skipped ${skipped.length} pull request(s) with truncated data: ${skipped.join(', ')}`);
   }
   if (failures.length > 0) {
     core.setFailed(`Failed to evaluate ${failures.length} pull request(s): ${failures.join(', ')}`);

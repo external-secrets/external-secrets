@@ -9,10 +9,13 @@
 
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {
-  classify, isBot, effectiveVerdicts, gateComment, clearedComment, STATE,
+import run, {
+  classify, isBot, effectiveVerdicts, gateComment, clearedComment, STATE, ALL_STATES,
   fetchPullRequest, syncLabels, syncComment,
 } from './review-state.js';
+
+// run() checks that every state label exists before touching anything.
+const ALL_STATES_FOR_TEST = ALL_STATES;
 
 function pr(overrides = {}) {
   return {
@@ -309,7 +312,7 @@ test('the guidance comment carries a marker and pluralises', () => {
 // Data plumbing and write paths, against a fake Octokit.
 // ---------------------------------------------------------------------------
 
-function fakeGithub({ graphql, comments = [], removeLabelError } = {}) {
+function fakeGithub({ graphql, comments = [], removeLabelError, liveLabels } = {}) {
   const calls = { addLabels: [], removeLabel: [], createComment: [], updateComment: [] };
   const listComments = () => {};
   listComments.__kind = 'comments';
@@ -319,6 +322,9 @@ function fakeGithub({ graphql, comments = [], removeLabelError } = {}) {
     rest: {
       issues: {
         listComments,
+        // syncLabels re-reads before writing; default to whatever the caller
+        // passed as `current` unless a test overrides the live state.
+        listLabelsOnIssue: async () => ({ data: (liveLabels || []).map((name) => ({ name })) }),
         addLabels: async (p) => { calls.addLabels.push(p); },
         removeLabel: async (p) => {
           calls.removeLabel.push(p);
@@ -361,6 +367,7 @@ test('fetchPullRequest maps a full response onto the classifier shape', async ()
   const { github } = fakeGithub({ graphql: graphqlPr() });
   const p = await fetchPullRequest(github, 'o', 'r', 42);
   assert.deepEqual(p, {
+    truncated: null,
     number: 42,
     isDraft: false,
     reviewDecision: 'REVIEW_REQUIRED',
@@ -410,21 +417,21 @@ test('fetchPullRequest treats a missing check rollup as no CI rather than failur
   assert.notEqual(classify(p).state, STATE.CI_RED);
 });
 
-test('fetchPullRequest warns when reviews or threads are truncated', async () => {
+test('fetchPullRequest reports both connections when both are truncated', async () => {
   const warnings = [];
   const core = { warning: (m) => warnings.push(m) };
   const g = graphqlPr();
   g.repository.pullRequest.reviews.pageInfo.hasNextPage = true;
   g.repository.pullRequest.reviewThreads.pageInfo.hasPreviousPage = true;
   const { github } = fakeGithub({ graphql: g });
-  await fetchPullRequest(github, 'o', 'r', 42, core);
-  assert.equal(warnings.length, 2);
-  assert.match(warnings[0], /more than 100 reviews/);
-  assert.match(warnings[1], /more than 100 review threads/);
+  const p = await fetchPullRequest(github, 'o', 'r', 42, core);
+  assert.deepEqual(p.truncated, ['reviews', 'reviewThreads']);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0], /reviews and reviewThreads/);
 });
 
 test('syncLabels adds the desired label and strips only stale review states', async () => {
-  const { github, calls } = fakeGithub();
+  const { github, calls } = fakeGithub({ liveLabels: ['review/needs-review', 'size/l'] });
   const res = await syncLabels(github, 'o', 'r', 1, ['review/needs-review', 'size/l'], STATE.IN_REVIEW);
   assert.deepEqual(calls.removeLabel.map((c) => c.name), ['review/needs-review']);
   assert.deepEqual(calls.addLabels[0].labels, [STATE.IN_REVIEW]);
@@ -432,24 +439,25 @@ test('syncLabels adds the desired label and strips only stale review states', as
 });
 
 test('syncLabels is a no-op when the label is already correct', async () => {
-  const { github, calls } = fakeGithub();
+  const { github, calls } = fakeGithub({ liveLabels: [STATE.IN_REVIEW, 'size/s'] });
   await syncLabels(github, 'o', 'r', 1, [STATE.IN_REVIEW, 'size/s'], STATE.IN_REVIEW);
   assert.equal(calls.removeLabel.length + calls.addLabels.length, 0);
 });
 
 test('syncLabels never touches the override label', async () => {
-  const { github, calls } = fakeGithub();
+  const { github, calls } = fakeGithub({ liveLabels: ['review/bots-overridden'] });
   await syncLabels(github, 'o', 'r', 1, ['review/bots-overridden'], STATE.NEEDS_REVIEW);
   assert.equal(calls.removeLabel.length, 0, 'the override is a human decision, not derived state');
 });
 
 test('syncLabels tolerates a 404 but rethrows a permissions failure', async () => {
+  const live = ['review/needs-review'];
   const gone = Object.assign(new Error('Label does not exist'), { status: 404 });
-  await syncLabels(fakeGithub({ removeLabelError: gone }).github, 'o', 'r', 1, ['review/needs-review'], STATE.IN_REVIEW);
+  await syncLabels(fakeGithub({ removeLabelError: gone, liveLabels: live }).github, 'o', 'r', 1, live, STATE.IN_REVIEW);
 
   const denied = Object.assign(new Error('Resource not accessible by integration'), { status: 403 });
   await assert.rejects(
-    () => syncLabels(fakeGithub({ removeLabelError: denied }).github, 'o', 'r', 1, ['review/needs-review'], STATE.IN_REVIEW),
+    () => syncLabels(fakeGithub({ removeLabelError: denied, liveLabels: live }).github, 'o', 'r', 1, live, STATE.IN_REVIEW),
     /not accessible/,
   );
 });
@@ -480,7 +488,7 @@ test('syncComment posts once when the gate first closes', async () => {
 });
 
 test('syncComment edits its own comment rather than posting a second', async () => {
-  const { github, calls } = fakeGithub({ comments: [{ id: 7, body: gateComment(3) }] });
+  const { github, calls } = fakeGithub({ comments: [{ id: 7, body: gateComment(3), user: { type: 'Bot' } }] });
   const action = await syncComment(github, 'o', 'r', 1, { state: STATE.BOT_FINDINGS_OPEN, botFindingsOpen: 1 });
   assert.equal(action, 'updated');
   assert.equal(calls.createComment.length, 0);
@@ -488,21 +496,21 @@ test('syncComment edits its own comment rather than posting a second', async () 
 });
 
 test('syncComment rewrites to the cleared text once the gate opens', async () => {
-  const { github, calls } = fakeGithub({ comments: [{ id: 7, body: gateComment(2) }] });
+  const { github, calls } = fakeGithub({ comments: [{ id: 7, body: gateComment(2), user: { type: 'Bot' } }] });
   const action = await syncComment(github, 'o', 'r', 1, { state: STATE.NEEDS_REVIEW, botFindingsOpen: 0 });
   assert.equal(action, 'updated');
   assert.match(calls.updateComment[0].body, /human review queue/);
 });
 
 test('syncComment does not rewrite an identical body', async () => {
-  const { github, calls } = fakeGithub({ comments: [{ id: 7, body: gateComment(2) }] });
+  const { github, calls } = fakeGithub({ comments: [{ id: 7, body: gateComment(2), user: { type: 'Bot' } }] });
   const action = await syncComment(github, 'o', 'r', 1, { state: STATE.BOT_FINDINGS_OPEN, botFindingsOpen: 2 });
   assert.equal(action, 'unchanged');
   assert.equal(calls.updateComment.length, 0, 'no needless notification');
 });
 
 test('syncComment ignores comments from other authors', async () => {
-  const { github, calls } = fakeGithub({ comments: [{ id: 1, body: 'unrelated' }, { id: 2, body: null }] });
+  const { github, calls } = fakeGithub({ comments: [{ id: 1, body: 'unrelated', user: { type: 'User' } }, { id: 2, body: null, user: { type: 'Bot' } }] });
   const action = await syncComment(github, 'o', 'r', 1, { state: STATE.BOT_FINDINGS_OPEN, botFindingsOpen: 1 });
   assert.equal(action, 'created');
   assert.equal(calls.updateComment.length, 0);
@@ -516,10 +524,134 @@ test('syncComment writes nothing in a dry run', async () => {
   );
   assert.equal(clean.calls.createComment.length, 0, 'dry run must not write');
 
-  const existing = fakeGithub({ comments: [{ id: 7, body: gateComment(9) }] });
+  const existing = fakeGithub({ comments: [{ id: 7, body: gateComment(9), user: { type: 'Bot' } }] });
   assert.equal(
     await syncComment(existing.github, 'o', 'r', 1, { state: STATE.BOT_FINDINGS_OPEN, botFindingsOpen: 1 }, { dryRun: true }),
     'would-update',
   );
   assert.equal(existing.calls.updateComment.length, 0, 'dry run must not write');
+});
+
+// ---------------------------------------------------------------------------
+// Fixes from review of the first version.
+// ---------------------------------------------------------------------------
+
+test('truncated data is flagged so the caller can refuse to write', async () => {
+  const warnings = [];
+  const core = { warning: (m) => warnings.push(m) };
+  const g = graphqlPr();
+  g.repository.pullRequest.reviewThreads.pageInfo.hasPreviousPage = true;
+  const { github } = fakeGithub({ graphql: g });
+  const p = await fetchPullRequest(github, 'o', 'r', 42, core);
+  assert.deepEqual(p.truncated, ['reviewThreads']);
+  assert.match(warnings[0], /skipping rather than/);
+});
+
+test('complete data carries no truncation flag', async () => {
+  const { github } = fakeGithub({ graphql: graphqlPr() });
+  const p = await fetchPullRequest(github, 'o', 'r', 42);
+  assert.equal(p.truncated, null);
+});
+
+test('syncLabels writes against a fresh read, not the stale snapshot', async () => {
+  // Another run relabelled this pull request after we classified it. The stale
+  // snapshot says needs-review; the live state says in-review.
+  const { github, calls } = fakeGithub({ liveLabels: ['review/in-review', 'size/l'] });
+  await syncLabels(github, 'o', 'r', 1, ['review/needs-review'], STATE.CI_RED);
+  assert.deepEqual(
+    calls.removeLabel.map((c) => c.name),
+    ['review/in-review'],
+    'removes what is actually there, not what we last saw',
+  );
+});
+
+test('a human cannot capture the guidance comment slot with the marker', async () => {
+  const { github, calls } = fakeGithub({
+    comments: [{ id: 99, body: `spoof ${gateComment(1)}`, user: { type: 'User' } }],
+  });
+  const action = await syncComment(github, 'o', 'r', 1, { state: STATE.BOT_FINDINGS_OPEN, botFindingsOpen: 1 });
+  assert.equal(action, 'created', 'the workflow posts its own rather than editing a human comment');
+  assert.equal(calls.updateComment.length, 0);
+});
+
+test('the gate comment tells contributors to resolve, not merely reply', () => {
+  const body = gateComment(2);
+  assert.match(body, /Resolve conversation/);
+  assert.match(body, /a reply on its own/i);
+  assert.match(body, /review\/bots-overridden/);
+  assert.doesNotMatch(body, /leave it open/i, 'the old text promised an open reply was enough');
+});
+
+test('run() refuses to write a label when the data is truncated', async () => {
+  const calls = { addLabels: [], removeLabel: [], createComment: [], updateComment: [] };
+  const warnings = [];
+  const listComments = () => {};
+  listComments.__kind = 'comments';
+  const listLabelsForRepo = () => {};
+  listLabelsForRepo.__kind = 'repoLabels';
+
+  const g = graphqlPr();
+  g.repository.pullRequest.reviewThreads.pageInfo.hasPreviousPage = true;
+
+  const github = {
+    graphql: async () => g,
+    paginate: async (fn) => (fn.__kind === 'repoLabels'
+      ? [...ALL_STATES_FOR_TEST].map((name) => ({ name }))
+      : []),
+    rest: {
+      issues: {
+        listComments,
+        listLabelsForRepo,
+        listLabelsOnIssue: async () => ({ data: [] }),
+        addLabels: async (p) => { calls.addLabels.push(p); },
+        removeLabel: async (p) => { calls.removeLabel.push(p); },
+        createComment: async (p) => { calls.createComment.push(p); },
+        updateComment: async (p) => { calls.updateComment.push(p); },
+      },
+    },
+  };
+  const core = {
+    info: () => {}, warning: (m) => warnings.push(m), error: () => {}, setFailed: () => {},
+  };
+
+  const results = await run({
+    core, github, context: { repo: { owner: 'o', repo: 'r' } }, numbers: [42],
+  });
+
+  assert.deepEqual(results, [], 'a truncated pull request produces no result');
+  assert.equal(calls.addLabels.length, 0, 'no label written');
+  assert.equal(calls.removeLabel.length, 0, 'no label removed');
+  assert.equal(calls.createComment.length, 0, 'no comment written');
+  assert.match(warnings.join(' '), /truncated data/);
+});
+
+test('run() does write when the data is complete', async () => {
+  const calls = { addLabels: [] };
+  const listComments = () => {};
+  listComments.__kind = 'comments';
+  const listLabelsForRepo = () => {};
+  listLabelsForRepo.__kind = 'repoLabels';
+  const github = {
+    graphql: async () => graphqlPr(),
+    paginate: async (fn) => (fn.__kind === 'repoLabels'
+      ? [...ALL_STATES_FOR_TEST].map((name) => ({ name }))
+      : []),
+    rest: {
+      issues: {
+        listComments,
+        listLabelsForRepo,
+        listLabelsOnIssue: async () => ({ data: [] }),
+        addLabels: async (p) => { calls.addLabels.push(p); },
+        removeLabel: async () => {},
+        createComment: async () => {},
+        updateComment: async () => {},
+      },
+    },
+  };
+  const core = { info: () => {}, warning: () => {}, error: () => {}, setFailed: () => {} };
+  const results = await run({
+    core, github, context: { repo: { owner: 'o', repo: 'r' } }, numbers: [42],
+  });
+  assert.equal(results.length, 1, 'the control case still produces a result');
+  assert.deepEqual(calls.addLabels[0].labels, [STATE.NEEDS_2ND_APPROVAL]);
 });

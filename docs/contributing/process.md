@@ -68,10 +68,13 @@ of code in this project.
 Review runs in two stages: automated review first, then a maintainer.
 
 While an automated reviewer still has unresolved findings on your pull request, it stays with
-you rather than entering the maintainer queue. Address them by pushing a fix, or by replying
-in the thread if you think a finding is wrong, and resolve the conversation. You do not need
-to change code you disagree with; say so in the thread and a maintainer will judge it. A
-maintainer can also apply `review/bots-overridden` to skip the gate entirely.
+you rather than entering the maintainer queue. Push a fix, or reply in the thread if you
+disagree with a finding, then mark the conversation resolved. Resolving is what moves the pull
+request along: a reply on its own leaves the thread open, and the pull request where it is.
+
+You are not expected to change code you disagree with. If a finding is wrong and you would
+rather a maintainer decided, say so in the thread and ask for the `review/bots-overridden`
+label, which skips this stage entirely.
 
 You do not need to watch for this. When there is something to address, a comment appears on
 the pull request explaining what is outstanding, and it is updated in place once the queue

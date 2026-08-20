@@ -23,11 +23,22 @@ function parseArgs(argv) {
   const args = { repo: 'external-secrets/external-secrets', prs: [], json: false };
   for (let i = 0; i < argv.length; i += 1) {
     const a = argv[i];
-    if (a === '--pr') args.prs.push(Number(argv[++i]));
-    else if (a === '--repo') args.repo = argv[++i];
-    else if (a === '--json') args.json = true;
-    else if (a === '--help' || a === '-h') args.help = true;
-    else throw new Error(`Unknown argument: ${a}`);
+    if (a === '--pr') {
+      const raw = argv[++i];
+      const number = Number(raw);
+      if (!Number.isSafeInteger(number) || number <= 0) {
+        throw new Error(`--pr needs a positive pull request number, got ${JSON.stringify(raw)}`);
+      }
+      args.prs.push(number);
+    } else if (a === '--repo') {
+      args.repo = argv[++i];
+    } else if (a === '--json') {
+      args.json = true;
+    } else if (a === '--help' || a === '-h') {
+      args.help = true;
+    } else {
+      throw new Error(`Unknown argument: ${a}`);
+    }
   }
   return args;
 }
@@ -103,6 +114,7 @@ function makeClient(auth) {
       issues: {
         listComments: endpoint('/repos/{owner}/{repo}/issues/{issue_number}/comments'),
         listLabelsForRepo: endpoint('/repos/{owner}/{repo}/labels'),
+        listLabelsOnIssue: endpoint('/repos/{owner}/{repo}/issues/{issue_number}/labels'),
         addLabels: readOnly('addLabels'),
         removeLabel: readOnly('removeLabel'),
         createComment: readOnly('createComment'),
@@ -150,8 +162,11 @@ async function main() {
     return;
   }
 
-  const [owner, repo] = args.repo.split('/');
-  if (!owner || !repo) throw new Error(`--repo must be owner/name, got ${args.repo}`);
+  const parts = (args.repo || '').split('/');
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    throw new Error(`--repo must be exactly owner/name, got ${JSON.stringify(args.repo)}`);
+  }
+  const [owner, repo] = parts;
 
   const github = makeClient(token());
   const context = { repo: { owner, repo }, eventName: 'workflow_dispatch', payload: {} };

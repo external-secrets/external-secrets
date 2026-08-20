@@ -31,20 +31,21 @@ there is actually something to address.
 
 ### The problem, measured
 
-Across the 78 open pull requests, formal review state looks like this:
+Across the 81 open pull requests, human review state looks like this:
 
-| Review state                  | PRs |
+| Human review state            | PRs |
 | ----------------------------- | --: |
-| Commented only, no verdict    |  47 |
-| No review at all              |  15 |
-| Changes requested             |  13 |
-| Approved                      |   3 |
+| No human review at all        |  39 |
+| Commented on, but no verdict  |  24 |
+| Changes requested             |  14 |
+| Approved                      |   4 |
 
-(Effective current review per reviewer, not cumulative review events. Buckets are
-mutually exclusive, with changes-requested taking precedence over approved.)
+(Buckets are mutually exclusive, counting only non-bot reviewers, with
+changes-requested taking precedence over approved.)
 
-That first row is the whole problem. Those 47 pull requests have activity but no answer,
-so the reconstruction cost is paid again by each person who opens one.
+**63 of 81 pull requests carry no human verdict.** Some have never been looked at; others
+have comments but no answer to "is this covered". Either way the reconstruction cost is
+paid again by each person who opens one.
 
 Worse, the activity is mostly not human. Sorted by effective reviews on open pull
 requests, the top reviewer is a bot:
@@ -61,7 +62,7 @@ requests, the top reviewer is a bot:
 | moolen                        |       2 | maintainer              |
 | knelasevero                   |       1 | maintainer              |
 
-**24 of 78 open pull requests carry reviews from bots only.** In the GitHub UI they look
+**24 of the 81 carry reviews from bots only.** In the GitHub UI they look
 reviewed. No human has formed a view on any of them. Any signal that does not distinguish
 bots from humans is worse than no signal, because it is confidently wrong.
 
@@ -71,11 +72,11 @@ are clean** and genuinely need a human. Today both groups look identical.
 
 Meanwhile every native routing mechanism is switched off:
 
-- 67 of 78 pull requests have no requested reviewer.
+- 69 of 81 pull requests have no requested reviewer.
 - Zero carry the `lgtm` label.
-- 8 have an assignee, though `docs/contributing/process.md` names the assignee as the
+- 11 have an assignee, though `docs/contributing/process.md` names the assignee as the
   mechanism that tracks who owns a pull request's lifecycle.
-- 60 of 78 have had no maintainer review at all.
+- 63 of 81 have had no maintainer review at all.
 
 ### Root cause
 
@@ -91,7 +92,7 @@ docs/CODEOWNERS          absent
 
 So all fifty-odd path-to-team mappings are inert: no automatic review requests, nothing in
 anyone's "awaiting your review" filter, no per-team sign-off state in the sidebar. One
-file extension explains why 67 of 78 pull requests have no reviewer attached.
+file extension explains why 69 of 81 pull requests have no reviewer attached.
 
 The encouraging part is that the hard logic already exists.
 `.github/scripts/lgtm-processor.js` parses that file, maps changed files to reviewer
@@ -204,31 +205,31 @@ Eight columns in two lanes. The lane split is the central claim of this proposal
 half of what currently sits in one undifferentiated list is not a maintainer's problem at
 all.
 
-Counts are the real distribution of today's 78 open pull requests under the rules below.
+Counts are the real distribution of today's 81 open pull requests under the rules below.
 
-**Maintainer's queue, waiting on us: 32 PRs**
+**Maintainer's queue, waiting on us: 33 PRs**
 
 | Column                 | PRs | Entry condition                                                     |
 | ---------------------- | --: | ------------------------------------------------------------------- |
-| `👀 In Review`         |  16 | A human other than the author has engaged, or someone self-assigned. |
-| `📥 Needs Review`      |  15 | No human review yet, and automated review is clear. Front of the queue. |
-| `🥈 Needs 2nd Approval`|   1 | One human approval on a `size/l` or larger change.                  |
-| `🚀 Ready to Merge`    |   0 | Approval threshold met, CI green. Needs a merge, not a review.      |
+| `👀 In Review`         | 17 | A human other than the author has engaged, or someone self-assigned. |
+| `📥 Needs Review`      | 13 | No human review yet, and automated review is clear. Front of the queue. |
+| `🥈 Needs 2nd Approval`| 1 | One human approval on a `size/l` or larger change.                  |
+| `🚀 Ready to Merge`    | 2 | Approval threshold met, CI green. Needs a merge, not a review.      |
 
 **Author's court, waiting on the contributor: 48 PRs**
 
 | Column                 | PRs | Entry condition                                                     |
 | ---------------------- | --: | ------------------------------------------------------------------- |
-| `✋ Changes Requested` |  19 | A human asked for changes. Returns to the queue when author pushes. |
-| `📝 Draft`             |  14 | Author has said it is not ready. We take them at their word.        |
-| `🔴 CI Red`            |  10 | Checks failing, including crashed runs. Not worth a human read yet.  |
-| `🤖 Bot Findings Open` |   5 | Automated review has unresolved findings. First line of defence.    |
+| `✋ Changes Requested` | 20 | A human asked for changes. Returns to the queue when author pushes. |
+| `📝 Draft`             | 13 | Author has said it is not ready. We take them at their word.        |
+| `🔴 CI Red`            | 11 | Checks failing, including crashed runs. Not worth a human read yet.  |
+| `🤖 Bot Findings Open` | 4 | Automated review has unresolved findings. First line of defence.    |
 
-Counts come from a live dry run against the 80 open pull requests
-(`node .github/scripts/review-state-cli.js`), not from an estimate.
+Counts come from a live dry run against the 81 open pull requests
+(`node .github/scripts/review-state-cli.js`) on 2026-08-20, not from an estimate.
 
 **`✋ Changes Requested` is 19 rather than 13** because of the `reviewDecision` fix described
-above. Six pull requests (#6082, #6526, #6589, #6613, #6784, #6817) have a standing
+above. Six pull requests (#6082, #6526, #6589, #6613, #6784, #6817) had a standing
 changes-requested that the naive reading of `latestReviews` had erased, so they were sitting in
 the maintainer queue while the ball was actually with their author.
 
@@ -349,8 +350,8 @@ Actions before the workflow is allowed to write.
 
 ### Contributor guidance
 
-A gate nobody explains is just an unexplained delay, and 5 of the 9 pull requests this rule
-would currently divert are from first-time contributors. So the workflow tells the author
+A gate nobody explains is just an unexplained delay, and every one of the 4 pull requests
+this rule currently diverts is from a first-time contributor. So the workflow tells the author
 what is happening, on the pull request itself.
 
 **Timing solves itself.** The comment is posted when a pull request first enters
@@ -372,9 +373,13 @@ Draft text, in the gate state:
 > request moves into the human review queue once the automated comments are addressed, either
 > by pushing a fix or by replying in the thread.
 >
-> You can resolve a thread yourself with **Resolve conversation**. If you think a finding is
-> wrong, say so in the thread and leave it open; a maintainer will judge it. You are not
-> expected to change code you disagree with.
+> Push a fix, or reply in the thread if you disagree with a finding, then mark it
+> **Resolve conversation**. Resolving is what moves this along: a reply on its own leaves the
+> thread open and the pull request here.
+>
+> You are not expected to change code you disagree with. If a finding is wrong and you would
+> rather a maintainer decided, say so and ask for the `review/bots-overridden` label, which
+> skips this stage entirely.
 >
 > Status: `🤖 Bot Findings Open`
 
@@ -427,8 +432,8 @@ remembering anything.
 
 ## Drawbacks
 
-- **Day one will look worse than today feels.** 26 pull requests land in
-  `📥 Needs Review` and `🚀 Ready to Merge` holds one. That is not a regression, it is the
+- **Day one will look worse than today feels.** 33 pull requests land in the maintainer lane
+  and only 2 are actually ready to merge. That is not a regression, it is the
   existing backlog with the reconstruction cost stripped out. Anyone expecting the board
   to look reassuring will be disappointed.
 - **Renaming CODEOWNERS produces a notification burst** as pull requests update and teams
@@ -441,15 +446,15 @@ remembering anything.
   practice the human queue is fed by CodeRabbit's judgment. If it becomes noisy, the queue
   starves, and nobody would notice quickly because a starved queue looks like a calm one.
   Worth watching the size of `🤖 Bot Findings Open` as a signal in its own right.
-- **It lands hardest on newcomers.** 5 of the 9 pull requests the gate currently diverts are
-  from first-time contributors, and one open pull request carries 19 unresolved bot threads.
+- **It lands hardest on newcomers.** All 4 pull requests the gate currently diverts are from
+  first-time contributors, and one open pull request carries 19 unresolved bot threads.
   The guidance comment and the override exist for this, but the honest read is that we are
   asking newcomers to clear a bot before a human engages. Open question Q4.
 - **Authors can resolve their own threads.** GitHub permits it, which is what makes the gate
   actionable rather than a dead end. It also means an author can resolve without fixing to
   jump the queue. Acceptable, since a human still reviews afterwards and the thread history
   stays visible, but it means the gate is a routing hint and not an enforcement mechanism.
-- **Two approvals is aspirational today.** 38 of 78 open pull requests are `size/l` or
+- **Two approvals is aspirational today.** 38 of 81 open pull requests are `size/l` or
   larger, and exactly one of those 38 carries a human approval. Encoding the rule will
   show a persistently populated `🥈 Needs 2nd Approval` column. That is honest, and it is
   also a standing argument for either resourcing the rule or relaxing it.
@@ -541,8 +546,8 @@ a decision.
 
 **Q4. Should the bot gate apply to first-time contributors?**
 
-5 of the 9 pull requests the gate currently diverts are from first-time contributors, and the
-worst case is a pull request with 19 unresolved bot threads. Exempting newcomers would give
+All 4 pull requests the gate currently diverts are from first-time contributors, and the worst
+case is a pull request with 19 unresolved bot threads. Exempting newcomers would give
 them a human sooner, but it aims the exemption at exactly the pull requests where automated
 review earns its keep, and it puts the noisiest changes straight onto a maintainer. My
 position: apply it uniformly, rely on the guidance comment to make it navigable, and use
@@ -553,15 +558,15 @@ newcomers who then go quiet, which is the signal that the gate has become a wall
 
 | Alternative                                       | Why not                                                                                                                                                                                                 |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Branch protection with required reviews           | Would hard-block the entire queue overnight: 60 of 78 open pull requests have no maintainer review. Worth revisiting once the queue is healthy, not as the mechanism for getting it there.                |
-| Weekly digest to Slack or a tracking issue        | Answers "has this been reviewed" but not "is somebody on it right now", and adds a channel to maintain. The board answers both and already contains all 78 pull requests.                                 |
+| Branch protection with required reviews           | Would hard-block the entire queue overnight: 63 of 81 open pull requests have no maintainer review. Worth revisiting once the queue is healthy, not as the mechanism for getting it there.                |
+| Weekly digest to Slack or a tracking issue        | Answers "has this been reviewed" but not "is somebody on it right now", and adds a channel to maintain. The board answers both and already contains every open pull request.                                 |
 | Saved GitHub searches only, no board field        | Cheapest option and a genuine fallback if the project token does not materialise, but a list of filtered searches is not a transition path. No sense of a card moving, no claim signal.                    |
 | Extend `lgtm` into a fuller command set           | Keeps state in comments, which is where it is unqueryable today, and requires a human to type something. The current `lgtm` label sits at zero uses, which is the evidence against.                       |
 | A custom dashboard                                | Something else to host, authenticate, and keep alive. Labels plus a board view reach most of the value with nothing running.                                                                              |
 
 ---
 
-Figures come from the 78 open pull requests and 258 board items as of 2026-08-19, read
+Figures come from the 81 open pull requests and 258 board items as of 2026-08-20, read
 through the GitHub GraphQL API. The column counts in the board section are produced by
 running the ordered evaluation above against that snapshot, so they are what the board
 would actually show on the day this lands.
