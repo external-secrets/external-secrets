@@ -3,7 +3,17 @@
  *
  * Split out of the workflow so the fork handling below can be tested: getting
  * it wrong fails silently, as an empty list rather than an error.
+ *
+ * Returns { numbers, targets }. `targets` drives a job matrix so that each
+ * event-driven run gets its own per-pull-request concurrency group, which is
+ * the only way to serialise writes: a workflow-level group is evaluated before
+ * the pull request number is known. A sweep collapses to the single sentinel
+ * SWEEP_TARGET so it stays one job rather than one job per pull request.
  */
+
+// Must not collide with a pull request number, since it becomes part of a
+// concurrency group name.
+export const SWEEP_TARGET = 'all';
 
 // Events that name their pull request directly in the payload.
 const DIRECT_EVENTS = new Set([
@@ -24,7 +34,12 @@ async function listOpenPullRequests(github, owner, repo) {
 
 function headShaFor(event, payload) {
   if (event === 'check_suite') return (payload.check_suite || {}).head_sha;
-  if (event === 'check_run') return ((payload.check_run || {}).check_suite || {}).head_sha;
+  // check_run carries head_sha directly; the nested check_suite is a fallback
+  // for payload shapes that omit it.
+  if (event === 'check_run') {
+    const cr = payload.check_run || {};
+    return cr.head_sha || (cr.check_suite || {}).head_sha;
+  }
   if (event === 'status') return payload.sha;
   return undefined;
 }
@@ -60,6 +75,9 @@ export async function pullRequestsForBranch(github, owner, repo, headRepo, headR
     .map((p) => p.number);
 }
 
+const forPullRequests = (numbers) => ({ numbers, targets: numbers.map(String) });
+const forSweep = (numbers) => ({ numbers, targets: numbers.length > 0 ? [SWEEP_TARGET] : [] });
+
 export default async function resolvePullRequests({ core, github, context }) {
   const owner = context.repo.owner;
   const repo = context.repo.repo;
@@ -70,9 +88,9 @@ export default async function resolvePullRequests({ core, github, context }) {
     const number = payload.pull_request && payload.pull_request.number;
     if (!number) {
       core.warning(`${event} carried no pull request number`);
-      return [];
+      return forPullRequests([]);
     }
-    return [number];
+    return forPullRequests([number]);
   }
 
   if (event === 'workflow_run') {
@@ -80,26 +98,26 @@ export default async function resolvePullRequests({ core, github, context }) {
     const headRepo = (wr.head_repository || {}).full_name;
     if (!wr.head_branch || !headRepo) {
       core.warning('workflow_run carried no head branch or head repository');
-      return [];
+      return forPullRequests([]);
     }
     const numbers = await pullRequestsForBranch(github, owner, repo, headRepo, wr.head_branch);
     if (numbers.length === 0) {
       core.info(`workflow_run: ${headRepo}:${wr.head_branch} matches no open pull request`);
     }
-    return numbers;
+    return forPullRequests(numbers);
   }
 
   if (SHA_EVENTS.has(event)) {
     const sha = headShaFor(event, payload);
     if (!sha) {
       core.warning(`${event} carried no head SHA`);
-      return [];
+      return forPullRequests([]);
     }
     const numbers = await pullRequestsForSha(github, owner, repo, sha);
     if (numbers.length === 0) {
       core.info(`${event}: head SHA ${sha} matches no open pull request`);
     }
-    return numbers;
+    return forPullRequests(numbers);
   }
 
   const requested = ((payload.inputs && payload.inputs.pr) || '').trim();
@@ -109,9 +127,10 @@ export default async function resolvePullRequests({ core, github, context }) {
     if (!/^\d+$/.test(requested)) {
       throw new Error(`Invalid pr input: ${JSON.stringify(requested)}. Expected a number.`);
     }
-    return [Number(requested)];
+    return forPullRequests([Number(requested)]);
   }
 
+  // A sweep is one job over every open pull request, not one job each.
   const open = await listOpenPullRequests(github, owner, repo);
-  return open.map((p) => p.number);
+  return forSweep(open.map((p) => p.number));
 }

@@ -171,6 +171,33 @@ gain nothing but a runner.
 `review-state.yml` therefore listens only to triggers that are trusted: `pull_request_target`,
 `workflow_run`, `check_suite`, `schedule`, and `workflow_dispatch`.
 
+### Serialising writes for one pull request
+
+A workflow-level `concurrency` group cannot serialise this, because it is evaluated before the
+pull request number is known for `workflow_run` and `check_suite`. Keying on branch or SHA there
+produces a *different* group for the same pull request rather than the same one, which is worse
+than no grouping at all.
+
+Job-level `concurrency` can see `needs` and `matrix`, so the workflow is two jobs. `resolve`
+works out what to evaluate and emits both a list of pull request numbers and a list of matrix
+targets. `apply` fans out over those targets with `concurrency: review-state-${{ matrix.target }}`.
+
+An event resolves to one pull request, so it becomes one job in a group named for that pull
+request, and concurrent events for the same pull request queue behind each other. A sweep
+resolves to the single sentinel target `all`, so it stays one job over every open pull request
+rather than eighty-one jobs, and two sweeps cannot overlap.
+
+The residual case is a sweep overlapping an event run for the same pull request, since their
+groups differ. `syncLabels` verifies after writing and restores its own label if a racing run
+removed it.
+
+That verification pass deliberately only ever **adds**. An earlier version also removed labels it
+did not expect, which converged two racing runs to *zero* labels: each stripped the other's state
+and neither re-added its own, so the pull request silently left the queue. Two labels for one
+cycle is visible and self-corrects on the next run; none is invisible. `syncComment` has the same
+exposure on creation, which cannot be made idempotent by reading first, so the later creator
+detects the duplicate and deletes its own comment.
+
 ### Layer 3: mirror the label to the board
 
 The same workflow writes a new `Review` single-select field via
@@ -359,6 +386,12 @@ what is happening, on the pull request itself.
 produced findings. There is no need to guess how long CodeRabbit takes, and no risk of
 posting "wait for the bot" on a pull request the bot then passes clean. A contributor whose
 change is clean never sees a gate message at all.
+
+**The gate only applies before a human engages.** Once a maintainer reviews or self-assigns,
+the pull request moves to `👀 In Review` even with automated findings still open, because human
+judgement supersedes the bot. This is the same ordering rule as the transition logic above, but
+it needs saying in contributor-facing terms too: a maintainer looking early does not leave a
+contributor stuck behind a bot.
 
 **One comment, edited, never repeated.** The workflow finds its own previous comment by a
 hidden marker and edits it in place rather than posting again, so a pull request that cycles

@@ -217,54 +217,94 @@ export async function fetchPullRequest(github, owner, repo, number, core) {
 }
 
 export async function syncLabels(github, owner, repo, number, current, desired, { dryRun } = {}) {
+  const readLive = async () => {
+    const fresh = await github.rest.issues.listLabelsOnIssue({
+      owner, repo, issue_number: number, per_page: 100,
+    });
+    return fresh.data.map((l) => l.name);
+  };
+
+  // A dry run reads live as well: reporting from the classification-time
+  // snapshot would describe a pull request that may already have moved on,
+  // which is exactly what the live path re-reads to avoid.
   if (dryRun) {
-    const stale = current.filter((l) => ALL_STATES.includes(l) && l !== desired);
-    return { added: current.includes(desired) ? null : desired, removed: stale, applied: false };
+    const live = await readLive();
+    return {
+      added: live.includes(desired) ? null : desired,
+      removed: live.filter((l) => ALL_STATES.includes(l) && l !== desired),
+      restored: false,
+      applied: false,
+    };
   }
 
-  // Re-read rather than trusting the classification-time snapshot. Runs for the
-  // same pull request cannot be fully serialised, because the concurrency group
-  // is evaluated before the pull request number is known for workflow_run and
-  // check_suite. Reading here shrinks the window to the read-write gap, and any
-  // residue is corrected by the next run, which removes every stale state.
-  const fresh = await github.rest.issues.listLabelsOnIssue({
-    owner, repo, issue_number: number, per_page: 100,
-  });
-  const live = fresh.data.map((l) => l.name);
-  const stale = live.filter((l) => ALL_STATES.includes(l) && l !== desired);
-  const missing = live.includes(desired) ? null : desired;
-
-  for (const name of stale) {
-    try {
-      await github.rest.issues.removeLabel({ owner, repo, issue_number: number, name });
-    } catch (error) {
-      // A label already gone is fine. Anything else, a permissions problem or
-      // a rate limit, must surface: swallowing it leaves stale labels behind
-      // while the run still reports success.
-      if (error.status !== 404) throw error;
+  const removeStale = async (labels) => {
+    const stale = labels.filter((l) => ALL_STATES.includes(l) && l !== desired);
+    for (const name of stale) {
+      try {
+        await github.rest.issues.removeLabel({ owner, repo, issue_number: number, name });
+      } catch (error) {
+        // A label already gone is fine. Anything else, a permissions problem or
+        // a rate limit, must surface: swallowing it leaves stale labels behind
+        // while the run still reports success.
+        if (error.status !== 404) throw error;
+      }
     }
-  }
+    return stale;
+  };
+
+  // Read live rather than trusting the classification-time snapshot: another
+  // run may have relabelled this pull request since we classified it.
+  const live = await readLive();
+  const removed = await removeStale(live);
+  const missing = live.includes(desired) ? null : desired;
   if (missing) {
     await github.rest.issues.addLabels({
       owner, repo, issue_number: number, labels: [desired],
     });
   }
-  return { added: missing, removed: stale, applied: true };
+
+  // The write is not atomic and cannot be: a sweep and an event-driven run for
+  // the same pull request sit in different concurrency groups by design.
+  //
+  // This pass therefore only ever ADDS. An earlier version also removed labels
+  // it did not expect, which converged two racing runs to ZERO labels: each
+  // stripped the other's state and neither re-added its own, so the pull
+  // request silently left the queue. Two labels for one cycle is visible and
+  // self-corrects on the next run; none is invisible.
+  const after = await readLive();
+  const restored = !after.includes(desired);
+  if (restored) {
+    await github.rest.issues.addLabels({
+      owner, repo, issue_number: number, labels: [desired],
+    });
+  }
+
+  return {
+    added: missing || (restored ? desired : null),
+    removed,
+    restored,
+    applied: true,
+  };
 }
 
 export async function syncComment(github, owner, repo, number, result, { dryRun } = {}) {
-  const comments = await github.paginate(github.rest.issues.listComments, {
-    owner, repo, issue_number: number, per_page: 100,
-  });
   // Require the marker AND a bot author. The marker is public, so a human
   // could otherwise post one and capture the slot, leaving this workflow
   // trying to edit a comment it does not own and the guidance never shown.
-  const existing = comments.find(
-    (c) => c.body
-      && c.body.includes(COMMENT_MARKER)
-      && c.user
-      && c.user.type === 'Bot',
-  );
+  const findMarkers = async () => {
+    const comments = await github.paginate(github.rest.issues.listComments, {
+      owner, repo, issue_number: number, per_page: 100,
+    });
+    return comments.filter(
+      (c) => c.body
+        && c.body.includes(COMMENT_MARKER)
+        && c.user
+        && c.user.type === 'Bot',
+    );
+  };
+
+  const markers = await findMarkers();
+  const existing = markers[0];
   const gated = result.state === STATE.BOT_FINDINGS_OPEN;
 
   // Never open the conversation unprompted: the comment appears only when
@@ -280,7 +320,24 @@ export async function syncComment(github, owner, repo, number, result, { dryRun 
     return 'updated';
   }
   if (dryRun) return 'would-create';
-  await github.rest.issues.createComment({ owner, repo, issue_number: number, body });
+
+  const created = await github.rest.issues.createComment({
+    owner, repo, issue_number: number, body,
+  });
+
+  // Creating is the one write here that cannot be made idempotent by reading
+  // first: a concurrent run may create its own between our read and our write.
+  // Keep the earliest and drop ours, so a pull request never accumulates two
+  // guidance comments that nothing would ever clean up.
+  const after = await findMarkers();
+  if (after.length > 1) {
+    const earliest = after.reduce((a, b) => (a.id < b.id ? a : b));
+    const mine = created && created.data && created.data.id;
+    if (mine && mine !== earliest.id) {
+      await github.rest.issues.deleteComment({ owner, repo, comment_id: mine });
+      return 'created-then-deduped';
+    }
+  }
   return 'created';
 }
 
@@ -336,6 +393,7 @@ export default async function run({ core, github, context, numbers, dryRun = fal
         + `bot findings ${result.botFindingsOpen}, ci ${pr.ciState ?? 'none'}, `
         + `decision ${pr.reviewDecision ?? 'none'}, draft ${pr.isDraft}) `
         + `labels[+${labelChange.added ?? '-'} -${labelChange.removed.join(',') || '-'}] `
+        + (labelChange.restored ? 'RACED(label was deleted under us, restored) ' : '')
         + `comment[${commentAction}]`,
       );
     } catch (error) {

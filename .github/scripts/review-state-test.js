@@ -33,6 +33,20 @@ function pr(overrides = {}) {
 }
 
 const review = (author, state, submittedAt) => ({ author, state, submittedAt });
+
+// Captures what the workflow reported, so tests can assert on it.
+function fakeCore() {
+  const warnings = [];
+  const errors = [];
+  return {
+    warnings,
+    errors,
+    info: () => {},
+    warning: (m) => warnings.push(m),
+    error: (m) => errors.push(m),
+    setFailed: (m) => errors.push(m),
+  };
+}
 const botThread = (o = {}) => ({ author: 'coderabbitai', isResolved: false, isOutdated: false, ...o });
 const humanThread = (o = {}) => ({ author: 'someone', isResolved: false, isOutdated: false, ...o });
 
@@ -313,25 +327,50 @@ test('the guidance comment carries a marker and pluralises', () => {
 // ---------------------------------------------------------------------------
 
 function fakeGithub({ graphql, comments = [], removeLabelError, liveLabels } = {}) {
-  const calls = { addLabels: [], removeLabel: [], createComment: [], updateComment: [] };
+  const calls = {
+    addLabels: [], removeLabel: [], createComment: [], updateComment: [], deleteComment: [],
+    labelReads: 0,
+  };
   const listComments = () => {};
   listComments.__kind = 'comments';
+
+  // `liveLabels` as an array of arrays models another run changing labels
+  // mid-flight: each read returns the next entry. As a flat array it seeds a
+  // mutable set, so a removal is actually reflected in the next read the way
+  // the real API would.
+  const scripted = Array.isArray(liveLabels) && Array.isArray(liveLabels[0]);
+  const state = new Set(scripted ? [] : (liveLabels || []));
+
   const github = {
     graphql: async () => graphql,
     paginate: async (fn) => (fn.__kind === 'comments' ? comments : []),
     rest: {
       issues: {
         listComments,
-        // syncLabels re-reads before writing; default to whatever the caller
-        // passed as `current` unless a test overrides the live state.
-        listLabelsOnIssue: async () => ({ data: (liveLabels || []).map((name) => ({ name })) }),
-        addLabels: async (p) => { calls.addLabels.push(p); },
+        listLabelsOnIssue: async () => {
+          const answer = scripted
+            ? (liveLabels[Math.min(calls.labelReads, liveLabels.length - 1)] || [])
+            : [...state];
+          calls.labelReads += 1;
+          return { data: answer.map((name) => ({ name })) };
+        },
+        addLabels: async (p) => { calls.addLabels.push(p); p.labels.forEach((l) => state.add(l)); },
         removeLabel: async (p) => {
           calls.removeLabel.push(p);
           if (removeLabelError) throw removeLabelError;
+          state.delete(p.name);
         },
-        createComment: async (p) => { calls.createComment.push(p); },
+        createComment: async (p) => {
+          calls.createComment.push(p);
+          // Derived from the shared comment list, not a per-client counter, so
+          // two clients writing to one pull request get distinct ids the way
+          // the real API guarantees.
+          const created = { id: 1001 + comments.length, body: p.body, user: { type: 'Bot' } };
+          comments.push(created);
+          return { data: created };
+        },
         updateComment: async (p) => { calls.updateComment.push(p); },
+        deleteComment: async (p) => { calls.deleteComment.push(p); },
       },
     },
   };
@@ -418,16 +457,15 @@ test('fetchPullRequest treats a missing check rollup as no CI rather than failur
 });
 
 test('fetchPullRequest reports both connections when both are truncated', async () => {
-  const warnings = [];
-  const core = { warning: (m) => warnings.push(m) };
+  const core = fakeCore();
   const g = graphqlPr();
   g.repository.pullRequest.reviews.pageInfo.hasNextPage = true;
   g.repository.pullRequest.reviewThreads.pageInfo.hasPreviousPage = true;
   const { github } = fakeGithub({ graphql: g });
   const p = await fetchPullRequest(github, 'o', 'r', 42, core);
   assert.deepEqual(p.truncated, ['reviews', 'reviewThreads']);
-  assert.equal(warnings.length, 1);
-  assert.match(warnings[0], /reviews and reviewThreads/);
+  assert.equal(core.warnings.length, 1);
+  assert.match(core.warnings[0], /reviews and reviewThreads/);
 });
 
 test('syncLabels adds the desired label and strips only stale review states', async () => {
@@ -463,7 +501,7 @@ test('syncLabels tolerates a 404 but rethrows a permissions failure', async () =
 });
 
 test('syncLabels writes nothing in a dry run but still reports the change', async () => {
-  const { github, calls } = fakeGithub();
+  const { github, calls } = fakeGithub({ liveLabels: ['review/needs-review', 'size/l'] });
   const res = await syncLabels(
     github, 'o', 'r', 1, ['review/needs-review'], STATE.IN_REVIEW, { dryRun: true },
   );
@@ -471,6 +509,17 @@ test('syncLabels writes nothing in a dry run but still reports the change', asyn
   assert.equal(res.applied, false);
   assert.equal(res.added, STATE.IN_REVIEW);
   assert.deepEqual(res.removed, ['review/needs-review']);
+});
+
+test('a dry run reports from a live read, not the classification snapshot', async () => {
+  // The snapshot says needs-review, but the pull request has moved on since.
+  const { github, calls } = fakeGithub({ liveLabels: ['review/draft'] });
+  const res = await syncLabels(
+    github, 'o', 'r', 1, ['review/needs-review'], STATE.IN_REVIEW, { dryRun: true },
+  );
+  assert.deepEqual(res.removed, ['review/draft'], 'reports what is actually on the pull request');
+  assert.equal(calls.labelReads, 1, 'it reads');
+  assert.equal(calls.removeLabel.length + calls.addLabels.length, 0, 'but never writes');
 });
 
 test('syncComment stays silent on a clean pull request', async () => {
@@ -537,14 +586,13 @@ test('syncComment writes nothing in a dry run', async () => {
 // ---------------------------------------------------------------------------
 
 test('truncated data is flagged so the caller can refuse to write', async () => {
-  const warnings = [];
-  const core = { warning: (m) => warnings.push(m) };
+  const core = fakeCore();
   const g = graphqlPr();
   g.repository.pullRequest.reviewThreads.pageInfo.hasPreviousPage = true;
   const { github } = fakeGithub({ graphql: g });
   const p = await fetchPullRequest(github, 'o', 'r', 42, core);
   assert.deepEqual(p.truncated, ['reviewThreads']);
-  assert.match(warnings[0], /skipping rather than/);
+  assert.match(core.warnings[0], /skipping rather than/);
 });
 
 test('complete data carries no truncation flag', async () => {
@@ -584,7 +632,6 @@ test('the gate comment tells contributors to resolve, not merely reply', () => {
 
 test('run() refuses to write a label when the data is truncated', async () => {
   const calls = { addLabels: [], removeLabel: [], createComment: [], updateComment: [] };
-  const warnings = [];
   const listComments = () => {};
   listComments.__kind = 'comments';
   const listLabelsForRepo = () => {};
@@ -610,9 +657,7 @@ test('run() refuses to write a label when the data is truncated', async () => {
       },
     },
   };
-  const core = {
-    info: () => {}, warning: (m) => warnings.push(m), error: () => {}, setFailed: () => {},
-  };
+  const core = fakeCore();
 
   const results = await run({
     core, github, context: { repo: { owner: 'o', repo: 'r' } }, numbers: [42],
@@ -622,7 +667,7 @@ test('run() refuses to write a label when the data is truncated', async () => {
   assert.equal(calls.addLabels.length, 0, 'no label written');
   assert.equal(calls.removeLabel.length, 0, 'no label removed');
   assert.equal(calls.createComment.length, 0, 'no comment written');
-  assert.match(warnings.join(' '), /truncated data/);
+  assert.match(core.warnings.join(' '), /truncated data/);
 });
 
 test('run() does write when the data is complete', async () => {
@@ -648,10 +693,110 @@ test('run() does write when the data is complete', async () => {
       },
     },
   };
-  const core = { info: () => {}, warning: () => {}, error: () => {}, setFailed: () => {} };
+  const core = fakeCore();
   const results = await run({
     core, github, context: { repo: { owner: 'o', repo: 'r' } }, numbers: [42],
   });
   assert.equal(results.length, 1, 'the control case still produces a result');
   assert.deepEqual(calls.addLabels[0].labels, [STATE.NEEDS_2ND_APPROVAL]);
+});
+
+// A shared mutable label store driven by two concurrent syncLabels calls. The
+// earlier canned-sequence tests could not catch the zero-label bug, because
+// only one side of the race actually ran.
+function sharedRepo(initial) {
+  const state = new Set(initial);
+  const github = {
+    rest: {
+      issues: {
+        listLabelsOnIssue: async () => ({ data: [...state].map((name) => ({ name })) }),
+        addLabels: async (p) => { p.labels.forEach((l) => state.add(l)); },
+        removeLabel: async (p) => {
+          if (!state.has(p.name)) {
+            throw Object.assign(new Error('not found'), { status: 404 });
+          }
+          state.delete(p.name);
+        },
+      },
+    },
+  };
+  return { github, state, reviewLabels: () => [...state].filter((l) => l.startsWith('review/')) };
+}
+
+test('two concurrent runs never strip a pull request of every review label', async () => {
+  const repo = sharedRepo(['review/needs-review', 'size/l']);
+  await Promise.all([
+    syncLabels(repo.github, 'o', 'r', 1, ['review/needs-review'], STATE.CI_RED),
+    syncLabels(repo.github, 'o', 'r', 1, ['review/needs-review'], STATE.IN_REVIEW),
+  ]);
+  const surviving = repo.reviewLabels();
+  assert.notEqual(
+    surviving.length, 0,
+    'zero labels would silently drop the pull request out of the queue',
+  );
+  assert.ok(repo.state.has('size/l'), 'unrelated labels are untouched');
+});
+
+test('a two-label race converges on the next run', async () => {
+  const repo = sharedRepo(['review/needs-review', 'size/l']);
+  await Promise.all([
+    syncLabels(repo.github, 'o', 'r', 1, ['review/needs-review'], STATE.CI_RED),
+    syncLabels(repo.github, 'o', 'r', 1, ['review/needs-review'], STATE.IN_REVIEW),
+  ]);
+  await syncLabels(repo.github, 'o', 'r', 1, repo.reviewLabels(), STATE.CI_RED);
+  assert.deepEqual(repo.reviewLabels(), [STATE.CI_RED]);
+});
+
+test('the verification pass restores a label a concurrent run deleted', async () => {
+  const repo = sharedRepo([STATE.IN_REVIEW]);
+  // Between our add and our verification read, something removes our label.
+  const realRead = repo.github.rest.issues.listLabelsOnIssue;
+  let reads = 0;
+  repo.github.rest.issues.listLabelsOnIssue = async () => {
+    reads += 1;
+    if (reads === 2) repo.state.delete(STATE.CI_RED);
+    return realRead();
+  };
+  const res = await syncLabels(repo.github, 'o', 'r', 1, [STATE.IN_REVIEW], STATE.CI_RED);
+  assert.equal(res.restored, true, 'the deletion is noticed and undone');
+  assert.ok(repo.state.has(STATE.CI_RED));
+});
+
+test('a sequential run still lands exactly one label', async () => {
+  const repo = sharedRepo(['review/needs-review', 'review/draft', 'size/l']);
+  await syncLabels(repo.github, 'o', 'r', 1, ['review/needs-review'], STATE.READY_TO_MERGE);
+  assert.deepEqual(repo.reviewLabels(), [STATE.READY_TO_MERGE]);
+  assert.ok(repo.state.has('size/l'));
+});
+
+test('two concurrent runs do not leave two guidance comments', async () => {
+  // Both runs see no marker comment, so both create one. The later creator
+  // must clean up after itself rather than orphaning a duplicate.
+  const shared = [];
+  const make = () => fakeGithub({ comments: shared });
+  const a = make();
+  const b = make();
+  const gate = { state: STATE.BOT_FINDINGS_OPEN, botFindingsOpen: 2 };
+  const [ra, rb] = await Promise.all([
+    syncComment(a.github, 'o', 'r', 1, gate),
+    syncComment(b.github, 'o', 'r', 1, gate),
+  ]);
+
+  const markers = shared.filter((c) => c.body.includes('<!-- eso-review-routing -->'));
+  const deleted = [...a.calls.deleteComment, ...b.calls.deleteComment].map((c) => c.comment_id);
+  const surviving = markers.filter((c) => !deleted.includes(c.id));
+  assert.equal(surviving.length, 1, 'exactly one guidance comment survives');
+  assert.ok(
+    [ra, rb].includes('created-then-deduped'),
+    'the loser reports that it cleaned up',
+  );
+});
+
+test('a single run creating a comment does not delete it again', async () => {
+  const { github, calls } = fakeGithub({ comments: [] });
+  const action = await syncComment(github, 'o', 'r', 1, {
+    state: STATE.BOT_FINDINGS_OPEN, botFindingsOpen: 1,
+  });
+  assert.equal(action, 'created');
+  assert.equal(calls.deleteComment.length, 0, 'nothing to dedupe');
 });

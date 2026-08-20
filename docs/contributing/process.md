@@ -80,6 +80,11 @@ You do not need to watch for this. When there is something to address, a comment
 the pull request explaining what is outstanding, and it is updated in place once the queue
 picks your change up.
 
+There is one exception worth knowing: the automated stage only applies before a human gets
+involved. Once a maintainer reviews or assigns themselves, their judgement takes over and the
+pull request moves to `review/in-review` even if automated findings are still open. So a
+maintainer engaging early does not leave your pull request stuck behind a bot.
+
 A `review/*` label tracks where each pull request sits, and it is derived automatically. The
 ones that mean the ball is with the author are `review/draft`, `review/ci-red`,
 `review/changes-requested`, and `review/bot-findings-open`. The rest mean it is with us.
