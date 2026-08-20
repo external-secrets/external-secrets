@@ -1,0 +1,95 @@
+# Derives one review/* label per open pull request.
+# See design/015-review-routing.md for the rationale.
+#
+# Only triggers that run from the default branch with a write token appear
+# here. Review activity arrives indirectly via workflow_run on Review Signal,
+# because pull_request_review itself is read-only for pull requests from forks.
+name: Review State
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, ready_for_review, converted_to_draft, labeled, unlabeled]
+  workflow_run:
+    workflows: [Review Signal]
+    types: [completed]
+  check_suite:
+    types: [completed]
+  schedule:
+    # Backstop only: events above carry the load. Every six hours keeps the
+    # full sweep well inside the hourly API budget shared with other workflows.
+    - cron: '17 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: 'Pull request number to evaluate. Leave empty to sweep all open PRs.'
+        required: false
+        type: string
+      dry_run:
+        description: 'Report what would change without writing labels or comments.'
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  # Keyed on the pull request wherever one is known, so runs for the same pull
+  # request serialise. syncLabels is read-then-write and not atomic.
+  group: review-state-${{ github.event.pull_request.number || github.event.workflow_run.head_branch || github.event.check_suite.head_sha || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  review-state:
+    name: Derive review state
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read        # for reading .github/scripts
+      pull-requests: write  # for labelling pull requests
+      issues: write         # for the guidance comment
+    # Labels this workflow applies itself must not trigger it again. Events
+    # raised by GITHUB_TOKEN do not start new runs, so this is belt and braces
+    # against a future switch to an App token. The override label is exempt:
+    # applying it is precisely a request to re-evaluate.
+    if: >-
+      github.event_name != 'pull_request_target'
+      || !contains(fromJSON('["labeled", "unlabeled"]'), github.event.action)
+      || !startsWith(github.event.label.name, 'review/')
+      || github.event.label.name == 'review/bots-overridden'
+    steps:
+      # Never check out pull request code here: pull_request_target and the
+      # workflow_run handler run against the base repo with a writable token.
+      - name: Checkout scripts from the base ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Resolve which pull requests to evaluate
+        id: resolve
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { default: resolve } = await import(
+              `${process.env.GITHUB_WORKSPACE}/.github/scripts/resolve-prs.js`
+            );
+            const numbers = await resolve({ core, github, context });
+            core.info(`evaluating ${numbers.length} pull request(s): ${numbers.join(', ') || 'none'}`);
+            core.setOutput('numbers', JSON.stringify(numbers));
+
+      - name: Apply review state
+        if: steps.resolve.outputs.numbers != '[]'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          PR_NUMBERS: ${{ steps.resolve.outputs.numbers }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        with:
+          script: |
+            const { default: run } = await import(
+              `${process.env.GITHUB_WORKSPACE}/.github/scripts/review-state.js`
+            );
+            await run({
+              core, github, context,
+              numbers: JSON.parse(process.env.PR_NUMBERS),
+              dryRun: process.env.DRY_RUN === 'true',
+            });
