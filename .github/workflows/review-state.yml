@@ -150,4 +150,7 @@ jobs:
             await run({
               core, github, context, numbers,
               dryRun: process.env.DRY_RUN === 'true',
+              // Only a sweep deconflicts, and only by withdrawing its own
+              // state, so two cleaning runs can never strip a pull request.
+              sweep: target === SWEEP_TARGET,
             });

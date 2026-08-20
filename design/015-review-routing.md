@@ -193,10 +193,22 @@ removed it.
 
 That verification pass deliberately only ever **adds**. An earlier version also removed labels it
 did not expect, which converged two racing runs to *zero* labels: each stripped the other's state
-and neither re-added its own, so the pull request silently left the queue. Two labels for one
-cycle is visible and self-corrects on the next run; none is invisible. `syncComment` has the same
-exposure on creation, which cannot be made idempotent by reading first, so the later creator
+and neither re-added its own, so the pull request silently left the queue. `syncComment` has the
+same exposure on creation, which cannot be made idempotent by reading first, so the later creator
 detects the duplicate and deletes its own comment.
+
+An overlap therefore leaves two states, which the sweep resolves at the end of its cycle.
+**Only the sweep cleans up, and only ever by withdrawing the label it applied itself.** That
+asymmetry is what makes zero unreachable: when both sides cleaned up they removed each other's
+state, whereas one side withdrawing its own can only ever reduce two to one. The event's state
+wins, which is the right precedence, since it was raised by an actual change while a sweep is a
+backstop.
+
+Deferring it to the end of the cycle matters too: by then the overlapping event runs have almost
+certainly finished, so the pass sees settled state rather than racing what it is repairing. It
+refuses to act when its own label is already gone, ignores `review/bots-overridden` because that
+is a human decision rather than derived state, and restores its label if withdrawing it would
+have left the pull request with none.
 
 ### Layer 3: mirror the label to the board
 

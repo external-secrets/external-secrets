@@ -342,10 +342,61 @@ export async function syncComment(github, owner, repo, number, result, { dryRun 
 }
 
 /**
+ * End-of-sweep deconfliction.
+ *
+ * A sweep and an event-driven run for one pull request sit in different
+ * concurrency groups by design, so both can write and leave two states. Only
+ * the sweep cleans that up, and only ever by withdrawing the label it applied
+ * itself. That asymmetry is the point: when both sides cleaned up, each
+ * removed the other's state and neither re-added its own, leaving the pull
+ * request with none at all.
+ *
+ * The event's state wins, which is the right precedence: it was raised by an
+ * actual change, while a sweep is a backstop.
+ */
+export async function deconflictSweep(github, owner, repo, applied, core) {
+  const outcomes = [];
+  for (const { number, label } of applied) {
+    const read = async () => {
+      const r = await github.rest.issues.listLabelsOnIssue({
+        owner, repo, issue_number: number, per_page: 100,
+      });
+      return r.data.map((l) => l.name).filter((n) => ALL_STATES.includes(n));
+    };
+
+    const live = await read();
+    // Nothing to yield unless an overlapping run left its own state next to ours.
+    if (live.length < 2 || !live.includes(label)) continue;
+
+    try {
+      await github.rest.issues.removeLabel({ owner, repo, issue_number: number, name: label });
+    } catch (error) {
+      if (error.status !== 404) throw error;
+    }
+
+    // A sweep must never be the reason a pull request carries no state at all.
+    const after = await read();
+    if (after.length === 0) {
+      await github.rest.issues.addLabels({
+        owner, repo, issue_number: number, labels: [label],
+      });
+      core.warning(`PR #${number}: withdrew ${label} but nothing remained, put it back`);
+      outcomes.push({ number, label, action: 'restored' });
+    } else {
+      core.info(`PR #${number}: withdrew sweep state ${label}, event state ${after.join(',')} stands`);
+      outcomes.push({ number, label, action: 'yielded' });
+    }
+  }
+  return outcomes;
+}
+
+/**
  * Evaluates every pull request in `numbers` and reconciles its label and
  * guidance comment. With `dryRun` it only reports what it would change.
  */
-export default async function run({ core, github, context, numbers, dryRun = false }) {
+export default async function run({
+  core, github, context, numbers, dryRun = false, sweep = false,
+}) {
   const owner = context.repo.owner;
   const repo = context.repo.repo;
 
@@ -370,6 +421,7 @@ export default async function run({ core, github, context, numbers, dryRun = fal
   const results = [];
   const failures = [];
   const skipped = [];
+  const applied = [];
   for (const number of numbers) {
     try {
       const pr = await fetchPullRequest(github, owner, repo, number, core);
@@ -387,6 +439,7 @@ export default async function run({ core, github, context, numbers, dryRun = fal
       );
       const commentAction = await syncComment(github, owner, repo, number, result, { dryRun });
       results.push({ number, ...result, labelChange, commentAction, current: pr.labels });
+      if (labelChange.added) applied.push({ number, label: labelChange.added });
       core.info(
         `PR #${number}: ${result.state} `
         + `(approvals ${result.approvals}/${result.required}, `
@@ -401,6 +454,16 @@ export default async function run({ core, github, context, numbers, dryRun = fal
       core.error(`PR #${number}: ${error.message}`);
     }
   }
+  // Deferred to the end of the cycle on purpose: by now the event-driven runs
+  // that overlapped these pull requests have almost certainly finished, so this
+  // sees settled state instead of racing what it is trying to repair.
+  if (sweep && !dryRun && applied.length > 0) {
+    const outcomes = await deconflictSweep(github, owner, repo, applied, core);
+    if (outcomes.length > 0) {
+      core.info(`deconflicted ${outcomes.length} pull request(s) after overlapping writes`);
+    }
+  }
+
   if (skipped.length > 0) {
     core.warning(`Skipped ${skipped.length} pull request(s) with truncated data: ${skipped.join(', ')}`);
   }

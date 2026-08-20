@@ -11,7 +11,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import run, {
   classify, isBot, effectiveVerdicts, gateComment, clearedComment, STATE, ALL_STATES,
-  fetchPullRequest, syncLabels, syncComment,
+  fetchPullRequest, syncLabels, syncComment, deconflictSweep,
 } from './review-state.js';
 
 // run() checks that every state label exists before touching anything.
@@ -799,4 +799,156 @@ test('a single run creating a comment does not delete it again', async () => {
   });
   assert.equal(action, 'created');
   assert.equal(calls.deleteComment.length, 0, 'nothing to dedupe');
+});
+
+// ---------------------------------------------------------------------------
+// End-of-sweep deconfliction. Only the sweep cleans up, and only by
+// withdrawing its own state, which is what makes zero unreachable.
+// ---------------------------------------------------------------------------
+
+test('a sweep withdraws its own state when an event left one too', async () => {
+  const repo = sharedRepo([STATE.CI_RED, STATE.IN_REVIEW, 'size/l']);
+  const core = fakeCore();
+  const out = await deconflictSweep(
+    repo.github, 'o', 'r', [{ number: 1, label: STATE.IN_REVIEW }], core,
+  );
+  assert.deepEqual(repo.reviewLabels(), [STATE.CI_RED], "the event's state stands");
+  assert.deepEqual(out, [{ number: 1, label: STATE.IN_REVIEW, action: 'yielded' }]);
+  assert.ok(repo.state.has('size/l'), 'unrelated labels untouched');
+});
+
+test('a sweep leaves a single state alone', async () => {
+  const repo = sharedRepo([STATE.IN_REVIEW]);
+  const out = await deconflictSweep(
+    repo.github, 'o', 'r', [{ number: 1, label: STATE.IN_REVIEW }], fakeCore(),
+  );
+  assert.deepEqual(repo.reviewLabels(), [STATE.IN_REVIEW]);
+  assert.deepEqual(out, [], 'nothing to deconflict');
+});
+
+test('a sweep does nothing when its own state is already gone', async () => {
+  // An event ran after the sweep's write and replaced its label outright.
+  const repo = sharedRepo([STATE.CI_RED, STATE.READY_TO_MERGE]);
+  const out = await deconflictSweep(
+    repo.github, 'o', 'r', [{ number: 1, label: STATE.IN_REVIEW }], fakeCore(),
+  );
+  assert.equal(repo.reviewLabels().length, 2, 'not ours to resolve, next run converges');
+  assert.deepEqual(out, []);
+});
+
+test('a sweep never leaves a pull request with no state at all', async () => {
+  const repo = sharedRepo([STATE.CI_RED, STATE.IN_REVIEW]);
+  // The other state vanishes between our read and our removal.
+  const realRemove = repo.github.rest.issues.removeLabel;
+  repo.github.rest.issues.removeLabel = async (p) => {
+    repo.state.delete(STATE.CI_RED);
+    return realRemove(p);
+  };
+  const core = fakeCore();
+  const out = await deconflictSweep(
+    repo.github, 'o', 'r', [{ number: 1, label: STATE.IN_REVIEW }], core,
+  );
+  assert.deepEqual(repo.reviewLabels(), [STATE.IN_REVIEW], 'put back rather than left empty');
+  assert.equal(out[0].action, 'restored');
+  assert.match(core.warnings.join(' '), /put it back/);
+});
+
+test('a sweep will not withdraw the maintainer override', async () => {
+  const repo = sharedRepo([STATE.IN_REVIEW, 'review/bots-overridden']);
+  const out = await deconflictSweep(
+    repo.github, 'o', 'r', [{ number: 1, label: STATE.IN_REVIEW }], fakeCore(),
+  );
+  assert.ok(repo.state.has('review/bots-overridden'), 'the override is not derived state');
+  assert.deepEqual(out, [], 'the override does not count as a competing state');
+});
+
+test('the whole race resolves to exactly one state, the event side', async () => {
+  const repo = sharedRepo(['review/needs-review', 'size/l']);
+  // An event run and a sweep run overlap on the same pull request.
+  await Promise.all([
+    syncLabels(repo.github, 'o', 'r', 1, ['review/needs-review'], STATE.CI_RED),
+    syncLabels(repo.github, 'o', 'r', 1, ['review/needs-review'], STATE.IN_REVIEW),
+  ]);
+  assert.equal(repo.reviewLabels().length, 2, 'the race does leave two');
+  // Then the sweep's end-of-cycle pass runs.
+  await deconflictSweep(repo.github, 'o', 'r', [{ number: 1, label: STATE.IN_REVIEW }], fakeCore());
+  assert.deepEqual(repo.reviewLabels(), [STATE.CI_RED], 'one state, the event wins');
+});
+
+test('an event-driven run never deconflicts, which is what keeps zero unreachable', async () => {
+  // A competing state appears only AFTER this run has written its own, which is
+  // the real shape of the race: syncLabels cannot have cleaned it up already.
+  // If an event run deconflicted, it would withdraw its own label here and,
+  // with the other side doing the same, the pull request would end with none.
+  const build = () => {
+    const state = new Set();
+    const calls = { removeLabel: [] };
+    let reads = 0;
+    const listComments = () => {};
+    listComments.__kind = 'comments';
+    const listLabelsForRepo = () => {};
+    listLabelsForRepo.__kind = 'repoLabels';
+    return {
+      state,
+      calls,
+      github: {
+        graphql: async () => graphqlPr(),
+        paginate: async (fn) => (fn.__kind === 'repoLabels'
+          ? ALL_STATES.map((name) => ({ name })) : []),
+        rest: {
+          issues: {
+            listComments,
+            listLabelsForRepo,
+            listLabelsOnIssue: async () => {
+              reads += 1;
+              // Reads 1 and 2 belong to syncLabels; from read 3 on, an
+              // overlapping run has landed its own state.
+              if (reads >= 3) state.add(STATE.CI_RED);
+              return { data: [...state].map((name) => ({ name })) };
+            },
+            addLabels: async (p) => { p.labels.forEach((l) => state.add(l)); },
+            removeLabel: async (p) => { calls.removeLabel.push(p.name); state.delete(p.name); },
+            createComment: async () => ({ data: { id: 1 } }),
+            updateComment: async () => {},
+            deleteComment: async () => {},
+          },
+        },
+      },
+    };
+  };
+
+  const asEvent = build();
+  await run({
+    core: fakeCore(),
+    github: asEvent.github,
+    context: { repo: { owner: 'o', repo: 'r' } },
+    numbers: [42],
+    sweep: false,
+  });
+  assert.ok(
+    asEvent.state.has(STATE.NEEDS_2ND_APPROVAL),
+    'an event run must never withdraw the label it just applied',
+  );
+  assert.ok(
+    !asEvent.calls.removeLabel.includes(STATE.NEEDS_2ND_APPROVAL),
+    'and must not even try',
+  );
+
+  const asSweep = build();
+  await run({
+    core: fakeCore(),
+    github: asSweep.github,
+    context: { repo: { owner: 'o', repo: 'r' } },
+    numbers: [42],
+    sweep: true,
+  });
+  assert.ok(
+    asSweep.calls.removeLabel.includes(STATE.NEEDS_2ND_APPROVAL),
+    'a sweep yields the state it applied when an overlapping run left one',
+  );
+  assert.deepEqual(
+    [...asSweep.state].filter((l) => ALL_STATES.includes(l)),
+    [STATE.CI_RED],
+    'exactly one state survives, the event side',
+  );
 });
