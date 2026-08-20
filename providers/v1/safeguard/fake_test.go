@@ -25,16 +25,16 @@ import (
 )
 
 type accountEntry struct {
-	accountID   int
 	accountName string
-	assetName   string
+	systemName  string
 	apiKey      string
 	password    string
 }
 
 type fakeA2A struct {
-	passwords map[string]string
-	accounts  []accountEntry
+	passwords  map[string]string
+	accounts   []accountEntry
+	lastFilter string
 }
 
 func (f *fakeA2A) RetrievePassword(_ context.Context, apiKey sg.Secret) (sg.Secret, error) {
@@ -61,15 +61,18 @@ func (f *fakeA2A) SetPassword(_ context.Context, apiKey sg.Secret, newPassword s
 	return nil
 }
 
-func (f *fakeA2A) GetRetrievableAccounts(_ context.Context, _ string) ([]sg.A2ARetrievableAccount, error) {
-	out := make([]sg.A2ARetrievableAccount, len(f.accounts))
-	for i, account := range f.accounts {
-		out[i] = sg.A2ARetrievableAccount{
-			AccountID:   account.accountID,
-			AccountName: account.accountName,
-			AssetName:   account.assetName,
-			APIKey:      sg.NewSecretString(account.apiKey),
+func (f *fakeA2A) GetRetrievableAccounts(_ context.Context, filter string) ([]sg.A2ARetrievableAccount, error) {
+	f.lastFilter = filter
+	out := make([]sg.A2ARetrievableAccount, 0, len(f.accounts))
+	for _, account := range f.accounts {
+		if filter != "" && filter != buildAccountSystemFilter(account.accountName, account.systemName) {
+			continue
 		}
+		out = append(out, sg.A2ARetrievableAccount{
+			AccountName: account.accountName,
+			AssetName:   account.systemName,
+			APIKey:      sg.NewSecretString(account.apiKey),
+		})
 		if account.password != "" {
 			if f.passwords == nil {
 				f.passwords = map[string]string{}

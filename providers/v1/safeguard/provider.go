@@ -62,12 +62,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, errClusterStoreRequiresNamespace
 	}
 
-	a2a, err := newA2AContext(ctx, store, cfg, kube, namespace)
+	bootstrap, err := newA2AContext(ctx, store, cfg, kube, namespace)
 	if err != nil {
 		return nil, err
 	}
 
-	return &secretsClient{a2a: a2a}, nil
+	return &secretsClient{a2a: bootstrap}, nil
 }
 
 // ValidateStore validates the store configuration.

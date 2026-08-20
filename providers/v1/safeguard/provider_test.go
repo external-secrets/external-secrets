@@ -143,14 +143,32 @@ func TestGetSecretUsesAPIKeyDirectly(t *testing.T) {
 func TestGetSecretAccountLookup(t *testing.T) {
 	fake := &fakeA2A{
 		accounts: []accountEntry{
-			{accountName: "dbadmin", assetName: "database", apiKey: "lookup-key", password: "lookup-password"},
+			{accountName: "dbadmin", systemName: "database-server", apiKey: "lookup-key", password: "lookup-password"},
 		},
 	}
 	client := &secretsClient{a2a: fake}
 
 	value, err := client.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
-		Key: "dbadmin/database",
+		Key: "dbadmin/database-server",
 	})
 	require.NoError(t, err)
 	assert.Equal(t, "lookup-password", string(value))
+	assert.Equal(t, buildAccountSystemFilter("dbadmin", "database-server"), fake.lastFilter)
+}
+
+func TestGetSecretODataFilter(t *testing.T) {
+	fake := &fakeA2A{
+		accounts: []accountEntry{
+			{accountName: "dbadmin", systemName: "database-server", apiKey: "lookup-key", password: "lookup-password"},
+		},
+	}
+	client := &secretsClient{a2a: fake}
+
+	filter := "AccountName ieq 'dbadmin' and SystemName ieq 'database-server'"
+	value, err := client.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+		Key: "filter:" + filter,
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "lookup-password", string(value))
+	assert.Equal(t, filter, fake.lastFilter)
 }

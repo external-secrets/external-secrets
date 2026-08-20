@@ -24,8 +24,9 @@ Configure A2A authentication on the `SecretStore`:
 | Key format | Example | Description |
 | --- | --- | --- |
 | A2A API key | `abc123...` | Direct API key value registered for the account |
-| Account lookup | `svc-account/database-server` | Resolves the API key from retrievable accounts by account and asset name |
-| Account ID lookup | `accountId:12345` | Resolves the API key from retrievable accounts by account ID |
+| Account lookup | `svc-account/database-server` | Builds `AccountName ieq 'svc-account' and SystemName ieq 'database-server'` |
+| OData filter | `filter:AccountName ieq 'x' and SystemName ieq 'y'` | Passes the filter directly to `RetrievableAccounts` |
+| Account ID lookup | `accountId:12345` | Builds `AccountId eq 12345` |
 
 `remoteRef.property` selects the credential type:
 
@@ -42,9 +43,47 @@ Configure A2A authentication on the `SecretStore`:
 
 {% include 'safeguard-external-secret.yaml' %}
 
+## Curl-equivalent workflow
+
+If you currently use a workflow like:
+
+1. Authenticate with a client certificate
+2. `GET .../RetrievableAccounts?filter=AccountName ieq 'xxxx' and SystemName ieq 'yyyy'`
+3. `GET .../Credentials?type=Password` with the returned `ApiKey`
+
+you can configure ESO like this:
+
+{% include 'safeguard-curl-equivalent-secret-store.yaml' %}
+
+{% include 'safeguard-curl-equivalent-external-secret.yaml' %}
+
+Equivalent shorthand for step 2:
+
+```yaml
+remoteRef:
+  key: xxxx/yyyy
+  property: password
+```
+
+Notes:
+
+- Use `apiVersion: v3` when your appliance expects `/service/core/v3/` and `/service/a2a/v3/`.
+- `SystemName` in Safeguard OData filters corresponds to the asset/system name in Safeguard.
+- Account lookup uses Safeguard's `ieq` operator, so matching is case-insensitive.
+
 ## PushSecret
 
 Password write-back is supported when the A2A registration has bidirectional access enabled. Only `property: password` is supported for push operations.
+
+PushSecret metadata can also drive account discovery:
+
+```yaml
+metadata:
+  apiVersion: kubernetes.external-secrets.io/v1alpha1
+  kind: PushSecretMetadata
+  spec:
+    filter: AccountName ieq 'xxxx' and SystemName ieq 'yyyy'
+```
 
 {% include 'safeguard-push-secret.yaml' %}
 

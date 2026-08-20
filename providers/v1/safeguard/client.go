@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	sg "github.com/OneIdentity/safeguard-go"
@@ -29,15 +28,26 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 )
 
 const (
-	credentialTypePassword    = "password"
-	credentialTypePrivateKey  = "privatekey"
-	credentialTypeAPIKey      = "apikey"
-	accountIDPrefix           = "accountId:"
-	accountLookupSeparator    = "/"
+	credentialTypePassword   = "password"
+	credentialTypePrivateKey = "privatekey"
+	credentialTypeAPIKey     = "apikey"
 )
+
+// PushSecretMetadataSpec configures Safeguard-specific PushSecret lookup options.
+type PushSecretMetadataSpec struct {
+	// Filter is an OData filter passed to RetrievableAccounts.
+	// +optional
+	Filter string `json:"filter,omitempty"`
+	// AccountName and SystemName build a case-insensitive Safeguard filter when Filter is empty.
+	// +optional
+	AccountName string `json:"accountName,omitempty"`
+	// +optional
+	SystemName string `json:"systemName,omitempty"`
+}
 
 type secretsClient struct {
 	a2a a2aAPI
@@ -59,7 +69,7 @@ func (c *secretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDa
 		return nil, errors.New("specifying a version is not supported")
 	}
 
-	apiKey, err := c.resolveAPIKey(ctx, ref.Key)
+	apiKey, err := c.resolveAPIKey(ctx, ref.Key, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +170,7 @@ func (c *secretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, d
 		return fmt.Errorf("push is only supported for password credentials, got %q", data.GetProperty())
 	}
 
-	apiKey, err := c.resolveAPIKey(ctx, data.GetRemoteKey())
+	apiKey, err := c.resolveAPIKey(ctx, data.GetRemoteKey(), pushLookupOptions(data))
 	if err != nil {
 		return err
 	}
@@ -180,7 +190,7 @@ func (c *secretsClient) DeleteSecret(context.Context, esv1.PushSecretRemoteRef) 
 }
 
 func (c *secretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
-	apiKey, err := c.resolveAPIKey(ctx, ref.GetRemoteKey())
+	apiKey, err := c.resolveAPIKey(ctx, ref.GetRemoteKey(), nil)
 	if err != nil {
 		return false, err
 	}
@@ -215,63 +225,21 @@ func (c *secretsClient) Close(context.Context) error {
 	return c.a2a.Close()
 }
 
-func (c *secretsClient) resolveAPIKey(ctx context.Context, key string) (sg.Secret, error) {
-	key = strings.TrimSpace(key)
-	if key == "" {
-		return sg.Secret{}, errors.New("remote key must not be empty")
+func pushLookupOptions(data esv1.PushSecretData) *lookupOptions {
+	meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
+	if err != nil || meta == nil {
+		return nil
 	}
-	if strings.HasPrefix(key, accountIDPrefix) {
-		id, err := strconv.Atoi(strings.TrimPrefix(key, accountIDPrefix))
-		if err != nil || id <= 0 {
-			return sg.Secret{}, fmt.Errorf("invalid account id key %q", key)
-		}
-		return c.lookupAPIKeyByAccountID(ctx, id)
-	}
-	if strings.Contains(key, accountLookupSeparator) {
-		return c.lookupAPIKeyByAccountName(ctx, key)
-	}
-	return sg.NewSecretString(key), nil
-}
-
-func (c *secretsClient) lookupAPIKeyByAccountID(ctx context.Context, accountID int) (sg.Secret, error) {
-	accounts, err := c.a2a.GetRetrievableAccounts(ctx, "")
-	if err != nil {
-		return sg.Secret{}, err
-	}
-	for _, account := range accounts {
-		if account.AccountID == accountID {
-			return cloneSecret(account.APIKey), nil
-		}
-	}
-	return sg.Secret{}, esv1.NoSecretError{}
-}
-
-func (c *secretsClient) lookupAPIKeyByAccountName(ctx context.Context, key string) (sg.Secret, error) {
-	parts := strings.SplitN(key, accountLookupSeparator, 2)
-	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
-		return sg.Secret{}, fmt.Errorf("invalid account lookup key %q, expected accountName/assetName", key)
-	}
-	accountName := parts[0]
-	assetName := parts[1]
-
-	accounts, err := c.a2a.GetRetrievableAccounts(ctx, "")
-	if err != nil {
-		return sg.Secret{}, err
-	}
-	var matches []sg.A2ARetrievableAccount
-	for _, account := range accounts {
-		if account.AccountName == accountName && account.AssetName == assetName {
-			matches = append(matches, account)
-		}
-	}
-	switch len(matches) {
-	case 0:
-		return sg.Secret{}, esv1.NoSecretError{}
-	case 1:
-		return cloneSecret(matches[0].APIKey), nil
+	opts := &lookupOptions{}
+	switch {
+	case meta.Spec.Filter != "":
+		opts.filter = meta.Spec.Filter
+	case meta.Spec.AccountName != "" && meta.Spec.SystemName != "":
+		opts.filter = buildAccountSystemFilter(meta.Spec.AccountName, meta.Spec.SystemName)
 	default:
-		return sg.Secret{}, fmt.Errorf("multiple retrievable accounts found for %q", key)
+		return nil
 	}
+	return opts
 }
 
 func parseCredentialProperty(property string) (credType string, format sg.KeyFormat, subProperty string) {
