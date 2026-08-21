@@ -2064,6 +2064,7 @@ string
 <a href="#external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider</a>, 
 <a href="#external-secrets.io/v1.OvhClientMTLS">OvhClientMTLS</a>, 
 <a href="#external-secrets.io/v1.PassboltProvider">PassboltProvider</a>, 
+<a href="#external-secrets.io/v1.SafeguardProvider">SafeguardProvider</a>, 
 <a href="#external-secrets.io/v1.SecretServerProvider">SecretServerProvider</a>, 
 <a href="#external-secrets.io/v1.VaultProvider">VaultProvider</a>)
 </p>
@@ -10391,6 +10392,225 @@ External Secrets meta/v1.SecretKeySelector
 <p>
 <p>PushSecretRemoteRef is an interface to allow using v1alpha1.PushSecretRemoteRef in Provider registered in v1.</p>
 </p>
+<h3 id="external-secrets.io/v1.SafeguardA2AAuth">SafeguardA2AAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SafeguardAuth">SafeguardAuth</a>)
+</p>
+<p>
+<p>SafeguardA2AAuth configures Application-to-Application authentication with a client certificate.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certificate</code></br>
+<em>
+<a href="#external-secrets.io/v1.SafeguardProviderSecretRef">
+SafeguardProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<p>Certificate is the PEM-encoded client certificate (leaf, chain, and optionally the private key).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>certificateKey</code></br>
+<em>
+<a href="#external-secrets.io/v1.SafeguardProviderSecretRef">
+SafeguardProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CertificateKey is the PEM-encoded private key when it is not included in Certificate.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>certificatePassword</code></br>
+<em>
+<a href="#external-secrets.io/v1.SafeguardProviderSecretRef">
+SafeguardProviderSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CertificatePassword decrypts an encrypted PEM private key.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.SafeguardAuth">SafeguardAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SafeguardProvider">SafeguardProvider</a>)
+</p>
+<p>
+<p>SafeguardAuth configures how the operator authenticates to Safeguard.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>a2a</code></br>
+<em>
+<a href="#external-secrets.io/v1.SafeguardA2AAuth">
+SafeguardA2AAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A2A authenticates with a client certificate for Application-to-Application credential retrieval.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.SafeguardProvider">SafeguardProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>SafeguardProvider configures a store to sync secrets from One Identity Safeguard for Privileged Passwords.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>appliance</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Appliance is the Safeguard appliance host name or URL. Must use the https scheme.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.SafeguardAuth">
+SafeguardAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth configures authentication to Safeguard.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>apiVersion</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>APIVersion overrides the default Safeguard API version (v4).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caBundle</code></br>
+<em>
+[]byte
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CABundle is a PEM-encoded CA bundle used to validate the appliance TLS certificate.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>caProvider</code></br>
+<em>
+<a href="#external-secrets.io/v1.CAProvider">
+CAProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CAProvider references a ConfigMap or Secret containing the CA bundle.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.SafeguardProviderSecretRef">SafeguardProviderSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SafeguardA2AAuth">SafeguardA2AAuth</a>)
+</p>
+<p>
+<p>SafeguardProviderSecretRef references a value that can be specified directly or via a secret.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Value can be specified directly to set a value without using a secret.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef references a key in a secret that will be used as value.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.ScalewayProvider">ScalewayProvider
 </h3>
 <p>
@@ -11321,6 +11541,20 @@ DelineaProvider
 <em>(Optional)</em>
 <p>Delinea DevOps Secrets Vault
 <a href="https://docs.delinea.com/online-help/products/devops-secrets-vault/current">https://docs.delinea.com/online-help/products/devops-secrets-vault/current</a></p>
+</td>
+</tr>
+<tr>
+<td>
+<code>safeguard</code></br>
+<em>
+<a href="#external-secrets.io/v1.SafeguardProvider">
+SafeguardProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Safeguard configures this store to sync secrets using One Identity Safeguard for Privileged Passwords.</p>
 </td>
 </tr>
 <tr>

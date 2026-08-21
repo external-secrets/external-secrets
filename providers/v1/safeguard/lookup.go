@@ -28,8 +28,8 @@ import (
 )
 
 const (
-	filterPrefix         = "filter:"
-	accountIDPrefix      = "accountId:"
+	filterPrefix           = "filter:"
+	accountIDPrefix        = "accountId:"
 	accountLookupSeparator = "/"
 )
 
@@ -43,16 +43,16 @@ func parseLookupKey(key string) (lookupOptions, bool, string, error) {
 		return lookupOptions{}, false, "", fmt.Errorf("remote key must not be empty")
 	}
 
-	if strings.HasPrefix(key, filterPrefix) {
-		filter := strings.TrimPrefix(key, filterPrefix)
+	if after, ok := strings.CutPrefix(key, filterPrefix); ok {
+		filter := after
 		if strings.TrimSpace(filter) == "" {
 			return lookupOptions{}, false, "", fmt.Errorf("invalid filter key %q", key)
 		}
 		return lookupOptions{filter: filter}, false, "", nil
 	}
 
-	if strings.HasPrefix(key, accountIDPrefix) {
-		id, err := strconv.Atoi(strings.TrimPrefix(key, accountIDPrefix))
+	if after, ok := strings.CutPrefix(key, accountIDPrefix); ok {
+		id, err := strconv.Atoi(after)
 		if err != nil || id <= 0 {
 			return lookupOptions{}, false, "", fmt.Errorf("invalid account id key %q", key)
 		}

@@ -60,7 +60,7 @@ func (f *fakeA2A) RetrieveAPIKey(_ context.Context, apiKey sg.Secret) ([]sg.APIK
 	return nil, nil
 }
 
-func (f *fakeA2A) SetPassword(_ context.Context, apiKey sg.Secret, newPassword sg.Secret) error {
+func (f *fakeA2A) SetPassword(_ context.Context, apiKey, newPassword sg.Secret) error {
 	if f.passwords == nil {
 		f.passwords = map[string]string{}
 	}

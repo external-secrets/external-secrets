@@ -206,8 +206,7 @@ func (c *secretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRem
 
 	secret, err := c.a2a.RetrievePassword(ctx, apiKey)
 	if err != nil {
-		var notFound *sg.NotFoundError
-		if errors.As(mapNotFound(err), &notFound) {
+		if _, ok := errors.AsType[*sg.NotFoundError](mapNotFound(err)); ok {
 			return false, nil
 		}
 		return false, err
@@ -304,7 +303,7 @@ func encodeAPIKeys(keys []sg.APIKey) ([]byte, error) {
 		}
 		key.ClientSecret.Zero()
 	}
-	return json.Marshal(out)
+	return json.Marshal(out) //nolint:gosec // G117: clientSecret is intentionally serialized for apiKey credentials
 }
 
 // selectAPIKeyValue resolves apiKey sub-properties. clientId and clientSecret always use the first API key.
@@ -344,8 +343,7 @@ func cloneSecret(secret sg.Secret) sg.Secret {
 }
 
 func mapNotFound(err error) error {
-	var notFound *sg.NotFoundError
-	if errors.As(err, &notFound) {
+	if _, ok := errors.AsType[*sg.NotFoundError](err); ok {
 		return esv1.NoSecretError{}
 	}
 	return err

@@ -33,12 +33,12 @@ import (
 )
 
 var (
-	errMissingStore              = errors.New("missing store specification")
-	errInvalidSpec               = errors.New("invalid specification for Safeguard provider")
-	errMissingAppliance          = errors.New("appliance must be set")
-	errInvalidAppliance          = errors.New("appliance must use the https scheme")
-	errMissingA2AAuth            = errors.New("a2a auth must be set")
-	errMissingCertificate        = errors.New("a2a certificate must be set")
+	errMissingStore                  = errors.New("missing store specification")
+	errInvalidSpec                   = errors.New("invalid specification for Safeguard provider")
+	errMissingAppliance              = errors.New("appliance must be set")
+	errInvalidAppliance              = errors.New("appliance must use the https scheme")
+	errMissingA2AAuth                = errors.New("a2a auth must be set")
+	errMissingCertificate            = errors.New("a2a certificate must be set")
 	errClusterStoreRequiresNamespace = errors.New("when using a ClusterSecretStore, namespaces must be explicitly set on secret references")
 )
 
