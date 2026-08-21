@@ -24,10 +24,11 @@ import (
 )
 
 type OracleMockVaultClient struct {
-	SecretSummaries []vault.SecretSummary
-	CreatedCount    int
-	UpdatedCount    int
-	DeletedCount    int
+	SecretSummaries         []vault.SecretSummary
+	CreatedCount            int
+	UpdatedCount            int
+	DeletedCount            int
+	LastScheduleDeletionReq vault.ScheduleSecretDeletionRequest
 }
 
 func (o *OracleMockVaultClient) ListSecrets(_ context.Context, _ vault.ListSecretsRequest) (response vault.ListSecretsResponse, err error) {
@@ -46,8 +47,9 @@ func (o *OracleMockVaultClient) UpdateSecret(_ context.Context, _ vault.UpdateSe
 	return vault.UpdateSecretResponse{}, nil
 }
 
-func (o *OracleMockVaultClient) ScheduleSecretDeletion(_ context.Context, _ vault.ScheduleSecretDeletionRequest) (response vault.ScheduleSecretDeletionResponse, err error) {
+func (o *OracleMockVaultClient) ScheduleSecretDeletion(_ context.Context, request vault.ScheduleSecretDeletionRequest) (response vault.ScheduleSecretDeletionResponse, err error) {
 	o.DeletedCount++
+	o.LastScheduleDeletionReq = request
 	return vault.ScheduleSecretDeletionResponse{}, nil
 }
 

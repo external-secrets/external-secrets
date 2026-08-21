@@ -755,7 +755,18 @@ func TestOracleVaultDeleteSecret(t *testing.T) {
 				RemoteKey: s1id,
 			},
 			func(vms *VaultManagementService) bool {
-				return vms.VaultClient.(*fakeoracle.OracleMockVaultClient).DeletedCount == 1
+				mock := vms.VaultClient.(*fakeoracle.OracleMockVaultClient)
+				if mock.DeletedCount != 1 {
+					return false
+				}
+				// ScheduleSecretDeletion must request the minimum 1-day window rather
+				// than leave the deletion time unset, which OCI defaults to 30 days.
+				timeOfDeletion := mock.LastScheduleDeletionReq.TimeOfDeletion
+				if timeOfDeletion == nil {
+					return false
+				}
+				untilDeletion := time.Until(timeOfDeletion.Time)
+				return untilDeletion > 0 && untilDeletion <= minSecretDeletionWindow
 			},
 		},
 	}

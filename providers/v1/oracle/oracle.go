@@ -77,6 +77,12 @@ const (
 	defaultSACacheVersion = "v0"
 )
 
+// minSecretDeletionWindow is the shortest deletion delay the OCI Vault
+// ScheduleSecretDeletion API accepts. Requesting it explicitly avoids the
+// API's 30-day default, which otherwise keeps a deleted remoteKey reserved
+// for a month.
+const minSecretDeletionWindow = 24 * time.Hour
+
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &VaultManagementService{}
 var _ esv1.Provider = &VaultManagementService{}
@@ -190,6 +196,12 @@ func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef e
 		}
 		_, err = vms.VaultClient.ScheduleSecretDeletion(ctx, vault.ScheduleSecretDeletionRequest{
 			SecretId: resp.SecretId,
+			ScheduleSecretDeletionDetails: vault.ScheduleSecretDeletionDetails{
+				// The OCI Vault API accepts 1 to 30 days and defaults to 30 when unset.
+				// Requesting the minimum keeps the remoteKey reserved for as short a
+				// window as possible, so a PushSecret can reuse it soon after deletion.
+				TimeOfDeletion: &common.SDKTime{Time: time.Now().Add(minSecretDeletionWindow)},
+			},
 		})
 		return sanitizeOCISDKErr(err)
 	default:
