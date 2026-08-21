@@ -46,6 +46,7 @@ type SafeguardA2AAuth struct {
 
 // SafeguardAuth configures how the operator authenticates to Safeguard.
 // +kubebuilder:validation:MaxProperties=1
+// +kubebuilder:validation:MinProperties=1
 type SafeguardAuth struct {
 	// A2A authenticates with a client certificate for Application-to-Application credential retrieval.
 	// +optional

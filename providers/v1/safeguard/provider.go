@@ -100,7 +100,7 @@ func getConfig(store esv1.GenericStore) (*esv1.SafeguardProvider, error) {
 	if storeSpec == nil || storeSpec.Provider == nil || storeSpec.Provider.Safeguard == nil {
 		return nil, errInvalidSpec
 	}
-	cfg := storeSpec.Provider.Safeguard
+	cfg := storeSpec.Provider.Safeguard.DeepCopy()
 
 	appliance, err := normalizeAppliance(cfg.Appliance)
 	if err != nil {

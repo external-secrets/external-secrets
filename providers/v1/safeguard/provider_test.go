@@ -65,6 +65,28 @@ func TestNormalizeAppliance(t *testing.T) {
 	}
 }
 
+func TestGetConfigDoesNotMutateAppliance(t *testing.T) {
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Safeguard: &esv1.SafeguardProvider{
+					Appliance: "safeguard.example.com",
+					Auth: esv1.SafeguardAuth{
+						A2A: &esv1.SafeguardA2AAuth{
+							Certificate: esv1.SafeguardProviderSecretRef{Value: "cert"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	cfg, err := getConfig(store)
+	require.NoError(t, err)
+	assert.Equal(t, "https://safeguard.example.com", cfg.Appliance)
+	assert.Equal(t, "safeguard.example.com", store.Spec.Provider.Safeguard.Appliance)
+}
+
 func TestValidateStore(t *testing.T) {
 	store := &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "default"},

@@ -36,9 +36,9 @@ Configure A2A authentication on the `SecretStore`:
 | `privateKey` | SSH private key in OpenSSH format |
 | `privateKey.Ssh2` | SSH private key in SSH2 format |
 | `privateKey.Putty` | SSH private key in PuTTY format |
-| `apiKey` | JSON array of API key credentials |
-| `apiKey.clientId` | OAuth client ID from the first API key |
-| `apiKey.clientSecret` | OAuth client secret from the first API key |
+| `apiKey` | JSON array of API key credentials. When used with `dataFrom`/`GetSecretMap`, fields from the first API key are flattened into the target secret |
+| `apiKey.clientId` | OAuth client ID from the first API key when multiple keys exist on the account |
+| `apiKey.clientSecret` | OAuth client secret from the first API key when multiple keys exist on the account |
 | `apiKey.<name>` | Client secret for the API key with the given name |
 
 {% include 'safeguard-external-secret.yaml' %}
@@ -74,6 +74,8 @@ Notes:
 ## PushSecret
 
 Password write-back is supported when the A2A registration has bidirectional access enabled. Only `property: password` is supported for push operations.
+
+When PushSecret metadata specifies `filter` or both `accountName` and `systemName`, that metadata drives account lookup and `remoteRef.remoteKey` is ignored for discovery. `remoteRef.remoteKey` must still be set because ExternalSecret validates it.
 
 PushSecret metadata can also drive account discovery:
 

@@ -34,6 +34,7 @@ type accountEntry struct {
 type fakeA2A struct {
 	passwords  map[string]string
 	accounts   []accountEntry
+	apiKeys    map[string][]sg.APIKey
 	lastFilter string
 }
 
@@ -49,7 +50,13 @@ func (f *fakeA2A) RetrievePrivateKey(_ context.Context, apiKey sg.Secret, _ sg.K
 	return sg.NewSecretString("private-key-for-" + apiKey.ExposeString()), nil
 }
 
-func (f *fakeA2A) RetrieveAPIKey(_ context.Context, _ sg.Secret) ([]sg.APIKey, error) {
+func (f *fakeA2A) RetrieveAPIKey(_ context.Context, apiKey sg.Secret) ([]sg.APIKey, error) {
+	if f.apiKeys != nil {
+		keys, ok := f.apiKeys[apiKey.ExposeString()]
+		if ok {
+			return keys, nil
+		}
+	}
 	return nil, nil
 }
 

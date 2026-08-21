@@ -137,13 +137,16 @@ func (c *secretsClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecre
 		return map[string][]byte{key: value}, nil
 	}
 
-	data := make(map[string]any)
-	if err := json.Unmarshal(value, &data); err != nil {
+	var entries []map[string]any
+	if err := json.Unmarshal(value, &entries); err != nil {
 		return nil, errors.New("failed to unmarshal api key payload")
 	}
-	out := make(map[string][]byte, len(data))
-	for k := range data {
-		out[k], err = esutils.GetByteValueFromMap(data, k)
+	if len(entries) == 0 {
+		return nil, esv1.NoSecretError{}
+	}
+	out := make(map[string][]byte, len(entries[0]))
+	for k := range entries[0] {
+		out[k], err = esutils.GetByteValueFromMap(entries[0], k)
 		if err != nil {
 			return nil, err
 		}
@@ -156,6 +159,7 @@ func (c *secretsClient) GetAllSecrets(context.Context, esv1.ExternalSecretFind) 
 }
 
 func (c *secretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+	// PushSecret metadata filter or accountName/systemName take precedence over remoteKey for account lookup.
 	if data.GetRemoteKey() == "" {
 		return errors.New("remote key must be defined")
 	}
@@ -170,7 +174,11 @@ func (c *secretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, d
 		return fmt.Errorf("push is only supported for password credentials, got %q", data.GetProperty())
 	}
 
-	apiKey, err := c.resolveAPIKey(ctx, data.GetRemoteKey(), pushLookupOptions(data))
+	lookupOpts, err := pushLookupOptions(data)
+	if err != nil {
+		return err
+	}
+	apiKey, err := c.resolveAPIKey(ctx, data.GetRemoteKey(), lookupOpts)
 	if err != nil {
 		return err
 	}
@@ -225,10 +233,13 @@ func (c *secretsClient) Close(context.Context) error {
 	return c.a2a.Close()
 }
 
-func pushLookupOptions(data esv1.PushSecretData) *lookupOptions {
+func pushLookupOptions(data esv1.PushSecretData) (*lookupOptions, error) {
 	meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
-	if err != nil || meta == nil {
-		return nil
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse push secret metadata: %w", err)
+	}
+	if meta == nil {
+		return nil, nil
 	}
 	opts := &lookupOptions{}
 	switch {
@@ -237,9 +248,9 @@ func pushLookupOptions(data esv1.PushSecretData) *lookupOptions {
 	case meta.Spec.AccountName != "" && meta.Spec.SystemName != "":
 		opts.filter = buildAccountSystemFilter(meta.Spec.AccountName, meta.Spec.SystemName)
 	default:
-		return nil
+		return nil, nil
 	}
-	return opts
+	return opts, nil
 }
 
 func parseCredentialProperty(property string) (credType string, format sg.KeyFormat, subProperty string) {
@@ -252,13 +263,11 @@ func parseCredentialProperty(property string) (credType string, format sg.KeyFor
 	switch {
 	case lower == credentialTypePassword:
 		return credentialTypePassword, "", ""
-	case strings.HasPrefix(lower, credentialTypePrivateKey):
-		formatPart := strings.TrimPrefix(lower, credentialTypePrivateKey)
-		formatPart = strings.TrimPrefix(formatPart, ".")
+	case lower == credentialTypePrivateKey || strings.HasPrefix(lower, credentialTypePrivateKey+"."):
+		formatPart := strings.TrimPrefix(strings.TrimPrefix(lower, credentialTypePrivateKey), ".")
 		return credentialTypePrivateKey, parseKeyFormat(formatPart), ""
-	case strings.HasPrefix(lower, credentialTypeAPIKey):
-		subProperty = strings.TrimPrefix(lower, credentialTypeAPIKey)
-		subProperty = strings.TrimPrefix(subProperty, ".")
+	case lower == credentialTypeAPIKey || strings.HasPrefix(lower, credentialTypeAPIKey+"."):
+		subProperty = strings.TrimPrefix(strings.TrimPrefix(lower, credentialTypeAPIKey), ".")
 		return credentialTypeAPIKey, "", subProperty
 	default:
 		return lower, "", ""
@@ -298,6 +307,7 @@ func encodeAPIKeys(keys []sg.APIKey) ([]byte, error) {
 	return json.Marshal(out)
 }
 
+// selectAPIKeyValue resolves apiKey sub-properties. clientId and clientSecret always use the first API key.
 func selectAPIKeyValue(keys []sg.APIKey, subProperty string) ([]byte, error) {
 	switch strings.ToLower(subProperty) {
 	case "clientid", "client_id":
