@@ -552,7 +552,7 @@ func buildWorkloadIdentityCredential(ctx context.Context, az *Azure, cloudConfig
 
 	// Get clientID from service account annotations
 	var clientID string
-	if val, found := sa.ObjectMeta.Annotations[AnnotationClientID]; found {
+	if val, found := sa.ObjectMeta.Annotations[AnnotationClientID]; found && val != "" {
 		clientID = val
 	} else {
 		return nil, fmt.Errorf(errMissingClient, AnnotationClientID)
@@ -562,7 +562,7 @@ func buildWorkloadIdentityCredential(ctx context.Context, az *Azure, cloudConfig
 	var tenantID string
 	if az.provider.TenantID != nil {
 		tenantID = *az.provider.TenantID
-	} else if val, found := sa.ObjectMeta.Annotations[AnnotationTenantID]; found {
+	} else if val, found := sa.ObjectMeta.Annotations[AnnotationTenantID]; found && val != "" {
 		tenantID = val
 	} else {
 		return nil, errors.New(errMissingTenant)
