@@ -206,7 +206,7 @@ func (c *secretsClient) SecretExists(ctx context.Context, ref esv1.PushSecretRem
 
 	secret, err := c.a2a.RetrievePassword(ctx, apiKey)
 	if err != nil {
-		if _, ok := errors.AsType[*sg.NotFoundError](mapNotFound(err)); ok {
+		if _, ok := errors.AsType[*sg.NotFoundError](err); ok {
 			return false, nil
 		}
 		return false, err

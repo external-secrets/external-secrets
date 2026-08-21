@@ -30,6 +30,7 @@ import (
 const (
 	filterPrefix           = "filter:"
 	accountIDPrefix        = "accountId:"
+	apiKeyPrefix           = "apiKey:"
 	accountLookupSeparator = "/"
 )
 
@@ -57,6 +58,13 @@ func parseLookupKey(key string) (lookupOptions, bool, string, error) {
 			return lookupOptions{}, false, "", fmt.Errorf("invalid account id key %q", key)
 		}
 		return lookupOptions{filter: fmt.Sprintf("AccountId eq %d", id)}, false, "", nil
+	}
+
+	if after, ok := strings.CutPrefix(key, apiKeyPrefix); ok {
+		if strings.TrimSpace(after) == "" {
+			return lookupOptions{}, false, "", fmt.Errorf("invalid API key %q", key)
+		}
+		return lookupOptions{}, true, after, nil
 	}
 
 	if strings.Contains(key, accountLookupSeparator) {

@@ -53,3 +53,15 @@ func TestParseLookupKeyDirectAPIKey(t *testing.T) {
 	assert.True(t, isDirect)
 	assert.Equal(t, "my-api-key-value", directKey)
 }
+
+func TestParseLookupKeyAPIKeyPrefixPreservesSlash(t *testing.T) {
+	_, isDirect, directKey, err := parseLookupKey("apiKey:abc/def")
+	require.NoError(t, err)
+	assert.True(t, isDirect)
+	assert.Equal(t, "abc/def", directKey)
+}
+
+func TestParseLookupKeyAPIKeyPrefixRejectsEmpty(t *testing.T) {
+	_, _, _, err := parseLookupKey("apiKey:") //nolint:dogsled // all return values but the error are irrelevant here
+	require.Error(t, err)
+}

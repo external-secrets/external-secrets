@@ -81,6 +81,7 @@ func TestGetSecretRejectsInvalidAPIKeyProperty(t *testing.T) {
 }
 
 func TestParseCredentialPropertyRequiresExactPrefix(t *testing.T) {
+	client := &secretsClient{a2a: &fakeA2A{}}
 	tests := map[string]struct {
 		property string
 		wantType string
@@ -114,11 +115,16 @@ func TestParseCredentialPropertyRequiresExactPrefix(t *testing.T) {
 
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			credType, _, _ := parseCredentialProperty(tc.property)
 			if tc.wantErr {
-				assert.NotEqual(t, tc.wantType, credType)
+				_, err := client.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+					Key:      "lookup-key",
+					Property: tc.property,
+				})
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "unsupported property")
 				return
 			}
+			credType, _, _ := parseCredentialProperty(tc.property)
 			assert.Equal(t, tc.wantType, credType)
 		})
 	}

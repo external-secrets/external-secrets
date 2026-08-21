@@ -23,7 +23,8 @@ Configure A2A authentication on the `SecretStore`:
 
 | Key format | Example | Description |
 | --- | --- | --- |
-| A2A API key | `abc123...` | Direct API key value registered for the account |
+| A2A API key | `abc123...` | Direct API key value registered for the account (must not contain `/`; use `apiKey:` below if it does) |
+| Explicit A2A API key | `apiKey:abc/123...` | Direct API key value, used as-is even if it contains `/` |
 | Account lookup | `svc-account/database-server` | Builds `AccountName ieq 'svc-account' and SystemName ieq 'database-server'` |
 | OData filter | `filter:AccountName ieq 'x' and SystemName ieq 'y'` | Passes the filter directly to `RetrievableAccounts` |
 | Account ID lookup | `accountId:12345` | Builds `AccountId eq 12345` |
