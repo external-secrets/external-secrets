@@ -5284,8 +5284,7 @@ By default the secret contains name, username, uri, password and description.</p
 <p>Passbolt resources can carry arbitrary custom fields beyond the standard
 <code>name</code>, <code>username</code>, <code>password</code>, <code>uri</code>, and <code>description</code> properties.
 ESO surfaces each custom field through the <code>custom_fields.&lt;name&gt;</code> property
-syntax, where <code>&lt;name&gt;</code> is the field's display name (its <strong>metadata key</strong>) as
-configured in Passbolt.</p>
+syntax, where <code>&lt;name&gt;</code> is the field's display name as configured in Passbolt.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
@@ -5327,15 +5326,12 @@ configured in Passbolt.</p>
 <span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
 </code></pre></div>
 <p>When no <code>property</code> is specified, the full secret is returned as a JSON object.
-The <code>custom_fields</code> key is included in that object whenever the resource has
-at least one custom field with an unencrypted metadata key.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Custom fields whose <strong>name</strong> is also encrypted (Passbolt calls this a
-<em>secret key</em> field) cannot be referenced by a display name because ESO
-never sees the plaintext key. Those fields are omitted from both the
-targeted <code>custom_fields.&lt;name&gt;</code> lookup and the full-JSON output.</p>
-</div>
+The <code>custom_fields</code> key is included in that object whenever the resource has at
+least one named custom field.</p>
+<p>Passbolt stores each half of a custom field on whichever side the field's
+configuration calls for: a name is either cleartext metadata or encrypted
+alongside the secret, and so is a value. ESO decrypts both sides before reading
+them, so a field is addressable by its display name either way.</p>
 
 
 
