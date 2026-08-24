@@ -45,7 +45,7 @@ type FakeTokenExchanger struct {
 }
 
 // ExchangeIamToken exchanges credentials to generate a new IAM token with a fixed 100-second validity period.
-func (f *FakeTokenExchanger) ExchangeIamToken(_ context.Context, domain string, resolved auth.ResolvedCredentials, issuedAt time.Time, ca []byte) (*Token, error) {
+func (f *FakeTokenExchanger) ExchangeIamToken(_ context.Context, domain string, resolved auth.TokenExchangeCredentials, issuedAt time.Time, ca []byte) (*Token, error) {
 	call := f.Calls.Add(1)
 	if f.ReturnError {
 		return nil, fmt.Errorf("fake error")

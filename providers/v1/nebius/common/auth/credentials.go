@@ -31,7 +31,7 @@ import (
 // CredentialRequest represents a lazily resolved credential request.
 type CredentialRequest struct {
 	cacheKey string
-	resolve  func(context.Context) (ResolvedCredentials, error)
+	resolve  func(context.Context) (TokenExchangeCredentials, error)
 }
 
 // CacheKey returns the key used to cache the credential request.
@@ -40,13 +40,13 @@ func (r CredentialRequest) CacheKey() string {
 }
 
 // Resolve resolves the credential request.
-func (r CredentialRequest) Resolve(ctx context.Context) (ResolvedCredentials, error) {
+func (r CredentialRequest) Resolve(ctx context.Context) (TokenExchangeCredentials, error) {
 	return r.resolve(ctx)
 }
 
-// ResolvedCredentials represents credentials ready for authentication.
-type ResolvedCredentials interface {
-	isResolvedCredentials()
+// TokenExchangeCredentials represents credentials accepted by the IAM token exchanger.
+type TokenExchangeCredentials interface {
+	isTokenExchangeCredentials()
 }
 
 // TokenCredentials contains an IAM token.
@@ -72,12 +72,12 @@ func GetTokenCredentials(ctx context.Context, secret *esmeta.SecretKeySelector, 
 }
 
 // NewCredentialRequest creates a credential request with the provided cache key and resolver.
-func NewCredentialRequest(cacheKey string, resolve func(context.Context) (ResolvedCredentials, error)) *CredentialRequest {
+func NewCredentialRequest(cacheKey string, resolve func(context.Context) (TokenExchangeCredentials, error)) *CredentialRequest {
 	return &CredentialRequest{
 		cacheKey: cacheKey,
 		resolve:  resolve,
 	}
 }
 
-var _ ResolvedCredentials = &ResolvedServiceAccountCreds{}
-var _ ResolvedCredentials = &ResolvedFederatedCredentials{}
+var _ TokenExchangeCredentials = &ResolvedServiceAccountCreds{}
+var _ TokenExchangeCredentials = &ResolvedFederatedCredentials{}

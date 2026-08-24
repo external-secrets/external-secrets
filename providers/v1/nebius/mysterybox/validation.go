@@ -143,23 +143,33 @@ func validateProviderAuth(provider *esv1.NebiusMysteryboxProvider) error {
 	if provider.Auth.Token.Name != "" && provider.Auth.Token.Key == "" {
 		return errors.New(errInvalidTokenAuthConfig)
 	}
-	if provider.Auth.ServiceAccountCreds.Name != "" && provider.Auth.ServiceAccountCreds.Key == "" {
-		return errors.New(errInvalidSACredsAuthConfig)
-	}
-
-	if provider.Auth.WorkloadIdentity != nil && (provider.Auth.WorkloadIdentity.ServiceAccountRef == nil || provider.Auth.WorkloadIdentity.ServiceAccountRef.Name == "") {
-		return errors.New(errInvalidWorkloadIdentityServiceAccount)
-	}
-	if provider.Auth.WorkloadIdentity != nil && strings.TrimSpace(provider.Auth.WorkloadIdentity.IAMServiceAccountID) == "" {
-		return errors.New(errEmptyWorkloadIdentityIAMAccount)
-	}
-
-	if provider.Auth.WorkloadIdentity != nil && provider.Auth.WorkloadIdentity.ServiceAccountRef != nil {
-		err := validateAudiences(provider.Auth.WorkloadIdentity.ServiceAccountRef.Audiences)
+	if err := validateServiceAccountCredentialsAuth(provider.Auth.ServiceAccountCreds); err != nil {
 		return err
 	}
 
+	return validateWorkloadIdentityAuth(provider.Auth.WorkloadIdentity)
+}
+
+func validateServiceAccountCredentialsAuth(credentials esmeta.SecretKeySelector) error {
+	if credentials.Name != "" && credentials.Key == "" {
+		return errors.New(errInvalidSACredsAuthConfig)
+	}
+
 	return nil
+}
+
+func validateWorkloadIdentityAuth(workloadIdentity *esv1.NebiusWorkloadIdentity) error {
+	if workloadIdentity == nil {
+		return nil
+	}
+	if workloadIdentity.ServiceAccountRef == nil || workloadIdentity.ServiceAccountRef.Name == "" {
+		return errors.New(errInvalidWorkloadIdentityServiceAccount)
+	}
+	if strings.TrimSpace(workloadIdentity.IAMServiceAccountID) == "" {
+		return errors.New(errEmptyWorkloadIdentityIAMAccount)
+	}
+
+	return validateAudiences(workloadIdentity.ServiceAccountRef.Audiences)
 }
 
 func (p *Provider) validateAPIDomain(apiDomain string) error {

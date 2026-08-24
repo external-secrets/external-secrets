@@ -48,7 +48,7 @@ func NewGrpcTokenExchanger(logger logr.Logger, exchangeTokenObserveCallFunc func
 }
 
 // ExchangeIamToken exchanges subject credentials for a new IAM token using a gRPC-based token exchange service.
-func (t *GrpcTokenExchanger) ExchangeIamToken(ctx context.Context, apiDomain string, resolvedCreds auth.ResolvedCredentials, issuedAt time.Time, caCertificate []byte) (*Token, error) {
+func (t *GrpcTokenExchanger) ExchangeIamToken(ctx context.Context, apiDomain string, resolvedCreds auth.TokenExchangeCredentials, issuedAt time.Time, caCertificate []byte) (*Token, error) {
 	var tokenRequester gosdkauth.ExchangeTokenRequester
 	var err error
 

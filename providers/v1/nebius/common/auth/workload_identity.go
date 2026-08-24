@@ -42,7 +42,8 @@ type ResolvedFederatedCredentials struct {
 	SubjectToken     string
 }
 
-func (r ResolvedFederatedCredentials) isResolvedCredentials() {
+func (r ResolvedFederatedCredentials) isTokenExchangeCredentials() {
+	// Marker method restricts TokenExchangeCredentials implementations to this package.
 }
 
 // NewFederatedAccountCredentialsRequest creates a request for federated account credentials.
@@ -55,7 +56,7 @@ func NewFederatedAccountCredentialsRequest(
 ) (*CredentialRequest, error) {
 	return &CredentialRequest{
 		cacheKey: getWICacheKey(namespace, store),
-		resolve: func(ctx context.Context) (ResolvedCredentials, error) {
+		resolve: func(ctx context.Context) (TokenExchangeCredentials, error) {
 			tokenNamespace := namespace
 			if store.GetKind() == esv1.ClusterSecretStoreKind && serviceAccountRef.Namespace != nil {
 				tokenNamespace = *serviceAccountRef.Namespace

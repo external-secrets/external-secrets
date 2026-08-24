@@ -33,7 +33,7 @@ import (
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/iam"
 )
 
-func dummyResolveFunc(_ context.Context) (auth.ResolvedCredentials, error) {
+func dummyResolveFunc(_ context.Context) (auth.TokenExchangeCredentials, error) {
 	return &auth.ResolvedServiceAccountCreds{}, nil
 }
 
@@ -58,7 +58,7 @@ func TestGetToken_CachesUntilTenPercentLeft(t *testing.T) {
 	env := newTokenTestEnv(t)
 
 	var calls atomic.Int64
-	resolveFunc := func(_ context.Context) (auth.ResolvedCredentials, error) {
+	resolveFunc := func(_ context.Context) (auth.TokenExchangeCredentials, error) {
 		calls.Add(1)
 		return &auth.ResolvedServiceAccountCreds{}, nil
 	}
@@ -98,11 +98,11 @@ func TestGetToken_SeparateCacheEntriesPerKey(t *testing.T) {
 	var callsB atomic.Int64
 
 	ctx := env.ctx
-	credsA := auth.NewCredentialRequest("key-a", func(ctx context.Context) (auth.ResolvedCredentials, error) {
+	credsA := auth.NewCredentialRequest("key-a", func(ctx context.Context) (auth.TokenExchangeCredentials, error) {
 		callsA.Add(1)
 		return &auth.ResolvedServiceAccountCreds{}, nil
 	})
-	credsB := auth.NewCredentialRequest("key-b", func(ctx context.Context) (auth.ResolvedCredentials, error) {
+	credsB := auth.NewCredentialRequest("key-b", func(ctx context.Context) (auth.TokenExchangeCredentials, error) {
 		callsB.Add(1)
 		return &auth.ResolvedServiceAccountCreds{}, nil
 	})
@@ -176,7 +176,7 @@ func TestGetToken_AfterExpiration_Refreshes(t *testing.T) {
 	env := newTokenTestEnv(t)
 	ctx := env.ctx
 	var resolveCalls atomic.Int64
-	creds := auth.NewCredentialRequest("key", func(ctx context.Context) (auth.ResolvedCredentials, error) {
+	creds := auth.NewCredentialRequest("key", func(ctx context.Context) (auth.TokenExchangeCredentials, error) {
 		resolveCalls.Add(1)
 		return &auth.ResolvedServiceAccountCreds{}, nil
 	})
@@ -199,7 +199,7 @@ func TestGetToken_ExchangerErrorIsWrapped(t *testing.T) {
 	trequire.NoError(t, err)
 
 	var resolveCalls atomic.Int64
-	creds := auth.NewCredentialRequest("key", func(ctx context.Context) (auth.ResolvedCredentials, error) {
+	creds := auth.NewCredentialRequest("key", func(ctx context.Context) (auth.TokenExchangeCredentials, error) {
 		resolveCalls.Add(1)
 		return &auth.ResolvedServiceAccountCreds{}, nil
 	})
@@ -215,7 +215,7 @@ func TestGetToken_ResolveErrorIsNotCached(t *testing.T) {
 
 	resolveErr := errors.New("resolve credentials")
 	var resolveCalls atomic.Int64
-	credentialsRequest := auth.NewCredentialRequest("key", func(_ context.Context) (auth.ResolvedCredentials, error) {
+	credentialsRequest := auth.NewCredentialRequest("key", func(_ context.Context) (auth.TokenExchangeCredentials, error) {
 		if resolveCalls.Add(1) == 1 {
 			return nil, resolveErr
 		}
@@ -242,7 +242,7 @@ func TestGetToken_Singleflight_DedupesConcurrentSameKey(t *testing.T) {
 	trequire.NoError(t, err)
 
 	var resolveCalls atomic.Int64
-	creds := auth.NewCredentialRequest("key", func(ctx context.Context) (auth.ResolvedCredentials, error) {
+	creds := auth.NewCredentialRequest("key", func(ctx context.Context) (auth.TokenExchangeCredentials, error) {
 		resolveCalls.Add(1)
 		return &auth.ResolvedServiceAccountCreds{}, nil
 	})

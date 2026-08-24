@@ -34,5 +34,5 @@ type Token struct {
 // TokenExchanger is an interface for exchanging credentials to obtain IAM tokens.
 type TokenExchanger interface {
 	// ExchangeIamToken exchanges resolved credentials for an IAM token.
-	ExchangeIamToken(ctx context.Context, apiDomain string, creds auth.ResolvedCredentials, issuedAt time.Time, caCertificate []byte) (*Token, error)
+	ExchangeIamToken(ctx context.Context, apiDomain string, creds auth.TokenExchangeCredentials, issuedAt time.Time, caCertificate []byte) (*Token, error)
 }

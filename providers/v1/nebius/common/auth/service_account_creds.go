@@ -45,7 +45,8 @@ type ResolvedServiceAccountCreds struct {
 	Subject    string
 }
 
-func (r ResolvedServiceAccountCreds) isResolvedCredentials() {
+func (r ResolvedServiceAccountCreds) isTokenExchangeCredentials() {
+	// Marker method restricts TokenExchangeCredentials implementations to this package.
 }
 
 // NewServiceAccountCredentialsRequest creates a request from service account credentials stored in a Kubernetes Secret.
@@ -74,7 +75,7 @@ func NewServiceAccountCredentialsRequest(ctx context.Context, secret *esmeta.Sec
 			creds.Subject,
 			creds.PrivateKey,
 		),
-		resolve: func(_ context.Context) (ResolvedCredentials, error) {
+		resolve: func(_ context.Context) (TokenExchangeCredentials, error) {
 			return &ResolvedServiceAccountCreds{
 				KeyID:      creds.KeyID,
 				Subject:    creds.Subject,
