@@ -27,7 +27,6 @@ import (
 	"net/http"
 	"net/url"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/passbolt/go-passbolt/api"
@@ -263,8 +262,8 @@ type Secret struct {
 	URI         string `json:"uri"`
 	Description string `json:"description"`
 	// CustomFields holds any custom fields defined on the resource, keyed by
-	// the field's metadata_key (display name). Fields whose name is also
-	// encrypted (secret_key) cannot be referenced by name and are omitted.
+	// the field's display name. Fields whose name is stored encrypted
+	// (secret_key rather than metadata_key) are keyed by their decrypted name.
 	CustomFields map[string]string `json:"custom_fields,omitempty"`
 }
 
@@ -329,116 +328,8 @@ func (provider *ProviderPassbolt) secretFromResource(ctx context.Context, resour
 		URI:          helper.GetStringField(metaFields, "uri"),
 		Password:     helper.GetStringField(secretFields, "password"),
 		Description:  helper.GetStringField(metaFields, "description"),
-		CustomFields: buildCustomFields(metaFields, secretFields),
+		CustomFields: helper.ParseCustomFields(metaFields, secretFields).Map(),
 	}, nil
-}
-
-// buildCustomFields extracts custom fields from the decrypted metadata and secret
-// field maps returned by helper.GetResourceFieldMaps. A custom field is always a
-// metadata + secret pair sharing an id: the name comes from metadata_key and the
-// value from secret_value (encrypted) or metadata_value (cleartext), whichever
-// side carries it.
-//
-// Fields whose name is encrypted (secret_key, leaving metadata_key empty) are
-// skipped because they cannot be referenced by a stable, user-visible name.
-//
-// Returns nil when the resource has no custom fields.
-func buildCustomFields(metaFields, secretFields map[string]any) map[string]string {
-	metaCF, ok := extractCustomFields(metaFields)
-	if !ok {
-		return nil
-	}
-	secretCF, _ := extractCustomFields(secretFields)
-
-	secretByID := make(map[string]map[string]any, len(secretCF))
-	for _, cf := range secretCF {
-		if id, ok := cf["id"].(string); ok && id != "" {
-			secretByID[id] = cf
-		}
-	}
-
-	result := make(map[string]string, len(metaCF))
-	for _, meta := range metaCF {
-		// A field without metadata_key stores its name encrypted (secret_key)
-		// and cannot be referenced by a stable, user-visible name.
-		if !hasNonEmptyString(meta, "metadata_key") {
-			continue
-		}
-		name, _ := meta["metadata_key"].(string)
-		id, _ := meta["id"].(string)
-
-		// secret_value (encrypted) takes precedence; otherwise the value is
-		// stored in cleartext as metadata_value.
-		if raw, ok := secretByID[id]["secret_value"]; ok {
-			result[name] = stringifyCustomFieldValue(raw)
-		} else {
-			result[name] = stringifyCustomFieldValue(meta["metadata_value"])
-		}
-	}
-
-	if len(result) == 0 {
-		return nil
-	}
-	return result
-}
-
-// extractCustomFields is copied verbatim from go-passbolt's helper package,
-// where it is currently unexported. Replace this with the library function once
-// a release exports it.
-//
-// extractCustomFields extracts the custom_fields array from a field map.
-func extractCustomFields(fields map[string]any) ([]map[string]any, bool) {
-	raw, ok := fields["custom_fields"]
-	if !ok {
-		return nil, false
-	}
-	arr, ok := raw.([]any)
-	if !ok {
-		// Already typed as []map[string]any (unlikely from JSON but handle it)
-		if typed, ok := raw.([]map[string]any); ok {
-			return typed, true
-		}
-		return nil, false
-	}
-	result := make([]map[string]any, 0, len(arr))
-	for _, item := range arr {
-		if m, ok := item.(map[string]any); ok {
-			result = append(result, m)
-		}
-	}
-	return result, len(result) > 0
-}
-
-// hasNonEmptyString is copied verbatim from go-passbolt's helper package, where
-// it is currently unexported. Replace this with the library function once a
-// release exports it.
-//
-// hasNonEmptyString checks if a map entry exists and is a non-empty string.
-func hasNonEmptyString(m map[string]any, key string) bool {
-	v, ok := m[key]
-	if !ok {
-		return false
-	}
-	s, ok := v.(string)
-	return ok && s != ""
-}
-
-// stringifyCustomFieldValue renders a decoded JSON custom field value as a
-// string. json.Unmarshal yields text/number/boolean as string/float64/bool;
-// integers beyond 2^53 may lose precision as float64 before we see them.
-func stringifyCustomFieldValue(v any) string {
-	switch t := v.(type) {
-	case nil:
-		return ""
-	case string:
-		return t
-	case bool:
-		return strconv.FormatBool(t)
-	case float64:
-		return strconv.FormatFloat(t, 'f', -1, 64)
-	default:
-		return fmt.Sprintf("%v", t)
-	}
 }
 
 func assureLoggedIn(ctx context.Context, client *api.Client) error {
