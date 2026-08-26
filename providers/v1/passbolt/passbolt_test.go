@@ -32,6 +32,7 @@ import (
 	"time"
 
 	g "github.com/onsi/gomega"
+	"github.com/passbolt/go-passbolt/helper"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,6 +40,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 func TestValidateStore(t *testing.T) {
@@ -150,7 +152,10 @@ func TestSecretGetPropCustomFieldNotFound(t *testing.T) {
 	g.Expect(err).To(g.MatchError(g.ContainSubstring("nonexistent")))
 }
 
-func TestBuildCustomFields(t *testing.T) {
+// The metadata/secret custom-field merge lives in the SDK
+// (helper.ParseCustomFields). This is a contract test over the shapes this
+// provider depends on, not a re-test of the library's full table.
+func TestCustomFieldsFromResourceFieldMaps(t *testing.T) {
 	g.RegisterTestingT(t)
 
 	const idA = "11111111-1111-1111-1111-111111111111"
@@ -163,108 +168,49 @@ func TestBuildCustomFields(t *testing.T) {
 		want         map[string]string
 	}{
 		{
-			name:         "no custom_fields in metadata returns nil",
+			name:         "a resource with no custom fields yields no entries",
 			metaFields:   map[string]any{"name": "x"},
 			secretFields: map[string]any{"password": "p"},
-			want:         nil,
+			want:         map[string]string{},
 		},
 		{
-			name:         "empty custom_fields array returns nil",
-			metaFields:   map[string]any{"custom_fields": []any{}},
-			secretFields: map[string]any{},
-			want:         nil,
-		},
-		{
-			name: "standard case: metadata_key with secret_value",
+			name: "encrypted value: name from metadata_key, value from secret_value",
 			metaFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA, "metadata_key": "api-key"},
-				},
+				"custom_fields": []any{map[string]any{"id": idA, "metadata_key": "api-key"}},
 			},
 			secretFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA, "secret_value": "secret-123"},
-				},
+				"custom_fields": []any{map[string]any{"id": idA, "secret_value": "secret-123"}},
 			},
 			want: map[string]string{"api-key": "secret-123"},
 		},
 		{
-			name: "non-secret field: metadata_key with metadata_value and secret-side stub",
+			// A cleartext field still carries an empty secret_value, so reading
+			// it requires preferring the first non-empty of the two sides.
+			name: "cleartext value comes from metadata_value",
 			metaFields: map[string]any{
 				"custom_fields": []any{
 					map[string]any{"id": idA, "metadata_key": "env", "metadata_value": "production"},
 				},
 			},
 			secretFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA, "type": "text"},
-				},
+				"custom_fields": []any{map[string]any{"id": idA, "secret_value": ""}},
 			},
 			want: map[string]string{"env": "production"},
 		},
 		{
-			name: "secret_key field (no metadata_key) is silently skipped",
+			name: "a field whose name is encrypted is keyed by its decrypted secret_key",
 			metaFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA /* no metadata_key */},
-				},
+				"custom_fields": []any{map[string]any{"id": idA, "metadata_key": ""}},
 			},
 			secretFields: map[string]any{
 				"custom_fields": []any{
 					map[string]any{"id": idA, "secret_key": "hidden-name", "secret_value": "hidden-val"},
 				},
 			},
-			want: nil,
+			want: map[string]string{"hidden-name": "hidden-val"},
 		},
 		{
-			name: "multiple fields: encrypted value and non-secret value",
-			metaFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA, "metadata_key": "token"},
-					map[string]any{"id": idB, "metadata_key": "region", "metadata_value": "us-east-1"},
-				},
-			},
-			secretFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA, "secret_value": "tok-abc123"},
-					map[string]any{"id": idB, "type": "text"},
-				},
-			},
-			want: map[string]string{
-				"token":  "tok-abc123",
-				"region": "us-east-1",
-			},
-		},
-		{
-			name: "secret_value takes precedence over metadata_value",
-			metaFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA, "metadata_key": "field", "metadata_value": "meta-val"},
-				},
-			},
-			secretFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA, "secret_value": "secret-val"},
-				},
-			},
-			want: map[string]string{"field": "secret-val"},
-		},
-		{
-			name: "secret_value of empty string is preserved",
-			metaFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA, "metadata_key": "empty-field"},
-				},
-			},
-			secretFields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA, "secret_value": ""},
-				},
-			},
-			want: map[string]string{"empty-field": ""},
-		},
-		{
-			name: "numeric and boolean values are stringified",
+			name: "non-string values are stringified for the map[string]string payload",
 			metaFields: map[string]any{
 				"custom_fields": []any{
 					map[string]any{"id": idA, "metadata_key": "port"},
@@ -274,111 +220,30 @@ func TestBuildCustomFields(t *testing.T) {
 			secretFields: map[string]any{
 				"custom_fields": []any{
 					map[string]any{"id": idA, "secret_value": float64(8080)},
-					map[string]any{"id": idB, "type": "boolean"},
+					map[string]any{"id": idB, "secret_value": ""},
 				},
 			},
-			want: map[string]string{
-				"port":    "8080",
-				"enabled": "true",
-			},
+			want: map[string]string{"port": "8080", "enabled": "true"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := buildCustomFields(tt.metaFields, tt.secretFields)
+			got := helper.ParseCustomFields(tt.metaFields, tt.secretFields).Map()
 			g.Expect(got).To(g.Equal(tt.want))
 		})
 	}
 }
 
-func TestExtractCustomFields(t *testing.T) {
+// A resource without custom fields must not grow a "custom_fields" key in the
+// JSON payload, whether the map comes back empty or nil.
+func TestSecretJSONOmitsEmptyCustomFields(t *testing.T) {
 	g.RegisterTestingT(t)
 
-	const idA = "11111111-1111-1111-1111-111111111111"
-	const idB = "22222222-2222-2222-2222-222222222222"
-
-	tests := []struct {
-		name   string
-		fields map[string]any
-		want   []map[string]any
-		wantOK bool
-	}{
-		{
-			name:   "no custom_fields key",
-			fields: map[string]any{"password": "p"},
-			want:   nil,
-			wantOK: false,
-		},
-		{
-			name:   "custom_fields not a slice",
-			fields: map[string]any{"custom_fields": "not-a-slice"},
-			want:   nil,
-			wantOK: false,
-		},
-		{
-			name: "already typed as []map[string]any",
-			fields: map[string]any{
-				"custom_fields": []map[string]any{
-					{"id": idA, "secret_value": "tok-abc"},
-				},
-			},
-			want:   []map[string]any{{"id": idA, "secret_value": "tok-abc"}},
-			wantOK: true,
-		},
-		{
-			name: "entries are extracted, non-map items skipped",
-			fields: map[string]any{
-				"custom_fields": []any{
-					map[string]any{"id": idA, "secret_value": "tok-abc"},
-					"not-a-map",
-					map[string]any{"id": idB, "type": "text"},
-				},
-			},
-			want: []map[string]any{
-				{"id": idA, "secret_value": "tok-abc"},
-				{"id": idB, "type": "text"},
-			},
-			wantOK: true,
-		},
-		{
-			name: "empty custom_fields slice returns false",
-			fields: map[string]any{
-				"custom_fields": []any{},
-			},
-			want:   []map[string]any{},
-			wantOK: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, ok := extractCustomFields(tt.fields)
-			g.Expect(ok).To(g.Equal(tt.wantOK))
-			g.Expect(got).To(g.Equal(tt.want))
-		})
-	}
-}
-
-func TestHasNonEmptyString(t *testing.T) {
-	g.RegisterTestingT(t)
-
-	tests := []struct {
-		name string
-		m    map[string]any
-		key  string
-		want bool
-	}{
-		{name: "missing key", m: map[string]any{}, key: "k", want: false},
-		{name: "non-empty string", m: map[string]any{"k": "v"}, key: "k", want: true},
-		{name: "empty string", m: map[string]any{"k": ""}, key: "k", want: false},
-		{name: "non-string value", m: map[string]any{"k": 42}, key: "k", want: false},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			g.Expect(hasNonEmptyString(tt.m, tt.key)).To(g.Equal(tt.want))
-		})
+	for _, cf := range []map[string]string{nil, {}} {
+		marshaled, err := esutils.JSONMarshal(Secret{Name: "x", CustomFields: cf})
+		g.Expect(err).ToNot(g.HaveOccurred())
+		g.Expect(string(marshaled)).ToNot(g.ContainSubstring("custom_fields"))
 	}
 }
 
