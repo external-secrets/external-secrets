@@ -20,6 +20,8 @@ package iam
 import (
 	"context"
 	"time"
+
+	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/auth"
 )
 
 // Token represents an IAM token with its value, expiration time, and issuance time.
@@ -31,5 +33,6 @@ type Token struct {
 
 // TokenExchanger is an interface for exchanging credentials to obtain IAM tokens.
 type TokenExchanger interface {
-	ExchangeIamToken(ctx context.Context, apiDomain, subjectCreds string, issuedAt time.Time, caCertificate []byte) (*Token, error)
+	// ExchangeIamToken exchanges resolved credentials for an IAM token.
+	ExchangeIamToken(ctx context.Context, apiDomain string, creds auth.TokenExchangeCredentials, issuedAt time.Time, caCertificate []byte) (*Token, error)
 }
