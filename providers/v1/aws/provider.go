@@ -132,7 +132,8 @@ func validateRegion(prov *esv1.AWSProvider) error {
 	case esv1.AWSServiceCertificateManager:
 		resolver := acm.NewDefaultEndpointResolverV2()
 		_, err := resolver.ResolveEndpoint(context.TODO(), acm.EndpointParameters{
-			Region: &prov.Region,
+			Region:      &prov.Region,
+			ServiceType: aws.String("ACM"),
 		})
 		if err != nil {
 			return fmt.Errorf(errRegionNotFound, prov.Region)
