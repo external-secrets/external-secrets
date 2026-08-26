@@ -19,26 +19,62 @@ package iam
 import (
 	"context"
 	"fmt"
+	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/auth"
 )
 
 // FakeTokenExchanger simulates the process of exchanging credentials to obtain IAM tokens.
 // Calls keeps track of how many times the token exchange method has been invoked.
 // ReturnError, when set to true, forces the token exchange method to return an error.
 type FakeTokenExchanger struct {
-	Calls       atomic.Int64
-	ReturnError bool
+	TokenToIssue            string
+	Calls                   atomic.Int64
+	PrivateKeyRequest       string
+	SubjectRequest          string
+	KeyIDRequest            string
+	TokenRequest            string
+	DomainRequest           string
+	ServiceAccountIDRequest string
+	CaRequest               []byte
+	ReturnError             bool
+
+	mu sync.Mutex
 }
 
 // ExchangeIamToken exchanges credentials to generate a new IAM token with a fixed 100-second validity period.
-func (f *FakeTokenExchanger) ExchangeIamToken(_ context.Context, _, _ string, issuedAt time.Time, _ []byte) (*Token, error) {
-	f.Calls.Add(1)
+func (f *FakeTokenExchanger) ExchangeIamToken(_ context.Context, domain string, resolved auth.TokenExchangeCredentials, issuedAt time.Time, ca []byte) (*Token, error) {
+	call := f.Calls.Add(1)
 	if f.ReturnError {
 		return nil, fmt.Errorf("fake error")
 	}
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	switch creds := resolved.(type) {
+	case *auth.ResolvedServiceAccountCreds:
+		f.PrivateKeyRequest = creds.PrivateKey
+		f.SubjectRequest = creds.Subject
+		f.KeyIDRequest = creds.KeyID
+	case *auth.ResolvedFederatedCredentials:
+		f.TokenRequest = creds.SubjectToken
+		f.ServiceAccountIDRequest = creds.ServiceAccountID
+	default:
+		return nil, fmt.Errorf("unknown auth type %T", creds)
+	}
+	f.DomainRequest = domain
+	f.CaRequest = ca
+
+	resultToken := fmt.Sprintf("token-%d", call)
+	if f.TokenToIssue != "" {
+		resultToken = f.TokenToIssue
+	}
+
 	return &Token{
-		Token:     fmt.Sprintf("token-%d", f.Calls.Load()),
+		Token:     resultToken,
 		ExpiresAt: issuedAt.Add(100 * time.Second), // lifetime is 100 seconds
 		IssuedAt:  issuedAt,
 	}, nil

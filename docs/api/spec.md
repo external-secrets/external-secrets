@@ -8173,6 +8173,20 @@ External Secrets meta/v1.SecretKeySelector
 <p>Token authenticates with Nebius Mysterybox by presenting a token.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>workloadIdentity</code></br>
+<em>
+<a href="#external-secrets.io/v1.NebiusWorkloadIdentity">
+NebiusWorkloadIdentity
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>WorkloadIdentity defines configuration for workload identity authentication to Nebius IAM.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.NebiusCAProvider">NebiusCAProvider
@@ -8260,6 +8274,52 @@ NebiusCAProvider
 <td>
 <em>(Optional)</em>
 <p>The provider for the CA bundle to use to validate NebiusMysterybox server certificate.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NebiusWorkloadIdentity">NebiusWorkloadIdentity
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NebiusAuth">NebiusAuth</a>)
+</p>
+<p>
+<p>NebiusWorkloadIdentity defines configuration for workload identity authentication to Nebius IAM.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountRef references a Kubernetes ServiceAccount used to request a
+temporary JWT via the TokenRequest API. The JWT is then exchanged for a
+Nebius IAM token using workload federation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>iamServiceAccountID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>IAMServiceAccountID is the Nebius IAM service account identifier that the
+federated Kubernetes service account should impersonate during token exchange.</p>
 </td>
 </tr>
 </tbody>
