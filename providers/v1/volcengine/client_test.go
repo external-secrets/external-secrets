@@ -19,11 +19,13 @@ package volcengine
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/volcengine/volcengine-go-sdk/service/kms"
 	"github.com/volcengine/volcengine-go-sdk/volcengine/request"
+	"github.com/volcengine/volcengine-go-sdk/volcengine/volcengineerr"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -98,6 +100,14 @@ func (m *MockKMSClient) GetSecretValueWithContext(ctx context.Context, input *km
 	return nil, errors.New("GetSecretValueWithContext is not implemented")
 }
 
+func notFoundError() error {
+	return volcengineerr.NewRequestFailure(
+		volcengineerr.New("Not Found", "secret not found", nil),
+		http.StatusNotFound,
+		"request-id",
+	)
+}
+
 func TestNew_should_return_a_new_client(t *testing.T) {
 	mockKMS := &MockKMSClient{}
 	client := NewClient(mockKMS)
@@ -150,6 +160,14 @@ func TestClient_Validate_should_return_error_when_kms_client_is_not_initialized(
 	assert.Error(t, err)
 	assert.Equal(t, "kms client is not initialized", err.Error())
 	assert.Equal(t, esapi.ValidationResultError, result)
+}
+
+func TestClient_GetSecret_should_return_error_when_kms_client_is_not_initialized(t *testing.T) {
+	client := NewClient(nil)
+
+	_, err := client.GetSecret(context.Background(), esapi.ExternalSecretDataRemoteRef{Key: "my-secret"})
+
+	assert.EqualError(t, err, errUninitializedKMSClient)
 }
 
 func TestClient_GetSecret_should_return_secret_value_when_property_is_empty(t *testing.T) {
@@ -241,6 +259,162 @@ func TestClient_GetSecret_should_return_error_when_secret_is_not_valid_json(t *t
 	assert.Contains(t, err.Error(), "failed to unmarshal secret")
 }
 
+func TestClient_GetSecret_should_return_property_value_when_secret_is_json_array(t *testing.T) {
+	secretValue := `["secret_a", "secret_b"]`
+	mockKMS := &MockKMSClient{
+		GetSecretValueWithContextFunc: func(ctx context.Context, input *kms.GetSecretValueInput, opts ...request.Option) (*kms.GetSecretValueOutput, error) {
+			return &kms.GetSecretValueOutput{
+				SecretValue: &secretValue,
+			}, nil
+		},
+	}
+	client := NewClient(mockKMS)
+	value, err := client.GetSecret(context.Background(), esapi.ExternalSecretDataRemoteRef{
+		Key:      "my-secret",
+		Property: "1",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("secret_b"), value)
+}
+
+func TestClient_GetSecret_should_return_nested_property_when_secret_is_json_array_of_objects(t *testing.T) {
+	secretValue := `[{"name": "db", "pwd": "123"}, {"name": "redis", "pwd": "456"}]`
+	mockKMS := &MockKMSClient{
+		GetSecretValueWithContextFunc: func(ctx context.Context, input *kms.GetSecretValueInput, opts ...request.Option) (*kms.GetSecretValueOutput, error) {
+			return &kms.GetSecretValueOutput{
+				SecretValue: &secretValue,
+			}, nil
+		},
+	}
+	client := NewClient(mockKMS)
+	value, err := client.GetSecret(context.Background(), esapi.ExternalSecretDataRemoteRef{
+		Key:      "my-secret",
+		Property: "0.pwd",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("123"), value)
+}
+
+func TestClient_GetSecret_should_return_error_when_property_does_not_exist_in_json_array(t *testing.T) {
+	secretValue := `["secret_a", "secret_b"]`
+	mockKMS := &MockKMSClient{
+		GetSecretValueWithContextFunc: func(ctx context.Context, input *kms.GetSecretValueInput, opts ...request.Option) (*kms.GetSecretValueOutput, error) {
+			return &kms.GetSecretValueOutput{
+				SecretValue: &secretValue,
+			}, nil
+		},
+	}
+	client := NewClient(mockKMS)
+	_, err := client.GetSecret(context.Background(), esapi.ExternalSecretDataRemoteRef{
+		Key:      "my-secret",
+		Property: "99",
+	})
+	assert.Error(t, err)
+	assert.Equal(t, `property "99" not found in secret`, err.Error())
+}
+
+func TestClient_GetSecret_should_return_nested_property_when_secret_has_array_field(t *testing.T) {
+	secretValue := `{"Accounts":[{"Name":"admin","Password":"pass123"},{"Name":"readonly","Password":"pass456"}]}`
+	mockKMS := &MockKMSClient{
+		GetSecretValueWithContextFunc: func(ctx context.Context, input *kms.GetSecretValueInput, opts ...request.Option) (*kms.GetSecretValueOutput, error) {
+			return &kms.GetSecretValueOutput{
+				SecretValue: &secretValue,
+			}, nil
+		},
+	}
+	client := NewClient(mockKMS)
+	value, err := client.GetSecret(context.Background(), esapi.ExternalSecretDataRemoteRef{
+		Key:      "my-secret",
+		Property: "Accounts.0.Password",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("pass123"), value)
+}
+
+func TestExtractProperty_should_return_error_when_secret_contains_trailing_data(t *testing.T) {
+	testCases := []struct {
+		name   string
+		secret string
+	}{
+		{
+			name:   "object",
+			secret: `{"prop":"value"}trailing-data`,
+		},
+		{
+			name:   "array",
+			secret: `["value"]trailing-data`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := extractProperty(tc.secret, "prop")
+
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "failed to unmarshal secret")
+		})
+	}
+}
+
+func TestExtractProperty_should_preserve_non_string_json_values(t *testing.T) {
+	testCases := []struct {
+		name     string
+		property string
+		want     []byte
+	}{
+		{
+			name:     "null",
+			property: "null",
+			want:     []byte{},
+		},
+		{
+			name:     "number",
+			property: "number",
+			want:     []byte("42"),
+		},
+		{
+			name:     "object",
+			property: "object",
+			want:     []byte(`{"key":"value"}`),
+		},
+		{
+			name:     "array",
+			property: "array",
+			want:     []byte(`["value"]`),
+		},
+	}
+
+	secret := `{"null":null,"number":42,"object":{"key":"value"},"array":["value"]}`
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			value, err := extractProperty(secret, tc.property)
+
+			assert.NoError(t, err)
+			assert.Equal(t, tc.want, value)
+		})
+	}
+}
+
+func TestExtractProperty_should_return_decoded_json_string(t *testing.T) {
+	value, err := extractProperty("{\"value\":\"line\\nbreak and \\\"quotes\\\"\"}", "value")
+
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("line\nbreak and \"quotes\""), value)
+}
+
+func TestClient_GetSecret_should_return_no_secret_error_when_secret_is_not_found(t *testing.T) {
+	mockKMS := &MockKMSClient{
+		GetSecretValueWithContextFunc: func(ctx context.Context, input *kms.GetSecretValueInput, opts ...request.Option) (*kms.GetSecretValueOutput, error) {
+			return nil, notFoundError()
+		},
+	}
+	client := NewClient(mockKMS)
+
+	_, err := client.GetSecret(context.Background(), esapi.ExternalSecretDataRemoteRef{Key: "my-secret"})
+
+	assert.ErrorIs(t, err, esapi.NoSecretErr)
+}
+
 func TestClient_GetSecret_should_return_error_when_api_call_fails(t *testing.T) {
 	mockKMS := &MockKMSClient{
 		GetSecretValueWithContextFunc: func(ctx context.Context, input *kms.GetSecretValueInput, opts ...request.Option) (*kms.GetSecretValueOutput, error) {
@@ -272,7 +446,7 @@ func TestClient_GetSecret_should_return_error_when_secret_value_is_nil(t *testin
 }
 
 func TestClient_GetSecretMap_should_return_map_when_secret_is_valid_json(t *testing.T) {
-	secretValue := `{"user":"admin"}`
+	secretValue := `{"user":"admin","escaped":"line\nbreak","port":5432,"null":null}`
 	mockKMS := &MockKMSClient{
 		GetSecretValueWithContextFunc: func(ctx context.Context, input *kms.GetSecretValueInput, opts ...request.Option) (*kms.GetSecretValueOutput, error) {
 			return &kms.GetSecretValueOutput{
@@ -286,7 +460,10 @@ func TestClient_GetSecretMap_should_return_map_when_secret_is_valid_json(t *test
 	})
 	assert.NoError(t, err)
 	expectedMap := map[string][]byte{
-		"user": []byte(`"admin"`),
+		"user":    []byte("admin"),
+		"escaped": []byte("line\nbreak"),
+		"port":    []byte("5432"),
+		"null":    []byte("null"),
 	}
 	assert.Equal(t, expectedMap, secretMap)
 }
@@ -333,6 +510,29 @@ func TestClient_SecretExists_should_return_error_when_secret_name_is_empty(t *te
 	assert.False(t, exists)
 	assert.Error(t, err)
 	assert.Equal(t, "secret name is empty", err.Error())
+}
+
+func TestClient_SecretExists_should_return_false_without_error_when_secret_is_not_found(t *testing.T) {
+	mockKMS := &MockKMSClient{
+		DescribeSecretWithContextFunc: func(ctx context.Context, input *kms.DescribeSecretInput, opts ...request.Option) (*kms.DescribeSecretOutput, error) {
+			return nil, notFoundError()
+		},
+	}
+	c := NewClient(mockKMS)
+
+	exists, err := c.SecretExists(context.Background(), fakePushScretRemoteRef{RemoteKey: "missing-secret"})
+
+	assert.False(t, exists)
+	assert.NoError(t, err)
+}
+
+func TestClient_SecretExists_should_return_error_when_kms_client_is_not_initialized(t *testing.T) {
+	c := NewClient(nil)
+
+	exists, err := c.SecretExists(context.Background(), fakePushScretRemoteRef{RemoteKey: "my-secret"})
+
+	assert.False(t, exists)
+	assert.EqualError(t, err, errUninitializedKMSClient)
 }
 
 func TestClient_SecretExists_should_return_error_when_describe_secret_fails(t *testing.T) {
