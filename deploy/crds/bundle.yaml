@@ -4001,7 +4001,7 @@ spec:
                                 - serviceID
                               type: object
                             gcp:
-                              description: Gcp enables authentication to Conjur via the authn-gcp authenticator.
+                              description: GCP enables authentication to Conjur via the authn-gcp authenticator.
                               properties:
                                 account:
                                   description: Account is the Conjur organization account name.
@@ -4057,7 +4057,7 @@ spec:
                                 - hostId
                               type: object
                             iam:
-                              description: Iam enables authentication to Conjur via the authn-iam authenticator.
+                              description: IAM enables authentication to Conjur via the authn-iam authenticator.
                               properties:
                                 account:
                                   description: Account is the Conjur organization account name.
@@ -17572,7 +17572,7 @@ spec:
                                 - serviceID
                               type: object
                             gcp:
-                              description: Gcp enables authentication to Conjur via the authn-gcp authenticator.
+                              description: GCP enables authentication to Conjur via the authn-gcp authenticator.
                               properties:
                                 account:
                                   description: Account is the Conjur organization account name.
@@ -17628,7 +17628,7 @@ spec:
                                 - hostId
                               type: object
                             iam:
-                              description: Iam enables authentication to Conjur via the authn-iam authenticator.
+                              description: IAM enables authentication to Conjur via the authn-iam authenticator.
                               properties:
                                 account:
                                   description: Account is the Conjur organization account name.

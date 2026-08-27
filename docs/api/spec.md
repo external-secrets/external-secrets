@@ -3558,7 +3558,7 @@ ConjurIAM
 </td>
 <td>
 <em>(Optional)</em>
-<p>Iam enables authentication to Conjur via the authn-iam authenticator.</p>
+<p>IAM enables authentication to Conjur via the authn-iam authenticator.</p>
 </td>
 </tr>
 <tr>
@@ -3586,7 +3586,7 @@ ConjurGCP
 </td>
 <td>
 <em>(Optional)</em>
-<p>Gcp enables authentication to Conjur via the authn-gcp authenticator.</p>
+<p>GCP enables authentication to Conjur via the authn-gcp authenticator.</p>
 </td>
 </tr>
 </tbody>

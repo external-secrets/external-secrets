@@ -92,7 +92,7 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 	if prov.Auth.Jwt != nil {
 		return c.conjurClientFromJWT(ctx, config, prov)
 	}
-	if prov.Auth.Iam != nil {
+	if prov.Auth.IAM != nil {
 		return c.conjurClientFromIAM(ctx, config, prov)
 	}
 	if prov.Auth.Cert != nil {
@@ -102,7 +102,7 @@ func (c *Client) GetConjurClient(ctx context.Context) (SecretsClient, error) {
 	if prov.Auth.Azure != nil {
 		return c.conjurClientFromAzure(ctx, config, prov)
 	}
-	if prov.Auth.Gcp != nil {
+	if prov.Auth.GCP != nil {
 		return c.conjurClientFromGCP(ctx, config, prov)
 	}
 	// Should not happen because validate func should catch this
