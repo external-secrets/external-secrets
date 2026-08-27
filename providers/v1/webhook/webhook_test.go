@@ -872,17 +872,19 @@ func buildFakeClient(secrets []esv1.WebhookSecret, objects []client.Object) clie
 	return nil
 }
 
-func assertValidateError(t *testing.T, err error, wantErrContains string) {
+func assertValidateError(t *testing.T, err error, wantErrContains, wantErrNotContains string) {
 	t.Helper()
-	if wantErrContains == "" {
-		return
+	if wantErrContains != "" {
+		if err == nil {
+			t.Errorf("Validate() expected error containing %q, got nil", wantErrContains)
+			return
+		}
+		if !strings.Contains(err.Error(), wantErrContains) {
+			t.Errorf("Validate() error = %v, want error containing %q", err, wantErrContains)
+		}
 	}
-	if err == nil {
-		t.Errorf("Validate() expected error containing %q, got nil", wantErrContains)
-		return
-	}
-	if !strings.Contains(err.Error(), wantErrContains) {
-		t.Errorf("Validate() error = %v, want error containing %q", err, wantErrContains)
+	if wantErrNotContains != "" && err != nil && strings.Contains(err.Error(), wantErrNotContains) {
+		t.Errorf("Validate() error = %v, must not contain %q", err, wantErrNotContains)
 	}
 }
 
@@ -901,12 +903,13 @@ func TestValidate(t *testing.T) {
 	secretNamespace := "default"
 
 	tests := []struct {
-		name            string
-		url             string
-		secrets         []esv1.WebhookSecret
-		mockObjects     []client.Object
-		wantResult      esv1.ValidationResult
-		wantErrContains string
+		name               string
+		url                string
+		secrets            []esv1.WebhookSecret
+		mockObjects        []client.Object
+		wantResult         esv1.ValidationResult
+		wantErrContains    string
+		wantErrNotContains string
 	}{
 		{
 			name:       "hardcoded url validates successfully",
@@ -915,7 +918,7 @@ func TestValidate(t *testing.T) {
 		},
 		{
 			// A URL templated on .remoteRef can't be resolved at store-validation
-			// time — that data only exists per-ExternalSecret, at fetch time. The
+			// time, that data only exists per-ExternalSecret, at fetch time. The
 			// store may be perfectly valid; we just can't prove reachability yet.
 			name:       "url templated on remoteRef cannot be resolved at store-validation time",
 			url:        "{{ .remoteRef.key }}",
@@ -974,6 +977,74 @@ func TestValidate(t *testing.T) {
 			wantResult: esv1.ValidationResultError,
 		},
 		{
+			// The resolved host reaches a Kubernetes event through the store
+			// condition, so a secret used inside the host must not show up there.
+			name: "secret used in the host is redacted from the validation error",
+			url:  "https://{{ .myconfig.token }}.example.invalid",
+			secrets: []esv1.WebhookSecret{
+				{
+					Name: "myconfig",
+					SecretRef: esmeta.SecretKeySelector{
+						Name:      "webhook-validate-secret-in-host",
+						Namespace: &secretNamespace,
+					},
+				},
+			},
+			mockObjects: []client.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: secretNamespace,
+					Name:      "webhook-validate-secret-in-host",
+					Labels: map[string]string{
+						"external-secrets.io/type": "webhook",
+					},
+				},
+				Data: map[string][]byte{
+					"token": []byte("s3cr3t-token"),
+				},
+			}},
+			wantResult:         esv1.ValidationResultError,
+			wantErrContains:    "[REDACTED]",
+			wantErrNotContains: "s3cr3t-token",
+		},
+		{
+			// A non-templated URL cannot leak a secret, so the connection error
+			// is reported in full and nothing is redacted.
+			name:               "non-templated unreachable url keeps the full error",
+			url:                unreachableURL,
+			wantResult:         esv1.ValidationResultError,
+			wantErrContains:    "connection refused",
+			wantErrNotContains: "[REDACTED]",
+		},
+		{
+			// The resolved URL cannot be parsed (the secret injects a space into
+			// the host), so the error falls back to a generic message.
+			name: "templated url that resolves to an unparsable url is reported generically",
+			url:  "http://{{ .myconfig.host }}",
+			secrets: []esv1.WebhookSecret{
+				{
+					Name: "myconfig",
+					SecretRef: esmeta.SecretKeySelector{
+						Name:      "webhook-validate-secret-unparsable",
+						Namespace: &secretNamespace,
+					},
+				},
+			},
+			mockObjects: []client.Object{&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: secretNamespace,
+					Name:      "webhook-validate-secret-unparsable",
+					Labels: map[string]string{
+						"external-secrets.io/type": "webhook",
+					},
+				},
+				Data: map[string][]byte{
+					"host": []byte("a b"),
+				},
+			}},
+			wantResult:      esv1.ValidationResultError,
+			wantErrContains: "cannot reach the host resolved from the templated url",
+		},
+		{
 			name:            "malformed template string surfaces execute template error",
 			url:             "{{ .unclosed.template",
 			wantResult:      esv1.ValidationResultError,
@@ -1012,7 +1083,7 @@ func TestValidate(t *testing.T) {
 			if wantErr := tt.wantResult == esv1.ValidationResultError; (err != nil) != wantErr {
 				t.Errorf("Validate() error = %v, wantErr %v", err, wantErr)
 			}
-			assertValidateError(t, err, tt.wantErrContains)
+			assertValidateError(t, err, tt.wantErrContains, tt.wantErrNotContains)
 			if result != tt.wantResult {
 				t.Errorf("Validate() = %v, want %v", result, tt.wantResult)
 			}

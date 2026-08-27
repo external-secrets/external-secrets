@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -323,9 +324,9 @@ func (w *WebHook) Validate() (esv1.ValidationResult, error) {
 	}
 
 	// The URL may reference .remoteRef (e.g. "{{ .remoteRef.key }}"), which is only
-	// known at fetch time, per-ExternalSecret — not at store-validation time. In that
-	// case the store itself may be perfectly valid; we just can't prove reachability
-	// yet, so report Unknown rather than Error.
+	// known at fetch time, per-ExternalSecret, and not at store-validation time. In
+	// that case the store itself may be perfectly valid; we just can't prove
+	// reachability yet, so report Unknown rather than Error.
 	if strings.Contains(provider.URL, ".remoteRef") {
 		return esv1.ValidationResultUnknown, nil
 	}
@@ -339,20 +340,45 @@ func (w *WebHook) Validate() (esv1.ValidationResult, error) {
 	// Kubernetes API is slow or unresponsive.
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	escapedData, err := w.wh.GetTemplateData(ctx, nil, provider.Secrets, false)
+	data, err := w.wh.GetTemplateData(ctx, nil, provider.Secrets, false)
 	if err != nil {
 		return esv1.ValidationResultError, fmt.Errorf("failed to get template data: %w", err)
 	}
 
-	url, err := webhook.ExecuteTemplateString(provider.URL, escapedData)
+	resolvedURL, err := webhook.ExecuteTemplateString(provider.URL, data)
 	if err != nil {
 		return esv1.ValidationResultError, fmt.Errorf("failed to render URL template: %w", err)
 	}
 
-	if err := esutils.NetworkValidate(url, timeout); err != nil {
-		return esv1.ValidationResultError, err
+	if err := esutils.NetworkValidate(resolvedURL, timeout); err != nil {
+		return esv1.ValidationResultError, redactHost(err, provider.URL, resolvedURL)
 	}
 	return esv1.ValidationResultReady, nil
+}
+
+// redactHost hides the host of a templated URL in err.
+//
+// Validate() errors are written to a SecretStore Kubernetes event, see
+// validateStore in pkg/controllers/secretstore/common.go. NetworkValidate dials
+// the host, so the host ends up in the dial error. When the URL is templated on
+// provider.webhook.secrets, a store such as "https://{{ .creds.token }}.example.com"
+// would then publish the token in that event, and events are readable by anyone
+// holding "get events" on the namespace, who may not be allowed to read the
+// referenced secret. The rest of the error is kept so the store owner can still
+// tell a DNS failure from a refused connection or a timeout.
+func redactHost(err error, rawURL, resolvedURL string) error {
+	// A non-templated URL cannot leak a secret, so its error is returned
+	// unchanged, keeping full detail for the store owner.
+	if rawURL == resolvedURL {
+		return err
+	}
+	parsed, parseErr := url.Parse(resolvedURL)
+	// An unparsable resolved URL, or one with no host, leaves nothing safe to
+	// keep, so return a generic message rather than risk leaking the secret.
+	if parseErr != nil || parsed.Hostname() == "" {
+		return errors.New("cannot reach the host resolved from the templated url")
+	}
+	return errors.New(strings.ReplaceAll(err.Error(), parsed.Hostname(), "[REDACTED]"))
 }
 
 // NewProvider creates a new Provider instance.
