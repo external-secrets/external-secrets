@@ -4933,7 +4933,7 @@ spec:
                       type: object
                     github:
                       description: |-
-                        Github configures this store to push GitHub Actions secrets using the GitHub API provider.
+                        Github configures this store to push GitHub Actions or Dependabot secrets using the GitHub API provider.
                         Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub
                       properties:
                         appID:
@@ -4997,6 +4997,15 @@ spec:
                         repository:
                           description: repository will be used to fetch secrets from the Github repository within an organization
                           type: string
+                        secretType:
+                          default: Actions
+                          description: |-
+                            secretType specifies which GitHub secret service to use.
+                            Defaults to Actions for backwards compatibility.
+                          enum:
+                            - Actions
+                            - Dependabot
+                          type: string
                         uploadURL:
                           description: Upload URL for enterprise instances. Default to URL.
                           type: string
@@ -5010,6 +5019,9 @@ spec:
                         - installationID
                         - organization
                       type: object
+                      x-kubernetes-validations:
+                        - message: Dependabot secrets do not support environments
+                          rule: self.secretType != 'Dependabot' || !has(self.environment) || size(self.environment) == 0
                     gitlab:
                       description: GitLab configures this store to sync secrets using GitLab Variables provider
                       properties:
@@ -18284,7 +18296,7 @@ spec:
                       type: object
                     github:
                       description: |-
-                        Github configures this store to push GitHub Actions secrets using the GitHub API provider.
+                        Github configures this store to push GitHub Actions or Dependabot secrets using the GitHub API provider.
                         Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub
                       properties:
                         appID:
@@ -18348,6 +18360,15 @@ spec:
                         repository:
                           description: repository will be used to fetch secrets from the Github repository within an organization
                           type: string
+                        secretType:
+                          default: Actions
+                          description: |-
+                            secretType specifies which GitHub secret service to use.
+                            Defaults to Actions for backwards compatibility.
+                          enum:
+                            - Actions
+                            - Dependabot
+                          type: string
                         uploadURL:
                           description: Upload URL for enterprise instances. Default to URL.
                           type: string
@@ -18361,6 +18382,9 @@ spec:
                         - installationID
                         - organization
                       type: object
+                      x-kubernetes-validations:
+                        - message: Dependabot secrets do not support environments
+                          rule: self.secretType != 'Dependabot' || !has(self.environment) || size(self.environment) == 0
                     gitlab:
                       description: GitLab configures this store to sync secrets using GitLab Variables provider
                       properties:
