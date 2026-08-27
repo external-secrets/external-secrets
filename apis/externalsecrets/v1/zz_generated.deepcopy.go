@@ -1402,8 +1402,8 @@ func (in *ConjurAuth) DeepCopyInto(out *ConjurAuth) {
 		*out = new(ConjurCert)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.Iam != nil {
-		in, out := &in.Iam, &out.Iam
+	if in.IAM != nil {
+		in, out := &in.IAM, &out.IAM
 		*out = new(ConjurIAM)
 		(*in).DeepCopyInto(*out)
 	}
@@ -1412,8 +1412,8 @@ func (in *ConjurAuth) DeepCopyInto(out *ConjurAuth) {
 		*out = new(ConjurAzure)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.Gcp != nil {
-		in, out := &in.Gcp, &out.Gcp
+	if in.GCP != nil {
+		in, out := &in.GCP, &out.GCP
 		*out = new(ConjurGCP)
 		(*in).DeepCopyInto(*out)
 	}

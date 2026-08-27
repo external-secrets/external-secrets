@@ -55,17 +55,17 @@ type ConjurAuth struct {
 	// +optional
 	Cert *ConjurCert `json:"cert,omitempty"`
 
-	// Iam enables authentication to Conjur via the authn-iam authenticator.
+	// IAM enables authentication to Conjur via the authn-iam authenticator.
 	// +optional
-	Iam *ConjurIAM `json:"iam,omitempty"`
+	IAM *ConjurIAM `json:"iam,omitempty"`
 
 	// Azure enables authentication to Conjur via the authn-azure authenticator.
 	// +optional
 	Azure *ConjurAzure `json:"azure,omitempty"`
 
-	// Gcp enables authentication to Conjur via the authn-gcp authenticator.
+	// GCP enables authentication to Conjur via the authn-gcp authenticator.
 	// +optional
-	Gcp *ConjurGCP `json:"gcp,omitempty"`
+	GCP *ConjurGCP `json:"gcp,omitempty"`
 }
 
 // ConjurAPIKey contains references to a Secret resource that holds

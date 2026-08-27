@@ -26,7 +26,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
-var errBadGCPToken = "could not get Auth.Gcp.SecretRef.JWT: %w"
+var errBadGCPToken = "could not get Auth.GCP.SecretRef.JWT: %w"
 
 // conjurClientFromGCP creates a Conjur client using the authn-gcp authenticator.
 // If SecretRef is set, a GCP identity token is resolved from a Kubernetes Secret and
@@ -34,12 +34,12 @@ var errBadGCPToken = "could not get Auth.Gcp.SecretRef.JWT: %w"
 // a token from the GCP Metadata Service automatically.
 func (c *Client) conjurClientFromGCP(ctx context.Context, config conjurapi.Config, prov *esv1.ConjurProvider) (SecretsClient, error) {
 	config.AuthnType = "gcp"
-	config.Account = prov.Auth.Gcp.Account
-	config.ServiceID = prov.Auth.Gcp.ServiceID
-	config.JWTHostID = prov.Auth.Gcp.HostID
+	config.Account = prov.Auth.GCP.Account
+	config.ServiceID = prov.Auth.GCP.ServiceID
+	config.JWTHostID = prov.Auth.GCP.HostID
 
-	if prov.Auth.Gcp.SecretRef != nil {
-		token, err := resolvers.SecretKeyRef(ctx, c.kube, c.StoreKind, c.namespace, &prov.Auth.Gcp.SecretRef.JWT)
+	if prov.Auth.GCP.SecretRef != nil {
+		token, err := resolvers.SecretKeyRef(ctx, c.kube, c.StoreKind, c.namespace, &prov.Auth.GCP.SecretRef.JWT)
 		if err != nil {
 			return nil, fmt.Errorf(errBadGCPToken, err)
 		}
