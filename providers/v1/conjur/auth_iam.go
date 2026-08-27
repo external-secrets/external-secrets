@@ -28,20 +28,20 @@ import (
 )
 
 var (
-	errBadIAMAccessKeyID     = "could not get Auth.Iam.SecretRef.AccessKeyIDSecretRef: %w"
-	errBadIAMSecretAccessKey = "could not get Auth.Iam.SecretRef.SecretAccessKeySecretRef: %w"
-	errBadIAMSessionToken    = "could not get Auth.Iam.SecretRef.SessionTokenSecretRef: %w"
+	errBadIAMAccessKeyID     = "could not get Auth.IAM.SecretRef.AccessKeyIDSecretRef: %w"
+	errBadIAMSecretAccessKey = "could not get Auth.IAM.SecretRef.SecretAccessKeySecretRef: %w"
+	errBadIAMSessionToken    = "could not get Auth.IAM.SecretRef.SessionTokenSecretRef: %w"
 )
 
 // conjurClientFromIAM creates a Conjur client using the authn-iam authenticator.
 func (c *Client) conjurClientFromIAM(ctx context.Context, config conjurapi.Config, prov *esv1.ConjurProvider) (SecretsClient, error) {
 	config.AuthnType = "iam"
-	config.Account = prov.Auth.Iam.Account
-	config.ServiceID = prov.Auth.Iam.ServiceID
-	config.JWTHostID = prov.Auth.Iam.HostID
+	config.Account = prov.Auth.IAM.Account
+	config.ServiceID = prov.Auth.IAM.ServiceID
+	config.JWTHostID = prov.Auth.IAM.HostID
 
 	var creds *authn.IAMCredentials
-	if prov.Auth.Iam.SecretRef != nil {
+	if prov.Auth.IAM.SecretRef != nil {
 		var err error
 		creds, err = c.resolveIAMCredentials(ctx, prov)
 		if err != nil {
@@ -60,7 +60,7 @@ func (c *Client) conjurClientFromIAM(ctx context.Context, config conjurapi.Confi
 
 // resolveIAMCredentials reads AWS credentials from Kubernetes Secrets.
 func (c *Client) resolveIAMCredentials(ctx context.Context, prov *esv1.ConjurProvider) (*authn.IAMCredentials, error) {
-	ref := prov.Auth.Iam.SecretRef
+	ref := prov.Auth.IAM.SecretRef
 
 	accessKeyID, err := resolvers.SecretKeyRef(ctx, c.kube, c.StoreKind, c.namespace, &ref.AccessKeyIDSecretRef)
 	if err != nil {

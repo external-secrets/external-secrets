@@ -141,15 +141,15 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			store: makeIAMSecretStore(svcURL, "", "prod", "data/myapp/123456789/MyRole", false),
-			err:   errors.New("missing Auth.Iam.Account"),
+			err:   errors.New("missing Auth.IAM.Account"),
 		},
 		{
 			store: makeIAMSecretStore(svcURL, "myorg", "", "data/myapp/123456789/MyRole", false),
-			err:   errors.New("missing Auth.Iam.ServiceID"),
+			err:   errors.New("missing Auth.IAM.ServiceID"),
 		},
 		{
 			store: makeIAMSecretStore(svcURL, "myorg", "prod", "", false),
-			err:   errors.New("missing Auth.Iam.HostID"),
+			err:   errors.New("missing Auth.IAM.HostID"),
 		},
 		{
 			store: makeIAMSecretStore("", "myorg", "prod", "data/myapp/123456789/MyRole", false),
@@ -191,7 +191,7 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			store: makeGCPSecretStore(svcURL, "", "prod", "data/myapp/myhost", false),
-			err:   errors.New("missing Auth.Gcp.Account"),
+			err:   errors.New("missing Auth.GCP.Account"),
 		},
 		{
 			store: makeGCPSecretStore(svcURL, "myorg", "", "data/myapp/myhost", false),
@@ -199,7 +199,7 @@ func TestValidateStore(t *testing.T) {
 		},
 		{
 			store: makeGCPSecretStore(svcURL, "myorg", "prod", "", false),
-			err:   errors.New("missing Auth.Gcp.HostID"),
+			err:   errors.New("missing Auth.GCP.HostID"),
 		},
 		{
 			store: makeGCPSecretStore("", "myorg", "prod", "data/myapp/myhost", false),
@@ -265,7 +265,7 @@ func makeGCPSecretStore(svcURL, account, serviceID, hostID string, withSecretRef
 				Conjur: &esv1.ConjurProvider{
 					URL: svcURL,
 					Auth: esv1.ConjurAuth{
-						Gcp: gcp,
+						GCP: gcp,
 					},
 				},
 			},
@@ -297,7 +297,7 @@ func makeIAMSecretStore(svcURL, account, serviceID, hostID string, withSecretRef
 				Conjur: &esv1.ConjurProvider{
 					URL: svcURL,
 					Auth: esv1.ConjurAuth{
-						Iam: iam,
+						IAM: iam,
 					},
 				},
 			},
@@ -307,7 +307,7 @@ func makeIAMSecretStore(svcURL, account, serviceID, hostID string, withSecretRef
 
 func makeIAMSecretStoreWithSessionToken(svcURL, account, serviceID, hostID string) *esv1.SecretStore {
 	store := makeIAMSecretStore(svcURL, account, serviceID, hostID, true)
-	store.Spec.Provider.Conjur.Auth.Iam.SecretRef.SessionTokenSecretRef = &esmeta.SecretKeySelector{
+	store.Spec.Provider.Conjur.Auth.IAM.SecretRef.SessionTokenSecretRef = &esmeta.SecretKeySelector{
 		Name: "aws-session-token",
 		Key:  "session-token",
 	}
