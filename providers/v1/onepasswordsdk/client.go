@@ -30,7 +30,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
@@ -96,7 +95,7 @@ func (p *SecretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDa
 	}
 
 	secret, err := p.client.Secrets().Resolve(ctx, key)
-	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKResolve, err)
+	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKResolve, err)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +145,7 @@ func (p *SecretsClient) fetchEnvironmentVariables(ctx context.Context) ([]onepas
 	}
 
 	resp, err := p.client.Environments().GetVariables(ctx, p.targetID)
-	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKEnvironmentsGetVars, err)
+	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKEnvironmentsGetVars, err)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get environment variables: %w", err)
 	}
@@ -230,7 +229,7 @@ func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRem
 
 	if len(providerItem.Fields) == 0 && len(providerItem.Files) == 0 && len(providerItem.Sections) == 0 {
 		err = p.client.Items().Delete(ctx, providerItem.VaultID, providerItem.ID)
-		metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsDelete, err)
+		metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsDelete, err)
 		if err != nil {
 			return fmt.Errorf("failed to delete item: %w", err)
 		}
@@ -238,7 +237,7 @@ func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRem
 	}
 
 	_, err = p.client.Items().Put(ctx, providerItem)
-	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsPut, err)
+	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsPut, err)
 	if err != nil {
 		return fmt.Errorf(errMsgUpdateItem, err)
 	}
@@ -403,7 +402,7 @@ func (p *SecretsClient) listItems(ctx context.Context) ([]onepassword.ItemOvervi
 
 	// Vault item list not found in cache - fetch from the API
 	items, err := p.client.Items().List(ctx, p.targetID)
-	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsList, err)
+	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsList, err)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list items: %w", err)
 	}
@@ -480,7 +479,7 @@ func (p *SecretsClient) fetchFile(ctx context.Context, itemID, fieldID string, a
 		return cached, nil
 	}
 	contents, err := p.client.Items().Files().Read(ctx, p.targetID, fieldID, attributes)
-	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKFilesRead, err)
+	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKFilesRead, err)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
@@ -612,7 +611,7 @@ func (p *SecretsClient) createItem(ctx context.Context, val []byte, ref esv1.Pus
 		},
 		Tags: tags,
 	})
-	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsCreate, err)
+	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsCreate, err)
 	if err != nil {
 		return fmt.Errorf(errMsgCreateItem, err)
 	}
@@ -749,7 +748,7 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 	}
 
 	_, err = p.client.Items().Put(ctx, providerItem)
-	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsPut, err)
+	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsPut, err)
 	if err != nil {
 		return fmt.Errorf(errMsgUpdateItem, err)
 	}
@@ -772,7 +771,7 @@ func (p *SecretsClient) createAllKeysItem(ctx context.Context, secret *corev1.Se
 		Fields:   fields,
 		Tags:     tags,
 	})
-	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsCreate, err)
+	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsCreate, err)
 	if err != nil {
 		return fmt.Errorf(errMsgCreateItem, err)
 	}
@@ -826,7 +825,7 @@ func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, 
 	}
 	providerItem.Fields = kept
 	_, err = p.client.Items().Put(ctx, providerItem)
-	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsPut, err)
+	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsPut, err)
 	if err != nil {
 		return fmt.Errorf(errMsgUpdateItem, err)
 	}
@@ -837,7 +836,7 @@ func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, 
 // GetVault retrieves a vault by its title or UUID from 1Password.
 func (p *SecretsClient) GetVault(ctx context.Context, titleOrUUID string) (string, error) {
 	vaults, err := p.client.VaultsAPI.List(ctx)
-	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKVaultsList, err)
+	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKVaultsList, err)
 	if err != nil {
 		return "", fmt.Errorf("failed to list vaults: %w", err)
 	}
@@ -862,7 +861,7 @@ func (p *SecretsClient) fetchItemByID(ctx context.Context, id string) (onepasswo
 	}
 
 	item, err := p.client.Items().Get(ctx, p.targetID, id)
-	metrics.ObserveAPICall(constants.ProviderOnePasswordSDK, constants.CallOnePasswordSDKItemsGet, err)
+	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsGet, err)
 	if err != nil {
 		return onepassword.Item{}, err
 	}

@@ -14,15 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package constants holds constant values for the project.
-package constants
+package gitlab
 
-// Status and label constants define shared status values and Kubernetes labels.
+// Metrics constants identify the GitLab provider and API calls.
 const (
-	StatusError   = "error"
-	StatusSuccess = "success"
-
-	WellKnownLabelKey             = "external-secrets.io/component"
-	WellKnownLabelValueController = "controller"
-	WellKnownLabelValueWebhook    = "webhook"
+	ProviderGitLab                 = "GitLab"
+	CallGitLabListProjectsGroups   = "ListProjectsGroups"
+	CallGitLabProjectVariableGet   = "ProjectVariableGet"
+	CallGitLabProjectListVariables = "ProjectVariablesList"
+	CallGitLabGroupGetVariable     = "GroupVariableGet"
+	CallGitLabGroupListVariables   = "GroupVariablesList"
 )

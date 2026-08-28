@@ -14,15 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package constants holds constant values for the project.
-package constants
+package vault
 
-// Status and label constants define shared status values and Kubernetes labels.
+// Metrics constants identify the HashiCorp Vault provider and API calls.
 const (
-	StatusError   = "error"
-	StatusSuccess = "success"
-
-	WellKnownLabelKey             = "external-secrets.io/component"
-	WellKnownLabelValueController = "controller"
-	WellKnownLabelValueWebhook    = "webhook"
+	ProviderHCVault            = "HashiCorp/Vault"
+	CallHCVaultLogin           = "Login"
+	CallHCVaultRevokeSelf      = "RevokeSelf"
+	CallHCVaultLookupSelf      = "LookupSelf"
+	CallHCVaultReadSecretData  = "ReadSecretData"
+	CallHCVaultWriteSecretData = "WriteSecretData"
+	CallHCVaultDeleteSecret    = "DeleteSecret"
+	CallHCVaultListSecrets     = "ListSecrets"
 )
