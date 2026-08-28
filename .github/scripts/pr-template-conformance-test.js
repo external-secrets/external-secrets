@@ -14,9 +14,9 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import run, {
-  isBot, OVERRIDE_LABEL, CUTOFF_PR_NUMBER, normalise, extractSection,
-  extractChecklistItems, missingChecklistItems, checkAiDisclosure,
-  checkConformance, closeMessage,
+  isBot, OVERRIDE_LABEL, CUTOFF_PR_NUMBER, AI_ASSISTANCE_LINE_LABEL,
+  AI_DETAIL_FIELDS, normalise, extractSection, extractChecklistItems,
+  missingChecklistItems, checkAiDisclosure, checkConformance, closeMessage,
 } from './pr-template-conformance.js';
 
 const SCRIPTS_DIR = path.dirname(fileURLToPath(import.meta.url));
@@ -115,6 +115,36 @@ test('extractSection ignores a heading-like line inside a fenced code block', ()
 test('extractSection strips a fence closed with more backticks than it opened with', () => {
   const text = '## Format\n\n```\n# not a real heading\n````\n\n## Checklist\n\nreal content';
   assert.equal(extractSection(text, 'Checklist').trim(), 'real content');
+});
+
+// Regression: a shorter closing fence must NOT be treated as closing a
+// longer opener, or the real heading and content past the short "closer"
+// leak through as if the fence had already ended.
+test('a closer shorter than its opener does not end the fence early', () => {
+  const text = [
+    '## Checklist',
+    '',
+    '````',
+    '# not a real heading',
+    '```',
+    '## Also not a real heading',
+    '````',
+    '',
+    '- [x] Real item',
+  ].join('\n');
+  const section = extractSection(text, 'Checklist');
+  assert.doesNotMatch(section, /Also not a real heading/);
+  assert.match(section, /Real item/);
+});
+
+test('an unclosed fence runs to end of document, not just to end of section', () => {
+  const text = [
+    '## Checklist',
+    '',
+    '```',
+    '- [x] This item is inside an unclosed fence',
+  ].join('\n');
+  assert.equal(extractSection(text, 'Checklist').trim(), '');
 });
 
 // Regression: every regex here anchored `$` without the `m` flag, relying
@@ -516,8 +546,7 @@ test('isBot matches known accounts and the generic [bot] suffix', () => {
 
 test('the real template still contains every hardcoded AI disclosure field label', () => {
   const section = extractSection(REAL_TEMPLATE, 'AI Assistance disclosure');
-  for (const label of ['AI assistance used', 'Tool(s) used', 'Purpose of assistance',
-    'Parts of the contribution affected', 'Human validation performed']) {
+  for (const label of [AI_ASSISTANCE_LINE_LABEL, ...AI_DETAIL_FIELDS]) {
     assert.match(
       section,
       new RegExp(`^[ \\t]*${label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}[ \\t]*:`, 'im'),

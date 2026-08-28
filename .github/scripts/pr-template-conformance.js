@@ -41,14 +41,15 @@ const COMMENT_MARKER = '<!-- eso-pr-template-check -->';
 
 const CHECKLIST_HEADING = 'Checklist';
 const AI_DISCLOSURE_HEADING = 'AI Assistance disclosure';
-const AI_ASSISTANCE_LINE_LABEL = 'AI assistance used';
+export const AI_ASSISTANCE_LINE_LABEL = 'AI assistance used';
 
 // The template's own free-text detail fields, asked only when assistance
 // was used. Hardcoded rather than parsed, since nothing in the template's
 // markup distinguishes a fillable field ("Tool(s) used:") from a plain
 // instructional line that also ends in a colon ("If yes provide details:").
-// The template-drift test in the test file catches a future rename.
-const AI_DETAIL_FIELDS = [
+// Exported so the template-drift test in the test file checks these actual
+// constants, not a second hand-typed copy that could drift from them.
+export const AI_DETAIL_FIELDS = [
   'Tool(s) used',
   'Purpose of assistance',
   'Parts of the contribution affected',
@@ -70,14 +71,32 @@ function normaliseLineEndings(text) {
 /**
  * Drop fenced code blocks before section/heading scanning. Without this, a
  * `#` comment inside a fence (the template's own Format section has one)
- * would be read as a real heading. The closing fence only has to be the
- * same character with at least as many repeats as the opening one, not an
- * exact match, so a backreference on the whole opening delimiter is wrong;
- * `\1` here captures only the fence character, and length is a separate,
- * looser `{3,}` on each side.
+ * would be read as a real heading. A single regex cannot express "the
+ * closer needs the same character and at least as many repeats as this
+ * particular opener": a backreference matches the opener's literal text,
+ * not a length to compare against, so independent `{3,}` quantifiers on
+ * each side let a shorter closer end a longer opener early, exposing
+ * whatever comes after it (including a real heading) as if it were normal
+ * text. Tracking fence state line by line, remembering the opener's actual
+ * character and length, closes that gap; an unclosed fence runs to end of
+ * document, matching how GitHub itself renders one.
  */
 function stripFences(text) {
-  return text.replace(/^ {0,3}(`|~)\1{2,}[^\n]*\n[\s\S]*?^ {0,3}\1{3,}[ \t]*$/gm, '');
+  const kept = [];
+  let fence = null;
+  for (const line of text.split('\n')) {
+    if (fence) {
+      if (new RegExp(`^ {0,3}[${fence.char}]{${fence.len},}[ \\t]*$`).test(line)) fence = null;
+      continue;
+    }
+    const opened = line.match(/^ {0,3}(`{3,}|~{3,})/);
+    if (opened) {
+      fence = { char: opened[1][0], len: opened[1].length };
+      continue;
+    }
+    kept.push(line);
+  }
+  return kept.join('\n');
 }
 
 /**
