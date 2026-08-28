@@ -109,8 +109,9 @@ aws:        groups=['aws'] -> AWS_OIDC_ROLE_ARN, AWS_SA_NAME, AWS_SA_NAMESPACE
 ```
 
 Which providers actually need external credentials: `fake`, `kubernetes`,
-`template`, `crd`, `vault`, `openbao`, `conjur`, and `infisical` run against
-in-cluster addons (or, for `crd` and `kubernetes`, the cluster's own API) and
+`template`, `crd`, `webhook`, `vault`, `openbao`, `conjur`, and `infisical` run
+against in-cluster addons (or, for `crd` and `kubernetes`, the cluster's own
+API, and for `webhook`, an HTTP backend the suite runs in its own process) and
 need none. The rest hit real APIs and are scoped to their group.
 
 The `generator` suite is split across two legs by label. The `generator` leg
