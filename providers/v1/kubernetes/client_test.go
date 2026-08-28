@@ -40,6 +40,8 @@ import (
 const (
 	errSomethingWentWrong = "Something went wrong"
 	testSecretKey         = "secret-key"
+	testStoreNamespace    = "store-ns"
+	testTargetNamespace   = "target-ns"
 )
 
 type fakeClient struct {
@@ -1619,8 +1621,8 @@ func TestPushSecret(t *testing.T) {
 
 func TestPushSecretRemoteNamespaceRouting(t *testing.T) {
 	secretKey := testSecretKey
-	storeNamespace := "store-ns"
-	targetNamespace := "target-ns"
+	storeNamespace := testStoreNamespace
+	targetNamespace := testTargetNamespace
 
 	fakeClientset := fake.NewSimpleClientset()
 	coreV1 := fakeClientset.CoreV1()
@@ -1690,8 +1692,8 @@ func TestPushSecretRemoteNamespaceRejectedForSecretStore(t *testing.T) {
 
 func TestDeleteSecretAndExistsHonorRemoteNamespace(t *testing.T) {
 	secretKey := testSecretKey
-	storeNamespace := "store-ns"
-	targetNamespace := "target-ns"
+	storeNamespace := testStoreNamespace
+	targetNamespace := testTargetNamespace
 
 	fakeClientset := fake.NewSimpleClientset()
 	coreV1 := fakeClientset.CoreV1()
@@ -1764,8 +1766,8 @@ func TestDeleteSecretAndExistsHonorRemoteNamespace(t *testing.T) {
 // updatePolicy=IfNotExists push skip the override namespace entirely.
 // Fails on base (checks store namespace), passes with the fix.
 func TestSecretExistsRemoteNamespaceIgnoresStoreNamespaceSecret(t *testing.T) {
-	storeNamespace := "store-ns"
-	targetNamespace := "target-ns"
+	storeNamespace := testStoreNamespace
+	targetNamespace := testTargetNamespace
 
 	fakeClientset := fake.NewSimpleClientset()
 	coreV1 := fakeClientset.CoreV1()
@@ -1807,8 +1809,8 @@ func TestSecretExistsRemoteNamespaceIgnoresStoreNamespaceSecret(t *testing.T) {
 // Multi-key secret in the override namespace: deleting one property must go
 // through removeProperty and leave sibling keys intact.
 func TestDeleteSecretRemoteNamespaceRemovesOnlyProperty(t *testing.T) {
-	storeNamespace := "store-ns"
-	targetNamespace := "target-ns"
+	storeNamespace := testStoreNamespace
+	targetNamespace := testTargetNamespace
 
 	fakeClientset := fake.NewSimpleClientset()
 	coreV1 := fakeClientset.CoreV1()
