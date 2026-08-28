@@ -1,8 +1,14 @@
 /**
- * Closes a pull request whose body has dropped a section heading from
- * .github/pull_request_template.md, so a contributor who skipped the
- * template is caught on open/reopen rather than discovered by a maintainer.
+ * Closes a pull request whose Checklist is missing an item, or whose AI
+ * Assistance disclosure hasn't actually been answered, so a contributor
+ * who guts the parts of the template maintainers rely on for trust is
+ * caught on open/reopen rather than discovered by a maintainer.
  * See https://github.com/external-secrets/external-secrets/issues/6879.
+ *
+ * Deliberately narrow: only these two sections are checked. Problem
+ * Statement, Related Issue, Proposed Changes and Format are left alone,
+ * per the issue opener's own scoping in a maintainer discussion: "the rest
+ * will naturally sort itself out."
  */
 
 import { readFileSync } from 'node:fs';
@@ -16,8 +22,16 @@ export function isBot(login) {
 }
 
 // A maintainer applies this to push a pull request past the check: a
-// revert, a maintainer chore PR, or a false positive on the heading match.
+// revert, a maintainer chore PR, or a false positive on the content match.
 export const OVERRIDE_LABEL = 'template-check-overridden';
+
+// Pull requests numbered at or below this were opened before the check
+// existed, so their authors never had a chance to write to it. This only
+// matters for `reopened`: an old pull request being reopened months later
+// must not be judged retroactively against a rule that postdates it. Set
+// to the highest pull request number in the repository on the day this
+// landed (external-secrets/external-secrets#6882).
+export const CUTOFF_PR_NUMBER = 6882;
 
 export const TEMPLATE_PATH = '.github/pull_request_template.md';
 
@@ -25,10 +39,38 @@ export const TEMPLATE_PATH = '.github/pull_request_template.md';
 // request reopened without a fixed body gets one comment per attempt.
 const COMMENT_MARKER = '<!-- eso-pr-template-check -->';
 
+const CHECKLIST_HEADING = 'Checklist';
+const AI_DISCLOSURE_HEADING = 'AI Assistance disclosure';
+const AI_ASSISTANCE_LINE_LABEL = 'AI assistance used';
+
+// The template's own free-text detail fields, asked only when assistance
+// was used. Hardcoded rather than parsed, since nothing in the template's
+// markup distinguishes a fillable field ("Tool(s) used:") from a plain
+// instructional line that also ends in a colon ("If yes provide details:").
+// The template-drift test in the test file catches a future rename.
+const AI_DETAIL_FIELDS = [
+  'Tool(s) used',
+  'Purpose of assistance',
+  'Parts of the contribution affected',
+  'Human validation performed',
+];
+
 /**
- * Drop fenced code blocks before heading extraction. Without this, a `#`
- * comment inside a fence (the template's own Format section has one) would
- * be read as a real section heading. The closing fence only has to be the
+ * CRLF collapses to LF before anything else runs. Every regex below anchors
+ * `$` to end-of-line without the `m` flag relying on `.`/`.*` stopping at a
+ * lone `\n`, and JavaScript's `.` does not match `\r`, so a line ending in
+ * `\r` (any CRLF body, which is what the GitHub web editor produces) failed
+ * every one of these patterns and made every section read as empty. That
+ * inverted the whole check: a fully conformant CRLF body got closed.
+ */
+function normaliseLineEndings(text) {
+  return text.replace(/\r\n?/g, '\n');
+}
+
+/**
+ * Drop fenced code blocks before section/heading scanning. Without this, a
+ * `#` comment inside a fence (the template's own Format section has one)
+ * would be read as a real heading. The closing fence only has to be the
  * same character with at least as many repeats as the opening one, not an
  * exact match, so a backreference on the whole opening delimiter is wrong;
  * `\1` here captures only the fence character, and length is a separate,
@@ -38,19 +80,13 @@ function stripFences(text) {
   return text.replace(/^ {0,3}(`|~)\1{2,}[^\n]*\n[\s\S]*?^ {0,3}\1{3,}[ \t]*$/gm, '');
 }
 
-/** Every markdown heading (any level) outside fenced code, verbatim. */
-export function extractHeadings(text) {
-  return (stripFences(text).match(/^#{1,6}[ \t]+.+$/gm) || [])
-    .map((h) => h.replace(/^#{1,6}[ \t]+/, '').trim());
-}
-
 /**
  * Lowercase, strip markdown emphasis and punctuation, collapse whitespace.
- * Two headings that differ only in styling or trailing punctuation must
- * still be treated as the same heading.
+ * Two headings or items that differ only in styling or trailing
+ * punctuation must still be treated as the same one.
  */
-export function normalise(heading) {
-  return heading
+export function normalise(text) {
+  return text
     .toLowerCase()
     .replace(/[`*_]/g, '')
     .replace(/[^\w\s]/g, '')
@@ -59,41 +95,157 @@ export function normalise(heading) {
 }
 
 /**
- * Template headings with no match anywhere in the pull request body's own
- * headings. A body heading matches if it equals the normalised template
- * heading, or extends it starting at a word boundary (for example
- * "Related Issue / Ticket" elaborating "Related Issue"), so a contributor
- * who adds detail is not penalised for it. A bare substring anywhere would
- * also let "Reformat" satisfy "Format", and an empty normalisation, from
- * an emoji-only or non-Latin-script heading, match every template field.
+ * Content of the first heading (any level) whose text normalises to
+ * `heading`, up to the next heading of any level or end of document. Empty
+ * if the heading isn't found at all, which is itself a finding: a section
+ * that was deleted outright has nothing in it to satisfy the checks below.
  */
-export function missingHeadings(templateHeadings, bodyHeadings) {
-  const body = bodyHeadings.map(normalise).filter((b) => b.length > 0);
-  return templateHeadings.filter((expected) => {
+export function extractSection(text, heading) {
+  const lines = stripFences(text).split('\n');
+  const target = normalise(heading);
+  let capturing = false;
+  const collected = [];
+  for (const line of lines) {
+    const m = line.match(/^#{1,6}[ \t]+(.+)$/);
+    if (m) {
+      if (capturing) break;
+      if (normalise(m[1]) === target) capturing = true;
+      continue;
+    }
+    if (capturing) collected.push(line);
+  }
+  return collected.join('\n');
+}
+
+/**
+ * Verbatim label text of each checklist item in `text`, at any indent
+ * depth, whether bulleted or numbered (GitHub renders both as task items).
+ */
+export function extractChecklistItems(text) {
+  const marker = '(?:[-*+]|\\d+\\.)';
+  return (text.match(new RegExp(`^[ \\t]*${marker}[ \\t]+\\[[ xX]\\][ \\t]+.+$`, 'gm')) || [])
+    .map((line) => line.replace(new RegExp(`^[ \\t]*${marker}[ \\t]+\\[[ xX]\\][ \\t]+`), '').trim());
+}
+
+/**
+ * Template checklist items with no match anywhere in the pull request
+ * body's own checklist. Checklist item text is long and specific enough
+ * (a full sentence) that a plain substring check carries none of the
+ * short-heading collision risk a single word like "Format" would.
+ */
+export function missingChecklistItems(templateItems, bodyItems) {
+  const body = bodyItems.map(normalise).filter((b) => b.length > 0);
+  return templateItems.filter((expected) => {
     const e = normalise(expected);
-    return !body.some((b) => b === e || b.startsWith(`${e} `));
+    return e.length > 0 && !body.some((b) => b.includes(e));
   });
 }
 
 /**
- * Decides conformance and, on failure, which headings are gone. A pure
- * function so the decision itself can be tested without a github client.
+ * The value on a `label: value` line in `text`, or on the next non-blank
+ * line if the label line itself has nothing after the colon (the template
+ * presents each field this way: label alone, blank line, room to answer).
+ * Null if the label doesn't appear at all; '' if it appears but is empty.
  */
-export function checkConformance(templateBody, prBody) {
-  const templateHeadings = extractHeadings(templateBody);
-  const bodyHeadings = extractHeadings(prBody || '');
-  const missing = missingHeadings(templateHeadings, bodyHeadings);
-  return { conformant: missing.length === 0, missing, templateHeadingCount: templateHeadings.length };
+function fieldValue(text, label) {
+  const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const labelLine = new RegExp(`^[ \\t]*${escaped}[ \\t]*:[ \\t]*(.*)$`, 'i');
+  const knownLabels = [AI_ASSISTANCE_LINE_LABEL, ...AI_DETAIL_FIELDS].map(normalise);
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i += 1) {
+    const m = lines[i].match(labelLine);
+    if (!m) continue;
+    if (m[1].trim()) return m[1].trim();
+    for (let j = i + 1; j < lines.length; j += 1) {
+      const next = lines[j].trim();
+      if (next === '') continue;
+      if (/^#{1,6}[ \t]/.test(next)) return '';
+      // The next non-blank line starts a different field (whether or not
+      // that field's own answer sits on the same line), not a continuation
+      // of this one, whenever the text before its first colon is itself a
+      // known label.
+      const colonIndex = next.indexOf(':');
+      const beforeColon = colonIndex === -1 ? next : next.slice(0, colonIndex);
+      if (knownLabels.includes(normalise(beforeColon))) return '';
+      return next;
+    }
+    return '';
+  }
+  return null;
 }
 
-export function closeMessage(missing) {
+// Answers that mean "No" without containing the word "no" as a standalone
+// token (so "None"/"N/A" aren't mistaken for the unedited/ambiguous case
+// the way "No / Yes" would be, and aren't rejected as gibberish the way
+// "Nope" correctly is).
+const NO_LIKE_PREFIX = /^(none|na|n a|not applicable)\b/;
+
+/**
+ * Checks the AI Assistance disclosure section. Requires the top-level
+ * question to be answered Yes or No, not left ambiguous, and if Yes,
+ * requires each detail field to carry real content rather than being left
+ * blank.
+ *
+ * "Ambiguous" is a shape, not one literal string: the template's own
+ * placeholder ("Yes / No") is the common case, but a contributor who
+ * emphasises or strikes through one option instead of deleting it, or who
+ * simply reorders it ("No / Yes"), normalises to text that still contains
+ * both a yes-token and a no-token. Any such text is treated the same as
+ * the untouched placeholder, since a maintainer glancing at it could not
+ * tell which one was chosen either. The known false-positive this trades
+ * for: "Yes, no concerns" would also read as ambiguous.
+ */
+export function checkAiDisclosure(sectionText) {
+  const raw = fieldValue(sectionText, AI_ASSISTANCE_LINE_LABEL);
+  const answer = raw ? normalise(raw) : '';
+  const hasYes = /\byes\b/.test(answer);
+  const hasNo = /\bno\b/.test(answer) || NO_LIKE_PREFIX.test(answer);
+  const ambiguous = hasYes && hasNo;
+  const isYes = hasYes && !ambiguous;
+  const isNo = hasNo && !ambiguous;
+
+  if (!isYes && !isNo) {
+    return [`"${AI_ASSISTANCE_LINE_LABEL}" must be answered Yes or No`];
+  }
+  if (!isYes) return [];
+
+  return AI_DETAIL_FIELDS
+    .filter((field) => !fieldValue(sectionText, field))
+    .map((field) => `"${field}" must be filled in since AI assistance was Yes`);
+}
+
+/**
+ * Decides conformance and, on failure, what's wrong. A pure function so
+ * the decision itself can be tested without a github client.
+ */
+export function checkConformance(templateBody, prBody) {
+  const template = normaliseLineEndings(templateBody);
+  const body = normaliseLineEndings(prBody || '');
+  const templateChecklist = extractChecklistItems(extractSection(template, CHECKLIST_HEADING));
+  const bodyChecklist = extractChecklistItems(extractSection(body, CHECKLIST_HEADING));
+  const missingChecklist = missingChecklistItems(templateChecklist, bodyChecklist);
+  const aiProblems = checkAiDisclosure(extractSection(body, AI_DISCLOSURE_HEADING));
+
+  const problems = [
+    ...missingChecklist.map((item) => `Checklist: missing "${item}"`),
+    ...aiProblems.map((p) => `AI Assistance disclosure: ${p}`),
+  ];
+
+  return {
+    conformant: problems.length === 0,
+    problems,
+    templateChecklistCount: templateChecklist.length,
+  };
+}
+
+export function closeMessage(problems) {
   return [
     COMMENT_MARKER,
-    `This pull request is missing the following section(s) from the required template at \`${TEMPLATE_PATH}\`:`,
+    `This pull request does not fully match the required template at \`${TEMPLATE_PATH}\`:`,
     '',
-    ...missing.map((h) => `- ${h}`),
+    ...problems.map((p) => `- ${p}`),
     '',
-    'Closing so the description can be rewritten from the template. Fix the body and reopen this pull request once every section is back, or open a new one.',
+    'Closing so the description can be completed from the template. Fix the body and reopen this pull request once every item above is addressed, or open a new one.',
     '',
     `If this is a false positive, ask a maintainer for the \`${OVERRIDE_LABEL}\` label, then reopen.`,
   ].join('\n');
@@ -104,6 +256,11 @@ export default async function run({
 }) {
   const { owner, repo } = context.repo;
   const pr = context.payload.pull_request;
+
+  if (pr.number <= CUTOFF_PR_NUMBER) {
+    core.info(`PR #${pr.number}: at or below the cutoff (${CUTOFF_PR_NUMBER}), skipping`);
+    return { action: 'skip-before-cutoff' };
+  }
 
   const author = pr.user ? pr.user.login : null;
   if (isBot(author)) {
@@ -125,10 +282,10 @@ export default async function run({
     return { action: 'error-read-template' };
   }
 
-  const { conformant, missing, templateHeadingCount } = checkConformance(templateBody, pr.body);
-  if (templateHeadingCount === 0) {
+  const { conformant, problems, templateChecklistCount } = checkConformance(templateBody, pr.body);
+  if (templateChecklistCount === 0) {
     core.setFailed(
-      `No section headings found in ${TEMPLATE_PATH}; refusing to check pull requests `
+      `No checklist items found in ${TEMPLATE_PATH}; refusing to check pull requests `
       + 'against a template that failed to parse.',
     );
     return { action: 'error-empty-template' };
@@ -138,12 +295,12 @@ export default async function run({
     return { action: 'none' };
   }
 
-  core.info(`PR #${pr.number}: missing ${missing.join(', ')}, closing`);
+  core.info(`PR #${pr.number}: ${problems.length} problem(s), closing`);
   await github.rest.issues.createComment({
-    owner, repo, issue_number: pr.number, body: closeMessage(missing),
+    owner, repo, issue_number: pr.number, body: closeMessage(problems),
   });
   await github.rest.pulls.update({
     owner, repo, pull_number: pr.number, state: 'closed',
   });
-  return { action: 'closed', missing };
+  return { action: 'closed', problems };
 }
