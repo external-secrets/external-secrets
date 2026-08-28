@@ -118,6 +118,24 @@ test('extractHeadings ignores a heading-like line inside a fenced code block', (
   assert.deepEqual(extractHeadings(text), ['Format', 'Checklist']);
 });
 
+test('extractHeadings strips a fence closed with more backticks than it opened with', () => {
+  const text = [
+    '## Format',
+    '',
+    '```',
+    '# not a real heading',
+    '````',
+    '',
+    '## Checklist',
+  ].join('\n');
+  assert.deepEqual(extractHeadings(text), ['Format', 'Checklist']);
+});
+
+test('missingHeadings does not let "Reformat" satisfy "Format"', () => {
+  const missing = missingHeadings(['Format'], ['Reformat']);
+  assert.deepEqual(missing, ['Format']);
+});
+
 // ---------------------------------------------------------------------------
 // checkConformance, against the real template.
 // ---------------------------------------------------------------------------

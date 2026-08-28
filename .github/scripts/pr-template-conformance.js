@@ -28,10 +28,14 @@ const COMMENT_MARKER = '<!-- eso-pr-template-check -->';
 /**
  * Drop fenced code blocks before heading extraction. Without this, a `#`
  * comment inside a fence (the template's own Format section has one) would
- * be read as a real section heading.
+ * be read as a real section heading. The closing fence only has to be the
+ * same character with at least as many repeats as the opening one, not an
+ * exact match, so a backreference on the whole opening delimiter is wrong;
+ * `\1` here captures only the fence character, and length is a separate,
+ * looser `{3,}` on each side.
  */
 function stripFences(text) {
-  return text.replace(/^ {0,3}(`{3,}|~{3,})[^\n]*\n[\s\S]*?^ {0,3}\1[ \t]*$/gm, '');
+  return text.replace(/^ {0,3}(`|~)\1{2,}[^\n]*\n[\s\S]*?^ {0,3}\1{3,}[ \t]*$/gm, '');
 }
 
 /** Every markdown heading (any level) outside fenced code, verbatim. */
@@ -56,18 +60,18 @@ export function normalise(heading) {
 
 /**
  * Template headings with no match anywhere in the pull request body's own
- * headings. A body heading matches if it contains the normalised template
- * heading as a substring, so a contributor who elaborates a heading (for
- * example "Related Issue / Ticket") is not penalised for it. Matching is
- * one-directional on purpose: the reverse (a short body heading being a
- * substring of the expected one) also lets an empty normalisation, from an
- * emoji-only or non-Latin-script heading, match every template field.
+ * headings. A body heading matches if it equals the normalised template
+ * heading, or extends it starting at a word boundary (for example
+ * "Related Issue / Ticket" elaborating "Related Issue"), so a contributor
+ * who adds detail is not penalised for it. A bare substring anywhere would
+ * also let "Reformat" satisfy "Format", and an empty normalisation, from
+ * an emoji-only or non-Latin-script heading, match every template field.
  */
 export function missingHeadings(templateHeadings, bodyHeadings) {
   const body = bodyHeadings.map(normalise).filter((b) => b.length > 0);
   return templateHeadings.filter((expected) => {
     const e = normalise(expected);
-    return !body.some((b) => b.includes(e));
+    return !body.some((b) => b === e || b.startsWith(`${e} `));
   });
 }
 
