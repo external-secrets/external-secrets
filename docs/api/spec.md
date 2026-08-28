@@ -6830,6 +6830,21 @@ GithubAppAuth
 </tr>
 <tr>
 <td>
+<code>secretType</code></br>
+<em>
+<a href="#external-secrets.io/v1.GithubSecretType">
+GithubSecretType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>secretType specifies which GitHub secret service to use.
+Defaults to Actions for backwards compatibility.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>appID</code></br>
 <em>
 int64
@@ -6901,6 +6916,30 @@ whatever visibility they already have in GitHub.</p>
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.GithubSecretType">GithubSecretType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.GithubProvider">GithubProvider</a>)
+</p>
+<p>
+<p>GithubSecretType specifies the GitHub secret service to use.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Actions&#34;</p></td>
+<td><p>GithubSecretTypeActions selects GitHub Actions secrets.</p>
+</td>
+</tr><tr><td><p>&#34;Dependabot&#34;</p></td>
+<td><p>GithubSecretTypeDependabot selects GitHub Dependabot secrets.</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.GitlabAuth">GitlabAuth
 </h3>
@@ -8173,6 +8212,20 @@ External Secrets meta/v1.SecretKeySelector
 <p>Token authenticates with Nebius Mysterybox by presenting a token.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>workloadIdentity</code></br>
+<em>
+<a href="#external-secrets.io/v1.NebiusWorkloadIdentity">
+NebiusWorkloadIdentity
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>WorkloadIdentity defines configuration for workload identity authentication to Nebius IAM.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.NebiusCAProvider">NebiusCAProvider
@@ -8260,6 +8313,52 @@ NebiusCAProvider
 <td>
 <em>(Optional)</em>
 <p>The provider for the CA bundle to use to validate NebiusMysterybox server certificate.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NebiusWorkloadIdentity">NebiusWorkloadIdentity
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NebiusAuth">NebiusAuth</a>)
+</p>
+<p>
+<p>NebiusWorkloadIdentity defines configuration for workload identity authentication to Nebius IAM.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountRef references a Kubernetes ServiceAccount used to request a
+temporary JWT via the TokenRequest API. The JWT is then exchanged for a
+Nebius IAM token using workload federation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>iamServiceAccountID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>IAMServiceAccountID is the Nebius IAM service account identifier that the
+federated Kubernetes service account should impersonate during token exchange.</p>
 </td>
 </tr>
 </tbody>
@@ -11104,7 +11203,7 @@ GithubProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Github configures this store to push GitHub Actions secrets using the GitHub API provider.
+<p>Github configures this store to push GitHub Actions or Dependabot secrets using the GitHub API provider.
 Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub</p>
 </td>
 </tr>

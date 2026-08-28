@@ -9,6 +9,7 @@ linters:
   enable:
     - asciicheck
     - bodyclose
+    - depguard
     - dogsled
     - dupl
     - errcheck
@@ -34,6 +35,52 @@ linters:
     - whitespace
     - revive
   settings:
+    depguard:
+      rules:
+        apis:
+          files:
+            - "**/apis/**/*.go"
+          list-mode: strict
+          allow:
+            - $gostd
+            - github.com/external-secrets/external-secrets/apis
+            - github.com/google/go-cmp
+            - github.com/stretchr/testify
+            - k8s.io/api
+            - k8s.io/apiextensions-apiserver
+            - k8s.io/apimachinery
+            - sigs.k8s.io/controller-runtime
+        runtime:
+          files:
+            - "**/runtime/**/*.go"
+          list-mode: strict
+          allow:
+            - $gostd
+            - dario.cat/mergo
+            - github.com/Masterminds/goutils
+            - github.com/Masterminds/semver/v3
+            - github.com/external-secrets/external-secrets/apis
+            - github.com/external-secrets/external-secrets/runtime
+            - github.com/go-logr/logr
+            - github.com/google/go-cmp
+            - github.com/google/uuid
+            - github.com/hashicorp/golang-lru
+            - github.com/huandu/xstrings
+            - github.com/lestrrat-go/jwx/v2
+            - github.com/mitchellh/copystructure
+            - github.com/prometheus/client_golang
+            - github.com/shopspring/decimal
+            - github.com/spf13/cast
+            - github.com/spf13/pflag
+            - github.com/stretchr/testify
+            - golang.org/x/crypto
+            - k8s.io/api
+            - k8s.io/apiextensions-apiserver
+            - k8s.io/apimachinery
+            - k8s.io/client-go
+            - sigs.k8s.io/controller-runtime
+            - sigs.k8s.io/yaml
+            - software.sslmate.com/src/go-pkcs12
     gocritic:
       enabled-tags:
         - diagnostic
@@ -75,9 +122,37 @@ linters:
       disable:
         - omitzero
   exclusions:
-    paths:
-      - runtime/template/v2/sprig
     rules:
+      # The in-tree sprig copy is excluded from legacy checks, but module boundaries still apply.
+      - path: runtime/template/v2/sprig
+        linters:
+          - asciicheck
+          - bodyclose
+          - copyloopvar
+          - dogsled
+          - dupl
+          - errcheck
+          - errorlint
+          - exhaustive
+          - gocritic
+          - godot
+          - goheader
+          - goprintffuncname
+          - gosec
+          - govet
+          - ineffassign
+          - lll
+          - misspell
+          - modernize
+          - nakedret
+          - nolintlint
+          - prealloc
+          - revive
+          - unconvert
+          - unparam
+          - unused
+          - whitespace
+
       # Exclude some linters from running on tests files.
       - path: _test(ing)?\.go
         linters:
@@ -132,6 +207,9 @@ formatters:
     - gofmt
     - goimports
     - golines
+  exclusions:
+    paths:
+      - runtime/template/v2/sprig
   settings:
     goimports:
       local-prefixes:
