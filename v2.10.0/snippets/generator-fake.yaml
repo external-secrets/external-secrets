@@ -1,0 +1,8 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Fake
+metadata:
+  name: fake-key
+spec:
+  data:
+    foo: bar
+    baz: bang

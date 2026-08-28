@@ -1,0 +1,17 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: external-secret-transform
+spec:
+  secretStoreRef:
+    name: fake
+    kind: ClusterSecretStore
+  dataFrom:
+    - find:
+        name:
+          regexp: ".*"
+      rewrite:
+      - transform:
+          template: 'ENV_{{ .value | upper | replace "-" "_" }}'
+{% endraw %}

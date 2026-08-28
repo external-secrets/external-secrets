@@ -1,0 +1,22 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: aws-secretsmanager
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      # define a specific role to limit access
+      # to certain secrets.
+      # role is a optional field that
+      # can be omitted for test purposes
+      role: arn:aws:iam::123456789012:role/external-secrets
+      region: eu-central-1
+      auth:
+        secretRef:
+          accessKeyIDSecretRef:
+            name: awssm-secret
+            key: access-key
+          secretAccessKeySecretRef:
+            name: awssm-secret
+            key: secret-access-key
