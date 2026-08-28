@@ -121,6 +121,15 @@ spec:
           {{- if .Values.enableHTTP2 }}
           - --enable-http2=true
           {{- end }}
+          {{- if .Values.tls.minVersion }}
+          - --tls-min-version={{ .Values.tls.minVersion }}
+          {{- end }}
+          {{- if .Values.tls.ciphers }}
+          - --tls-ciphers={{ .Values.tls.ciphers }}
+          {{- end }}
+          {{- if .Values.tls.curvePreferences }}
+          - --tls-curve-preferences={{ join "," .Values.tls.curvePreferences }}
+          {{- end }}
           {{- if .Values.vault.enableTokenCache }}
           - --enable-vault-token-cache=true
           {{- end }}
