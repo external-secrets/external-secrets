@@ -346,16 +346,18 @@ func (g *gitlabBase) tryGroupVariables(ref esv1.ExternalSecretDataRemoteRef, gop
 		return nil, err
 	}
 
-	// No group variables found, return the original project error
+	// A missing variable must surface as NoSecretErr so the controller can
+	// honor the ExternalSecret deletionPolicy instead of failing the sync.
+	if errors.Is(originalErr, gitlab.ErrNotFound) {
+		return nil, esv1.NoSecretErr
+	}
 	return nil, originalErr
 }
 
 func extractVariable(ref esv1.ExternalSecretDataRemoteRef, value string) ([]byte, error) {
-	// If no property specified, return the raw value
+	// If no property specified, return the raw value. An existing variable with
+	// an empty value is a valid empty secret, not a missing one.
 	if ref.Property == "" {
-		if value == "" {
-			return nil, fmt.Errorf("invalid secret received. no secret string for key: %s", ref.Key)
-		}
 		return []byte(value), nil
 	}
 
