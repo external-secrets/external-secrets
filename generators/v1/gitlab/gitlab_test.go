@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -230,6 +231,85 @@ spec:
 			assert.Equal(t, tc.want, sink.body["expires_at"])
 			srv.Close()
 		}
+	})
+
+	t.Run("expiresAfter is resolved to now+duration and never persisted", func(t *testing.T) {
+		// expiresAfter is resolved to an absolute expires_at using the injected
+		// clock, so the wire value is deterministic. The computed expiry must stay
+		// in the request only: it must not leak into the persisted generator state,
+		// otherwise a GitOps-managed GitlabDeployToken spec would drift on refresh.
+		fixed := time.Date(2026, 1, 2, 3, 4, 5, 0, time.UTC)
+		sink := &captured{}
+		srv := newServer(t, http.StatusCreated, createResp, sink)
+		defer srv.Close()
+
+		raw := fmt.Sprintf(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: GitlabDeployToken
+spec:
+  url: %q
+  projectID: "1"
+  name: "eso-token"
+  scopes:
+  - read_repository
+  expiresAfter: "720h"
+  auth:
+    token:
+      secretRef:
+        name: %q
+        key: %q
+`, srv.URL, testSecret, testKey)
+
+		g := &Generator{httpClient: srv.Client(), now: func() time.Time { return fixed }}
+		_, state, err := g.generate(context.Background(), &apiextensions.JSON{Raw: []byte(raw)}, newKube(), testNamespace)
+		require.NoError(t, err)
+
+		want := fixed.Add(720 * time.Hour).UTC().Format(time.RFC3339)
+		assert.Equal(t, want, sink.body["expires_at"])
+
+		require.NotNil(t, state)
+		assert.NotContains(t, string(state.Raw), "expires",
+			"computed expiry must not be persisted into generator state")
+	})
+
+	t.Run("error when both expiresAt and expiresAfter set", func(t *testing.T) {
+		raw := fmt.Sprintf(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: GitlabDeployToken
+spec:
+  projectID: "1"
+  name: "eso-token"
+  scopes:
+  - read_repository
+  expiresAt: "2030-01-01T00:00:00Z"
+  expiresAfter: "720h"
+  auth:
+    token:
+      secretRef:
+        name: %q
+        key: %q
+`, testSecret, testKey)
+		g := &Generator{}
+		_, _, err := g.generate(context.Background(), &apiextensions.JSON{Raw: []byte(raw)}, newKube(), testNamespace)
+		require.ErrorContains(t, err, "mutually exclusive")
+	})
+
+	t.Run("error when expiresAfter is below the 24h minimum", func(t *testing.T) {
+		raw := fmt.Sprintf(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: GitlabDeployToken
+spec:
+  projectID: "1"
+  name: "eso-token"
+  scopes:
+  - read_repository
+  expiresAfter: "1h"
+  auth:
+    token:
+      secretRef:
+        name: %q
+        key: %q
+`, testSecret, testKey)
+		g := &Generator{}
+		_, _, err := g.generate(context.Background(), &apiextensions.JSON{Raw: []byte(raw)}, newKube(), testNamespace)
+		require.ErrorContains(t, err, "at least 24h")
 	})
 
 	t.Run("optional fields omitted are not sent", func(t *testing.T) {

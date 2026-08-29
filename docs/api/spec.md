@@ -29039,6 +29039,25 @@ cleaned up (on regeneration or when the consuming ExternalSecret is deleted).</p
 </tr>
 <tr>
 <td>
+<code>expiresAfter</code></br>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExpiresAfter sets a relative expiry, computed as now + expiresAfter on
+each generation, so every token carries a fresh expiry with nothing to
+bump by hand. metav1.Duration syntax, largest unit hours (e.g. &ldquo;720h&rdquo;).
+Mutually exclusive with expiresAt; minimum 24h. Keep it larger than the
+consuming ExternalSecret refreshInterval so a token cannot expire before
+the next rotation replaces it.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>username</code></br>
 <em>
 string
@@ -29267,6 +29286,25 @@ Kubernetes meta/v1.Time
 <p>ExpiresAt is an optional expiry for the deploy token. If omitted the token does
 not expire on the GitLab side and is revoked only when the generator state is
 cleaned up (on regeneration or when the consuming ExternalSecret is deleted).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expiresAfter</code></br>
+<em>
+<a href="https://pkg.go.dev/k8s.io/apimachinery/pkg/apis/meta/v1#Duration">
+Kubernetes meta/v1.Duration
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ExpiresAfter sets a relative expiry, computed as now + expiresAfter on
+each generation, so every token carries a fresh expiry with nothing to
+bump by hand. metav1.Duration syntax, largest unit hours (e.g. &ldquo;720h&rdquo;).
+Mutually exclusive with expiresAt; minimum 24h. Keep it larger than the
+consuming ExternalSecret refreshInterval so a token cannot expire before
+the next rotation replaces it.</p>
 </td>
 </tr>
 <tr>
