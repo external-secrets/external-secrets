@@ -112,11 +112,6 @@ main() {
     fi
     echo ""
 
-    if ! update_module "hack/tools/golangci-lint" "golangci-lint" tool; then
-        failed_modules+=("golangci-lint")
-    fi
-    echo ""
-
     if ! update_module "hack/tools/gen-crd-api-reference-docs" "gen-crd-api-reference-docs" tool; then
         failed_modules+=("gen-crd-api-reference-docs")
     fi

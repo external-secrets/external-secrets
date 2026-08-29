@@ -6973,6 +6973,21 @@ GithubAppAuth
 </tr>
 <tr>
 <td>
+<code>secretType</code></br>
+<em>
+<a href="#external-secrets.io/v1.GithubSecretType">
+GithubSecretType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>secretType specifies which GitHub secret service to use.
+Defaults to Actions for backwards compatibility.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>appID</code></br>
 <em>
 int64
@@ -7044,6 +7059,30 @@ whatever visibility they already have in GitHub.</p>
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.GithubSecretType">GithubSecretType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.GithubProvider">GithubProvider</a>)
+</p>
+<p>
+<p>GithubSecretType specifies the GitHub secret service to use.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Actions&#34;</p></td>
+<td><p>GithubSecretTypeActions selects GitHub Actions secrets.</p>
+</td>
+</tr><tr><td><p>&#34;Dependabot&#34;</p></td>
+<td><p>GithubSecretTypeDependabot selects GitHub Dependabot secrets.</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.GitlabAuth">GitlabAuth
 </h3>
@@ -8316,6 +8355,20 @@ External Secrets meta/v1.SecretKeySelector
 <p>Token authenticates with Nebius Mysterybox by presenting a token.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>workloadIdentity</code></br>
+<em>
+<a href="#external-secrets.io/v1.NebiusWorkloadIdentity">
+NebiusWorkloadIdentity
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>WorkloadIdentity defines configuration for workload identity authentication to Nebius IAM.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.NebiusCAProvider">NebiusCAProvider
@@ -8403,6 +8456,52 @@ NebiusCAProvider
 <td>
 <em>(Optional)</em>
 <p>The provider for the CA bundle to use to validate NebiusMysterybox server certificate.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NebiusWorkloadIdentity">NebiusWorkloadIdentity
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NebiusAuth">NebiusAuth</a>)
+</p>
+<p>
+<p>NebiusWorkloadIdentity defines configuration for workload identity authentication to Nebius IAM.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountRef references a Kubernetes ServiceAccount used to request a
+temporary JWT via the TokenRequest API. The JWT is then exchanged for a
+Nebius IAM token using workload federation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>iamServiceAccountID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>IAMServiceAccountID is the Nebius IAM service account identifier that the
+federated Kubernetes service account should impersonate during token exchange.</p>
 </td>
 </tr>
 </tbody>
@@ -9119,7 +9218,7 @@ resource is used as the app role secret.</p>
 <p>
 <p>OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
 Currently the following authentication methods are supported: <a href="https://openbao.org/docs/auth/approle/">AppRole</a>,
-<a href="https://openbao.org/docs/auth/token/">Token</a> and <a href="https://openbao.org/docs/auth/userpass/">UserPass</a></p>
+<a href="https://openbao.org/docs/auth/kubernetes/">Kubernetes</a>, <a href="https://openbao.org/docs/auth/token/">Token</a> and <a href="https://openbao.org/docs/auth/userpass/">UserPass</a></p>
 <p>Additional authentication methods are planned for future releases.</p>
 </p>
 <table>
@@ -9143,6 +9242,21 @@ OpenBaoAppRole
 <em>(Optional)</em>
 <p>AppRole authenticates with OpenBao using the <a href="https://openbao.org/docs/auth/approle/">App Role auth mechanism</a>,
 with the role and secret stored in a Kubernetes Secret resource.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>kubernetes</code></br>
+<em>
+<a href="#external-secrets.io/v1.OpenBaoKubernetesAuth">
+OpenBaoKubernetesAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Kubernetes authenticates with OpenBao by passing a ServiceAccount
+token to the <a href="https://openbao.org/docs/auth/kubernetes/">Kubernetes auth mechanism</a>.</p>
 </td>
 </tr>
 <tr>
@@ -9212,6 +9326,86 @@ OpenBaoUserPassAuth
 </tr><tr><td><p>&#34;v2&#34;</p></td>
 <td></td>
 </tr></tbody>
+</table>
+<h3 id="external-secrets.io/v1.OpenBaoKubernetesAuth">OpenBaoKubernetesAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OpenBaoAuth">OpenBaoAuth</a>)
+</p>
+<p>
+<p>OpenBaoKubernetesAuth authenticates with OpenBao using the <a href="https://openbao.org/docs/auth/kubernetes/">Kubernetes
+auth mechanism</a> with a ServiceAccount token. The ServiceAccount token can be
+sourced from a ServiceAccount via <code>ServiceAccountRef</code> or from a secret
+via <code>SecretRef</code>.
+Using the controller pod&rsquo;s ServiceAccount token is not supported.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>path</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Path where the Kubernetes authentication backend is mounted in OpenBao, e.g:
+&ldquo;kubernetes&rdquo;</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional service account field containing the name of a Kubernetes ServiceAccount.
+If the service account is specified, a token will be requested from the Kubernetes
+TokenRequest API for authenticating with OpenBao.
+Any configured audiences will be passed to the TokenRequest as-is.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional secret field containing a Kubernetes ServiceAccount JWT used
+for authenticating with OpenBao. If a name is specified without a key,
+<code>token</code> is the default.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>role</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>A required field containing the OpenBao Role to assume. A Role binds a
+Kubernetes ServiceAccount with a set of OpenBao policies.</p>
+</td>
+</tr>
+</tbody>
 </table>
 <h3 id="external-secrets.io/v1.OpenBaoProvider">OpenBaoProvider
 </h3>
@@ -10696,6 +10890,33 @@ URL to your secret server installation</p>
 </tr>
 <tr>
 <td>
+<code>siteId</code></br>
+<em>
+int
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SiteID is the ID of the Secret Server site for new secrets.
+PushSecret metadata can override this value for one secret.
+The provider uses 1 if this field is not set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>disableSiteIDValidation</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>DisableSiteIDValidation permits a missing site ID for new secrets.
+The provider sends 0 if no site ID is set.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>caBundle</code></br>
 <em>
 []byte
@@ -11125,7 +11346,7 @@ GithubProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Github configures this store to push GitHub Actions secrets using the GitHub API provider.
+<p>Github configures this store to push GitHub Actions or Dependabot secrets using the GitHub API provider.
 Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub</p>
 </td>
 </tr>
