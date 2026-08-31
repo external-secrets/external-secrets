@@ -237,9 +237,17 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 		return nil, fmt.Errorf("vaultwarden: decrypting notes for map: %w", err)
 	}
 
-	var raw map[string]json.RawMessage
+	// Notes may be stored as a JSON-encoded string (e.g. `"{\\"key\\":\\"val\\"}"`) rather than
+	// a bare JSON object. Unwrap one layer of string encoding if the direct unmarshal fails.
+	raw := make(map[string]json.RawMessage)
 	if err := json.Unmarshal([]byte(notes), &raw); err != nil {
-		return nil, fmt.Errorf("vaultwarden: notes for %q are not valid JSON: %w", ref.Key, err)
+		var inner string
+		if jsonErr := json.Unmarshal([]byte(notes), &inner); jsonErr != nil {
+			return nil, fmt.Errorf("vaultwarden: notes for %q are not valid JSON: %w", ref.Key, err)
+		}
+		if err := json.Unmarshal([]byte(inner), &raw); err != nil {
+			return nil, fmt.Errorf("vaultwarden: notes for %q are not valid JSON: %w", ref.Key, err)
+		}
 	}
 
 	out := make(map[string][]byte, len(raw))
@@ -384,6 +392,7 @@ func (c *Client) buildCipherBody(name, notes string, symEncKey, symMacKey []byte
 }
 
 // upsertCipher sends a PUT (update) or POST (create) request depending on whether existing is set.
+// API reference: https://bitwarden.com/help/vault-management-api/ and https://github.com/dani-garcia/vaultwarden/wiki
 func (c *Client) upsertCipher(ctx context.Context, accessToken string, existing *vaultwardenCipher, bodyBytes []byte) error {
 	base := strings.TrimRight(c.provider.URL, "/")
 	var method, url string
