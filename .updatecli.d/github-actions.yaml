@@ -1,0 +1,43 @@
+name: Update GitHub Actions
+
+# Publishing is opt-in so local runs continue to update the current checkout.
+#{{- if .scm.enabled }}
+actions:
+  dependency-pr:
+    kind: github/pullrequest
+    scmid: default
+    title: "chore(deps): update GitHub Actions"
+
+scms:
+  default:
+    kind: github
+    spec:
+      owner: "{{ .scm.owner }}"
+      repository: "{{ .scm.repository }}"
+      branch: main
+      token: '{{ requiredEnv "GITHUB_TOKEN" }}'
+      user: External Secrets Operator
+      email: ExternalSecretsOperator@users.noreply.github.com
+      commitusingapi: true
+      workingbranchprefix: dependencies
+      workingbranchseparator: "/"
+      commitmessage:
+        type: chore
+        scope: deps
+        hidecredit: true
+        footers: 'Signed-off-by: External Secrets Operator <ExternalSecretsOperator@users.noreply.github.com>'
+#{{- end }}
+
+# Discover action references in workflows and composite actions. Keep immutable
+# commit pins with a human-readable version comment, using the latest semver tag.
+autodiscovery:
+  #{{- if .scm.enabled }}
+  scmid: default
+  #{{- end }}
+  crawlers:
+    github/action:
+      rootdir: .github
+      digest: true
+      versionfilter:
+        kind: semver
+        pattern: '*'
