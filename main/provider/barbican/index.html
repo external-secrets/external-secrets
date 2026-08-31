@@ -3129,13 +3129,41 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#required-provider-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required provider fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#example-user-namepassword-authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        Example User Name/Password Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-application-credential-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Application Credential Authentication
       
     </span>
   </a>
@@ -3210,6 +3238,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#barbicanauthtype" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BarbicanAuthType
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#barbicanproviderusernameref" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3225,6 +3264,28 @@
     <span class="md-ellipsis">
       
         BarbicanProviderPasswordRef
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#barbicanproviderappcredidref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BarbicanProviderAppCredIDRef
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#barbicanproviderappcredsecretref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BarbicanProviderAppCredSecretRef
       
     </span>
   </a>
@@ -5226,13 +5287,41 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#required-provider-fields" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Required provider fields
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
-  <a href="#example" class="md-nav__link">
+  <a href="#example-user-namepassword-authentication" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Example
+        Example User Name/Password Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#example-application-credential-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Example Application Credential Authentication
       
     </span>
   </a>
@@ -5307,6 +5396,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#barbicanauthtype" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BarbicanAuthType
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#barbicanproviderusernameref" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5322,6 +5422,28 @@
     <span class="md-ellipsis">
       
         BarbicanProviderPasswordRef
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#barbicanproviderappcredidref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BarbicanProviderAppCredIDRef
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#barbicanproviderappcredsecretref" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        BarbicanProviderAppCredSecretRef
       
     </span>
   </a>
@@ -5418,16 +5540,19 @@
 <p>External Secrets Operator integrates with <a href="https://docs.openstack.org/barbican/latest/">OpenStack Barbican</a> for secret management.</p>
 <p>Barbican is OpenStack's Key Manager service that provides secure storage, provisioning and management of secret data. This includes keys, passwords, certificates, and other sensitive data. The Barbican provider for External Secrets Operator allows you to retrieve secrets stored in Barbican and synchronize them with Kubernetes secrets.</p>
 <h2 id="authentication">Authentication</h2>
-<p>The Barbican provider uses OpenStack Keystone authentication. You need to provide:</p>
+<p>The Barbican provider supports two OpenStack Keystone authentication modes:</p>
 <ul>
-<li><strong>AuthURL</strong>: The OpenStack Keystone authentication endpoint</li>
-<li><strong>TenantName</strong>: The OpenStack tenant/project name</li>
-<li><strong>DomainName</strong>: The OpenStack domain name (optional)</li>
-<li><strong>Region</strong>: The OpenStack region (optional)</li>
-<li><strong>Username</strong>: OpenStack username (stored in a Kubernetes secret)</li>
-<li><strong>Password</strong>: OpenStack password (stored in a Kubernetes secret)</li>
+<li><code>password</code> (default): Username + password.</li>
+<li><code>applicationCredential</code>: OpenStack Application Credentials.</li>
 </ul>
-<h2 id="example">Example</h2>
+<h3 id="required-provider-fields">Required provider fields</h3>
+<ul>
+<li><strong>authURL</strong>: OpenStack Keystone authentication endpoint.</li>
+<li><strong>region</strong>: OpenStack region (optional).</li>
+<li><strong>tenantName</strong>: OpenStack project/tenant (optional, depending on your Keystone setup).</li>
+<li><strong>domainName</strong>: OpenStack domain (required for password auth in environments that require domain scoping).</li>
+</ul>
+<h2 id="example-user-namepassword-authentication">Example User Name/Password Authentication</h2>
 <p>First, create a secret containing your OpenStack credentials:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
@@ -5461,6 +5586,39 @@
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;password&quot;</span>
 </code></pre></div>
 <p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, be sure to provide <code>namespace</code> for the <code>secretRef</code> with the namespace of the secret that contains the credentials.</p>
+<h2 id="example-application-credential-authentication">Example Application Credential Authentication</h2>
+<p>You can authenticate using OpenStack Application Credentials by setting <code>auth.authType: applicationCredential</code>.</p>
+<p>Create a secret with Application Credential ID and credential secret:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-appcred</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">appCredID</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">YXBwLWNyZWQtaWQ=</span><span class="w"> </span><span class="c1"># base64 encoded app credential ID</span>
+<span class="w">  </span><span class="nt">appCredSecret</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">YXBwLWNyZWQtc2VjcmV0</span><span class="w"> </span><span class="c1"># base64 encoded app credential secret</span>
+</code></pre></div>
+<p>Use it in a <code>SecretStore</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-backend-appcred-id</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">barbican</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">authURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://keystone.example.com:5000/v3&quot;</span>
+<span class="w">      </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;RegionOne&quot;</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">authType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">applicationCredential</span>
+<span class="w">        </span><span class="nt">applicationCredentialID</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;barbican-appcred&quot;</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;appCredID&quot;</span>
+<span class="w">        </span><span class="nt">applicationCredentialSecret</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;barbican-appcred&quot;</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;appCredSecret&quot;</span>
+</code></pre></div>
 <h2 id="creating-an-externalsecret">Creating an ExternalSecret</h2>
 <p>Now you can create an ExternalSecret that uses the Barbican provider to retrieve secrets:</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
@@ -5540,7 +5698,7 @@
 <p>Because Barbican allows several secrets to share a name, this can return more than one secret. The keys of the resulting Kubernetes secret are the Barbican secret UUIDs (not the names), and each value is the corresponding payload.</p>
 <h2 id="clustersecretstore">ClusterSecretStore</h2>
 <p>For a ClusterSecretStore, you need to specify the namespace where the credentials secret is located:</p>
-<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<p><div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">barbican-cluster-backend</span>
@@ -5563,6 +5721,7 @@
 <span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;password&quot;</span>
 <span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;default&quot;</span><span class="w">  </span><span class="c1"># Required for ClusterSecretStore</span>
 </code></pre></div>
+The same <code>namespace</code> rule applies to <code>applicationCredentialID.secretRef</code> and <code>applicationCredentialSecret.secretRef</code> when using <code>ClusterSecretStore</code>.</p>
 <h2 id="configuration-reference">Configuration Reference</h2>
 <table>
 <thead>
@@ -5583,7 +5742,7 @@
 <tr>
 <td><code>tenantName</code></td>
 <td>string</td>
-<td>Yes</td>
+<td>No</td>
 <td>OpenStack tenant/project name</td>
 </tr>
 <tr>
@@ -5619,16 +5778,53 @@
 </thead>
 <tbody>
 <tr>
+<td><code>authType</code></td>
+<td>BarbicanAuthType</td>
+<td>No</td>
+<td>Auth mode: <code>password</code> (default) or <code>applicationCredential</code></td>
+</tr>
+<tr>
 <td><code>username</code></td>
 <td>BarbicanProviderUsernameRef</td>
-<td>Yes</td>
-<td>OpenStack username (from secret or literal value)</td>
+<td>Conditional</td>
+<td>Required for <code>password</code></td>
 </tr>
 <tr>
 <td><code>password</code></td>
 <td>BarbicanProviderPasswordRef</td>
-<td>Yes</td>
-<td>OpenStack password (from secret only)</td>
+<td>Conditional</td>
+<td>Required for <code>password</code></td>
+</tr>
+<tr>
+<td><code>applicationCredentialID</code></td>
+<td>BarbicanProviderAppCredIDRef</td>
+<td>Conditional</td>
+<td>Required for <code>applicationCredential</code></td>
+</tr>
+<tr>
+<td><code>applicationCredentialSecret</code></td>
+<td>BarbicanProviderAppCredSecretRef</td>
+<td>Conditional</td>
+<td>Required for <code>applicationCredential</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="barbicanauthtype">BarbicanAuthType</h3>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>password</code></td>
+<td>Keystone username/password authentication</td>
+</tr>
+<tr>
+<td><code>applicationCredential</code></td>
+<td>Keystone Application Credential authentication</td>
 </tr>
 </tbody>
 </table>
@@ -5675,6 +5871,50 @@
 <td>SecretKeySelector</td>
 <td>Yes</td>
 <td>Reference to a Kubernetes secret</td>
+</tr>
+</tbody>
+</table>
+<h3 id="barbicanproviderappcredidref">BarbicanProviderAppCredIDRef</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>value</code></td>
+<td>string</td>
+<td>No</td>
+<td>Literal Application Credential ID</td>
+</tr>
+<tr>
+<td><code>secretRef</code></td>
+<td>SecretKeySelector</td>
+<td>No</td>
+<td>Reference to a Kubernetes secret containing the Application Credential ID</td>
+</tr>
+</tbody>
+</table>
+<h3 id="barbicanproviderappcredsecretref">BarbicanProviderAppCredSecretRef</h3>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>secretRef</code></td>
+<td>SecretKeySelector</td>
+<td>Yes</td>
+<td>Reference to a Kubernetes secret containing the Application Credential secret</td>
 </tr>
 </tbody>
 </table>
