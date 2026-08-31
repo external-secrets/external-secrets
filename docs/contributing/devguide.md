@@ -40,6 +40,62 @@ Build the documentation:
 make docs
 ```
 
+## Updating dependencies
+
+Updatecli needs an authenticated GitHub token to avoid the anonymous API rate
+limit. Export `GITHUB_TOKEN`, or authenticate the GitHub CLI with
+`gh auth login`; the Make target uses either source.
+
+Preview available updates without changing files:
+
+```shell
+make update-deps UPDATECLI_ACTION=diff
+```
+
+GitHub Action autodiscovery checks each reference as a branch, tag, and release,
+so unsuccessful alternative checks can appear with a `✗`. They are not pipeline
+failures; check the final `Run Summary` and command exit status.
+
+Run `make update-deps` to apply every Updatecli manifest in
+`.updatecli/updatecli.d`. Limit an update to one dependency kind with
+`UPDATECLI_KIND`, or use its convenience target:
+
+```shell
+make update-deps UPDATECLI_KIND=go
+make update-deps-go
+make update-deps-github-actions
+make update-deps-containers
+make update-deps-tools
+make update-deps-helm
+make update-deps-python
+make update-deps-terraform
+```
+
+`UPDATECLI_ACTION=diff` works with either form, for example:
+
+```shell
+make update-deps-go UPDATECLI_ACTION=diff
+```
+
+The supported `UPDATECLI_KIND` values are `go`, `github-actions`, `docker`,
+`tools`, `helm`, `python`, and `terraform`. Development tool versions and
+checksums are stored in `hack/tool-versions.json`. The lock file is formatted
+with alphabetically sorted object keys after tool updates so its on-disk order
+is deterministic; do not manually rearrange its entries. Make downloads the
+locked upstream release binaries into `bin/` for the current Linux or macOS
+amd64/arm64 platform. Set `INSTALL_FOLDER` to use another location. The
+installer records installed versions and release-asset checksums in
+`$INSTALL_FOLDER/.installed-versions`.
+
+The `setup-envtest` tool installs Kubernetes test control-plane binaries. Its
+CLI release is locked under `tools.setup-envtest`, while the independent
+Kubernetes asset version is locked under `assets.envtest.kubernetesVersion`.
+The `gen-crd-api-reference-docs` tool remains source-built from its isolated Go
+module.
+
+After applying updates, inspect and commit all changes, then run
+`make check-diff` to verify that generated files are current.
+
 ## License Headers
 
 All Go source files must include the Apache License 2.0 header. The CI automatically checks license headers for new files added in pull requests using [Apache SkyWalking Eyes](https://github.com/apache/skywalking-eyes).

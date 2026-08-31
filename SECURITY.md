@@ -19,7 +19,7 @@ send an email to cncf-ExternalSecretsOp-maintainers@lists.cncf.io
 We learn about critical software updates and security threats from these sources
 
 1. GitHub Security Alerts
-2. [Dependabot](https://dependabot.com/) Dependency Updates
+2. Scheduled [Updatecli](https://www.updatecli.io/) dependency updates
 
 ## Helm Chart Security
 

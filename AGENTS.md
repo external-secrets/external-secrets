@@ -20,7 +20,8 @@ Multi-module repo: `apis/`, `runtime/`, `e2e/`, and each `providers/v1/*/` have 
 - Helm chart is the source of truth for deploy manifests. `make manifests` generates static YAML from it.
 - Provider docs `{% include %}` reusable YAML snippets from `docs/snippets/` (`macros` plugin). AWS authentication is documented once on the standalone `docs/provider/aws-access.md` page; the per-service pages (`aws-secrets-manager.md`, `aws-parameter-store.md`) link to it rather than transcluding it.
 - CRD tests use snapshot testing. Run `make test.crds.update` to update snapshots after CRD changes.
-- `make update-deps` updates dependencies across all modules at once.
+- `make update-deps` runs the Updatecli manifests in `.updatecli/updatecli.d` across all dependency ecosystems.
+- Development binaries are checksum-locked per platform in `hack/tool-versions.json` and installed by the standard-library-only Go helper in `hack/tool-installer`; it installs into `INSTALL_FOLDER` (default `bin/`) and tracks state in `.installed-versions`. Keep update policy in `.updatecli/updatecli.d/tools.yaml`.
 - Add a `git notes add HEAD` entry on every non-trivial commit. Record key design decisions, trade-offs, and gotchas. Queryable via `git notes show <sha>`.
 - If you discover a non-obvious pattern while implementing, add it here before the PR is merged. Keep entries general — applicable across the codebase, not specific to one provider or feature.
 - Never edit `zz_generated.*` files by hand. They are owned by controller-gen. Modify the source types and run `make generate` (included in `make reviewable`).

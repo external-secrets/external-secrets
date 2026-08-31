@@ -1,0 +1,82 @@
+name: Update Helm dependencies
+
+autodiscovery:
+  crawlers:
+    helm:
+      rootdir: deploy/charts
+      digest: true
+      ignorecontainer: true
+      versionfilter:
+        kind: semver
+        pattern: major
+
+sources:
+  argocd:
+    kind: helmchart
+    spec:
+      name: argo-cd
+      url: https://argoproj.github.io/argo-helm
+      versionfilter: &all_versions
+        kind: semver
+        pattern: '*'
+  vault:
+    kind: helmchart
+    spec:
+      name: vault
+      url: https://helm.releases.hashicorp.com
+      versionfilter: *all_versions
+  openbao:
+    kind: helmchart
+    spec:
+      name: openbao
+      url: https://openbao.github.io/openbao-helm
+      versionfilter: *all_versions
+  conjur:
+    kind: helmchart
+    spec:
+      name: conjur-oss
+      url: https://cyberark.github.io/helm-charts
+      versionfilter: *all_versions
+  infisical:
+    kind: helmchart
+    spec:
+      name: infisical-standalone
+      url: https://dl.cloudsmith.io/public/infisical/helm-charts/helm/charts/
+      versionfilter: *all_versions
+
+targets:
+  argocd:
+    kind: file
+    sourceid: argocd
+    spec:
+      file: e2e/suites/argocd/install.go
+      matchpattern: 'ChartVersion: "[0-9]+\.[0-9]+\.[0-9]+"'
+      replacepattern: 'ChartVersion: "{{ source "argocd" }}"'
+  vault:
+    kind: file
+    sourceid: vault
+    spec:
+      file: e2e/framework/addon/vault.go
+      matchpattern: 'ChartVersion: "[0-9]+\.[0-9]+\.[0-9]+"'
+      replacepattern: 'ChartVersion: "{{ source "vault" }}"'
+  openbao:
+    kind: file
+    sourceid: openbao
+    spec:
+      file: e2e/framework/addon/openbao.go
+      matchpattern: 'ChartVersion: "[0-9]+\.[0-9]+\.[0-9]+"'
+      replacepattern: 'ChartVersion: "{{ source "openbao" }}"'
+  conjur:
+    kind: file
+    sourceid: conjur
+    spec:
+      file: e2e/framework/addon/conjur.go
+      matchpattern: 'ChartVersion: "[0-9]+\.[0-9]+\.[0-9]+"'
+      replacepattern: 'ChartVersion: "{{ source "conjur" }}"'
+  infisical:
+    kind: file
+    sourceid: infisical
+    spec:
+      file: e2e/framework/addon/infisical.go
+      matchpattern: 'infisicalChartVer\s+=\s+"[0-9]+\.[0-9]+\.[0-9]+"'
+      replacepattern: 'infisicalChartVer    = "{{ source "infisical" }}"'

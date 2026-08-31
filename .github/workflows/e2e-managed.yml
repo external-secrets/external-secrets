@@ -8,7 +8,6 @@ permissions:
   contents: read
 
 env:
-  DOCKER_BUILDX_VERSION: 'v0.4.2'
   GHCR_USERNAME: ${{ github.actor }}
   USE_GKE_GCLOUD_AUTH_PLUGIN: true
   GCP_GKE_CLUSTER: e2e
@@ -120,7 +119,7 @@ jobs:
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v3
 
       - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c
+        uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6.2.3
         with:
           role-to-assume: ${{ env.AWS_OIDC_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}

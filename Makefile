@@ -73,7 +73,6 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # Conformance
 
 reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
-	@GOWORK=off go -C hack/tools mod tidy # Tools and their deps are not to be included in project's GOWORK or in the project go.mod/sum. We consider them external.
 	@GOWORK=off go -C hack/tools/gen-crd-api-reference-docs mod tidy
 	@go mod tidy
 	@cd e2e/ && go mod tidy
@@ -87,8 +86,34 @@ check-diff: reviewable ## Ensure branch is clean.
 	@status="$$(git status --porcelain)" && test -z "$$status" || (printf '%s\n' "$$status" && $(FAIL))
 	@$(OK) branch is clean
 
-update-deps: ## Update dependencies across all modules (root, apis, runtime, e2e, providers, generators)
-	@./hack/update-deps.sh
+UPDATECLI_ACTION ?= apply
+UPDATECLI_KIND ?=
+UPDATECLI_CONFIG = .updatecli/updatecli.d$(if $(UPDATECLI_KIND),/$(UPDATECLI_KIND).yaml)
+update-deps: updatecli ## Update dependencies; use UPDATECLI_KIND=<kind> to limit scope and UPDATECLI_ACTION=diff to preview.
+	@test -e "$(UPDATECLI_CONFIG)" || (echo "unknown dependency kind: $(UPDATECLI_KIND)" >&2; exit 1)
+	@set -e; \
+	token="$${GITHUB_TOKEN:-$$(gh auth token 2>/dev/null)}"; \
+	test -n "$$token" || (echo "GITHUB_TOKEN is required; set it or run 'gh auth login'" >&2; exit 1); \
+	GITHUB_TOKEN="$$token" $(LOCALBIN)/updatecli pipeline $(UPDATECLI_ACTION) --config $(UPDATECLI_CONFIG) --values hack/tool-versions.json --disable-changelog --disable-version-check; \
+	if { test -z "$(UPDATECLI_KIND)" || test "$(UPDATECLI_KIND)" = tools; } && test "$(UPDATECLI_ACTION)" = apply; then \
+		$(TOOL_INSTALLER) format-lock; \
+	fi
+
+.PHONY: update-deps update-deps-go update-deps-github-actions update-deps-containers update-deps-tools update-deps-helm update-deps-python update-deps-terraform
+update-deps-go: UPDATECLI_KIND=go
+update-deps-go: update-deps ## Update Go dependencies only.
+update-deps-github-actions: UPDATECLI_KIND=github-actions
+update-deps-github-actions: update-deps ## Update GitHub Actions only.
+update-deps-containers: UPDATECLI_KIND=docker
+update-deps-containers: update-deps ## Update container images only.
+update-deps-tools: UPDATECLI_KIND=tools
+update-deps-tools: update-deps ## Update development tools only.
+update-deps-helm: UPDATECLI_KIND=helm
+update-deps-helm: update-deps ## Update Helm dependencies only.
+update-deps-python: UPDATECLI_KIND=python
+update-deps-python: update-deps ## Update Python dependencies only.
+update-deps-terraform: UPDATECLI_KIND=terraform
+update-deps-terraform: update-deps ## Update Terraform dependencies only.
 
 .PHONY: license.check
 license.check:
@@ -103,7 +128,7 @@ go-work:
 	@rm -rf go.work go.work.sum
 	@go work init
 	@go work use -r .
-	@go work edit -dropuse ./e2e -dropuse ./hack/tools -dropuse ./hack/tools/gen-crd-api-reference-docs -dropuse ./hack/tools/golangci-lint
+	@go work edit -dropuse ./e2e -dropuse ./hack/tools/gen-crd-api-reference-docs
 	@go work sync
 	@$(OK) created go workspace
 
@@ -115,7 +140,7 @@ test: generate envtest ## Run tests
 	./hack/modfiles.sh snapshot "$$snap"; \
 	trap "./hack/modfiles.sh restore $$snap" EXIT INT TERM; \
 	$(MAKE) go-work; \
-	KUBEBUILDER_ASSETS="$$($(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" \
+	KUBEBUILDER_ASSETS="$$($(LOCALBIN)/setup-envtest use "$$(go run ./hack/tool-installer value envtest-kubernetes-version)" -p path --bin-dir $(LOCALBIN))" \
 	    go test -tags $(PROVIDER) work -v -race -coverprofile cover.out
 	@$(OK) go test unit-tests
 
@@ -133,14 +158,14 @@ test.e2e.managed: generate ## Run e2e tests managed
 
 .PHONY: test.crds
 test.crds: cty crds.generate.tests ## Test CRDs for modification and backwards compatibility
-	@$(INFO) $(CTY) test tests
-	$(CTY) test tests
+	@$(INFO) $(LOCALBIN)/cty test tests
+	$(LOCALBIN)/cty test tests
 	@$(OK) No breaking CRD changes detected
 
 .PHONY: test.crds.update
 test.crds.update: cty crds.generate.tests ## Update the snapshots used by the CRD tests
-	@$(INFO) $(CTY) test tests -u
-	$(CTY) test tests -u
+	@$(INFO) $(LOCALBIN)/cty test tests -u
+	$(LOCALBIN)/cty test tests -u
 	@$(OK) Successfully updated all test snapshots
 
 .PHONY: build
@@ -161,13 +186,13 @@ provider-replaces.check: ## Ensure cross-provider dependencies use local replace
 lint: golangci-lint provider-replaces.check ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
 	@if [ -n "$(LINT_TARGET)" ]; then \
 		$(INFO) Running golangci-lint on $(LINT_TARGET); \
-		(cd $(LINT_TARGET) && $(GOLANGCI_LINT) run ./...) || exit 1; \
+		(cd $(LINT_TARGET) && $(LOCALBIN)/golangci-lint run ./...) || exit 1; \
 		$(OK) Finished linting $(LINT_TARGET); \
 	else \
 		$(INFO) Running golangci-lint on all modules in parallel; \
 		JOBS=$${LINT_JOBS:-1}; \
 		TMPDIR=$$(mktemp -d); \
-		GOLANGCI=$(GOLANGCI_LINT); \
+		GOLANGCI=$(LOCALBIN)/golangci-lint; \
 		trap "rm -rf $$TMPDIR" EXIT; \
 		export TMPDIR GOLANGCI; \
 		find . -name go.mod -not -path "*/vendor/*" -not -path "*/e2e/*" -not -path "*/hack/tools/*" -not -path "*/node_modules/*" -exec dirname {} \; | \
@@ -195,7 +220,7 @@ lint: golangci-lint provider-replaces.check ## Run golangci-lint (set LINT_TARGE
 	fi
 
 generate: controller-gen ## Generate code and crds
-	@CONTROLLER_GEN=$(CONTROLLER_GEN) ./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
+	@CONTROLLER_GEN=$(LOCALBIN)/controller-gen ./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
 
 # ====================================================================================
@@ -229,7 +254,7 @@ tilt-up: tilt manifests ## Generates the local manifests that tilt will use to d
 
 helm.docs: ## Generate helm docs
 	@cd $(HELM_DIR); \
-	$(DOCKER) run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) docker.io/jnorwood/helm-docs:v1.14.2
+	$(DOCKER) run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) docker.io/jnorwood/helm-docs:v1.14.2@sha256:7e562b49ab6b1dbc50c3da8f2dd6ffa8a5c6bba327b1c6335cc15ce29267979c
 
 HELM_VERSION ?= $(shell helm show chart $(HELM_DIR) | grep '^version:' | sed 's/version: //g')
 
@@ -239,37 +264,11 @@ helm.build: helm.generate ## Build helm chart
 	@mv $(OUTPUT_DIR)/chart/external-secrets-$(HELM_VERSION).tgz $(OUTPUT_DIR)/chart/external-secrets.tgz
 	@$(OK) helm package
 
-# install_helm_plugin is for installing the provided plugin, if it doesn't exist
-# $1 - plugin name
-# $2 - plugin version
-# $3 - plugin url
-define install_helm_plugin
-@v=$$(helm plugin list | awk '$$1=="$(1)"{print $$2}'); \
-if [ -z "$$v" ]; then \
-	$(INFO) "Installing $(1) v$(2)"; \
-	helm plugin install --version $(2) $(3); \
-	$(OK) "Installed $(1) v$(2)"; \
-elif [ "$$v" != "$(2)" ]; then \
-	$(INFO) "Found $(1) $$v. Reinstalling v$(2)"; \
-	helm plugin remove $(1); \
-	helm plugin install --version $(2) $(3); \
-	$(OK) "Reinstalled $(1) v$(2)"; \
-else \
-	$(OK) "$(1) already at v$(2)"; \
-fi
-endef
-
-HELM_SCHEMA_NAME := schema
-HELM_SCHEMA_VER  := 2.2.1
-HELM_SCHEMA_URL  := https://github.com/losisin/helm-values-schema-json.git
 helm.schema.plugin:
-	$(call install_helm_plugin,$(HELM_SCHEMA_NAME),$(HELM_SCHEMA_VER), $(HELM_SCHEMA_URL))
+	$(TOOL_INSTALLER) helm-plugin schema
 
-HELM_UNITTEST_PLUGIN_NAME := unittest
-HELM_UNITTEST_PLUGIN_VER := 1.0.0
-HELM_UNITTEST_PLUGIN_URL := https://github.com/helm-unittest/helm-unittest.git
 helm.unittest.plugin:
-	$(call install_helm_plugin,$(HELM_UNITTEST_PLUGIN_NAME),$(HELM_UNITTEST_PLUGIN_VER), $(HELM_UNITTEST_PLUGIN_URL))
+	$(TOOL_INSTALLER) helm-plugin unittest
 
 helm.schema.update: helm.schema.plugin
 	@$(INFO) Generating values.schema.json
@@ -412,78 +411,58 @@ clean:  ## Clean bins
 # ====================================================================================
 # Build Dependencies
 
-detected_OS := $(shell uname -s)
-real_OS := $(detected_OS)
-arch := $(shell uname -m)
-ifeq ($(detected_OS),Darwin)
-        detected_OS := mac
-        real_OS := darwin
-endif
-ifeq ($(detected_OS),Linux)
-        detected_OS := linux
-	real_OS := linux
-endif
-
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
-	mkdir -p $(LOCALBIN)
+	mkdir -p $@
 
 ## Tool Binaries
-TILT ?= $(LOCALBIN)/tilt
-CTY ?= $(LOCALBIN)/cty
-ENVTEST ?= $(LOCALBIN)/setup-envtest
-CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
-DLV ?= $(LOCALBIN)/dlv
-CRANE ?= $(LOCALBIN)/crane
-GEN_CRD_API_REFERENCE_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
+TOOL_INSTALLER := go run ./hack/tool-installer
+TOOL_INSTALLER_DEPS := hack/tool-versions.json hack/tool-installer/main.go
 LINT_TARGET ?= ""
-## Tool Versions
-KUBERNETES_VERSION := 1.33.x
-TILT_VERSION := 0.33.21
-CTY_VERSION := 1.1.3
 
 .PHONY: envtest
-envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
-$(ENVTEST): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
-	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly sigs.k8s.io/controller-runtime/tools/setup-envtest
+envtest: $(LOCALBIN)/setup-envtest
+$(LOCALBIN)/setup-envtest: Makefile $(TOOL_INSTALLER_DEPS) ## Download setup-envtest locally if necessary.
+	INSTALL_FOLDER="$(LOCALBIN)" $(TOOL_INSTALLER) setup-envtest
 
 .PHONY: controller-gen
-controller-gen: $(CONTROLLER_GEN) ## Build controller-gen locally if necessary.
-$(CONTROLLER_GEN): Makefile hack/tools/go.mod hack/tools/go.sum
-	mkdir -p $(dir $@)
-	GOWORK=off go -C hack/tools build -mod=readonly -o $(abspath $@) sigs.k8s.io/controller-tools/cmd/controller-gen
+controller-gen: $(LOCALBIN)/controller-gen
+$(LOCALBIN)/controller-gen: Makefile $(TOOL_INSTALLER_DEPS) ## Download controller-gen locally if necessary.
+	INSTALL_FOLDER="$(LOCALBIN)" $(TOOL_INSTALLER) controller-gen
 
 .PHONY: gen-crd-api-reference-docs
-gen-crd-api-reference-docs: $(GEN_CRD_API_REFERENCE_DOCS) ## Download gen-crd-api-reference-docs locally if necessary.
-$(GEN_CRD_API_REFERENCE_DOCS): Makefile hack/tools/gen-crd-api-reference-docs/go.mod hack/tools/gen-crd-api-reference-docs/go.sum
+gen-crd-api-reference-docs: $(LOCALBIN)/gen-crd-api-reference-docs
+$(LOCALBIN)/gen-crd-api-reference-docs: Makefile hack/tools/gen-crd-api-reference-docs/go.mod hack/tools/gen-crd-api-reference-docs/go.sum ## Build gen-crd-api-reference-docs locally if necessary.
 	mkdir -p $(dir $@)
 	GOWORK=off go -C hack/tools/gen-crd-api-reference-docs build -mod=readonly -o $(abspath $@) github.com/ahmetb/gen-crd-api-reference-docs
 
 .PHONY: golangci-lint
-golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
-$(GOLANGCI_LINT): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
-	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+golangci-lint: $(LOCALBIN)/golangci-lint
+$(LOCALBIN)/golangci-lint: Makefile $(TOOL_INSTALLER_DEPS) ## Download golangci-lint locally if necessary.
+	INSTALL_FOLDER="$(LOCALBIN)" $(TOOL_INSTALLER) golangci-lint
 
 .PHONY: dlv
-dlv: $(DLV) ## Build Delve locally for the Tilt debug image.
-$(DLV): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
-	GOWORK=off CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/go-delve/delve/cmd/dlv
+dlv: $(LOCALBIN)/dlv
+$(LOCALBIN)/dlv: Makefile $(TOOL_INSTALLER_DEPS) ## Download Delve locally for the Tilt debug image.
+	INSTALL_FOLDER="$(LOCALBIN)" $(TOOL_INSTALLER) dlv
 
 .PHONY: crane
-crane: $(CRANE) ## Build crane locally if necessary.
-$(CRANE): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
-	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/google/go-containerregistry/cmd/crane
+crane: $(LOCALBIN)/crane
+$(LOCALBIN)/crane: Makefile $(TOOL_INSTALLER_DEPS) ## Download crane locally if necessary.
+	INSTALL_FOLDER="$(LOCALBIN)" $(TOOL_INSTALLER) crane
 
 .PHONY: tilt
-.PHONY: $(TILT)
-tilt: $(TILT) ## Download tilt locally if necessary. Architecture is locked at x86_64.
-$(TILT): $(LOCALBIN)
-	test -s $(LOCALBIN)/tilt || curl -fsSL https://github.com/tilt-dev/tilt/releases/download/v$(TILT_VERSION)/tilt.$(TILT_VERSION).$(detected_OS).$(arch).tar.gz | tar -xz -C $(LOCALBIN) tilt
+tilt: $(LOCALBIN)/tilt
+$(LOCALBIN)/tilt: Makefile $(TOOL_INSTALLER_DEPS) ## Download tilt locally if necessary.
+	INSTALL_FOLDER="$(LOCALBIN)" $(TOOL_INSTALLER) tilt
 
 .PHONY: cty
-.PHONY: $(CTY)
-cty: $(CTY) ## Download cty locally if necessary. Architecture is locked at x86_64.
-$(CTY): $(LOCALBIN)
-	test -s $(LOCALBIN)/cty || curl -fsSL https://github.com/Skarlso/crd-to-sample-yaml/releases/download/v$(CTY_VERSION)/cty_$(real_OS)_amd64.tar.gz | tar -xz -C $(LOCALBIN) cty
+cty: $(LOCALBIN)/cty
+$(LOCALBIN)/cty: Makefile $(TOOL_INSTALLER_DEPS) ## Download cty locally if necessary.
+	INSTALL_FOLDER="$(LOCALBIN)" $(TOOL_INSTALLER) cty
+
+.PHONY: updatecli
+updatecli: $(LOCALBIN)/updatecli
+$(LOCALBIN)/updatecli: Makefile $(TOOL_INSTALLER_DEPS) ## Download Updatecli locally if necessary.
+	INSTALL_FOLDER="$(LOCALBIN)" $(TOOL_INSTALLER) updatecli

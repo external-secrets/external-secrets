@@ -1,0 +1,14 @@
+name: Update GitHub Actions
+
+autodiscovery:
+  crawlers:
+    github/action:
+      rootdir: .github
+      digest: true
+      # The crawler resolves branch-pinned Actions to an arbitrary repository
+      # branch instead of advancing the configured branch.
+      ignore:
+        - actions:
+            actions/dependency-review-action: ''
+            aquasecurity/trivy-action: ''
+            fossas/fossa-action: ''
