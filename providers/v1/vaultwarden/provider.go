@@ -32,6 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 const errUnexpectedStoreSpec = "unexpected store spec"
@@ -47,16 +48,26 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 }
 
 // NewClient constructs a new secrets client based on the provided store.
-func (p *Provider) NewClient(_ context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
+func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	prov, err := getProvider(store)
 	if err != nil {
 		return nil, err
 	}
 	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
-	if len(prov.CABundle) > 0 {
+	caBytes, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
+		CABundle:   prov.CABundle,
+		CAProvider: prov.CAProvider,
+		StoreKind:  store.GetKind(),
+		Namespace:  namespace,
+		Client:     kube,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("vaultwarden: loading CA certificate: %w", err)
+	}
+	if len(caBytes) > 0 {
 		pool := x509.NewCertPool()
-		if !pool.AppendCertsFromPEM(prov.CABundle) {
-			return nil, fmt.Errorf("vaultwarden: failed to parse CABundle")
+		if !pool.AppendCertsFromPEM(caBytes) {
+			return nil, fmt.Errorf("vaultwarden: failed to parse CA certificate")
 		}
 		tlsConfig.RootCAs = pool
 	}
