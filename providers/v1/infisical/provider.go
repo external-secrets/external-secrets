@@ -73,6 +73,7 @@ type ClientScope struct {
 	Recursive              bool
 	SecretPath             string
 	ExpandSecretReferences bool
+	KeepDuplicateKeys      bool
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -531,6 +532,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 			Recursive:              infisicalSpec.SecretsScope.Recursive,
 			SecretPath:             secretPath,
 			ExpandSecretReferences: infisicalSpec.SecretsScope.ExpandSecretReferences,
+			KeepDuplicateKeys:      infisicalSpec.SecretsScope.KeepDuplicateKeys,
 		},
 		authMethod:    authMethod,
 		hostAPI:       hostAPI,

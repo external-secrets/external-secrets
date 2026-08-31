@@ -6048,6 +6048,10 @@ spec:
                               default: true
                               description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
                               type: boolean
+                            keepDuplicateKeys:
+                              default: false
+                              description: KeepDuplicateKeys indicates whether duplicate keys should be kept. Defaults to false if not provided.
+                              type: boolean
                             organizationSlug:
                               description: |-
                                 OrganizationSlug is the optional slug that identifies the organization that will be used
@@ -19499,6 +19503,10 @@ spec:
                             expandSecretReferences:
                               default: true
                               description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
+                              type: boolean
+                            keepDuplicateKeys:
+                              default: false
+                              description: KeepDuplicateKeys indicates whether duplicate keys should be kept. Defaults to false if not provided.
                               type: boolean
                             organizationSlug:
                               description: |-

@@ -154,6 +154,10 @@ type MachineIdentityScopeInWorkspace struct {
 	// +kubebuilder:default=true
 	// +optional
 	ExpandSecretReferences bool `json:"expandSecretReferences,omitempty"`
+	// KeepDuplicateKeys indicates whether duplicate keys should be kept. Defaults to false if not provided.
+	// +kubebuilder:default=false
+	// +optional
+	KeepDuplicateKeys bool `json:"keepDuplicateKeys,omitempty"`
 }
 
 // InfisicalProvider configures a store to sync secrets using the Infisical provider.
