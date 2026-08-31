@@ -129,9 +129,22 @@ func createConfiguration(prov *esv1.AWSProvider, assumeRoler STSProvider, loadCf
 			cfg.Credentials = stscreds.NewAssumeRoleProvider(stsclient, prov.Role)
 		}
 	}
-	log.Info("using aws config", "region", cfg.Region, "external id", sessExtID, "credentials", cfg.Credentials)
+	log.Info("using aws config", "region", cfg.Region, "external id", sessExtID, "credentials", credentialsProviderName(cfg.Credentials))
 
 	return &cfg, nil
+}
+
+// credentialsProviderName returns a non-sensitive identifier for the given
+// credentials provider, suitable for logging. It deliberately avoids
+// serializing the provider itself: some implementations (most notably
+// credentials.StaticCredentialsProvider, used for secretRef auth) embed the raw
+// access key ID and secret access key, which would otherwise be written to logs
+// in plaintext.
+func credentialsProviderName(creds aws.CredentialsProvider) string {
+	if creds == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("%T", creds)
 }
 
 func setAssumeRoleOptionFn(sessExtID string, sessTags []stsTypes.Tag, sessTransitiveTagKeys []string) func(p *stscreds.AssumeRoleOptions) {
@@ -218,7 +231,7 @@ func NewGeneratorSession(
 		stsclient := assumeRoler(&awscfg)
 		awscfg.Credentials = stscreds.NewAssumeRoleProvider(stsclient, role)
 	}
-	log.Info("using aws config", "region", awscfg.Region, "credentials", awscfg.Credentials)
+	log.Info("using aws config", "region", awscfg.Region, "credentials", credentialsProviderName(awscfg.Credentials))
 	return &awscfg, nil
 }
 

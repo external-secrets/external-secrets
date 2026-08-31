@@ -25,11 +25,13 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"cloud.google.com/go/iam/credentials/apiv1/credentialspb"
 	"github.com/googleapis/gax-go/v2"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/oauth2"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -71,12 +73,19 @@ func TestWorkloadIdentity(t *testing.T) {
 			defaultTestCase("return access token from GenerateAccessTokenRequest with SecretStore"),
 			withStore(defaultStore()),
 			expTokenSource(),
-			expectToken(defaultGenAccessToken),
+			expectToken(defaultGenAccessToken, defaultGenAccessTokenExpiry),
+		),
+		composeTestcase(
+			defaultTestCase("return access token without expiry when GenerateAccessTokenResponse omits expire time"),
+			withStore(defaultStore()),
+			expTokenSource(),
+			expectToken(defaultGenAccessToken, time.Time{}),
+			withoutGenAccessTokenExpiry(),
 		),
 		composeTestcase(
 			defaultTestCase("return idBindToken when no annotation is set with SecretStore"),
 			expTokenSource(),
-			expectToken(defaultIDBindToken),
+			expectToken(defaultIDBindToken, defaultIDBindTokenExpiry),
 			withStore(defaultStore()),
 			withK8sResources([]client.Object{
 				&v1.ServiceAccount{
@@ -123,7 +132,7 @@ func TestWorkloadIdentity(t *testing.T) {
 		composeTestcase(
 			defaultTestCase("return access token from GenerateAccessTokenRequest with ClusterSecretStore"),
 			expTokenSource(),
-			expectToken(defaultGenAccessToken),
+			expectToken(defaultGenAccessToken, defaultGenAccessTokenExpiry),
 			withStore(
 				composeStore(defaultClusterStore(), withSANamespace(clusterSANamespace)),
 			),
@@ -142,7 +151,7 @@ func TestWorkloadIdentity(t *testing.T) {
 		composeTestcase(
 			defaultTestCase("lookup cluster id from instance metadata"),
 			expTokenSource(),
-			expectToken(defaultGenAccessToken),
+			expectToken(defaultGenAccessToken, defaultGenAccessTokenExpiry),
 			withStore(
 				composeStore(defaultStore(), withClusterID("", "", "")),
 			),
@@ -223,6 +232,7 @@ func TestIDBTokenGen(t *testing.T) {
 
 		bt, err := json.Marshal(&oauth2.Token{
 			AccessToken: "12345",
+			ExpiresIn:   int64(time.Hour.Seconds()),
 		})
 		assert.Nil(t, err)
 		rw.WriteHeader(http.StatusOK)
@@ -232,9 +242,12 @@ func TestIDBTokenGen(t *testing.T) {
 	gen := &gcpIDBindTokenGenerator{
 		targetURL: srv.URL,
 	}
+	before := time.Now()
 	token, err := gen.Generate(context.Background(), http.DefaultClient, "some-token", "some-idpool", "some-id-provider")
+	after := time.Now()
 	assert.Nil(t, err)
 	assert.Equal(t, token.AccessToken, "12345")
+	assert.WithinRange(t, token.Expiry, before.Add(time.Hour), after.Add(time.Hour))
 }
 
 type testCaseMutator func(tc *workloadIdentityTest)
@@ -258,10 +271,21 @@ func expTokenSource() testCaseMutator {
 	}
 }
 
-func expectToken(token string) testCaseMutator {
+func expectToken(token string, expiry time.Time) testCaseMutator {
 	return func(tc *workloadIdentityTest) {
 		tc.expToken = &oauth2.Token{
 			AccessToken: token,
+			Expiry:      expiry,
+		}
+	}
+}
+
+func withoutGenAccessTokenExpiry() testCaseMutator {
+	return func(tc *workloadIdentityTest) {
+		tc.genAccessToken = func(c context.Context, gatr *credentialspb.GenerateAccessTokenRequest, co ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error) {
+			return &credentialspb.GenerateAccessTokenResponse{
+				AccessToken: defaultGenAccessToken,
+			}, nil
 		}
 	}
 }
@@ -285,9 +309,11 @@ func withInstMetadata(metadata map[string]string) testCaseMutator {
 }
 
 var (
-	defaultGenAccessToken = "default-gen-access-token"
-	defaultIDBindToken    = "default-id-bind-token"
-	defaultSAToken        = "default-k8s-sa-token"
+	defaultGenAccessToken       = "default-gen-access-token"
+	defaultIDBindToken          = "default-id-bind-token"
+	defaultSAToken              = "default-k8s-sa-token"
+	defaultGenAccessTokenExpiry = time.Date(2030, time.January, 2, 3, 4, 5, 0, time.UTC)
+	defaultIDBindTokenExpiry    = time.Date(2030, time.February, 3, 4, 5, 6, 0, time.UTC)
 )
 
 func defaultTestCase(name string) *workloadIdentityTest {
@@ -296,11 +322,13 @@ func defaultTestCase(name string) *workloadIdentityTest {
 		genAccessToken: func(c context.Context, gatr *credentialspb.GenerateAccessTokenRequest, co ...gax.CallOption) (*credentialspb.GenerateAccessTokenResponse, error) {
 			return &credentialspb.GenerateAccessTokenResponse{
 				AccessToken: defaultGenAccessToken,
+				ExpireTime:  timestamppb.New(defaultGenAccessTokenExpiry),
 			}, nil
 		},
 		genIDBindToken: func(ctx context.Context, client *http.Client, k8sToken, idPool, idProvider string) (*oauth2.Token, error) {
 			return &oauth2.Token{
 				AccessToken: defaultIDBindToken,
+				Expiry:      defaultIDBindTokenExpiry,
 			}, nil
 		},
 		genSAToken: func(c context.Context, s1 []string, s2, s3 string) (*authv1.TokenRequest, error) {

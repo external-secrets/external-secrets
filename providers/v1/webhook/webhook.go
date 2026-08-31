@@ -182,8 +182,7 @@ func (w *WebHook) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRem
 		Key: remoteRef.GetRemoteKey(),
 	})
 	if err != nil {
-		var noSecretErr esv1.NoSecretError
-		if errors.As(err, &noSecretErr) {
+		if _, ok := errors.AsType[esv1.NoSecretError](err); ok {
 			return false, nil
 		}
 

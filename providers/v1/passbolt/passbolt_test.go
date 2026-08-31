@@ -32,6 +32,7 @@ import (
 	"time"
 
 	g "github.com/onsi/gomega"
+	"github.com/passbolt/go-passbolt/helper"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -39,6 +40,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 func TestValidateStore(t *testing.T) {
@@ -95,11 +97,12 @@ func TestSecretGetProp(t *testing.T) {
 	g.RegisterTestingT(t)
 
 	secret := Secret{
-		Name:        "test-name",
-		Username:    "test-user",
-		Password:    "test-pass",
-		URI:         "https://test.com",
-		Description: "test-desc",
+		Name:         "test-name",
+		Username:     "test-user",
+		Password:     "test-pass",
+		URI:          "https://test.com",
+		Description:  "test-desc",
+		CustomFields: map[string]string{"my-field": "my-value"},
 	}
 
 	// Test valid properties
@@ -123,9 +126,125 @@ func TestSecretGetProp(t *testing.T) {
 	g.Expect(err).To(g.BeNil())
 	g.Expect(string(val)).To(g.Equal("test-desc"))
 
+	// Test custom field
+	val, err = secret.GetProp("custom_fields.my-field")
+	g.Expect(err).To(g.BeNil())
+	g.Expect(string(val)).To(g.Equal("my-value"))
+
 	// Test invalid property
 	_, err = secret.GetProp("invalid")
 	g.Expect(err).To(g.MatchError(errPassboltSecretPropertyInvalid))
+}
+
+func TestSecretGetPropCustomFieldNotFound(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	// No custom fields set at all.
+	secret := Secret{Name: "test-name"}
+	_, err := secret.GetProp("custom_fields.missing")
+	g.Expect(err).To(g.MatchError(errPassboltCustomFieldNotFound))
+	g.Expect(err).To(g.MatchError(g.ContainSubstring("missing")))
+
+	// Custom fields present but the requested key does not exist.
+	secret.CustomFields = map[string]string{"other-key": "v"}
+	_, err = secret.GetProp("custom_fields.nonexistent")
+	g.Expect(err).To(g.MatchError(errPassboltCustomFieldNotFound))
+	g.Expect(err).To(g.MatchError(g.ContainSubstring("nonexistent")))
+}
+
+// The metadata/secret custom-field merge lives in the SDK
+// (helper.ParseCustomFields). This is a contract test over the shapes this
+// provider depends on, not a re-test of the library's full table.
+func TestCustomFieldsFromResourceFieldMaps(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	const idA = "11111111-1111-1111-1111-111111111111"
+	const idB = "22222222-2222-2222-2222-222222222222"
+
+	tests := []struct {
+		name         string
+		metaFields   map[string]any
+		secretFields map[string]any
+		want         map[string]string
+	}{
+		{
+			name:         "a resource with no custom fields yields no entries",
+			metaFields:   map[string]any{"name": "x"},
+			secretFields: map[string]any{"password": "p"},
+			want:         map[string]string{},
+		},
+		{
+			name: "encrypted value: name from metadata_key, value from secret_value",
+			metaFields: map[string]any{
+				"custom_fields": []any{map[string]any{"id": idA, "metadata_key": "api-key"}},
+			},
+			secretFields: map[string]any{
+				"custom_fields": []any{map[string]any{"id": idA, "secret_value": "secret-123"}},
+			},
+			want: map[string]string{"api-key": "secret-123"},
+		},
+		{
+			// A cleartext field still carries an empty secret_value, so reading
+			// it requires preferring the first non-empty of the two sides.
+			name: "cleartext value comes from metadata_value",
+			metaFields: map[string]any{
+				"custom_fields": []any{
+					map[string]any{"id": idA, "metadata_key": "env", "metadata_value": "production"},
+				},
+			},
+			secretFields: map[string]any{
+				"custom_fields": []any{map[string]any{"id": idA, "secret_value": ""}},
+			},
+			want: map[string]string{"env": "production"},
+		},
+		{
+			name: "a field whose name is encrypted is keyed by its decrypted secret_key",
+			metaFields: map[string]any{
+				"custom_fields": []any{map[string]any{"id": idA, "metadata_key": ""}},
+			},
+			secretFields: map[string]any{
+				"custom_fields": []any{
+					map[string]any{"id": idA, "secret_key": "hidden-name", "secret_value": "hidden-val"},
+				},
+			},
+			want: map[string]string{"hidden-name": "hidden-val"},
+		},
+		{
+			name: "non-string values are stringified for the map[string]string payload",
+			metaFields: map[string]any{
+				"custom_fields": []any{
+					map[string]any{"id": idA, "metadata_key": "port"},
+					map[string]any{"id": idB, "metadata_key": "enabled", "metadata_value": true},
+				},
+			},
+			secretFields: map[string]any{
+				"custom_fields": []any{
+					map[string]any{"id": idA, "secret_value": float64(8080)},
+					map[string]any{"id": idB, "secret_value": ""},
+				},
+			},
+			want: map[string]string{"port": "8080", "enabled": "true"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := helper.ParseCustomFields(tt.metaFields, tt.secretFields).Map()
+			g.Expect(got).To(g.Equal(tt.want))
+		})
+	}
+}
+
+// A resource without custom fields must not grow a "custom_fields" key in the
+// JSON payload, whether the map comes back empty or nil.
+func TestSecretJSONOmitsEmptyCustomFields(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	for _, cf := range []map[string]string{nil, {}} {
+		marshaled, err := esutils.JSONMarshal(Secret{Name: "x", CustomFields: cf})
+		g.Expect(err).ToNot(g.HaveOccurred())
+		g.Expect(string(marshaled)).ToNot(g.ContainSubstring("custom_fields"))
+	}
 }
 
 func TestCapabilities(t *testing.T) {
