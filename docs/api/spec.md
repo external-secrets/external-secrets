@@ -6830,6 +6830,21 @@ GithubAppAuth
 </tr>
 <tr>
 <td>
+<code>secretType</code></br>
+<em>
+<a href="#external-secrets.io/v1.GithubSecretType">
+GithubSecretType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>secretType specifies which GitHub secret service to use.
+Defaults to Actions for backwards compatibility.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>appID</code></br>
 <em>
 int64
@@ -6901,6 +6916,30 @@ whatever visibility they already have in GitHub.</p>
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.GithubSecretType">GithubSecretType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.GithubProvider">GithubProvider</a>)
+</p>
+<p>
+<p>GithubSecretType specifies the GitHub secret service to use.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Actions&#34;</p></td>
+<td><p>GithubSecretTypeActions selects GitHub Actions secrets.</p>
+</td>
+</tr><tr><td><p>&#34;Dependabot&#34;</p></td>
+<td><p>GithubSecretTypeDependabot selects GitHub Dependabot secrets.</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.GitlabAuth">GitlabAuth
 </h3>
@@ -11164,7 +11203,7 @@ GithubProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Github configures this store to push GitHub Actions secrets using the GitHub API provider.
+<p>Github configures this store to push GitHub Actions or Dependabot secrets using the GitHub API provider.
 Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub</p>
 </td>
 </tr>
