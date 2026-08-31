@@ -471,7 +471,9 @@ func (r *Reconciler) deleteExternalSecret(ctx context.Context, esName, cesName, 
 		return nil
 	}
 
-	err = r.Delete(ctx, &existingES, &client.DeleteOptions{})
+	// the cache can be behind the API server, so an object that is already
+	// gone is the outcome this cleanup wanted
+	err = client.IgnoreNotFound(r.Delete(ctx, &existingES, &client.DeleteOptions{}))
 	if err != nil {
 		return fmt.Errorf("external secret in non matching namespace could not be deleted: %w", err)
 	}
