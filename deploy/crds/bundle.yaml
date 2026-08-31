@@ -9104,10 +9104,45 @@ spec:
                           type: object
                         caBundle:
                           description: |-
-                            CABundle is a PEM-encoded CA certificate bundle used to validate the Vaultwarden server certificate.
+                            CABundle is a base64-encoded PEM CA bundle used to validate the Vaultwarden server certificate.
                             If omitted, the system CA pool is used.
                           format: byte
                           type: string
+                        caProvider:
+                          description: |-
+                            CAProvider references a Secret or ConfigMap key that holds a PEM CA bundle.
+                            Takes precedence over CABundle when both are set.
+                          properties:
+                            key:
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the object located at the provider type.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace the Provider type is in.
+                                Can only be defined when used in a ClusterSecretStore.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                            type:
+                              description: The type of provider to use such as "Secret", or "ConfigMap".
+                              enum:
+                                - Secret
+                                - ConfigMap
+                              type: string
+                          required:
+                            - name
+                            - type
+                          type: object
                         url:
                           description: URL is the base URL of the Vaultwarden instance, e.g. https://vault.example.com
                           type: string
@@ -22664,10 +22699,45 @@ spec:
                           type: object
                         caBundle:
                           description: |-
-                            CABundle is a PEM-encoded CA certificate bundle used to validate the Vaultwarden server certificate.
+                            CABundle is a base64-encoded PEM CA bundle used to validate the Vaultwarden server certificate.
                             If omitted, the system CA pool is used.
                           format: byte
                           type: string
+                        caProvider:
+                          description: |-
+                            CAProvider references a Secret or ConfigMap key that holds a PEM CA bundle.
+                            Takes precedence over CABundle when both are set.
+                          properties:
+                            key:
+                              description: The key where the CA certificate can be found in the Secret or ConfigMap.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the object located at the provider type.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                            namespace:
+                              description: |-
+                                The namespace the Provider type is in.
+                                Can only be defined when used in a ClusterSecretStore.
+                              maxLength: 63
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                              type: string
+                            type:
+                              description: The type of provider to use such as "Secret", or "ConfigMap".
+                              enum:
+                                - Secret
+                                - ConfigMap
+                              type: string
+                          required:
+                            - name
+                            - type
+                          type: object
                         url:
                           description: URL is the base URL of the Vaultwarden instance, e.g. https://vault.example.com
                           type: string

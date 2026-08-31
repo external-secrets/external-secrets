@@ -26,10 +26,14 @@ type VaultwardenProvider struct {
 	URL string `json:"url"`
 	// Auth configures how ESO authenticates with Vaultwarden using a personal API key.
 	Auth VaultwardenAuth `json:"auth"`
-	// CABundle is a PEM-encoded CA certificate bundle used to validate the Vaultwarden server certificate.
+	// CABundle is a base64-encoded PEM CA bundle used to validate the Vaultwarden server certificate.
 	// If omitted, the system CA pool is used.
 	// +optional
 	CABundle []byte `json:"caBundle,omitempty"`
+	// CAProvider references a Secret or ConfigMap key that holds a PEM CA bundle.
+	// Takes precedence over CABundle when both are set.
+	// +optional
+	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }
 
 // VaultwardenAuth holds references to the Kubernetes secrets containing Vaultwarden credentials.
