@@ -84,8 +84,8 @@ if settings.get('debug').get('enabled'):
     build_command_prefix = 'make dlv && '
     binary_deps += [
         "Makefile",
-        "hack/tools/go.mod",
-        "hack/tools/go.sum",
+        "hack/tool-installer",
+        "hack/tool-versions.json",
     ]
 
 buildtags = settings.get('buildtags', 'all_providers')

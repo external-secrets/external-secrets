@@ -1,0 +1,127 @@
+name: Update container images
+
+autodiscovery:
+  crawlers:
+    dockerfile:
+      rootdir: .
+      digest: true
+      versionfilter:
+        kind: semver
+        # Avoid unrelated date-like tags such as Alpine's 20260805 tag.
+        pattern: minor
+
+sources:
+  skywalking_tag:
+    kind: dockerimage
+    spec:
+      image: apache/skywalking-eyes
+      tag: 0.6.0
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  skywalking:
+    kind: dockerdigest
+    spec:
+      image: apache/skywalking-eyes
+      tag: '{{ source "skywalking_tag" }}'
+  helm_docs_tag:
+    kind: dockerimage
+    spec:
+      image: jnorwood/helm-docs
+      tag: v1.14.2
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  helm_docs:
+    kind: dockerdigest
+    spec:
+      image: jnorwood/helm-docs
+      tag: '{{ source "helm_docs_tag" }}'
+  kind_node_tag:
+    kind: dockerimage
+    spec:
+      image: kindest/node
+      tag: v1.33.4
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  kind_node:
+    kind: dockerdigest
+    spec:
+      image: kindest/node
+      tag: '{{ source "kind_node_tag" }}'
+  curl_tag:
+    kind: dockerimage
+    spec:
+      image: curlimages/curl
+      tag: 8.11.0
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  curl:
+    kind: dockerdigest
+    spec:
+      image: curlimages/curl
+      tag: '{{ source "curl_tag" }}'
+  distroless_debian12:
+    kind: dockerdigest
+    spec:
+      image: gcr.io/distroless/static-debian12
+      tag: latest
+  pull_request_label_checker:
+    kind: dockerdigest
+    spec:
+      image: agilepathway/pull-request-label-checker
+      tag: latest
+
+targets:
+  skywalking:
+    kind: file
+    sourceid: skywalking
+    transformers:
+      - addprefix: 'apache/skywalking-eyes:'
+    spec:
+      file: Makefile
+      matchpattern: 'apache/skywalking-eyes:[^ ]+'
+  helm_docs:
+    kind: file
+    sourceid: helm_docs
+    transformers:
+      - addprefix: 'docker.io/jnorwood/helm-docs:'
+    spec:
+      file: Makefile
+      matchpattern: 'docker.io/jnorwood/helm-docs:[^ ]+'
+  kind_node:
+    kind: file
+    sourceid: kind_node
+    transformers:
+      - addprefix: 'kindest/node:'
+    spec:
+      files:
+        - .github/workflows/e2e.yml
+        - .github/workflows/e2e-reusable.yml
+      matchpattern: 'kindest/node:v?[0-9]+\.[0-9]+\.[0-9]+(?:@sha256:[a-f0-9]{64})?'
+  curl:
+    kind: file
+    sourceid: curl
+    transformers:
+      - addprefix: 'curlimages/curl:'
+    spec:
+      file: e2e/framework/addon/conjur.go
+      matchpattern: 'curlimages/curl:[^" ]+'
+  distroless_debian12:
+    kind: file
+    sourceid: distroless_debian12
+    transformers:
+      - addprefix: 'gcr.io/distroless/static-debian12:'
+    spec:
+      file: e2e/framework/addon/conjur.go
+      matchpattern: 'gcr.io/distroless/static-debian12:[^" ]+'
+  pull_request_label_checker:
+    kind: file
+    sourceid: pull_request_label_checker
+    transformers:
+      - addprefix: 'docker://agilepathway/pull-request-label-checker:'
+    spec:
+      file: .github/workflows/pull-request-label.yml
+      matchpattern: 'docker://agilepathway/pull-request-label-checker:[^ ]+'

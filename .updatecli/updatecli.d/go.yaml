@@ -1,0 +1,19 @@
+name: Update Go dependencies
+
+# The Go crawler covers every module in this multi-module repository and runs
+# go mod tidy after changing a dependency.
+autodiscovery:
+  crawlers:
+    golang/gomod:
+      rootdir: .
+      # Internal modules are updated together from this repository, not from
+      # versions published to proxy.golang.org.
+      ignore:
+        - modules:
+            '^github\.com/external-secrets/external-secrets(/.*)?$': ''
+      age:
+        minimum: 168h
+      versionfilter:
+        kind: semver
+        # Keep major Go dependency upgrades as separate, deliberate changes.
+        pattern: minor
