@@ -5256,8 +5256,34 @@ bw<span class="w"> </span>config<span class="w"> </span>server<span class="w"> <
 bw<span class="w"> </span>unlock<span class="w"> </span>--check
 
 <span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;Running `bw server` on port 8087&#39;</span>
-bw<span class="w"> </span>serve<span class="w"> </span>--hostname<span class="w"> </span><span class="m">0</span>.0.0.0<span class="w"> </span><span class="c1">#--disable-origin-protection</span>
+bw<span class="w"> </span>serve<span class="w"> </span>--hostname<span class="w"> </span>all
 </code></pre></div></p>
+<div class="admonition warning">
+<p class="admonition-title">Bitwarden CLI 2026.6.0 and later: use <code>--hostname all</code></p>
+<p><code>bw serve</code> 2026.6.0 added a Host header allowlist on top of its existing
+Origin header check. With <code>--hostname 0.0.0.0</code> the allowlist is built from
+the bound hostname, so it contains only <code>localhost:8087</code>, <code>127.0.0.1:8087</code>,
+<code>[::1]:8087</code> and <code>0.0.0.0:8087</code>.</p>
+<p>The webhook provider sends whatever authority the SecretStore <code>url</code> carries
+as the <code>Host</code> header. For a store pointing at
+<code>http://bitwarden-cli.bitwarden.svc:8087</code> that authority is not on the
+allowlist, so <code>bw serve</code> answers <code>403</code> and logs:</p>
+<div class="highlight"><pre><span></span><code>Blocking request with disallowed Host &quot;bitwarden-cli.bitwarden.svc:8087&quot;
+</code></pre></div>
+<p>Every ExternalSecret backed by these stores fails.</p>
+<p><code>--hostname all</code> binds every interface and skips the Host allowlist, which
+is why the example above uses it. It is also accepted by older releases, so
+the same entrypoint works either way.</p>
+<p>Prefer this over <code>--disable-origin-protection</code>. That flag turns off the
+Origin header check as well, whereas <code>--hostname all</code> leaves it in place.
+The webhook provider does not send an <code>Origin</code> header, so it is unaffected.</p>
+<p>Pinning the Host from the store does not work as a substitute. Entries in
+the store's <code>headers</code> are applied with <code>Header.Add</code>, and Go takes the
+request Host from the URL rather than from <code>Header["Host"]</code>, so a
+<code>Host: localhost:8087</code> header is silently ignored.</p>
+<p>Neither option authenticates callers. The NetworkPolicy below is what
+restricts access to <code>bw serve</code>, so deploy it.</p>
+</div>
 <h2 id="deploy-bitwarden-credentials">Deploy Bitwarden credentials</h2>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
 <span class="nt">data</span><span class="p">:</span>
