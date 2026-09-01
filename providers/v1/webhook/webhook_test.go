@@ -835,3 +835,23 @@ func TestDeleteSecret(t *testing.T) {
 		})
 	}
 }
+
+func TestGetAllSecrets(t *testing.T) {
+	store := makeClusterSecretStore("http://fake-url", args{URL: "/api/secret"})
+	prov := &Provider{}
+	client, err := prov.NewClient(context.Background(), store, nil, "testnamespace")
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	result, err := client.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{})
+	if result != nil {
+		t.Errorf("expected nil result, got %v", result)
+	}
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if err.Error() != errGetAllSecretsNotSupported {
+		t.Errorf("expected error %q, got %q", errGetAllSecretsNotSupported, err.Error())
+	}
+}
