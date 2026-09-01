@@ -173,3 +173,5 @@ replace (
 )
 
 replace github.com/external-secrets/external-secrets/providers/v1/aws => ../aws
+
+replace github.com/external-secrets/external-secrets/providers/v1/gcp => ../gcp
