@@ -45,7 +45,7 @@ type vaultwardenCipher struct {
 	Notes       string        `json:"notes"`       // EncString (may be empty)
 	Login       *cipherLogin  `json:"login"`
 	Fields      []cipherField `json:"fields"`
-	DeletedDate interface{}   `json:"deletedDate"`
+	DeletedDate any           `json:"deletedDate"`
 }
 
 type cipherLogin struct {
@@ -70,8 +70,8 @@ type cipherCreateBody struct {
 	Name           string         `json:"name"`
 	Notes          string         `json:"notes"`
 	SecureNote     *secureNoteObj `json:"secureNote,omitempty"`
-	FolderID       interface{}    `json:"folderId"`
-	OrganizationID interface{}    `json:"organizationId"`
+	FolderID       any            `json:"folderId"`
+	OrganizationID any            `json:"organizationId"`
 }
 
 type secureNoteObj struct {
@@ -101,8 +101,22 @@ type Client struct {
 
 var _ esv1.SecretsClient = &Client{}
 
-// bearerToken returns the Authorization header value for a given access token.
 const bearerPrefix = "Bearer "
+
+// pushMergePolicy controls what happens when PushSecret targets a cipher that already exists.
+type pushMergePolicy string
+
+const (
+	// mergePolicyReplace overwrites the existing cipher (default).
+	mergePolicyReplace pushMergePolicy = "Replace"
+	// mergePolicyError returns an error if the cipher already exists.
+	mergePolicyError pushMergePolicy = "Error"
+)
+
+// pushSecretMetadata is parsed from PushSecretData.GetMetadata().
+type pushSecretMetadata struct {
+	MergePolicy pushMergePolicy `json:"mergePolicy,omitempty"`
+}
 
 // Close is a no-op; the HTTP client is reusable and has no per-session state.
 func (c *Client) Close(_ context.Context) error {
@@ -166,29 +180,32 @@ func getCipherProperty(cipher *vaultwardenCipher, property string, symEncKey, sy
 			return []byte(val), nil
 		}
 	}
-	if v := getCipherPropertyFromNotes(cipher, property, symEncKey, symMacKey); v != nil {
+	if v, err := getCipherPropertyFromNotes(cipher, property, symEncKey, symMacKey); err != nil {
+		return nil, err
+	} else if v != nil {
 		return v, nil
 	}
 	return nil, fmt.Errorf("vaultwarden: field %q not found in secret %q", property, cipher.Name)
 }
 
-// getCipherPropertyFromNotes attempts to extract a property from Notes JSON.
-func getCipherPropertyFromNotes(cipher *vaultwardenCipher, property string, symEncKey, symMacKey []byte) []byte {
+// getCipherPropertyFromNotes attempts to extract a property from the Notes JSON.
+// Returns (nil, nil) when Notes is empty or not a JSON object (property not present).
+func getCipherPropertyFromNotes(cipher *vaultwardenCipher, property string, symEncKey, symMacKey []byte) ([]byte, error) {
 	if cipher.Notes == "" {
-		return nil
+		return nil, nil
 	}
 	notes, err := crypto.DecryptString(cipher.Notes, symEncKey, symMacKey)
 	if err != nil {
-		return nil
+		return nil, fmt.Errorf("vaultwarden: decrypting notes: %w", err)
 	}
 	var obj map[string]json.RawMessage
 	if json.Unmarshal([]byte(notes), &obj) != nil {
-		return nil
+		return nil, nil
 	}
 	if raw, ok := obj[property]; ok {
-		return jsonRawToBytes(raw)
+		return jsonRawToBytes(raw), nil
 	}
-	return nil
+	return nil, nil
 }
 
 // getCipherValue returns the primary value of a cipher:
@@ -237,17 +254,9 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRe
 		return nil, fmt.Errorf("vaultwarden: decrypting notes for map: %w", err)
 	}
 
-	// Notes may be stored as a JSON-encoded string (e.g. `"{\\"key\\":\\"val\\"}"`) rather than
-	// a bare JSON object. Unwrap one layer of string encoding if the direct unmarshal fails.
 	raw := make(map[string]json.RawMessage)
 	if err := json.Unmarshal([]byte(notes), &raw); err != nil {
-		var inner string
-		if jsonErr := json.Unmarshal([]byte(notes), &inner); jsonErr != nil {
-			return nil, fmt.Errorf("vaultwarden: notes for %q are not valid JSON: %w", ref.Key, err)
-		}
-		if err := json.Unmarshal([]byte(inner), &raw); err != nil {
-			return nil, fmt.Errorf("vaultwarden: notes for %q are not valid JSON: %w", ref.Key, err)
-		}
+		return nil, fmt.Errorf("vaultwarden: notes for %q are not a JSON object: %w", ref.Key, err)
 	}
 
 	out := make(map[string][]byte, len(raw))
@@ -322,8 +331,16 @@ func decryptCipherPrimaryValue(cipher *vaultwardenCipher, symEncKey, symMacKey [
 }
 
 // PushSecret writes a secret value to Vaultwarden as a SecureNote cipher.
-// It creates the cipher if it doesn't exist, or updates it if it does.
+// Accepts optional metadata: {"mergePolicy":"Replace"} (default) or {"mergePolicy":"Error"}.
 func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
+	var meta pushSecretMetadata
+	if m := data.GetMetadata(); m != nil {
+		_ = json.Unmarshal(m.Raw, &meta)
+	}
+	if meta.MergePolicy == "" {
+		meta.MergePolicy = mergePolicyReplace
+	}
+
 	accessToken, symEncKey, symMacKey, err := c.getSymKey(ctx)
 	if err != nil {
 		return err
@@ -342,6 +359,9 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return err
 	}
 	existing := findCipherByNameNoErr(ciphers, cipherName, symEncKey, symMacKey)
+	if existing != nil && meta.MergePolicy == mergePolicyError {
+		return fmt.Errorf("vaultwarden: cipher %q already exists and mergePolicy is Error", cipherName)
+	}
 	return c.upsertCipher(ctx, accessToken, existing, bodyBytes)
 }
 
