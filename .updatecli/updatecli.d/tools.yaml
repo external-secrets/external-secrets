@@ -1,9 +1,19 @@
+{{- $tools := dict
+  "controller-gen" (dict "variable" "CONTROLLER_GEN" "repository" "kubernetes-sigs/controller-tools" "platforms" (dict "darwin-amd64" "controller-gen-darwin-amd64" "darwin-arm64" "controller-gen-darwin-arm64" "linux-amd64" "controller-gen-linux-amd64" "linux-arm64" "controller-gen-linux-arm64"))
+  "crane" (dict "variable" "CRANE" "repository" "google/go-containerregistry" "platforms" (dict "darwin-amd64" "go-containerregistry_Darwin_x86_64.tar.gz" "darwin-arm64" "go-containerregistry_Darwin_arm64.tar.gz" "linux-amd64" "go-containerregistry_Linux_x86_64.tar.gz" "linux-arm64" "go-containerregistry_Linux_arm64.tar.gz"))
+  "cty" (dict "variable" "CTY" "repository" "Skarlso/crd-to-sample-yaml" "platforms" (dict "darwin-amd64" "cty_darwin_amd64.tar.gz" "darwin-arm64" "cty_darwin_arm64.tar.gz" "linux-amd64" "cty_linux_amd64.tar.gz" "linux-arm64" "cty_linux_arm64.tar.gz"))
+  "dlv" (dict "variable" "DLV" "repository" "go-delve/delve" "platforms" (dict "darwin-amd64" "dlv_{{version-no-v}}_darwin_amd64.tar.gz" "darwin-arm64" "dlv_{{version-no-v}}_darwin_arm64.tar.gz" "linux-amd64" "dlv_{{version-no-v}}_linux_amd64.tar.gz" "linux-arm64" "dlv_{{version-no-v}}_linux_arm64.tar.gz"))
+  "golangci-lint" (dict "variable" "GOLANGCI_LINT" "repository" "golangci/golangci-lint" "platforms" (dict "darwin-amd64" "golangci-lint-{{version-no-v}}-darwin-amd64.tar.gz" "darwin-arm64" "golangci-lint-{{version-no-v}}-darwin-arm64.tar.gz" "linux-amd64" "golangci-lint-{{version-no-v}}-linux-amd64.tar.gz" "linux-arm64" "golangci-lint-{{version-no-v}}-linux-arm64.tar.gz"))
+  "setup-envtest" (dict "variable" "SETUP_ENVTEST" "repository" "kubernetes-sigs/controller-runtime" "platforms" (dict "darwin-amd64" "setup-envtest-darwin-amd64" "darwin-arm64" "setup-envtest-darwin-arm64" "linux-amd64" "setup-envtest-linux-amd64" "linux-arm64" "setup-envtest-linux-arm64"))
+  "tilt" (dict "variable" "TILT" "repository" "tilt-dev/tilt" "platforms" (dict "darwin-amd64" "tilt.{{version-no-v}}.mac.x86_64.tar.gz" "darwin-arm64" "tilt.{{version-no-v}}.mac.arm64.tar.gz" "linux-amd64" "tilt.{{version-no-v}}.linux.x86_64.tar.gz" "linux-arm64" "tilt.{{version-no-v}}.linux.arm64.tar.gz"))
+  "updatecli" (dict "variable" "UPDATECLI" "repository" "updatecli/updatecli" "platforms" (dict "darwin-amd64" "updatecli_Darwin_x86_64.tar.gz" "darwin-arm64" "updatecli_Darwin_arm64.tar.gz" "linux-amd64" "updatecli_Linux_x86_64.tar.gz" "linux-arm64" "updatecli_Linux_arm64.tar.gz"))
+-}}
 name: Update development tools
 
-# Tool metadata and platform checksums are kept in one lock file. This template
-# creates one release source and checksum target per locked tool/platform.
+# Upstream metadata and update policy live here. The current versions and
+# platform checksums are maintained directly in the Makefile.
 sources:
-{{- range $name, $tool := .tools }}
+{{- range $name, $tool := $tools }}
   "{{ $name }}_version":
     name: Get latest {{ $name }} release
     kind: githubrelease
@@ -15,33 +25,29 @@ sources:
       versionfilter:
         kind: semver
 {{- if eq $name "dlv" }}
-        # Newer Delve tags currently have no release binaries.
         pattern: '<1.27.0'
 {{- else if eq $name "cty" }}
-        # Keep minor/major cty upgrades separate from dependency automation.
         pattern: '1.1.x'
 {{- else }}
         pattern: '*'
 {{- end }}
 {{- if eq $name "golangci-lint" }}
   "{{ $name }}_version_no_v":
-    name: Get latest {{ $name }} release without v prefix
     kind: githubrelease
     transformers:
       - trimprefix: v
     spec:
-      owner: {{ first (splitList "/" $tool.repository) }}
-      repository: {{ last (splitList "/" $tool.repository) }}
+      owner: golangci
+      repository: golangci-lint
       age:
         minimum: 168h
       versionfilter:
         kind: semver
         pattern: '*'
 {{- end }}
-{{- range $platformName, $platform := $tool.platforms }}
-{{- $assetPattern := regexQuoteMeta $platform.asset }}
+{{- range $platformName, $asset := $tool.platforms }}
+{{- $assetPattern := regexQuoteMeta $asset }}
 {{- $assetPattern = replace "\\{\\{version-no-v\\}\\}" "[0-9]+(?:\\.[0-9]+)+" $assetPattern }}
-{{- $assetPattern = replace "\\{\\{version\\}\\}" "v?[0-9]+(?:\\.[0-9]+)+" $assetPattern }}
   "{{ $name }}_{{ replace "-" "_" $platformName }}_sha256":
     name: Get {{ $name }} checksum for {{ $platformName }}
     kind: http
@@ -176,34 +182,35 @@ sources:
         pattern: '*'
 
 targets:
-{{- range $name, $tool := .tools }}
+{{- range $name, $tool := $tools }}
   "{{ $name }}_version":
     name: Update {{ $name }} version
-    kind: json
+    kind: file
     sourceid: "{{ $name }}_version"
     spec:
-      file: hack/tool-versions.json
-      key: 'tools["{{ $name }}"].version'
-      engine: dasel/v3
+      file: Makefile
+      matchpattern: '(?m)^{{ $tool.variable }}_VERSION := v?[0-9]+\.[0-9]+\.[0-9]+$'
+      replacepattern: '{{ $tool.variable }}_VERSION := {{ "{{" }} source "{{ $name }}_version" {{ "}}" }}'
 {{- range $platformName, $_ := $tool.platforms }}
+{{- $platformVariable := upper (replace "-" "_" $platformName) }}
   "{{ $name }}_{{ replace "-" "_" $platformName }}_sha256":
     name: Update {{ $name }} checksum for {{ $platformName }}
-    kind: json
+    kind: file
     sourceid: "{{ $name }}_{{ replace "-" "_" $platformName }}_sha256"
     spec:
-      file: hack/tool-versions.json
-      key: 'tools["{{ $name }}"].platforms["{{ $platformName }}"].sha256'
-      engine: dasel/v3
+      file: Makefile
+      matchpattern: '(?m)^{{ $tool.variable }}_{{ $platformVariable }}_SHA256 := [a-f0-9]{64}$'
+      replacepattern: '{{ $tool.variable }}_{{ $platformVariable }}_SHA256 := {{ "{{" }} source "{{ $name }}_{{ replace "-" "_" $platformName }}_sha256" {{ "}}" }}'
 {{- end }}
 {{- end }}
 
   envtest_kubernetes_version:
-    kind: json
+    kind: file
     sourceid: envtest_kubernetes_version
     spec:
-      file: hack/tool-versions.json
-      key: assets.envtest.kubernetesVersion
-      engine: dasel/v3
+      file: Makefile
+      matchpattern: '(?m)^ENVTEST_KUBERNETES_VERSION := [0-9]+\.[0-9]+\.x$'
+      replacepattern: 'ENVTEST_KUBERNETES_VERSION := {{ source "envtest_kubernetes_version" }}'
   kubernetes_ci_version:
     kind: file
     sourceid: envtest_kubernetes_version
@@ -212,19 +219,19 @@ targets:
       matchpattern: "KUBERNETES_VERSION: '[0-9]+\\.[0-9]+\\.x'"
       replacepattern: 'KUBERNETES_VERSION: ''{{ source `envtest_kubernetes_version` }}'''
   helm_schema_plugin_version:
-    kind: json
+    kind: file
     sourceid: helm_schema_plugin_version
     spec:
-      file: hack/tool-versions.json
-      key: helmPlugins.schema.version
-      engine: dasel/v3
+      file: Makefile
+      matchpattern: '(?m)^HELM_SCHEMA_PLUGIN_VERSION := [0-9]+\.[0-9]+\.[0-9]+$'
+      replacepattern: 'HELM_SCHEMA_PLUGIN_VERSION := {{ source "helm_schema_plugin_version" }}'
   helm_unittest_plugin_version:
-    kind: json
+    kind: file
     sourceid: helm_unittest_plugin_version
     spec:
-      file: hack/tool-versions.json
-      key: helmPlugins.unittest.version
-      engine: dasel/v3
+      file: Makefile
+      matchpattern: '(?m)^HELM_UNITTEST_PLUGIN_VERSION := [0-9]+\.[0-9]+\.[0-9]+$'
+      replacepattern: 'HELM_UNITTEST_PLUGIN_VERSION := {{ source "helm_unittest_plugin_version" }}'
   kind_version:
     kind: file
     sourceid: kind_version
