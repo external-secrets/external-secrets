@@ -52,3 +52,30 @@ Instead of retrieving secrets by ID you can also use `dataFrom` to search for se
 ```yaml
 {% include 'passbolt-external-secret-findbyname.yaml' %}
 ```
+
+
+## Custom fields
+
+Passbolt resources can carry arbitrary custom fields beyond the standard
+`name`, `username`, `password`, `uri`, and `description` properties.
+ESO surfaces each custom field through the `custom_fields.<name>` property
+syntax, where `<name>` is the field's display name as configured in Passbolt.
+
+```yaml
+{% include 'passbolt-external-secret-custom-fields.yaml' %}
+```
+
+The above external secret produces a Kubernetes Secret in the following form:
+
+```yaml
+{% include 'passbolt-secret-custom-fields-example.yaml' %}
+```
+
+When no `property` is specified, the full secret is returned as a JSON object.
+The `custom_fields` key is included in that object whenever the resource has at
+least one named custom field.
+
+Passbolt stores each half of a custom field on whichever side the field's
+configuration calls for: a name is either cleartext metadata or encrypted
+alongside the secret, and so is a value. ESO decrypts both sides before reading
+them, so a field is addressable by its display name either way.

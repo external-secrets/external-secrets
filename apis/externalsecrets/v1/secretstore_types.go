@@ -153,7 +153,7 @@ type SecretStoreProvider struct {
 	// +optional
 	YandexLockbox *YandexLockboxProvider `json:"yandexlockbox,omitempty"`
 
-	// Github configures this store to push GitHub Actions secrets using the GitHub API provider.
+	// Github configures this store to push GitHub Actions or Dependabot secrets using the GitHub API provider.
 	// Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub
 	// +optional
 	Github *GithubProvider `json:"github,omitempty"`
@@ -343,11 +343,14 @@ const (
 
 	ReasonInvalidStore          = "InvalidStoreConfiguration"
 	ReasonInvalidProviderConfig = "InvalidProviderConfig"
-	ReasonValidationFailed      = "ValidationFailed"
-	ReasonValidationUnknown     = "ValidationUnknown"
-	ReasonStoreValid            = "Valid"
-	StoreUnmaintained           = "StoreUnmaintained"
-	StoreDeprecated             = "StoreDeprecated"
+	// ReasonProviderNotFound indicates the provider named in the store spec could
+	// not be resolved, as opposed to a client that failed to be built.
+	ReasonProviderNotFound  = "ProviderNotFound"
+	ReasonValidationFailed  = "ValidationFailed"
+	ReasonValidationUnknown = "ValidationUnknown"
+	ReasonStoreValid        = "Valid"
+	StoreUnmaintained       = "StoreUnmaintained"
+	StoreDeprecated         = "StoreDeprecated"
 )
 
 // SecretStoreStatusCondition contains condition information for a SecretStore.

@@ -2,48 +2,24 @@ name: Zizmor Actions Scanner
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/**'
+    branches: ["main"]
   pull_request:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/**'
+    branches: ["**"]
 
 permissions:
   contents: read
 
 jobs:
-  detect-noop:
-    permissions:
-      actions: write  # for fkirc/skip-duplicate-actions to skip or stop workflow runs
-      contents: read  # for fkirc/skip-duplicate-actions to read and compare commits
-    runs-on: ubuntu-latest
-    outputs:
-      noop: ${{ steps.noop.outputs.should_skip }}
-    steps:
-      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
-        with:
-          egress-policy: audit
-      - name: Detect No-op Changes
-        id: noop
-        uses: fkirc/skip-duplicate-actions@b974a9395958c231af965b70070979a577efa578 # v5.3.2
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          paths_ignore: '["**.md", "**.png", "**.jpg"]'
-          do_not_skip: '["workflow_dispatch", "schedule", "push"]'
-          concurrent_skipping: false
-
   zizmor:
     name: Run zizmor 🌈
     runs-on: ubuntu-latest
-    needs: detect-noop
-    if: needs.detect-noop.outputs.noop != 'true'
     permissions:
       security-events: write
     steps:
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

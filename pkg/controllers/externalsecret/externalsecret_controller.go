@@ -285,7 +285,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 		// validate generic target configuration early
 		if err := r.validateGenericTarget(log, externalSecret); err != nil {
-			r.markAsFailed("invalid generic target", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
+			r.markAsFailed("invalid generic target", ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 			return ctrl.Result{}, nil // don't requeue as this is a configuration error that is not recoverable
 		}
 
@@ -431,7 +431,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			creationPolicy := externalSecret.Spec.Target.CreationPolicy
 			if creationPolicy != esv1.CreatePolicyOwner {
 				err = fmt.Errorf(errDeleteCreatePolicy, secretName, creationPolicy)
-				r.markAsFailed(msgErrorDeleteSecret, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
+				r.markAsFailed(msgErrorDeleteSecret, ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 				return ctrl.Result{}, nil
 			}
 
@@ -439,7 +439,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			if existingSecret.UID != "" {
 				err = r.Delete(ctx, existingSecret)
 				if err != nil && !apierrors.IsNotFound(err) {
-					r.markAsFailed(msgErrorDeleteSecret, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
+					r.markAsFailed(msgErrorDeleteSecret, ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 					return ctrl.Result{}, err
 				}
 				log.V(1).Info(logSecretDeleted, "secret", secretName, "namespace", externalSecret.Namespace, "reason", "DeletionPolicy=Delete and provider returned no data")
@@ -539,7 +539,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		// for example, if the target secret name was changed
 		err = r.deleteOrphanedSecrets(ctx, log, externalSecret, secretName)
 		if err != nil {
-			r.markAsFailed(msgErrorDeleteOrphaned, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
+			r.markAsFailed(msgErrorDeleteOrphaned, ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 			return ctrl.Result{}, err
 		}
 
@@ -561,24 +561,26 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		// detect errors indicating that we failed to set ourselves as the owner of the secret
 		// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
 		if errors.Is(err, ErrSecretSetCtrlRef) {
-			r.markAsFailed(msgErrorBecomeOwner, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
+			r.markAsFailed(msgErrorBecomeOwner, ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 			return ctrl.Result{}, nil
 		}
 
 		// detect errors indicating that the secret has another ExternalSecret as owner
 		// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
 		if errors.Is(err, ErrSecretIsOwned) {
-			r.markAsFailed(msgErrorIsOwned, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
+			r.markAsFailed(msgErrorIsOwned, ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretOwnedByOther)
 			return ctrl.Result{}, nil
 		}
 
 		// detect errors indicating that the secret is immutable
 		// NOTE: this error cant be fixed by retrying so we don't return an error (which would requeue immediately)
 		if errors.Is(err, ErrSecretImmutable) {
-			r.markAsFailed(msgErrorUpdateImmutable, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
+			r.markAsFailed(msgErrorUpdateImmutable, ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretImmutable)
 			return ctrl.Result{}, nil
 		}
 
+		// not marked safe here: this path also carries template errors, which can
+		// echo rendered values. createSecret / updateSecret mark their own API errors.
 		r.markAsFailed(msgErrorUpdateSecret, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 		return ctrl.Result{}, err
 	}
@@ -604,7 +606,7 @@ func (r *Reconciler) reconcileGenericTarget(
 		var getErr error
 		existing, getErr = r.getGenericResource(ctx, log, externalSecret)
 		if getErr != nil && !apierrors.IsNotFound(getErr) {
-			r.markAsFailed("could not get target resource", getErr, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
+			r.markAsFailed("could not get target resource", ctrlutil.Safe(getErr), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 			return ctrl.Result{}, getErr
 		}
 	}
@@ -632,13 +634,13 @@ func (r *Reconciler) reconcileGenericTarget(
 			creationPolicy := externalSecret.Spec.Target.CreationPolicy
 			if creationPolicy != esv1.CreatePolicyOwner {
 				err = fmt.Errorf("unable to delete resource: creationPolicy=%s is not Owner", creationPolicy)
-				r.markAsFailed("could not delete resource", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
+				r.markAsFailed("could not delete resource", ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 				return ctrl.Result{}, nil
 			}
 
 			err = r.deleteGenericResource(ctx, log, externalSecret)
 			if err != nil {
-				r.markAsFailed("could not delete resource", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
+				r.markAsFailed("could not delete resource", ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 				return ctrl.Result{}, err
 			}
 
@@ -665,6 +667,19 @@ func (r *Reconciler) reconcileGenericTarget(
 	// render the template for the manifest
 	obj, err := r.applyTemplateToManifest(ctx, externalSecret, dataMap, baseObj)
 	if err != nil {
+		// applyTemplateToManifest also applies ownership, so the same dead-end
+		// conflicts the Secret lane reports can surface here. Retrying does not
+		// fix either, hence no returned error.
+		switch {
+		case errors.Is(err, ErrSecretIsOwned):
+			r.markAsFailed(msgErrorIsOwned, ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretOwnedByOther)
+			return ctrl.Result{}, nil
+		case errors.Is(err, ErrSecretSetCtrlRef):
+			r.markAsFailed(msgErrorBecomeOwner, ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
+			return ctrl.Result{}, nil
+		}
+
+		// template errors stay generic: rendering can echo secret values.
 		r.markAsFailed("could not apply template to manifest", err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 		return ctrl.Result{}, err
 	}
@@ -704,7 +719,9 @@ func (r *Reconciler) reconcileGenericTarget(
 			return ctrl.Result{RequeueAfter: 1 * time.Second}, nil
 		}
 
-		r.markAsFailed(msgErrorUpdateSecret, err, externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
+		// the template was already applied above, so err here is only from the
+		// Kubernetes API call that created or updated the target resource.
+		r.markAsFailed(msgErrorUpdateSecret, ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
 		return ctrl.Result{}, err
 	}
 
@@ -784,6 +801,11 @@ func (r *Reconciler) markAsDone(externalSecret *esv1.ExternalSecret, start time.
 
 func (r *Reconciler) markAsFailed(msg string, err error, externalSecret *esv1.ExternalSecret, counter prometheus.Counter, reason string) {
 	r.recorder.Event(externalSecret, v1.EventTypeWarning, esv1.ReasonUpdateFailed, err.Error())
+	// only errors explicitly marked safe are detailed here; provider errors keep
+	// the generic message because they may carry secret payloads.
+	if detail := ctrlutil.SafeMessage(err); detail != "" {
+		msg = fmt.Sprintf("%s: %s", msg, detail)
+	}
 	conditionSynced := NewExternalSecretCondition(esv1.ExternalSecretReady, v1.ConditionFalse, reason, msg)
 	SetExternalSecretCondition(externalSecret, *conditionSynced)
 	counter.Inc()
@@ -933,7 +955,7 @@ func (r *Reconciler) createSecret(ctx context.Context, mutationFunc func(secret 
 
 	// note, we set field owner even for Create
 	if err := r.Create(ctx, newSecret, client.FieldOwner(fqdn)); err != nil {
-		return err
+		return ctrlutil.Safe(err)
 	}
 
 	// set the binding reference to the secret
@@ -950,7 +972,7 @@ func (r *Reconciler) updateSecret(ctx context.Context, log logr.Logger, existing
 	// fail if the secret does not exist
 	// this should never happen because we check this before calling this function
 	if existingSecret.UID == "" {
-		return fmt.Errorf(errUpdateNotFound, secretName)
+		return ctrlutil.Safe(fmt.Errorf(errUpdateNotFound, secretName))
 	}
 
 	// set the binding reference to the secret
@@ -991,7 +1013,7 @@ func (r *Reconciler) updateSecret(ctx context.Context, log logr.Logger, existing
 				if apierrors.IsConflict(err) {
 					return err
 				}
-				return fmt.Errorf(errUpdate, existingSecret.Name, err)
+				return ctrlutil.Safe(fmt.Errorf(errUpdate, existingSecret.Name, err))
 			}
 		} else {
 			// we know there was some change in the secret (or we would have returned early)
@@ -1002,7 +1024,7 @@ func (r *Reconciler) updateSecret(ctx context.Context, log logr.Logger, existing
 
 		// if the immutable data was changed, we should return an error
 		if dataChanged {
-			return fmt.Errorf(errUpdate, existingSecret.Name, ErrSecretImmutable)
+			return ctrlutil.Safe(fmt.Errorf(errUpdate, existingSecret.Name, ErrSecretImmutable))
 		}
 	}
 
@@ -1013,7 +1035,7 @@ func (r *Reconciler) updateSecret(ctx context.Context, log logr.Logger, existing
 		if apierrors.IsConflict(err) {
 			return err
 		}
-		return fmt.Errorf(errUpdate, updatedSecret.Name, err)
+		return ctrlutil.Safe(fmt.Errorf(errUpdate, updatedSecret.Name, err))
 	}
 
 	// only compute the key diff when debug verbosity is active (--loglevel=debug /

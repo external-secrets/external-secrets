@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	ststypes "github.com/aws/aws-sdk-go-v2/service/sts/types"
 	"github.com/stretchr/testify/assert"
@@ -828,4 +829,28 @@ func TestNewGeneratorSession_DefaultCredentialChainFallback(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, creds.AccessKeyID)
 	assert.NotEmpty(t, creds.SecretAccessKey)
+}
+
+func TestCredentialsProviderName(t *testing.T) {
+	const (
+		accessKeyID     = "test-access-key-id"
+		secretAccessKey = "test-secret-access-key"
+	)
+
+	t.Run("nil provider", func(t *testing.T) {
+		assert.Equal(t, "<nil>", credentialsProviderName(nil))
+	})
+
+	t.Run("does not leak static credentials", func(t *testing.T) {
+		// StaticCredentialsProvider embeds the raw access key ID and secret
+		// access key. Serializing it (as the logger did previously) would dump
+		// them in plaintext, so the descriptor must reference neither.
+		provider := credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, "")
+
+		name := credentialsProviderName(provider)
+
+		assert.NotContains(t, name, accessKeyID)
+		assert.NotContains(t, name, secretAccessKey)
+		assert.Contains(t, name, "StaticCredentialsProvider")
+	})
 }

@@ -25,36 +25,57 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/nebius/gosdk/auth"
 	tassert "github.com/stretchr/testify/assert"
+	trequire "github.com/stretchr/testify/require"
+	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	clocktesting "k8s.io/utils/clock/testing"
 	ctrl "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	nebiusauth "github.com/external-secrets/external-secrets/providers/v1/nebius/common/auth"
+	nebiusiam "github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/iam"
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/mysterybox"
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/mysterybox/fake"
+	utilfake "github.com/external-secrets/external-secrets/runtime/util/fake"
 )
 
 const (
-	tokenSecretName   = "tokenSecretName"
-	tokenSecretKey    = "tokenSecretKey"
-	saCredsSecretName = "saCredsSecretName"
-	saCredsSecretKey  = "saCredsSecretKey"
-	authRefName       = "authRefSecretName"
-	authRefKey        = "authRefSecretKey"
-	apiDomain         = "api.public"
-	tokenToBeIssued   = "token-to-be-issued"
+	tokenSecretName       = "tokenSecretName"
+	tokenSecretKey        = "tokenSecretKey"
+	saCredsSecretName     = "saCredsSecretName"
+	saCredsSecretKey      = "saCredsSecretKey"
+	authRefName           = "authRefSecretName"
+	authRefKey            = "authRefSecretKey"
+	apiDomain             = "api.public"
+	tokenToBeIssued       = "token-to-be-issued"
+	serviceAccountName    = "testServiceAccountName"
+	iamServiceAccount     = "serviceaccount-e00test"
+	workloadIdentityToken = "test-service-account-jwt"
+	correctPrivateKey     = "-----BEGIN PRIVATE KEY-----\nTEST-KEY\n-----END PRIVATE KEY-----"
 )
 
 var (
-	logger = ctrl.Log.WithName("provider").WithName("nebius").WithName("mysterybox")
+	logger           = ctrl.Log.WithName("provider").WithName("nebius").WithName("mysterybox")
+	testSubjectCreds = &auth.ServiceAccountCredentials{
+		SubjectCredentials: auth.SubjectCredentials{
+			PrivateKey: correctPrivateKey,
+			KeyID:      "keyId",
+			Subject:    "subjectId",
+			Issuer:     "subjectId",
+		},
+	}
 )
 
 func setupClientWithTokenAuth(t *testing.T, entries []mysterybox.Entry, tokenGetter TokenGetter) (context.Context, *SecretsClient, *fake.Secret, k8sclient.Client, *fake.MysteryboxService) {
@@ -65,6 +86,7 @@ func setupClientWithTokenAuth(t *testing.T, entries []mysterybox.Entry, tokenGet
 	k8sClient := clientfake.NewClientBuilder().Build()
 
 	secret := mysteryboxService.CreateSecret(entries)
+	tassert.NotNil(t, secret)
 
 	provider := newProvider(
 		t,
@@ -91,7 +113,11 @@ func TestNewClient_GetTokenError(t *testing.T) {
 	namespace := uuid.NewString()
 	mysteryboxService := fake.InitMysteryboxService()
 	k8sClient := clientfake.NewClientBuilder().Build()
-	createK8sSecret(ctx, t, k8sClient, namespace, saCredsSecretName, saCredsSecretKey, []byte("PRIVATE KEY"))
+	subjectCreds, err := json.Marshal(testSubjectCreds)
+	if err != nil {
+		t.Fatal(err)
+	}
+	createK8sSecret(ctx, t, k8sClient, namespace, saCredsSecretName, saCredsSecretKey, subjectCreds)
 
 	provider := newProvider(
 		t,
@@ -101,7 +127,7 @@ func TestNewClient_GetTokenError(t *testing.T) {
 		&tokenGetter,
 	)
 
-	_, err := provider.NewClient(ctx, newNebiusMysteryboxSecretStoreWithServiceAccountCreds(apiDomain, namespace, saCredsSecretName, saCredsSecretKey), k8sClient, namespace)
+	_, err = provider.NewClient(ctx, newNebiusMysteryboxSecretStoreWithServiceAccountAndPrivateKeyCreds(apiDomain, namespace, saCredsSecretName, saCredsSecretKey), k8sClient, namespace)
 	tassert.Error(t, err)
 	tassert.ErrorContains(t, err, "failed to retrieve iam token by credentials")
 }
@@ -313,8 +339,7 @@ func TestNewClient_ValidationErrors(t *testing.T) {
 			expectErr: fmt.Sprintf("read token secret %s/%s: cannot get Kubernetes secret", namespace, notExistingSecretName),
 		},
 		{
-			name: "specified service account " +
-				"creds secret does not exist in kubernetes secrets",
+			name: "specified service account creds secret does not exist in kubernetes secrets",
 			storeSpec: func() *esv1.SecretStore {
 				return &esv1.SecretStore{
 					ObjectMeta: metav1.ObjectMeta{Namespace: namespace},
@@ -334,7 +359,7 @@ func TestNewClient_ValidationErrors(t *testing.T) {
 					},
 				}
 			},
-			expectErr: fmt.Sprintf("read service account creds %s/%s: cannot get Kubernetes secret", namespace, notExistingSecretName),
+			expectErr: fmt.Sprintf("error read service account secret creds %s/%s", namespace, notExistingSecretName),
 		},
 		{
 			name: "specified token secret's key does not exist in the secret",
@@ -381,21 +406,16 @@ func TestNewClient_AuthWithSecretAccountCreds(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 
 	secret := mysteryboxService.CreateSecret([]mysterybox.Entry{{Key: "k", StringValue: "v"}})
+	tassert.NotNil(t, secret)
 
-	providedCreds, _ := json.Marshal(&auth.ServiceAccountCredentials{
-		SubjectCredentials: auth.SubjectCredentials{
-			PrivateKey: "-----BEGIN PRIVATE KEY-----\nTEST-KEY\n-----END PRIVATE KEY-----",
-			KeyID:      "keyId",
-			Subject:    "subjectId",
-			Issuer:     "subjectId",
-		},
-	})
+	providedCreds, _ := json.Marshal(testSubjectCreds)
 
 	tokenToIssue := tokenToBeIssued
 
-	tokenGetter := &faketokenGetter{
-		tokenToIssue: tokenToIssue,
+	tokenExchanger := &nebiusiam.FakeTokenExchanger{
+		TokenToIssue: tokenToIssue,
 	}
+	tokenGetter := newTestCachedTokenGetter(t, tokenExchanger)
 
 	cache, err := lru.New(10)
 	tassert.NoError(t, err)
@@ -406,11 +426,11 @@ func TestNewClient_AuthWithSecretAccountCreds(t *testing.T) {
 			return fake.NewFakeMysteryboxClient(mysteryboxService), nil
 		},
 		mysteryboxClientsCache: cache,
+		TokenGetter:            tokenGetter,
 	}
-	settokenGetterWorkaround(tokenGetter, p)
 
 	createK8sSecret(ctx, t, k8sClient, namespace, authRefName, authRefKey, providedCreds)
-	store := newNebiusMysteryboxSecretStoreWithServiceAccountCreds(apiDomain, namespace, authRefName, authRefKey)
+	store := newNebiusMysteryboxSecretStoreWithServiceAccountAndPrivateKeyCreds(apiDomain, namespace, authRefName, authRefKey)
 
 	client, err := p.NewClient(ctx, store, k8sClient, namespace)
 	tassert.NoError(t, err)
@@ -419,15 +439,82 @@ func TestNewClient_AuthWithSecretAccountCreds(t *testing.T) {
 	tassert.True(t, ok, "expected *MysteryboxSecretsClient, got %T", client)
 	tassert.Equal(t, tokenToIssue, msc.token, fmt.Sprintf("token mismatch: got %q want %q (issued by TokenGetter)", msc.token, tokenToIssue))
 
-	// also ensure TokenGetter was exercised with the domain and creds we expect
-	tassert.Equal(t, int32(1), tokenGetter.calls, "expected TokenGetter to be called once")
-	tassert.Equal(t, apiDomain, tokenGetter.gotDomain, "expected TokenGetter to be called with the correct domain")
-	tassert.Equal(t, string(providedCreds), tokenGetter.gotCreds, "expected TokenGetter to be called with the correct creds")
-	tassert.Nil(t, tokenGetter.gotCACert, "expected TokenGetter to be called without CA cert")
+	// also ensure TokenExchanger was exercised with the domain and creds we expect
+	tassert.Equal(t, int64(1), tokenExchanger.Calls.Load(), "expected TokenExchanger to be called once")
+	tassert.Equal(t, apiDomain, tokenExchanger.DomainRequest, "expected TokenExchanger to be called with the correct domain")
+	tassert.Equal(t, testSubjectCreds.SubjectCredentials.KeyID, tokenExchanger.KeyIDRequest, "expected TokenExchanger to be called with the correct creds")
+	tassert.Equal(t, testSubjectCreds.SubjectCredentials.PrivateKey, tokenExchanger.PrivateKeyRequest, "expected TokenExchanger to be called with the correct creds")
+	tassert.Equal(t, testSubjectCreds.SubjectCredentials.Subject, tokenExchanger.SubjectRequest, "expected TokenExchanger to be called with the correct creds")
+	tassert.Nil(t, tokenExchanger.CaRequest, "expected TokenExchanger to be called without CA cert")
 
 	got, err := msc.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secret.Id, Property: "k"})
 	tassert.NoError(t, err)
 	tassert.Equal(t, []byte("v"), got)
+}
+
+func TestNewClient_AuthWithWorkloadIdentityCreds(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	namespace := uuid.NewString()
+	mysteryboxService := fake.InitMysteryboxService()
+	k8sClient := clientfake.NewClientBuilder().Build()
+
+	secret := mysteryboxService.CreateSecret([]mysterybox.Entry{{Key: "k1", StringValue: "v1"}})
+	tassert.NotNil(t, secret)
+
+	tokenToIssue := tokenToBeIssued
+
+	tokenExchanger := &nebiusiam.FakeTokenExchanger{
+		TokenToIssue: tokenToIssue,
+	}
+	tokenGetter := newTestCachedTokenGetter(t, tokenExchanger)
+
+	cache, err := lru.New(10)
+	tassert.NoError(t, err)
+
+	coreV1Client := &recordingCoreV1{
+		CoreV1Interface: utilfake.NewCreateTokenMock().
+			WithToken(workloadIdentityToken),
+		onTokenRequest: func(request *authenticationv1.TokenRequest) {
+			expectedAudiences := []string{nebiusauth.NebiusIamAudience}
+			tassert.Equal(
+				t,
+				expectedAudiences,
+				request.Spec.Audiences,
+			)
+		},
+	}
+
+	p := &Provider{
+		Logger: logger,
+		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
+			return fake.NewFakeMysteryboxClient(mysteryboxService), nil
+		},
+		coreV1Client:           coreV1Client,
+		mysteryboxClientsCache: cache,
+		TokenGetter:            tokenGetter,
+	}
+
+	createK8sServiceAccount(ctx, t, k8sClient, namespace, serviceAccountName)
+	store := newNebiusMysteryboxSecretStoreWithK8sServiceAccountCreds(apiDomain, namespace, serviceAccountName, iamServiceAccount)
+
+	client, err := p.NewClient(ctx, store, k8sClient, namespace)
+	tassert.NoError(t, err)
+
+	msc, ok := client.(*SecretsClient)
+	tassert.True(t, ok, "expected *MysteryboxSecretsClient, got %T", client)
+	tassert.Equal(t, tokenToIssue, msc.token, fmt.Sprintf("token mismatch: got %q want %q (issued by TokenGetter)", msc.token, tokenToIssue))
+
+	// also ensure TokenExchanger was exercised with creds we expect
+	tassert.Equal(t, int64(1), tokenExchanger.Calls.Load(), "expected TokenExchanger to be called once")
+	tassert.Equal(t, apiDomain, tokenExchanger.DomainRequest, "expected TokenExchanger to be called with the correct domain")
+	tassert.Equal(t, workloadIdentityToken, tokenExchanger.TokenRequest, "expected jwt token to be received")
+	tassert.Equal(t, iamServiceAccount, tokenExchanger.ServiceAccountIDRequest, "expected serviceAccount to be correct ")
+	tassert.Nil(t, tokenExchanger.CaRequest, "expected TokenExchanger to be called without CA cert")
+
+	got, err := msc.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secret.Id, Property: "k1"})
+	tassert.NoError(t, err)
+	tassert.Equal(t, []byte("v1"), got)
 }
 
 func TestGetSecret_NotFound(t *testing.T) {
@@ -556,11 +643,11 @@ func TestCreateOrGetMysteryboxClient_CachesByKey(t *testing.T) {
 
 	cache, err := lru.New(10)
 	tassert.NoError(t, err)
-	var factoryCalls int32
+	var factoryCalls atomic.Int32
 	p := &Provider{
 		Logger: logger,
 		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
-			atomic.AddInt32(&factoryCalls, 1)
+			factoryCalls.Add(1)
 			return fake.NewFakeMysteryboxClient(nil), nil
 		},
 		mysteryboxClientsCache: cache,
@@ -579,7 +666,7 @@ func TestCreateOrGetMysteryboxClient_CachesByKey(t *testing.T) {
 	_, err = p.createOrGetMysteryboxClient(ctx, "other.nebius.example", []byte("CA1"))
 	tassert.NoError(t, err)
 
-	tassert.Equal(t, int32(3), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d", atomic.LoadInt32(&factoryCalls), 3))
+	tassert.Equal(t, int32(3), factoryCalls.Load(), fmt.Sprintf("factory called %d times, want %d", factoryCalls.Load(), 3))
 }
 
 func TestCreateOrGetMysteryboxClient_EmptyCA_EqualsNil(t *testing.T) {
@@ -696,11 +783,11 @@ func TestCreateOrGetMysteryboxClient_Concurrent_MultipleClients(t *testing.T) {
 	ctx := context.Background()
 	cache, err := lru.New(10)
 	tassert.NoError(t, err)
-	var factoryCalls int32
+	var factoryCalls atomic.Int32
 	p := &Provider{
 		Logger: logger,
 		NewMysteryboxClient: func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error) {
-			atomic.AddInt32(&factoryCalls, 1)
+			factoryCalls.Add(1)
 			return fake.NewFakeMysteryboxClient(nil), nil
 		},
 		mysteryboxClientsCache: cache,
@@ -728,7 +815,7 @@ func TestCreateOrGetMysteryboxClient_Concurrent_MultipleClients(t *testing.T) {
 		}
 	}
 
-	tassert.Equal(t, int32(4), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("factory called %d times, want %d", atomic.LoadInt32(&factoryCalls), 4))
+	tassert.Equal(t, int32(4), factoryCalls.Load(), fmt.Sprintf("factory called %d times, want %d", factoryCalls.Load(), 4))
 }
 
 func TestMysteryboxClientsCache_ConcurrentEviction_CloseOnce(t *testing.T) {
@@ -788,6 +875,7 @@ func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing
 	k8sClient := clientfake.NewClientBuilder().Build()
 
 	secret := mboxSvc.CreateSecret([]mysterybox.Entry{{Key: "k", StringValue: "v"}})
+	tassert.NotNil(t, secret)
 
 	var factoryCalls int32
 	tokenToIssue := tokenToBeIssued
@@ -801,12 +889,13 @@ func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing
 			return fake.NewFakeMysteryboxClient(mboxSvc), nil
 		},
 	}
-	settokenGetterWorkaround(tokenGetter, p)
+	setTokenGetterWorkaround(tokenGetter, p)
 
-	creds := []byte(`{"private_key":"KEY","key_id":"id","subject":"sub","issuer":"iss"}`)
+	creds, err := json.Marshal(testSubjectCreds)
+	trequire.NoError(t, err)
 	createK8sSecret(ctx, t, k8sClient, namespace, authRefName, authRefKey, creds)
 
-	store := newNebiusMysteryboxSecretStoreWithServiceAccountCreds(apiDomain, namespace, authRefName, authRefKey)
+	store := newNebiusMysteryboxSecretStoreWithServiceAccountAndPrivateKeyCreds(apiDomain, namespace, authRefName, authRefKey)
 
 	const goroutines = 10
 	var wg sync.WaitGroup
@@ -835,7 +924,7 @@ func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing
 		tassert.Equal(t, []byte("v"), got)
 	}
 
-	tassert.Equal(t, int32(goroutines), atomic.LoadInt32(&tokenGetter.calls), fmt.Sprintf("TokenGetter.GetToken called %d times, want %d", factoryCalls, goroutines))
+	tassert.Equal(t, int32(goroutines), tokenGetter.calls.Load(), fmt.Sprintf("TokenGetter.GetToken called %d times, want %d", factoryCalls, goroutines))
 	tassert.Equal(t, int32(1), atomic.LoadInt32(&factoryCalls), fmt.Sprintf("NewMysteryboxClient called %d times, want 1", factoryCalls))
 }
 
@@ -862,7 +951,7 @@ func newNebiusMysteryboxSecretStoreWithAuthTokenKey(apiDomain, namespace, tokenS
 	}
 }
 
-func newNebiusMysteryboxSecretStoreWithServiceAccountCreds(apiDomain, namespace, keySecretName, keySecretKey string) esv1.GenericStore {
+func newNebiusMysteryboxSecretStoreWithServiceAccountAndPrivateKeyCreds(apiDomain, namespace, keySecretName, keySecretKey string) esv1.GenericStore {
 	return &esv1.SecretStore{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: namespace,
@@ -882,6 +971,30 @@ func newNebiusMysteryboxSecretStoreWithServiceAccountCreds(apiDomain, namespace,
 		},
 	}
 }
+func newNebiusMysteryboxSecretStoreWithK8sServiceAccountCreds(apiDomain, namespace, serviceAccountName, iamServiceAccount string) esv1.GenericStore {
+	return &esv1.SecretStore{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			UID:       types.UID(uuid.New().String()),
+		},
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				NebiusMysterybox: &esv1.NebiusMysteryboxProvider{
+					APIDomain: apiDomain,
+					Auth: esv1.NebiusAuth{
+						WorkloadIdentity: &esv1.NebiusWorkloadIdentity{
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name:      serviceAccountName,
+								Namespace: &namespace,
+							},
+							IAMServiceAccountID: iamServiceAccount,
+						},
+					},
+				},
+			},
+		},
+	}
+}
 
 func createK8sSecret(ctx context.Context, t *testing.T, k8sClient k8sclient.Client, namespace, secretName, secretKey string, secretValue []byte) {
 	err := k8sClient.Create(ctx, &corev1.Secret{
@@ -890,6 +1003,15 @@ func createK8sSecret(ctx context.Context, t *testing.T, k8sClient k8sclient.Clie
 			Name:      secretName,
 		},
 		Data: map[string][]byte{secretKey: secretValue},
+	})
+	tassert.NoError(t, err)
+}
+func createK8sServiceAccount(ctx context.Context, t *testing.T, k8sClient k8sclient.Client, namespace, serviceAccountName string) {
+	err := k8sClient.Create(ctx, &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      serviceAccountName,
+		},
 	})
 	tassert.NoError(t, err)
 }
@@ -913,29 +1035,34 @@ func newProvider(t *testing.T, newMysteryboxClientFunc NewMysteryboxClient, toke
 	}
 }
 
+func newTestCachedTokenGetter(t *testing.T, tokenExchanger nebiusiam.TokenExchanger) *CachedTokenGetter {
+	t.Helper()
+	tokenGetter, err := NewCachedTokenGetter(
+		mysteryboxTokensCacheSize,
+		tokenExchanger,
+		clocktesting.NewFakeClock(time.Unix(0, 0)),
+	)
+	trequire.NoError(t, err)
+	return tokenGetter
+}
+
 type faketokenGetter struct {
-	calls        int32
-	returnError  bool
-	gotDomain    string
-	gotCreds     string
-	gotCACert    []byte
+	calls        atomic.Int32
 	tokenToIssue string
+	returnError  bool
 
 	mu sync.Mutex
 }
 
-func (f *faketokenGetter) GetToken(_ context.Context, apiDomain, subjectCreds string, caCert []byte) (string, error) {
-	atomic.AddInt32(&f.calls, 1)
+func (f *faketokenGetter) GetToken(_ context.Context, _ string, _ *nebiusauth.CredentialRequest, _ []byte) (string, error) {
+	f.calls.Add(1)
 
-	f.mu.Lock()
-	defer f.mu.Unlock()
-
-	f.gotDomain = apiDomain
-	f.gotCreds = subjectCreds
-	f.gotCACert = caCert
 	if f.returnError {
 		return "", errors.New("internal error")
 	}
+
+	f.mu.Lock()
+	defer f.mu.Unlock()
 
 	return f.tokenToIssue, nil
 }
@@ -947,7 +1074,7 @@ func setCacheSizeWorkaround(t *testing.T, size int, p *Provider) {
 	p.mysteryboxClientsCache.Resize(size)
 }
 
-func settokenGetterWorkaround(tokenGetter TokenGetter, p *Provider) {
+func setTokenGetterWorkaround(tokenGetter TokenGetter, p *Provider) {
 	p.tokenInitMutex.Lock()
 	defer p.tokenInitMutex.Unlock()
 
@@ -957,4 +1084,37 @@ func settokenGetterWorkaround(tokenGetter TokenGetter, p *Provider) {
 type ClientData struct {
 	domain string
 	ca     []byte
+}
+
+type recordingCoreV1 struct {
+	typedcorev1.CoreV1Interface
+	onTokenRequest func(*authenticationv1.TokenRequest)
+}
+
+func (c *recordingCoreV1) ServiceAccounts(namespace string) typedcorev1.ServiceAccountInterface {
+	return &recordingServiceAccounts{
+		ServiceAccountInterface: c.CoreV1Interface.ServiceAccounts(namespace),
+		onTokenRequest:          c.onTokenRequest,
+	}
+}
+
+type recordingServiceAccounts struct {
+	typedcorev1.ServiceAccountInterface
+	onTokenRequest func(*authenticationv1.TokenRequest)
+}
+
+func (s *recordingServiceAccounts) CreateToken(
+	ctx context.Context,
+	name string,
+	request *authenticationv1.TokenRequest,
+	opts metav1.CreateOptions,
+) (*authenticationv1.TokenRequest, error) {
+	s.onTokenRequest(request.DeepCopy())
+
+	return s.ServiceAccountInterface.CreateToken(
+		ctx,
+		name,
+		request,
+		opts,
+	)
 }
