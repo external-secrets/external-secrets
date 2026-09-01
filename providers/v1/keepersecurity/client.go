@@ -37,7 +37,7 @@ const (
 	errKeeperSecuritySecretsNotFound            = "unable to find secrets. %w"
 	errKeeperSecuritySecretNotFound             = "unable to find secret %s. Error: %w"
 	errKeeperSecuritySecretNotUnique            = "more than 1 secret %s found"
-	errKeeperSecurityNoSecretsFound             = "no secrets found"
+	errKeeperSecurityRecordNotFound             = "%w: no record matched %s"
 	errKeeperSecurityInvalidSecretInvalidFormat = "invalid secret. Invalid format: %w"
 	errKeeperSecurityInvalidSecretDuplicatedKey = "invalid Secret. Following keys are duplicated %s"
 	errKeeperSecurityInvalidProperty            = "invalid Property. Secret %s does not have any key matching %s"
@@ -121,6 +121,8 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 // GetSecret retrieves a secret from Keeper Security by ID or name.
 // It first attempts to find the secret by ID, then falls back to name lookup.
 // The name lookup must be opted in by setting getByTitleFallback on the provider.
+// A record that does not exist yields esv1.NoSecretErr, which is what the
+// reconciler keys deletionPolicy off.
 func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := c.findByIDWithNameFallback(ref.Key)
 	if err != nil {
@@ -161,7 +163,10 @@ func (c *Client) findByIDWithNameFallback(key string) (*Secret, error) {
 	}
 
 	if record == nil {
-		return nil, errors.New(errKeeperSecurityNoSecretsFound)
+		// Only a genuinely absent record gets the sentinel; the API failures
+		// wrapped by findSecretByID/GetSecretsByTitle above must stay generic so
+		// an outage is not mistaken for a deletion.
+		return nil, fmt.Errorf(errKeeperSecurityRecordNotFound, esv1.NoSecretErr, key)
 	}
 
 	secret, err := c.getValidKeeperSecret(record)
