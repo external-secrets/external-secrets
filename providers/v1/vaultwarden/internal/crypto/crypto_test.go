@@ -23,15 +23,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestEncryptDecryptRoundTrip(t *testing.T) {
-	encKey := make([]byte, 32)
-	macKey := make([]byte, 32)
+// deterministicTestKeys returns fixed enc/mac keys for deterministic tests.
+func deterministicTestKeys() (encKey, macKey []byte) {
+	encKey = make([]byte, 32)
+	macKey = make([]byte, 32)
 	for i := range encKey {
 		encKey[i] = byte(i + 1)
 	}
 	for i := range macKey {
 		macKey[i] = byte(i + 33)
 	}
+	return
+}
+
+func TestEncryptDecryptRoundTrip(t *testing.T) {
+	encKey, macKey := deterministicTestKeys()
 
 	plaintext := "hello, vaultwarden!"
 	enc, err := EncryptString(plaintext, encKey, macKey)
@@ -44,14 +50,7 @@ func TestEncryptDecryptRoundTrip(t *testing.T) {
 }
 
 func TestMACValidation(t *testing.T) {
-	encKey := make([]byte, 32)
-	macKey := make([]byte, 32)
-	for i := range encKey {
-		encKey[i] = byte(i + 1)
-	}
-	for i := range macKey {
-		macKey[i] = byte(i + 33)
-	}
+	encKey, macKey := deterministicTestKeys()
 
 	enc, err := EncryptString("test", encKey, macKey)
 	require.NoError(t, err)
