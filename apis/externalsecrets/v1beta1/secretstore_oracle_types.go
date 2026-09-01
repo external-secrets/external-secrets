@@ -17,6 +17,8 @@ limitations under the License.
 package v1beta1
 
 import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
@@ -66,6 +68,16 @@ type OracleProvider struct {
 	// that should be used when authenticating with WorkloadIdentity.
 	// +optional
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+
+	// DeletionGracePeriod is how long OCI Vault waits before permanently deleting
+	// a secret removed by a PushSecret with deletionPolicy=Delete. When set, the
+	// ScheduleSecretDeletion request carries an explicit TimeOfDeletion of
+	// now+deletionGracePeriod; the OCI API accepts 1 to 30 days (24h-720h).
+	// When omitted, no TimeOfDeletion is sent and OCI applies its own default
+	// (30 days). The secret name stays reserved until permanent deletion, so a
+	// shorter grace period makes the remoteKey reusable sooner.
+	// +optional
+	DeletionGracePeriod *metav1.Duration `json:"deletionGracePeriod,omitempty"`
 }
 
 // OracleAuth defines authentication configuration for the Oracle Vault provider.

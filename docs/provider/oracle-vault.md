@@ -99,3 +99,27 @@ If [retrieving multiple secrets](https://external-secrets.io/latest/guides/getal
 ```yaml
 {% include 'oracle-secret-store-pushsecret.yaml' %}
 ```
+
+### Deletion grace period
+
+When a `PushSecret` with `deletionPolicy: Delete` removes a secret, ESO schedules
+it for deletion in OCI Vault. By default no deletion time is sent, so OCI applies
+its own default of 30 days — and the secret's name stays reserved (the secret is in
+`PENDING_DELETION`) until it is permanently deleted, which blocks recreating a
+PushSecret with the same `remoteKey` during that window.
+
+To shorten that window, set the optional `deletionGracePeriod` on the Oracle
+provider. OCI accepts between 1 and 30 days (`24h` to `720h`):
+
+```yaml
+spec:
+  provider:
+    oracle:
+      # ...
+      # Permanently delete pushed secrets 24h after deletion is requested,
+      # instead of OCI's 30-day default.
+      deletionGracePeriod: 24h
+```
+
+When `deletionGracePeriod` is omitted, behaviour is unchanged from previous
+releases: OCI's 30-day default applies.
