@@ -5,12 +5,13 @@ tests:
   - it: should match snapshot of default values
     asserts:
       - matchSnapshot: {}
-  - it: should disable conversion webhook
+  - it: should set conversion strategy to None when conversion webhook is disabled
     set:
       crds.conversion.enabled: false
     asserts:
-      - isNull:
-          path: spec.conversion
+      - equal:
+          path: spec.conversion.strategy
+          value: None
 
   - it: should add annotations
     set:

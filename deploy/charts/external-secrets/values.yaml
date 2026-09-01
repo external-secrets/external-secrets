@@ -71,7 +71,8 @@ crds:
   createPushSecret: true
   annotations: {}
   conversion:
-    # -- Conversion is disabled by default as we stopped supporting v1alpha1.
+    # -- Conversion webhook is disabled by default as we stopped supporting v1alpha1.
+    # Helm CRD templates always set `spec.conversion.strategy: None` so installs using server-side apply (`helm upgrade --server-side`) succeed.
     enabled: false
   # -- If true, enable v1beta1 API version serving for ExternalSecret, ClusterExternalSecret, SecretStore, and ClusterSecretStore CRDs.
   # v1beta1 is deprecated. Only enable this for backward compatibility if you have existing v1beta1 resources.

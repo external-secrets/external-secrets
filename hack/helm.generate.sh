@@ -19,6 +19,10 @@ yq e -Ns "\"${HELM_DIR}/templates/crds/\" + .spec.names.singular" ${BUNDLE_DIR}/
 for i in "${HELM_DIR}"/templates/crds/*.yml; do
   export CRDS_FLAG_NAME="create$(yq e '.spec.names.kind' "${i}")"
   cp "$i" "$i.bkp"
+
+  # Server-side apply requires an explicit conversion strategy. Client-side apply treated a missing spec.conversion as None; SSA does not (see #4673).
+  yq e '.spec.conversion.strategy = "None"' -i "$i.bkp"
+
   if [[ "${CRDS_FLAG_NAME}" == *"ExternalSecret"* || "${CRDS_FLAG_NAME}" == *"SecretStore"* ]]; then
     yq e '(.spec.versions[] | select(.name == "v1alpha1")) |= ("{{- if .Values.crds.conversion.enabled }}\n \(.)\n {{- end }}")' -i "$i.bkp" || true
     $SEDPRG -i '/- |-/d' "$i.bkp"
