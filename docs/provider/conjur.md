@@ -185,6 +185,99 @@ kubectl apply -n external-secrets -f conjur-secret-store.yaml
 # kubectl delete secretstore -n external-secrets conjur
 ```
 
+### Option 4: External secret store with IAM authentication
+
+This method uses the AWS IAM `authn-iam` authenticator to authenticate with Secrets Manager. The ESO pod presents a signed AWS `GetCallerIdentity` request; Conjur verifies it against the IAM role mapped to the Conjur host. No long-lived credentials are stored — ambient credentials are used automatically (IRSA, EC2 instance profile, ECS task role, environment variables, etc.).
+
+When you use IAM authentication, the following must be specified in the `SecretStore`:
+
+* `account` — The name of the Secrets Manager account.
+* `serviceID` — The ID of the IAM Authenticator `WebService` configured in Secrets Manager.
+* `hostId` — The Conjur host mapped to the AWS IAM role (e.g. `data/myapp/123456789012/MyRole`).
+
+Optionally, you may reference a Kubernetes Secret that contains explicit AWS credentials via the `secretRef` field:
+
+* `accessKeyIDSecretRef` — Reference to a Secret key containing the AWS Access Key ID.
+* `secretAccessKeySecretRef` — Reference to a Secret key containing the AWS Secret Access Key.
+* `sessionTokenSecretRef` (optional) — Reference to a Secret key containing the AWS Session Token. Required only when using temporary credentials (for example, credentials obtained via `AssumeRole` or `AssumeRoleWithWebIdentity`).
+
+If `secretRef` is omitted, the default AWS SDK credential chain is used.
+
+#### Step 1: Define an external secret store
+
+```yaml
+{% include 'conjur-secret-store-iam.yaml' %}
+```
+
+#### Step 2: Create the external secrets store
+
+```shell
+kubectl apply -n external-secrets -f conjur-secret-store.yaml
+```
+
+### Option 5: External secret store with Azure authentication
+
+This method uses the Azure `authn-azure` authenticator to authenticate with Secrets Manager. The ESO pod presents an Azure JWT token; Conjur verifies it against the managed identity mapped to the Conjur host.
+
+Two sub-modes are available:
+
+* **Ambient IMDS** (recommended on AKS / Azure VM): no `serviceAccountRef` is set. `conjur-api-go` fetches the Azure JWT from the Azure Instance Metadata Service (IMDS) automatically. Use this when the pod runs on Azure infrastructure with a managed identity attached.
+* **ServiceAccount token** (`serviceAccountRef`): ESO requests a Kubernetes ServiceAccount token via the TokenRequest API and forwards it as the Azure JWT. Use this for local testing or when running outside Azure.
+
+For **user-assigned** managed identities you must also set `clientId` to the client ID of the managed identity. For **system-assigned** identities, omit `clientId`.
+
+#### Step 1: Define an external secret store (ambient IMDS)
+
+```yaml
+{% include 'conjur-secret-store-azure-ambient.yaml' %}
+```
+
+#### Step 1 (alternative): Define an external secret store (ServiceAccount token)
+
+```yaml
+{% include 'conjur-secret-store-azure-sa.yaml' %}
+```
+
+#### Step 2: Create the external secrets store
+
+```shell
+kubectl apply -n external-secrets -f conjur-secret-store.yaml
+```
+
+### Option 6: External secret store with GCP authentication
+
+This method uses the GCP `authn-gcp` authenticator to authenticate with Secrets Manager. The ESO pod presents a GCP identity token; Conjur verifies it against the service account mapped to the Conjur host.
+
+Two sub-modes are supported:
+
+* **Ambient GCP Metadata Service** (recommended on GKE with Workload Identity): no `secretRef` is set. `conjur-api-go` fetches the GCP identity token from the GCP Metadata Service automatically. Use this when the pod runs on GKE with Workload Identity or on a GCE instance.
+* **Kubernetes Secret** (`secretRef`): a pre-obtained GCP identity token is read from a Kubernetes Secret. Use this for local testing or when running outside GCP.
+
+The following must be specified in the `SecretStore`:
+
+* `account` — The Conjur organization account name.
+* `hostId` — The Conjur host mapped to the GCP service account (e.g. `data/myapp/myhost`).
+
+Optionally, you may set `serviceID` to the GCP Authenticator `WebService` ID configured in Conjur policy. This field is reserved for future use; Conjur's authn-gcp authenticator does not include the service ID in the authentication URL.
+
+#### Step 1: Define an external secret store (ambient GCP Metadata Service)
+
+```yaml
+{% include 'conjur-secret-store-gcp-ambient.yaml' %}
+```
+
+#### Step 1 (alternative): Define an external secret store (explicit token from Kubernetes Secret)
+
+```yaml
+{% include 'conjur-secret-store-gcp-secretref.yaml' %}
+```
+
+#### Step 2: Create the external secrets store
+
+```shell
+kubectl apply -n external-secrets -f conjur-secret-store.yaml
+```
+
 ## Define an external secret
 
 After you have configured the Secrets Manager provider secret store, you can fetch secrets from Secrets Manager.
