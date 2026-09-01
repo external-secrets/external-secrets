@@ -5488,6 +5488,7 @@
 </li>
 </ul>
 <p><strong>NOTE:</strong> For complex <a href="https://docs.keeper.io/secrets-manager/secrets-manager/about/field-record-types">types</a>, like name, phone, bankAccount, which does not match with a single string value, external secrets will return the complete json string. Use the json template functions to decode.</p>
+<p><strong>NOTE:</strong> A record that cannot be found is reported as a missing secret, which is what <code>deletionPolicy: Delete</code> and <code>deletionPolicy: Merge</code> act on. Keeper Secrets Manager returns an empty record set both for a record that was deleted and for one that is simply no longer shared with the KSM application, and the two are indistinguishable to the provider. So with <code>deletionPolicy: Delete</code>, revoking the application's access to a record removes the key from the target Secret exactly as if the record had been deleted. Use the default <code>deletionPolicy: Retain</code> if that is not what you want.</p>
 <h3 id="creating-external-secret">Creating external secret</h3>
 <p>To create a kubernetes secret from Keeper Secret Manager secret a <code>Kind=ExternalSecret</code> is needed.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
