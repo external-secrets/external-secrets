@@ -82,7 +82,7 @@ targets:
       - addprefix: 'apache/skywalking-eyes:'
     spec:
       file: Makefile
-      matchpattern: 'apache/skywalking-eyes:[^ ]+'
+      matchpattern: 'apache/skywalking-eyes:[^[:space:]]+'
   helm_docs:
     kind: file
     sourceid: helm_docs
@@ -90,7 +90,7 @@ targets:
       - addprefix: 'docker.io/jnorwood/helm-docs:'
     spec:
       file: Makefile
-      matchpattern: 'docker.io/jnorwood/helm-docs:[^ ]+'
+      matchpattern: 'docker.io/jnorwood/helm-docs:[^[:space:]]+'
   kind_node:
     kind: file
     sourceid: kind_node
@@ -108,7 +108,7 @@ targets:
       - addprefix: 'curlimages/curl:'
     spec:
       file: e2e/framework/addon/conjur.go
-      matchpattern: 'curlimages/curl:[^" ]+'
+      matchpattern: 'curlimages/curl:[^"[:space:]]+'
   distroless_debian12:
     kind: file
     sourceid: distroless_debian12
@@ -116,7 +116,7 @@ targets:
       - addprefix: 'gcr.io/distroless/static-debian12:'
     spec:
       file: e2e/framework/addon/conjur.go
-      matchpattern: 'gcr.io/distroless/static-debian12:[^" ]+'
+      matchpattern: 'gcr.io/distroless/static-debian12:[^"[:space:]]+'
   pull_request_label_checker:
     kind: file
     sourceid: pull_request_label_checker
@@ -124,4 +124,4 @@ targets:
       - addprefix: 'docker://agilepathway/pull-request-label-checker:'
     spec:
       file: .github/workflows/pull-request-label.yml
-      matchpattern: 'docker://agilepathway/pull-request-label-checker:[^ ]+'
+      matchpattern: 'docker://agilepathway/pull-request-label-checker:[^[:space:]]+'
