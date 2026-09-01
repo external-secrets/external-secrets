@@ -82,11 +82,7 @@ binary_deps = [
 if settings.get('debug').get('enabled'):
     gcflags = '-N -l'
     build_command_prefix = 'make dlv && '
-    binary_deps += [
-        "Makefile",
-        "hack/tool-installer",
-        "hack/tool-versions.json",
-    ]
+    binary_deps += ["Makefile"]
 
 buildtags = settings.get('buildtags', 'all_providers')
 

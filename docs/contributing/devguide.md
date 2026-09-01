@@ -79,18 +79,16 @@ make update-deps-go UPDATECLI_ACTION=diff
 
 The supported `UPDATECLI_KIND` values are `go`, `github-actions`, `docker`,
 `tools`, `helm`, `python`, and `terraform`. Development tool versions and
-checksums are stored in `hack/tool-versions.json`. The lock file is formatted
-with alphabetically sorted object keys after tool updates so its on-disk order
-is deterministic; do not manually rearrange its entries. Make downloads the
-locked upstream release binaries into `bin/` for the current Linux or macOS
-amd64/arm64 platform. Set `INSTALL_FOLDER` to use another location. The
-installer records installed versions and release-asset checksums in
-`$INSTALL_FOLDER/.installed-versions`.
+platform checksums are pinned directly in the `Tool Binaries` section of the
+Makefile. Make downloads and verifies their upstream release assets with
+`curl`, `tar`, and either `sha256sum` or `shasum`, then installs them into
+`bin/`. Set `LOCALBIN` to use another location. The installed binaries are the
+Make outputs; no additional installation-state files are maintained.
 
-The `setup-envtest` tool installs Kubernetes test control-plane binaries. Its
-CLI release is locked under `tools.setup-envtest`, while the independent
-Kubernetes asset version is locked under `assets.envtest.kubernetesVersion`.
-The `gen-crd-api-reference-docs` tool remains source-built from its isolated Go
+The `SETUP_ENVTEST_VERSION` variable pins the `setup-envtest` CLI. The
+independent `ENVTEST_KUBERNETES_VERSION` variable selects the Kubernetes test
+control-plane binaries downloaded by that CLI. The
+`gen-crd-api-reference-docs` tool remains source-built from its isolated Go
 module.
 
 After applying updates, inspect and commit all changes, then run
