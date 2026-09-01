@@ -298,6 +298,9 @@ func TestClientGetSecret(t *testing.T) {
 		args    args
 		want    []byte
 		wantErr bool
+		// wantNoSecretErr is asserted for every case, so a failure that is not a
+		// missing record must not carry the sentinel either.
+		wantNoSecretErr bool
 	}{
 		{
 			name: "Get Secret with a property (no label)",
@@ -497,7 +500,8 @@ func TestClientGetSecret(t *testing.T) {
 					Key: "record5",
 				},
 			},
-			wantErr: true,
+			wantErr:         true,
+			wantNoSecretErr: true,
 		},
 		{
 			name: "Get non existing secret with fallback",
@@ -519,7 +523,8 @@ func TestClientGetSecret(t *testing.T) {
 					Key: "record5",
 				},
 			},
-			wantErr: true,
+			wantErr:         true,
+			wantNoSecretErr: true,
 		},
 		{
 			name: "Get valid secret with non existing property",
@@ -601,6 +606,9 @@ func TestClientGetSecret(t *testing.T) {
 				t.Errorf("GetSecret() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+			if isNoSecret := errors.Is(err, esv1.NoSecretErr); isNoSecret != tt.wantNoSecretErr {
+				t.Errorf("GetSecret() errors.Is(err, NoSecretErr) = %v, want %v (err = %v)", isNoSecret, tt.wantNoSecretErr, err)
+			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetSecret() got = %v, want %v", got, tt.want)
 			}
@@ -618,11 +626,12 @@ func TestClientGetSecretMap(t *testing.T) {
 		ref esv1.ExternalSecretDataRemoteRef
 	}
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    map[string][]byte
-		wantErr bool
+		name            string
+		fields          fields
+		args            args
+		want            map[string][]byte
+		wantErr         bool
+		wantNoSecretErr bool
 	}{
 		{
 			name: "Get Secret with valid property (no label)",
@@ -715,11 +724,13 @@ func TestClientGetSecretMap(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "Get non existing secret",
+			// The API call itself fails here, so this must not be reported as a
+			// missing record.
+			name: "Get secret when the API call fails",
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
 					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
-						return nil, errors.New(errKeeperSecurityNoSecretsFound)
+						return nil, errors.New("keeper API unavailable")
 					},
 				},
 				folderID: folderID,
@@ -731,6 +742,25 @@ func TestClientGetSecretMap(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "Get non existing secret",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsFn: func(filter []string) ([]*ksm.Record, error) {
+						return []*ksm.Record{}, nil
+					},
+				},
+				folderID: folderID,
+			},
+			args: args{
+				ctx: context.Background(),
+				ref: esv1.ExternalSecretDataRemoteRef{
+					Key: "record5",
+				},
+			},
+			wantErr:         true,
+			wantNoSecretErr: true,
 		},
 		{
 			name: "Get Secret with invalid property",
@@ -762,6 +792,9 @@ func TestClientGetSecretMap(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("GetSecretMap() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			if isNoSecret := errors.Is(err, esv1.NoSecretErr); isNoSecret != tt.wantNoSecretErr {
+				t.Errorf("GetSecretMap() errors.Is(err, NoSecretErr) = %v, want %v (err = %v)", isNoSecret, tt.wantNoSecretErr, err)
 			}
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("GetSecretMap() got = %v, want %v", got, tt.want)
