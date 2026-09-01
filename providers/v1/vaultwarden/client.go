@@ -118,13 +118,12 @@ type pushSecretMetadata struct {
 	MergePolicy pushMergePolicy `json:"mergePolicy,omitempty"`
 }
 
-// Close is a no-op; the HTTP client is reusable and has no per-session state.
+// Close is a no-op.
 func (c *Client) Close(_ context.Context) error {
 	return nil
 }
 
-// Validate checks whether the client can authenticate and list ciphers.
-// ClusterSecretStore cannot be validated (returns Unknown).
+// Validate returns Unknown for ClusterSecretStore; otherwise authenticates and lists ciphers.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
 	if c.store.GetObjectKind().GroupVersionKind().Kind == esv1.ClusterSecretStoreKind {
 		return esv1.ValidationResultUnknown, nil
@@ -290,7 +289,6 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	return out, nil
 }
 
-// compileNameRegexp returns a compiled regexp from the find ref, or nil if none is set.
 func compileNameRegexp(ref esv1.ExternalSecretFind) (*regexp.Regexp, error) {
 	if ref.Name == nil || ref.Name.RegExp == "" {
 		return nil, nil
@@ -302,8 +300,7 @@ func compileNameRegexp(ref esv1.ExternalSecretFind) (*regexp.Regexp, error) {
 	return re, nil
 }
 
-// decryptCipherEntry decrypts a cipher's name and value, applying the optional name filter.
-// Returns (name, value, true) on success or ("", nil, false) if the entry should be skipped.
+// decryptCipherEntry returns (name, value, true) or ("", nil, false) if the entry should be skipped.
 func decryptCipherEntry(cipher *vaultwardenCipher, nameRe *regexp.Regexp, symEncKey, symMacKey []byte) (string, []byte, bool) {
 	if cipher.DeletedDate != nil {
 		return "", nil, false
@@ -319,7 +316,6 @@ func decryptCipherEntry(cipher *vaultwardenCipher, nameRe *regexp.Regexp, symEnc
 	return name, []byte(val), true
 }
 
-// decryptCipherPrimaryValue returns the primary plaintext value of a cipher.
 func decryptCipherPrimaryValue(cipher *vaultwardenCipher, symEncKey, symMacKey []byte) (string, error) {
 	if cipher.Type == 2 {
 		return crypto.DecryptString(cipher.Notes, symEncKey, symMacKey)
@@ -335,7 +331,9 @@ func decryptCipherPrimaryValue(cipher *vaultwardenCipher, symEncKey, symMacKey [
 func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	var meta pushSecretMetadata
 	if m := data.GetMetadata(); m != nil {
-		_ = json.Unmarshal(m.Raw, &meta)
+		if err := json.Unmarshal(m.Raw, &meta); err != nil {
+			return fmt.Errorf("vaultwarden: invalid push metadata: %w", err)
+		}
 	}
 	if meta.MergePolicy == "" {
 		meta.MergePolicy = mergePolicyReplace
@@ -389,7 +387,6 @@ func buildPushValue(secret *corev1.Secret, data esv1.PushSecretData) ([]byte, er
 	return b, nil
 }
 
-// buildCipherBody encrypts the cipher name and notes and serialises the body.
 func (c *Client) buildCipherBody(name, notes string, symEncKey, symMacKey []byte) ([]byte, error) {
 	encName, err := crypto.EncryptString(name, symEncKey, symMacKey)
 	if err != nil {
@@ -455,7 +452,6 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 
 	cipher := findCipherByNameNoErr(ciphers, remoteRef.GetRemoteKey(), symEncKey, symMacKey)
 	if cipher == nil {
-		// Not found — idempotent delete.
 		return nil
 	}
 
@@ -495,7 +491,6 @@ func (c *Client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemo
 	return cipher != nil, nil
 }
 
-// listCiphersWithToken retrieves all ciphers using the provided bearer token.
 func (c *Client) listCiphersWithToken(ctx context.Context, accessToken string) ([]vaultwardenCipher, error) {
 	ciphersURL := strings.TrimRight(c.provider.URL, "/") + "/api/ciphers"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, ciphersURL, nil)
@@ -521,7 +516,7 @@ func (c *Client) listCiphersWithToken(ctx context.Context, accessToken string) (
 	return list.Data, nil
 }
 
-// findCipherByName returns the first cipher whose decrypted name equals target.
+// findCipherByName returns the matching cipher or esv1.NoSecretError.
 // Returns an error if not found.
 func findCipherByName(ciphers []vaultwardenCipher, target string, symEncKey, symMacKey []byte) (*vaultwardenCipher, error) {
 	c := findCipherByNameNoErr(ciphers, target, symEncKey, symMacKey)
@@ -531,7 +526,7 @@ func findCipherByName(ciphers []vaultwardenCipher, target string, symEncKey, sym
 	return c, nil
 }
 
-// findCipherByNameNoErr returns the first cipher whose decrypted name equals target, or nil.
+// findCipherByNameNoErr is like findCipherByName but returns nil instead of an error.
 func findCipherByNameNoErr(ciphers []vaultwardenCipher, target string, symEncKey, symMacKey []byte) *vaultwardenCipher {
 	for i := range ciphers {
 		if ciphers[i].DeletedDate != nil {
