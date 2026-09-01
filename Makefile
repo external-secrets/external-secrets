@@ -157,7 +157,7 @@ build-%: generate ## Build binary for the specified arch
 lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
 	@if [ -n "$(LINT_TARGET)" ]; then \
 		$(INFO) Running golangci-lint on $(LINT_TARGET); \
-		(cd $(LINT_TARGET) && $(GOLANGCI_LINT) run ./...) || exit 1; \
+		(cd $(LINT_TARGET) && GOWORK=off $(GOLANGCI_LINT) run ./...) || exit 1; \
 		$(OK) Finished linting $(LINT_TARGET); \
 	else \
 		$(INFO) Running golangci-lint on all modules in parallel; \
@@ -171,7 +171,7 @@ lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific mod
 			module="$$0"; \
 			name=$$(echo "$$module" | sed "s/[\/\.]/_/g"); \
 			echo "Linting $$module"; \
-			if (cd "$$module" && $$GOLANGCI run ./... 2>&1); then \
+			if (cd "$$module" && GOWORK=off $$GOLANGCI run ./... 2>&1); then \
 				echo "✓ $$module" > "$$TMPDIR/$$name.success"; \
 			else \
 				echo "✗ $$module" > "$$TMPDIR/$$name.failed"; \
