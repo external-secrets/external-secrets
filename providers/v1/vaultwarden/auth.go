@@ -55,14 +55,11 @@ type vaultwardenProfile struct {
 	KdfParallelism *int   `json:"kdfParallelism"`
 }
 
-// resolveSecretKeyRef is a helper that reads a K8s secret value using a SecretKeySelector.
 func (c *Client) resolveSecretKeyRef(ctx context.Context, sel esmeta.SecretKeySelector) (string, error) {
 	storeKind := c.store.GetObjectKind().GroupVersionKind().Kind
 	return resolvers.SecretKeyRef(ctx, c.crClient, storeKind, c.namespace, &sel)
 }
 
-// fetchToken authenticates with Vaultwarden's identity endpoint and returns the token response.
-// It reads clientID, clientSecret and masterPassword from Kubernetes secrets referenced in the store.
 func (c *Client) fetchToken(ctx context.Context) (*vaultwardenTokenResponse, error) {
 	secretRef := c.provider.Auth.SecretRef
 
@@ -109,14 +106,13 @@ func (c *Client) fetchToken(ctx context.Context) (*vaultwardenTokenResponse, err
 	return &tokenResp, nil
 }
 
-// fetchProfile retrieves the account profile using the provided bearer token.
 func (c *Client) fetchProfile(ctx context.Context, accessToken string) (*vaultwardenProfile, error) {
 	profileURL := strings.TrimRight(c.provider.URL, "/") + "/api/accounts/profile"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, profileURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("vaultwarden: building profile request: %w", err)
 	}
-	req.Header.Set("Authorization", "Bearer "+accessToken)
+	req.Header.Set("Authorization", bearerPrefix+accessToken)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -135,13 +131,8 @@ func (c *Client) fetchProfile(ctx context.Context, accessToken string) (*vaultwa
 	return &profile, nil
 }
 
-// getSymKey fetches (or returns a cached) access token and symmetric key material.
-// It authenticates with Vaultwarden, fetches the account profile, derives the master key,
-// and decrypts the user's symmetric encryption key. Results are cached for 5 minutes.
-//
-// The mutex is held only for the cache check and cache write; the expensive HTTP calls
-// and key derivation run outside the lock so concurrent reconciles are not serialized
-// behind network latency and crypto work.
+// getSymKey returns a cached or freshly derived access token and symmetric key material.
+// Expensive HTTP calls and key derivation happen outside the mutex lock.
 func (c *Client) getSymKey(ctx context.Context) (accessToken string, symEncKey, symMacKey []byte, err error) {
 	c.mu.Lock()
 	if c.cache != nil && time.Now().Before(c.cache.expiresAt) {

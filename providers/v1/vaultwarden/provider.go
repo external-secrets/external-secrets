@@ -42,7 +42,7 @@ type Provider struct{}
 
 var _ esv1.Provider = &Provider{}
 
-// Capabilities returns the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
+// Capabilities returns ReadWrite.
 func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadWrite
 }
@@ -101,19 +101,16 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	return nil, nil
 }
 
-// NewProvider returns a new Vaultwarden provider instance.
 func NewProvider() esv1.Provider {
 	return &Provider{}
 }
 
-// ProviderSpec returns the SecretStoreProvider spec for Vaultwarden registration.
 func ProviderSpec() *esv1.SecretStoreProvider {
 	return &esv1.SecretStoreProvider{
 		Vaultwarden: &esv1.VaultwardenProvider{},
 	}
 }
 
-// MaintenanceStatus returns the maintenance status of the provider.
 func MaintenanceStatus() esv1.MaintenanceStatus {
 	return esv1.MaintenanceStatusMaintained
 }
