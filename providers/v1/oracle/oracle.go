@@ -365,10 +365,10 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1.Gen
 	}
 
 	return &VaultManagementService{
-		Client:         secretManagementService,
-		KmsVaultClient: kmsVaultClient,
-		VaultClient:    vaultClient,
-		vault:          oracleSpec.Vault,
+		Client:              secretManagementService,
+		KmsVaultClient:      kmsVaultClient,
+		VaultClient:         vaultClient,
+		vault:               oracleSpec.Vault,
 		compartment:         oracleSpec.Compartment,
 		encryptionKey:       oracleSpec.EncryptionKey,
 		deletionGracePeriod: oracleSpec.DeletionGracePeriod,
