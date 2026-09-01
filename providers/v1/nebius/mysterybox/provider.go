@@ -27,12 +27,16 @@ import (
 	"github.com/go-logr/logr"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/spf13/pflag"
+	"k8s.io/client-go/kubernetes"
+	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/utils/clock"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/auth"
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/iam"
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/mysterybox"
 	"github.com/external-secrets/external-secrets/runtime/constants"
@@ -52,12 +56,16 @@ var (
 // NewMysteryboxClient is a function that describes how to create a Nebius MysteryBox client to interact within.
 type NewMysteryboxClient func(ctx context.Context, apiDomain string, caCertificate []byte) (mysterybox.Client, error)
 
+// NewCoreV1Client creates a typed Kubernetes CoreV1 client.
+type NewCoreV1Client func() (typedcorev1.CoreV1Interface, error)
+
 // SecretsClientConfig holds configuration for interacting with.
 type SecretsClientConfig struct {
 	APIDomain           string
 	ServiceAccountCreds *esmeta.SecretKeySelector
 	Token               *esmeta.SecretKeySelector
 	CACertificate       *esmeta.SecretKeySelector
+	WorkloadIdentity    *esv1.NebiusWorkloadIdentity
 }
 
 // ClientCacheKey represents a unique key for identifying cached MysteryBox clients.
@@ -71,9 +79,12 @@ type ClientCacheKey struct {
 type Provider struct {
 	Logger                      logr.Logger
 	NewMysteryboxClient         NewMysteryboxClient
+	NewCoreV1Client             NewCoreV1Client
 	TokenGetter                 TokenGetter
+	coreV1Client                typedcorev1.CoreV1Interface
 	mysteryboxClientsCache      *lru.Cache
 	tokenInitMutex              sync.Mutex
+	coreV1InitMutex             sync.Mutex
 	cacheInitMutex              sync.Mutex
 	mysteryboxClientsCacheMutex sync.Mutex
 }
@@ -124,31 +135,40 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 // getIamToken retrieves an IAM token based on the provided SecretsClientConfig and authentication options.
 // It supports token retrieval from a predefined secret or via service account credentials with the TokenGetter.
 func (p *Provider) getIamToken(ctx context.Context, config *SecretsClientConfig, store esv1.GenericStore, kube client.Client, namespace string, caCert []byte) (string, error) {
-	if config.Token.Name != "" {
-		iamToken, err := resolvers.SecretKeyRef(
-			ctx,
-			kube,
-			store.GetKind(),
-			namespace,
-			config.Token,
-		)
+	if config.Token != nil && config.Token.Name != "" {
+		creds, err := auth.GetTokenCredentials(ctx, config.Token, store, kube, namespace)
 		if err != nil {
-			return "", fmt.Errorf("read token secret %s/%s: %w", namespace, config.Token.Name, err)
+			return "", err
 		}
-		return strings.TrimSpace(iamToken), nil
+		return creds.Token, nil
 	}
-	if config.ServiceAccountCreds.Name != "" {
-		subjectCreds, err := resolvers.SecretKeyRef(
-			ctx,
-			kube,
-			store.GetKind(),
+	if config.ServiceAccountCreds != nil && config.ServiceAccountCreds.Name != "" {
+		credentialsRequest, err := auth.NewServiceAccountCredentialsRequest(ctx, config.ServiceAccountCreds, store, kube, namespace)
+		if err != nil {
+			return "", err
+		}
+		token, err := p.TokenGetter.GetToken(ctx, config.APIDomain, credentialsRequest, caCert)
+		if err != nil {
+			return "", fmt.Errorf(errFailedToRetrieveToken, err)
+		}
+		return strings.TrimSpace(token), nil
+	}
+	if config.WorkloadIdentity != nil && config.WorkloadIdentity.ServiceAccountRef != nil && config.WorkloadIdentity.ServiceAccountRef.Name != "" && config.WorkloadIdentity.IAMServiceAccountID != "" {
+		coreV1Client, err := p.getOrCreateCoreV1Client()
+		if err != nil {
+			return "", fmt.Errorf("initialize Kubernetes CoreV1 client: %w", err)
+		}
+		credentialsRequest, err := auth.NewFederatedAccountCredentialsRequest(
+			*config.WorkloadIdentity.ServiceAccountRef,
+			config.WorkloadIdentity.IAMServiceAccountID,
+			store,
+			coreV1Client,
 			namespace,
-			config.ServiceAccountCreds,
 		)
 		if err != nil {
-			return "", fmt.Errorf("read service account creds %s/%s: %w", namespace, config.ServiceAccountCreds.Name, err)
+			return "", err
 		}
-		token, err := p.TokenGetter.GetToken(ctx, config.APIDomain, subjectCreds, caCert)
+		token, err := p.TokenGetter.GetToken(ctx, config.APIDomain, credentialsRequest, caCert)
 		if err != nil {
 			return "", fmt.Errorf(errFailedToRetrieveToken, err)
 		}
@@ -212,15 +232,24 @@ func parseConfig(store esv1.GenericStore) (*SecretsClientConfig, error) {
 		return nil, errors.New(errMissingAPIDomain)
 	}
 
+	var token *esmeta.SecretKeySelector
+	if nebiusMysteryboxProvider.Auth.Token.Name != "" {
+		token = &nebiusMysteryboxProvider.Auth.Token
+	}
 	var caCertificate *esmeta.SecretKeySelector
 	if nebiusMysteryboxProvider.CAProvider != nil {
 		caCertificate = &nebiusMysteryboxProvider.CAProvider.Certificate
 	}
+	var serviceAccountCreds *esmeta.SecretKeySelector
+	if nebiusMysteryboxProvider.Auth.ServiceAccountCreds.Name != "" {
+		serviceAccountCreds = &nebiusMysteryboxProvider.Auth.ServiceAccountCreds
+	}
 	return &SecretsClientConfig{
 		APIDomain:           strings.TrimSpace(nebiusMysteryboxProvider.APIDomain),
-		ServiceAccountCreds: &nebiusMysteryboxProvider.Auth.ServiceAccountCreds,
-		Token:               &nebiusMysteryboxProvider.Auth.Token,
+		ServiceAccountCreds: serviceAccountCreds,
+		Token:               token,
 		CACertificate:       caCertificate,
+		WorkloadIdentity:    nebiusMysteryboxProvider.Auth.WorkloadIdentity,
 	}, nil
 }
 
@@ -288,11 +317,44 @@ func (p *Provider) initTokenGetter() error {
 	return err
 }
 
+func (p *Provider) getOrCreateCoreV1Client() (typedcorev1.CoreV1Interface, error) {
+	p.coreV1InitMutex.Lock()
+	defer p.coreV1InitMutex.Unlock()
+
+	if p.coreV1Client != nil {
+		return p.coreV1Client, nil
+	}
+
+	newCoreV1Client := p.NewCoreV1Client
+	if newCoreV1Client == nil {
+		newCoreV1Client = newCoreV1ClientFromConfig
+	}
+	coreV1Client, err := newCoreV1Client()
+	if err != nil {
+		return nil, err
+	}
+	p.coreV1Client = coreV1Client
+	return p.coreV1Client, nil
+}
+
+func newCoreV1ClientFromConfig() (typedcorev1.CoreV1Interface, error) {
+	restConfig, err := ctrlcfg.GetConfig()
+	if err != nil {
+		return nil, err
+	}
+	clientset, err := kubernetes.NewForConfig(restConfig)
+	if err != nil {
+		return nil, err
+	}
+	return clientset.CoreV1(), nil
+}
+
 // NewProvider creates a new Provider instance.
 func NewProvider() esv1.Provider {
 	return &Provider{
 		Logger:              log,
 		NewMysteryboxClient: newMysteryboxClient,
+		NewCoreV1Client:     newCoreV1ClientFromConfig,
 	}
 }
 
