@@ -41,7 +41,6 @@ type client struct {
 }
 
 const (
-	errPushSecretsNotSupported       = "pushing secrets is currently not supported by Pulumi"
 	errDeleteSecretsNotSupported     = "deleting secrets is currently not supported by Pulumi"
 	errUnableToGetValues             = "unable to get value for key %s: %w"
 	errGettingAllSecretsNotSupported = "getting all secrets is currently not supported by Pulumi"
@@ -141,7 +140,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 }
 
 func (c *client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New(errPushSecretsNotSupported)
+	return false, errors.New("not implemented")
 }
 
 func (c *client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
