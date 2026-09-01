@@ -60,6 +60,9 @@ func (c *Client) resolveSecretKeyRef(ctx context.Context, sel esmeta.SecretKeySe
 	return resolvers.SecretKeyRef(ctx, c.crClient, storeKind, c.namespace, &sel)
 }
 
+// fetchToken authenticates via OAuth2 client credentials.
+// Bitwarden/Vaultwarden identity API: POST /identity/connect/token
+// https://bitwarden.com/help/public-api/#authentication
 func (c *Client) fetchToken(ctx context.Context) (*vaultwardenTokenResponse, error) {
 	secretRef := c.provider.Auth.SecretRef
 
@@ -106,6 +109,9 @@ func (c *Client) fetchToken(ctx context.Context) (*vaultwardenTokenResponse, err
 	return &tokenResp, nil
 }
 
+// fetchProfile fetches the account profile to read the encrypted symmetric key and KDF params.
+// Bitwarden/Vaultwarden accounts API: GET /api/accounts/profile
+// https://bitwarden.com/help/public-api/
 func (c *Client) fetchProfile(ctx context.Context, accessToken string) (*vaultwardenProfile, error) {
 	profileURL := strings.TrimRight(c.provider.URL, "/") + "/api/accounts/profile"
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, profileURL, nil)
