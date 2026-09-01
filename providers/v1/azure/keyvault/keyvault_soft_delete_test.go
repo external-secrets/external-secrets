@@ -18,51 +18,26 @@ package keyvault
 
 import (
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
-	azruntime "github.com/Azure/azure-sdk-for-go/sdk/azcore/runtime"
 	"github.com/Azure/azure-sdk-for-go/sdk/security/keyvault/azsecrets"
 )
 
-type softDeletedNewSDKClient struct {
-	recovered     bool
-	setCalls      int
-	lastSetParams azsecrets.SetSecretParameters
+type fakeNewSDKSecretRecoveryClient struct {
+	err       error
+	recovered bool
+	name      string
 }
 
-func (c *softDeletedNewSDKClient) DeleteSecret(context.Context, string, *azsecrets.DeleteSecretOptions) (azsecrets.DeleteSecretResponse, error) {
-	return azsecrets.DeleteSecretResponse{}, nil
-}
-
-func (c *softDeletedNewSDKClient) GetSecret(context.Context, string, string, *azsecrets.GetSecretOptions) (azsecrets.GetSecretResponse, error) {
-	if c.recovered {
-		return azsecrets.GetSecretResponse{Secret: azsecrets.Secret{
-			Tags: map[string]*string{managedBy: new(managerLabel)},
-		}}, nil
-	}
-	return azsecrets.GetSecretResponse{}, &azcore.ResponseError{StatusCode: 404, ErrorCode: "SecretNotFound"}
-}
-
-func (c *softDeletedNewSDKClient) NewListSecretPropertiesPager(*azsecrets.ListSecretPropertiesOptions) *azruntime.Pager[azsecrets.ListSecretPropertiesResponse] {
-	return nil
-}
-
-func (c *softDeletedNewSDKClient) RecoverDeletedSecret(context.Context, string, *azsecrets.RecoverDeletedSecretOptions) (azsecrets.RecoverDeletedSecretResponse, error) {
+func (c *fakeNewSDKSecretRecoveryClient) RecoverDeletedSecret(_ context.Context, name string, _ *azsecrets.RecoverDeletedSecretOptions) (azsecrets.RecoverDeletedSecretResponse, error) {
 	c.recovered = true
-	return azsecrets.RecoverDeletedSecretResponse{}, nil
-}
-
-func (c *softDeletedNewSDKClient) SetSecret(_ context.Context, _ string, params azsecrets.SetSecretParameters, _ *azsecrets.SetSecretOptions) (azsecrets.SetSecretResponse, error) {
-	c.setCalls++
-	c.lastSetParams = params
-	if c.setCalls == 1 {
-		return azsecrets.SetSecretResponse{}, newSoftDeletedResponseError()
-	}
-	return azsecrets.SetSecretResponse{}, nil
+	c.name = name
+	return azsecrets.RecoverDeletedSecretResponse{}, c.err
 }
 
 func newSoftDeletedResponseError() error {
@@ -80,37 +55,97 @@ func newSoftDeletedResponseError() error {
 	}
 }
 
-func TestSetKeyVaultSecretWithNewSDKRecoversSoftDeletedSecret(t *testing.T) {
-	client := &softDeletedNewSDKClient{}
-	azureClient := Azure{secretsClient: client}
-	contentType := "text/plain"
+func TestNewSDKDeletedSecretRecoverer(t *testing.T) {
+	tests := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{
+			name: "top-level recovery code",
+			err:  &azcore.ResponseError{StatusCode: 409, ErrorCode: softDeletedSecretErrorCode},
+			want: true,
+		},
+		{
+			name: "nested recovery code",
+			err:  newSoftDeletedResponseError(),
+			want: true,
+		},
+		{
+			name: "unrelated conflict",
+			err:  &azcore.ResponseError{StatusCode: 409, ErrorCode: "Conflict"},
+			want: false,
+		},
+		{
+			name: "unrelated error",
+			err:  errors.New("boom"),
+			want: false,
+		},
+	}
 
-	err := azureClient.setKeyVaultSecretWithNewSDK(context.Background(), secretName, []byte(secretString), &contentType, nil)
-	if err == nil {
-		t.Fatal("setKeyVaultSecretWithNewSDK() error = nil, want retryable recovery error")
-	}
-	if !client.recovered {
-		t.Fatal("setKeyVaultSecretWithNewSDK() did not recover the soft-deleted secret")
-	}
-	if client.setCalls != 1 {
-		t.Fatalf("SetSecret() calls after recovery = %d, want 1", client.setCalls)
-	}
-
-	err = azureClient.setKeyVaultSecretWithNewSDK(context.Background(), secretName, []byte(secretString), &contentType, nil)
-	if err != nil {
-		t.Fatalf("setKeyVaultSecretWithNewSDK() on next reconciliation error = %v", err)
-	}
-	if client.setCalls != 2 {
-		t.Fatalf("SetSecret() calls after next reconciliation = %d, want 2", client.setCalls)
-	}
-	if client.lastSetParams.ContentType == nil || *client.lastSetParams.ContentType != contentType {
-		t.Fatalf("SetSecret() content type = %v, want %q", client.lastSetParams.ContentType, contentType)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			recoverer := &newSDKDeletedSecretRecoverer{}
+			if got := recoverer.isDeletedButRecoverable(tt.err); got != tt.want {
+				t.Fatalf("isDeletedButRecoverable() = %v, want %v", got, tt.want)
+			}
+		})
 	}
 }
 
-func TestNewSDKDoesNotRecoverUnrelatedConflict(t *testing.T) {
-	err := &azcore.ResponseError{StatusCode: 409, ErrorCode: "Conflict"}
-	if isNewSDKSoftDeletedSecretError(err) {
-		t.Fatal("isNewSDKSoftDeletedSecretError() = true for unrelated conflict")
+func TestHandleDeletedSecretRecovery(t *testing.T) {
+	tests := []struct {
+		name        string
+		recoveryErr error
+		wantErr     string
+	}{
+		{
+			name:    "recovery succeeds",
+			wantErr: "recovered soft-deleted secret test-secret; waiting for the next reconciliation to update it",
+		},
+		{
+			name:        "recovery fails",
+			recoveryErr: errors.New("recovery failed"),
+			wantErr:     "could not recover soft-deleted secret test-secret: recovery failed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &fakeNewSDKSecretRecoveryClient{err: tt.recoveryErr}
+			azureClient := &Azure{secretRecoverer: &newSDKDeletedSecretRecoverer{client: client}}
+
+			handled, err := azureClient.handleDeletedSecretRecovery(
+				context.Background(),
+				"test-secret",
+				&azcore.ResponseError{StatusCode: 409, ErrorCode: softDeletedSecretErrorCode},
+			)
+			if !handled {
+				t.Fatal("handleDeletedSecretRecovery() handled = false, want true")
+			}
+			if err == nil || err.Error() != tt.wantErr {
+				t.Fatalf("handleDeletedSecretRecovery() error = %v, want %q", err, tt.wantErr)
+			}
+			if !client.recovered || client.name != "test-secret" {
+				t.Fatalf("RecoverDeletedSecret() called = %v with name %q", client.recovered, client.name)
+			}
+		})
+	}
+}
+
+func TestHandleDeletedSecretRecoveryIgnoresUnrelatedErrors(t *testing.T) {
+	client := &fakeNewSDKSecretRecoveryClient{}
+	azureClient := &Azure{secretRecoverer: &newSDKDeletedSecretRecoverer{client: client}}
+
+	handled, err := azureClient.handleDeletedSecretRecovery(
+		context.Background(),
+		"test-secret",
+		&azcore.ResponseError{StatusCode: 409, ErrorCode: "Conflict"},
+	)
+	if handled || err != nil {
+		t.Fatalf("handleDeletedSecretRecovery() = (%v, %v), want (false, nil)", handled, err)
+	}
+	if client.recovered {
+		t.Fatal("RecoverDeletedSecret() called for unrelated error")
 	}
 }

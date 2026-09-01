@@ -118,8 +118,9 @@ func (c *softDeletedSecretClient) RecoverDeletedSecret(_ context.Context, _, _ s
 func TestSetKeyVaultSecretRecoversSoftDeletedSecret(t *testing.T) {
 	client := &softDeletedSecretClient{}
 	azureClient := Azure{
-		provider:   &esv1.AzureKVProvider{VaultURL: new(fakeURL)},
-		baseClient: client,
+		provider:        &esv1.AzureKVProvider{VaultURL: new(fakeURL)},
+		baseClient:      client,
+		secretRecoverer: &legacyDeletedSecretRecoverer{client: client, vaultURL: fakeURL},
 	}
 
 	err := azureClient.setKeyVaultSecret(context.Background(), secretName, []byte(secretString), nil, nil, nil)
@@ -150,8 +151,9 @@ func TestLegacyDoesNotRecoverUnrelatedConflict(t *testing.T) {
 			ServiceError:  &azure.ServiceError{Code: "Conflict"},
 		},
 	}
-	if isLegacySoftDeletedSecretError(err) {
-		t.Fatal("isLegacySoftDeletedSecretError() = true for unrelated conflict")
+	recoverer := &legacyDeletedSecretRecoverer{}
+	if recoverer.isDeletedButRecoverable(err) {
+		t.Fatal("isDeletedButRecoverable() = true for unrelated conflict")
 	}
 }
 

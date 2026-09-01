@@ -131,7 +131,6 @@ type SecretClient interface {
 	GetSecretsComplete(ctx context.Context, vaultBaseURL string, maxresults *int32) (result keyvault.SecretListResultIterator, err error)
 	GetCertificate(ctx context.Context, vaultBaseURL string, certificateName string, certificateVersion string) (result keyvault.CertificateBundle, err error)
 	SetSecret(ctx context.Context, vaultBaseURL string, secretName string, parameters keyvault.SecretSetParameters) (result keyvault.SecretBundle, err error)
-	RecoverDeletedSecret(ctx context.Context, vaultBaseURL string, secretName string) (result keyvault.SecretBundle, err error)
 	ImportKey(ctx context.Context, vaultBaseURL string, keyName string, parameters keyvault.KeyImportParameters) (result keyvault.KeyBundle, err error)
 	ImportCertificate(ctx context.Context, vaultBaseURL string, certificateName string, parameters keyvault.CertificateImportParameters) (result keyvault.CertificateBundle, err error)
 	DeleteCertificate(ctx context.Context, vaultBaseURL string, certificateName string) (result keyvault.DeletedCertificateBundle, err error)
@@ -151,9 +150,11 @@ type Azure struct {
 	baseClient SecretClient
 
 	// New Azure SDK clients (used when UseAzureSDK is true)
-	secretsClient newSecretClient
+	secretsClient *azsecrets.Client
 	keysClient    *azkeys.Client
 	certsClient   *azcertificates.Client
+
+	secretRecoverer deletedSecretRecoverer
 }
 
 // PushSecretMetadataSpec defines metadata for pushing secrets to Azure Key Vault,
@@ -236,6 +237,10 @@ func initializeLegacyClient(ctx context.Context, az *Azure) error {
 	cl := keyvault.New()
 	cl.Authorizer = authorizer
 	az.baseClient = &cl
+	az.secretRecoverer = &legacyDeletedSecretRecoverer{
+		client:   &cl,
+		vaultURL: *az.provider.VaultURL,
+	}
 
 	return nil
 }
@@ -273,6 +278,7 @@ func initializeNewAzureSDK(ctx context.Context, az *Azure) error {
 	if err != nil {
 		return fmt.Errorf("failed to create secrets client: %w", err)
 	}
+	az.secretRecoverer = &newSDKDeletedSecretRecoverer{client: az.secretsClient}
 
 	az.keysClient, err = azkeys.NewClient(*az.provider.VaultURL, credential, &azkeys.ClientOptions{
 		ClientOptions: azcore.ClientOptions{Cloud: cloudConfig},
@@ -618,30 +624,13 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 
 	_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
-	if isLegacySoftDeletedSecretError(err) {
-		_, err = a.baseClient.RecoverDeletedSecret(ctx, *a.provider.VaultURL, secretName)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVRecoverSecret, err)
-		if err != nil {
-			return fmt.Errorf("could not recover soft-deleted secret %v: %w", secretName, err)
-		}
-		return fmt.Errorf("recovered soft-deleted secret %v; waiting for the next reconciliation to update it", secretName)
+	if handled, recoveryErr := a.handleDeletedSecretRecovery(ctx, secretName, err); handled {
+		return recoveryErr
 	}
 	if err != nil {
 		return fmt.Errorf("could not set secret %v: %w", secretName, err)
 	}
 	return nil
-}
-
-func isLegacySoftDeletedSecretError(err error) bool {
-	var requestErr *azure.RequestError
-	if !errors.As(err, &requestErr) || requestErr.StatusCode != 409 || requestErr.ServiceError == nil {
-		return false
-	}
-	if requestErr.ServiceError.Code == softDeletedSecretErrorCode {
-		return true
-	}
-	innerCode, ok := requestErr.ServiceError.InnerError["code"].(string)
-	return ok && innerCode == softDeletedSecretErrorCode
 }
 
 func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, value []byte, tags map[string]string) error {
