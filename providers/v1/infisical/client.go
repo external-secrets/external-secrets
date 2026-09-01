@@ -62,19 +62,22 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 	return []byte(result.Str), nil
 }
 
-// formatSecretKey returns the secret key based on the keepDuplicateKey option to
-// differentiate duplicated secret keys.
+// formatSecretKey returns the secret key, optionally prefixed with the relative
+// path when includeSecretPath is enabled. Secrets at the root path (/) are
+// never prefixed.
 //
-// Example (basePath="/", keepDuplicateKeys=true):
+// Example (basePath="/", includeSecretPath=true):
 //
 //	("/",       "FOO") -> "FOO"
 //	("/sub",    "FOO") -> "sub/FOO"
 //	("/a/b",    "FOO") -> "a/b/FOO"
 //
-// Example (basePath="/path", keepDuplicateKeys=true)
-// ("/path/sub",   "FOO") -> "sub/FOO"
-func formatSecretKey(secretKey, secretPath, basePath string, keepDuplicateKeys bool) string {
-	if !keepDuplicateKeys {
+// Example (basePath="/path", includeSecretPath=true):
+//
+//	("/path",       "FOO") -> "FOO"
+//	("/path/sub",   "FOO") -> "sub/FOO"
+func formatSecretKey(secretKey, secretPath, basePath string, includeSecretPath bool) string {
+	if !includeSecretPath {
 		return secretKey
 	}
 
@@ -193,7 +196,7 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 		Recursive:              p.apiScope.Recursive,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 		IncludeImports:         true,
-		SkipUniqueValidation:   p.apiScope.KeepDuplicateKeys,
+		SkipUniqueValidation:   p.apiScope.IncludeSecretPath,
 	})
 	metrics.ObserveAPICall(constants.ProviderName, getSecretsV3, err)
 	if err != nil {
@@ -202,13 +205,8 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 
 	if ref.Name == nil {
 		secretMap := make(map[string][]byte, len(secrets))
-		seen := make(map[string]bool)
 		for _, secret := range secrets {
-			key := secret.SecretKey
-			if seen[secret.SecretKey] {
-				key = formatSecretKey(secret.SecretKey, secret.SecretPath, secretPath, p.apiScope.KeepDuplicateKeys)
-			}
-			seen[secret.SecretKey] = true
+			key := formatSecretKey(secret.SecretKey, secret.SecretPath, secretPath, p.apiScope.IncludeSecretPath)
 			secretMap[key] = []byte(secret.SecretValue)
 		}
 		return secretMap, nil
@@ -220,14 +218,9 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 	}
 
 	selected := map[string][]byte{}
-	seen := make(map[string]bool)
 	for _, secret := range secrets {
 		if matcher.MatchName(secret.SecretKey) {
-			key := secret.SecretKey
-			if seen[secret.SecretKey] {
-				key = formatSecretKey(secret.SecretKey, secret.SecretPath, secretPath, p.apiScope.KeepDuplicateKeys)
-			}
-			seen[secret.SecretKey] = true
+			key := formatSecretKey(secret.SecretKey, secret.SecretPath, secretPath, p.apiScope.IncludeSecretPath)
 			selected[key] = []byte(secret.SecretValue)
 		}
 	}
@@ -245,7 +238,6 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 		Recursive:              p.apiScope.Recursive,
 		SecretPath:             p.apiScope.SecretPath,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
-		SkipUniqueValidation:   p.apiScope.KeepDuplicateKeys,
 	})
 	metrics.ObserveAPICall(constants.ProviderName, getSecretsV3, err)
 
