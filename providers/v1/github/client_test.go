@@ -36,6 +36,9 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/bradleyfalzon/ghinstallation/v2"
@@ -51,6 +54,92 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
+
+func TestConfigureSecretClientRoutesBySecretTypeAndScope(t *testing.T) {
+	tests := []struct {
+		name         string
+		provider     *esv1.GithubProvider
+		wantListPath string
+		wantRepoGet  bool
+	}{
+		{
+			name: "omitted type uses Actions organization secrets",
+			provider: &esv1.GithubProvider{
+				Organization: "acme",
+			},
+			wantListPath: "/orgs/acme/actions/secrets",
+		},
+		{
+			name: "explicit Actions uses repository secrets",
+			provider: &esv1.GithubProvider{
+				SecretType:   esv1.GithubSecretTypeActions,
+				Organization: "acme",
+				Repository:   "widgets",
+			},
+			wantListPath: "/repos/acme/widgets/actions/secrets",
+		},
+		{
+			name: "Actions environment remains supported",
+			provider: &esv1.GithubProvider{
+				SecretType:   esv1.GithubSecretTypeActions,
+				Organization: "acme",
+				Repository:   "widgets",
+				Environment:  "production",
+			},
+			wantListPath: "/repositories/42/environments/production/secrets",
+			wantRepoGet:  true,
+		},
+		{
+			name: "Dependabot uses organization secrets",
+			provider: &esv1.GithubProvider{
+				SecretType:   esv1.GithubSecretTypeDependabot,
+				Organization: "acme",
+			},
+			wantListPath: "/orgs/acme/dependabot/secrets",
+		},
+		{
+			name: "Dependabot uses repository secrets without repository lookup",
+			provider: &esv1.GithubProvider{
+				SecretType:   esv1.GithubSecretTypeDependabot,
+				Organization: "acme",
+				Repository:   "widgets",
+			},
+			wantListPath: "/repos/acme/widgets/dependabot/secrets",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var gotPaths []string
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				gotPaths = append(gotPaths, r.URL.Path)
+				if r.URL.Path == "/repos/acme/widgets" {
+					_, _ = fmt.Fprint(w, `{"id":42}`)
+					return
+				}
+				if r.URL.Path != tt.wantListPath {
+					http.Error(w, "unexpected request", http.StatusNotFound)
+					return
+				}
+				_, _ = fmt.Fprint(w, `{"total_count":0,"secrets":[]}`)
+			}))
+			t.Cleanup(server.Close)
+
+			g := &Client{provider: tt.provider}
+			secretType, err := validateGithubProvider(tt.provider)
+			require.NoError(t, err)
+			require.NoError(t, g.configureSecretClient(context.Background(), newGithubTestClient(t, server), secretType))
+			_, _, err = g.listSecretsFn(context.Background())
+			require.NoError(t, err)
+
+			if tt.wantRepoGet {
+				assert.Equal(t, []string{"/repos/acme/widgets", tt.wantListPath}, gotPaths)
+			} else {
+				assert.Equal(t, []string{tt.wantListPath}, gotPaths)
+			}
+		})
+	}
+}
 
 type getSecretFn func(ctx context.Context, ref esv1.PushSecretRemoteRef) (*github.Secret, *github.Response, error)
 

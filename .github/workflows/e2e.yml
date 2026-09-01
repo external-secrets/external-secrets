@@ -70,6 +70,9 @@ jobs:
       ORACLE_REGION: ${{ secrets.ORACLE_REGION }}
       ORACLE_FINGERPRINT: ${{ secrets.ORACLE_FINGERPRINT }}
       ORACLE_KEY: ${{ secrets.ORACLE_KEY }}
+      ORACLE_VAULT_OCID: ${{ secrets.ORACLE_VAULT_OCID }}
+      ORACLE_COMPARTMENT_OCID: ${{ secrets.ORACLE_COMPARTMENT_OCID }}
+      ORACLE_ENCRYPTION_KEY_OCID: ${{ secrets.ORACLE_ENCRYPTION_KEY_OCID }}
 
   # A /ok-to-test *comment* must carry an explicit sha=. A bare comment has no
   # trustworthy pinned commit (the dispatch would otherwise read the live PR
@@ -83,7 +86,7 @@ jobs:
       pull-requests: write # to explain a rejected /ok-to-test on the PR
       contents: read
     steps:
-    - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+    - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
       with:
         egress-policy: audit
 
@@ -178,6 +181,9 @@ jobs:
       ORACLE_REGION: ${{ secrets.ORACLE_REGION }}
       ORACLE_FINGERPRINT: ${{ secrets.ORACLE_FINGERPRINT }}
       ORACLE_KEY: ${{ secrets.ORACLE_KEY }}
+      ORACLE_VAULT_OCID: ${{ secrets.ORACLE_VAULT_OCID }}
+      ORACLE_COMPARTMENT_OCID: ${{ secrets.ORACLE_COMPARTMENT_OCID }}
+      ORACLE_ENCRYPTION_KEY_OCID: ${{ secrets.ORACLE_ENCRYPTION_KEY_OCID }}
 
   # Report the fork run result back onto the originating pull request.
   report-fork:
@@ -188,7 +194,7 @@ jobs:
       pull-requests: write # to publish the status as comments
       contents: read
     steps:
-    - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+    - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
       with:
         egress-policy: audit
 
@@ -221,3 +227,35 @@ jobs:
         issue-number: ${{ github.event.client_payload.pull_request.number }}
         body: |
             [Bot] - :x: [e2e for ${{ env.TARGET_SHA }} failed](https://github.com/external-secrets/external-secrets/actions/runs/${{ github.run_id }})
+
+  # Single stable status to point branch protection at. The individual matrix
+  # legs (and their names) change as e2e/matrix.yaml grows, but this gate does
+  # not. It passes when the e2e path that ran for this event succeeded; the
+  # other path is skipped and does not count against it, and a genuinely failed
+  # leg propagates up through its caller job and fails this gate.
+  e2e-required:
+    if: always()
+    needs: [integration-trusted, integration-fork]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+    - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+      with:
+        egress-policy: audit
+
+    - name: Require the e2e path to have passed
+      env:
+        TRUSTED: ${{ needs.integration-trusted.result }}
+        FORK: ${{ needs.integration-fork.result }}
+      run: |
+        echo "integration-trusted=${TRUSTED} integration-fork=${FORK}"
+        for r in "${TRUSTED}" "${FORK}"; do
+          case "$r" in
+            failure|cancelled)
+              echo "::error::an e2e path did not pass (${r})"
+              exit 1
+              ;;
+          esac
+        done
+        echo "e2e ok (success or skipped on both paths)"

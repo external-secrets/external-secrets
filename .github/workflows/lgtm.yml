@@ -12,17 +12,17 @@ jobs:
     permissions:
       pull-requests: write  # for peter-evans/slash-command-dispatch to create PR reaction
       issues: write        # for adding labels and comments
-      contents: read       # for reading CODEOWNERS.md
+      contents: read       # for reading .github/CODEOWNERS
     runs-on: ubuntu-latest
     # Only run for PRs, not issue comments
     if: ${{ github.event.issue.pull_request }}
     steps:
-    # Checkout repo to access CODEOWNERS.md
+    # Checkout repo to access .github/CODEOWNERS
     - name: Checkout repository
-      uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         sparse-checkout: |
-          CODEOWNERS.md
+          .github/CODEOWNERS
           .github/scripts
         persist-credentials: false
 

@@ -17,12 +17,16 @@ limitations under the License.
 package cache
 
 import (
+	"sync"
+	"sync/atomic"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-type client struct{}
+type client struct {
+	id int
+}
 
 var cacheKey = Key{Name: "foo"}
 
@@ -53,6 +57,70 @@ func TestCacheContains(t *testing.T) {
 	assert.True(t, exists)
 	assert.False(t, notExists)
 	assert.Nil(t, err)
+}
+
+func TestCacheContainsOrAdd(t *testing.T) {
+	c := Must[client](1, nil)
+	first := client{id: 1}
+	second := client{id: 2}
+
+	assert.False(t, c.ContainsOrAdd("v1", cacheKey, first))
+	assert.True(t, c.ContainsOrAdd("v1", cacheKey, second))
+
+	cached, ok := c.Get("v1", cacheKey)
+	assert.True(t, ok)
+	assert.Equal(t, first, cached)
+}
+
+func TestCacheContainsOrAddVersionMismatch(t *testing.T) {
+	c := Must[client](1, nil)
+	first := client{id: 1}
+
+	c.Add("v1", cacheKey, first)
+	assert.True(t, c.ContainsOrAdd("v2", cacheKey, client{id: 2}))
+
+	cached, ok := c.Get("v1", cacheKey)
+	assert.True(t, ok)
+	assert.Equal(t, first, cached)
+}
+
+func TestCacheContainsOrAddDoesNotCleanUpRejectedValue(t *testing.T) {
+	var cleaned []client
+	c := Must(1, func(value client) {
+		cleaned = append(cleaned, value)
+	})
+	first := client{id: 1}
+
+	assert.False(t, c.ContainsOrAdd("v1", cacheKey, first))
+	assert.True(t, c.ContainsOrAdd("v1", cacheKey, client{id: 2}))
+	assert.Empty(t, cleaned)
+
+	assert.False(t, c.ContainsOrAdd("v1", Key{Name: "bar"}, client{id: 3}))
+	assert.Equal(t, []client{first}, cleaned)
+}
+
+func TestCacheContainsOrAddConcurrent(t *testing.T) {
+	const workers = 64
+	c := Must[client](workers, nil)
+	start := make(chan struct{})
+	var inserted atomic.Int32
+	var wg sync.WaitGroup
+
+	for i := range workers {
+		wg.Go(func() {
+			<-start
+			if !c.ContainsOrAdd("v1", cacheKey, client{id: i}) {
+				inserted.Add(1)
+			}
+		})
+	}
+
+	close(start)
+	wg.Wait()
+
+	assert.EqualValues(t, 1, inserted.Load())
+	_, ok := c.Get("v1", cacheKey)
+	assert.True(t, ok)
 }
 
 func TestCacheGet(t *testing.T) {
