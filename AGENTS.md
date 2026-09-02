@@ -20,7 +20,7 @@ Multi-module repo: `apis/`, `runtime/`, `e2e/`, and each `providers/v1/*/` have 
 - Helm chart is the source of truth for deploy manifests. `make manifests` generates static YAML from it.
 - Provider docs `{% include %}` reusable YAML snippets from `docs/snippets/` (`macros` plugin). AWS authentication is documented once on the standalone `docs/provider/aws-access.md` page; the per-service pages (`aws-secrets-manager.md`, `aws-parameter-store.md`) link to it rather than transcluding it.
 - CRD tests use snapshot testing. Run `make test.crds.update` to update snapshots after CRD changes.
-- `make update-deps` runs the Updatecli manifests in `.updatecli.d` across all dependency ecosystems.
+- `make update-deps` runs the Updatecli manifests in `.updatecli.d` across all dependency ecosystems. It edits the current checkout by default; `UPDATECLI_PUBLISH=true` opts into per-ecosystem commits and pull requests through Updatecli's SCM actions.
 - Development binaries are version- and checksum-pinned per platform in the Makefile and installed into `LOCALBIN` by the shared `install_tool` macro. Keep upstream update policy in `.updatecli.d/tools.yaml`.
 - Add a `git notes add HEAD` entry on every non-trivial commit. Record key design decisions, trade-offs, and gotchas. Queryable via `git notes show <sha>`.
 - If you discover a non-obvious pattern while implementing, add it here before the PR is merged. Keep entries general — applicable across the codebase, not specific to one provider or feature.

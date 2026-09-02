@@ -88,13 +88,25 @@ check-diff: reviewable ## Ensure branch is clean.
 
 UPDATECLI_ACTION ?= apply
 UPDATECLI_KIND ?=
+UPDATECLI_PUBLISH ?= false
 UPDATECLI_CONFIG = .updatecli.d$(if $(UPDATECLI_KIND),/$(UPDATECLI_KIND).yaml)
-update-deps: updatecli ## Update dependencies; use UPDATECLI_KIND=<kind> to limit scope and UPDATECLI_ACTION=diff to preview.
+update-deps: updatecli ## Update dependencies; use UPDATECLI_KIND=<kind> to limit scope, UPDATECLI_ACTION=diff to preview, or UPDATECLI_PUBLISH=true to publish PRs.
 	@test -e "$(UPDATECLI_CONFIG)" || (echo "unknown dependency kind: $(UPDATECLI_KIND)" >&2; exit 1)
 	@set -e; \
+	publish="$(UPDATECLI_PUBLISH)"; \
+	case "$$publish" in true|false) ;; *) echo "UPDATECLI_PUBLISH must be true or false" >&2; exit 1 ;; esac; \
 	token="$${GITHUB_TOKEN:-$$(gh auth token 2>/dev/null)}"; \
 	test -n "$$token" || (echo "GITHUB_TOKEN is required; set it or run 'gh auth login'" >&2; exit 1); \
-	GITHUB_TOKEN="$$token" $(LOCALBIN)/updatecli pipeline $(UPDATECLI_ACTION) --config $(UPDATECLI_CONFIG) --disable-changelog --disable-version-check
+	values="{scm: {enabled: false}}"; \
+	if test "$$publish" = true; then \
+		slug="$${GITHUB_REPOSITORY:-$$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null)}"; \
+		test -n "$$slug" || (echo "GITHUB_REPOSITORY is required when the repository cannot be detected with gh" >&2; exit 1); \
+		owner="$${slug%%/*}"; repository="$${slug#*/}"; \
+		values="{scm: {enabled: true, owner: $$owner, repository: $$repository}}"; \
+	fi; \
+	GITHUB_TOKEN="$$token" $(LOCALBIN)/updatecli pipeline $(UPDATECLI_ACTION) --config $(UPDATECLI_CONFIG) \
+		--values-inline "$$values" \
+		--disable-changelog --disable-version-check
 
 .PHONY: update-deps update-deps-github-actions update-deps-containers update-deps-tools update-deps-helm update-deps-python update-deps-terraform
 update-deps-github-actions: UPDATECLI_KIND=github-actions
