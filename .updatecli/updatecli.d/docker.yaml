@@ -1,16 +1,51 @@
 name: Update container images
 
-autodiscovery:
-  crawlers:
-    dockerfile:
-      rootdir: .
-      digest: true
+# Keep images explicit so each registry source is resolved once, regardless of
+# how many Dockerfiles use it.
+sources:
+  alpine_tag:
+    kind: dockerimage
+    spec:
+      image: alpine
+      tag: 3.24.1
       versionfilter:
         kind: semver
         # Avoid unrelated date-like tags such as Alpine's 20260805 tag.
-        pattern: minor
+        pattern: '3.x'
+  alpine:
+    kind: dockerdigest
+    spec:
+      image: alpine
+      tag: '{{ source "alpine_tag" }}'
+  golang_tag:
+    kind: dockerimage
+    spec:
+      image: golang
+      tag: 1.27.0
+      versionfilter:
+        kind: semver
+        pattern: '1.x.x-0'
+  golang_alpine:
+    kind: dockerdigest
+    spec:
+      image: golang
+      tag: '{{ source "golang_tag" }}-alpine'
+  golang_bookworm:
+    kind: dockerdigest
+    spec:
+      image: golang
+      tag: '{{ source "golang_tag" }}-bookworm'
+  distroless_static:
+    kind: dockerdigest
+    spec:
+      image: gcr.io/distroless/static
+      tag: latest
+  ubi9:
+    kind: dockerdigest
+    spec:
+      image: registry.access.redhat.com/ubi9/ubi
+      tag: latest
 
-sources:
   skywalking_tag:
     kind: dockerimage
     spec:
@@ -75,6 +110,50 @@ sources:
       tag: latest
 
 targets:
+  alpine:
+    kind: file
+    sourceid: alpine
+    transformers:
+      - addprefix: 'alpine:'
+    spec:
+      files:
+        - e2e/Dockerfile
+        - hack/api-docs/Dockerfile
+      matchpattern: 'alpine:v?[0-9]+\.[0-9]+(?:\.[0-9]+)?(?:@sha256:[a-f0-9]{64})?'
+  golang_alpine:
+    kind: file
+    sourceid: golang_alpine
+    transformers:
+      - addprefix: 'golang:'
+    spec:
+      file: Dockerfile.standalone
+      matchpattern: 'golang:v?[0-9]+\.[0-9]+\.[0-9]+-alpine(?:@sha256:[a-f0-9]{64})?'
+  golang_bookworm:
+    kind: file
+    sourceid: golang_bookworm
+    transformers:
+      - addprefix: 'golang:'
+    spec:
+      file: e2e/Dockerfile
+      matchpattern: 'golang:v?[0-9]+\.[0-9]+\.[0-9]+-bookworm(?:@sha256:[a-f0-9]{64})?'
+  distroless_static:
+    kind: file
+    sourceid: distroless_static
+    transformers:
+      - addprefix: 'gcr.io/distroless/static:'
+    spec:
+      files:
+        - Dockerfile
+        - Dockerfile.standalone
+      matchpattern: 'gcr.io/distroless/static:[^[:space:]]+'
+  ubi9:
+    kind: file
+    sourceid: ubi9
+    transformers:
+      - addprefix: 'registry.access.redhat.com/ubi9/ubi:'
+    spec:
+      file: Dockerfile.ubi
+      matchpattern: 'registry.access.redhat.com/ubi9/ubi:[^[:space:]]+'
   skywalking:
     kind: file
     sourceid: skywalking
