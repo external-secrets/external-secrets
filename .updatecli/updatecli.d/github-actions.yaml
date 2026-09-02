@@ -1,14 +1,1242 @@
 name: Update GitHub Actions
 
-autodiscovery:
-  crawlers:
-    github/action:
-      rootdir: .github
-      digest: true
-      # The crawler resolves branch-pinned Actions to an arbitrary repository
-      # branch instead of advancing the configured branch.
-      ignore:
-        - actions:
-            actions/dependency-review-action: ''
-            aquasecurity/trivy-action: ''
-            fossas/fossa-action: ''
+# Each Action is listed explicitly so Updatecli resolves every upstream
+# repository once instead of creating a pipeline for every usage.
+# Every managed Action is pinned by commit digest. Updatecli resolves the latest
+# semantic-version tag and updates both the digest and its version comment.
+
+sources:
+  actions_attest_build_provenance_version:
+    name: Get latest actions/attest-build-provenance tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/attest-build-provenance.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  actions_attest_build_provenance_digest:
+    name: Get digest for latest actions/attest-build-provenance tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/attest-build-provenance.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "actions_attest_build_provenance_version" }}'
+  actions_cache_version:
+    name: Get latest actions/cache tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/cache.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  actions_cache_digest:
+    name: Get digest for latest actions/cache tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/cache.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "actions_cache_version" }}'
+  actions_checkout_version:
+    name: Get latest actions/checkout tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/checkout.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  actions_checkout_digest:
+    name: Get digest for latest actions/checkout tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/checkout.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "actions_checkout_version" }}'
+  actions_create_github_app_token_version:
+    name: Get latest actions/create-github-app-token tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/create-github-app-token.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  actions_create_github_app_token_digest:
+    name: Get digest for latest actions/create-github-app-token tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/create-github-app-token.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "actions_create_github_app_token_version" }}'
+  actions_dependency_review_action_version:
+    name: Get latest actions/dependency-review-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/dependency-review-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  actions_dependency_review_action_digest:
+    name: Get digest for latest actions/dependency-review-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/dependency-review-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "actions_dependency_review_action_version" }}'
+  actions_download_artifact_version:
+    name: Get latest actions/download-artifact tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/download-artifact.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  actions_download_artifact_digest:
+    name: Get digest for latest actions/download-artifact tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/download-artifact.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "actions_download_artifact_version" }}'
+  actions_github_script_version:
+    name: Get latest actions/github-script tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/github-script.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  actions_github_script_digest:
+    name: Get digest for latest actions/github-script tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/github-script.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "actions_github_script_version" }}'
+  actions_labeler_version:
+    name: Get latest actions/labeler tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/labeler.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  actions_labeler_digest:
+    name: Get digest for latest actions/labeler tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/labeler.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "actions_labeler_version" }}'
+  actions_setup_go_version:
+    name: Get latest actions/setup-go tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/setup-go.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  actions_setup_go_digest:
+    name: Get digest for latest actions/setup-go tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/setup-go.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "actions_setup_go_version" }}'
+  actions_setup_python_version:
+    name: Get latest actions/setup-python tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/setup-python.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  actions_setup_python_digest:
+    name: Get digest for latest actions/setup-python tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/setup-python.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "actions_setup_python_version" }}'
+  actions_stale_version:
+    name: Get latest actions/stale tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/stale.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  actions_stale_digest:
+    name: Get digest for latest actions/stale tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/stale.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "actions_stale_version" }}'
+  actions_upload_artifact_version:
+    name: Get latest actions/upload-artifact tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/upload-artifact.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  actions_upload_artifact_digest:
+    name: Get digest for latest actions/upload-artifact tag
+    kind: gittag
+    spec:
+      url: https://github.com/actions/upload-artifact.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "actions_upload_artifact_version" }}'
+  anchore_sbom_action_version:
+    name: Get latest anchore/sbom-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/anchore/sbom-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  anchore_sbom_action_digest:
+    name: Get digest for latest anchore/sbom-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/anchore/sbom-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "anchore_sbom_action_version" }}'
+  apache_skywalking_eyes_version:
+    name: Get latest apache/skywalking-eyes tag
+    kind: gittag
+    spec:
+      url: https://github.com/apache/skywalking-eyes.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  apache_skywalking_eyes_digest:
+    name: Get digest for latest apache/skywalking-eyes tag
+    kind: gittag
+    spec:
+      url: https://github.com/apache/skywalking-eyes.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "apache_skywalking_eyes_version" }}'
+  aquasecurity_trivy_action_version:
+    name: Get latest aquasecurity/trivy-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/aquasecurity/trivy-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  aquasecurity_trivy_action_digest:
+    name: Get digest for latest aquasecurity/trivy-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/aquasecurity/trivy-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "aquasecurity_trivy_action_version" }}'
+  aws_actions_configure_aws_credentials_version:
+    name: Get latest aws-actions/configure-aws-credentials tag
+    kind: gittag
+    spec:
+      url: https://github.com/aws-actions/configure-aws-credentials.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  aws_actions_configure_aws_credentials_digest:
+    name: Get digest for latest aws-actions/configure-aws-credentials tag
+    kind: gittag
+    spec:
+      url: https://github.com/aws-actions/configure-aws-credentials.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "aws_actions_configure_aws_credentials_version" }}'
+  azure_login_version:
+    name: Get latest azure/login tag
+    kind: gittag
+    spec:
+      url: https://github.com/azure/login.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  azure_login_digest:
+    name: Get digest for latest azure/login tag
+    kind: gittag
+    spec:
+      url: https://github.com/azure/login.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "azure_login_version" }}'
+  azure_setup_helm_version:
+    name: Get latest azure/setup-helm tag
+    kind: gittag
+    spec:
+      url: https://github.com/azure/setup-helm.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  azure_setup_helm_digest:
+    name: Get digest for latest azure/setup-helm tag
+    kind: gittag
+    spec:
+      url: https://github.com/azure/setup-helm.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "azure_setup_helm_version" }}'
+  codecov_codecov_action_version:
+    name: Get latest codecov/codecov-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/codecov/codecov-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  codecov_codecov_action_digest:
+    name: Get digest for latest codecov/codecov-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/codecov/codecov-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "codecov_codecov_action_version" }}'
+  codelytv_pr_size_labeler_version:
+    name: Get latest codelytv/pr-size-labeler tag
+    kind: gittag
+    spec:
+      url: https://github.com/codelytv/pr-size-labeler.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  codelytv_pr_size_labeler_digest:
+    name: Get digest for latest codelytv/pr-size-labeler tag
+    kind: gittag
+    spec:
+      url: https://github.com/codelytv/pr-size-labeler.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "codelytv_pr_size_labeler_version" }}'
+  crazy_max_ghaction_import_gpg_version:
+    name: Get latest crazy-max/ghaction-import-gpg tag
+    kind: gittag
+    spec:
+      url: https://github.com/crazy-max/ghaction-import-gpg.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  crazy_max_ghaction_import_gpg_digest:
+    name: Get digest for latest crazy-max/ghaction-import-gpg tag
+    kind: gittag
+    spec:
+      url: https://github.com/crazy-max/ghaction-import-gpg.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "crazy_max_ghaction_import_gpg_version" }}'
+  docker_login_action_version:
+    name: Get latest docker/login-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/docker/login-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  docker_login_action_digest:
+    name: Get digest for latest docker/login-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/docker/login-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "docker_login_action_version" }}'
+  docker_setup_buildx_action_version:
+    name: Get latest docker/setup-buildx-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/docker/setup-buildx-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  docker_setup_buildx_action_digest:
+    name: Get digest for latest docker/setup-buildx-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/docker/setup-buildx-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "docker_setup_buildx_action_version" }}'
+  docker_setup_qemu_action_version:
+    name: Get latest docker/setup-qemu-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/docker/setup-qemu-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  docker_setup_qemu_action_digest:
+    name: Get digest for latest docker/setup-qemu-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/docker/setup-qemu-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "docker_setup_qemu_action_version" }}'
+  engineerd_setup_kind_version:
+    name: Get latest engineerd/setup-kind tag
+    kind: gittag
+    spec:
+      url: https://github.com/engineerd/setup-kind.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  engineerd_setup_kind_digest:
+    name: Get digest for latest engineerd/setup-kind tag
+    kind: gittag
+    spec:
+      url: https://github.com/engineerd/setup-kind.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "engineerd_setup_kind_version" }}'
+  fkirc_skip_duplicate_actions_version:
+    name: Get latest fkirc/skip-duplicate-actions tag
+    kind: gittag
+    spec:
+      url: https://github.com/fkirc/skip-duplicate-actions.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  fkirc_skip_duplicate_actions_digest:
+    name: Get digest for latest fkirc/skip-duplicate-actions tag
+    kind: gittag
+    spec:
+      url: https://github.com/fkirc/skip-duplicate-actions.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "fkirc_skip_duplicate_actions_version" }}'
+  fossas_fossa_action_version:
+    name: Get latest fossas/fossa-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/fossas/fossa-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  fossas_fossa_action_digest:
+    name: Get digest for latest fossas/fossa-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/fossas/fossa-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "fossas_fossa_action_version" }}'
+  github_codeql_action_version:
+    name: Get latest github/codeql-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/github/codeql-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  github_codeql_action_digest:
+    name: Get digest for latest github/codeql-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/github/codeql-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "github_codeql_action_version" }}'
+  google_github_actions_auth_version:
+    name: Get latest google-github-actions/auth tag
+    kind: gittag
+    spec:
+      url: https://github.com/google-github-actions/auth.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  google_github_actions_auth_digest:
+    name: Get digest for latest google-github-actions/auth tag
+    kind: gittag
+    spec:
+      url: https://github.com/google-github-actions/auth.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "google_github_actions_auth_version" }}'
+  google_github_actions_get_gke_credentials_version:
+    name: Get latest google-github-actions/get-gke-credentials tag
+    kind: gittag
+    spec:
+      url: https://github.com/google-github-actions/get-gke-credentials.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  google_github_actions_get_gke_credentials_digest:
+    name: Get digest for latest google-github-actions/get-gke-credentials tag
+    kind: gittag
+    spec:
+      url: https://github.com/google-github-actions/get-gke-credentials.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "google_github_actions_get_gke_credentials_version" }}'
+  google_github_actions_setup_gcloud_version:
+    name: Get latest google-github-actions/setup-gcloud tag
+    kind: gittag
+    spec:
+      url: https://github.com/google-github-actions/setup-gcloud.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  google_github_actions_setup_gcloud_digest:
+    name: Get digest for latest google-github-actions/setup-gcloud tag
+    kind: gittag
+    spec:
+      url: https://github.com/google-github-actions/setup-gcloud.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "google_github_actions_setup_gcloud_version" }}'
+  goreleaser_goreleaser_action_version:
+    name: Get latest goreleaser/goreleaser-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/goreleaser/goreleaser-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  goreleaser_goreleaser_action_digest:
+    name: Get digest for latest goreleaser/goreleaser-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/goreleaser/goreleaser-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "goreleaser_goreleaser_action_version" }}'
+  hashicorp_setup_terraform_version:
+    name: Get latest hashicorp/setup-terraform tag
+    kind: gittag
+    spec:
+      url: https://github.com/hashicorp/setup-terraform.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  hashicorp_setup_terraform_digest:
+    name: Get digest for latest hashicorp/setup-terraform tag
+    kind: gittag
+    spec:
+      url: https://github.com/hashicorp/setup-terraform.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "hashicorp_setup_terraform_version" }}'
+  helm_chart_releaser_action_version:
+    name: Get latest helm/chart-releaser-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/helm/chart-releaser-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  helm_chart_releaser_action_digest:
+    name: Get digest for latest helm/chart-releaser-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/helm/chart-releaser-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "helm_chart_releaser_action_version" }}'
+  helm_chart_testing_action_version:
+    name: Get latest helm/chart-testing-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/helm/chart-testing-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  helm_chart_testing_action_digest:
+    name: Get digest for latest helm/chart-testing-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/helm/chart-testing-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "helm_chart_testing_action_version" }}'
+  helm_kind_action_version:
+    name: Get latest helm/kind-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/helm/kind-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  helm_kind_action_digest:
+    name: Get digest for latest helm/kind-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/helm/kind-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "helm_kind_action_version" }}'
+  jlumbroso_free_disk_space_version:
+    name: Get latest jlumbroso/free-disk-space tag
+    kind: gittag
+    spec:
+      url: https://github.com/jlumbroso/free-disk-space.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  jlumbroso_free_disk_space_digest:
+    name: Get digest for latest jlumbroso/free-disk-space tag
+    kind: gittag
+    spec:
+      url: https://github.com/jlumbroso/free-disk-space.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "jlumbroso_free_disk_space_version" }}'
+  ossf_scorecard_action_version:
+    name: Get latest ossf/scorecard-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/ossf/scorecard-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  ossf_scorecard_action_digest:
+    name: Get digest for latest ossf/scorecard-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/ossf/scorecard-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "ossf_scorecard_action_version" }}'
+  peter_evans_create_or_update_comment_version:
+    name: Get latest peter-evans/create-or-update-comment tag
+    kind: gittag
+    spec:
+      url: https://github.com/peter-evans/create-or-update-comment.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  peter_evans_create_or_update_comment_digest:
+    name: Get digest for latest peter-evans/create-or-update-comment tag
+    kind: gittag
+    spec:
+      url: https://github.com/peter-evans/create-or-update-comment.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "peter_evans_create_or_update_comment_version" }}'
+  peter_evans_slash_command_dispatch_version:
+    name: Get latest peter-evans/slash-command-dispatch tag
+    kind: gittag
+    spec:
+      url: https://github.com/peter-evans/slash-command-dispatch.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  peter_evans_slash_command_dispatch_digest:
+    name: Get digest for latest peter-evans/slash-command-dispatch tag
+    kind: gittag
+    spec:
+      url: https://github.com/peter-evans/slash-command-dispatch.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "peter_evans_slash_command_dispatch_version" }}'
+  sigstore_cosign_installer_version:
+    name: Get latest sigstore/cosign-installer tag
+    kind: gittag
+    spec:
+      url: https://github.com/sigstore/cosign-installer.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  sigstore_cosign_installer_digest:
+    name: Get digest for latest sigstore/cosign-installer tag
+    kind: gittag
+    spec:
+      url: https://github.com/sigstore/cosign-installer.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "sigstore_cosign_installer_version" }}'
+  softprops_action_gh_release_version:
+    name: Get latest softprops/action-gh-release tag
+    kind: gittag
+    spec:
+      url: https://github.com/softprops/action-gh-release.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  softprops_action_gh_release_digest:
+    name: Get digest for latest softprops/action-gh-release tag
+    kind: gittag
+    spec:
+      url: https://github.com/softprops/action-gh-release.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "softprops_action_gh_release_version" }}'
+  step_security_harden_runner_version:
+    name: Get latest step-security/harden-runner tag
+    kind: gittag
+    spec:
+      url: https://github.com/step-security/harden-runner.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  step_security_harden_runner_digest:
+    name: Get digest for latest step-security/harden-runner tag
+    kind: gittag
+    spec:
+      url: https://github.com/step-security/harden-runner.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "step_security_harden_runner_version" }}'
+  zizmorcore_zizmor_action_version:
+    name: Get latest zizmorcore/zizmor-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/zizmorcore/zizmor-action.git
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  zizmorcore_zizmor_action_digest:
+    name: Get digest for latest zizmorcore/zizmor-action tag
+    kind: gittag
+    spec:
+      url: https://github.com/zizmorcore/zizmor-action.git
+      key: hash
+      versionfilter:
+        kind: regex
+        pattern: '{{ source "zizmorcore_zizmor_action_version" }}'
+
+targets:
+  actions_attest_build_provenance:
+    name: Bump actions/attest-build-provenance
+    kind: file
+    sourceid: actions_attest_build_provenance_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(actions/attest\-build\-provenance(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "actions_attest_build_provenance_digest" }} # {{ source "actions_attest_build_provenance_version" }}'
+  actions_cache:
+    name: Bump actions/cache
+    kind: file
+    sourceid: actions_cache_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(actions/cache(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "actions_cache_digest" }} # {{ source "actions_cache_version" }}'
+  actions_checkout:
+    name: Bump actions/checkout
+    kind: file
+    sourceid: actions_checkout_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(actions/checkout(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "actions_checkout_digest" }} # {{ source "actions_checkout_version" }}'
+  actions_create_github_app_token:
+    name: Bump actions/create-github-app-token
+    kind: file
+    sourceid: actions_create_github_app_token_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(actions/create\-github\-app\-token(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "actions_create_github_app_token_digest" }} # {{ source "actions_create_github_app_token_version" }}'
+  actions_dependency_review_action:
+    name: Bump actions/dependency-review-action
+    kind: file
+    sourceid: actions_dependency_review_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(actions/dependency-review-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "actions_dependency_review_action_digest" }} # {{ source "actions_dependency_review_action_version" }}'
+  actions_download_artifact:
+    name: Bump actions/download-artifact
+    kind: file
+    sourceid: actions_download_artifact_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(actions/download\-artifact(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "actions_download_artifact_digest" }} # {{ source "actions_download_artifact_version" }}'
+  actions_github_script:
+    name: Bump actions/github-script
+    kind: file
+    sourceid: actions_github_script_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(actions/github\-script(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "actions_github_script_digest" }} # {{ source "actions_github_script_version" }}'
+  actions_labeler:
+    name: Bump actions/labeler
+    kind: file
+    sourceid: actions_labeler_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(actions/labeler(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "actions_labeler_digest" }} # {{ source "actions_labeler_version" }}'
+  actions_setup_go:
+    name: Bump actions/setup-go
+    kind: file
+    sourceid: actions_setup_go_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(actions/setup\-go(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "actions_setup_go_digest" }} # {{ source "actions_setup_go_version" }}'
+  actions_setup_python:
+    name: Bump actions/setup-python
+    kind: file
+    sourceid: actions_setup_python_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(actions/setup\-python(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "actions_setup_python_digest" }} # {{ source "actions_setup_python_version" }}'
+  actions_stale:
+    name: Bump actions/stale
+    kind: file
+    sourceid: actions_stale_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(actions/stale(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "actions_stale_digest" }} # {{ source "actions_stale_version" }}'
+  actions_upload_artifact:
+    name: Bump actions/upload-artifact
+    kind: file
+    sourceid: actions_upload_artifact_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(actions/upload\-artifact(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "actions_upload_artifact_digest" }} # {{ source "actions_upload_artifact_version" }}'
+  anchore_sbom_action:
+    name: Bump anchore/sbom-action
+    kind: file
+    sourceid: anchore_sbom_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(anchore/sbom\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "anchore_sbom_action_digest" }} # {{ source "anchore_sbom_action_version" }}'
+  apache_skywalking_eyes:
+    name: Bump apache/skywalking-eyes
+    kind: file
+    sourceid: apache_skywalking_eyes_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(apache/skywalking\-eyes(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "apache_skywalking_eyes_digest" }} # {{ source "apache_skywalking_eyes_version" }}'
+  aquasecurity_trivy_action:
+    name: Bump aquasecurity/trivy-action
+    kind: file
+    sourceid: aquasecurity_trivy_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(aquasecurity/trivy-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "aquasecurity_trivy_action_digest" }} # {{ source "aquasecurity_trivy_action_version" }}'
+  aws_actions_configure_aws_credentials:
+    name: Bump aws-actions/configure-aws-credentials
+    kind: file
+    sourceid: aws_actions_configure_aws_credentials_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(aws\-actions/configure\-aws\-credentials(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "aws_actions_configure_aws_credentials_digest" }} # {{ source "aws_actions_configure_aws_credentials_version" }}'
+  azure_login:
+    name: Bump azure/login
+    kind: file
+    sourceid: azure_login_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(azure/login(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "azure_login_digest" }} # {{ source "azure_login_version" }}'
+  azure_setup_helm:
+    name: Bump azure/setup-helm
+    kind: file
+    sourceid: azure_setup_helm_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(azure/setup\-helm(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "azure_setup_helm_digest" }} # {{ source "azure_setup_helm_version" }}'
+  codecov_codecov_action:
+    name: Bump codecov/codecov-action
+    kind: file
+    sourceid: codecov_codecov_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(codecov/codecov\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "codecov_codecov_action_digest" }} # {{ source "codecov_codecov_action_version" }}'
+  codelytv_pr_size_labeler:
+    name: Bump codelytv/pr-size-labeler
+    kind: file
+    sourceid: codelytv_pr_size_labeler_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(codelytv/pr\-size\-labeler(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "codelytv_pr_size_labeler_digest" }} # {{ source "codelytv_pr_size_labeler_version" }}'
+  crazy_max_ghaction_import_gpg:
+    name: Bump crazy-max/ghaction-import-gpg
+    kind: file
+    sourceid: crazy_max_ghaction_import_gpg_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(crazy\-max/ghaction\-import\-gpg(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "crazy_max_ghaction_import_gpg_digest" }} # {{ source "crazy_max_ghaction_import_gpg_version" }}'
+  docker_login_action:
+    name: Bump docker/login-action
+    kind: file
+    sourceid: docker_login_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(docker/login\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "docker_login_action_digest" }} # {{ source "docker_login_action_version" }}'
+  docker_setup_buildx_action:
+    name: Bump docker/setup-buildx-action
+    kind: file
+    sourceid: docker_setup_buildx_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(docker/setup\-buildx\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "docker_setup_buildx_action_digest" }} # {{ source "docker_setup_buildx_action_version" }}'
+  docker_setup_qemu_action:
+    name: Bump docker/setup-qemu-action
+    kind: file
+    sourceid: docker_setup_qemu_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(docker/setup\-qemu\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "docker_setup_qemu_action_digest" }} # {{ source "docker_setup_qemu_action_version" }}'
+  engineerd_setup_kind:
+    name: Bump engineerd/setup-kind
+    kind: file
+    sourceid: engineerd_setup_kind_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(engineerd/setup\-kind(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "engineerd_setup_kind_digest" }} # {{ source "engineerd_setup_kind_version" }}'
+  fkirc_skip_duplicate_actions:
+    name: Bump fkirc/skip-duplicate-actions
+    kind: file
+    sourceid: fkirc_skip_duplicate_actions_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(fkirc/skip\-duplicate\-actions(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "fkirc_skip_duplicate_actions_digest" }} # {{ source "fkirc_skip_duplicate_actions_version" }}'
+  fossas_fossa_action:
+    name: Bump fossas/fossa-action
+    kind: file
+    sourceid: fossas_fossa_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(fossas/fossa-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "fossas_fossa_action_digest" }} # {{ source "fossas_fossa_action_version" }}'
+  github_codeql_action:
+    name: Bump github/codeql-action
+    kind: file
+    sourceid: github_codeql_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(github/codeql\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "github_codeql_action_digest" }} # {{ source "github_codeql_action_version" }}'
+  google_github_actions_auth:
+    name: Bump google-github-actions/auth
+    kind: file
+    sourceid: google_github_actions_auth_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(google\-github\-actions/auth(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "google_github_actions_auth_digest" }} # {{ source "google_github_actions_auth_version" }}'
+  google_github_actions_get_gke_credentials:
+    name: Bump google-github-actions/get-gke-credentials
+    kind: file
+    sourceid: google_github_actions_get_gke_credentials_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(google\-github\-actions/get\-gke\-credentials(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "google_github_actions_get_gke_credentials_digest" }} # {{ source "google_github_actions_get_gke_credentials_version" }}'
+  google_github_actions_setup_gcloud:
+    name: Bump google-github-actions/setup-gcloud
+    kind: file
+    sourceid: google_github_actions_setup_gcloud_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(google\-github\-actions/setup\-gcloud(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "google_github_actions_setup_gcloud_digest" }} # {{ source "google_github_actions_setup_gcloud_version" }}'
+  goreleaser_goreleaser_action:
+    name: Bump goreleaser/goreleaser-action
+    kind: file
+    sourceid: goreleaser_goreleaser_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(goreleaser/goreleaser\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "goreleaser_goreleaser_action_digest" }} # {{ source "goreleaser_goreleaser_action_version" }}'
+  hashicorp_setup_terraform:
+    name: Bump hashicorp/setup-terraform
+    kind: file
+    sourceid: hashicorp_setup_terraform_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(hashicorp/setup\-terraform(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "hashicorp_setup_terraform_digest" }} # {{ source "hashicorp_setup_terraform_version" }}'
+  helm_chart_releaser_action:
+    name: Bump helm/chart-releaser-action
+    kind: file
+    sourceid: helm_chart_releaser_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(helm/chart\-releaser\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "helm_chart_releaser_action_digest" }} # {{ source "helm_chart_releaser_action_version" }}'
+  helm_chart_testing_action:
+    name: Bump helm/chart-testing-action
+    kind: file
+    sourceid: helm_chart_testing_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(helm/chart\-testing\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "helm_chart_testing_action_digest" }} # {{ source "helm_chart_testing_action_version" }}'
+  helm_kind_action:
+    name: Bump helm/kind-action
+    kind: file
+    sourceid: helm_kind_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(helm/kind\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "helm_kind_action_digest" }} # {{ source "helm_kind_action_version" }}'
+  jlumbroso_free_disk_space:
+    name: Bump jlumbroso/free-disk-space
+    kind: file
+    sourceid: jlumbroso_free_disk_space_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(jlumbroso/free\-disk\-space(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "jlumbroso_free_disk_space_digest" }} # {{ source "jlumbroso_free_disk_space_version" }}'
+  ossf_scorecard_action:
+    name: Bump ossf/scorecard-action
+    kind: file
+    sourceid: ossf_scorecard_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(ossf/scorecard\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "ossf_scorecard_action_digest" }} # {{ source "ossf_scorecard_action_version" }}'
+  peter_evans_create_or_update_comment:
+    name: Bump peter-evans/create-or-update-comment
+    kind: file
+    sourceid: peter_evans_create_or_update_comment_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(peter\-evans/create\-or\-update\-comment(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "peter_evans_create_or_update_comment_digest" }} # {{ source "peter_evans_create_or_update_comment_version" }}'
+  peter_evans_slash_command_dispatch:
+    name: Bump peter-evans/slash-command-dispatch
+    kind: file
+    sourceid: peter_evans_slash_command_dispatch_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(peter\-evans/slash\-command\-dispatch(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "peter_evans_slash_command_dispatch_digest" }} # {{ source "peter_evans_slash_command_dispatch_version" }}'
+  sigstore_cosign_installer:
+    name: Bump sigstore/cosign-installer
+    kind: file
+    sourceid: sigstore_cosign_installer_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(sigstore/cosign\-installer(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "sigstore_cosign_installer_digest" }} # {{ source "sigstore_cosign_installer_version" }}'
+  softprops_action_gh_release:
+    name: Bump softprops/action-gh-release
+    kind: file
+    sourceid: softprops_action_gh_release_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(softprops/action\-gh\-release(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "softprops_action_gh_release_digest" }} # {{ source "softprops_action_gh_release_version" }}'
+  step_security_harden_runner:
+    name: Bump step-security/harden-runner
+    kind: file
+    sourceid: step_security_harden_runner_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(step\-security/harden\-runner(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "step_security_harden_runner_digest" }} # {{ source "step_security_harden_runner_version" }}'
+  zizmorcore_zizmor_action:
+    name: Bump zizmorcore/zizmor-action
+    kind: file
+    sourceid: zizmorcore_zizmor_action_digest
+    spec:
+      files:
+        - .github/actions/*/*.yml
+        - .github/workflows/*.yml
+      searchpattern: true
+      matchpattern: '(zizmorcore/zizmor\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
+      replacepattern: '$1@{{ source "zizmorcore_zizmor_action_digest" }} # {{ source "zizmorcore_zizmor_action_version" }}'

@@ -1,145 +1,239 @@
-{{- $tools := dict
-  "controller-gen" (dict "variable" "CONTROLLER_GEN" "repository" "kubernetes-sigs/controller-tools" "platforms" (dict "darwin-amd64" "controller-gen-darwin-amd64" "darwin-arm64" "controller-gen-darwin-arm64" "linux-amd64" "controller-gen-linux-amd64" "linux-arm64" "controller-gen-linux-arm64"))
-  "crane" (dict "variable" "CRANE" "repository" "google/go-containerregistry" "platforms" (dict "darwin-amd64" "go-containerregistry_Darwin_x86_64.tar.gz" "darwin-arm64" "go-containerregistry_Darwin_arm64.tar.gz" "linux-amd64" "go-containerregistry_Linux_x86_64.tar.gz" "linux-arm64" "go-containerregistry_Linux_arm64.tar.gz"))
-  "cty" (dict "variable" "CTY" "repository" "Skarlso/crd-to-sample-yaml" "platforms" (dict "darwin-amd64" "cty_darwin_amd64.tar.gz" "darwin-arm64" "cty_darwin_arm64.tar.gz" "linux-amd64" "cty_linux_amd64.tar.gz" "linux-arm64" "cty_linux_arm64.tar.gz"))
-  "dlv" (dict "variable" "DLV" "repository" "go-delve/delve" "platforms" (dict "darwin-amd64" "dlv_{{version-no-v}}_darwin_amd64.tar.gz" "darwin-arm64" "dlv_{{version-no-v}}_darwin_arm64.tar.gz" "linux-amd64" "dlv_{{version-no-v}}_linux_amd64.tar.gz" "linux-arm64" "dlv_{{version-no-v}}_linux_arm64.tar.gz"))
-  "golangci-lint" (dict "variable" "GOLANGCI_LINT" "repository" "golangci/golangci-lint" "platforms" (dict "darwin-amd64" "golangci-lint-{{version-no-v}}-darwin-amd64.tar.gz" "darwin-arm64" "golangci-lint-{{version-no-v}}-darwin-arm64.tar.gz" "linux-amd64" "golangci-lint-{{version-no-v}}-linux-amd64.tar.gz" "linux-arm64" "golangci-lint-{{version-no-v}}-linux-arm64.tar.gz"))
-  "setup-envtest" (dict "variable" "SETUP_ENVTEST" "repository" "kubernetes-sigs/controller-runtime" "platforms" (dict "darwin-amd64" "setup-envtest-darwin-amd64" "darwin-arm64" "setup-envtest-darwin-arm64" "linux-amd64" "setup-envtest-linux-amd64" "linux-arm64" "setup-envtest-linux-arm64"))
-  "tilt" (dict "variable" "TILT" "repository" "tilt-dev/tilt" "platforms" (dict "darwin-amd64" "tilt.{{version-no-v}}.mac.x86_64.tar.gz" "darwin-arm64" "tilt.{{version-no-v}}.mac.arm64.tar.gz" "linux-amd64" "tilt.{{version-no-v}}.linux.x86_64.tar.gz" "linux-arm64" "tilt.{{version-no-v}}.linux.arm64.tar.gz"))
-  "updatecli" (dict "variable" "UPDATECLI" "repository" "updatecli/updatecli" "platforms" (dict "darwin-amd64" "updatecli_Darwin_x86_64.tar.gz" "darwin-arm64" "updatecli_Darwin_arm64.tar.gz" "linux-amd64" "updatecli_Linux_x86_64.tar.gz" "linux-arm64" "updatecli_Linux_arm64.tar.gz"))
--}}
 name: Update development tools
-
-# Upstream metadata and update policy live here. The current versions and
-# platform checksums are maintained directly in the Makefile.
+# Upstream metadata and update policy are explicit in this file. Current
+# versions and platform checksums are maintained directly in the Makefile.
 sources:
-{{- range $name, $tool := $tools }}
-  "{{ $name }}_version":
-    name: Get latest {{ $name }} release
-    kind: githubrelease
-    spec:
-      owner: {{ first (splitList "/" $tool.repository) }}
-      repository: {{ last (splitList "/" $tool.repository) }}
-      age:
-        minimum: 168h
-      versionfilter:
-        kind: semver
-{{- if eq $name "dlv" }}
-        pattern: '<1.27.0'
-{{- else if eq $name "cty" }}
-        pattern: '1.1.x'
-{{- else }}
-        pattern: '*'
-{{- end }}
-{{- if eq $name "golangci-lint" }}
-  "{{ $name }}_version_no_v":
-    kind: githubrelease
-    transformers:
-      - trimprefix: v
-    spec:
-      owner: golangci
-      repository: golangci-lint
-      age:
-        minimum: 168h
-      versionfilter:
-        kind: semver
-        pattern: '*'
-{{- end }}
-{{- range $platformName, $asset := $tool.platforms }}
-{{- $assetPattern := regexQuoteMeta $asset }}
-{{- $assetPattern = replace "\\{\\{version-no-v\\}\\}" "[0-9]+(?:\\.[0-9]+)+" $assetPattern }}
-  "{{ $name }}_{{ replace "-" "_" $platformName }}_sha256":
-    name: Get {{ $name }} checksum for {{ $platformName }}
+  controller-gen_darwin_amd64_sha256:
+    name: Get controller-gen checksum for darwin-amd64
     kind: http
     transformers:
       - findsubmatch:
-{{- if or (eq $name "controller-gen") (eq $name "setup-envtest") }}
-          pattern: '(?s)"name"\s*:\s*"{{ $assetPattern }}".*?"digest"\s*:\s*"sha256:([a-f0-9]{64})"'
-{{- else }}
-          pattern: '(?m)^([a-f0-9]{64})\s+\*?{{ $assetPattern }}$'
-{{- end }}
+          pattern: (?s)"name"\s*:\s*"controller-gen-darwin-amd64".*?"digest"\s*:\s*"sha256:([a-f0-9]{64})"
           captureindex: 1
     spec:
-{{- if or (eq $name "controller-gen") (eq $name "setup-envtest") }}
-      url: https://api.github.com/repos/{{ $tool.repository }}/releases/tags/{{ "{{" }} source "{{ $name }}_version" {{ "}}" }}
       request:
         headers:
-          Authorization: 'Bearer {{ requiredEnv "GITHUB_TOKEN" }}'
-{{- else if eq $name "golangci-lint" }}
-      url: https://github.com/{{ $tool.repository }}/releases/download/{{ "{{" }} source "{{ $name }}_version" {{ "}}" }}/golangci-lint-{{ "{{" }} source "{{ $name }}_version_no_v" {{ "}}" }}-checksums.txt
-{{- else if eq $name "cty" }}
-      url: https://github.com/{{ $tool.repository }}/releases/download/{{ "{{" }} source "{{ $name }}_version" {{ "}}" }}/cty_checksums.txt
-{{- else }}
-      url: https://github.com/{{ $tool.repository }}/releases/download/{{ "{{" }} source "{{ $name }}_version" {{ "}}" }}/checksums.txt
-{{- end }}
-{{- end }}
-{{- end }}
-
+          Authorization: Bearer {{ requiredEnv "GITHUB_TOKEN" }}
+      url: https://api.github.com/repos/kubernetes-sigs/controller-tools/releases/tags/{{ source "controller-gen_version" }}
+  controller-gen_darwin_arm64_sha256:
+    name: Get controller-gen checksum for darwin-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?s)"name"\s*:\s*"controller-gen-darwin-arm64".*?"digest"\s*:\s*"sha256:([a-f0-9]{64})"
+          captureindex: 1
+    spec:
+      request:
+        headers:
+          Authorization: Bearer {{ requiredEnv "GITHUB_TOKEN" }}
+      url: https://api.github.com/repos/kubernetes-sigs/controller-tools/releases/tags/{{ source "controller-gen_version" }}
+  controller-gen_linux_amd64_sha256:
+    name: Get controller-gen checksum for linux-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?s)"name"\s*:\s*"controller-gen-linux-amd64".*?"digest"\s*:\s*"sha256:([a-f0-9]{64})"
+          captureindex: 1
+    spec:
+      request:
+        headers:
+          Authorization: Bearer {{ requiredEnv "GITHUB_TOKEN" }}
+      url: https://api.github.com/repos/kubernetes-sigs/controller-tools/releases/tags/{{ source "controller-gen_version" }}
+  controller-gen_linux_arm64_sha256:
+    name: Get controller-gen checksum for linux-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?s)"name"\s*:\s*"controller-gen-linux-arm64".*?"digest"\s*:\s*"sha256:([a-f0-9]{64})"
+          captureindex: 1
+    spec:
+      request:
+        headers:
+          Authorization: Bearer {{ requiredEnv "GITHUB_TOKEN" }}
+      url: https://api.github.com/repos/kubernetes-sigs/controller-tools/releases/tags/{{ source "controller-gen_version" }}
+  controller-gen_version:
+    name: Get latest controller-gen release
+    kind: githubrelease
+    spec:
+      age:
+        minimum: 168h
+      owner: kubernetes-sigs
+      repository: controller-tools
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  cosign_version:
+    kind: githubrelease
+    spec:
+      age:
+        minimum: 168h
+      owner: sigstore
+      repository: cosign
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  crane_darwin_amd64_sha256:
+    name: Get crane checksum for darwin-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?go-containerregistry_Darwin_x86_64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/google/go-containerregistry/releases/download/{{ source "crane_version" }}/checksums.txt
+  crane_darwin_arm64_sha256:
+    name: Get crane checksum for darwin-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?go-containerregistry_Darwin_arm64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/google/go-containerregistry/releases/download/{{ source "crane_version" }}/checksums.txt
+  crane_linux_amd64_sha256:
+    name: Get crane checksum for linux-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?go-containerregistry_Linux_x86_64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/google/go-containerregistry/releases/download/{{ source "crane_version" }}/checksums.txt
+  crane_linux_arm64_sha256:
+    name: Get crane checksum for linux-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?go-containerregistry_Linux_arm64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/google/go-containerregistry/releases/download/{{ source "crane_version" }}/checksums.txt
+  crane_version:
+    name: Get latest crane release
+    kind: githubrelease
+    spec:
+      age:
+        minimum: 168h
+      owner: google
+      repository: go-containerregistry
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  cty_darwin_amd64_sha256:
+    name: Get cty checksum for darwin-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?cty_darwin_amd64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/Skarlso/crd-to-sample-yaml/releases/download/{{ source "cty_version" }}/cty_checksums.txt
+  cty_darwin_arm64_sha256:
+    name: Get cty checksum for darwin-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?cty_darwin_arm64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/Skarlso/crd-to-sample-yaml/releases/download/{{ source "cty_version" }}/cty_checksums.txt
+  cty_linux_amd64_sha256:
+    name: Get cty checksum for linux-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?cty_linux_amd64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/Skarlso/crd-to-sample-yaml/releases/download/{{ source "cty_version" }}/cty_checksums.txt
+  cty_linux_arm64_sha256:
+    name: Get cty checksum for linux-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?cty_linux_arm64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/Skarlso/crd-to-sample-yaml/releases/download/{{ source "cty_version" }}/cty_checksums.txt
+  cty_version:
+    name: Get latest cty release
+    kind: githubrelease
+    spec:
+      age:
+        minimum: 168h
+      owner: Skarlso
+      repository: crd-to-sample-yaml
+      versionfilter:
+        kind: semver
+        pattern: 1.1.x
+  dlv_darwin_amd64_sha256:
+    name: Get dlv checksum for darwin-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?dlv_[0-9]+(?:\.[0-9]+)+_darwin_amd64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/go-delve/delve/releases/download/{{ source "dlv_version" }}/checksums.txt
+  dlv_darwin_arm64_sha256:
+    name: Get dlv checksum for darwin-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?dlv_[0-9]+(?:\.[0-9]+)+_darwin_arm64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/go-delve/delve/releases/download/{{ source "dlv_version" }}/checksums.txt
+  dlv_linux_amd64_sha256:
+    name: Get dlv checksum for linux-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?dlv_[0-9]+(?:\.[0-9]+)+_linux_amd64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/go-delve/delve/releases/download/{{ source "dlv_version" }}/checksums.txt
+  dlv_linux_arm64_sha256:
+    name: Get dlv checksum for linux-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?dlv_[0-9]+(?:\.[0-9]+)+_linux_arm64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/go-delve/delve/releases/download/{{ source "dlv_version" }}/checksums.txt
+  dlv_version:
+    name: Get latest dlv release
+    kind: githubrelease
+    spec:
+      age:
+        minimum: 168h
+      owner: go-delve
+      repository: delve
+      versionfilter:
+        kind: semver
+        pattern: <1.27.0
   envtest_kubernetes_version:
     kind: githubrelease
     transformers:
       - findsubmatch:
-          pattern: '^v([0-9]+\.[0-9]+)\.[0-9]+$'
-          capturepattern: '\1.x'
+          pattern: ^v([0-9]+\.[0-9]+)\.[0-9]+$
+          captureindex: 0
+          capturepattern: \1.x
     spec:
+      age:
+        minimum: 168h
       owner: kubernetes
       repository: kubernetes
-      age:
-        minimum: 168h
       versionfilter:
         kind: semver
         pattern: '*'
-  helm_schema_plugin_version:
-    kind: githubrelease
-    transformers:
-      - trimprefix: v
-    spec:
-      owner: losisin
-      repository: helm-values-schema-json
-      age:
-        minimum: 168h
-      versionfilter:
-        kind: semver
-        pattern: '*'
-  helm_unittest_plugin_version:
-    kind: githubrelease
-    transformers:
-      - trimprefix: v
-    spec:
-      owner: helm-unittest
-      repository: helm-unittest
-      age:
-        minimum: 168h
-      versionfilter:
-        kind: semver
-        pattern: '*'
-  kind_version:
+  flux_version:
     kind: githubrelease
     spec:
-      owner: kubernetes-sigs
-      repository: kind
       age:
         minimum: 168h
-      versionfilter:
-        kind: semver
-        pattern: '*'
-  kubectl_version:
-    kind: githubrelease
-    spec:
-      owner: kubernetes
-      repository: kubernetes
-      age:
-        minimum: 168h
-      versionfilter:
-        kind: semver
-        pattern: '*'
-  helm_version:
-    kind: githubrelease
-    spec:
-      owner: helm
-      repository: helm
-      age:
-        minimum: 168h
+      owner: fluxcd
+      repository: flux2
       versionfilter:
         kind: semver
         pattern: '*'
@@ -150,145 +244,688 @@ sources:
       versionfilter:
         kind: semver
         pattern: '*'
-  cosign_version:
+  golangci-lint_darwin_amd64_sha256:
+    name: Get golangci-lint checksum for darwin-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?golangci-lint-[0-9]+(?:\.[0-9]+)+-darwin-amd64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/golangci/golangci-lint/releases/download/{{ source "golangci-lint_version" }}/golangci-lint-{{ source "golangci-lint_version_no_v" }}-checksums.txt
+  golangci-lint_darwin_arm64_sha256:
+    name: Get golangci-lint checksum for darwin-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?golangci-lint-[0-9]+(?:\.[0-9]+)+-darwin-arm64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/golangci/golangci-lint/releases/download/{{ source "golangci-lint_version" }}/golangci-lint-{{ source "golangci-lint_version_no_v" }}-checksums.txt
+  golangci-lint_linux_amd64_sha256:
+    name: Get golangci-lint checksum for linux-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?golangci-lint-[0-9]+(?:\.[0-9]+)+-linux-amd64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/golangci/golangci-lint/releases/download/{{ source "golangci-lint_version" }}/golangci-lint-{{ source "golangci-lint_version_no_v" }}-checksums.txt
+  golangci-lint_linux_arm64_sha256:
+    name: Get golangci-lint checksum for linux-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?golangci-lint-[0-9]+(?:\.[0-9]+)+-linux-arm64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/golangci/golangci-lint/releases/download/{{ source "golangci-lint_version" }}/golangci-lint-{{ source "golangci-lint_version_no_v" }}-checksums.txt
+  golangci-lint_version:
+    name: Get latest golangci-lint release
     kind: githubrelease
     spec:
-      owner: sigstore
-      repository: cosign
       age:
         minimum: 168h
+      owner: golangci
+      repository: golangci-lint
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  golangci-lint_version_no_v:
+    kind: githubrelease
+    transformers:
+      - trimprefix: v
+    spec:
+      age:
+        minimum: 168h
+      owner: golangci
+      repository: golangci-lint
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  helm_schema_plugin_version:
+    kind: githubrelease
+    transformers:
+      - trimprefix: v
+    spec:
+      age:
+        minimum: 168h
+      owner: losisin
+      repository: helm-values-schema-json
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  helm_unittest_plugin_version:
+    kind: githubrelease
+    transformers:
+      - trimprefix: v
+    spec:
+      age:
+        minimum: 168h
+      owner: helm-unittest
+      repository: helm-unittest
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  helm_version:
+    kind: githubrelease
+    spec:
+      age:
+        minimum: 168h
+      owner: helm
+      repository: helm
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  kind_version:
+    kind: githubrelease
+    spec:
+      age:
+        minimum: 168h
+      owner: kubernetes-sigs
+      repository: kind
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  kubectl_version:
+    kind: githubrelease
+    spec:
+      age:
+        minimum: 168h
+      owner: kubernetes
+      repository: kubernetes
+      versionfilter:
+        kind: semver
+        pattern: '*'
+  setup-envtest_darwin_amd64_sha256:
+    name: Get setup-envtest checksum for darwin-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?s)"name"\s*:\s*"setup-envtest-darwin-amd64".*?"digest"\s*:\s*"sha256:([a-f0-9]{64})"
+          captureindex: 1
+    spec:
+      request:
+        headers:
+          Authorization: Bearer {{ requiredEnv "GITHUB_TOKEN" }}
+      url: https://api.github.com/repos/kubernetes-sigs/controller-runtime/releases/tags/{{ source "setup-envtest_version" }}
+  setup-envtest_darwin_arm64_sha256:
+    name: Get setup-envtest checksum for darwin-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?s)"name"\s*:\s*"setup-envtest-darwin-arm64".*?"digest"\s*:\s*"sha256:([a-f0-9]{64})"
+          captureindex: 1
+    spec:
+      request:
+        headers:
+          Authorization: Bearer {{ requiredEnv "GITHUB_TOKEN" }}
+      url: https://api.github.com/repos/kubernetes-sigs/controller-runtime/releases/tags/{{ source "setup-envtest_version" }}
+  setup-envtest_linux_amd64_sha256:
+    name: Get setup-envtest checksum for linux-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?s)"name"\s*:\s*"setup-envtest-linux-amd64".*?"digest"\s*:\s*"sha256:([a-f0-9]{64})"
+          captureindex: 1
+    spec:
+      request:
+        headers:
+          Authorization: Bearer {{ requiredEnv "GITHUB_TOKEN" }}
+      url: https://api.github.com/repos/kubernetes-sigs/controller-runtime/releases/tags/{{ source "setup-envtest_version" }}
+  setup-envtest_linux_arm64_sha256:
+    name: Get setup-envtest checksum for linux-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?s)"name"\s*:\s*"setup-envtest-linux-arm64".*?"digest"\s*:\s*"sha256:([a-f0-9]{64})"
+          captureindex: 1
+    spec:
+      request:
+        headers:
+          Authorization: Bearer {{ requiredEnv "GITHUB_TOKEN" }}
+      url: https://api.github.com/repos/kubernetes-sigs/controller-runtime/releases/tags/{{ source "setup-envtest_version" }}
+  setup-envtest_version:
+    name: Get latest setup-envtest release
+    kind: githubrelease
+    spec:
+      age:
+        minimum: 168h
+      owner: kubernetes-sigs
+      repository: controller-runtime
       versionfilter:
         kind: semver
         pattern: '*'
   syft_version:
     kind: githubrelease
     spec:
+      age:
+        minimum: 168h
       owner: anchore
       repository: syft
-      age:
-        minimum: 168h
       versionfilter:
         kind: semver
         pattern: '*'
-  flux_version:
+  tilt_darwin_amd64_sha256:
+    name: Get tilt checksum for darwin-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?tilt\.[0-9]+(?:\.[0-9]+)+\.mac\.x86_64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/tilt-dev/tilt/releases/download/{{ source "tilt_version" }}/checksums.txt
+  tilt_darwin_arm64_sha256:
+    name: Get tilt checksum for darwin-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?tilt\.[0-9]+(?:\.[0-9]+)+\.mac\.arm64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/tilt-dev/tilt/releases/download/{{ source "tilt_version" }}/checksums.txt
+  tilt_linux_amd64_sha256:
+    name: Get tilt checksum for linux-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?tilt\.[0-9]+(?:\.[0-9]+)+\.linux\.x86_64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/tilt-dev/tilt/releases/download/{{ source "tilt_version" }}/checksums.txt
+  tilt_linux_arm64_sha256:
+    name: Get tilt checksum for linux-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?tilt\.[0-9]+(?:\.[0-9]+)+\.linux\.arm64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/tilt-dev/tilt/releases/download/{{ source "tilt_version" }}/checksums.txt
+  tilt_version:
+    name: Get latest tilt release
     kind: githubrelease
     spec:
-      owner: fluxcd
-      repository: flux2
       age:
         minimum: 168h
+      owner: tilt-dev
+      repository: tilt
       versionfilter:
         kind: semver
         pattern: '*'
-
+  updatecli_darwin_amd64_sha256:
+    name: Get updatecli checksum for darwin-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?updatecli_Darwin_x86_64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/updatecli/updatecli/releases/download/{{ source "updatecli_version" }}/checksums.txt
+  updatecli_darwin_arm64_sha256:
+    name: Get updatecli checksum for darwin-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?updatecli_Darwin_arm64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/updatecli/updatecli/releases/download/{{ source "updatecli_version" }}/checksums.txt
+  updatecli_linux_amd64_sha256:
+    name: Get updatecli checksum for linux-amd64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?updatecli_Linux_x86_64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/updatecli/updatecli/releases/download/{{ source "updatecli_version" }}/checksums.txt
+  updatecli_linux_arm64_sha256:
+    name: Get updatecli checksum for linux-arm64
+    kind: http
+    transformers:
+      - findsubmatch:
+          pattern: (?m)^([a-f0-9]{64})\s+\*?updatecli_Linux_arm64\.tar\.gz$
+          captureindex: 1
+    spec:
+      url: https://github.com/updatecli/updatecli/releases/download/{{ source "updatecli_version" }}/checksums.txt
+  updatecli_version:
+    name: Get latest updatecli release
+    kind: githubrelease
+    spec:
+      age:
+        minimum: 168h
+      owner: updatecli
+      repository: updatecli
+      versionfilter:
+        kind: semver
+        pattern: '*'
 targets:
-{{- range $name, $tool := $tools }}
-  "{{ $name }}_version":
-    name: Update {{ $name }} version
+  controller-gen_darwin_amd64_sha256:
+    name: Update controller-gen checksum for darwin-amd64
     kind: file
-    sourceid: "{{ $name }}_version"
     spec:
       file: Makefile
-      matchpattern: '(?m)^{{ $tool.variable }}_VERSION := v?[0-9]+\.[0-9]+\.[0-9]+$'
-      replacepattern: '{{ $tool.variable }}_VERSION := {{ "{{" }} source "{{ $name }}_version" {{ "}}" }}'
-{{- range $platformName, $_ := $tool.platforms }}
-{{- $platformVariable := upper (replace "-" "_" $platformName) }}
-  "{{ $name }}_{{ replace "-" "_" $platformName }}_sha256":
-    name: Update {{ $name }} checksum for {{ $platformName }}
+      matchpattern: (?m)^CONTROLLER_GEN_DARWIN_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: CONTROLLER_GEN_DARWIN_AMD64_SHA256 := {{ source "controller-gen_darwin_amd64_sha256" }}
+    sourceid: controller-gen_darwin_amd64_sha256
+  controller-gen_darwin_arm64_sha256:
+    name: Update controller-gen checksum for darwin-arm64
     kind: file
-    sourceid: "{{ $name }}_{{ replace "-" "_" $platformName }}_sha256"
     spec:
       file: Makefile
-      matchpattern: '(?m)^{{ $tool.variable }}_{{ $platformVariable }}_SHA256 := [a-f0-9]{64}$'
-      replacepattern: '{{ $tool.variable }}_{{ $platformVariable }}_SHA256 := {{ "{{" }} source "{{ $name }}_{{ replace "-" "_" $platformName }}_sha256" {{ "}}" }}'
-{{- end }}
-{{- end }}
-
-  envtest_kubernetes_version:
+      matchpattern: (?m)^CONTROLLER_GEN_DARWIN_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: CONTROLLER_GEN_DARWIN_ARM64_SHA256 := {{ source "controller-gen_darwin_arm64_sha256" }}
+    sourceid: controller-gen_darwin_arm64_sha256
+  controller-gen_linux_amd64_sha256:
+    name: Update controller-gen checksum for linux-amd64
     kind: file
-    sourceid: envtest_kubernetes_version
     spec:
       file: Makefile
-      matchpattern: '(?m)^ENVTEST_KUBERNETES_VERSION := [0-9]+\.[0-9]+\.x$'
-      replacepattern: 'ENVTEST_KUBERNETES_VERSION := {{ source "envtest_kubernetes_version" }}'
-  kubernetes_ci_version:
+      matchpattern: (?m)^CONTROLLER_GEN_LINUX_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: CONTROLLER_GEN_LINUX_AMD64_SHA256 := {{ source "controller-gen_linux_amd64_sha256" }}
+    sourceid: controller-gen_linux_amd64_sha256
+  controller-gen_linux_arm64_sha256:
+    name: Update controller-gen checksum for linux-arm64
     kind: file
-    sourceid: envtest_kubernetes_version
-    spec:
-      file: .github/workflows/ci.yml
-      matchpattern: "KUBERNETES_VERSION: '[0-9]+\\.[0-9]+\\.x'"
-      replacepattern: 'KUBERNETES_VERSION: ''{{ source `envtest_kubernetes_version` }}'''
-  helm_schema_plugin_version:
-    kind: file
-    sourceid: helm_schema_plugin_version
     spec:
       file: Makefile
-      matchpattern: '(?m)^HELM_SCHEMA_PLUGIN_VERSION := [0-9]+\.[0-9]+\.[0-9]+$'
-      replacepattern: 'HELM_SCHEMA_PLUGIN_VERSION := {{ source "helm_schema_plugin_version" }}'
-  helm_unittest_plugin_version:
+      matchpattern: (?m)^CONTROLLER_GEN_LINUX_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: CONTROLLER_GEN_LINUX_ARM64_SHA256 := {{ source "controller-gen_linux_arm64_sha256" }}
+    sourceid: controller-gen_linux_arm64_sha256
+  controller-gen_version:
+    name: Update controller-gen version
     kind: file
-    sourceid: helm_unittest_plugin_version
     spec:
       file: Makefile
-      matchpattern: '(?m)^HELM_UNITTEST_PLUGIN_VERSION := [0-9]+\.[0-9]+\.[0-9]+$'
-      replacepattern: 'HELM_UNITTEST_PLUGIN_VERSION := {{ source "helm_unittest_plugin_version" }}'
-  kind_version:
-    kind: file
-    sourceid: kind_version
-    spec:
-      files:
-        - .github/workflows/e2e.yml
-        - .github/workflows/e2e-reusable.yml
-      matchpattern: "KIND_VERSION: 'v?[0-9]+\\.[0-9]+\\.[0-9]+'"
-      replacepattern: 'KIND_VERSION: ''{{ source `kind_version` }}'''
-  kubectl_version:
-    kind: file
-    sourceid: kubectl_version
-    spec:
-      file: e2e/Dockerfile
-      matchpattern: 'ENV KUBECTL_VERSION="v?[0-9]+\.[0-9]+\.[0-9]+"'
-      replacepattern: 'ENV KUBECTL_VERSION="{{ source `kubectl_version` }}"'
-  helm_version:
-    kind: file
-    sourceid: helm_version
-    spec:
-      file: e2e/Dockerfile
-      matchpattern: 'ENV HELM_VERSION="v?[0-9]+\.[0-9]+\.[0-9]+"'
-      replacepattern: 'ENV HELM_VERSION="{{ source `helm_version` }}"'
-  helm_workflow_version:
-    kind: file
-    sourceid: helm_version
-    spec:
-      file: .github/workflows/helm.yml
-      matchpattern: 'version: v[0-9]+\.[0-9]+\.[0-9]+'
-      replacepattern: 'version: {{ source `helm_version` }}'
-  ginkgo_version:
-    kind: file
-    sourceid: ginkgo_version
-    spec:
-      file: e2e/Dockerfile
-      matchpattern: 'github.com/onsi/ginkgo/v2/ginkgo@v[0-9]+\.[0-9]+\.[0-9]+'
-      replacepattern: 'github.com/onsi/ginkgo/v2/ginkgo@{{ source `ginkgo_version` }}'
+      matchpattern: (?m)^CONTROLLER_GEN_VERSION := v?[0-9]+\.[0-9]+\.[0-9]+$
+      replacepattern: CONTROLLER_GEN_VERSION := {{ source "controller-gen_version" }}
+    sourceid: controller-gen_version
   cosign_version:
     kind: file
-    sourceid: cosign_version
     spec:
       files:
         - .github/actions/sign/action.yml
         - .github/workflows/helm.yml
       matchpattern: 'cosign-release: [''\"]v?[0-9]+\.[0-9]+\.[0-9]+[''\"]'
-      replacepattern: 'cosign-release: ''{{ source `cosign_version` }}'''
+      replacepattern: 'cosign-release: ''{{ source "cosign_version" }}'''
+    sourceid: cosign_version
+  crane_darwin_amd64_sha256:
+    name: Update crane checksum for darwin-amd64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^CRANE_DARWIN_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: CRANE_DARWIN_AMD64_SHA256 := {{ source "crane_darwin_amd64_sha256" }}
+    sourceid: crane_darwin_amd64_sha256
+  crane_darwin_arm64_sha256:
+    name: Update crane checksum for darwin-arm64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^CRANE_DARWIN_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: CRANE_DARWIN_ARM64_SHA256 := {{ source "crane_darwin_arm64_sha256" }}
+    sourceid: crane_darwin_arm64_sha256
+  crane_linux_amd64_sha256:
+    name: Update crane checksum for linux-amd64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^CRANE_LINUX_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: CRANE_LINUX_AMD64_SHA256 := {{ source "crane_linux_amd64_sha256" }}
+    sourceid: crane_linux_amd64_sha256
+  crane_linux_arm64_sha256:
+    name: Update crane checksum for linux-arm64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^CRANE_LINUX_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: CRANE_LINUX_ARM64_SHA256 := {{ source "crane_linux_arm64_sha256" }}
+    sourceid: crane_linux_arm64_sha256
+  crane_version:
+    name: Update crane version
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^CRANE_VERSION := v?[0-9]+\.[0-9]+\.[0-9]+$
+      replacepattern: CRANE_VERSION := {{ source "crane_version" }}
+    sourceid: crane_version
+  cty_darwin_amd64_sha256:
+    name: Update cty checksum for darwin-amd64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^CTY_DARWIN_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: CTY_DARWIN_AMD64_SHA256 := {{ source "cty_darwin_amd64_sha256" }}
+    sourceid: cty_darwin_amd64_sha256
+  cty_darwin_arm64_sha256:
+    name: Update cty checksum for darwin-arm64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^CTY_DARWIN_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: CTY_DARWIN_ARM64_SHA256 := {{ source "cty_darwin_arm64_sha256" }}
+    sourceid: cty_darwin_arm64_sha256
+  cty_linux_amd64_sha256:
+    name: Update cty checksum for linux-amd64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^CTY_LINUX_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: CTY_LINUX_AMD64_SHA256 := {{ source "cty_linux_amd64_sha256" }}
+    sourceid: cty_linux_amd64_sha256
+  cty_linux_arm64_sha256:
+    name: Update cty checksum for linux-arm64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^CTY_LINUX_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: CTY_LINUX_ARM64_SHA256 := {{ source "cty_linux_arm64_sha256" }}
+    sourceid: cty_linux_arm64_sha256
+  cty_version:
+    name: Update cty version
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^CTY_VERSION := v?[0-9]+\.[0-9]+\.[0-9]+$
+      replacepattern: CTY_VERSION := {{ source "cty_version" }}
+    sourceid: cty_version
+  dlv_darwin_amd64_sha256:
+    name: Update dlv checksum for darwin-amd64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^DLV_DARWIN_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: DLV_DARWIN_AMD64_SHA256 := {{ source "dlv_darwin_amd64_sha256" }}
+    sourceid: dlv_darwin_amd64_sha256
+  dlv_darwin_arm64_sha256:
+    name: Update dlv checksum for darwin-arm64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^DLV_DARWIN_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: DLV_DARWIN_ARM64_SHA256 := {{ source "dlv_darwin_arm64_sha256" }}
+    sourceid: dlv_darwin_arm64_sha256
+  dlv_linux_amd64_sha256:
+    name: Update dlv checksum for linux-amd64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^DLV_LINUX_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: DLV_LINUX_AMD64_SHA256 := {{ source "dlv_linux_amd64_sha256" }}
+    sourceid: dlv_linux_amd64_sha256
+  dlv_linux_arm64_sha256:
+    name: Update dlv checksum for linux-arm64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^DLV_LINUX_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: DLV_LINUX_ARM64_SHA256 := {{ source "dlv_linux_arm64_sha256" }}
+    sourceid: dlv_linux_arm64_sha256
+  dlv_version:
+    name: Update dlv version
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^DLV_VERSION := v?[0-9]+\.[0-9]+\.[0-9]+$
+      replacepattern: DLV_VERSION := {{ source "dlv_version" }}
+    sourceid: dlv_version
+  envtest_kubernetes_version:
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^ENVTEST_KUBERNETES_VERSION := [0-9]+\.[0-9]+\.x$
+      replacepattern: ENVTEST_KUBERNETES_VERSION := {{ source "envtest_kubernetes_version" }}
+    sourceid: envtest_kubernetes_version
+  flux_version:
+    kind: file
+    spec:
+      file: e2e/suites/flux/install.go
+      matchpattern: flux2/releases/download/v?[0-9]+\.[0-9]+\.[0-9]+/install.yaml
+      replacepattern: flux2/releases/download/{{ source "flux_version" }}/install.yaml
+    sourceid: flux_version
+  ginkgo_version:
+    kind: file
+    spec:
+      file: e2e/Dockerfile
+      matchpattern: github.com/onsi/ginkgo/v2/ginkgo@v[0-9]+\.[0-9]+\.[0-9]+
+      replacepattern: github.com/onsi/ginkgo/v2/ginkgo@{{ source "ginkgo_version" }}
+    sourceid: ginkgo_version
+  golangci-lint_darwin_amd64_sha256:
+    name: Update golangci-lint checksum for darwin-amd64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^GOLANGCI_LINT_DARWIN_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: GOLANGCI_LINT_DARWIN_AMD64_SHA256 := {{ source "golangci-lint_darwin_amd64_sha256" }}
+    sourceid: golangci-lint_darwin_amd64_sha256
+  golangci-lint_darwin_arm64_sha256:
+    name: Update golangci-lint checksum for darwin-arm64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^GOLANGCI_LINT_DARWIN_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: GOLANGCI_LINT_DARWIN_ARM64_SHA256 := {{ source "golangci-lint_darwin_arm64_sha256" }}
+    sourceid: golangci-lint_darwin_arm64_sha256
+  golangci-lint_linux_amd64_sha256:
+    name: Update golangci-lint checksum for linux-amd64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^GOLANGCI_LINT_LINUX_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: GOLANGCI_LINT_LINUX_AMD64_SHA256 := {{ source "golangci-lint_linux_amd64_sha256" }}
+    sourceid: golangci-lint_linux_amd64_sha256
+  golangci-lint_linux_arm64_sha256:
+    name: Update golangci-lint checksum for linux-arm64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^GOLANGCI_LINT_LINUX_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: GOLANGCI_LINT_LINUX_ARM64_SHA256 := {{ source "golangci-lint_linux_arm64_sha256" }}
+    sourceid: golangci-lint_linux_arm64_sha256
+  golangci-lint_version:
+    name: Update golangci-lint version
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^GOLANGCI_LINT_VERSION := v?[0-9]+\.[0-9]+\.[0-9]+$
+      replacepattern: GOLANGCI_LINT_VERSION := {{ source "golangci-lint_version" }}
+    sourceid: golangci-lint_version
+  helm_schema_plugin_version:
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^HELM_SCHEMA_PLUGIN_VERSION := [0-9]+\.[0-9]+\.[0-9]+$
+      replacepattern: HELM_SCHEMA_PLUGIN_VERSION := {{ source "helm_schema_plugin_version" }}
+    sourceid: helm_schema_plugin_version
+  helm_unittest_plugin_version:
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^HELM_UNITTEST_PLUGIN_VERSION := [0-9]+\.[0-9]+\.[0-9]+$
+      replacepattern: HELM_UNITTEST_PLUGIN_VERSION := {{ source "helm_unittest_plugin_version" }}
+    sourceid: helm_unittest_plugin_version
+  helm_version:
+    kind: file
+    spec:
+      file: e2e/Dockerfile
+      matchpattern: ENV HELM_VERSION="v?[0-9]+\.[0-9]+\.[0-9]+"
+      replacepattern: ENV HELM_VERSION="{{ source "helm_version" }}"
+    sourceid: helm_version
+  helm_workflow_version:
+    kind: file
+    spec:
+      file: .github/workflows/helm.yml
+      matchpattern: 'version: v[0-9]+\.[0-9]+\.[0-9]+'
+      replacepattern: 'version: {{ source "helm_version" }}'
+    sourceid: helm_version
+  kind_version:
+    kind: file
+    spec:
+      files:
+        - .github/workflows/e2e.yml
+        - .github/workflows/e2e-reusable.yml
+      matchpattern: 'KIND_VERSION: ''v?[0-9]+\.[0-9]+\.[0-9]+'''
+      replacepattern: 'KIND_VERSION: ''{{ source "kind_version" }}'''
+    sourceid: kind_version
+  kubectl_version:
+    kind: file
+    spec:
+      file: e2e/Dockerfile
+      matchpattern: ENV KUBECTL_VERSION="v?[0-9]+\.[0-9]+\.[0-9]+"
+      replacepattern: ENV KUBECTL_VERSION="{{ source "kubectl_version" }}"
+    sourceid: kubectl_version
+  kubernetes_ci_version:
+    kind: file
+    spec:
+      file: .github/workflows/ci.yml
+      matchpattern: 'KUBERNETES_VERSION: ''[0-9]+\.[0-9]+\.x'''
+      replacepattern: 'KUBERNETES_VERSION: ''{{ source "envtest_kubernetes_version" }}'''
+    sourceid: envtest_kubernetes_version
+  setup-envtest_darwin_amd64_sha256:
+    name: Update setup-envtest checksum for darwin-amd64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^SETUP_ENVTEST_DARWIN_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: SETUP_ENVTEST_DARWIN_AMD64_SHA256 := {{ source "setup-envtest_darwin_amd64_sha256" }}
+    sourceid: setup-envtest_darwin_amd64_sha256
+  setup-envtest_darwin_arm64_sha256:
+    name: Update setup-envtest checksum for darwin-arm64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^SETUP_ENVTEST_DARWIN_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: SETUP_ENVTEST_DARWIN_ARM64_SHA256 := {{ source "setup-envtest_darwin_arm64_sha256" }}
+    sourceid: setup-envtest_darwin_arm64_sha256
+  setup-envtest_linux_amd64_sha256:
+    name: Update setup-envtest checksum for linux-amd64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^SETUP_ENVTEST_LINUX_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: SETUP_ENVTEST_LINUX_AMD64_SHA256 := {{ source "setup-envtest_linux_amd64_sha256" }}
+    sourceid: setup-envtest_linux_amd64_sha256
+  setup-envtest_linux_arm64_sha256:
+    name: Update setup-envtest checksum for linux-arm64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^SETUP_ENVTEST_LINUX_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: SETUP_ENVTEST_LINUX_ARM64_SHA256 := {{ source "setup-envtest_linux_arm64_sha256" }}
+    sourceid: setup-envtest_linux_arm64_sha256
+  setup-envtest_version:
+    name: Update setup-envtest version
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^SETUP_ENVTEST_VERSION := v?[0-9]+\.[0-9]+\.[0-9]+$
+      replacepattern: SETUP_ENVTEST_VERSION := {{ source "setup-envtest_version" }}
+    sourceid: setup-envtest_version
   syft_version:
     kind: file
-    sourceid: syft_version
     spec:
       file: .github/actions/sign/action.yml
       matchpattern: 'syft-version: v?[0-9]+\.[0-9]+\.[0-9]+'
-      replacepattern: 'syft-version: {{ source `syft_version` }}'
-  flux_version:
+      replacepattern: 'syft-version: {{ source "syft_version" }}'
+    sourceid: syft_version
+  tilt_darwin_amd64_sha256:
+    name: Update tilt checksum for darwin-amd64
     kind: file
-    sourceid: flux_version
     spec:
-      file: e2e/suites/flux/install.go
-      matchpattern: 'flux2/releases/download/v?[0-9]+\.[0-9]+\.[0-9]+/install.yaml'
-      replacepattern: 'flux2/releases/download/{{ source `flux_version` }}/install.yaml'
+      file: Makefile
+      matchpattern: (?m)^TILT_DARWIN_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: TILT_DARWIN_AMD64_SHA256 := {{ source "tilt_darwin_amd64_sha256" }}
+    sourceid: tilt_darwin_amd64_sha256
+  tilt_darwin_arm64_sha256:
+    name: Update tilt checksum for darwin-arm64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^TILT_DARWIN_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: TILT_DARWIN_ARM64_SHA256 := {{ source "tilt_darwin_arm64_sha256" }}
+    sourceid: tilt_darwin_arm64_sha256
+  tilt_linux_amd64_sha256:
+    name: Update tilt checksum for linux-amd64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^TILT_LINUX_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: TILT_LINUX_AMD64_SHA256 := {{ source "tilt_linux_amd64_sha256" }}
+    sourceid: tilt_linux_amd64_sha256
+  tilt_linux_arm64_sha256:
+    name: Update tilt checksum for linux-arm64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^TILT_LINUX_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: TILT_LINUX_ARM64_SHA256 := {{ source "tilt_linux_arm64_sha256" }}
+    sourceid: tilt_linux_arm64_sha256
+  tilt_version:
+    name: Update tilt version
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^TILT_VERSION := v?[0-9]+\.[0-9]+\.[0-9]+$
+      replacepattern: TILT_VERSION := {{ source "tilt_version" }}
+    sourceid: tilt_version
+  updatecli_darwin_amd64_sha256:
+    name: Update updatecli checksum for darwin-amd64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^UPDATECLI_DARWIN_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: UPDATECLI_DARWIN_AMD64_SHA256 := {{ source "updatecli_darwin_amd64_sha256" }}
+    sourceid: updatecli_darwin_amd64_sha256
+  updatecli_darwin_arm64_sha256:
+    name: Update updatecli checksum for darwin-arm64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^UPDATECLI_DARWIN_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: UPDATECLI_DARWIN_ARM64_SHA256 := {{ source "updatecli_darwin_arm64_sha256" }}
+    sourceid: updatecli_darwin_arm64_sha256
+  updatecli_linux_amd64_sha256:
+    name: Update updatecli checksum for linux-amd64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^UPDATECLI_LINUX_AMD64_SHA256 := [a-f0-9]{64}$
+      replacepattern: UPDATECLI_LINUX_AMD64_SHA256 := {{ source "updatecli_linux_amd64_sha256" }}
+    sourceid: updatecli_linux_amd64_sha256
+  updatecli_linux_arm64_sha256:
+    name: Update updatecli checksum for linux-arm64
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^UPDATECLI_LINUX_ARM64_SHA256 := [a-f0-9]{64}$
+      replacepattern: UPDATECLI_LINUX_ARM64_SHA256 := {{ source "updatecli_linux_arm64_sha256" }}
+    sourceid: updatecli_linux_arm64_sha256
+  updatecli_version:
+    name: Update updatecli version
+    kind: file
+    spec:
+      file: Makefile
+      matchpattern: (?m)^UPDATECLI_VERSION := v?[0-9]+\.[0-9]+\.[0-9]+$
+      replacepattern: UPDATECLI_VERSION := {{ source "updatecli_version" }}
+    sourceid: updatecli_version
