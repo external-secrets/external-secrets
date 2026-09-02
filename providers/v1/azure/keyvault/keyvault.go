@@ -116,6 +116,8 @@ const (
 
 	errMissingWorkloadEnvVars = "missing environment variables. AZURE_CLIENT_ID, AZURE_TENANT_ID and AZURE_FEDERATED_TOKEN_FILE must be set"
 	errReadTokenFile          = "unable to read token file %s: %w"
+
+	softDeletedSecretErrorCode = "ObjectIsDeletedButRecoverable"
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -151,6 +153,8 @@ type Azure struct {
 	secretsClient *azsecrets.Client
 	keysClient    *azkeys.Client
 	certsClient   *azcertificates.Client
+
+	secretRecoverer deletedSecretRecoverer
 }
 
 // PushSecretMetadataSpec defines metadata for pushing secrets to Azure Key Vault,
@@ -233,6 +237,10 @@ func initializeLegacyClient(ctx context.Context, az *Azure) error {
 	cl := keyvault.New()
 	cl.Authorizer = authorizer
 	az.baseClient = &cl
+	az.secretRecoverer = &legacyDeletedSecretRecoverer{
+		client:   &cl,
+		vaultURL: *az.provider.VaultURL,
+	}
 
 	return nil
 }
@@ -270,6 +278,7 @@ func initializeNewAzureSDK(ctx context.Context, az *Azure) error {
 	if err != nil {
 		return fmt.Errorf("failed to create secrets client: %w", err)
 	}
+	az.secretRecoverer = &newSDKDeletedSecretRecoverer{client: az.secretsClient}
 
 	az.keysClient, err = azkeys.NewClient(*az.provider.VaultURL, credential, &azkeys.ClientOptions{
 		ClientOptions: azcore.ClientOptions{Cloud: cloudConfig},
@@ -615,6 +624,9 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 
 	_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
 	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
+	if handled, recoveryErr := a.handleDeletedSecretRecovery(ctx, secretName, err); handled {
+		return recoveryErr
+	}
 	if err != nil {
 		return fmt.Errorf("could not set secret %v: %w", secretName, err)
 	}

@@ -64,6 +64,7 @@ const (
 	CallAzureKVGetSecret         = "GetSecret"
 	CallAzureKVGetSecrets        = "GetSecrets"
 	CallAzureKVSetSecret         = "SetSecret"
+	CallAzureKVRecoverSecret     = "RecoverDeletedSecret"
 	CallAzureKVDeleteSecret      = "DeleteSecret"
 	CallAzureKVGetCertificate    = "GetCertificate"
 	CallAzureKVDeleteCertificate = "DeleteCertificate"
