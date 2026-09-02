@@ -285,6 +285,10 @@ type SecretStoreProvider struct {
 	// OpenBao configures this store to sync secrets using the OpenBao provider.
 	// +optional
 	OpenBao *OpenBaoProvider `json:"openBao,omitempty"`
+
+	// SAPCredentialStore configures this store to sync secrets using the SAP Credential Store provider.
+	// +optional
+	SAPCredentialStore *SAPCredentialStoreProvider `json:"sapCredentialStore,omitempty"`
 }
 
 // CAProviderType defines the type of provider for certificate authority.

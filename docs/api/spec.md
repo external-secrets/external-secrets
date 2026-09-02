@@ -10646,6 +10646,282 @@ External Secrets meta/v1.SecretKeySelector
 <p>
 <p>PushSecretRemoteRef is an interface to allow using v1alpha1.PushSecretRemoteRef in Provider registered in v1.</p>
 </p>
+<h3 id="external-secrets.io/v1.SAPCSAuth">SAPCSAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SAPCredentialStoreProvider">SAPCredentialStoreProvider</a>)
+</p>
+<p>
+<p>SAPCSAuth configures inline authentication to the SAP Credential Store.
+Exactly one authentication method must be specified.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>mtls</code></br>
+<em>
+<a href="#external-secrets.io/v1.SAPCSMTLSAuth">
+SAPCSMTLSAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>MTLS configures mutual TLS certificate authentication.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.SAPCSEncryption">SAPCSEncryption
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SAPCredentialStoreProvider">SAPCredentialStoreProvider</a>)
+</p>
+<p>
+<p>SAPCSEncryption configures JWE payload encryption keys for the SAP Credential Store API.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clientPrivateKey</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>ClientPrivateKey is a reference to the RSA private key (PKCS8 DER, base64-encoded)
+used to decrypt responses from the Credential Store.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serverPublicKey</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>ServerPublicKey is a reference to the RSA public key (SPKI DER, base64-encoded)
+used to encrypt requests to the Credential Store.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.SAPCSMTLSAuth">SAPCSMTLSAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SAPCSAuth">SAPCSAuth</a>)
+</p>
+<p>
+<p>SAPCSMTLSAuth configures mutual TLS certificate authentication.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>certificate</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>Certificate is a reference to the client certificate in PEM format.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>privateKey</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>PrivateKey is a reference to the client private key in PEM format.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.SAPCSServiceBindingRef">SAPCSServiceBindingRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SAPCredentialStoreProvider">SAPCredentialStoreProvider</a>)
+</p>
+<p>
+<p>SAPCSServiceBindingRef references a Kubernetes Secret containing a BTP service binding.
+The binding JSON structure depends on the authentication type configured for the service
+instance (e.g. &ldquo;mtls&rdquo;, &ldquo;oauth:mtls&rdquo;, &ldquo;oauth:key&rdquo;). The provider detects the type from
+the &ldquo;parameters.authentication.type&rdquo; field in the binding JSON.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>name</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Name is the name of the Kubernetes Secret containing the service binding.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Namespace of the Kubernetes Secret. Defaults to the namespace of the SecretStore.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>credentialsKey</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>CredentialsKey is the key in the Secret&rsquo;s Data map that holds the binding JSON.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.SAPCredentialStoreProvider">SAPCredentialStoreProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>SAPCredentialStoreProvider configures a store to sync secrets using the SAP Credential Store.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceURL is the base URL of the SAP Credential Store API.
+Required when serviceBindingSecretRef is not set; ignored when a binding is used
+because the URL is derived from the binding JSON.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>namespace</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Namespace is the SAP Credential Store namespace for credential operations.
+This is a Credential Store concept, not a Kubernetes namespace.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.SAPCSAuth">
+SAPCSAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Auth configures inline authentication to the SAP Credential Store.
+Not required when serviceBindingSecretRef is set, because the binding
+contains all necessary credentials.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>encryption</code></br>
+<em>
+<a href="#external-secrets.io/v1.SAPCSEncryption">
+SAPCSEncryption
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Encryption configures JWE payload encryption for the SAP Credential Store API.
+Required when the service instance has payload encryption enabled.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceBindingSecretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.SAPCSServiceBindingRef">
+SAPCSServiceBindingRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceBindingSecretRef references a Kubernetes Secret containing a BTP service binding
+for the SAP Credential Store. When set, credentials and the service URL are
+derived from the binding JSON, and the Auth field becomes optional.
+Currently only the &ldquo;mtls&rdquo; binding authentication type is supported.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.ScalewayProvider">ScalewayProvider
 </h3>
 <p>
@@ -11799,6 +12075,20 @@ OpenBaoProvider
 <td>
 <em>(Optional)</em>
 <p>OpenBao configures this store to sync secrets using the OpenBao provider.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sapCredentialStore</code></br>
+<em>
+<a href="#external-secrets.io/v1.SAPCredentialStoreProvider">
+SAPCredentialStoreProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SAPCredentialStore configures this store to sync secrets using the SAP Credential Store provider.</p>
 </td>
 </tr>
 </tbody>
