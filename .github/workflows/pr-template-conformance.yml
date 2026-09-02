@@ -1,0 +1,45 @@
+# Closes a pull request that has dropped a section heading from
+# .github/pull_request_template.md, so a contributor who skipped the
+# template is caught on open/reopen rather than discovered by a maintainer.
+# See https://github.com/external-secrets/external-secrets/issues/6879.
+#
+# zizmor flags pull_request_target as a dangerous trigger on sight. It is
+# used here in its documented safe form (see review-state.yml for the same
+# pattern): the checkout takes the base ref with no `ref:` and a sparse
+# path, so no pull request code is ever fetched or executed. The check
+# itself reads the pull request body from the event payload, not from the
+# checked-out tree.
+name: PR Template Conformance
+
+on: # zizmor: ignore[dangerous-triggers] base-ref checkout only, no PR code is executed
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check PR body against the template
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    steps:
+      - name: Checkout scripts and template from the base ref
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: |
+            .github/scripts
+            .github/pull_request_template.md
+          persist-credentials: false
+
+      - name: Check template conformance
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const { default: run } = await import(
+              `${process.env.GITHUB_WORKSPACE}/.github/scripts/pr-template-conformance.js`
+            );
+            await run({ core, github, context });
