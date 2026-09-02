@@ -54,6 +54,8 @@ const (
 	defaultAPIUrl           = "https://api.akeyless.io"
 	extSecretManagedTag     = "k8s-external-secrets"
 	aKeylessToken       Ctx = "AKEYLESS_TOKEN"
+	// defaultTimeout is used for the Akeyless HTTP client.
+	defaultTimeout = 30 * time.Second
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -553,7 +555,7 @@ func (a *Akeyless) DeleteSecret(ctx context.Context, psr esv1.PushSecretRemoteRe
 }
 
 func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1.AkeylessProvider) (*http.Client, error) {
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: defaultTimeout}
 	if len(provider.CABundle) == 0 && provider.CAProvider == nil {
 		return client, nil
 	}
@@ -575,11 +577,15 @@ func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1
 		return nil, errors.New("failed to append caBundle")
 	}
 
-	tlsConf := &tls.Config{
+	transport, err := esutils.CloneDefaultHTTPTransport()
+	if err != nil {
+		return nil, err
+	}
+	transport.TLSClientConfig = &tls.Config{
 		RootCAs:    caCertPool,
 		MinVersion: tls.VersionTLS12,
 	}
-	client.Transport = &http.Transport{TLSClientConfig: tlsConf}
+	client.Transport = transport
 	return client, nil
 }
 
