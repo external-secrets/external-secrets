@@ -14,7 +14,7 @@ jobs:
   update-dependencies:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
         with:
@@ -30,6 +30,10 @@ jobs:
           app-id: ${{ env.APP_ID }}
           private-key: ${{ secrets.PRIVATE_KEY }}
           owner: ${{ github.repository_owner }}
+          repositories: ${{ github.repository }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-workflows: write
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -43,25 +47,8 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Create pull request
+      - name: Publish dependency updates
         env:
           GITHUB_TOKEN: ${{ steps.generate_token.outputs.token }}
-          GH_REPO: ${{ github.repository }}
-        run: |
-          git config --global user.email "ExternalSecretsOperator@users.noreply.github.com"
-          git config --global user.name "External Secrets Operator"
-          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GH_REPO}.git"
-
-          make update-deps
-          if git diff-index --quiet HEAD --; then
-            echo "nothing changed. skipping."
-            exit 0
-          fi
-
-          git checkout -B update-deps
-          git add -A
-          git commit -m "update dependencies" -s
-          make check-diff
-          git push --force-with-lease origin update-deps
-          gh pr view update-deps >/dev/null 2>&1 || \
-            gh pr create --base main --head update-deps --title 'chore: update dependencies' --body 'Update dependencies'
+          UPDATECLI_PUBLISH: "true"
+        run: make update-deps

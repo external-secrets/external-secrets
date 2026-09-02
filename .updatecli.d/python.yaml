@@ -1,7 +1,40 @@
 name: Update Python documentation dependencies
 
+pipelineid: dependencies/python
+
+# Publishing is opt-in so local runs continue to update the current checkout.
+#{{- if .scm.enabled }}
+actions:
+  dependency-pr:
+    kind: github/pullrequest
+    scmid: default
+    title: "chore(deps): update Python documentation dependencies"
+
+scms:
+  default:
+    kind: github
+    spec:
+      owner: "{{ .scm.owner }}"
+      repository: "{{ .scm.repository }}"
+      branch: main
+      token: '{{ requiredEnv "GITHUB_TOKEN" }}'
+      user: External Secrets Operator
+      email: ExternalSecretsOperator@users.noreply.github.com
+      commitusingapi: true
+      workingbranchprefix: dependencies
+      workingbranchseparator: "/"
+      commitmessage:
+        type: chore
+        scope: deps
+        hidecredit: true
+        footers: 'Signed-off-by: External Secrets Operator <ExternalSecretsOperator@users.noreply.github.com>'
+#{{- end }}
+
 targets:
   requirements:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Regenerate hash-pinned Python requirements
     kind: shell
     disablesourceinput: true
