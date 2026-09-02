@@ -108,6 +108,26 @@ func (s *listStub) get(key string) string {
 	return s.query.Get(key)
 }
 
+func TestFormatSecretKey(t *testing.T) {
+	// includeSecretPath=false always returns the bare key.
+	assert.Equal(t, "FOO", formatSecretKey("FOO", "/app/sub", "/app", false))
+
+	// includeSecretPath=true cases:
+	//   secretPath == basePath -> bare key
+	assert.Equal(t, "FOO", formatSecretKey("FOO", "/app", "/app", true))
+	assert.Equal(t, "FOO", formatSecretKey("FOO", "/", "/", true))
+
+	//   secretPath under basePath -> relative prefix
+	assert.Equal(t, "sub/FOO", formatSecretKey("FOO", "/sub", "/", true))
+	assert.Equal(t, "a/b/FOO", formatSecretKey("FOO", "/a/b", "/", true))
+	assert.Equal(t, "sub/FOO", formatSecretKey("FOO", "/path/sub", "/path", true))
+	assert.Equal(t, "a/b/c/FOO", formatSecretKey("FOO", "/path/a/b/c", "/path", true))
+
+	//   basePath "/app" must NOT incorrectly strip "/application"
+	assert.Equal(t, "application/SECRET", formatSecretKey("SECRET", "/application", "/app", true))
+	assert.Equal(t, "application/nested/SECRET", formatSecretKey("SECRET", "/application/nested", "/app", true))
+}
+
 func TestGetAllSecretsListRequest(t *testing.T) {
 	const emptyList = `{"secrets":[],"imports":[]}`
 
