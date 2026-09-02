@@ -57,7 +57,7 @@ so unsuccessful alternative checks can appear with a `✗`. They are not pipelin
 failures; check the final `Run Summary` and command exit status.
 
 Run `make update-deps` to apply every Updatecli manifest in
-`.updatecli/updatecli.d`. Limit an update to one dependency kind with
+`.updatecli.d`. Limit an update to one dependency kind with
 `UPDATECLI_KIND`, or use its convenience target:
 
 ```shell
