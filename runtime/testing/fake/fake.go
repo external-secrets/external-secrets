@@ -47,6 +47,9 @@ type Client struct {
 	SecretExistsFn  func(context.Context, esv1.PushSecretRemoteRef) (bool, error)
 	SetSecretFn     func() error
 	DeleteSecretFn  func() error
+	// DeleteSecretCaptureFn, when set, takes precedence over DeleteSecretFn
+	// and receives the ref so tests can assert what the controller passed.
+	DeleteSecretCaptureFn func(context.Context, esv1.PushSecretRemoteRef) error
 }
 
 // New returns a fake provider/client with default no-op behavior.
@@ -90,10 +93,14 @@ func (v *Client) GetPushSecretData() map[string]SetSecretCallArgs {
 	return result
 }
 
-func (v *Client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
+func (v *Client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
 	v.mu.RLock()
+	captureFn := v.DeleteSecretCaptureFn
 	fn := v.DeleteSecretFn
 	v.mu.RUnlock()
+	if captureFn != nil {
+		return captureFn(ctx, ref)
+	}
 	return fn()
 }
 
@@ -178,6 +185,14 @@ func (v *Client) WithDeleteSecretFn(fn func() error) *Client {
 	return v
 }
 
+// WithDeleteSecretCaptureFn installs a DeleteSecret function that captures the ref.
+func (v *Client) WithDeleteSecretCaptureFn(fn func(context.Context, esv1.PushSecretRemoteRef) error) *Client {
+	v.mu.Lock()
+	v.DeleteSecretCaptureFn = fn
+	v.mu.Unlock()
+	return v
+}
+
 // WithSecretExistsFn installs a custom SecretExists function under the client lock.
 func (v *Client) WithSecretExistsFn(fn func(context.Context, esv1.PushSecretRemoteRef) (bool, error)) *Client {
 	v.mu.Lock()
@@ -230,6 +245,7 @@ func (v *Client) Reset() {
 	v.SetSecretFn = func() error {
 		return nil
 	}
+	v.DeleteSecretCaptureFn = nil
 	v.DeleteSecretFn = func() error {
 		return nil
 	}

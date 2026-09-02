@@ -39,6 +39,9 @@ import (
 
 const (
 	errSomethingWentWrong = "Something went wrong"
+	testSecretKey         = "secret-key"
+	testStoreNamespace    = "store-ns"
+	testTargetNamespace   = "target-ns"
 )
 
 type fakeClient struct {
@@ -658,6 +661,7 @@ func TestSecretExists(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Client{
 				userSecretClient: &fakeClient{t: t, secretMap: tt.secrets, err: tt.clientErr},
+				store:            &esv1.KubernetesProvider{},
 			}
 			got, err := p.SecretExists(context.Background(), tt.ref)
 			if (err != nil) != tt.wantErr {
@@ -843,6 +847,7 @@ func TestDeleteSecret(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Client{
 				userSecretClient: tt.fields.Client,
+				store:            &esv1.KubernetesProvider{},
 			}
 			err := p.DeleteSecret(context.Background(), tt.ref)
 			if (err != nil) != tt.wantErr {
@@ -859,7 +864,7 @@ func TestDeleteSecret(t *testing.T) {
 }
 
 func TestPushSecret(t *testing.T) {
-	secretKey := "secret-key"
+	secretKey := testSecretKey
 	type fields struct {
 		Client KClient
 	}
@@ -1615,9 +1620,9 @@ func TestPushSecret(t *testing.T) {
 }
 
 func TestPushSecretRemoteNamespaceRouting(t *testing.T) {
-	secretKey := "secret-key"
-	storeNamespace := "store-ns"
-	targetNamespace := "target-ns"
+	secretKey := testSecretKey
+	storeNamespace := testStoreNamespace
+	targetNamespace := testTargetNamespace
 
 	fakeClientset := fake.NewSimpleClientset()
 	coreV1 := fakeClientset.CoreV1()
@@ -1682,5 +1687,199 @@ func TestPushSecretRemoteNamespaceRejectedForSecretStore(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "ClusterSecretStore") {
 		t.Errorf("error should mention ClusterSecretStore, got: %v", err)
+	}
+}
+
+func TestDeleteSecretAndExistsHonorRemoteNamespace(t *testing.T) {
+	secretKey := testSecretKey
+	storeNamespace := testStoreNamespace
+	targetNamespace := testTargetNamespace
+
+	fakeClientset := fake.NewSimpleClientset()
+	coreV1 := fakeClientset.CoreV1()
+
+	p := &Client{
+		userCoreV1:       coreV1,
+		userSecretClient: coreV1.Secrets(storeNamespace),
+		storeKind:        esv1.ClusterSecretStoreKind,
+		store: &esv1.KubernetesProvider{
+			RemoteNamespace: storeNamespace,
+		},
+	}
+
+	data := testingfake.PushSecretData{
+		SecretKey: secretKey,
+		RemoteKey: "mysec",
+		Property:  "secret",
+		Metadata: &apiextensionsv1.JSON{
+			Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", "spec": {"remoteNamespace": "` + targetNamespace + `"}}`),
+		},
+	}
+
+	// Seed the target secret directly rather than via PushSecret: a push
+	// regression should fail its own test, not this one.
+	_, err := coreV1.Secrets(targetNamespace).Create(t.Context(), &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "mysec", Namespace: targetNamespace},
+		Data:       map[string][]byte{"secret": []byte("bar")},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("create target secret: %v", err)
+	}
+
+	// Same-name decoy in the store namespace: pre-fix DeleteSecret would hit this.
+	_, err = coreV1.Secrets(storeNamespace).Create(t.Context(), &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "mysec", Namespace: storeNamespace},
+		Data:       map[string][]byte{"secret": []byte("decoy")},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("create decoy secret: %v", err)
+	}
+
+	exists, err := p.SecretExists(t.Context(), data)
+	if err != nil {
+		t.Fatalf("SecretExists failed: %v", err)
+	}
+	if !exists {
+		t.Fatal("SecretExists should find the secret in the remoteNamespace override")
+	}
+
+	if err := p.DeleteSecret(t.Context(), data); err != nil {
+		t.Fatalf("DeleteSecret failed: %v", err)
+	}
+
+	_, err = coreV1.Secrets(targetNamespace).Get(t.Context(), "mysec", metav1.GetOptions{})
+	if !apierrors.IsNotFound(err) {
+		t.Fatalf("secret should be deleted from target namespace %q, got err: %v", targetNamespace, err)
+	}
+
+	decoy, err := coreV1.Secrets(storeNamespace).Get(t.Context(), "mysec", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("decoy in store namespace should be untouched: %v", err)
+	}
+	if string(decoy.Data["secret"]) != "decoy" {
+		t.Errorf("decoy data mutated: %q", decoy.Data["secret"])
+	}
+}
+
+// With an override set and the same-named secret present only in the store
+// namespace, SecretExists must report false: reporting true makes an
+// updatePolicy=IfNotExists push skip the override namespace entirely.
+// Fails on base (checks store namespace), passes with the fix.
+func TestSecretExistsRemoteNamespaceIgnoresStoreNamespaceSecret(t *testing.T) {
+	storeNamespace := testStoreNamespace
+	targetNamespace := testTargetNamespace
+
+	fakeClientset := fake.NewSimpleClientset()
+	coreV1 := fakeClientset.CoreV1()
+
+	p := &Client{
+		userCoreV1:       coreV1,
+		userSecretClient: coreV1.Secrets(storeNamespace),
+		storeKind:        esv1.ClusterSecretStoreKind,
+		store: &esv1.KubernetesProvider{
+			RemoteNamespace: storeNamespace,
+		},
+	}
+
+	_, err := coreV1.Secrets(storeNamespace).Create(t.Context(), &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "mysec", Namespace: storeNamespace},
+		Data:       map[string][]byte{"secret": []byte("store-only")},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("create store-namespace secret: %v", err)
+	}
+
+	data := testingfake.PushSecretData{
+		SecretKey: testSecretKey,
+		RemoteKey: "mysec",
+		Metadata: &apiextensionsv1.JSON{
+			Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", "spec": {"remoteNamespace": "` + targetNamespace + `"}}`),
+		},
+	}
+
+	exists, err := p.SecretExists(t.Context(), data)
+	if err != nil {
+		t.Fatalf("SecretExists failed: %v", err)
+	}
+	if exists {
+		t.Fatal("SecretExists must not see the store-namespace secret when remoteNamespace overrides to an empty namespace")
+	}
+}
+
+// Multi-key secret in the override namespace: deleting one property must go
+// through removeProperty and leave sibling keys intact.
+func TestDeleteSecretRemoteNamespaceRemovesOnlyProperty(t *testing.T) {
+	storeNamespace := testStoreNamespace
+	targetNamespace := testTargetNamespace
+
+	fakeClientset := fake.NewSimpleClientset()
+	coreV1 := fakeClientset.CoreV1()
+
+	p := &Client{
+		userCoreV1:       coreV1,
+		userSecretClient: coreV1.Secrets(storeNamespace),
+		storeKind:        esv1.ClusterSecretStoreKind,
+		store: &esv1.KubernetesProvider{
+			RemoteNamespace: storeNamespace,
+		},
+	}
+
+	_, err := coreV1.Secrets(targetNamespace).Create(t.Context(), &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "mysec", Namespace: targetNamespace},
+		Data: map[string][]byte{
+			"secret": []byte("bar"),
+			"other":  []byte("keep"),
+		},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		t.Fatalf("create multi-key secret: %v", err)
+	}
+
+	data := testingfake.PushSecretData{
+		SecretKey: testSecretKey,
+		RemoteKey: "mysec",
+		Property:  "secret",
+		Metadata: &apiextensionsv1.JSON{
+			Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", "spec": {"remoteNamespace": "` + targetNamespace + `"}}`),
+		},
+	}
+
+	if err := p.DeleteSecret(t.Context(), data); err != nil {
+		t.Fatalf("DeleteSecret failed: %v", err)
+	}
+
+	got, err := coreV1.Secrets(targetNamespace).Get(t.Context(), "mysec", metav1.GetOptions{})
+	if err != nil {
+		t.Fatalf("secret should still exist after property removal: %v", err)
+	}
+	if _, ok := got.Data["secret"]; ok {
+		t.Error("property 'secret' should have been removed")
+	}
+	if string(got.Data["other"]) != "keep" {
+		t.Errorf("sibling property 'other' mutated: %q", got.Data["other"])
+	}
+}
+
+// DeleteSecret and SecretExists inherit the PushSecret rejection of
+// remoteNamespace overrides for non-ClusterSecretStore.
+func TestDeleteSecretAndExistsRemoteNamespaceRejectedForSecretStore(t *testing.T) {
+	p := &Client{
+		userSecretClient: &fakeClient{t: t, secretMap: map[string]*v1.Secret{}},
+		storeKind:        esv1.SecretStoreKind,
+		store:            &esv1.KubernetesProvider{},
+	}
+
+	data := testingfake.PushSecretData{
+		RemoteKey: "mysec",
+		Metadata: &apiextensionsv1.JSON{
+			Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", "spec": {"remoteNamespace": "other-ns"}}`),
+		},
+	}
+
+	if err := p.DeleteSecret(t.Context(), data); err == nil || !strings.Contains(err.Error(), "ClusterSecretStore") {
+		t.Errorf("DeleteSecret should reject remoteNamespace for SecretStore, got: %v", err)
+	}
+	if _, err := p.SecretExists(t.Context(), data); err == nil || !strings.Contains(err.Error(), "ClusterSecretStore") {
+		t.Errorf("SecretExists should reject remoteNamespace for SecretStore, got: %v", err)
 	}
 }
