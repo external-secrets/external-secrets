@@ -302,7 +302,7 @@ jobs:
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v3
 
       - name: Azure CLI login
-        uses: azure/login@f5d393ae46f8fde4be8b75f32e3fc50e654ad0ca
+        uses: azure/login@7ddb5af1ef8758cf1353cf3b42f940aee27ba21c
         with:
           client-id: ${{ env.TFC_AZURE_CLIENT_ID }}
           tenant-id: ${{ env.TFC_AZURE_TENANT_ID }}
