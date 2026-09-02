@@ -88,7 +88,7 @@ check-diff: reviewable ## Ensure branch is clean.
 
 UPDATECLI_ACTION ?= apply
 UPDATECLI_KIND ?=
-UPDATECLI_CONFIG = .updatecli/updatecli.d$(if $(UPDATECLI_KIND),/$(UPDATECLI_KIND).yaml)
+UPDATECLI_CONFIG = .updatecli.d$(if $(UPDATECLI_KIND),/$(UPDATECLI_KIND).yaml)
 update-deps: updatecli ## Update dependencies; use UPDATECLI_KIND=<kind> to limit scope and UPDATECLI_ACTION=diff to preview.
 	@test -e "$(UPDATECLI_CONFIG)" || (echo "unknown dependency kind: $(UPDATECLI_KIND)" >&2; exit 1)
 	@set -e; \
@@ -96,9 +96,7 @@ update-deps: updatecli ## Update dependencies; use UPDATECLI_KIND=<kind> to limi
 	test -n "$$token" || (echo "GITHUB_TOKEN is required; set it or run 'gh auth login'" >&2; exit 1); \
 	GITHUB_TOKEN="$$token" $(LOCALBIN)/updatecli pipeline $(UPDATECLI_ACTION) --config $(UPDATECLI_CONFIG) --disable-changelog --disable-version-check
 
-.PHONY: update-deps update-deps-go update-deps-github-actions update-deps-containers update-deps-tools update-deps-helm update-deps-python update-deps-terraform
-update-deps-go: UPDATECLI_KIND=go
-update-deps-go: update-deps ## Update Go dependencies only.
+.PHONY: update-deps update-deps-github-actions update-deps-containers update-deps-tools update-deps-helm update-deps-python update-deps-terraform
 update-deps-github-actions: UPDATECLI_KIND=github-actions
 update-deps-github-actions: update-deps ## Update GitHub Actions only.
 update-deps-containers: UPDATECLI_KIND=docker
