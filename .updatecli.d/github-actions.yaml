@@ -1,5 +1,35 @@
 name: Update GitHub Actions
 
+pipelineid: dependencies/github-actions
+
+# Publishing is opt-in so local runs continue to update the current checkout.
+#{{- if .scm.enabled }}
+actions:
+  dependency-pr:
+    kind: github/pullrequest
+    scmid: default
+    title: "chore(deps): update GitHub Actions"
+
+scms:
+  default:
+    kind: github
+    spec:
+      owner: "{{ .scm.owner }}"
+      repository: "{{ .scm.repository }}"
+      branch: main
+      token: '{{ requiredEnv "GITHUB_TOKEN" }}'
+      user: External Secrets Operator
+      email: ExternalSecretsOperator@users.noreply.github.com
+      commitusingapi: true
+      workingbranchprefix: dependencies
+      workingbranchseparator: "/"
+      commitmessage:
+        type: chore
+        scope: deps
+        hidecredit: true
+        footers: 'Signed-off-by: External Secrets Operator <ExternalSecretsOperator@users.noreply.github.com>'
+#{{- end }}
+
 # Each Action is listed explicitly so Updatecli resolves every upstream
 # repository once instead of creating a pipeline for every usage.
 # Every managed Action is pinned by commit digest. Updatecli resolves the latest
@@ -757,6 +787,9 @@ sources:
 
 targets:
   actions_attest_build_provenance:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump actions/attest-build-provenance
     kind: file
     sourceid: actions_attest_build_provenance_digest
@@ -768,6 +801,9 @@ targets:
       matchpattern: '(actions/attest\-build\-provenance(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "actions_attest_build_provenance_digest" }} # {{ source "actions_attest_build_provenance_version" }}'
   actions_cache:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump actions/cache
     kind: file
     sourceid: actions_cache_digest
@@ -779,6 +815,9 @@ targets:
       matchpattern: '(actions/cache(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "actions_cache_digest" }} # {{ source "actions_cache_version" }}'
   actions_checkout:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump actions/checkout
     kind: file
     sourceid: actions_checkout_digest
@@ -790,6 +829,9 @@ targets:
       matchpattern: '(actions/checkout(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "actions_checkout_digest" }} # {{ source "actions_checkout_version" }}'
   actions_create_github_app_token:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump actions/create-github-app-token
     kind: file
     sourceid: actions_create_github_app_token_digest
@@ -801,6 +843,9 @@ targets:
       matchpattern: '(actions/create\-github\-app\-token(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "actions_create_github_app_token_digest" }} # {{ source "actions_create_github_app_token_version" }}'
   actions_dependency_review_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump actions/dependency-review-action
     kind: file
     sourceid: actions_dependency_review_action_digest
@@ -812,6 +857,9 @@ targets:
       matchpattern: '(actions/dependency-review-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "actions_dependency_review_action_digest" }} # {{ source "actions_dependency_review_action_version" }}'
   actions_download_artifact:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump actions/download-artifact
     kind: file
     sourceid: actions_download_artifact_digest
@@ -823,6 +871,9 @@ targets:
       matchpattern: '(actions/download\-artifact(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "actions_download_artifact_digest" }} # {{ source "actions_download_artifact_version" }}'
   actions_github_script:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump actions/github-script
     kind: file
     sourceid: actions_github_script_digest
@@ -834,6 +885,9 @@ targets:
       matchpattern: '(actions/github\-script(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "actions_github_script_digest" }} # {{ source "actions_github_script_version" }}'
   actions_labeler:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump actions/labeler
     kind: file
     sourceid: actions_labeler_digest
@@ -845,6 +899,9 @@ targets:
       matchpattern: '(actions/labeler(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "actions_labeler_digest" }} # {{ source "actions_labeler_version" }}'
   actions_setup_go:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump actions/setup-go
     kind: file
     sourceid: actions_setup_go_digest
@@ -856,6 +913,9 @@ targets:
       matchpattern: '(actions/setup\-go(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "actions_setup_go_digest" }} # {{ source "actions_setup_go_version" }}'
   actions_setup_python:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump actions/setup-python
     kind: file
     sourceid: actions_setup_python_digest
@@ -867,6 +927,9 @@ targets:
       matchpattern: '(actions/setup\-python(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "actions_setup_python_digest" }} # {{ source "actions_setup_python_version" }}'
   actions_stale:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump actions/stale
     kind: file
     sourceid: actions_stale_digest
@@ -878,6 +941,9 @@ targets:
       matchpattern: '(actions/stale(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "actions_stale_digest" }} # {{ source "actions_stale_version" }}'
   actions_upload_artifact:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump actions/upload-artifact
     kind: file
     sourceid: actions_upload_artifact_digest
@@ -889,6 +955,9 @@ targets:
       matchpattern: '(actions/upload\-artifact(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "actions_upload_artifact_digest" }} # {{ source "actions_upload_artifact_version" }}'
   anchore_sbom_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump anchore/sbom-action
     kind: file
     sourceid: anchore_sbom_action_digest
@@ -900,6 +969,9 @@ targets:
       matchpattern: '(anchore/sbom\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "anchore_sbom_action_digest" }} # {{ source "anchore_sbom_action_version" }}'
   apache_skywalking_eyes:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump apache/skywalking-eyes
     kind: file
     sourceid: apache_skywalking_eyes_digest
@@ -911,6 +983,9 @@ targets:
       matchpattern: '(apache/skywalking\-eyes(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "apache_skywalking_eyes_digest" }} # {{ source "apache_skywalking_eyes_version" }}'
   aquasecurity_trivy_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump aquasecurity/trivy-action
     kind: file
     sourceid: aquasecurity_trivy_action_digest
@@ -922,6 +997,9 @@ targets:
       matchpattern: '(aquasecurity/trivy-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "aquasecurity_trivy_action_digest" }} # {{ source "aquasecurity_trivy_action_version" }}'
   aws_actions_configure_aws_credentials:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump aws-actions/configure-aws-credentials
     kind: file
     sourceid: aws_actions_configure_aws_credentials_digest
@@ -933,6 +1011,9 @@ targets:
       matchpattern: '(aws\-actions/configure\-aws\-credentials(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "aws_actions_configure_aws_credentials_digest" }} # {{ source "aws_actions_configure_aws_credentials_version" }}'
   azure_login:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump azure/login
     kind: file
     sourceid: azure_login_digest
@@ -944,6 +1025,9 @@ targets:
       matchpattern: '(azure/login(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "azure_login_digest" }} # {{ source "azure_login_version" }}'
   azure_setup_helm:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump azure/setup-helm
     kind: file
     sourceid: azure_setup_helm_digest
@@ -955,6 +1039,9 @@ targets:
       matchpattern: '(azure/setup\-helm(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "azure_setup_helm_digest" }} # {{ source "azure_setup_helm_version" }}'
   codecov_codecov_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump codecov/codecov-action
     kind: file
     sourceid: codecov_codecov_action_digest
@@ -966,6 +1053,9 @@ targets:
       matchpattern: '(codecov/codecov\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "codecov_codecov_action_digest" }} # {{ source "codecov_codecov_action_version" }}'
   codelytv_pr_size_labeler:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump codelytv/pr-size-labeler
     kind: file
     sourceid: codelytv_pr_size_labeler_digest
@@ -977,6 +1067,9 @@ targets:
       matchpattern: '(codelytv/pr\-size\-labeler(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "codelytv_pr_size_labeler_digest" }} # {{ source "codelytv_pr_size_labeler_version" }}'
   crazy_max_ghaction_import_gpg:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump crazy-max/ghaction-import-gpg
     kind: file
     sourceid: crazy_max_ghaction_import_gpg_digest
@@ -988,6 +1081,9 @@ targets:
       matchpattern: '(crazy\-max/ghaction\-import\-gpg(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "crazy_max_ghaction_import_gpg_digest" }} # {{ source "crazy_max_ghaction_import_gpg_version" }}'
   docker_login_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump docker/login-action
     kind: file
     sourceid: docker_login_action_digest
@@ -999,6 +1095,9 @@ targets:
       matchpattern: '(docker/login\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "docker_login_action_digest" }} # {{ source "docker_login_action_version" }}'
   docker_setup_buildx_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump docker/setup-buildx-action
     kind: file
     sourceid: docker_setup_buildx_action_digest
@@ -1010,6 +1109,9 @@ targets:
       matchpattern: '(docker/setup\-buildx\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "docker_setup_buildx_action_digest" }} # {{ source "docker_setup_buildx_action_version" }}'
   docker_setup_qemu_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump docker/setup-qemu-action
     kind: file
     sourceid: docker_setup_qemu_action_digest
@@ -1021,6 +1123,9 @@ targets:
       matchpattern: '(docker/setup\-qemu\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "docker_setup_qemu_action_digest" }} # {{ source "docker_setup_qemu_action_version" }}'
   engineerd_setup_kind:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump engineerd/setup-kind
     kind: file
     sourceid: engineerd_setup_kind_digest
@@ -1032,6 +1137,9 @@ targets:
       matchpattern: '(engineerd/setup\-kind(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "engineerd_setup_kind_digest" }} # {{ source "engineerd_setup_kind_version" }}'
   fkirc_skip_duplicate_actions:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump fkirc/skip-duplicate-actions
     kind: file
     sourceid: fkirc_skip_duplicate_actions_digest
@@ -1043,6 +1151,9 @@ targets:
       matchpattern: '(fkirc/skip\-duplicate\-actions(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "fkirc_skip_duplicate_actions_digest" }} # {{ source "fkirc_skip_duplicate_actions_version" }}'
   fossas_fossa_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump fossas/fossa-action
     kind: file
     sourceid: fossas_fossa_action_digest
@@ -1054,6 +1165,9 @@ targets:
       matchpattern: '(fossas/fossa-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "fossas_fossa_action_digest" }} # {{ source "fossas_fossa_action_version" }}'
   github_codeql_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump github/codeql-action
     kind: file
     sourceid: github_codeql_action_digest
@@ -1065,6 +1179,9 @@ targets:
       matchpattern: '(github/codeql\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "github_codeql_action_digest" }} # {{ source "github_codeql_action_version" }}'
   google_github_actions_auth:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump google-github-actions/auth
     kind: file
     sourceid: google_github_actions_auth_digest
@@ -1076,6 +1193,9 @@ targets:
       matchpattern: '(google\-github\-actions/auth(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "google_github_actions_auth_digest" }} # {{ source "google_github_actions_auth_version" }}'
   google_github_actions_get_gke_credentials:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump google-github-actions/get-gke-credentials
     kind: file
     sourceid: google_github_actions_get_gke_credentials_digest
@@ -1087,6 +1207,9 @@ targets:
       matchpattern: '(google\-github\-actions/get\-gke\-credentials(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "google_github_actions_get_gke_credentials_digest" }} # {{ source "google_github_actions_get_gke_credentials_version" }}'
   google_github_actions_setup_gcloud:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump google-github-actions/setup-gcloud
     kind: file
     sourceid: google_github_actions_setup_gcloud_digest
@@ -1098,6 +1221,9 @@ targets:
       matchpattern: '(google\-github\-actions/setup\-gcloud(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "google_github_actions_setup_gcloud_digest" }} # {{ source "google_github_actions_setup_gcloud_version" }}'
   goreleaser_goreleaser_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump goreleaser/goreleaser-action
     kind: file
     sourceid: goreleaser_goreleaser_action_digest
@@ -1109,6 +1235,9 @@ targets:
       matchpattern: '(goreleaser/goreleaser\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "goreleaser_goreleaser_action_digest" }} # {{ source "goreleaser_goreleaser_action_version" }}'
   hashicorp_setup_terraform:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump hashicorp/setup-terraform
     kind: file
     sourceid: hashicorp_setup_terraform_digest
@@ -1120,6 +1249,9 @@ targets:
       matchpattern: '(hashicorp/setup\-terraform(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "hashicorp_setup_terraform_digest" }} # {{ source "hashicorp_setup_terraform_version" }}'
   helm_chart_releaser_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump helm/chart-releaser-action
     kind: file
     sourceid: helm_chart_releaser_action_digest
@@ -1131,6 +1263,9 @@ targets:
       matchpattern: '(helm/chart\-releaser\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "helm_chart_releaser_action_digest" }} # {{ source "helm_chart_releaser_action_version" }}'
   helm_chart_testing_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump helm/chart-testing-action
     kind: file
     sourceid: helm_chart_testing_action_digest
@@ -1142,6 +1277,9 @@ targets:
       matchpattern: '(helm/chart\-testing\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "helm_chart_testing_action_digest" }} # {{ source "helm_chart_testing_action_version" }}'
   helm_kind_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump helm/kind-action
     kind: file
     sourceid: helm_kind_action_digest
@@ -1153,6 +1291,9 @@ targets:
       matchpattern: '(helm/kind\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "helm_kind_action_digest" }} # {{ source "helm_kind_action_version" }}'
   jlumbroso_free_disk_space:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump jlumbroso/free-disk-space
     kind: file
     sourceid: jlumbroso_free_disk_space_digest
@@ -1164,6 +1305,9 @@ targets:
       matchpattern: '(jlumbroso/free\-disk\-space(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "jlumbroso_free_disk_space_digest" }} # {{ source "jlumbroso_free_disk_space_version" }}'
   ossf_scorecard_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump ossf/scorecard-action
     kind: file
     sourceid: ossf_scorecard_action_digest
@@ -1175,6 +1319,9 @@ targets:
       matchpattern: '(ossf/scorecard\-action(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "ossf_scorecard_action_digest" }} # {{ source "ossf_scorecard_action_version" }}'
   peter_evans_create_or_update_comment:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump peter-evans/create-or-update-comment
     kind: file
     sourceid: peter_evans_create_or_update_comment_digest
@@ -1186,6 +1333,9 @@ targets:
       matchpattern: '(peter\-evans/create\-or\-update\-comment(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "peter_evans_create_or_update_comment_digest" }} # {{ source "peter_evans_create_or_update_comment_version" }}'
   peter_evans_slash_command_dispatch:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump peter-evans/slash-command-dispatch
     kind: file
     sourceid: peter_evans_slash_command_dispatch_digest
@@ -1197,6 +1347,9 @@ targets:
       matchpattern: '(peter\-evans/slash\-command\-dispatch(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "peter_evans_slash_command_dispatch_digest" }} # {{ source "peter_evans_slash_command_dispatch_version" }}'
   sigstore_cosign_installer:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump sigstore/cosign-installer
     kind: file
     sourceid: sigstore_cosign_installer_digest
@@ -1208,6 +1361,9 @@ targets:
       matchpattern: '(sigstore/cosign\-installer(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "sigstore_cosign_installer_digest" }} # {{ source "sigstore_cosign_installer_version" }}'
   softprops_action_gh_release:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump softprops/action-gh-release
     kind: file
     sourceid: softprops_action_gh_release_digest
@@ -1219,6 +1375,9 @@ targets:
       matchpattern: '(softprops/action\-gh\-release(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "softprops_action_gh_release_digest" }} # {{ source "softprops_action_gh_release_version" }}'
   step_security_harden_runner:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump step-security/harden-runner
     kind: file
     sourceid: step_security_harden_runner_digest
@@ -1230,6 +1389,9 @@ targets:
       matchpattern: '(step\-security/harden\-runner(?:/[A-Za-z0-9_-]+)?)@[a-f0-9]{40}(?: # [^\r\n]+)?'
       replacepattern: '$1@{{ source "step_security_harden_runner_digest" }} # {{ source "step_security_harden_runner_version" }}'
   zizmorcore_zizmor_action:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     name: Bump zizmorcore/zizmor-action
     kind: file
     sourceid: zizmorcore_zizmor_action_digest

@@ -77,6 +77,18 @@ make update-deps-terraform
 make update-deps-go UPDATECLI_ACTION=diff
 ```
 
+By default, applying updates only changes the current checkout. To let Updatecli
+commit, push, and create or update a pull request for each selected dependency
+kind, opt in explicitly:
+
+```shell
+UPDATECLI_PUBLISH=true make update-deps-tools
+```
+
+Publishing uses `GITHUB_REPOSITORY` when available and otherwise detects the
+repository with `gh`. The token must have write access to repository contents,
+pull requests, and workflows.
+
 The supported `UPDATECLI_KIND` values are `go`, `github-actions`, `docker`,
 `tools`, `helm`, `python`, and `terraform`. Development tool versions and
 platform checksums are pinned directly in the `Tool Binaries` section of the

@@ -1,5 +1,35 @@
 name: Update Terraform dependency constraints
 
+pipelineid: dependencies/terraform
+
+# Publishing is opt-in so local runs continue to update the current checkout.
+#{{- if .scm.enabled }}
+actions:
+  dependency-pr:
+    kind: github/pullrequest
+    scmid: default
+    title: "chore(deps): update Terraform dependencies"
+
+scms:
+  default:
+    kind: github
+    spec:
+      owner: "{{ .scm.owner }}"
+      repository: "{{ .scm.repository }}"
+      branch: main
+      token: '{{ requiredEnv "GITHUB_TOKEN" }}'
+      user: External Secrets Operator
+      email: ExternalSecretsOperator@users.noreply.github.com
+      commitusingapi: true
+      workingbranchprefix: dependencies
+      workingbranchseparator: "/"
+      commitmessage:
+        type: chore
+        scope: deps
+        hidecredit: true
+        footers: 'Signed-off-by: External Secrets Operator <ExternalSecretsOperator@users.noreply.github.com>'
+#{{- end }}
+
 sources:
   aws:
     kind: terraform/registry
@@ -72,6 +102,9 @@ sources:
 
 targets:
   aws:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     kind: file
     sourceid: aws
     spec:
@@ -82,6 +115,9 @@ targets:
       matchpattern: '(source\s*=\s*"hashicorp/aws"\s+version\s*=\s*)"[^"]+"'
       replacepattern: '$1"{{ source "aws" }}"'
   kubernetes:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     kind: file
     sourceid: kubernetes
     spec:
@@ -93,6 +129,9 @@ targets:
       matchpattern: '(source\s*=\s*"hashicorp/kubernetes"\s+version\s*=\s*)"[^"]+"'
       replacepattern: '$1"{{ source "kubernetes" }}"'
   helm:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     kind: file
     sourceid: helm
     spec:
@@ -102,6 +141,9 @@ targets:
       matchpattern: '(source\s*=\s*"hashicorp/helm"\s+version\s*=\s*)"[^"]+"'
       replacepattern: '$1"{{ source "helm" }}"'
   google:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     kind: file
     sourceid: google
     spec:
@@ -111,6 +153,9 @@ targets:
       matchpattern: '(source\s*=\s*"hashicorp/google"\s+version\s*=\s*)"[^"]+"'
       replacepattern: '$1"{{ source "google" }}"'
   google_beta:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     kind: file
     sourceid: google_beta
     spec:
@@ -120,6 +165,9 @@ targets:
       matchpattern: '(source\s*=\s*"hashicorp/google-beta"\s+version\s*=\s*)"[^"]+"'
       replacepattern: '$1"{{ source "google_beta" }}"'
   azuread:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     kind: file
     sourceid: azuread
     spec:
@@ -127,6 +175,9 @@ targets:
       matchpattern: '(source\s*=\s*"hashicorp/azuread"\s+version\s*=\s*)"[^"]+"'
       replacepattern: '$1"{{ source "azuread" }}"'
   azurerm:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     kind: file
     sourceid: azurerm
     spec:
@@ -134,6 +185,9 @@ targets:
       matchpattern: '(source\s*=\s*"hashicorp/azurerm"\s+version\s*=\s*)"[^"]+"'
       replacepattern: '$1"{{ source "azurerm" }}"'
   eks:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     kind: file
     sourceid: eks
     spec:
@@ -141,6 +195,9 @@ targets:
       matchpattern: '(source\s*=\s*"terraform-aws-modules/eks/aws"\s+version\s*=\s*)"[^"]+"'
       replacepattern: '$1"{{ source "eks" }}"'
   vpc:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
     kind: file
     sourceid: vpc
     spec:
