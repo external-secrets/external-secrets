@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strconv"
 	"time"
 
@@ -44,13 +45,14 @@ var (
 )
 
 const (
-	errInvalidRevVersion      = "invalid Ref.Version: %w"
-	errSecretKeyNotFound      = "cannot find secret data for key: %q"
-	errFetchMount             = "error while validating %q: %w"
-	errInvalidMountType       = `expected mount type "kv" found %q`
-	errInvalidMountVersion    = "expected kv engine version %s found version %s"
-	errKVv1VersionUnsupported = "OpenBao KVv1 secrets do not support versioning (use KVv2)"
-	errCustomCA               = "cannot set OpenBao CA certificate: %w"
+	errInvalidRevVersion       = "invalid Ref.Version: %w"
+	errSecretKeyNotFound       = "cannot find secret data for key: %q"
+	errFetchMount              = "error while validating %q: %w"
+	errInvalidMountType        = `expected mount type "kv" found %q`
+	errInvalidMountVersion     = "expected kv engine version %s found version %s"
+	errKVv1VersionUnsupported  = "OpenBao KVv1 secrets do not support versioning (use KVv2)"
+	errKVv1MetadataUnsupported = "OpenBao KVv1 secrets do not support metadata (use KVv2)"
+	errCustomCA                = "cannot set OpenBao CA certificate: %w"
 )
 
 type client struct {
@@ -205,8 +207,8 @@ func (c *client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) err
 }
 
 func (c *client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	if ref.Tags != nil {
-		return nil, errors.New("tag based search is not implemented")
+	if c.useV1() && ref.Tags != nil {
+		return nil, errors.New(errKVv1MetadataUnsupported)
 	}
 
 	listPath := ""
@@ -218,7 +220,11 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	if c.useV1() {
 		list = c.client.KVv1(c.path()).List
 	} else {
-		list = c.client.KVv2(c.path()).List
+		if ref.Tags != nil {
+			list = c.client.KVv2(c.path()).ListWithDetails
+		} else {
+			list = c.client.KVv2(c.path()).List
+		}
 	}
 
 	meta, err := list(ctx, listPath)
@@ -230,30 +236,66 @@ func (c *client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 		return nil, nil
 	}
 
-	return c.findSecretsFromName(ctx, meta.Keys, *ref.Name)
+	keys := meta.Keys
+	if ref.Tags != nil {
+		keys = filterKeys(meta, ref.Tags)
+	}
+
+	return c.findSecretsFromName(ctx, keys, ref.Name)
 }
 
-func (c *client) findSecretsFromName(ctx context.Context, candidates []string, ref esv1.FindName) (map[string][]byte, error) {
-	secrets := make(map[string][]byte)
-	matcher, err := find.New(ref)
-	if err != nil {
-		return nil, err
-	}
-	for _, name := range candidates {
-		ok := matcher.MatchName(name)
-		if ok {
-			secret, err := c.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: name})
-			if errors.Is(err, esv1.NoSecretError{}) {
-				continue
-			}
-			if err != nil {
-				return nil, err
-			}
-			if secret != nil {
-				secrets[name] = secret
+func filterKeys(meta *api.KVList, tags map[string]string) []string {
+	keys := []string{}
+	for key, metadata := range meta.Metadata {
+		match := true
+		for tk, tv := range tags {
+			if metadata.CustomMetadata[tk] != tv {
+				match = false
+				break
 			}
 		}
+		if !match {
+			continue
+		}
+
+		keys = append(keys, key)
 	}
+
+	slices.Sort(keys) // make result deterministic
+	return keys
+}
+
+func (c *client) findSecretsFromName(ctx context.Context, candidates []string, ref *esv1.FindName) (map[string][]byte, error) {
+	secrets := make(map[string][]byte)
+
+	match := func(_ string) bool {
+		return true
+	}
+	if ref != nil {
+		matcher, err := find.New(*ref)
+		if err != nil {
+			return nil, err
+		}
+		match = matcher.MatchName
+	}
+
+	for _, name := range candidates {
+		if !match(name) {
+			continue
+		}
+
+		secret, err := c.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: name})
+		if errors.Is(err, esv1.NoSecretError{}) {
+			continue
+		}
+		if err != nil {
+			return nil, err
+		}
+		if secret != nil {
+			secrets[name] = secret
+		}
+	}
+
 	return secrets, nil
 }
 
@@ -269,7 +311,7 @@ func (c *client) path() string {
 }
 
 func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	var data *api.KVSecret
+	var res *api.KVSecret
 	var err error
 
 	if c.useV1() {
@@ -277,8 +319,12 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 			return nil, errors.New(errKVv1VersionUnsupported)
 		}
 
+		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
+			return nil, errors.New(errKVv1MetadataUnsupported)
+		}
+
 		kv := c.client.KVv1(c.path())
-		data, err = kv.Get(ctx, ref.Key)
+		res, err = kv.Get(ctx, ref.Key)
 		if err != nil {
 			return nil, err
 		}
@@ -290,23 +336,28 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 				return nil, fmt.Errorf(errInvalidRevVersion, err)
 			}
 
-			data, err = kv.GetVersion(ctx, ref.Key, version)
+			res, err = kv.GetVersion(ctx, ref.Key, version)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			data, err = kv.Get(ctx, ref.Key)
+			res, err = kv.Get(ctx, ref.Key)
 			if err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	if ref.Property == "" {
-		return json.Marshal(data.Data)
+	data := res.Data
+	if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
+		data = res.CustomMetadata
 	}
 
-	property, ok := data.Data[ref.Property]
+	if ref.Property == "" {
+		return json.Marshal(data)
+	}
+
+	property, ok := data[ref.Property]
 	if !ok {
 		return nil, fmt.Errorf(errSecretKeyNotFound, ref.Property)
 	}

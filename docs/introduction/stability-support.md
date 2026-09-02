@@ -145,7 +145,7 @@ The following table show the support for features across different providers.
 | Kubernetes                       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Nebius Mysterybox                |              |              |                      |                         |        x         |             |              x              |
 | Onboardbase                      |      x       |              |                      |                         |        x         |             |                             |
-| OpenBao                          |      x       |              |                      |            x            |        x         |             |                             |
+| OpenBao                          |      x       |      x       |          x           |            x            |        x         |             |                             |
 | Oracle Vault                     |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | OVHcloud                         |      x       |              |                      |            x            |        x         |      x      |              x              |
 | Passbolt                         |      x       |              |                      |            x            |        x         |             |                             |

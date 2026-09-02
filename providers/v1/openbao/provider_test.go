@@ -86,6 +86,8 @@ func getRecorder(t *testing.T) *recorder.Recorder {
 			return err
 		}
 		i.Response.Body = string(indentedBody)
+		i.Response.ContentLength = int64(len(i.Response.Body))
+		i.Response.Headers.Set("Content-Length", fmt.Sprintf("%d", i.Response.ContentLength))
 
 		return nil
 	}, recorder.BeforeSaveHook)
@@ -228,6 +230,20 @@ func TestProvider_KVv2(t *testing.T) {
 		Expect(data).To(BeNil())
 	})
 
+	t.Run("GetSecret_Metadata", func(t *testing.T) {
+		RegisterTestingT(t)
+		client := setupClient(t, v)
+
+		data, err := client.GetSecret(t.Context(), esv1.ExternalSecretDataRemoteRef{
+			Key:            "foo",
+			MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(data).To(MatchJSON(`{
+			"bar": "meta"
+		}`))
+	})
+
 	t.Run("GetSecret_Full", func(t *testing.T) {
 		RegisterTestingT(t)
 		client := setupClient(t, v)
@@ -256,20 +272,28 @@ func TestProvider_KVv2(t *testing.T) {
 		}))
 	})
 
+	findName := &esv1.FindName{
+		RegExp: "fo+",
+	}
+	findTags := map[string]string{
+		"bar": "meta",
+	}
+
 	t.Run("GetAllSecrets", func(t *testing.T) {
 		RegisterTestingT(t)
 		client := setupClient(t, v)
 
 		allData, err := client.GetAllSecrets(t.Context(), esv1.ExternalSecretFind{
-			Name: &esv1.FindName{
-				RegExp: "fo+",
-			},
+			Name: findName,
 		})
 		Expect(err).NotTo(HaveOccurred())
-		Expect(allData).To(HaveLen(1))
+		Expect(allData).To(HaveLen(2))
 		Expect(allData).To(HaveKeyWithValue("foo", MatchJSON(`{
 			"bar": "bazz",
 			"lorem": "ipsum"
+		}`)))
+		Expect(allData).To(HaveKeyWithValue("foo2", MatchJSON(`{
+			"bar2": "bazz2"
 		}`)))
 	})
 
@@ -285,6 +309,54 @@ func TestProvider_KVv2(t *testing.T) {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(allData).To(HaveLen(0))
+	})
+
+	t.Run("GetAllSecrets_ByTag", func(t *testing.T) {
+		RegisterTestingT(t)
+		client := setupClient(t, v)
+
+		allData, err := client.GetAllSecrets(t.Context(), esv1.ExternalSecretFind{
+			Tags: findTags,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(allData).To(HaveLen(2))
+		Expect(allData).To(HaveKeyWithValue("foo", MatchJSON(`{
+			"bar": "bazz",
+			"lorem": "ipsum"
+		}`)))
+		Expect(allData).To(HaveKeyWithValue("lorem", MatchJSON(`{
+			"ipsum": "dolor"
+		}`)))
+	})
+
+	t.Run("GetAllSecrets_ByTag_NoMatch", func(t *testing.T) {
+		RegisterTestingT(t)
+		client := setupClient(t, v)
+
+		allData, err := client.GetAllSecrets(t.Context(), esv1.ExternalSecretFind{
+			Tags: map[string]string{
+				"bar":      "meta",
+				"no-match": "no-match",
+			},
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(allData).To(HaveLen(0))
+	})
+
+	t.Run("GetAllSecrets_ByTagAndName", func(t *testing.T) {
+		RegisterTestingT(t)
+		client := setupClient(t, v)
+
+		allData, err := client.GetAllSecrets(t.Context(), esv1.ExternalSecretFind{
+			Tags: findTags,
+			Name: findName,
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(allData).To(HaveLen(1))
+		Expect(allData).To(HaveKeyWithValue("foo", MatchJSON(`{
+			"bar": "bazz",
+			"lorem": "ipsum"
+		}`)))
 	})
 }
 
@@ -312,6 +384,19 @@ func TestProvider_KVv1(t *testing.T) {
 			Version:  "1",
 		})
 		Expect(err).To(MatchError("OpenBao KVv1 secrets do not support versioning (use KVv2)"))
+		Expect(data).To(BeNil())
+	})
+
+	t.Run("GetSecret_Metadata", func(t *testing.T) {
+		RegisterTestingT(t)
+		client := setupClient(t, v)
+
+		data, err := client.GetSecret(t.Context(), esv1.ExternalSecretDataRemoteRef{
+			Key:            "foo",
+			Property:       "bar",
+			MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
+		})
+		Expect(err).To(MatchError("OpenBao KVv1 secrets do not support metadata (use KVv2)"))
 		Expect(data).To(BeNil())
 	})
 
@@ -358,6 +443,19 @@ func TestProvider_KVv1(t *testing.T) {
 		})
 		Expect(err).NotTo(HaveOccurred())
 		Expect(allData).To(HaveLen(0))
+	})
+
+	t.Run("GetAllSecrets_ByTag", func(t *testing.T) {
+		RegisterTestingT(t)
+		client := setupClient(t, v)
+
+		allData, err := client.GetAllSecrets(t.Context(), esv1.ExternalSecretFind{
+			Tags: map[string]string{
+				"bar": "meta",
+			},
+		})
+		Expect(err).To(MatchError("OpenBao KVv1 secrets do not support metadata (use KVv2)"))
+		Expect(allData).To(BeNil())
 	})
 }
 
