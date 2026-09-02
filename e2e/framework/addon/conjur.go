@@ -416,14 +416,14 @@ func (l *Conjur) patchAuthenticatorServiceSidecar() error {
 	deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, binVolume)
 	deployment.Spec.Template.Spec.InitContainers = append(deployment.Spec.Template.Spec.InitContainers, corev1.Container{
 		Name:         "authenticator-service-fetch",
-		Image:        "curlimages/curl:8.11.0",
+		Image:        "curlimages/curl:8.11.0@sha256:83a505ba2ba62f208ed6e410c268b7b9aa48f0f7b403c8108b9773b44199dbba",
 		Command:      []string{"/bin/sh", "-c"},
 		Args:         []string{authenticatorServiceInitScript},
 		VolumeMounts: []corev1.VolumeMount{binVolumeMount},
 	})
 	deployment.Spec.Template.Spec.Containers = append(deployment.Spec.Template.Spec.Containers, corev1.Container{
 		Name:         authenticatorServiceContainerName,
-		Image:        "gcr.io/distroless/static-debian12:latest",
+		Image:        "gcr.io/distroless/static-debian12:latest@sha256:d75cdd72874d4790092fcb1b058493ecf6bb5bf2b2b897045b00ff01d91843f2",
 		Command:      []string{"/authsvc/authenticator-service"},
 		Args:         []string{"-c", "/authsvc/config.json"},
 		VolumeMounts: []corev1.VolumeMount{binVolumeMount},

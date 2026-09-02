@@ -1,51 +1,71 @@
 version: 2
-updates:
 
-  - package-ecosystem: "github-actions"
-    directory: "/"
+updates:
+  - package-ecosystem: gomod
+    directories:
+      - /
+      - /apis
+      - /runtime
+      - /generators/v1/*
+      - /providers/v1/*
     schedule:
-      interval: "weekly"
+      interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
     groups:
-      codeql:
+      go-dependencies:
         patterns:
-          - "github/codeql-action/*"
+          - "*"
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
+      - dependency-name: github.com/external-secrets/external-secrets
+      - dependency-name: github.com/external-secrets/external-secrets/*
 
-  - package-ecosystem: "docker"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 10
-
-  - package-ecosystem: docker
+  - package-ecosystem: gomod
     directory: /e2e
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
-
-  - package-ecosystem: docker
-    directory: /hack/api-docs
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 10
-
-  - package-ecosystem: pip
-    directory: /hack/api-docs
-    schedule:
-      interval: weekly
-    open-pull-requests-limit: 10
+    groups:
+      e2e-go-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
+      - dependency-name: github.com/external-secrets/external-secrets
+      - dependency-name: github.com/external-secrets/external-secrets/*
 
   - package-ecosystem: gomod
-    directory: /hack/tools
+    directories:
+      - /hack/tools/*
     schedule:
       interval: weekly
     cooldown:
       default-days: 7
     open-pull-requests-limit: 10
-  - package-ecosystem: gomod
-    directory: /hack/tools/gen-crd-api-reference-docs
-    schedule:
-      interval: weekly
-    cooldown:
-      default-days: 7
-    open-pull-requests-limit: 10
+    groups:
+      tool-go-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - minor
+          - patch
+    ignore:
+      - dependency-name: "*"
+        update-types:
+          - version-update:semver-major
+      - dependency-name: github.com/external-secrets/external-secrets
+      - dependency-name: github.com/external-secrets/external-secrets/*
