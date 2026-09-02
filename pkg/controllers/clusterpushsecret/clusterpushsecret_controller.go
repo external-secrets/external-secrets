@@ -254,7 +254,9 @@ func (r *Reconciler) deletePushSecret(ctx context.Context, esName, cesName, name
 		return nil
 	}
 
-	err = r.Delete(ctx, &existingPs, &client.DeleteOptions{})
+	// the cache can be behind the API server, so an object that is already
+	// gone is the outcome this cleanup wanted
+	err = client.IgnoreNotFound(r.Delete(ctx, &existingPs, &client.DeleteOptions{}))
 	if err != nil {
 		return fmt.Errorf("external secret in non matching namespace could not be deleted: %w", err)
 	}
