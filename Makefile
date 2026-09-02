@@ -154,7 +154,11 @@ build-%: generate ## Build binary for the specified arch
 		go build -tags $(PROVIDER) -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
-lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
+.PHONY: provider-replaces.check
+provider-replaces.check: ## Ensure cross-provider dependencies use local replacements
+	@./hack/check-provider-replaces.sh
+
+lint: golangci-lint provider-replaces.check ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
 	@if [ -n "$(LINT_TARGET)" ]; then \
 		$(INFO) Running golangci-lint on $(LINT_TARGET); \
 		(cd $(LINT_TARGET) && $(GOLANGCI_LINT) run ./...) || exit 1; \
