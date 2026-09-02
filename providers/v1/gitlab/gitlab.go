@@ -34,7 +34,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/find"
@@ -162,7 +161,7 @@ func (g *gitlabBase) fetchProjectVariables(effectiveEnvironment string, matcher 
 	for projectPage := int64(1); ; projectPage++ {
 		popts.Page = projectPage
 		projectData, response, err := g.projectVariablesClient.ListVariables(g.store.ProjectID, popts)
-		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectListVariables, err)
+		metrics.ObserveAPICall(ProviderGitLab, CallGitLabProjectListVariables, err)
 		if err != nil {
 			return err
 		}
@@ -220,7 +219,7 @@ func (g *gitlabBase) setVariablesForGroupID(
 	for groupPage := int64(1); ; groupPage++ {
 		gopts.Page = groupPage
 		groupVars, response, err := g.groupVariablesClient.ListVariables(groupID, gopts)
-		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupListVariables, err)
+		metrics.ObserveAPICall(ProviderGitLab, CallGitLabGroupListVariables, err)
 		if err != nil {
 			return err
 		}
@@ -267,7 +266,7 @@ func ExtractTag(tags map[string]string) (string, error) {
 
 func (g *gitlabBase) getGroupVariables(groupID string, ref esv1.ExternalSecretDataRemoteRef, gopts *gitlab.GetGroupVariableOptions) (*gitlab.GroupVariable, *gitlab.Response, error) {
 	groupVar, resp, err := g.groupVariablesClient.GetVariable(groupID, ref.Key, gopts)
-	metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, err)
+	metrics.ObserveAPICall(ProviderGitLab, CallGitLabGroupGetVariable, err)
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound && !isEmptyOrWildcard(g.store.Environment) {
 			if gopts == nil {
@@ -278,7 +277,7 @@ func (g *gitlabBase) getGroupVariables(groupID string, ref esv1.ExternalSecretDa
 			}
 			gopts.Filter.EnvironmentScope = "*"
 			groupVar, resp, err = g.groupVariablesClient.GetVariable(groupID, ref.Key, gopts)
-			metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupGetVariable, err)
+			metrics.ObserveAPICall(ProviderGitLab, CallGitLabGroupGetVariable, err)
 			if err != nil || resp == nil {
 				return nil, resp, fmt.Errorf("error getting group variable %s from GitLab: %w", ref.Key, err)
 			}
@@ -416,7 +415,7 @@ func (g *gitlabBase) Close(_ context.Context) error {
 func (g *gitlabBase) ResolveGroupIDs() error {
 	if g.store.InheritFromGroups {
 		projectGroups, resp, err := g.projectsClient.ListProjectsGroups(g.store.ProjectID, nil)
-		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabListProjectsGroups, err)
+		metrics.ObserveAPICall(ProviderGitLab, CallGitLabListProjectsGroups, err)
 		if resp.StatusCode >= 400 && err != nil {
 			return err
 		}
@@ -434,7 +433,7 @@ func (g *gitlabBase) ResolveGroupIDs() error {
 func (g *gitlabBase) Validate() (esv1.ValidationResult, error) {
 	if g.store.ProjectID != "" {
 		_, resp, err := g.projectVariablesClient.ListVariables(g.store.ProjectID, nil)
-		metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabProjectListVariables, err)
+		metrics.ObserveAPICall(ProviderGitLab, CallGitLabProjectListVariables, err)
 		if err != nil {
 			return esv1.ValidationResultError, fmt.Errorf(errList, err)
 		} else if resp == nil || resp.StatusCode != http.StatusOK {
@@ -451,7 +450,7 @@ func (g *gitlabBase) Validate() (esv1.ValidationResult, error) {
 	if len(g.store.GroupIDs) > 0 {
 		for _, groupID := range g.store.GroupIDs {
 			_, resp, err := g.groupVariablesClient.ListVariables(groupID, nil)
-			metrics.ObserveAPICall(constants.ProviderGitLab, constants.CallGitLabGroupListVariables, err)
+			metrics.ObserveAPICall(ProviderGitLab, CallGitLabGroupListVariables, err)
 			if err != nil {
 				return esv1.ValidationResultError, fmt.Errorf(errList, err)
 			} else if resp == nil || resp.StatusCode != http.StatusOK {

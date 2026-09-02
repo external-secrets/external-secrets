@@ -27,7 +27,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
@@ -63,7 +62,7 @@ func (c *client) requestTokenWithKubernetesAuth(ctx context.Context, kubernetesA
 		return err
 	}
 	_, err = c.auth.Login(ctx, k)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	metrics.ObserveAPICall(ProviderHCVault, CallHCVaultLogin, err)
 	if err != nil {
 		return err
 	}
