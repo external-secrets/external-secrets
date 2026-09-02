@@ -81,8 +81,17 @@ func formatSecretKey(secretKey, secretPath, basePath string, includeSecretPath b
 		return secretKey
 	}
 
-	rel := strings.TrimPrefix(secretPath, basePath)
-	rel = strings.TrimPrefix(rel, "/")
+	// Use CutPrefix with a trailing "/" to ensure we only strip whole path
+	// segments. Without the slash, basePath "/app" would incorrectly turn
+	// "/application/SECRET" into "lication/SECRET".
+	var rel string
+	if secretPath == basePath {
+		return secretKey
+	} else if after, ok := strings.CutPrefix(secretPath, basePath+"/"); ok {
+		rel = after
+	} else {
+		rel = strings.TrimPrefix(secretPath, "/")
+	}
 	if rel == "" {
 		return secretKey
 	}
