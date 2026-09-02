@@ -6887,6 +6887,108 @@ or a namespaced SecretStore.</p>
 <p>
 <p>GenericStoreValidator implements webhook validation for SecretStore resources.</p>
 </p>
+<h3 id="external-secrets.io/v1.GiteaAuth">GiteaAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.GiteaProvider">GiteaProvider</a>)
+</p>
+<p>
+<p>GiteaAuth configures authentication for the Gitea API.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>SecretRef references a Kubernetes Secret containing the Gitea personal access token.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.GiteaProvider">GiteaProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>GiteaProvider provides access and authentication to a Gitea instance.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>url</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>URL is the base URL of the Gitea instance (e.g. <a href="https://gitea.example.com">https://gitea.example.com</a>).
+This field is required.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.GiteaAuth">
+GiteaAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth contains credentials for authenticating with the Gitea API.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>organization</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Organization is the Gitea organization to sync secrets into.
+Required when targeting organization-scoped or repository-scoped secrets.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>repository</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Repository scopes secrets to a specific repository within the Organization.
+Requires Organization to also be set.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.GithubAppAuth">GithubAppAuth
 </h3>
 <p>
@@ -11346,6 +11448,21 @@ YandexLockboxProvider
 <td>
 <em>(Optional)</em>
 <p>YandexLockbox configures this store to sync secrets using Yandex Lockbox provider</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>gitea</code></br>
+<em>
+<a href="#external-secrets.io/v1.GiteaProvider">
+GiteaProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Gitea configures this store to push Gitea Actions secrets using the Gitea API provider.
+Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from Gitea.</p>
 </td>
 </tr>
 <tr>

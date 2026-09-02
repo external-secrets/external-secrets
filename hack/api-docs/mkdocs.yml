@@ -143,6 +143,7 @@ nav:
       - Yandex Lockbox: provider/yandex-lockbox.md
       - GitLab Variables: provider/gitlab-variables.md
       - GitHub Actions and Dependabot Secrets: provider/github.md
+      - Gitea Actions Secrets: provider/gitea.md
       - Oracle Vault: provider/oracle-vault.md
       - OVHcloud: provider/ovhcloud.md
       - 1Password Connect Server: provider/1password-automation.md
