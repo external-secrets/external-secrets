@@ -246,6 +246,10 @@ type SecretStoreProvider struct {
 	// +optional
 	Passbolt *PassboltProvider `json:"passbolt,omitempty"`
 
+	// ProtonPass configures this store to sync secrets using the Proton Pass provider (read-only)
+	// +optional
+	ProtonPass *ProtonPassProvider `json:"protonpass,omitempty"`
+
 	// DVLS configures this store to sync secrets using Devolutions Server provider
 	// +optional
 	DVLS *DVLSProvider `json:"dvls,omitempty"`
