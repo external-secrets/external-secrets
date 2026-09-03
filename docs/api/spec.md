@@ -10397,6 +10397,69 @@ string
 </tr>
 </tbody>
 </table>
+<h3 id="external-secrets.io/v1.ProtonPassAuth">ProtonPassAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ProtonPassProvider">ProtonPassProvider</a>)
+</p>
+<p>
+<p>ProtonPassAuth contains auth for Proton Pass.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>personalAccessTokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ProtonPassProvider">ProtonPassProvider
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
+</p>
+<p>
+<p>ProtonPassProvider configures a store to sync secrets using the Proton Pass provider (read-only).</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>auth</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProtonPassAuth">
+ProtonPassAuth
+</a>
+</em>
+</td>
+<td>
+<p>Auth defines the PAT credential.</p>
+</td>
+</tr>
+</tbody>
+</table>
 <h3 id="external-secrets.io/v1.Provider">Provider
 </h3>
 <p>
@@ -11659,6 +11722,20 @@ PassboltProvider
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>protonpass</code></br>
+<em>
+<a href="#external-secrets.io/v1.ProtonPassProvider">
+ProtonPassProvider
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ProtonPass configures this store to sync secrets using the Proton Pass provider (read-only)</p>
 </td>
 </tr>
 <tr>
