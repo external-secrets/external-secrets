@@ -25,6 +25,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -221,16 +222,35 @@ func TestAPIClient_GetCredential(t *testing.T) {
 		assert.Equal(t, "secret-value", cred.Value)
 	})
 
-	t.Run("not found", func(t *testing.T) {
+	t.Run("not found includes credential context", func(t *testing.T) {
 		server := newMockServer(t, func(w http.ResponseWriter, _ *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
 		})
 
 		client := newTestAPIClient(t, server, nil)
-		_, err := client.GetCredential(context.Background(), "test-ns", "password", "missing")
+		_, err := client.GetCredential(context.Background(), "test-ns", "key", "missing-key")
 		assert.Error(t, err)
 		var nfe *NotFoundError
 		assert.ErrorAs(t, err, &nfe)
+		assert.Equal(t, "key", nfe.CredType)
+		assert.Equal(t, "missing-key", nfe.Name)
+		assert.Equal(t, "credential key/missing-key not found", nfe.Error())
+	})
+
+	t.Run("rate limit 429", func(t *testing.T) {
+		server := newMockServer(t, func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusTooManyRequests)
+			w.Write([]byte(`{"errorCode":"rate_limit_exceeded"}`))
+		})
+
+		client := newTestAPIClient(t, server, nil)
+		_, err := client.GetCredential(context.Background(), "test-ns", "password", "my-secret")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "rate limit exceeded")
+		assert.Contains(t, err.Error(), "429")
+		// Must not be a NotFoundError
+		var nfe *NotFoundError
+		assert.False(t, errors.As(err, &nfe))
 	})
 
 	t.Run("server error", func(t *testing.T) {
@@ -270,9 +290,13 @@ func TestAPIClient_ListCredentials(t *testing.T) {
 		assert.Equal(t, "test-ns", r.Header.Get("sapcp-credstore-namespace"))
 
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode([]CredentialMeta{
-			{Name: "secret-a", Type: "password"},
-			{Name: "secret-b", Type: "password"},
+		json.NewEncoder(w).Encode(credentialListResponse{
+			Content: []CredentialMeta{
+				{Name: "secret-a", Type: "password"},
+				{Name: "secret-b", Type: "password"},
+			},
+			Last:          true,
+			TotalElements: 2,
 		})
 	})
 
@@ -282,6 +306,48 @@ func TestAPIClient_ListCredentials(t *testing.T) {
 	assert.Len(t, metas, 2)
 	assert.Equal(t, "secret-a", metas[0].Name)
 	assert.Equal(t, "secret-b", metas[1].Name)
+}
+
+func TestAPIClient_ListCredentials_Pagination(t *testing.T) {
+	server := newMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/passwords", r.URL.Path)
+
+		page := r.URL.Query().Get("page")
+		w.Header().Set("Content-Type", "application/json")
+
+		switch page {
+		case "0":
+			json.NewEncoder(w).Encode(credentialListResponse{
+				Content: []CredentialMeta{
+					{Name: "secret-1", Type: "password"},
+					{Name: "secret-2", Type: "password"},
+				},
+				Last:          false,
+				Number:        0,
+				TotalElements: 3,
+			})
+		case "1":
+			json.NewEncoder(w).Encode(credentialListResponse{
+				Content: []CredentialMeta{
+					{Name: "secret-3", Type: "password"},
+				},
+				Last:          true,
+				Number:        1,
+				TotalElements: 3,
+			})
+		default:
+			t.Fatalf("unexpected page requested: %s", page)
+		}
+	})
+
+	client := newTestAPIClient(t, server, nil)
+	metas, err := client.ListCredentials(context.Background(), "test-ns", "password")
+	require.NoError(t, err)
+	assert.Len(t, metas, 3)
+	assert.Equal(t, "secret-1", metas[0].Name)
+	assert.Equal(t, "secret-2", metas[1].Name)
+	assert.Equal(t, "secret-3", metas[2].Name)
 }
 
 func TestAPIClient_PutCredential(t *testing.T) {
@@ -645,13 +711,21 @@ func TestClient_GetAllSecrets(t *testing.T) {
 		switch {
 		// List endpoints (pluralized)
 		case path == "/passwords":
-			json.NewEncoder(w).Encode([]CredentialMeta{
-				{Name: "pass-a", Type: "password"},
-				{Name: "pass-b", Type: "password"},
+			json.NewEncoder(w).Encode(credentialListResponse{
+				Content: []CredentialMeta{
+					{Name: "pass-a", Type: "password"},
+					{Name: "pass-b", Type: "password"},
+				},
+				Last:          true,
+				TotalElements: 2,
 			})
 		case path == "/keys":
-			json.NewEncoder(w).Encode([]CredentialMeta{
-				{Name: "key-a", Type: "key"},
+			json.NewEncoder(w).Encode(credentialListResponse{
+				Content: []CredentialMeta{
+					{Name: "key-a", Type: "key"},
+				},
+				Last:          true,
+				TotalElements: 1,
 			})
 
 		// Get endpoints
@@ -685,13 +759,21 @@ func TestClient_GetAllSecrets_WithRegexFilter(t *testing.T) {
 
 		switch {
 		case path == "/passwords":
-			json.NewEncoder(w).Encode([]CredentialMeta{
-				{Name: "db-pass", Type: "password"},
-				{Name: "api-pass", Type: "password"},
-				{Name: "db-admin", Type: "password"},
+			json.NewEncoder(w).Encode(credentialListResponse{
+				Content: []CredentialMeta{
+					{Name: "db-pass", Type: "password"},
+					{Name: "api-pass", Type: "password"},
+					{Name: "db-admin", Type: "password"},
+				},
+				Last:          true,
+				TotalElements: 3,
 			})
 		case path == "/keys":
-			json.NewEncoder(w).Encode([]CredentialMeta{})
+			json.NewEncoder(w).Encode(credentialListResponse{
+				Content:       []CredentialMeta{},
+				Last:          true,
+				TotalElements: 0,
+			})
 
 		case path == "/password" && r.URL.Query().Get("name") == "db-pass":
 			json.NewEncoder(w).Encode(Credential{Name: "db-pass", Value: "dbval"})
@@ -711,6 +793,59 @@ func TestClient_GetAllSecrets_WithRegexFilter(t *testing.T) {
 	assert.Len(t, result, 2)
 	assert.Equal(t, "dbval", string(result["password/db-pass"]))
 	assert.Equal(t, "adminval", string(result["password/db-admin"]))
+}
+
+func TestClient_GetAllSecrets_AllListsFail(t *testing.T) {
+	// When every ListCredentials call fails (e.g. rate limit), GetAllSecrets
+	// must return an error instead of silently returning an empty map.
+	server := newMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		if path == "/passwords" || path == "/keys" {
+			w.WriteHeader(http.StatusTooManyRequests)
+			w.Write([]byte(`{"error_code":"rate_limit_exceeded"}`))
+			return
+		}
+		w.WriteHeader(http.StatusNotFound)
+	})
+
+	c := newTestClient(t, server, "test-ns", nil)
+	result, err := c.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{})
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to list any credential types")
+	assert.Contains(t, err.Error(), "password")
+	assert.Contains(t, err.Error(), "key")
+}
+
+func TestClient_GetAllSecrets_PartialListFailure(t *testing.T) {
+	// When only one credential type fails to list, GetAllSecrets should
+	// still return results from the other type (partial degradation).
+	server := newMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.Path
+		switch {
+		case path == "/passwords":
+			json.NewEncoder(w).Encode(credentialListResponse{
+				Content: []CredentialMeta{
+					{Name: "my-pass", Type: "password"},
+				},
+				Last:          true,
+				TotalElements: 1,
+			})
+		case path == "/keys":
+			w.WriteHeader(http.StatusTooManyRequests)
+			w.Write([]byte(`{"error_code":"rate_limit_exceeded"}`))
+		case path == "/password" && r.URL.Query().Get("name") == "my-pass":
+			json.NewEncoder(w).Encode(Credential{Name: "my-pass", Value: "secret"})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	})
+
+	c := newTestClient(t, server, "test-ns", nil)
+	result, err := c.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{})
+	require.NoError(t, err)
+	assert.Len(t, result, 1)
+	assert.Equal(t, "secret", string(result["password/my-pass"]))
 }
 
 func TestClient_Validate(t *testing.T) {

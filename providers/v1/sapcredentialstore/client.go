@@ -191,10 +191,12 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 	}
 
 	credTypes := []string{credTypePassword, credTypeKey}
+	var listErrors []error
 	for _, ct := range credTypes {
 		metas, err := c.api.ListCredentials(ctx, c.namespace, ct)
 		if err != nil {
 			log.V(1).Info("skipping credential type on list error", "type", ct, "error", err)
+			listErrors = append(listErrors, fmt.Errorf("listing %s credentials: %w", ct, err))
 			continue
 		}
 		for _, meta := range metas {
@@ -219,6 +221,13 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 			}
 			result[mapKey] = []byte(value)
 		}
+	}
+
+	// If every credential type failed to list, return an error rather than
+	// silently returning an empty map (which the controller would interpret as
+	// "no credentials exist").
+	if len(listErrors) == len(credTypes) {
+		return nil, fmt.Errorf("failed to list any credential types: %w", errors.Join(listErrors...))
 	}
 
 	return result, nil

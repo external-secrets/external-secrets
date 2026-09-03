@@ -48,6 +48,14 @@ type CredentialMeta struct {
 	Type string `json:"type"`
 }
 
+// credentialListResponse represents the paginated response from SAP Credential Store list endpoints.
+type credentialListResponse struct {
+	Content       []CredentialMeta `json:"content"`
+	Last          bool             `json:"last"`
+	Number        int              `json:"number"`
+	TotalElements int              `json:"totalElements"`
+}
+
 // CredentialBody represents the request payload for creating a credential.
 type CredentialBody struct {
 	Name     string            `json:"name"`
@@ -100,6 +108,11 @@ func (c *APIClient) GetCredential(ctx context.Context, ns, credType, name string
 
 	body, err := c.doRequest(req)
 	if err != nil {
+		// Enrich NotFoundError with credential context (doRequest returns it empty).
+		var nfe *NotFoundError
+		if errors.As(err, &nfe) {
+			return nil, &NotFoundError{CredType: credType, Name: name}
+		}
 		return nil, err
 	}
 
@@ -110,25 +123,43 @@ func (c *APIClient) GetCredential(ctx context.Context, ns, credType, name string
 	return &cred, nil
 }
 
-// ListCredentials lists all credential metadata for a given type.
+// listPageSize is the number of credentials requested per page from the SAP Credential Store list API.
+const listPageSize = 500
+
+// maxListPages is a safety cap to prevent infinite pagination loops.
+const maxListPages = 100
+
+// ListCredentials lists all credential metadata for a given type, handling pagination.
 func (c *APIClient) ListCredentials(ctx context.Context, ns, credType string) ([]CredentialMeta, error) {
-	url := fmt.Sprintf("%s/%ss", c.baseURL, credType) // pluralize
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
-	if err != nil {
-		return nil, fmt.Errorf("creating request: %w", err)
-	}
-	req.Header.Set("sapcp-credstore-namespace", ns)
+	var allEntries []CredentialMeta
+	baseURL := fmt.Sprintf("%s/%ss", c.baseURL, credType) // pluralize
 
-	body, err := c.doRequest(req)
-	if err != nil {
-		return nil, err
+	for page := range maxListPages {
+		reqURL := fmt.Sprintf("%s?size=%d&page=%d", baseURL, listPageSize, page)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, reqURL, http.NoBody)
+		if err != nil {
+			return nil, fmt.Errorf("creating request: %w", err)
+		}
+		req.Header.Set("sapcp-credstore-namespace", ns)
+
+		body, err := c.doRequest(req)
+		if err != nil {
+			return nil, err
+		}
+
+		var listResp credentialListResponse
+		if err := json.Unmarshal(body, &listResp); err != nil {
+			return nil, fmt.Errorf("unmarshaling credential list: %w", err)
+		}
+
+		allEntries = append(allEntries, listResp.Content...)
+
+		if listResp.Last {
+			break
+		}
 	}
 
-	var result []CredentialMeta
-	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("unmarshaling credential list: %w", err)
-	}
-	return result, nil
+	return allEntries, nil
 }
 
 // PutCredential creates or updates a credential.
@@ -204,6 +235,13 @@ func (c *APIClient) doRequest(req *http.Request) ([]byte, error) {
 
 	if resp.StatusCode == http.StatusNotFound {
 		return nil, &NotFoundError{}
+	}
+
+	if resp.StatusCode == http.StatusTooManyRequests {
+		return nil, fmt.Errorf(
+			"SAP Credential Store rate limit exceeded (HTTP 429), retry after backoff: %s",
+			string(body),
+		)
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
