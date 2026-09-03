@@ -42,6 +42,16 @@ use the [Kubernetes provider](../provider/kubernetes.md) to fan that
 {% include 'cluster-external-secret-fanout.yaml' %}
 ```
 
+!!! warning "Fan-out targets and `creationPolicy`"
+    Omitting `spec.externalSecretSpec.target.creationPolicy` defaults to `Owner`.
+    The ClusterExternalSecret owns the per-namespace ExternalSecrets. Replacing
+    the CES (GitOps prune+recreate, delete+apply) deletes those objects, and
+    Kubernetes garbage-collects the fanned-out Secrets via `ownerReference`.
+    `deletionPolicy: Retain` does not prevent that — Retain is the provider-side
+    axis. For copies that must stay mounted across CES replacement, set
+    `creationPolicy: Orphan` or `CreateOrMerge`. See
+    [Lifecycle: ownership & deletion](../guides/ownership-deletion-policy.md).
+
 The `ServiceAccount` and RBAC for the Kubernetes provider store are the same
 as described in the [Kubernetes provider docs](../provider/kubernetes.md).
 
