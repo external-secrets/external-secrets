@@ -28730,13 +28730,37 @@ spec:
                             - role
                           type: object
                         url:
-                          description: URL is the URL of the Grafana instance.
+                          description: |-
+                            URL is the URL of the Grafana instance.
+                            Exactly one of url or urlFrom must be set.
                           type: string
+                        urlFrom:
+                          description: |-
+                            URLFrom selects a Secret key that contains the Grafana instance URL.
+                            The Secret is resolved in the namespace of the consuming ExternalSecret,
+                            including when this spec is used from a ClusterGenerator.
+                            Exactly one of url or urlFrom must be set.
+                          properties:
+                            key:
+                              description: The key where the token is found.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[-._a-zA-Z0-9]+$
+                              type: string
+                            name:
+                              description: The name of the Secret resource being referred to.
+                              maxLength: 253
+                              minLength: 1
+                              pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                              type: string
+                          type: object
                       required:
                         - auth
                         - serviceAccount
-                        - url
                       type: object
+                      x-kubernetes-validations:
+                        - message: exactly one of url or urlFrom must be set
+                          rule: has(self.url) != has(self.urlFrom)
                     mfaSpec:
                       description: MFASpec controls the behavior of the mfa generator.
                       properties:
@@ -31258,13 +31282,37 @@ spec:
                     - role
                   type: object
                 url:
-                  description: URL is the URL of the Grafana instance.
+                  description: |-
+                    URL is the URL of the Grafana instance.
+                    Exactly one of url or urlFrom must be set.
                   type: string
+                urlFrom:
+                  description: |-
+                    URLFrom selects a Secret key that contains the Grafana instance URL.
+                    The Secret is resolved in the namespace of the consuming ExternalSecret,
+                    including when this spec is used from a ClusterGenerator.
+                    Exactly one of url or urlFrom must be set.
+                  properties:
+                    key:
+                      description: The key where the token is found.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[-._a-zA-Z0-9]+$
+                      type: string
+                    name:
+                      description: The name of the Secret resource being referred to.
+                      maxLength: 253
+                      minLength: 1
+                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                      type: string
+                  type: object
               required:
                 - auth
                 - serviceAccount
-                - url
               type: object
+              x-kubernetes-validations:
+                - message: exactly one of url or urlFrom must be set
+                  rule: has(self.url) != has(self.urlFrom)
           type: object
       served: true
       storage: true
