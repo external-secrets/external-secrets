@@ -7626,6 +7626,51 @@ spec:
                       required:
                         - auth
                       type: object
+                    protonpass:
+                      description: ProtonPass configures this store to sync secrets using the Proton Pass provider (read-only)
+                      properties:
+                        auth:
+                          description: Auth defines the PAT credential.
+                          properties:
+                            personalAccessTokenSecretRef:
+                              description: |-
+                                PersonalAccessTokenSecretRef references a secret whose value is the
+                                complete Proton Pass PAT (formatted as "pst_[token]::[key]"), including
+                                its 32-byte AES key half. The key half is used client-side to decrypt
+                                vault content.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - personalAccessTokenSecretRef
+                          type: object
+                          x-kubernetes-validations:
+                            - message: personalAccessTokenSecretRef.name and personalAccessTokenSecretRef.key are required
+                              rule: has(self.personalAccessTokenSecretRef.name) && size(self.personalAccessTokenSecretRef.name) > 0 && has(self.personalAccessTokenSecretRef.key) && size(self.personalAccessTokenSecretRef.key) > 0
+                      required:
+                        - auth
+                      type: object
                     pulumi:
                       description: Pulumi configures this store to sync secrets using the Pulumi provider
                       properties:
@@ -21081,6 +21126,51 @@ spec:
                           type: object
                         baseUri:
                           type: string
+                      required:
+                        - auth
+                      type: object
+                    protonpass:
+                      description: ProtonPass configures this store to sync secrets using the Proton Pass provider (read-only)
+                      properties:
+                        auth:
+                          description: Auth defines the PAT credential.
+                          properties:
+                            personalAccessTokenSecretRef:
+                              description: |-
+                                PersonalAccessTokenSecretRef references a secret whose value is the
+                                complete Proton Pass PAT (formatted as "pst_[token]::[key]"), including
+                                its 32-byte AES key half. The key half is used client-side to decrypt
+                                vault content.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - personalAccessTokenSecretRef
+                          type: object
+                          x-kubernetes-validations:
+                            - message: personalAccessTokenSecretRef.name and personalAccessTokenSecretRef.key are required
+                              rule: has(self.personalAccessTokenSecretRef.name) && size(self.personalAccessTokenSecretRef.name) > 0 && has(self.personalAccessTokenSecretRef.key) && size(self.personalAccessTokenSecretRef.key) > 0
                       required:
                         - auth
                       type: object
