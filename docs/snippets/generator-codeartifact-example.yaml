@@ -1,0 +1,23 @@
+{% raw %}
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: codeartifact-token
+spec:
+  refreshInterval: "1h"
+  target:
+    name: codeartifact-token
+    template:
+      metadata:
+        annotations:
+          expiresAt: "{{ .expiration }}"
+      data:
+        username: "aws"
+        password: "{{ .authorizationToken }}"
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: CodeArtifactAuthorizationToken
+          name: codeartifact-gen
+{% endraw %}
