@@ -31,9 +31,8 @@ import (
 )
 
 const (
-	credTypePassword    = "password"
-	credTypeKey         = "key"
-	credTypeCertificate = "certificate"
+	credTypePassword = "password"
+	credTypeKey      = "key"
 )
 
 // Client implements esv1.SecretsClient for the SAP Credential Store.
@@ -45,25 +44,27 @@ type Client struct {
 var _ esv1.SecretsClient = &Client{}
 
 // credTypeFromProperty maps an ExternalSecret ref.Property value to a SAP CS credential type.
-// Empty or "password" -> password, "key" -> key, "certificate" or "certificate/key" -> certificate.
-func credTypeFromProperty(property string) (credType, subfield string) {
+// Empty or "password" -> password, "key" -> key. Unknown values return an error.
+func credTypeFromProperty(property string) (string, error) {
 	switch strings.ToLower(property) {
 	case "", credTypePassword:
-		return credTypePassword, ""
+		return credTypePassword, nil
 	case credTypeKey:
-		return credTypeKey, ""
-	case credTypeCertificate:
-		return credTypeCertificate, ""
-	case "certificate/key":
-		return credTypeCertificate, "key"
+		return credTypeKey, nil
 	default:
-		return credTypePassword, ""
+		return "", fmt.Errorf(
+			"unsupported credential type %q, supported types are: password, key",
+			property,
+		)
 	}
 }
 
 // GetSecret returns a single secret from the SAP Credential Store.
 func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	credType, subfield := credTypeFromProperty(ref.Property)
+	credType, err := credTypeFromProperty(ref.Property)
+	if err != nil {
+		return nil, err
+	}
 
 	cred, err := c.api.GetCredential(ctx, c.namespace, credType, ref.Key)
 	if err != nil {
@@ -71,11 +72,6 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 			return nil, esv1.NoSecretErr
 		}
 		return nil, fmt.Errorf("fetching credential %s/%s: %w", credType, ref.Key, err)
-	}
-
-	// certificate/key subfield returns the private key PEM.
-	if subfield == "key" {
-		return []byte(cred.Key), nil
 	}
 
 	// Key-type values are base64-encoded in SAP CS.
@@ -97,7 +93,10 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return fmt.Errorf("extracting secret data: %w", err)
 	}
 
-	credType, _ := credTypeFromProperty(data.GetProperty())
+	credType, err := credTypeFromProperty(data.GetProperty())
+	if err != nil {
+		return err
+	}
 	name := data.GetRemoteKey()
 
 	// Key-type values must be base64-encoded per SAP CS API spec.
@@ -116,7 +115,10 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 
 // DeleteSecret deletes a secret from the SAP Credential Store.
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
-	credType, _ := credTypeFromProperty(remoteRef.GetProperty())
+	credType, err := credTypeFromProperty(remoteRef.GetProperty())
+	if err != nil {
+		return err
+	}
 	name := remoteRef.GetRemoteKey()
 
 	return c.api.DeleteCredential(ctx, c.namespace, credType, name)
@@ -124,7 +126,10 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 
 // SecretExists checks whether a secret exists in the SAP Credential Store.
 func (c *Client) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) (bool, error) {
-	credType, _ := credTypeFromProperty(remoteRef.GetProperty())
+	credType, err := credTypeFromProperty(remoteRef.GetProperty())
+	if err != nil {
+		return false, err
+	}
 	name := remoteRef.GetRemoteKey()
 
 	return c.api.CredentialExists(ctx, c.namespace, credType, name)
@@ -137,7 +142,10 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 
 // GetSecretMap returns multiple k/v pairs from a single credential.
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
-	credType, _ := credTypeFromProperty(ref.Property)
+	credType, err := credTypeFromProperty(ref.Property)
+	if err != nil {
+		return nil, err
+	}
 
 	cred, err := c.api.GetCredential(ctx, c.namespace, credType, ref.Key)
 	if err != nil {
@@ -182,7 +190,7 @@ func (c *Client) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind)
 		}
 	}
 
-	credTypes := []string{credTypePassword, credTypeKey, credTypeCertificate}
+	credTypes := []string{credTypePassword, credTypeKey}
 	for _, ct := range credTypes {
 		metas, err := c.api.ListCredentials(ctx, c.namespace, ct)
 		if err != nil {

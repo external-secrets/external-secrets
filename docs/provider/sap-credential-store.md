@@ -1,6 +1,6 @@
 # SAP Credential Store
 
-External Secrets Operator integrates with [SAP Credential Store](https://help.sap.com/docs/credential-store), a BTP service for storing and managing credentials (passwords, keys, and certificates) in a secure, encrypted manner.
+External Secrets Operator integrates with [SAP Credential Store](https://help.sap.com/docs/credential-store), a BTP service for storing and managing credentials (passwords and keys) in a secure, encrypted manner.
 
 ## Prerequisites
 
@@ -111,7 +111,7 @@ spec:
 
 ## Creating an ExternalSecret
 
-SAP Credential Store has three credential types: `password`, `key`, and `certificate`. Use the `property` field on `remoteRef` to specify the type. If omitted, `password` is assumed.
+SAP Credential Store has two credential types: `password` and `key`. Use the `property` field on `remoteRef` to specify the type. If omitted, `password` is assumed.
 
 ```yaml
 {% include 'sap-credential-store-external-secret.yaml' %}
@@ -123,8 +123,6 @@ SAP Credential Store has three credential types: `password`, `key`, and `certifi
 |---|---|---|
 | _(empty)_ or `password` | password | The credential value |
 | `key` | key | The credential value (base64-decoded) |
-| `certificate` | certificate | The certificate PEM |
-| `certificate/key` | certificate | The private key PEM only |
 
 ## Get the K8s Secret
 
@@ -184,3 +182,4 @@ spec:
 - `dataFrom.extract` (`GetSecretMap`) returns all fields of a single credential (name, value, username, key). Use `dataFrom.find` for listing multiple credentials.
 - The `version` field on `remoteRef` is not used by this provider.
 - Only `mtls` service binding authentication is currently supported. The `oauth:mtls`, `oauth:key`, and `basic` binding types will be added in future releases.
+- The `keyring` credential type is not yet supported. Only `password` and `key` credential types can be read and pushed.

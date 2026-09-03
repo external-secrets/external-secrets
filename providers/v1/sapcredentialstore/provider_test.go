@@ -374,28 +374,38 @@ func TestAPIClient_CredentialExists(t *testing.T) {
 // --- credTypeFromProperty tests ---
 
 func TestCredTypeFromProperty(t *testing.T) {
-	tests := []struct {
-		property     string
-		wantType     string
-		wantSubfield string
+	validTests := []struct {
+		property string
+		wantType string
 	}{
-		{"", "password", ""},
-		{"password", "password", ""},
-		{"Password", "password", ""},
-		{"key", "key", ""},
-		{"Key", "key", ""},
-		{"certificate", "certificate", ""},
-		{"Certificate", "certificate", ""},
-		{"certificate/key", "certificate", "key"},
-		{"Certificate/Key", "certificate", "key"},
-		{"unknown", "password", ""},
+		{"", "password"},
+		{"password", "password"},
+		{"Password", "password"},
+		{"key", "key"},
+		{"Key", "key"},
 	}
 
-	for _, tt := range tests {
-		t.Run(fmt.Sprintf("property=%q", tt.property), func(t *testing.T) {
-			credType, subfield := credTypeFromProperty(tt.property)
+	for _, tt := range validTests {
+		t.Run(fmt.Sprintf("valid property=%q", tt.property), func(t *testing.T) {
+			credType, err := credTypeFromProperty(tt.property)
+			require.NoError(t, err)
 			assert.Equal(t, tt.wantType, credType)
-			assert.Equal(t, tt.wantSubfield, subfield)
+		})
+	}
+
+	invalidTests := []string{
+		"certificate",
+		"Certificate",
+		"certificate/key",
+		"unknown",
+		"keyring",
+	}
+
+	for _, prop := range invalidTests {
+		t.Run(fmt.Sprintf("invalid property=%q", prop), func(t *testing.T) {
+			_, err := credTypeFromProperty(prop)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "unsupported credential type")
 		})
 	}
 }
@@ -433,40 +443,14 @@ func TestClient_GetSecret(t *testing.T) {
 		assert.Equal(t, "raw-key-data", string(val))
 	})
 
-	t.Run("certificate", func(t *testing.T) {
-		server := newMockServer(t, func(w http.ResponseWriter, _ *http.Request) {
-			json.NewEncoder(w).Encode(Credential{
-				Name:  "my-cert",
-				Value: "-----BEGIN CERTIFICATE-----\ncert\n-----END CERTIFICATE-----",
-				Key:   "-----BEGIN PRIVATE KEY-----\npk\n-----END PRIVATE KEY-----",
-			})
-		})
-
-		c := newTestClient(t, server, "test-ns", nil)
-		val, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+	t.Run("unsupported property returns error", func(t *testing.T) {
+		c := newTestClient(t, newMockServer(t, func(http.ResponseWriter, *http.Request) {}), "test-ns", nil)
+		_, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
 			Key:      "my-cert",
 			Property: "certificate",
 		})
-		require.NoError(t, err)
-		assert.Contains(t, string(val), "BEGIN CERTIFICATE")
-	})
-
-	t.Run("certificate/key subfield", func(t *testing.T) {
-		server := newMockServer(t, func(w http.ResponseWriter, _ *http.Request) {
-			json.NewEncoder(w).Encode(Credential{
-				Name:  "my-cert",
-				Value: "cert-pem",
-				Key:   "private-key-pem",
-			})
-		})
-
-		c := newTestClient(t, server, "test-ns", nil)
-		val, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
-			Key:      "my-cert",
-			Property: "certificate/key",
-		})
-		require.NoError(t, err)
-		assert.Equal(t, "private-key-pem", string(val))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported credential type")
 	})
 
 	t.Run("not found returns NoSecretErr", func(t *testing.T) {
@@ -613,23 +597,14 @@ func TestClient_GetSecretMap(t *testing.T) {
 		assert.False(t, hasKey)
 	})
 
-	t.Run("certificate with key", func(t *testing.T) {
-		server := newMockServer(t, func(w http.ResponseWriter, _ *http.Request) {
-			json.NewEncoder(w).Encode(Credential{
-				Name:  "my-cert",
-				Value: "cert-pem",
-				Key:   "key-pem",
-			})
-		})
-
-		c := newTestClient(t, server, "test-ns", nil)
-		m, err := c.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{
+	t.Run("unsupported property returns error", func(t *testing.T) {
+		c := newTestClient(t, newMockServer(t, func(http.ResponseWriter, *http.Request) {}), "test-ns", nil)
+		_, err := c.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{
 			Key:      "my-cert",
 			Property: "certificate",
 		})
-		require.NoError(t, err)
-		assert.Equal(t, "cert-pem", string(m["value"]))
-		assert.Equal(t, "key-pem", string(m["key"]))
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "unsupported credential type")
 	})
 
 	t.Run("key type base64 decoded", func(t *testing.T) {
@@ -678,8 +653,6 @@ func TestClient_GetAllSecrets(t *testing.T) {
 			json.NewEncoder(w).Encode([]CredentialMeta{
 				{Name: "key-a", Type: "key"},
 			})
-		case path == "/certificates":
-			json.NewEncoder(w).Encode([]CredentialMeta{})
 
 		// Get endpoints
 		case path == "/password" && r.URL.Query().Get("name") == "pass-a":
@@ -718,8 +691,6 @@ func TestClient_GetAllSecrets_WithRegexFilter(t *testing.T) {
 				{Name: "db-admin", Type: "password"},
 			})
 		case path == "/keys":
-			json.NewEncoder(w).Encode([]CredentialMeta{})
-		case path == "/certificates":
 			json.NewEncoder(w).Encode([]CredentialMeta{})
 
 		case path == "/password" && r.URL.Query().Get("name") == "db-pass":
