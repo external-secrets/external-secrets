@@ -37,6 +37,7 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/vault"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	ctrlcfg "sigs.k8s.io/controller-runtime/pkg/client/config"
@@ -77,6 +78,13 @@ const (
 	defaultSACacheVersion = "v0"
 )
 
+// The OCI Vault ScheduleSecretDeletion API accepts a TimeOfDeletion between
+// 1 and 30 days from now, and defaults to 30 days when the field is unset.
+const (
+	minDeletionGracePeriod = 24 * time.Hour
+	maxDeletionGracePeriod = 30 * 24 * time.Hour
+)
+
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &VaultManagementService{}
 var _ esv1.Provider = &VaultManagementService{}
@@ -89,6 +97,7 @@ type VaultManagementService struct {
 	vault                   string
 	compartment             string
 	encryptionKey           string
+	deletionGracePeriod     *metav1.Duration
 	workloadIdentityMutex   sync.Mutex
 	authConfigurationsCache *cache.Cache[auth.ConfigurationProviderWithClaimAccess]
 }
@@ -188,9 +197,22 @@ func (vms *VaultManagementService) DeleteSecret(ctx context.Context, remoteRef e
 		if resp.TimeOfDeletion != nil {
 			return nil
 		}
-		_, err = vms.VaultClient.ScheduleSecretDeletion(ctx, vault.ScheduleSecretDeletionRequest{
+		req := vault.ScheduleSecretDeletionRequest{
 			SecretId: resp.SecretId,
-		})
+		}
+		if vms.deletionGracePeriod != nil {
+			d := vms.deletionGracePeriod.Duration
+			if d < minDeletionGracePeriod || d > maxDeletionGracePeriod {
+				return fmt.Errorf("spec.provider.oracle.deletionGracePeriod must be between %s and %s, got %s", minDeletionGracePeriod, maxDeletionGracePeriod, d)
+			}
+			// When unset, TimeOfDeletion is omitted and OCI applies its default
+			// (30 days). An explicit grace period shortens the window in which
+			// the deleted secret keeps its name reserved.
+			req.ScheduleSecretDeletionDetails = vault.ScheduleSecretDeletionDetails{
+				TimeOfDeletion: &common.SDKTime{Time: time.Now().Add(d)},
+			}
+		}
+		_, err = vms.VaultClient.ScheduleSecretDeletion(ctx, req)
 		return sanitizeOCISDKErr(err)
 	default:
 		return sanitizeOCISDKErr(err)
@@ -343,12 +365,13 @@ func (vms *VaultManagementService) NewClient(ctx context.Context, store esv1.Gen
 	}
 
 	return &VaultManagementService{
-		Client:         secretManagementService,
-		KmsVaultClient: kmsVaultClient,
-		VaultClient:    vaultClient,
-		vault:          oracleSpec.Vault,
-		compartment:    oracleSpec.Compartment,
-		encryptionKey:  oracleSpec.EncryptionKey,
+		Client:              secretManagementService,
+		KmsVaultClient:      kmsVaultClient,
+		VaultClient:         vaultClient,
+		vault:               oracleSpec.Vault,
+		compartment:         oracleSpec.Compartment,
+		encryptionKey:       oracleSpec.EncryptionKey,
+		deletionGracePeriod: oracleSpec.DeletionGracePeriod,
 	}, nil
 }
 
@@ -540,6 +563,12 @@ func (vms *VaultManagementService) ValidateStore(store esv1.GenericStore) (admis
 	region := oracleSpec.Region
 	if region == "" {
 		return nil, errors.New("region cannot be empty")
+	}
+
+	if gp := oracleSpec.DeletionGracePeriod; gp != nil {
+		if gp.Duration < minDeletionGracePeriod || gp.Duration > maxDeletionGracePeriod {
+			return nil, fmt.Errorf("deletionGracePeriod must be between %s and %s, got %s", minDeletionGracePeriod, maxDeletionGracePeriod, gp.Duration)
+		}
 	}
 
 	auth := oracleSpec.Auth

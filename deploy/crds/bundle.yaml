@@ -7199,6 +7199,16 @@ spec:
                             Compartment is the vault compartment OCID.
                             Required for PushSecret
                           type: string
+                        deletionGracePeriod:
+                          description: |-
+                            DeletionGracePeriod is how long OCI Vault waits before permanently deleting
+                            a secret removed by a PushSecret with deletionPolicy=Delete. When set, the
+                            ScheduleSecretDeletion request carries an explicit TimeOfDeletion of
+                            now+deletionGracePeriod; the OCI API accepts 1 to 30 days (24h-720h).
+                            When omitted, no TimeOfDeletion is sent and OCI applies its own default
+                            (30 days). The secret name stays reserved until permanent deletion, so a
+                            shorter grace period makes the remoteKey reusable sooner.
+                          type: string
                         encryptionKey:
                           description: |-
                             EncryptionKey is the OCID of the encryption key within the vault.
@@ -12093,6 +12103,16 @@ spec:
                           description: |-
                             Compartment is the vault compartment OCID.
                             Required for PushSecret
+                          type: string
+                        deletionGracePeriod:
+                          description: |-
+                            DeletionGracePeriod is how long OCI Vault waits before permanently deleting
+                            a secret removed by a PushSecret with deletionPolicy=Delete. When set, the
+                            ScheduleSecretDeletion request carries an explicit TimeOfDeletion of
+                            now+deletionGracePeriod; the OCI API accepts 1 to 30 days (24h-720h).
+                            When omitted, no TimeOfDeletion is sent and OCI applies its own default
+                            (30 days). The secret name stays reserved until permanent deletion, so a
+                            shorter grace period makes the remoteKey reusable sooner.
                           type: string
                         encryptionKey:
                           description: |-
@@ -20657,6 +20677,16 @@ spec:
                             Compartment is the vault compartment OCID.
                             Required for PushSecret
                           type: string
+                        deletionGracePeriod:
+                          description: |-
+                            DeletionGracePeriod is how long OCI Vault waits before permanently deleting
+                            a secret removed by a PushSecret with deletionPolicy=Delete. When set, the
+                            ScheduleSecretDeletion request carries an explicit TimeOfDeletion of
+                            now+deletionGracePeriod; the OCI API accepts 1 to 30 days (24h-720h).
+                            When omitted, no TimeOfDeletion is sent and OCI applies its own default
+                            (30 days). The secret name stays reserved until permanent deletion, so a
+                            shorter grace period makes the remoteKey reusable sooner.
+                          type: string
                         encryptionKey:
                           description: |-
                             EncryptionKey is the OCID of the encryption key within the vault.
@@ -25551,6 +25581,16 @@ spec:
                           description: |-
                             Compartment is the vault compartment OCID.
                             Required for PushSecret
+                          type: string
+                        deletionGracePeriod:
+                          description: |-
+                            DeletionGracePeriod is how long OCI Vault waits before permanently deleting
+                            a secret removed by a PushSecret with deletionPolicy=Delete. When set, the
+                            ScheduleSecretDeletion request carries an explicit TimeOfDeletion of
+                            now+deletionGracePeriod; the OCI API accepts 1 to 30 days (24h-720h).
+                            When omitted, no TimeOfDeletion is sent and OCI applies its own default
+                            (30 days). The secret name stays reserved until permanent deletion, so a
+                            shorter grace period makes the remoteKey reusable sooner.
                           type: string
                         encryptionKey:
                           description: |-

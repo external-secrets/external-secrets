@@ -755,7 +755,40 @@ func TestOracleVaultDeleteSecret(t *testing.T) {
 				RemoteKey: s1id,
 			},
 			func(vms *VaultManagementService) bool {
-				return vms.VaultClient.(*fakeoracle.OracleMockVaultClient).DeletedCount == 1
+				mock := vms.VaultClient.(*fakeoracle.OracleMockVaultClient)
+				if mock.DeletedCount != 1 {
+					return false
+				}
+				// Without an explicit deletionGracePeriod the request must omit
+				// TimeOfDeletion so OCI keeps applying its own default (30 days).
+				return mock.LastScheduleDeletionReq.TimeOfDeletion == nil
+			},
+		},
+		"delete existing secret with deletionGracePeriod": {
+			&VaultManagementService{
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s1id: s1bundle,
+						s3id: s3bundle,
+					},
+				},
+				VaultClient:         &fakeoracle.OracleMockVaultClient{},
+				deletionGracePeriod: &metav1.Duration{Duration: minDeletionGracePeriod},
+			},
+			esv1alpha1.PushSecretRemoteRef{
+				RemoteKey: s1id,
+			},
+			func(vms *VaultManagementService) bool {
+				mock := vms.VaultClient.(*fakeoracle.OracleMockVaultClient)
+				if mock.DeletedCount != 1 {
+					return false
+				}
+				timeOfDeletion := mock.LastScheduleDeletionReq.TimeOfDeletion
+				if timeOfDeletion == nil {
+					return false
+				}
+				untilDeletion := time.Until(timeOfDeletion.Time)
+				return untilDeletion > 0 && untilDeletion <= minDeletionGracePeriod
 			},
 		},
 	}
@@ -766,6 +799,21 @@ func TestOracleVaultDeleteSecret(t *testing.T) {
 			assert.True(t, testCase.validator(testCase.vms))
 		})
 	}
+}
+
+func TestOracleVaultDeleteSecretInvalidGracePeriod(t *testing.T) {
+	vms := &VaultManagementService{
+		Client: &fakeoracle.OracleMockClient{
+			SecretBundles: map[string]secrets.SecretBundle{
+				s1id: s1bundle,
+			},
+		},
+		VaultClient:         &fakeoracle.OracleMockVaultClient{},
+		deletionGracePeriod: &metav1.Duration{Duration: time.Hour},
+	}
+	err := vms.DeleteSecret(context.Background(), esv1alpha1.PushSecretRemoteRef{RemoteKey: s1id})
+	assert.ErrorContains(t, err, "deletionGracePeriod must be between")
+	assert.Equal(t, 0, vms.VaultClient.(*fakeoracle.OracleMockVaultClient).DeletedCount)
 }
 
 func TestOracleVaultSecretExists(t *testing.T) {
