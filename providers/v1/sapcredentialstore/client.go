@@ -100,9 +100,15 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	credType, _ := credTypeFromProperty(data.GetProperty())
 	name := data.GetRemoteKey()
 
+	// Key-type values must be base64-encoded per SAP CS API spec.
+	val := string(value)
+	if credType == credTypeKey {
+		val = base64.StdEncoding.EncodeToString(value)
+	}
+
 	body := &CredentialBody{
 		Name:  name,
-		Value: string(value),
+		Value: val,
 	}
 
 	return c.api.PutCredential(ctx, c.namespace, credType, body)

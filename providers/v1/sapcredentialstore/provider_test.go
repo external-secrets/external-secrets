@@ -418,7 +418,9 @@ func TestClient_GetSecret(t *testing.T) {
 
 	t.Run("key type base64 decoded", func(t *testing.T) {
 		encoded := base64.StdEncoding.EncodeToString([]byte("raw-key-data"))
-		server := newMockServer(t, func(w http.ResponseWriter, _ *http.Request) {
+		server := newMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "/key", r.URL.Path)
+			assert.Equal(t, "my-key", r.URL.Query().Get("name"))
 			json.NewEncoder(w).Encode(Credential{Name: "my-key", Value: encoded})
 		})
 
@@ -505,6 +507,38 @@ func TestClient_PushSecret(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "remote-name", receivedBody.Name)
 	assert.Equal(t, "push-value", receivedBody.Value)
+}
+
+func TestClient_PushSecret_KeyType(t *testing.T) {
+	var receivedBody CredentialBody
+	var receivedPath string
+
+	server := newMockServer(t, func(w http.ResponseWriter, r *http.Request) {
+		receivedPath = r.URL.Path
+		body, _ := io.ReadAll(r.Body)
+		json.Unmarshal(body, &receivedBody)
+		w.WriteHeader(http.StatusCreated)
+	})
+
+	c := newTestClient(t, server, "test-ns", nil)
+
+	rawData := []byte("raw-binary-key-data")
+	secret := &corev1.Secret{
+		Data: map[string][]byte{
+			"my-key": rawData,
+		},
+	}
+
+	err := c.PushSecret(context.Background(), secret, &fakePushSecretData{
+		secretKey: "my-key",
+		remoteKey: "remote-key-name",
+		property:  "key",
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "/key", receivedPath)
+	assert.Equal(t, "remote-key-name", receivedBody.Name)
+	// Value must be base64-encoded per SAP CS API spec for key credentials.
+	assert.Equal(t, base64.StdEncoding.EncodeToString(rawData), receivedBody.Value)
 }
 
 func TestClient_DeleteSecret(t *testing.T) {
