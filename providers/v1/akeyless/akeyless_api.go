@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
@@ -42,7 +43,6 @@ import (
 )
 
 var (
-	apiErr akeyless.GenericOpenAPIError
 	// ErrItemNotExists is returned when a requested item doesn't exist in Akeyless vault.
 	ErrItemNotExists = errors.New("item does not exist")
 	// ErrTokenNotExists is returned when the authentication token is not available.
@@ -90,7 +90,7 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 
 	authOut, res, err := a.RestAPI.Auth(ctx).Body(*authBody).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMAuth, err)
-	if errors.As(err, &apiErr) {
+	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
 		return "", fmt.Errorf("authentication failed: %v", string(apiErr.Body()))
 	}
 	if err != nil {
@@ -150,12 +150,11 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName string) (*akey
 	}
 	gsvOut, res, err := a.RestAPI.DescribeItem(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDescribeItem, err)
-	if errors.As(err, &apiErr) {
-		var item *Item
-		err = json.Unmarshal(apiErr.Body(), &item)
-		if err != nil {
-			return nil, fmt.Errorf("can't describe item: %v, error: %v", itemName, string(apiErr.Body()))
+	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
+		if res.StatusCode == http.StatusNotFound {
+			return nil, ErrItemNotExists
 		}
+		return nil, fmt.Errorf("can't describe item: %v, error: %v", itemName, string(apiErr.Body()))
 	}
 	if err != nil {
 		return nil, fmt.Errorf("can't describe item: %w", err)
@@ -180,7 +179,7 @@ func (a *akeylessBase) GetCertificate(ctx context.Context, certificateName strin
 	}
 	gcvOut, res, err := a.RestAPI.GetCertificateValue(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetCertificateValue, err)
-	if errors.As(err, &apiErr) {
+	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
 		return "", fmt.Errorf("can't get certificate value: %v", string(apiErr.Body()))
 	}
 	if err != nil {
@@ -211,7 +210,7 @@ func (a *akeylessBase) GetRotatedSecrets(ctx context.Context, secretName string,
 	}
 	gsvOut, res, err := a.RestAPI.GetRotatedSecretValue(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetRotatedSecretValue, err)
-	if errors.As(err, &apiErr) {
+	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
 		return "", fmt.Errorf("can't get rotated secret value: %v", string(apiErr.Body()))
 	}
 	if err != nil {
@@ -252,7 +251,7 @@ func (a *akeylessBase) GetDynamicSecrets(ctx context.Context, secretName string)
 	}
 	gsvOut, res, err := a.RestAPI.GetDynamicSecretValue(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetDynamicSecretValue, err)
-	if errors.As(err, &apiErr) {
+	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
 		return "", fmt.Errorf("can't get dynamic secret value: %v", string(apiErr.Body()))
 	}
 	if err != nil {
@@ -281,7 +280,7 @@ func (a *akeylessBase) GetStaticSecret(ctx context.Context, secretName string, v
 	}
 	gsvOut, res, err := a.RestAPI.GetSecretValue(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetSecretValue, err)
-	if errors.As(err, &apiErr) {
+	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
 		return "", fmt.Errorf("can't get secret value: %v", string(apiErr.Body()))
 	}
 	if err != nil {
@@ -331,7 +330,7 @@ func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag string) ([]str
 	}
 	lipOut, res, err := a.RestAPI.ListItems(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMListItems, err)
-	if errors.As(err, &apiErr) {
+	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
 		return nil, fmt.Errorf("can't get secrets list: %v", string(apiErr.Body()))
 	}
 	if err != nil {

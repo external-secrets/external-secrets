@@ -650,8 +650,8 @@ Use `dataFrom.find` to filter secrets by name regex and/or folder path:
 
 The following restrictions apply:
 
-- `find.name.regexp` matches against the secret name. At least one of `find.name` or `find.path` must be provided.
-- `find.path` filters by folder path prefix. The value must be an absolute path starting with `/` (e.g. `/my-app`). It is matched against the `secretPath` field of each secret.
+- `find.name.regexp` matches against the secret name. It filters what came back and does not change what was asked for.
+- `find.path` is the folder the search starts from. The value must be an absolute path starting with `/` (e.g. `/my-app`). It is sent to Infisical as the path of the list request. Whether sub-folders are read is the store's `recursive` setting, which a find path says nothing about. For that `find` entry it takes precedence over `secretsScope.secretsPath`, and it may point outside it, as an absolute `remoteRef.key` already can. A path naming a folder that does not exist fails the sync rather than returning nothing.
 - `find.tags` is **not supported** and returns an error if set.
 
 ---
@@ -779,6 +779,7 @@ The `secretsScope` configuration controls which secrets are accessible:
 | `secretsPath` | No | `/` | The base path for secrets retrieval |
 | `recursive` | No | `false` | When true, fetches secrets recursively from subfolders |
 | `expandSecretReferences` | No | `true` | When true, expands secret references (e.g., `${SECRET_NAME}`) |
+| `keepDuplicateKeys` | No | `false` | When true, keep duplicate keys by appending the secret path to it (e.g. `/path/to/secret:SECRET_NAME`)
 
 !!! tip
     To get your project slug from Infisical, head over to the project settings and click the button `Copy Project Slug`.

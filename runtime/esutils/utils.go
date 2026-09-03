@@ -270,7 +270,9 @@ func convert(strategy esv1.ExternalSecretConversionStrategy, str string) string 
 			rv != '.' &&
 			rv != '_' {
 			switch strategy {
-			case esv1.ExternalSecretConversionDefault:
+			// An empty strategy means the field was omitted, which the API
+			// documents as Default. Decode() folds "" in the same way.
+			case esv1.ExternalSecretConversionDefault, "":
 				newName[rk] = "_"
 			case esv1.ExternalSecretConversionUnicode:
 				newName[rk] = fmt.Sprintf("_U%04x_", rv)
@@ -314,8 +316,7 @@ func reverse(strategy esv1alpha1.PushSecretConversionStrategy, str string) strin
 	case esv1alpha1.PushSecretConversionReverseUnicode:
 		matches := unicodeRegex.FindAllStringSubmatchIndex(str, -1)
 
-		for i := len(matches) - 1; i >= 0; i-- {
-			match := matches[i]
+		for _, match := range slices.Backward(matches) {
 			start := match[0]
 			end := match[1]
 			unicodeHex := str[match[2]:match[3]]
@@ -414,7 +415,7 @@ func IsNil(i any) bool {
 		return true
 	}
 	value := reflect.ValueOf(i)
-	if value.Type().Kind() == reflect.Ptr {
+	if value.Type().Kind() == reflect.Pointer {
 		return value.IsNil()
 	}
 	return false
@@ -528,13 +529,6 @@ func Deref[V any](v *V) V {
 		return res
 	}
 	return *v
-}
-
-// Ptr returns a pointer to the given value.
-//
-//go:fix inline
-func Ptr[T any](i T) *T {
-	return new(i)
 }
 
 // ConvertToType converts an object to the specified type using JSON marshaling.

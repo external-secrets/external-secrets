@@ -18,36 +18,20 @@ package mysterybox
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/nebius/gosdk/auth"
 	"golang.org/x/sync/singleflight"
 	"k8s.io/utils/clock"
 
+	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/auth"
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/iam"
-)
-
-const (
-	errInvalidSubjectCreds = "invalid subject credentials: malformed JSON"
 )
 
 // TokenGetter is an interface for generating and retrieving authentication tokens.
 type TokenGetter interface {
-	GetToken(ctx context.Context, apiDomain, subjectCreds string, caCert []byte) (string, error)
-}
-
-type tokenCacheKey struct {
-	APIDomain        string
-	PublicKeyID      string
-	ServiceAccountID string
-	PrivateKeyHash   string
-}
-
-func (k *tokenCacheKey) String() string {
-	return k.APIDomain + "|" + k.PublicKeyID + "|" + k.ServiceAccountID + "|" + k.PrivateKeyHash
+	// GetToken returns an IAM token for the provided credentials request.
+	GetToken(ctx context.Context, apiDomain string, credentialsRequest *auth.CredentialRequest, caCert []byte) (string, error)
 }
 
 // CachedTokenGetter is responsible for managing Nebius IAM token caching and token exchange processes.
@@ -86,15 +70,10 @@ func isTokenExpired(token *iam.Token, clk clock.Clock) bool {
 
 // GetToken retrieves an IAM token for the given API domain and subject credentials, using a cache to optimize requests.
 // It exchanges credentials for a new token if no valid cached token exists or the cached token is nearing expiration.
-func (c *CachedTokenGetter) GetToken(ctx context.Context, apiDomain, subjectCreds string, caCert []byte) (string, error) {
-	byteCreds := []byte(subjectCreds)
-	cacheKey, err := buildTokenCacheKey(byteCreds, apiDomain)
+func (c *CachedTokenGetter) GetToken(ctx context.Context, apiDomain string, credentialsRequest *auth.CredentialRequest, caCert []byte) (string, error) {
+	cacheKey := credentialsRequest.CacheKey()
 
-	if err != nil {
-		return "", err
-	}
-
-	value, ok := c.tokenCache.Get(*cacheKey)
+	value, ok := c.tokenCache.Get(cacheKey)
 	if ok {
 		token := value.(*iam.Token)
 		tokenExpired := isTokenExpired(token, c.Clock)
@@ -103,22 +82,19 @@ func (c *CachedTokenGetter) GetToken(ctx context.Context, apiDomain, subjectCred
 		}
 	}
 
-	tokenCacheKeyString := cacheKey.String()
-
-	token, err, _ := c.sf.Do(tokenCacheKeyString, func() (any, error) {
-		if v, ok := c.tokenCache.Get(*cacheKey); ok {
+	token, err, _ := c.sf.Do(cacheKey, func() (any, error) {
+		if v, ok := c.tokenCache.Get(cacheKey); ok {
 			tok := v.(*iam.Token)
 			if !isTokenExpired(tok, c.Clock) {
 				return tok.Token, nil
 			}
 		}
-
-		newToken, err := c.TokenExchanger.ExchangeIamToken(ctx, apiDomain, subjectCreds, c.Clock.Now(), caCert)
+		newToken, err := c.exchangeToken(ctx, apiDomain, credentialsRequest, caCert)
 		if err != nil {
-			return "", fmt.Errorf("could not exchange creds to iam token: %w", MapGrpcErrors("create token", err))
+			return "", err
 		}
 
-		c.tokenCache.Add(*cacheKey, newToken)
+		c.tokenCache.Add(cacheKey, newToken)
 		return newToken.Token, nil
 	})
 
@@ -128,18 +104,16 @@ func (c *CachedTokenGetter) GetToken(ctx context.Context, apiDomain, subjectCred
 	return token.(string), nil
 }
 
-func buildTokenCacheKey(subjectCreds []byte, apiDomain string) (*tokenCacheKey, error) {
-	parsedSubjectCreds := &auth.ServiceAccountCredentials{}
-	err := json.Unmarshal(subjectCreds, parsedSubjectCreds)
+func (c *CachedTokenGetter) exchangeToken(ctx context.Context, apiDomain string, credentialsRequest *auth.CredentialRequest, caCert []byte) (*iam.Token, error) {
+	resolvedCreds, err := credentialsRequest.Resolve(ctx)
 	if err != nil {
-		return nil, errors.New(errInvalidSubjectCreds)
+		return nil, err
 	}
-	return &tokenCacheKey{
-		APIDomain:        apiDomain,
-		PublicKeyID:      parsedSubjectCreds.SubjectCredentials.KeyID,
-		ServiceAccountID: parsedSubjectCreds.SubjectCredentials.Subject,
-		PrivateKeyHash:   HashBytes([]byte(parsedSubjectCreds.SubjectCredentials.PrivateKey)),
-	}, nil
+	token, err := c.TokenExchanger.ExchangeIamToken(ctx, apiDomain, resolvedCreds, c.Clock.Now(), caCert)
+	if err != nil {
+		return nil, fmt.Errorf("could not exchange creds to iam token: %w", MapGrpcErrors("create token", err))
+	}
+	return token, nil
 }
 
 var _ TokenGetter = &CachedTokenGetter{}

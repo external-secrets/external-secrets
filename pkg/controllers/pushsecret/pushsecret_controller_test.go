@@ -707,9 +707,9 @@ var _ = Describe("PushSecret controller", func() {
 
 	// When source Secret is deleted and DeletionPolicy=Delete, provider secrets should be cleaned up
 	deleteProviderSecretsOnSourceSecretDeleted := func(tc *testCase) {
-		var deleteCallCount int32
+		var deleteCallCount atomic.Int32
 		fakeProvider.WithDeleteSecretFn(func() error {
-			atomic.AddInt32(&deleteCallCount, 1)
+			deleteCallCount.Add(1)
 			return nil
 		})
 		tc.pushsecret = &v1alpha1.PushSecret{
@@ -767,7 +767,7 @@ var _ = Describe("PushSecret controller", func() {
 			// Verify provider secrets are cleaned up
 			Eventually(func() bool {
 				By("checking if provider secrets were deleted")
-				return atomic.LoadInt32(&deleteCallCount) > 0
+				return deleteCallCount.Load() > 0
 			}, time.Second*10, time.Second).Should(BeTrue())
 
 			// Verify status shows empty synced secrets

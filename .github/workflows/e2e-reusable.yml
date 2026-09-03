@@ -85,6 +85,12 @@ on:
         required: false
       ORACLE_KEY:
         required: false
+      ORACLE_VAULT_OCID:
+        required: false
+      ORACLE_COMPARTMENT_OCID:
+        required: false
+      ORACLE_ENCRYPTION_KEY_OCID:
+        required: false
 
 permissions:
   contents: read
@@ -114,12 +120,12 @@ jobs:
     outputs:
       matrix: ${{ steps.set.outputs.matrix }}
     steps:
-      - uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
         with:
           egress-policy: audit
 
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ env.TARGET_SHA || github.sha }}
           persist-credentials: false
@@ -140,7 +146,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
         with:
           egress-policy: audit
 
@@ -190,7 +196,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pkg-
 
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4.2.0
+        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
         with:
           install: true
 
@@ -231,8 +237,12 @@ jobs:
       # both into the e2e pod; entrypoint.sh runs ginkgo with them.
       TEST_SUITES: ${{ matrix.suite }}
       GINKGO_LABELS: ${{ matrix.labels }}
+      # The kind cluster goes away with the runner, so uninstalling the global
+      # addons costs about a minute and buys nothing. Safe because TEST_SUITES
+      # above is a single suite; the helper refuses this for several.
+      E2E_SKIP_GLOBAL_TEARDOWN: "true"
     steps:
-      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+      - uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
         with:
           egress-policy: audit
 
@@ -307,4 +317,7 @@ jobs:
           ORACLE_REGION: ${{ contains(matrix.secret_groups, 'oracle') && secrets.ORACLE_REGION || '' }}
           ORACLE_FINGERPRINT: ${{ contains(matrix.secret_groups, 'oracle') && secrets.ORACLE_FINGERPRINT || '' }}
           ORACLE_KEY: ${{ contains(matrix.secret_groups, 'oracle') && secrets.ORACLE_KEY || '' }}
+          ORACLE_VAULT_OCID: ${{ contains(matrix.secret_groups, 'oracle') && secrets.ORACLE_VAULT_OCID || '' }}
+          ORACLE_COMPARTMENT_OCID: ${{ contains(matrix.secret_groups, 'oracle') && secrets.ORACLE_COMPARTMENT_OCID || '' }}
+          ORACLE_ENCRYPTION_KEY_OCID: ${{ contains(matrix.secret_groups, 'oracle') && secrets.ORACLE_ENCRYPTION_KEY_OCID || '' }}
         run: make -C e2e test.run

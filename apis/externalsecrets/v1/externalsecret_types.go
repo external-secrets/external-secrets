@@ -172,8 +172,8 @@ type TemplateFrom struct {
 	Literal *string `json:"literal,omitempty"`
 
 	// Used to define a decoding Strategy for the rendered template values.
+	// Defaults to None when omitted.
 	// +optional
-	// +kubebuilder:default="None"
 	ValuesDecodingStrategy ExternalSecretDecodingStrategy `json:"valuesDecodingStrategy,omitempty"`
 }
 
@@ -297,7 +297,6 @@ type ExternalSecretDataRemoteRef struct {
 
 	// +optional
 	// Policy for fetching tags/labels from provider secrets, possible options are Fetch, None. Defaults to None
-	// +kubebuilder:default="None"
 	MetadataPolicy ExternalSecretMetadataPolicy `json:"metadataPolicy,omitempty"`
 
 	// +optional
@@ -309,13 +308,11 @@ type ExternalSecretDataRemoteRef struct {
 	Version string `json:"version,omitempty"`
 
 	// +optional
-	// Used to define a conversion Strategy
-	// +kubebuilder:default="Default"
+	// Used to define a conversion Strategy. Defaults to Default when omitted.
 	ConversionStrategy ExternalSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 
 	// +optional
-	// Used to define a decoding Strategy
-	// +kubebuilder:default="None"
+	// Used to define a decoding Strategy. Defaults to None when omitted.
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
 
 	// +optional
@@ -498,13 +495,11 @@ type ExternalSecretFind struct {
 	Tags map[string]string `json:"tags,omitempty"`
 
 	// +optional
-	// Used to define a conversion Strategy
-	// +kubebuilder:default="Default"
+	// Used to define a conversion Strategy. Defaults to Default when omitted.
 	ConversionStrategy ExternalSecretConversionStrategy `json:"conversionStrategy,omitempty"`
 
 	// +optional
-	// Used to define a decoding Strategy
-	// +kubebuilder:default="None"
+	// Used to define a decoding Strategy. Defaults to None when omitted.
 	DecodingStrategy ExternalSecretDecodingStrategy `json:"decodingStrategy,omitempty"`
 
 	// +optional
@@ -701,6 +696,12 @@ const (
 	ConditionReasonSecretDeleted = "SecretDeleted"
 	// ConditionReasonSecretMissing indicates that the secret is missing.
 	ConditionReasonSecretMissing = "SecretMissing"
+	// ConditionReasonSecretImmutable indicates that the target secret is immutable
+	// and cannot be updated.
+	ConditionReasonSecretImmutable = "SecretImmutable"
+	// ConditionReasonSecretOwnedByOther indicates that the target secret is owned
+	// by another ExternalSecret.
+	ConditionReasonSecretOwnedByOther = "SecretOwnedByOther"
 
 	// ReasonUpdateFailed indicates that the update operation failed.
 	ReasonUpdateFailed = "UpdateFailed"

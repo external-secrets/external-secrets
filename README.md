@@ -60,17 +60,20 @@ Please create a PR and add your company or project to our [ADOPTERS.md file](ADO
 
 You can find the roadmap in our documentation: https://external-secrets.io/latest/contributing/roadmap/
 
-## Kicked off by
-
-![](assets/Godaddylogo_2020.png)
-
 ## Sponsored by
 
-![External Secrets Inc.](assets/ESI_Logo.svg)
+![Roche](assets/Roche_logo_blue_200px.png)
 ![Container Solutions](assets/CS_logo_1.png)
 ![Form 3](assets/form3_logo.png)
-![Pento ](assets/pento_logo.png)
 
+## Special Thanks
+
+This project was kicked off by ![GoDaddy](assets/Godaddylogo_2020.png)
+
+It was also maintained and developed by the following companies:
+
+![External Secrets inc.](./pictures/ESI_Logo.svg)
+![Pento](./pictures/pento_logo.png)
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fexternal-secrets%2Fexternal-secrets.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fexternal-secrets%2Fexternal-secrets?ref=badge_large)

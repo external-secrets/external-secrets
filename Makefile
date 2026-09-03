@@ -73,9 +73,9 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # Conformance
 
 reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
+	@GOWORK=off go -C hack/tools mod tidy # Tools and their deps are not to be included in project's GOWORK or in the project go.mod/sum. We consider them external.
+	@GOWORK=off go -C hack/tools/gen-crd-api-reference-docs mod tidy
 	@go mod tidy
-	@cd hack/tools/ && go mod tidy
-	@cd hack/tools/golangci-lint/ && go mod tidy
 	@cd e2e/ && go mod tidy
 	@cd apis/ && go mod tidy
 	@cd runtime/ && go mod tidy
@@ -84,7 +84,7 @@ reviewable: generate docs manifests helm.generate helm.schema.update helm.docs l
 
 check-diff: reviewable ## Ensure branch is clean.
 	@$(INFO) checking that branch is clean
-	@test -z "$$(git status --porcelain)" || (echo "$$(git status --porcelain)" && $(FAIL))
+	@status="$$(git status --porcelain)" && test -z "$$status" || (printf '%s\n' "$$status" && $(FAIL))
 	@$(OK) branch is clean
 
 update-deps: ## Update dependencies across all modules (root, apis, runtime, e2e, providers, generators)
@@ -92,7 +92,7 @@ update-deps: ## Update dependencies across all modules (root, apis, runtime, e2e
 
 .PHONY: license.check
 license.check:
-	$(DOCKER) run --rm -u $(shell id -u) -v $(shell pwd):/github/workspace apache/skywalking-eyes:0.6.0 header check
+	$(DOCKER) run --rm -u $(shell id -u) -v $(shell pwd):/github/workspace docker.io/apache/skywalking-eyes:0.9.0@sha256:b503ab18f5b29d7e04abe05668faf42f1023f9347b095d97592a5208102588ef header check
 
 # ====================================================================================
 # Golang
@@ -103,7 +103,7 @@ go-work:
 	@rm -rf go.work go.work.sum
 	@go work init
 	@go work use -r .
-	@go work edit -dropuse ./e2e
+	@go work edit -dropuse ./e2e -dropuse ./hack/tools -dropuse ./hack/tools/gen-crd-api-reference-docs -dropuse ./hack/tools/golangci-lint
 	@go work sync
 	@$(OK) created go workspace
 
@@ -154,7 +154,11 @@ build-%: generate ## Build binary for the specified arch
 		go build -tags $(PROVIDER) -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
-lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
+.PHONY: provider-replaces.check
+provider-replaces.check: ## Ensure cross-provider dependencies use local replacements
+	@./hack/check-provider-replaces.sh
+
+lint: golangci-lint provider-replaces.check ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
 	@if [ -n "$(LINT_TARGET)" ]; then \
 		$(INFO) Running golangci-lint on $(LINT_TARGET); \
 		(cd $(LINT_TARGET) && $(GOLANGCI_LINT) run ./...) || exit 1; \
@@ -190,8 +194,8 @@ lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific mod
 		$(OK) Finished linting all modules; \
 	fi
 
-generate: ## Generate code and crds
-	@./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
+generate: controller-gen ## Generate code and crds
+	@CONTROLLER_GEN=$(CONTROLLER_GEN) ./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
 
 # ====================================================================================
@@ -429,9 +433,11 @@ $(LOCALBIN):
 TILT ?= $(LOCALBIN)/tilt
 CTY ?= $(LOCALBIN)/cty
 ENVTEST ?= $(LOCALBIN)/setup-envtest
+CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
 GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
 DLV ?= $(LOCALBIN)/dlv
 CRANE ?= $(LOCALBIN)/crane
+GEN_CRD_API_REFERENCE_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
 LINT_TARGET ?= ""
 ## Tool Versions
 KUBERNETES_VERSION := 1.33.x
@@ -443,10 +449,22 @@ envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
 	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly sigs.k8s.io/controller-runtime/tools/setup-envtest
 
+.PHONY: controller-gen
+controller-gen: $(CONTROLLER_GEN) ## Build controller-gen locally if necessary.
+$(CONTROLLER_GEN): Makefile hack/tools/go.mod hack/tools/go.sum
+	mkdir -p $(dir $@)
+	GOWORK=off go -C hack/tools build -mod=readonly -o $(abspath $@) sigs.k8s.io/controller-tools/cmd/controller-gen
+
+.PHONY: gen-crd-api-reference-docs
+gen-crd-api-reference-docs: $(GEN_CRD_API_REFERENCE_DOCS) ## Download gen-crd-api-reference-docs locally if necessary.
+$(GEN_CRD_API_REFERENCE_DOCS): Makefile hack/tools/gen-crd-api-reference-docs/go.mod hack/tools/gen-crd-api-reference-docs/go.sum
+	mkdir -p $(dir $@)
+	GOWORK=off go -C hack/tools/gen-crd-api-reference-docs build -mod=readonly -o $(abspath $@) github.com/ahmetb/gen-crd-api-reference-docs
+
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
-$(GOLANGCI_LINT): Makefile hack/tools/golangci-lint/go.mod hack/tools/golangci-lint/go.sum | $(LOCALBIN)
-	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools/golangci-lint install -mod=readonly github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+$(GOLANGCI_LINT): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
+	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 
 .PHONY: dlv
 dlv: $(DLV) ## Build Delve locally for the Tilt debug image.
