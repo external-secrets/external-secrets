@@ -99,7 +99,6 @@ func NewClientWithCustomCA(serverURL, token string, caBundlePEM []byte) (*Client
 		transport := http.DefaultTransport.(*http.Transport).Clone()
 		transport.TLSClientConfig = &tls.Config{
 			RootCAs:    roots,
-			MinVersion: tls.VersionTLS12,
 		}
 		httpClient.Transport = transport
 	}
