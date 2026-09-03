@@ -7774,6 +7774,176 @@ spec:
                       x-kubernetes-validations:
                         - message: Exactly one of 'auth' or deprecated 'accessToken' must be specified
                           rule: (has(self.auth) && !has(self.accessToken)) || (!has(self.auth) && has(self.accessToken))
+                    sapCredentialStore:
+                      description: SAPCredentialStore configures this store to sync secrets using the SAP Credential Store provider.
+                      properties:
+                        auth:
+                          description: |-
+                            Auth configures inline authentication to the SAP Credential Store.
+                            Not required when serviceBindingSecretRef is set, because the binding
+                            contains all necessary credentials.
+                          maxProperties: 1
+                          minProperties: 1
+                          properties:
+                            mtls:
+                              description: MTLS configures mutual TLS certificate authentication.
+                              properties:
+                                certificate:
+                                  description: Certificate is a reference to the client certificate in PEM format.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                privateKey:
+                                  description: PrivateKey is a reference to the client private key in PEM format.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - certificate
+                                - privateKey
+                              type: object
+                          type: object
+                        encryption:
+                          description: |-
+                            Encryption configures JWE payload encryption for the SAP Credential Store API.
+                            Required when the service instance has payload encryption enabled.
+                          properties:
+                            clientPrivateKey:
+                              description: |-
+                                ClientPrivateKey is a reference to the RSA private key (PKCS8 DER, base64-encoded)
+                                used to decrypt responses from the Credential Store.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                            serverPublicKey:
+                              description: |-
+                                ServerPublicKey is a reference to the RSA public key (SPKI DER, base64-encoded)
+                                used to encrypt requests to the Credential Store.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - clientPrivateKey
+                            - serverPublicKey
+                          type: object
+                        namespace:
+                          description: |-
+                            Namespace is the SAP Credential Store namespace for credential operations.
+                            This is a Credential Store concept, not a Kubernetes namespace.
+                          type: string
+                        serviceBindingSecretRef:
+                          description: |-
+                            ServiceBindingSecretRef references a Kubernetes Secret containing a BTP service binding
+                            for the SAP Credential Store. When set, credentials and the service URL are
+                            derived from the binding JSON, and the Auth field becomes optional.
+                            Currently only the "mtls" binding authentication type is supported.
+                          properties:
+                            credentialsKey:
+                              default: credentials
+                              description: CredentialsKey is the key in the Secret's Data map that holds the binding JSON.
+                              type: string
+                            name:
+                              description: Name is the name of the Kubernetes Secret containing the service binding.
+                              type: string
+                            namespace:
+                              description: Namespace of the Kubernetes Secret. Defaults to the namespace of the SecretStore.
+                              type: string
+                          required:
+                            - name
+                          type: object
+                        serviceURL:
+                          description: |-
+                            ServiceURL is the base URL of the SAP Credential Store API.
+                            Required when serviceBindingSecretRef is not set; ignored when a binding is used
+                            because the URL is derived from the binding JSON.
+                          type: string
+                      required:
+                        - namespace
+                      type: object
                     scaleway:
                       description: Scaleway configures this store to sync secrets using the Scaleway provider.
                       properties:
@@ -21232,6 +21402,176 @@ spec:
                       x-kubernetes-validations:
                         - message: Exactly one of 'auth' or deprecated 'accessToken' must be specified
                           rule: (has(self.auth) && !has(self.accessToken)) || (!has(self.auth) && has(self.accessToken))
+                    sapCredentialStore:
+                      description: SAPCredentialStore configures this store to sync secrets using the SAP Credential Store provider.
+                      properties:
+                        auth:
+                          description: |-
+                            Auth configures inline authentication to the SAP Credential Store.
+                            Not required when serviceBindingSecretRef is set, because the binding
+                            contains all necessary credentials.
+                          maxProperties: 1
+                          minProperties: 1
+                          properties:
+                            mtls:
+                              description: MTLS configures mutual TLS certificate authentication.
+                              properties:
+                                certificate:
+                                  description: Certificate is a reference to the client certificate in PEM format.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                privateKey:
+                                  description: PrivateKey is a reference to the client private key in PEM format.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                              required:
+                                - certificate
+                                - privateKey
+                              type: object
+                          type: object
+                        encryption:
+                          description: |-
+                            Encryption configures JWE payload encryption for the SAP Credential Store API.
+                            Required when the service instance has payload encryption enabled.
+                          properties:
+                            clientPrivateKey:
+                              description: |-
+                                ClientPrivateKey is a reference to the RSA private key (PKCS8 DER, base64-encoded)
+                                used to decrypt responses from the Credential Store.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                            serverPublicKey:
+                              description: |-
+                                ServerPublicKey is a reference to the RSA public key (SPKI DER, base64-encoded)
+                                used to encrypt requests to the Credential Store.
+                              properties:
+                                key:
+                                  description: |-
+                                    A key in the referenced Secret.
+                                    Some instances of this field may be defaulted, in others it may be required.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[-._a-zA-Z0-9]+$
+                                  type: string
+                                name:
+                                  description: The name of the Secret resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    The namespace of the Secret resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              type: object
+                          required:
+                            - clientPrivateKey
+                            - serverPublicKey
+                          type: object
+                        namespace:
+                          description: |-
+                            Namespace is the SAP Credential Store namespace for credential operations.
+                            This is a Credential Store concept, not a Kubernetes namespace.
+                          type: string
+                        serviceBindingSecretRef:
+                          description: |-
+                            ServiceBindingSecretRef references a Kubernetes Secret containing a BTP service binding
+                            for the SAP Credential Store. When set, credentials and the service URL are
+                            derived from the binding JSON, and the Auth field becomes optional.
+                            Currently only the "mtls" binding authentication type is supported.
+                          properties:
+                            credentialsKey:
+                              default: credentials
+                              description: CredentialsKey is the key in the Secret's Data map that holds the binding JSON.
+                              type: string
+                            name:
+                              description: Name is the name of the Kubernetes Secret containing the service binding.
+                              type: string
+                            namespace:
+                              description: Namespace of the Kubernetes Secret. Defaults to the namespace of the SecretStore.
+                              type: string
+                          required:
+                            - name
+                          type: object
+                        serviceURL:
+                          description: |-
+                            ServiceURL is the base URL of the SAP Credential Store API.
+                            Required when serviceBindingSecretRef is not set; ignored when a binding is used
+                            because the URL is derived from the binding JSON.
+                          type: string
+                      required:
+                        - namespace
+                      type: object
                     scaleway:
                       description: Scaleway configures this store to sync secrets using the Scaleway provider.
                       properties:
