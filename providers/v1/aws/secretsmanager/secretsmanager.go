@@ -936,8 +936,17 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		return err
 	}
 
-	// Delete policy if policyRef is nil and the policy exists.
+	// Delete policy if policyRef is nil and a policy is currently attached.
 	if meta.Spec.ResourcePolicy == nil {
+		currentPolicyOutput, err := sm.client.GetResourcePolicy(ctx, &awssm.GetResourcePolicyInput{SecretId: secretID})
+		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetResourcePolicy, err)
+		var nf *types.ResourceNotFoundException
+		if err != nil && !errors.As(err, &nf) {
+			return fmt.Errorf("failed to get resource policy: %w", err)
+		}
+		if err != nil || currentPolicyOutput == nil || currentPolicyOutput.ResourcePolicy == nil || *currentPolicyOutput.ResourcePolicy == "" {
+			return nil
+		}
 		return sm.deleteResourcePolicy(ctx, secretID)
 	}
 
