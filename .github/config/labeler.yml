@@ -13,3 +13,7 @@ area/documentation:
 - any:
   - changed-files:
     - any-glob-to-any-file: ['docs/**', 'examples/**', '**/*.md']
+area/security:
+- any:
+  - changed-files:
+    - any-glob-to-any-file: ['**/security/**', '.github/workflows/**']
