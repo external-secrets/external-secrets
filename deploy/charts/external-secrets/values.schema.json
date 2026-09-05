@@ -35,7 +35,16 @@
                     "type": "object"
                 },
                 "extraEnv": {
-                    "type": "array"
+                    "type": "array",
+                    "items": {
+                        "type": "object"
+                    }
+                },
+                "extraEnvFrom": {
+                    "type": "array",
+                    "items": {
+                        "type": "object"
+                    }
                 },
                 "extraInitContainers": {
                     "type": "array"
@@ -473,7 +482,244 @@
             "type": "array"
         },
         "extraEnv": {
-            "type": "array"
+            "type": "array",
+            "description": "Additional environment variables to inject into the container",
+            "items": {
+                "type": "object",
+                "required": [
+                    "name"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                    "name": {
+                        "type": "string"
+                    },
+                    "value": {
+                        "type": "string"
+                    },
+                    "valueFrom": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "properties": {
+                            "secretKeyRef": {
+                                "type": "object",
+                                "required": [
+                                    "name",
+                                    "key"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "key": {
+                                        "type": "string"
+                                    },
+                                    "optional": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            },
+                            "configMapKeyRef": {
+                                "type": "object",
+                                "required": [
+                                    "name",
+                                    "key"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "name": {
+                                        "type": "string"
+                                    },
+                                    "key": {
+                                        "type": "string"
+                                    },
+                                    "optional": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            },
+                            "fieldRef": {
+                                "type": "object",
+                                "required": [
+                                    "fieldPath"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "apiVersion": {
+                                        "type": "string"
+                                    },
+                                    "fieldPath": {
+                                        "type": "string",
+                                        "enum": [
+                                            "metadata.name",
+                                            "metadata.namespace",
+                                            "spec.nodeName",
+                                            "spec.serviceAccountName",
+                                            "status.hostIP",
+                                            "status.podIP",
+                                            "status.podIPs"
+                                        ]
+                                    }
+                                }
+                            },
+                            "resourceFieldRef": {
+                                "type": "object",
+                                "required": [
+                                    "resource"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "containerName": {
+                                        "type": "string"
+                                    },
+                                    "resource": {
+                                        "type": "string",
+                                        "enum": [
+                                            "limits.cpu",
+                                            "limits.memory",
+                                            "limits.ephemeral-storage",
+                                            "requests.cpu",
+                                            "requests.memory",
+                                            "requests.ephemeral-storage"
+                                        ]
+                                    },
+                                    "divisor": {
+                                        "type": "string"
+                                    }
+                                }
+                            },
+                            "fileKeyRef": {
+                                "type": "object",
+                                "required": [
+                                    "volumeName",
+                                    "path",
+                                    "key"
+                                ],
+                                "additionalProperties": false,
+                                "properties": {
+                                    "volumeName": {
+                                        "type": "string"
+                                    },
+                                    "path": {
+                                        "type": "string"
+                                    },
+                                    "key": {
+                                        "type": "string"
+                                    },
+                                    "optional": {
+                                        "type": "boolean"
+                                    }
+                                }
+                            }
+                        },
+                        "oneOf": [
+                            {
+                                "required": [
+                                    "secretKeyRef"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "configMapKeyRef"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "fieldRef"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "resourceFieldRef"
+                                ]
+                            },
+                            {
+                                "required": [
+                                    "fileKeyRef"
+                                ]
+                            }
+                        ]
+                    }
+                },
+                "oneOf": [
+                    {
+                        "required": [
+                            "value"
+                        ],
+                        "not": {
+                            "required": [
+                                "valueFrom"
+                            ]
+                        }
+                    },
+                    {
+                        "required": [
+                            "valueFrom"
+                        ],
+                        "not": {
+                            "required": [
+                                "value"
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "extraEnvFrom": {
+            "type": "array",
+            "description": "Import all keys from ConfigMaps or Secrets as environment variables",
+            "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                    "prefix": {
+                        "type": "string"
+                    },
+                    "configMapRef": {
+                        "type": "object",
+                        "required": [
+                            "name"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "optional": {
+                                "type": "boolean"
+                            }
+                        }
+                    },
+                    "secretRef": {
+                        "type": "object",
+                        "required": [
+                            "name"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                            "name": {
+                                "type": "string"
+                            },
+                            "optional": {
+                                "type": "boolean"
+                            }
+                        }
+                    }
+                },
+                "oneOf": [
+                    {
+                        "required": [
+                            "configMapRef"
+                        ]
+                    },
+                    {
+                        "required": [
+                            "secretRef"
+                        ]
+                    }
+                ]
+            }
         },
         "extraInitContainers": {
             "type": "array"
@@ -1144,7 +1390,159 @@
                     "type": "object"
                 },
                 "extraEnv": {
-                    "type": "array"
+                    "type": "array",
+                    "description": "Array of environment variables to inject into the container",
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "name"
+                        ],
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "description": "The name of the environment variable"
+                            }
+                        },
+                        "oneOf": [
+                            {
+                                "required": [
+                                    "value"
+                                ],
+                                "properties": {
+                                    "value": {
+                                        "type": "string",
+                                        "description": "Literal string value for the environment variable"
+                                    }
+                                }
+                            },
+                            {
+                                "required": [
+                                    "valueFrom"
+                                ],
+                                "properties": {
+                                    "valueFrom": {
+                                        "type": "object",
+                                        "description": "Source for the environment variable's value",
+                                        "properties": {
+                                            "secretKeyRef": {
+                                                "type": "object",
+                                                "required": [
+                                                    "name",
+                                                    "key"
+                                                ],
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "key": {
+                                                        "type": "string"
+                                                    },
+                                                    "optional": {
+                                                        "type": "boolean"
+                                                    }
+                                                }
+                                            },
+                                            "configMapKeyRef": {
+                                                "type": "object",
+                                                "required": [
+                                                    "name",
+                                                    "key"
+                                                ],
+                                                "properties": {
+                                                    "name": {
+                                                        "type": "string"
+                                                    },
+                                                    "key": {
+                                                        "type": "string"
+                                                    },
+                                                    "optional": {
+                                                        "type": "boolean"
+                                                    }
+                                                }
+                                            },
+                                            "fieldRef": {
+                                                "type": "object",
+                                                "required": [
+                                                    "fieldPath"
+                                                ],
+                                                "properties": {
+                                                    "fieldPath": {
+                                                        "type": "string"
+                                                    },
+                                                    "apiVersion": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            },
+                                            "resourceFieldRef": {
+                                                "type": "object",
+                                                "required": [
+                                                    "resource"
+                                                ],
+                                                "properties": {
+                                                    "resource": {
+                                                        "type": "string"
+                                                    },
+                                                    "containerName": {
+                                                        "type": "string"
+                                                    },
+                                                    "divisor": {
+                                                        "type": "string"
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        "additionalProperties": false
+                                    }
+                                }
+                            }
+                        ]
+                    }
+                },
+                "extraEnvFrom": {
+                    "type": "array",
+                    "description": "Array of ConfigMaps or Secrets to load as environment variables",
+                    "items": {
+                        "type": "object",
+                        "anyOf": [
+                            {
+                                "required": [
+                                    "configMapRef"
+                                ],
+                                "properties": {
+                                    "configMapRef": {
+                                        "type": "object",
+                                        "required": [
+                                            "name"
+                                        ],
+                                        "properties": {
+                                            "name": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            },
+                            {
+                                "required": [
+                                    "secretRef"
+                                ],
+                                "properties": {
+                                    "secretRef": {
+                                        "type": "object",
+                                        "required": [
+                                            "name"
+                                        ],
+                                        "properties": {
+                                            "name": {
+                                                "type": "string"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        ]
+                    }
                 },
                 "extraInitContainers": {
                     "type": "array"
