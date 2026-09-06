@@ -61,7 +61,6 @@ import (
 	gopkcs12 "software.sslmate.com/src/go-pkcs12"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
@@ -373,14 +372,14 @@ func canDelete(tags map[string]*string, err error) (bool, error) {
 
 func (a *Azure) deleteKeyVaultKey(ctx context.Context, keyName string) error {
 	value, err := a.baseClient.GetKey(ctx, *a.provider.VaultURL, keyName, "")
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetKey, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetKey, err)
 	ok, err := canDelete(value.Tags, err)
 	if err != nil {
 		return fmt.Errorf("error getting key %v: %w", keyName, err)
 	}
 	if ok {
 		_, err = a.baseClient.DeleteKey(ctx, *a.provider.VaultURL, keyName)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVDeleteKey, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVDeleteKey, err)
 		if err != nil {
 			return fmt.Errorf("error deleting key %v: %w", keyName, err)
 		}
@@ -390,14 +389,14 @@ func (a *Azure) deleteKeyVaultKey(ctx context.Context, keyName string) error {
 
 func (a *Azure) deleteKeyVaultSecret(ctx context.Context, secretName string) error {
 	value, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetSecret, err)
 	ok, err := canDelete(value.Tags, err)
 	if err != nil {
 		return fmt.Errorf("error getting secret %v: %w", secretName, err)
 	}
 	if ok {
 		_, err = a.baseClient.DeleteSecret(ctx, *a.provider.VaultURL, secretName)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVDeleteSecret, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVDeleteSecret, err)
 		if err != nil {
 			return fmt.Errorf("error deleting secret %v: %w", secretName, err)
 		}
@@ -407,14 +406,14 @@ func (a *Azure) deleteKeyVaultSecret(ctx context.Context, secretName string) err
 
 func (a *Azure) deleteKeyVaultCertificate(ctx context.Context, certName string) error {
 	value, err := a.baseClient.GetCertificate(ctx, *a.provider.VaultURL, certName, "")
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetCertificate, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetCertificate, err)
 	ok, err := canDelete(value.Tags, err)
 	if err != nil {
 		return fmt.Errorf("error getting certificate %v: %w", certName, err)
 	}
 	if ok {
 		_, err = a.baseClient.DeleteCertificate(ctx, *a.provider.VaultURL, certName)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVDeleteCertificate, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVDeleteCertificate, err)
 		if err != nil {
 			return fmt.Errorf("error deleting certificate %v: %w", certName, err)
 		}
@@ -576,7 +575,7 @@ func legacySecretUnchanged(secret keyvault.SecretBundle, value []byte, expires *
 
 func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value []byte, expires *date.UnixTime, contentType *string, tags map[string]string) error {
 	secret, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetSecret, err)
 	ok, err := canCreate(secret.Tags, err)
 	if err != nil {
 		return fmt.Errorf("cannot get secret %v: %w", secretName, err)
@@ -614,7 +613,7 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 	}
 
 	_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVSetSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not set secret %v: %w", secretName, err)
 	}
@@ -628,7 +627,7 @@ func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, v
 		return fmt.Errorf("value from secret is not a valid certificate: %w", err)
 	}
 	cert, err := a.baseClient.GetCertificate(ctx, *a.provider.VaultURL, secretName, "")
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetCertificate, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetCertificate, err)
 	ok, err := canCreate(cert.Tags, err)
 	if err != nil {
 		return fmt.Errorf("cannot get certificate %v: %w", secretName, err)
@@ -652,7 +651,7 @@ func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, v
 	}
 
 	_, err = a.baseClient.ImportCertificate(ctx, *a.provider.VaultURL, secretName, params)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVImportCertificate, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVImportCertificate, err)
 	if err != nil {
 		return fmt.Errorf("could not import certificate %v: %w", secretName, err)
 	}
@@ -689,7 +688,7 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 		return fmt.Errorf("error unmarshalling key: %w", err)
 	}
 	keyFromVault, err := a.baseClient.GetKey(ctx, *a.provider.VaultURL, secretName, "")
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetKey, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetKey, err)
 	ok, err := canCreate(keyFromVault.Tags, err)
 	if err != nil {
 		return fmt.Errorf("cannot get key %v: %w", secretName, err)
@@ -712,7 +711,7 @@ func (a *Azure) setKeyVaultKey(ctx context.Context, secretName string, value []b
 		params.Tags[k] = &v
 	}
 	_, err = a.baseClient.ImportKey(ctx, *a.provider.VaultURL, secretName, params)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVImportKey, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVImportKey, err)
 	if err != nil {
 		return fmt.Errorf("could not import key %v: %w", secretName, err)
 	}
@@ -814,7 +813,7 @@ func (a *Azure) getAllSecretsWithLegacySDK(ctx context.Context, ref esv1.Externa
 	checkName := ref.Name != nil && ref.Name.RegExp != ""
 
 	secretListIter, err := basicClient.GetSecretsComplete(ctx, *a.provider.VaultURL, nil)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecrets, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetSecrets, err)
 	err = parseError(err)
 	if err != nil {
 		return nil, err
@@ -831,7 +830,7 @@ func (a *Azure) getAllSecretsWithLegacySDK(ctx context.Context, ref esv1.Externa
 			continue
 		}
 		secretResp, err := basicClient.GetSecret(ctx, *a.provider.VaultURL, secretName, "")
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetSecret, err)
 		err = parseError(err)
 		if err != nil {
 			return nil, err
@@ -977,7 +976,7 @@ func (a *Azure) getSecretTags(ctx context.Context, ref esv1.ExternalSecretDataRe
 func (a *Azure) getSecretTagsWithLegacySDK(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string]*string, error) {
 	_, secretName := getObjType(ref)
 	secretResp, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, ref.Version)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetSecret, err)
 	err = parseError(err)
 	if err != nil {
 		return nil, err
@@ -1497,7 +1496,7 @@ func (a *Azure) getSecretWithLegacySDK(ctx context.Context, ref esv1.ExternalSec
 		// returns a SecretBundle with the secret value
 		// https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#SecretBundle
 		secretResp, err := a.baseClient.GetSecret(ctx, *a.provider.VaultURL, secretName, ref.Version)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetSecret, err)
 		err = parseError(err)
 		if err != nil {
 			return nil, err
@@ -1511,7 +1510,7 @@ func (a *Azure) getSecretWithLegacySDK(ctx context.Context, ref esv1.ExternalSec
 		// returns a CertBundle. We return CER contents of x509 certificate
 		// see: https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#CertificateBundle
 		certResp, err := a.baseClient.GetCertificate(ctx, *a.provider.VaultURL, secretName, ref.Version)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetCertificate, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetCertificate, err)
 		err = parseError(err)
 		if err != nil {
 			return nil, err
@@ -1525,7 +1524,7 @@ func (a *Azure) getSecretWithLegacySDK(ctx context.Context, ref esv1.ExternalSec
 		// returns a KeyBundle
 		// https://pkg.go.dev/github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault#KeyBundle
 		keyResp, err := a.baseClient.GetKey(ctx, *a.provider.VaultURL, secretName, ref.Version)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetKey, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetKey, err)
 		err = parseError(err)
 		if err != nil {
 			return nil, err

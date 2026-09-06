@@ -29,7 +29,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -37,7 +36,7 @@ const (
 	errKeeperSecuritySecretsNotFound            = "unable to find secrets. %w"
 	errKeeperSecuritySecretNotFound             = "unable to find secret %s. Error: %w"
 	errKeeperSecuritySecretNotUnique            = "more than 1 secret %s found"
-	errKeeperSecurityNoSecretsFound             = "no secrets found"
+	errKeeperSecurityRecordNotFound             = "%w: no record matched %s"
 	errKeeperSecurityInvalidSecretInvalidFormat = "invalid secret. Invalid format: %w"
 	errKeeperSecurityInvalidSecretDuplicatedKey = "invalid Secret. Following keys are duplicated %s"
 	errKeeperSecurityInvalidProperty            = "invalid Property. Secret %s does not have any key matching %s"
@@ -121,6 +120,8 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 // GetSecret retrieves a secret from Keeper Security by ID or name.
 // It first attempts to find the secret by ID, then falls back to name lookup.
 // The name lookup must be opted in by setting getByTitleFallback on the provider.
+// A record that does not exist yields esv1.NoSecretErr, which is what the
+// reconciler keys deletionPolicy off.
 func (c *Client) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := c.findByIDWithNameFallback(ref.Key)
 	if err != nil {
@@ -148,7 +149,7 @@ func (c *Client) findByIDWithNameFallback(key string) (*Secret, error) {
 
 	if record == nil && c.getByTitleFallback {
 		records, err := c.ksmClient.GetSecretsByTitle(key)
-		metrics.ObserveAPICall(constants.ProviderKeeperSecurity, constants.CallKeeperSecurityGetSecretsByTitle, err)
+		metrics.ObserveAPICall(ProviderKeeperSecurity, CallKeeperSecurityGetSecretsByTitle, err)
 		if err != nil {
 			return nil, err
 		}
@@ -161,7 +162,10 @@ func (c *Client) findByIDWithNameFallback(key string) (*Secret, error) {
 	}
 
 	if record == nil {
-		return nil, errors.New(errKeeperSecurityNoSecretsFound)
+		// Only a genuinely absent record gets the sentinel; the API failures
+		// wrapped by findSecretByID/GetSecretsByTitle above must stay generic so
+		// an outage is not mistaken for a deletion.
+		return nil, fmt.Errorf(errKeeperSecurityRecordNotFound, esv1.NoSecretErr, key)
 	}
 
 	secret, err := c.getValidKeeperSecret(record)
@@ -262,7 +266,7 @@ func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1.PushSecretRemote
 		return fmt.Errorf(errInvalidSecretType, externalSecretType, secret.Title(), secret.Type())
 	}
 	_, err = c.ksmClient.DeleteSecrets([]string{secret.Uid})
-	metrics.ObserveAPICall(constants.ProviderKeeperSecurity, constants.CallKeeperSecurityDeleteSecrets, err)
+	metrics.ObserveAPICall(ProviderKeeperSecurity, CallKeeperSecurityDeleteSecrets, err)
 	return err
 }
 
@@ -310,7 +314,7 @@ func (c *Client) createSecret(name, key string, value []byte) (string, error) {
 	}
 
 	uid, err := c.ksmClient.CreateSecretWithRecordData("", c.folderID, externalSecretRecord)
-	metrics.ObserveAPICall(constants.ProviderKeeperSecurity, constants.CallKeeperSecurityCreateSecretWithRecordData, err)
+	metrics.ObserveAPICall(ProviderKeeperSecurity, CallKeeperSecurityCreateSecretWithRecordData, err)
 	return uid, err
 }
 
@@ -341,7 +345,7 @@ func (c *Client) updateSecret(secret *ksm.Record, key string, value []byte) erro
 	}
 
 	err := c.ksmClient.Save(secret)
-	metrics.ObserveAPICall(constants.ProviderKeeperSecurity, constants.CallKeeperSecuritySave, err)
+	metrics.ObserveAPICall(ProviderKeeperSecurity, CallKeeperSecuritySave, err)
 	return err
 }
 
@@ -362,7 +366,7 @@ func (c *Client) getValidKeeperSecret(secret *ksm.Record) (*Secret, error) {
 
 func (c *Client) findSecrets() ([]*ksm.Record, error) {
 	records, err := c.ksmClient.GetSecrets([]string{})
-	metrics.ObserveAPICall(constants.ProviderKeeperSecurity, constants.CallKeeperSecurityGetSecrets, err)
+	metrics.ObserveAPICall(ProviderKeeperSecurity, CallKeeperSecurityGetSecrets, err)
 	if err != nil {
 		return nil, fmt.Errorf(errKeeperSecuritySecretsNotFound, err)
 	}
@@ -372,7 +376,7 @@ func (c *Client) findSecrets() ([]*ksm.Record, error) {
 
 func (c *Client) findSecretByID(id string) (*ksm.Record, error) {
 	records, err := c.ksmClient.GetSecrets([]string{id})
-	metrics.ObserveAPICall(constants.ProviderKeeperSecurity, constants.CallKeeperSecurityGetSecrets, err)
+	metrics.ObserveAPICall(ProviderKeeperSecurity, CallKeeperSecurityGetSecrets, err)
 	if err != nil {
 		return nil, fmt.Errorf(errKeeperSecuritySecretNotFound, id, err)
 	}
@@ -386,7 +390,7 @@ func (c *Client) findSecretByID(id string) (*ksm.Record, error) {
 
 func (c *Client) findSecretByName(name string) (*ksm.Record, error) {
 	records, err := c.ksmClient.GetSecretsByTitle(name)
-	metrics.ObserveAPICall(constants.ProviderKeeperSecurity, constants.CallKeeperSecurityGetSecretsByTitle, err)
+	metrics.ObserveAPICall(ProviderKeeperSecurity, CallKeeperSecurityGetSecretsByTitle, err)
 	if err != nil {
 		return nil, err
 	}
