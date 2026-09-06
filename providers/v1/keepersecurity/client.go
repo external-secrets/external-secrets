@@ -313,6 +313,10 @@ func (c *Client) createSecret(name, key string, value []byte) (string, error) {
 		)
 	}
 
+	if c.folderID == "" {
+		return "", errors.New("folderID must be set on the SecretStore to create a new Keeper security record")
+	}
+	
 	uid, err := c.ksmClient.CreateSecretWithRecordData("", c.folderID, externalSecretRecord)
 	metrics.ObserveAPICall(ProviderKeeperSecurity, CallKeeperSecurityCreateSecretWithRecordData, err)
 	return uid, err
