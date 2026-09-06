@@ -6048,6 +6048,12 @@ spec:
                               default: true
                               description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
                               type: boolean
+                            includeSecretPath:
+                              default: false
+                              description: |-
+                                IncludeSecretPath indicates whether the secret path should be included as a prefix
+                                in the secret key. Secrets at the root path (/) are not prefixed.
+                              type: boolean
                             organizationSlug:
                               description: |-
                                 OrganizationSlug is the optional slug that identifies the organization that will be used
@@ -19499,6 +19505,12 @@ spec:
                             expandSecretReferences:
                               default: true
                               description: ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.
+                              type: boolean
+                            includeSecretPath:
+                              default: false
+                              description: |-
+                                IncludeSecretPath indicates whether the secret path should be included as a prefix
+                                in the secret key. Secrets at the root path (/) are not prefixed.
                               type: boolean
                             organizationSlug:
                               description: |-
