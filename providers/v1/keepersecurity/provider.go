@@ -101,7 +101,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if err := esutils.ValidateSecretSelector(store, config.Auth); err != nil {
 		return nil, fmt.Errorf("error validating secret selector: %w", err)
 	}
-	
+
 	return nil, nil
 }
 
