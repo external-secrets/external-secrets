@@ -45,8 +45,7 @@ use the [Kubernetes provider](../provider/kubernetes.md) to fan that
     With `Owner`, Kubernetes also garbage-collects the fanned-out Secrets via
     `ownerReference`. `deletionPolicy: Retain` does not prevent that — Retain is
     the provider-side axis.
-
-    No combination gives both properties. `Owner` (or `Orphan` + `Delete`)
+    No combination gives both properties. `Owner`
     revokes the copy when a namespace is de-selected, but CES replacement
     also drops the Secret. `Orphan` / `CreateOrMerge` + `Retain` survives
     replacement, but the de-selected namespace keeps a stale, unrefreshed
