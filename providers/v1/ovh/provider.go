@@ -31,6 +31,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/ovh/okms-sdk-go"
 	"github.com/ovh/okms-sdk-go/types"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -41,13 +43,19 @@ import (
 )
 
 const (
-	emptyTokenSecretRef           = "ovh store auth.token.tokenSecretRef cannot be empty"
-	emptyKeySecretRef             = "ovh store auth.mtls.keySecretRef cannot be empty"
-	emptyCertSecretRef            = "ovh store auth.mtls.certSecretRef cannot be empty"
-	createOvhProviderError        = "failed to create new ovh provider client"
-	createOkmsClientError         = "failed to create new okms client"
-	configureTokenOkmsClientError = "failed to configure token okms client"
-	configureMtlsOkmsClientError  = "failed to configure mtls okms client"
+	emptyTokenSecretRef            = "ovh store auth.token.tokenSecretRef cannot be empty"
+	emptyKeySecretRef              = "ovh store auth.mtls.keySecretRef cannot be empty"
+	emptyCertSecretRef             = "ovh store auth.mtls.certSecretRef cannot be empty"
+	createOvhProviderError         = "failed to create new ovh provider client"
+	createOkmsClientError          = "failed to create new okms client"
+	configureTokenOkmsClientError  = "failed to configure token okms client"
+	configureMtlsOkmsClientError   = "failed to configure mtls okms client"
+	emptyClientIDSecretRef         = "ovh store auth.oauth2.clientIDSecretRef cannot be empty"
+	emptyClientSecretSecretRef     = "ovh store auth.oauth2.clientSecretSecretRef cannot be empty"
+	configureOAuth2OkmsClientError = "failed to configure oauth2 okms client"
+	// defaultOAuth2TokenURL is OVHcloud's European token endpoint. Canada and the US have
+	// their own, and a store may name either through auth.oauth2.tokenURL.
+	defaultOAuth2TokenURL = "https://www.ovh.com/auth/oauth2/token"
 )
 
 // Provider implements the ESO Provider interface for OVHcloud.
@@ -130,13 +138,16 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		okmsTimeout:       okmsTimeout,
 	}
 
-	// Authentication configuration: token or mTLS.
+	// Authentication configuration: token, mTLS or OAuth2.
 	if ovhStore.Auth.ClientToken != nil {
 		err = configureHTTPTokenClient(ctx, p, cl,
 			ovhStore.Server, ovhStore.Auth.ClientToken)
 	} else if ovhStore.Auth.ClientMTLS != nil {
 		err = configureHTTPMTLSClient(ctx, p, cl,
 			ovhStore.Server, ovhStore.Auth.ClientMTLS)
+	} else if ovhStore.Auth.ClientOAuth2 != nil {
+		err = configureHTTPOAuth2Client(ctx, p, cl,
+			ovhStore.Server, ovhStore.Auth.ClientOAuth2)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", createOvhProviderError, err)
@@ -187,6 +198,62 @@ func getToken(ctx context.Context, p *Provider, cl *ovhClient, clientToken *esv1
 	}
 
 	return token, nil
+}
+
+// configureHTTPOAuth2Client configures the client to authenticate with an OVHcloud service account.
+//
+// A service account yields an OAuth2 client id and client secret, which are exchanged for a short
+// lived access token. The exchange and every renewal are handled by the transport returned by
+// clientcredentials, so nothing here has to watch an expiry.
+func configureHTTPOAuth2Client(ctx context.Context, p *Provider, cl *ovhClient, server string, clientOAuth2 *esv1.OvhClientOAuth2) error {
+	clientID, err := p.secretKeyResolver.Resolve(ctx, cl.kube,
+		cl.ovhStoreKind, cl.ovhStoreNameSpace, clientOAuth2.ClientID)
+	if err != nil {
+		return fmt.Errorf("%s: could not retrieve client id: %w", configureOAuth2OkmsClientError, err)
+	}
+	if clientID == "" {
+		return errors.New(emptyClientIDSecretRef)
+	}
+
+	clientSecret, err := p.secretKeyResolver.Resolve(ctx, cl.kube,
+		cl.ovhStoreKind, cl.ovhStoreNameSpace, clientOAuth2.ClientSecret)
+	if err != nil {
+		return fmt.Errorf("%s: could not retrieve client secret: %w", configureOAuth2OkmsClientError, err)
+	}
+	if clientSecret == "" {
+		return errors.New(emptyClientSecretSecretRef)
+	}
+
+	tokenURL := clientOAuth2.TokenURL
+	if tokenURL == "" {
+		tokenURL = defaultOAuth2TokenURL
+	}
+
+	config := &clientcredentials.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		TokenURL:     tokenURL,
+		AuthStyle:    oauth2.AuthStyleInHeader,
+	}
+
+	// The timeout applies to the token exchange as well as to the KMS calls: without this the
+	// exchange would use the default client and ignore okmsTimeout entirely.
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Timeout: cl.okmsTimeout})
+	httpClient := config.Client(ctx)
+	httpClient.Timeout = cl.okmsTimeout
+
+	cl.okmsClient, err = okms.NewRestAPIClientWithHttp(server, httpClient)
+	if err != nil {
+		return fmt.Errorf("%s: %s: %w", configureOAuth2OkmsClientError, createOkmsClientError, err)
+	}
+	if cl.okmsClient == nil {
+		return fmt.Errorf("%s: okms client is nil", configureOAuth2OkmsClientError)
+	}
+
+	// No Authorization header is set here: the transport adds one and renews it.
+	cl.okmsClient.WithCustomHeader("Content-type", "application/json")
+
+	return nil
 }
 
 // configureHTTPMTLSClient configures the client to use mTLS for HTTP requests.
@@ -316,16 +383,25 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 
 func (p *Provider) validateAuth(provider *esv1.SecretStoreProvider) (admission.Warnings, error) {
 	auth := provider.OVHcloud.Auth
-	if auth.ClientMTLS == nil && auth.ClientToken == nil {
+	configured := 0
+	for _, set := range []bool{auth.ClientMTLS != nil, auth.ClientToken != nil, auth.ClientOAuth2 != nil} {
+		if set {
+			configured++
+		}
+	}
+	if configured == 0 {
 		return nil, errors.New("missing authentication method")
-	} else if auth.ClientMTLS != nil && auth.ClientToken != nil {
-		return nil, errors.New("only one authentication method allowed (mtls | token)")
+	} else if configured > 1 {
+		return nil, errors.New("only one authentication method allowed (mtls | token | oauth2)")
 	}
 	if auth.ClientToken != nil && auth.ClientToken.ClientTokenSecret == (v1.SecretKeySelector{}) {
 		return nil, errors.New("missing token secret for token authentication")
 	}
 	if auth.ClientMTLS != nil && (auth.ClientMTLS.ClientCertificate == (v1.SecretKeySelector{}) || auth.ClientMTLS.ClientKey == (v1.SecretKeySelector{})) {
 		return nil, errors.New("missing tls certificate or key for mtls authentication")
+	}
+	if auth.ClientOAuth2 != nil && (auth.ClientOAuth2.ClientID == (v1.SecretKeySelector{}) || auth.ClientOAuth2.ClientSecret == (v1.SecretKeySelector{})) {
+		return nil, errors.New("missing client id or client secret for oauth2 authentication")
 	}
 	return nil, nil
 }
