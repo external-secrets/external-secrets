@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -56,7 +57,11 @@ const (
 	// defaultOAuth2TokenURL is OVHcloud's European token endpoint. Canada and the US have
 	// their own, and a store may name either through auth.oauth2.tokenURL.
 	defaultOAuth2TokenURL = "https://www.ovh.com/auth/oauth2/token"
+	invalidTokenURLError  = "invalid auth.oauth2.tokenURL"
 )
+
+// oauth2TokenURLHosts are the hosts OVHcloud publishes token endpoints on, one per region.
+var oauth2TokenURLHosts = []string{"www.ovh.com", "ca.ovh.com", "us.ovhcloud.com"}
 
 // Provider implements the ESO Provider interface for OVHcloud.
 type Provider struct {
@@ -224,9 +229,9 @@ func configureHTTPOAuth2Client(ctx context.Context, p *Provider, cl *ovhClient, 
 		return errors.New(emptyClientSecretSecretRef)
 	}
 
-	tokenURL := clientOAuth2.TokenURL
-	if tokenURL == "" {
-		tokenURL = defaultOAuth2TokenURL
+	tokenURL, err := resolveOAuth2TokenURL(clientOAuth2.TokenURL)
+	if err != nil {
+		return fmt.Errorf("%s: %w", configureOAuth2OkmsClientError, err)
 	}
 
 	config := &clientcredentials.Config{
@@ -238,7 +243,20 @@ func configureHTTPOAuth2Client(ctx context.Context, p *Provider, cl *ovhClient, 
 
 	// The timeout applies to the token exchange as well as to the KMS calls: without this the
 	// exchange would use the default client and ignore okmsTimeout entirely.
-	ctx = context.WithValue(ctx, oauth2.HTTPClient, &http.Client{Timeout: cl.okmsTimeout})
+	//
+	// CheckRedirect refuses a redirect that leaves HTTPS. The client credentials travel in the
+	// exchange request, so a token endpoint answering a redirect to plain HTTP would put them on
+	// the wire in clear.
+	exchangeClient := &http.Client{
+		Timeout: cl.okmsTimeout,
+		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
+			if req.URL.Scheme != "https" {
+				return fmt.Errorf("refusing redirect to a non-https token endpoint: %s", req.URL.Scheme)
+			}
+			return nil
+		},
+	}
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, exchangeClient)
 	httpClient := config.Client(ctx)
 	httpClient.Timeout = cl.okmsTimeout
 
@@ -254,6 +272,31 @@ func configureHTTPOAuth2Client(ctx context.Context, p *Provider, cl *ovhClient, 
 	cl.okmsClient.WithCustomHeader("Content-type", "application/json")
 
 	return nil
+}
+
+// resolveOAuth2TokenURL returns the token endpoint to use, and refuses anything that is not one
+// of OVHcloud's.
+//
+// The value comes from a SecretStore, so whoever can edit one would otherwise choose where the
+// client credentials are sent. Restricting it to OVHcloud's own hosts, over HTTPS, keeps that
+// choice to picking a region.
+func resolveOAuth2TokenURL(raw string) (string, error) {
+	if raw == "" {
+		return defaultOAuth2TokenURL, nil
+	}
+
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", invalidTokenURLError, err)
+	}
+	if parsed.Scheme != "https" {
+		return "", fmt.Errorf("%s: scheme must be https, got %q", invalidTokenURLError, parsed.Scheme)
+	}
+	if !slices.Contains(oauth2TokenURLHosts, parsed.Host) {
+		return "", fmt.Errorf("%s: host must be one of %v, got %q",
+			invalidTokenURLError, oauth2TokenURLHosts, parsed.Host)
+	}
+	return raw, nil
 }
 
 // configureHTTPMTLSClient configures the client to use mTLS for HTTP requests.

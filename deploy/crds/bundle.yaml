@@ -7260,6 +7260,8 @@ spec:
                       properties:
                         auth:
                           description: Authentication method (mtls, token or oauth2).
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             mtls:
                               description: OvhClientMTLS defines the configuration required to authenticate to OVHcloud's Secret Manager using mTLS.
@@ -20794,6 +20796,8 @@ spec:
                       properties:
                         auth:
                           description: Authentication method (mtls, token or oauth2).
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             mtls:
                               description: OvhClientMTLS defines the configuration required to authenticate to OVHcloud's Secret Manager using mTLS.

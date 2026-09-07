@@ -9844,7 +9844,9 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1.OvhProvider">OvhProvider</a>)
 </p>
 <p>
-<p>OvhAuth tells the controller how to authenticate to OVHcloud&rsquo;s Secret Manager, using mTLS, a token or OAuth2.</p>
+<p>OvhAuth tells the controller how to authenticate to OVHcloud&rsquo;s Secret Manager, using mTLS, a token or OAuth2.
+Exactly one method must be set: the markers below make the API server say so, rather than leaving
+it to the provider to discover at reconcile time.</p>
 </p>
 <table>
 <thead>

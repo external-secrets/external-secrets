@@ -40,6 +40,10 @@ type OvhProvider struct {
 }
 
 // OvhAuth tells the controller how to authenticate to OVHcloud's Secret Manager, using mTLS, a token or OAuth2.
+// Exactly one method must be set: the markers below make the API server say so, rather than leaving
+// it to the provider to discover at reconcile time.
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type OvhAuth struct {
 	// +optional
 	ClientMTLS *OvhClientMTLS `json:"mtls,omitempty"`
