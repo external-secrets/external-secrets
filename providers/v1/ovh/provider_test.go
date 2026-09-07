@@ -106,7 +106,7 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"Authentication method conflict": {
-			errshould: "failed to create new ovh provider client: store validation failed: only one authentication method allowed (mtls | token)",
+			errshould: "failed to create new ovh provider client: store validation failed: only one authentication method allowed (mtls | token | oauth2)",
 			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
@@ -129,6 +129,64 @@ func TestNewClient(t *testing.T) {
 								},
 								ClientToken: &esv1.OvhClientToken{
 									ClientTokenSecret: esmeta.SecretKeySelector{
+										Name:      fillingStr,
+										Namespace: &namespace,
+										Key:       fillingStr,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"OAuth2 without a client secret": {
+			errshould: "failed to create new ovh provider client: store validation failed: missing client id or client secret for oauth2 authentication",
+			kube:      kube,
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						OVHcloud: &esv1.OvhProvider{
+							Server: fillingStr,
+							OkmsID: okmsId,
+							Auth: esv1.OvhAuth{
+								ClientOAuth2: &esv1.OvhClientOAuth2{
+									ClientID: esmeta.SecretKeySelector{
+										Name:      fillingStr,
+										Namespace: &namespace,
+										Key:       fillingStr,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"OAuth2 conflicting with a token": {
+			errshould: "failed to create new ovh provider client: store validation failed: only one authentication method allowed (mtls | token | oauth2)",
+			kube:      kube,
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						OVHcloud: &esv1.OvhProvider{
+							Server: fillingStr,
+							OkmsID: okmsId,
+							Auth: esv1.OvhAuth{
+								ClientToken: &esv1.OvhClientToken{
+									ClientTokenSecret: esmeta.SecretKeySelector{
+										Name:      fillingStr,
+										Namespace: &namespace,
+										Key:       fillingStr,
+									},
+								},
+								ClientOAuth2: &esv1.OvhClientOAuth2{
+									ClientID: esmeta.SecretKeySelector{
+										Name:      fillingStr,
+										Namespace: &namespace,
+										Key:       fillingStr,
+									},
+									ClientSecret: esmeta.SecretKeySelector{
 										Name:      fillingStr,
 										Namespace: &namespace,
 										Key:       fillingStr,
@@ -297,7 +355,7 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		"Authentication method conflict": {
-			errshould: "only one authentication method allowed (mtls | token)",
+			errshould: "only one authentication method allowed (mtls | token | oauth2)",
 			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
