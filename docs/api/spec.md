@@ -9844,7 +9844,7 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1.OvhProvider">OvhProvider</a>)
 </p>
 <p>
-<p>OvhAuth tells the controller how to authenticate to OVHcloud&rsquo;s Secret Manager, either using mTLS or a token.</p>
+<p>OvhAuth tells the controller how to authenticate to OVHcloud&rsquo;s Secret Manager, using mTLS, a token or OAuth2.</p>
 </p>
 <table>
 <thead>
@@ -9873,6 +9873,19 @@ OvhClientMTLS
 <em>
 <a href="#external-secrets.io/v1.OvhClientToken">
 OvhClientToken
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>oauth2</code></br>
+<em>
+<a href="#external-secrets.io/v1.OvhClientOAuth2">
+OvhClientOAuth2
 </a>
 </em>
 </td>
@@ -9945,6 +9958,67 @@ CAProvider
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.OvhClientOAuth2">OvhClientOAuth2
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.OvhAuth">OvhAuth</a>)
+</p>
+<p>
+<p>OvhClientOAuth2 defines the configuration required to authenticate to OVHcloud&rsquo;s Secret Manager
+using an OVHcloud service account.</p>
+<p>A service account is the identity OVHcloud intends for machines: it yields an OAuth2 client id
+and client secret, and no browser step is involved in creating one. The access token it is
+exchanged for is short lived, and the client refreshes it on its own.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>clientIDSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientSecretSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>tokenURL</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>TokenURL is the OVHcloud OAuth2 token endpoint. It differs per region, and defaults to the
+European one. The Canadian endpoint is <a href="https://ca.ovh.com/auth/oauth2/token">https://ca.ovh.com/auth/oauth2/token</a> and the US one
+is <a href="https://us.ovhcloud.com/auth/oauth2/token">https://us.ovhcloud.com/auth/oauth2/token</a>.</p>
 </td>
 </tr>
 </tbody>
@@ -10053,7 +10127,7 @@ OvhAuth
 </em>
 </td>
 <td>
-<p>Authentication method (mtls or token).</p>
+<p>Authentication method (mtls, token or oauth2).</p>
 </td>
 </tr>
 </tbody>
