@@ -14,15 +14,15 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package constants holds constant values for the project.
-package constants
+package kubernetes
 
-// Status and label constants define shared status values and Kubernetes labels.
+// Metrics constants identify the Kubernetes provider and API calls.
 const (
-	StatusError   = "error"
-	StatusSuccess = "success"
-
-	WellKnownLabelKey             = "external-secrets.io/component"
-	WellKnownLabelValueController = "controller"
-	WellKnownLabelValueWebhook    = "webhook"
+	ProviderKubernetes                         = "Kubernetes"
+	CallKubernetesGetSecret                    = "GetSecret"
+	CallKubernetesListSecrets                  = "ListSecrets"
+	CallKubernetesCreateSecret                 = "CreateSecret"
+	CallKubernetesDeleteSecret                 = "DeleteSecret"
+	CallKubernetesUpdateSecret                 = "UpdateSecret"
+	CallKubernetesCreateSelfSubjectRulesReview = "CreateSelfSubjectRulesReview"
 )

@@ -40,7 +40,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/find"
@@ -180,7 +179,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1.PushS
 		SecretId: &secretName,
 	}
 	awsSecret, err := sm.client.GetSecretValue(ctx, &secretValue)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
+	metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMGetSecretValue, err)
 	var aerr smithy.APIError
 	if err != nil {
 		if ok := errors.As(err, &aerr); !ok {
@@ -192,7 +191,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1.PushS
 		return err
 	}
 	data, err := sm.client.DescribeSecret(ctx, &secretInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
+	metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMDescribeSecret, err)
 	if err != nil {
 		return err
 	}
@@ -222,7 +221,7 @@ func (sm *SecretsManager) DeleteSecret(ctx context.Context, remoteRef esv1.PushS
 		return err
 	}
 	_, err = sm.client.DeleteSecret(ctx, deleteInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteSecret, err)
+	metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMDeleteSecret, err)
 	return err
 }
 
@@ -260,7 +259,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 	secretName := sm.prefix + psd.GetRemoteKey()
 	describeSecretInput := awssm.DescribeSecretInput{SecretId: &secretName}
 	describeSecretOutput, err := sm.client.DescribeSecret(ctx, &describeSecretInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDescribeSecret, err)
+	metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMDescribeSecret, err)
 	var aerr smithy.APIError
 	if err != nil {
 		if ok := errors.As(err, &aerr); !ok {
@@ -288,7 +287,7 @@ func (sm *SecretsManager) PushSecret(ctx context.Context, secret *corev1.Secret,
 
 	getSecretValueInput := awssm.GetSecretValueInput{SecretId: &secretName}
 	getSecretValueOutput, err := sm.client.GetSecretValue(ctx, &getSecretValueInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
+	metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMGetSecretValue, err)
 	if err != nil {
 		return err
 	}
@@ -393,7 +392,7 @@ func (sm *SecretsManager) findByName(ctx context.Context, ref esv1.ExternalSecre
 			Filters:   filters,
 			NextToken: nextToken,
 		})
-		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMListSecrets, err)
+		metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMListSecrets, err)
 		if err != nil {
 			return nil, err
 		}
@@ -601,7 +600,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 	}
 
 	createOutput, err := sm.client.CreateSecret(ctx, input)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMCreateSecret, err)
+	metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMCreateSecret, err)
 	if err != nil {
 		return err
 	}
@@ -622,7 +621,7 @@ func (sm *SecretsManager) createSecretWithContext(ctx context.Context, secretNam
 		}
 
 		_, err = sm.client.PutResourcePolicy(ctx, putPolicyInput)
-		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutResourcePolicy, err)
+		metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMPutResourcePolicy, err)
 		if err != nil {
 			return fmt.Errorf("failed to put resource policy: %w", err)
 		}
@@ -682,7 +681,7 @@ func (sm *SecretsManager) putSecretValueWithContext(
 	}
 
 	_, err = sm.client.PutSecretValue(ctx, input)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutSecretValue, err)
+	metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMPutSecretValue, err)
 	return err
 }
 
@@ -706,7 +705,7 @@ func (sm *SecretsManager) patchTags(ctx context.Context, rawMetadata *apiextensi
 			SecretId: secretID,
 			TagKeys:  tagKeysToRemove,
 		})
-		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMUntagResource, err)
+		metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMUntagResource, err)
 		if err != nil {
 			return err
 		}
@@ -718,7 +717,7 @@ func (sm *SecretsManager) patchTags(ctx context.Context, rawMetadata *apiextensi
 			SecretId: secretID,
 			Tags:     tagsToUpdate,
 		})
-		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMTagResource, err)
+		metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMTagResource, err)
 		if err != nil {
 			return err
 		}
@@ -735,7 +734,7 @@ func (sm *SecretsManager) fetchWithBatch(ctx context.Context, filters []types.Fi
 			Filters:   filters,
 			NextToken: nextToken,
 		})
-		metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMBatchGetSecretValue, err)
+		metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMBatchGetSecretValue, err)
 		if err != nil {
 			return nil, err
 		}
@@ -805,7 +804,7 @@ func (sm *SecretsManager) constructSecretValue(ctx context.Context, key, ver str
 		}
 	}
 	secretOut, err := sm.client.GetSecretValue(ctx, getSecretValueInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetSecretValue, err)
+	metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMGetSecretValue, err)
 	var (
 		nf *types.ResourceNotFoundException
 		ie *types.InvalidParameterException
@@ -920,7 +919,7 @@ func (sm *SecretsManager) deleteResourcePolicy(ctx context.Context, secretID *st
 		SecretId: secretID,
 	}
 	_, err := sm.client.DeleteResourcePolicy(ctx, deletePolicyInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMDeleteResourcePolicy, err)
+	metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMDeleteResourcePolicy, err)
 
 	var nf *types.ResourceNotFoundException
 	if err != nil && !errors.As(err, &nf) {
@@ -954,7 +953,7 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 		SecretId: secretID,
 	}
 	currentPolicyOutput, err := sm.client.GetResourcePolicy(ctx, getCurrentPolicyInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMGetResourcePolicy, err)
+	metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMGetResourcePolicy, err)
 
 	var nf *types.ResourceNotFoundException
 	if err != nil && !errors.As(err, &nf) {
@@ -989,7 +988,7 @@ func (sm *SecretsManager) manageResourcePolicy(ctx context.Context, metadata *ap
 	}
 
 	_, err = sm.client.PutResourcePolicy(ctx, putPolicyInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMPutResourcePolicy, err)
+	metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMPutResourcePolicy, err)
 	if err != nil {
 		return fmt.Errorf("failed to put resource policy: %w", err)
 	}
@@ -1053,7 +1052,7 @@ func (sm *SecretsManager) replicateExistingSecretToRegions(ctx context.Context, 
 		SecretId:          secretID,
 	}
 	_, err := sm.client.ReplicateSecretToRegions(ctx, replicateSecretToRegionsInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMReplicateSecretToRegions, err)
+	metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMReplicateSecretToRegions, err)
 	if err != nil {
 		return fmt.Errorf("failed to replicate existing secret to regions: %w", err)
 	}
@@ -1066,7 +1065,7 @@ func (sm *SecretsManager) removeRegionsFromReplication(ctx context.Context, secr
 		SecretId:             secretID,
 	}
 	_, err := sm.client.RemoveRegionsFromReplication(ctx, removeRegionsFromReplicationInput)
-	metrics.ObserveAPICall(constants.ProviderAWSSM, constants.CallAWSSMRemoveRegionsFromReplication, err)
+	metrics.ObserveAPICall(ProviderAWSSM, CallAWSSMRemoveRegionsFromReplication, err)
 	if err != nil {
 		return fmt.Errorf("failed to remove regions from secret replication: %w", err)
 	}
