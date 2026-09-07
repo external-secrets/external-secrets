@@ -511,3 +511,52 @@ func TestValidateStore(t *testing.T) {
 		})
 	}
 }
+
+// TestResolveOAuth2TokenURL covers the guard that keeps a SecretStore editor from choosing where
+// the client credentials are sent.
+func TestResolveOAuth2TokenURL(t *testing.T) {
+	tests := map[string]struct {
+		raw       string
+		want      string
+		wantError bool
+	}{
+		"empty falls back to the European endpoint": {
+			raw:  "",
+			want: "https://www.ovh.com/auth/oauth2/token",
+		},
+		"the Canadian endpoint is accepted": {
+			raw:  "https://ca.ovh.com/auth/oauth2/token",
+			want: "https://ca.ovh.com/auth/oauth2/token",
+		},
+		"the US endpoint is accepted": {
+			raw:  "https://us.ovhcloud.com/auth/oauth2/token",
+			want: "https://us.ovhcloud.com/auth/oauth2/token",
+		},
+		"another host is refused": {
+			raw:       "https://attacker.example/auth/oauth2/token",
+			wantError: true,
+		},
+		"plain http on an OVHcloud host is refused": {
+			raw:       "http://www.ovh.com/auth/oauth2/token",
+			wantError: true,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got, err := resolveOAuth2TokenURL(tc.raw)
+			if tc.wantError {
+				if err == nil {
+					t.Fatalf("expected an error for %q, got none", tc.raw)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error for %q: %v", tc.raw, err)
+			}
+			if got != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, got)
+			}
+		})
+	}
+}

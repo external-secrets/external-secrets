@@ -65,13 +65,15 @@ spec:
             key: clientSecret
           # Optional. Defaults to the European endpoint. Canada is
           # https://ca.ovh.com/auth/oauth2/token and the US is
-          # https://us.ovhcloud.com/auth/oauth2/token
+          # https://us.ovhcloud.com/auth/oauth2/token. Only those three hosts
+          # are accepted, over HTTPS.
           tokenURL: https://www.ovh.com/auth/oauth2/token
 ---
 apiVersion: v1
 kind: Secret
 metadata:
   name: ovh-oauth2
+  namespace: default
 data:
   clientID: BASE64-CLIENT-ID-PLACEHOLDER
   clientSecret: BASE64-CLIENT-SECRET-PLACEHOLDER
