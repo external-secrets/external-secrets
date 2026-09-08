@@ -97,7 +97,7 @@ permissions:
 
 env:
   KIND_VERSION: 'v0.30.0'
-  KIND_IMAGE: 'kindest/node:v1.33.4'
+  KIND_IMAGE: 'kindest/node:v1.33.4@sha256:25a6018e48dfcaee478f4a59af81157a437f15e6e140bf103f85a2e7cd0cbbf2'
   AWS_REGION: "eu-central-1"
   # SHA under test on the fork path. Populated by a dispatcher: an explicit
   # `/ok-to-test sha=<sha>` comment (ok-to-test.yml), or the reviewed commit_id

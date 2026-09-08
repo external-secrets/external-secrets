@@ -1,0 +1,64 @@
+name: Update Python documentation dependencies
+
+pipelineid: dependencies/python
+
+# Publishing is opt-in so local runs continue to update the current checkout.
+#{{- if .scm.enabled }}
+actions:
+  dependency-pr:
+    kind: github/pullrequest
+    scmid: default
+    title: "chore(deps): update Python documentation dependencies"
+
+scms:
+  default:
+    kind: github
+    spec:
+      owner: "{{ .scm.owner }}"
+      repository: "{{ .scm.repository }}"
+      branch: main
+      token: '{{ requiredEnv "GITHUB_TOKEN" }}'
+      user: External Secrets Operator
+      email: ExternalSecretsOperator@users.noreply.github.com
+      commitusingapi: true
+      workingbranchprefix: dependencies
+      workingbranchseparator: "/"
+      commitmessage:
+        type: chore
+        scope: deps
+        hidecredit: true
+        footers: 'Signed-off-by: External Secrets Operator <ExternalSecretsOperator@users.noreply.github.com>'
+#{{- end }}
+
+targets:
+  requirements:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    name: Regenerate hash-pinned Python requirements
+    kind: shell
+    disablesourceinput: true
+    spec:
+      command: |
+        work="$(mktemp -d)"
+        trap 'rm -rf "$work"' EXIT
+        cp hack/api-docs/*requirements.in hack/api-docs/*requirements.txt "$work"
+        docker build --tag external-secrets-docs-deps:updatecli hack/api-docs
+        docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp --env XDG_CACHE_HOME=/tmp/.cache --volume "$work:/work" --workdir /work external-secrets-docs-deps:updatecli \
+          pip-compile --upgrade --generate-hashes --output-file=requirements.txt requirements.in
+        docker run --rm --user "$(id -u):$(id -g)" --env HOME=/tmp --env XDG_CACHE_HOME=/tmp/.cache --volume "$work:/work" --workdir /work external-secrets-docs-deps:updatecli \
+          pip-compile --upgrade --allow-unsafe --generate-hashes --output-file=build-requirements.txt build-requirements.in
+        if [ "$DRY_RUN" = "true" ]; then
+          diff -u hack/api-docs/requirements.txt "$work/requirements.txt" || true
+          diff -u hack/api-docs/build-requirements.txt "$work/build-requirements.txt" || true
+        else
+          cp "$work/requirements.txt" "$work/build-requirements.txt" hack/api-docs/
+        fi
+      changedif:
+        kind: file/checksum
+        spec:
+          files:
+            - hack/api-docs/requirements.in
+            - hack/api-docs/requirements.txt
+            - hack/api-docs/build-requirements.in
+            - hack/api-docs/build-requirements.txt

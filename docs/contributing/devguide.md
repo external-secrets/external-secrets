@@ -40,6 +40,72 @@ Build the documentation:
 make docs
 ```
 
+## Updating dependencies
+
+Updatecli needs an authenticated GitHub token to avoid the anonymous API rate
+limit. Export `GITHUB_TOKEN`, or authenticate the GitHub CLI with
+`gh auth login`; the Make target uses either source.
+
+Preview available updates without changing files:
+
+```shell
+make update-deps UPDATECLI_ACTION=diff
+```
+
+GitHub Action autodiscovery checks each reference as a branch, tag, and release,
+so unsuccessful alternative checks can appear with a `✗`. They are not pipeline
+failures; check the final `Run Summary` and command exit status.
+
+Run `make update-deps` to apply every Updatecli manifest in
+`.updatecli.d`. Limit an update to one dependency kind with
+`UPDATECLI_KIND`, or use its convenience target:
+
+```shell
+make update-deps UPDATECLI_KIND=go
+make update-deps-go
+make update-deps-github-actions
+make update-deps-containers
+make update-deps-tools
+make update-deps-helm
+make update-deps-python
+make update-deps-terraform
+```
+
+`UPDATECLI_ACTION=diff` works with either form, for example:
+
+```shell
+make update-deps-go UPDATECLI_ACTION=diff
+```
+
+By default, applying updates only changes the current checkout. To let Updatecli
+commit, push, and create or update a pull request for each selected dependency
+kind, opt in explicitly:
+
+```shell
+UPDATECLI_PUBLISH=true make update-deps-tools
+```
+
+Publishing uses `GITHUB_REPOSITORY` when available and otherwise detects the
+repository with `gh`. The token must have write access to repository contents,
+pull requests, and workflows.
+
+The supported `UPDATECLI_KIND` values are `go`, `github-actions`, `docker`,
+`tools`, `helm`, `python`, and `terraform`. Development tool versions and
+platform checksums are pinned directly in the `Tool Binaries` section of the
+Makefile. Make downloads and verifies their upstream release assets with
+`curl`, `tar`, and either `sha256sum` or `shasum`, then installs them into
+`bin/`. Set `LOCALBIN` to use another location. The installed binaries are the
+Make outputs; no additional installation-state files are maintained.
+
+The `SETUP_ENVTEST_VERSION` variable pins the `setup-envtest` CLI. The
+independent `ENVTEST_KUBERNETES_VERSION` variable selects the Kubernetes test
+control-plane binaries downloaded by that CLI. The
+`gen-crd-api-reference-docs` tool remains source-built from its isolated Go
+module.
+
+After applying updates, inspect and commit all changes, then run
+`make check-diff` to verify that generated files are current.
+
 ## License Headers
 
 All Go source files must include the Apache License 2.0 header. The CI automatically checks license headers for new files added in pull requests using [Apache SkyWalking Eyes](https://github.com/apache/skywalking-eyes).
