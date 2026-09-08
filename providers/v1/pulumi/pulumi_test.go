@@ -466,6 +466,41 @@ func TestPushSecret(t *testing.T) {
 	assert.Equal(t, want, patched)
 }
 
+func TestPushSecretEmptyEnvironment(t *testing.T) {
+	// A brand-new environment has an empty definition (no values block yet),
+	// so definition.Values is nil after GetEnvironment.
+	var patched map[string]any
+	client := newTestClient(t, "", "/environments/foo/default/bar", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add(contentType, contentTypeValue)
+		switch r.Method {
+		case http.MethodGet:
+			_, _ = w.Write([]byte(`{}`))
+		case http.MethodPatch:
+			body, err := io.ReadAll(r.Body)
+			require.NoError(t, err)
+			require.NoError(t, yaml.Unmarshal(body, &patched))
+			_, _ = w.Write([]byte(`{}`))
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})
+
+	err := client.PushSecret(context.TODO(), &corev1.Secret{
+		Data: map[string][]byte{"token": []byte("new-token")},
+	}, testingfake.PushSecretData{SecretKey: "token", RemoteKey: "app.token"})
+	require.NoError(t, err)
+	require.NotNil(t, patched, "expected UpdateEnvironment to be called")
+
+	want := map[string]any{
+		"values": map[string]any{
+			"app": map[string]any{
+				"token": "new-token",
+			},
+		},
+	}
+	assert.Equal(t, want, patched)
+}
+
 func TestCreateSubmaps(t *testing.T) {
 	input := map[string]any{
 		"a.b.c": 1,
