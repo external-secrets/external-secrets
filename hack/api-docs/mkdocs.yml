@@ -101,6 +101,7 @@ nav:
           - Extract structured data: guides/all-keys-one-secret.md
           - Find Secrets by Name or Metadata: guides/getallsecrets.md
           - Rewriting Keys: guides/datafrom-rewrite.md
+          - Filtering Keys with Select: guides/datafrom-select.md
           - Advanced Templating:
               - v2: guides/templating.md
               - v1: guides/templating-v1.md
