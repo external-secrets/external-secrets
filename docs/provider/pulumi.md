@@ -182,6 +182,8 @@ spec:
 
 This will then push the secret to the Pulumi service. If the secret already exists, it will be updated.
 
+Only the pushed key is written. The rest of the environment definition (`imports`, `pulumiConfig`, `environmentVariables`, `files` and any `fn::` expressions) is left unchanged. The pushed value is stored as a plain literal; it is not wrapped in `fn::secret`.
+
 ## Limitations
 
 Currently, the Pulumi provider only supports nested objects up to a depth of 1. Any nested objects beyond this depth will be stored as a string with the JSON representation.
