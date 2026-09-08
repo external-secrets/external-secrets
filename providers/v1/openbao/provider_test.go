@@ -376,6 +376,7 @@ func TestProvider_Auth(t *testing.T) {
 			"approle-id":           []byte("dynamic-roleid"),
 			"approle-secret":       []byte("the-secret"),
 			"userpass-password":    []byte("the-password"),
+			"jwt-token":            []byte("the-openbao-jwt"),
 			"serviceaccount-token": []byte("the-jwt"),
 		},
 	}, &corev1.ServiceAccount{
@@ -493,6 +494,51 @@ func TestProvider_Auth(t *testing.T) {
 		},
 		expectedTokenRequests: []string{"the-namespace/the-serviceaccount"},
 		expectedCalls:         []string{`Kubernetes("kubernetesrole", "the-serviceaccount-jwt", "kubernetespath")`},
+	}, {
+		name: "jwt from secret",
+		auth: &esv1.OpenBaoAuth{
+			Jwt: &esv1.OpenBaoJwtAuth{
+				Path: "jwtpath",
+				SecretRef: &esmeta.SecretKeySelector{
+					Name: "shared-secret",
+					Key:  "jwt-token",
+				},
+				Role: "jwtrole",
+			},
+		},
+		expectedCalls: []string{`JWT("jwtrole", "the-openbao-jwt", "jwtpath")`},
+	}, {
+		name: "jwt from service account",
+		auth: &esv1.OpenBaoAuth{
+			Jwt: &esv1.OpenBaoJwtAuth{
+				Path: "jwtpath",
+				KubernetesServiceAccountToken: &esv1.OpenBaoKubernetesServiceAccountTokenAuth{
+					ServiceAccountRef: esmeta.ServiceAccountSelector{
+						Name: "the-serviceaccount",
+					},
+				},
+				Role: "jwtrole",
+			},
+		},
+		expectedTokenRequests: []string{"default/the-serviceaccount"},
+		expectedCalls:         []string{`JWT("jwtrole", "the-serviceaccount-jwt", "jwtpath")`},
+	}, {
+		name:         "jwt from service account with clusterstore",
+		clusterStore: true,
+		auth: &esv1.OpenBaoAuth{
+			Jwt: &esv1.OpenBaoJwtAuth{
+				Path: "jwtpath",
+				KubernetesServiceAccountToken: &esv1.OpenBaoKubernetesServiceAccountTokenAuth{
+					ServiceAccountRef: esmeta.ServiceAccountSelector{
+						Name:      "the-serviceaccount",
+						Namespace: &targetNamespace,
+					},
+				},
+				Role: "jwtrole",
+			},
+		},
+		expectedTokenRequests: []string{"the-namespace/the-serviceaccount"},
+		expectedCalls:         []string{`JWT("jwtrole", "the-serviceaccount-jwt", "jwtpath")`},
 	},
 	}
 
@@ -501,6 +547,7 @@ func TestProvider_Auth(t *testing.T) {
 			RegisterTestingT(t)
 			factory := &auth.MockFactory{}
 			provider.AuthMethodFactory = factory
+			tokenRequests = nil
 
 			var store esv1.GenericStore
 			s := makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2)
@@ -525,6 +572,7 @@ func TestProvider_Auth(t *testing.T) {
 			})
 
 			Expect(factory.GetCalls()).To(Equal(tc.expectedCalls))
+			Expect(tokenRequests).To(Equal(tc.expectedTokenRequests))
 		})
 	}
 }
