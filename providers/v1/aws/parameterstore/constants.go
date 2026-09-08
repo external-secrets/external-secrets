@@ -14,15 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package constants holds constant values for the project.
-package constants
+package parameterstore
 
-// Status and label constants define shared status values and Kubernetes labels.
+// Metrics constants identify the AWS Parameter Store provider and API calls.
 const (
-	StatusError   = "error"
-	StatusSuccess = "success"
-
-	WellKnownLabelKey             = "external-secrets.io/component"
-	WellKnownLabelValueController = "controller"
-	WellKnownLabelValueWebhook    = "webhook"
+	ProviderAWSPS                = "AWS/ParameterStore"
+	CallAWSPSGetParameter        = "GetParameter"
+	CallAWSPSGetParametersByPath = "GetParametersByPath"
+	CallAWSPSPutParameter        = "PutParameter"
+	CallAWSPSDeleteParameter     = "DeleteParameter"
+	CallAWSPSDescribeParameter   = "DescribeParameter"
+	CallAWSPSRemoveTagsParameter = "RemoveTagsFromResource"
+	CallAWSPSAddTagsParameter    = "AddTagsToResource"
+	CallAWSPSListTagsForResource = "ListTagsForResource"
 )
