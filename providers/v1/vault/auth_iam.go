@@ -125,10 +125,16 @@ func (c *client) requestTokenWithIamAuth(
 	if err != nil {
 		return err
 	}
-	// Set environment variables. These would be fetched by Login
-	_ = os.Setenv("AWS_ACCESS_KEY_ID", getCreds.AccessKeyID)
-	_ = os.Setenv("AWS_SECRET_ACCESS_KEY", getCreds.SecretAccessKey)
-	_ = os.Setenv("AWS_SESSION_TOKEN", getCreds.SessionToken)
+	// The hashicorp/vault AWS auth client reads its credentials from the
+	// AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY and AWS_SESSION_TOKEN environment
+	// variables. Set them temporarily and restore the previous values afterwards
+	// so that unrelated SecretStores handled by the same controller process are
+	// not affected (see #6937).
+	restoreAWSCreds, err := setAWSCredentialEnvVars(getCreds)
+	if err != nil {
+		return err
+	}
+	defer restoreAWSCreds()
 
 	var awsAuthClient *authaws.AWSAuth
 
@@ -156,6 +162,42 @@ func (c *client) requestTokenWithIamAuth(
 		return err
 	}
 	return nil
+}
+
+// setAWSCredentialEnvVars sets the AWS credential environment variables that the
+// hashicorp/vault AWS auth client reads during its IAM login, and returns a
+// function that restores the previous environment. The restore function must be
+// called once the login has completed so that credentials for one SecretStore do
+// not leak into the process environment and affect unrelated SecretStores.
+func setAWSCredentialEnvVars(creds aws.Credentials) (func(), error) {
+	envVars := map[string]string{
+		"AWS_ACCESS_KEY_ID":     creds.AccessKeyID,
+		"AWS_SECRET_ACCESS_KEY": creds.SecretAccessKey,
+		"AWS_SESSION_TOKEN":     creds.SessionToken,
+	}
+
+	prev := make(map[string]string, len(envVars))
+	wasSet := make(map[string]bool, len(envVars))
+	for key, value := range envVars {
+		if old, ok := os.LookupEnv(key); ok {
+			prev[key] = old
+			wasSet[key] = true
+		}
+		if err := os.Setenv(key, value); err != nil {
+			return nil, err
+		}
+	}
+
+	return func() {
+		for key, old := range prev {
+			_ = os.Setenv(key, old)
+		}
+		for key := range envVars {
+			if !wasSet[key] {
+				_ = os.Unsetenv(key)
+			}
+		}
+	}, nil
 }
 
 func (c *client) getRegionOrDefault(region string) string {
