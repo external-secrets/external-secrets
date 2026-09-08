@@ -14,15 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package constants holds constant values for the project.
-package constants
+package webhook
 
-// Status and label constants define shared status values and Kubernetes labels.
+// Metrics constants identify the Webhook provider and API calls.
 const (
-	StatusError   = "error"
-	StatusSuccess = "success"
-
-	WellKnownLabelKey             = "external-secrets.io/component"
-	WellKnownLabelValueController = "controller"
-	WellKnownLabelValueWebhook    = "webhook"
+	ProviderWebhook    = "Webhook"
+	CallWebhookHTTPReq = "HTTPRequest"
 )

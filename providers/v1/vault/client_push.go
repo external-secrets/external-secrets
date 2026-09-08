@@ -27,7 +27,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
@@ -149,14 +148,14 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	// Secret metadata should be pushed separately only for KV2
 	if c.store.Version == esv1.VaultKVStoreV2 {
 		_, err = c.logical.WriteWithContext(ctx, metaPath, label)
-		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
+		metrics.ObserveAPICall(ProviderHCVault, CallHCVaultWriteSecretData, err)
 		if err != nil {
 			return err
 		}
 	}
 	// Otherwise, create or update the version.
 	_, err = c.logical.WriteWithContext(ctx, path, secretToPush)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
+	metrics.ObserveAPICall(ProviderHCVault, CallHCVaultWriteSecretData, err)
 	return err
 }
 
@@ -198,18 +197,18 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 				}
 			}
 			_, err = c.logical.WriteWithContext(ctx, path, secretToPush)
-			metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+			metrics.ObserveAPICall(ProviderHCVault, CallHCVaultDeleteSecret, err)
 			return err
 		}
 	}
 	_, err = c.logical.DeleteWithContext(ctx, path)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+	metrics.ObserveAPICall(ProviderHCVault, CallHCVaultDeleteSecret, err)
 	if err != nil {
 		return fmt.Errorf("could not delete secret %v: %w", remoteRef.GetRemoteKey(), err)
 	}
 	if c.store.Version == esv1.VaultKVStoreV2 {
 		_, err = c.logical.DeleteWithContext(ctx, metaPath)
-		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultDeleteSecret, err)
+		metrics.ObserveAPICall(ProviderHCVault, CallHCVaultDeleteSecret, err)
 		if err != nil {
 			return fmt.Errorf("could not delete secret metadata %v: %w", remoteRef.GetRemoteKey(), err)
 		}
