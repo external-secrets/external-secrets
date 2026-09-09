@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
 	"slices"
 	"strconv"
@@ -311,8 +312,7 @@ func (c *client) path() string {
 }
 
 func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	var res *api.KVSecret
-	var err error
+	var data map[string]any
 
 	if c.useV1() {
 		if ref.Version != "" {
@@ -324,33 +324,44 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		}
 
 		kv := c.client.KVv1(c.path())
-		res, err = kv.Get(ctx, ref.Key)
+		res, err := kv.Get(ctx, ref.Key)
 		if err != nil {
 			return nil, err
 		}
+		data = res.Data
 	} else {
 		kv := c.client.KVv2(c.path())
-		if ref.Version != "" {
+		if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
+			res, err := kv.GetMetadata(ctx, ref.Key)
+			if err != nil {
+				return nil, err
+			}
+
+			data = make(map[string]any, len(res.CustomMetadata)+3)
+			data["created_time"] = res.CreatedTime.Format(time.RFC3339Nano)
+			data["current_version"] = res.CurrentVersion
+			data["delete_version_after"] = res.DeleteVersionAfter.String()
+			maps.Copy(data, res.CustomMetadata)
+		} else if ref.Version != "" {
 			version, err := strconv.Atoi(ref.Version)
 			if err != nil {
 				return nil, fmt.Errorf(errInvalidRevVersion, err)
 			}
 
-			res, err = kv.GetVersion(ctx, ref.Key, version)
+			res, err := kv.GetVersion(ctx, ref.Key, version)
 			if err != nil {
 				return nil, err
 			}
-		} else {
-			res, err = kv.Get(ctx, ref.Key)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
 
-	data := res.Data
-	if ref.MetadataPolicy == esv1.ExternalSecretMetadataPolicyFetch {
-		data = res.CustomMetadata
+			data = res.Data
+		} else {
+			res, err := kv.Get(ctx, ref.Key)
+			if err != nil {
+				return nil, err
+			}
+
+			data = res.Data
+		}
 	}
 
 	if ref.Property == "" {
