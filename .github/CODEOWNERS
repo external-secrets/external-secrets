@@ -62,6 +62,7 @@ providers/v1/scaleway/                 @external-secrets/provider-scaleway-revie
 providers/v1/secretserver/             @external-secrets/provider-secretserver-reviewers
 providers/v1/senhasegura/              @external-secrets/provider-senhasegura-reviewers
 providers/v1/vault/                    @external-secrets/provider-vault-reviewers
+providers/v1/vaultwarden/              @thereisnotime
 providers/v1/webhook/                  @external-secrets/provider-webhook-reviewers
 providers/v1/yandex/                   @external-secrets/provider-yandex-reviewers
 
