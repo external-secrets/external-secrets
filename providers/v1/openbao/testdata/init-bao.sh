@@ -16,6 +16,8 @@ bao kv metadata put -mount=secret -custom-metadata=bar=meta2 foo2
 bao kv put -mount=secret lorem ipsum=dolor
 bao kv metadata put -mount=secret -custom-metadata=bar=meta lorem
 
+echo '{"data":{}}' | bao write secret/data/nothing - # creating an empty secret is not well supported by the CLI
+
 # create v1 secret
 bao secrets enable -version=1 -path=secret_v1 kv
 bao kv put -mount=secret_v1 foo bar=bazz_v1 lorem=ipsum_v1
