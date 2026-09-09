@@ -147,7 +147,7 @@ func newHTTPSClient(ctx context.Context, c client.Client, storeKind, namespace s
 	}
 
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
+		TLSClientConfig: &tls.Config{RootCAs: pool},
 	}
 
 	return &http.Client{Transport: tr, Timeout: time.Second * 10}, nil

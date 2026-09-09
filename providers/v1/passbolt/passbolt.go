@@ -376,7 +376,6 @@ func buildHTTPClient(ctx context.Context, config *esv1.PassboltProvider, kube kc
 		transport.TLSClientConfig = transport.TLSClientConfig.Clone()
 	}
 	transport.TLSClientConfig.RootCAs = caCertPool
-	transport.TLSClientConfig.MinVersion = tls.VersionTLS12
 
 	return &http.Client{
 		Transport: transport,
