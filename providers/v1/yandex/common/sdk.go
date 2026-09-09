@@ -103,7 +103,7 @@ func NewIamToken(ctx context.Context, apiEndpoint string, authorizedKey *iamkey.
 }
 
 func tlsConfig(caCertificate []byte) (*tls.Config, error) {
-	config := &tls.Config{MinVersion: tls.VersionTLS12}
+	config := &tls.Config{}
 	if caCertificate != nil {
 		caCertPool := x509.NewCertPool()
 		ok := caCertPool.AppendCertsFromPEM(caCertificate)
