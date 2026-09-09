@@ -100,10 +100,14 @@ func (c *Cache[T]) Add(version string, key Key, client T) {
 // ContainsOrAdd atomically checks whether the key exists and adds the value if
 // it does not. An existing key counts as present even when its version differs,
 // preventing a concurrent constructor from overwriting the cached value.
-// It returns true when the key already exists. Rejected values are not passed
-// to the cleanup function because they never become owned by the cache.
+// It returns true when the key already exists. Because a rejected value never
+// becomes owned by the cache it would otherwise never be cleaned up at all, so
+// the rejection path passes it to the same cleanup function an eviction would.
 func (c *Cache[T]) ContainsOrAdd(version string, key Key, client T) bool {
 	exists, _ := c.lru.ContainsOrAdd(key, value[T]{Version: version, Client: client})
+	if exists && c.cleanupFunc != nil {
+		c.cleanupFunc(client)
+	}
 	return exists
 }
 
