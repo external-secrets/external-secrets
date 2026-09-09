@@ -100,6 +100,18 @@ func isReferentSpec(prov *esv1.OpenBaoProvider) bool {
 				return true
 			}
 		}
+
+		if auth.Jwt != nil {
+			jwt := auth.Jwt
+
+			if jwt.SecretRef != nil && jwt.SecretRef.Namespace == nil {
+				return true
+			}
+
+			if jwt.KubernetesServiceAccountToken != nil && jwt.KubernetesServiceAccountToken.ServiceAccountRef.Namespace == nil {
+				return true
+			}
+		}
 	}
 
 	if prov.CAProvider != nil && prov.CAProvider.Namespace == nil {
