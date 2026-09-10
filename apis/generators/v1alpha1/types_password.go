@@ -25,7 +25,7 @@ type PasswordSpec struct {
 	// Length of the password to be generated.
 	// Defaults to 24
 	// +kubebuilder:default=24
-	Length int `json:"length"`
+	Length int `json:"length,omitempty"`
 
 	// Digits specifies the number of digits in the generated
 	// password. If omitted it defaults to 25% of the length of the password
@@ -41,11 +41,11 @@ type PasswordSpec struct {
 
 	// Set NoUpper to disable uppercase characters
 	// +kubebuilder:default=false
-	NoUpper bool `json:"noUpper"`
+	NoUpper bool `json:"noUpper,omitempty"`
 
 	// set AllowRepeat to true to allow repeating characters.
 	// +kubebuilder:default=false
-	AllowRepeat bool `json:"allowRepeat"`
+	AllowRepeat bool `json:"allowRepeat,omitempty"`
 
 	// SecretKeys defines the keys that will be populated with generated passwords.
 	// Defaults to "password" when not set.

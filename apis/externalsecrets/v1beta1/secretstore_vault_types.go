@@ -168,8 +168,9 @@ type VaultAuth struct {
 type VaultAppRole struct {
 	// Path where the App Role authentication backend is mounted
 	// in Vault, e.g: "approle"
+	// +optional
 	// +kubebuilder:default=approle
-	Path string `json:"path"`
+	Path string `json:"path,omitempty"`
 
 	// RoleID configured in the App Role authentication backend when setting
 	// up the authentication backend in Vault.
@@ -194,8 +195,9 @@ type VaultAppRole struct {
 type VaultKubernetesAuth struct {
 	// Path where the Kubernetes authentication backend is mounted in Vault, e.g:
 	// "kubernetes"
+	// +optional
 	// +kubebuilder:default=kubernetes
-	Path string `json:"mountPath"`
+	Path string `json:"mountPath,omitempty"`
 
 	// Optional service account field containing the name of a kubernetes ServiceAccount.
 	// If the service account is specified, the service account secret token JWT will be used
@@ -221,8 +223,9 @@ type VaultKubernetesAuth struct {
 type VaultLdapAuth struct {
 	// Path where the LDAP authentication backend is mounted
 	// in Vault, e.g: "ldap"
+	// +optional
 	// +kubebuilder:default=ldap
-	Path string `json:"path"`
+	Path string `json:"path,omitempty"`
 
 	// Username is an LDAP username used to authenticate using the LDAP Vault
 	// authentication method
@@ -299,8 +302,9 @@ type VaultKubernetesServiceAccountTokenAuth struct {
 type VaultJwtAuth struct {
 	// Path where the JWT authentication backend is mounted
 	// in Vault, e.g: "jwt"
+	// +optional
 	// +kubebuilder:default=jwt
-	Path string `json:"path"`
+	Path string `json:"path,omitempty"`
 
 	// Role is a JWT role to authenticate using the JWT/OIDC Vault
 	// authentication method
@@ -363,8 +367,9 @@ type VaultIamAuth struct {
 type VaultUserPassAuth struct {
 	// Path where the UserPassword authentication backend is mounted
 	// in Vault, e.g: "userpass"
+	// +optional
 	// +kubebuilder:default=userpass
-	Path string `json:"path"`
+	Path string `json:"path,omitempty"`
 
 	// Username is a username used to authenticate using the UserPass Vault
 	// authentication method

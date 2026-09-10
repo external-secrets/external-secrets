@@ -138,8 +138,9 @@ type OpenBaoUserPassAuth struct {
 	// Path where the UserPassword authentication backend is mounted
 	// in OpenBao, e.g: "userpass"
 	//
+	// +optional
 	// +kubebuilder:default=userpass
-	Path string `json:"path"`
+	Path string `json:"path,omitempty"`
 
 	// Username is a username used to authenticate using the [UserPass
 	// authentication method]
@@ -167,8 +168,9 @@ type OpenBaoAppRole struct {
 	// Path where the App Role authentication backend is mounted
 	// in OpenBao, e.g: "approle"
 	//
+	// +optional
 	// +kubebuilder:default=approle
-	Path string `json:"path"`
+	Path string `json:"path,omitempty"`
 
 	// RoleID configured in the App Role authentication backend when setting
 	// up the authentication backend in OpenBao.
@@ -204,8 +206,9 @@ type OpenBaoAppRole struct {
 type OpenBaoKubernetesAuth struct {
 	// Path where the Kubernetes authentication backend is mounted in OpenBao, e.g:
 	// "kubernetes"
+	// +optional
 	// +kubebuilder:default=kubernetes
-	Path string `json:"path"`
+	Path string `json:"path,omitempty"`
 
 	// Optional service account field containing the name of a Kubernetes ServiceAccount.
 	// If the service account is specified, a token will be requested from the Kubernetes

@@ -6622,10 +6622,7 @@ spec:
                           description: Project is an onboardbase project that the secrets should be pulled from
                           type: string
                       required:
-                        - apiHost
                         - auth
-                        - environment
-                        - project
                       type: object
                     onepassword:
                       description: OnePassword configures this store to sync secrets using the 1Password Cloud provider
@@ -6855,7 +6852,6 @@ spec:
                                       type: string
                                   type: object
                               required:
-                                - path
                                 - secretRef
                               type: object
                               x-kubernetes-validations:
@@ -6942,7 +6938,6 @@ spec:
                                     - name
                                   type: object
                               required:
-                                - path
                                 - role
                               type: object
                               x-kubernetes-validations:
@@ -7032,7 +7027,6 @@ spec:
                                     [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
                                   type: string
                               required:
-                                - path
                                 - username
                               type: object
                           type: object
@@ -8184,7 +8178,6 @@ spec:
                                       type: string
                                   type: object
                               required:
-                                - path
                                 - secretRef
                               type: object
                             cert:
@@ -8629,8 +8622,6 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
-                              required:
-                                - path
                               type: object
                             kubernetes:
                               description: |-
@@ -8711,7 +8702,6 @@ spec:
                                     - name
                                   type: object
                               required:
-                                - mountPath
                                 - role
                               type: object
                             ldap:
@@ -8760,7 +8750,6 @@ spec:
                                     authentication method
                                   type: string
                               required:
-                                - path
                                 - username
                               type: object
                             namespace:
@@ -8841,7 +8830,6 @@ spec:
                                     authentication method
                                   type: string
                               required:
-                                - path
                                 - username
                               type: object
                           type: object
@@ -11951,10 +11939,7 @@ spec:
                           description: Project is an onboardbase project that the secrets should be pulled from
                           type: string
                       required:
-                        - apiHost
                         - auth
-                        - environment
-                        - project
                       type: object
                     onepassword:
                       description: OnePassword configures this store to sync secrets using the 1Password Cloud provider
@@ -12673,7 +12658,6 @@ spec:
                                       type: string
                                   type: object
                               required:
-                                - path
                                 - secretRef
                               type: object
                             cert:
@@ -12981,8 +12965,6 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
-                              required:
-                                - path
                               type: object
                             kubernetes:
                               description: |-
@@ -13063,7 +13045,6 @@ spec:
                                     - name
                                   type: object
                               required:
-                                - mountPath
                                 - role
                               type: object
                             ldap:
@@ -13112,7 +13093,6 @@ spec:
                                     authentication method
                                   type: string
                               required:
-                                - path
                                 - username
                               type: object
                             namespace:
@@ -13193,7 +13173,6 @@ spec:
                                     authentication method
                                   type: string
                               required:
-                                - path
                                 - username
                               type: object
                           type: object
@@ -20079,10 +20058,7 @@ spec:
                           description: Project is an onboardbase project that the secrets should be pulled from
                           type: string
                       required:
-                        - apiHost
                         - auth
-                        - environment
-                        - project
                       type: object
                     onepassword:
                       description: OnePassword configures this store to sync secrets using the 1Password Cloud provider
@@ -20312,7 +20288,6 @@ spec:
                                       type: string
                                   type: object
                               required:
-                                - path
                                 - secretRef
                               type: object
                               x-kubernetes-validations:
@@ -20399,7 +20374,6 @@ spec:
                                     - name
                                   type: object
                               required:
-                                - path
                                 - role
                               type: object
                               x-kubernetes-validations:
@@ -20489,7 +20463,6 @@ spec:
                                     [UserPass authentication method]: https://openbao.org/docs/auth/userpass/
                                   type: string
                               required:
-                                - path
                                 - username
                               type: object
                           type: object
@@ -21641,7 +21614,6 @@ spec:
                                       type: string
                                   type: object
                               required:
-                                - path
                                 - secretRef
                               type: object
                             cert:
@@ -22086,8 +22058,6 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
-                              required:
-                                - path
                               type: object
                             kubernetes:
                               description: |-
@@ -22168,7 +22138,6 @@ spec:
                                     - name
                                   type: object
                               required:
-                                - mountPath
                                 - role
                               type: object
                             ldap:
@@ -22217,7 +22186,6 @@ spec:
                                     authentication method
                                   type: string
                               required:
-                                - path
                                 - username
                               type: object
                             namespace:
@@ -22298,7 +22266,6 @@ spec:
                                     authentication method
                                   type: string
                               required:
-                                - path
                                 - username
                               type: object
                           type: object
@@ -25408,10 +25375,7 @@ spec:
                           description: Project is an onboardbase project that the secrets should be pulled from
                           type: string
                       required:
-                        - apiHost
                         - auth
-                        - environment
-                        - project
                       type: object
                     onepassword:
                       description: OnePassword configures this store to sync secrets using the 1Password Cloud provider
@@ -26130,7 +26094,6 @@ spec:
                                       type: string
                                   type: object
                               required:
-                                - path
                                 - secretRef
                               type: object
                             cert:
@@ -26438,8 +26401,6 @@ spec:
                                       pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                       type: string
                                   type: object
-                              required:
-                                - path
                               type: object
                             kubernetes:
                               description: |-
@@ -26520,7 +26481,6 @@ spec:
                                     - name
                                   type: object
                               required:
-                                - mountPath
                                 - role
                               type: object
                             ldap:
@@ -26569,7 +26529,6 @@ spec:
                                     authentication method
                                   type: string
                               required:
-                                - path
                                 - username
                               type: object
                             namespace:
@@ -26650,7 +26609,6 @@ spec:
                                     authentication method
                                   type: string
                               required:
-                                - path
                                 - username
                               type: object
                           type: object
@@ -28837,10 +28795,6 @@ spec:
                             Symbols specifies the number of symbol characters in the generated
                             password. If omitted it defaults to 25% of the length of the password
                           type: integer
-                      required:
-                        - allowRepeat
-                        - length
-                        - noUpper
                       type: object
                     quayAccessTokenSpec:
                       description: QuayAccessTokenSpec defines the desired state to generate a Quay access token.
@@ -29178,7 +29132,6 @@ spec:
                                           type: string
                                       type: object
                                   required:
-                                    - path
                                     - secretRef
                                   type: object
                                 cert:
@@ -29623,8 +29576,6 @@ spec:
                                           pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                           type: string
                                       type: object
-                                  required:
-                                    - path
                                   type: object
                                 kubernetes:
                                   description: |-
@@ -29705,7 +29656,6 @@ spec:
                                         - name
                                       type: object
                                   required:
-                                    - mountPath
                                     - role
                                   type: object
                                 ldap:
@@ -29754,7 +29704,6 @@ spec:
                                         authentication method
                                       type: string
                                   required:
-                                    - path
                                     - username
                                   type: object
                                 namespace:
@@ -29835,7 +29784,6 @@ spec:
                                         authentication method
                                       type: string
                                   required:
-                                    - path
                                     - username
                                   type: object
                               type: object
@@ -31464,10 +31412,6 @@ spec:
                     Symbols specifies the number of symbol characters in the generated
                     password. If omitted it defaults to 25% of the length of the password
                   type: integer
-              required:
-                - allowRepeat
-                - length
-                - noUpper
               type: object
           type: object
       served: true
@@ -32049,7 +31993,6 @@ spec:
                                   type: string
                               type: object
                           required:
-                            - path
                             - secretRef
                           type: object
                         cert:
@@ -32494,8 +32437,6 @@ spec:
                                   pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                                   type: string
                               type: object
-                          required:
-                            - path
                           type: object
                         kubernetes:
                           description: |-
@@ -32576,7 +32517,6 @@ spec:
                                 - name
                               type: object
                           required:
-                            - mountPath
                             - role
                           type: object
                         ldap:
@@ -32625,7 +32565,6 @@ spec:
                                 authentication method
                               type: string
                           required:
-                            - path
                             - username
                           type: object
                         namespace:
@@ -32706,7 +32645,6 @@ spec:
                                 authentication method
                               type: string
                           required:
-                            - path
                             - username
                           type: object
                       type: object

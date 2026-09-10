@@ -8874,6 +8874,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>APIHost use this to configure the host url for the API for selfhosted installation, default is <a href="https://public.onboardbase.com/api/v1/">https://public.onboardbase.com/api/v1/</a></p>
 </td>
 </tr>
@@ -8885,6 +8886,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Project is an onboardbase project that the secrets should be pulled from</p>
 </td>
 </tr>
@@ -8896,6 +8898,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Environment is the name of an environmnent within a project to pull the secrets from</p>
 </td>
 </tr>
@@ -9171,6 +9174,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the App Role authentication backend is mounted
 in OpenBao, e.g: &ldquo;approle&rdquo;</p>
 </td>
@@ -9370,6 +9374,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the Kubernetes authentication backend is mounted in OpenBao, e.g:
 &ldquo;kubernetes&rdquo;</p>
 </td>
@@ -9565,6 +9570,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the UserPassword authentication backend is mounted
 in OpenBao, e.g: &ldquo;userpass&rdquo;</p>
 </td>
@@ -12875,6 +12881,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the App Role authentication backend is mounted
 in Vault, e.g: &ldquo;approle&rdquo;</p>
 </td>
@@ -13654,6 +13661,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the JWT authentication backend is mounted
 in Vault, e.g: &ldquo;jwt&rdquo;</p>
 </td>
@@ -13751,6 +13759,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the Kubernetes authentication backend is mounted in Vault, e.g:
 &ldquo;kubernetes&rdquo;</p>
 </td>
@@ -13893,6 +13902,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the LDAP authentication backend is mounted
 in Vault, e.g: &ldquo;ldap&rdquo;</p>
 </td>
@@ -14145,6 +14155,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the UserPassword authentication backend is mounted
 in Vault, e.g: &ldquo;userpass&rdquo;</p>
 </td>
@@ -22221,6 +22232,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>APIHost use this to configure the host url for the API for selfhosted installation, default is <a href="https://public.onboardbase.com/api/v1/">https://public.onboardbase.com/api/v1/</a></p>
 </td>
 </tr>
@@ -22232,6 +22244,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Project is an onboardbase project that the secrets should be pulled from</p>
 </td>
 </tr>
@@ -22243,6 +22256,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Environment is the name of an environmnent within a project to pull the secrets from</p>
 </td>
 </tr>
@@ -24939,6 +24953,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the App Role authentication backend is mounted
 in Vault, e.g: &ldquo;approle&rdquo;</p>
 </td>
@@ -25533,6 +25548,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the JWT authentication backend is mounted
 in Vault, e.g: &ldquo;jwt&rdquo;</p>
 </td>
@@ -25631,6 +25647,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the Kubernetes authentication backend is mounted in Vault, e.g:
 &ldquo;kubernetes&rdquo;</p>
 </td>
@@ -25773,6 +25790,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the LDAP authentication backend is mounted
 in Vault, e.g: &ldquo;ldap&rdquo;</p>
 </td>
@@ -26008,6 +26026,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>Path where the UserPassword authentication backend is mounted
 in Vault, e.g: &ldquo;userpass&rdquo;</p>
 </td>

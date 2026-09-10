@@ -38,15 +38,16 @@ type OnboardbaseProvider struct {
 	Auth *OnboardbaseAuthSecretRef `json:"auth"`
 
 	// APIHost use this to configure the host url for the API for selfhosted installation, default is https://public.onboardbase.com/api/v1/
+	// +optional
 	// +kubebuilder:default:="https://public.onboardbase.com/api/v1/"
-	APIHost string `json:"apiHost"`
+	APIHost string `json:"apiHost,omitempty"`
 
 	// Project is an onboardbase project that the secrets should be pulled from
-	// +kubebuilder:validation:Required
+	// +optional
 	// +kubebuilder:default:="development"
-	Project string `json:"project"`
+	Project string `json:"project,omitempty"`
 	// Environment is the name of an environmnent within a project to pull the secrets from
-	// +kubebuilder:validation:Required
+	// +optional
 	// +kubebuilder:default:="development"
-	Environment string `json:"environment"`
+	Environment string `json:"environment,omitempty"`
 }
