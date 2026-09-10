@@ -18,6 +18,7 @@ package fortanix
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -91,6 +92,104 @@ func TestNewClient(t *testing.T) {
 		_, err := p.NewClient(ctx, &s, fakeClient, "test")
 
 		assert.ErrorContains(t, err, "cannot resolve secret key ref")
+	})
+
+	t.Run("should fail to create new client if CABundle is invalid base64", func(t *testing.T) {
+		ctx := context.Background()
+		p := &Provider{}
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "secret-name",
+				Namespace: "test",
+			},
+			Data: map[string][]byte{
+				"apiKey": []byte("apiKey"),
+			},
+		}
+		s := esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Fortanix: &esv1.FortanixProvider{
+						CABundle: []byte("invalid-base64-!@#$"),
+						APIKey: &esv1.FortanixProviderSecretRef{
+							SecretRef: &v1.SecretKeySelector{
+								Name: "secret-name",
+								Key:  "apiKey",
+							},
+						},
+					},
+				},
+			},
+		}
+		scheme := runtime.NewScheme()
+		require.NoError(t, esv1.AddToScheme(scheme))
+		require.NoError(t, corev1.AddToScheme(scheme))
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret, &s).Build()
+		_, err := p.NewClient(ctx, &s, fakeClient, "test")
+
+		assert.ErrorContains(t, err, "failed to decode ca bundle")
+	})
+
+	t.Run("with valid inline CA bundle", func(t *testing.T) {
+		p := &Provider{}
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "secret-name",
+				Namespace: "test",
+			},
+			Data: map[string][]byte{
+				"apiKey": []byte("apiKey"),
+			},
+		}
+		s := esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Fortanix: &esv1.FortanixProvider{
+						CABundle: []byte(`-----BEGIN CERTIFICATE-----
+MIIDHTCCAgWgAwIBAgIRAKC4yxy9QGocND+6avTf7BgwDQYJKoZIhvcNAQELBQAw
+EjEQMA4GA1UEChMHQWNtZSBDbzAeFw0yMTAzMjAyMDA4MDhaFw0yMTAzMjAyMDM4
+MDhaMBIxEDAOBgNVBAoTB0FjbWUgQ28wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAw
+ggEKAoIBAQC3o6/JdZEqNbqNRkopHhJtJG5c4qS5d0tQ/kZYpfD/v/izAYum4Nzj
+aG15owr92/11W0pxPUliRLti3y6iScTs+ofm2D7p4UXj/Fnho/2xoWSOoWAodgvW
+Y8jh8A0LQALZiV/9QsrJdXZdS47DYZLsQ3z9yFC/CdXkg1l7AQ3fIVGKdrQBr9kE
+1gEDqnKfRxXI8DEQKXr+CKPUwCAytegmy0SHp53zNAvY+kopHytzmJpXLoEhxq4e
+ugHe52vXHdh/HJ9VjNp0xOH1waAgAGxHlltCW0PVd5AJ0SXROBS/a3V9sZCbCrJa
+YOOonQSEswveSv6PcG9AHvpNPot2Xs6hAgMBAAGjbjBsMA4GA1UdDwEB/wQEAwIC
+pDATBgNVHSUEDDAKBggrBgEFBQcDATAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQW
+BBR00805mrpoonp95RmC3B6oLl+cGTAVBgNVHREEDjAMggpnb29ibGUuY29tMA0G
+CSqGSIb3DQEBCwUAA4IBAQAipc1b6JrEDayPjpz5GM5krcI8dCWVd8re0a9bGjjN
+ioWGlu/eTr5El0ffwCNZ2WLmL9rewfHf/bMvYz3ioFZJ2OTxfazqYXNggQz6cMfa
+lbedDCdt5XLVX2TyerGvFram+9Uyvk3l0uM7rZnwAmdirG4Tv94QRaD3q4xTj/c0
+mv+AggtK0aRFb9o47z/BypLdk5mhbf3Mmr88C8XBzEnfdYyf4JpTlZrYLBmDCu5d
+9RLLsjXxhag8xqMtd1uLUM8XOTGzVWacw8iGY+CTtBKqyA+AE6/bDwZvEwVtsKtC
+QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
+-----END CERTIFICATE-----`),
+						APIKey: &esv1.FortanixProviderSecretRef{
+							SecretRef: &v1.SecretKeySelector{
+								Name: "secret-name",
+								Key:  "apiKey",
+							},
+						},
+					},
+				},
+			},
+		}
+		scheme := runtime.NewScheme()
+		require.NoError(t, esv1.AddToScheme(scheme))
+		require.NoError(t, corev1.AddToScheme(scheme))
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret, &s).Build()
+		clientInterface, err := p.NewClient(context.Background(), &s, fakeClient, "test")
+
+		require.NoError(t, err)
+		require.NotNil(t, clientInterface)
+
+		fortanixClient, ok := clientInterface.(*client)
+		require.True(t, ok)
+
+		transport, ok := fortanixClient.sdkms.HTTPClient.Transport.(*http.Transport)
+		require.True(t, ok, "transport should be *http.Transport")
+		require.NotNil(t, transport.TLSClientConfig, "TLSClientConfig should not be nil")
+		require.NotNil(t, transport.TLSClientConfig.RootCAs, "RootCAs should not be nil")
 	})
 }
 
