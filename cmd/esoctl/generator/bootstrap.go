@@ -241,27 +241,31 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 
 	content := string(data)
 
-	// Check if already exists
-	if strings.Contains(content, cfg.GeneratorKind) {
+	hasEnum := contentHasExactEnumValue(content, cfg.GeneratorName)
+	hasConst := strings.Contains(content, cfg.GeneratorKind+" GeneratorKind = ")
+	hasSpec := strings.Contains(content, cfg.GeneratorName+"Spec *"+cfg.GeneratorName+"Spec")
+	// Only short-circuit when every required patch is already present.
+	if hasEnum && hasConst && hasSpec {
 		fmt.Printf("⚠ Generator kind already exists in types_cluster.go\n")
 		return nil
 	}
 
 	lines := strings.Split(content, "\n")
 	newLines := make([]string, 0, len(lines)+2)
-	enumAdded := false
-	constAdded := false
-	specAdded := false
+	enumAdded := hasEnum
+	constAdded := hasConst
+	specAdded := hasSpec
 
 	for i, line := range lines {
-		// Update the enum validation annotation
+		// Update the enum validation annotation (append after whatever the last kind is).
 		if !enumAdded && strings.Contains(line, "+kubebuilder:validation:Enum=") {
-			// Add the new generator to the enum list
 			line = strings.TrimRight(line, "\n")
-			if strings.HasSuffix(line, "Grafana") {
+			if enumAnnotationHasValue(line, cfg.GeneratorName) {
+				enumAdded = true
+			} else {
 				line = line + ";" + cfg.GeneratorName
+				enumAdded = true
 			}
-			enumAdded = true
 		}
 
 		newLines = append(newLines, line)
@@ -284,9 +288,9 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 		if !specAdded && strings.Contains(line, "Spec") && strings.Contains(line, "`json:") && strings.Contains(line, "omitempty") {
 			// Look ahead to check if next line is closing brace of the struct
 			if i+1 < len(lines) && strings.TrimSpace(lines[i+1]) == "}" {
-				// Add the new spec field
-				jsonTag := strings.ToLower(cfg.GeneratorName) + "Spec"
-				specLine := fmt.Sprintf("\t%sSpec             *%sSpec             `json:\"%s,omitempty\"`",
+				// lowerCamelCase json tag to match siblings (ecrAuthorizationTokenSpec, ...).
+				jsonTag := toLowerCamel(cfg.GeneratorName) + "Spec"
+				specLine := fmt.Sprintf("\t%sSpec *%sSpec `json:\"%s,omitempty\"`",
 					cfg.GeneratorName, cfg.GeneratorName, jsonTag)
 				newLines = append(newLines, specLine)
 				specAdded = true
@@ -303,16 +307,17 @@ func updateTypesClusterFile(rootDir string, cfg Config) error {
 			fmt.Printf("   2. Add the const: %s GeneratorKind = \"%s\"\n", cfg.GeneratorKind, cfg.GeneratorName)
 		}
 		if !specAdded {
-			fmt.Printf("   3. Add to GeneratorSpec struct: %sSpec *%sSpec `json:\"%sSpec,omitempty\"`\n",
-				cfg.GeneratorName, cfg.GeneratorName, strings.ToLower(cfg.GeneratorName))
+			fmt.Printf("   3. Add to GeneratorSpec struct: %sSpec *%sSpec `json:\"%s,omitempty\"`\n",
+				cfg.GeneratorName, cfg.GeneratorName, toLowerCamel(cfg.GeneratorName)+"Spec")
 		}
-	} else {
-		if err := os.WriteFile(filepath.Clean(typesClusterFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil { //nolint:gosec // paths are constructed internally
-			return err
-		}
-		fmt.Printf("✓ Updated types_cluster.go\n")
+		// Do not claim success when steps were skipped.
+		return fmt.Errorf("incomplete update of types_cluster.go (enum=%v const=%v spec=%v)", enumAdded, constAdded, specAdded)
 	}
 
+	if err := os.WriteFile(filepath.Clean(typesClusterFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil { //nolint:gosec // paths are constructed internally
+		return err
+	}
+	fmt.Printf("✓ Updated types_cluster.go\n")
 	return nil
 }
 
@@ -463,29 +468,38 @@ func updateRegisterKindFile(rootDir string, cfg Config) error {
 
 	content := string(data)
 
-	// Check if already exists
-	if strings.Contains(content, fmt.Sprintf("%sKind", cfg.GeneratorName)) {
+	kindMarker := fmt.Sprintf("%sKind = reflect.TypeFor[%s]().Name()", cfg.GeneratorName, cfg.GeneratorName)
+	// Also accept legacy TypeOf form as "kind present".
+	kindMarkerLegacy := fmt.Sprintf("%sKind = reflect.TypeOf(%s{}).Name()", cfg.GeneratorName, cfg.GeneratorName)
+	schemeMarker := fmt.Sprintf("SchemeBuilder.Register(&%s{}, &%sList{})", cfg.GeneratorName, cfg.GeneratorName)
+	hasKind := strings.Contains(content, kindMarker) || strings.Contains(content, kindMarkerLegacy)
+	hasScheme := strings.Contains(content, schemeMarker)
+	// Only short-circuit when every required patch is already present.
+	if hasKind && hasScheme {
 		fmt.Printf("⚠ Generator kind already exists in register.go\n")
 		return nil
 	}
 
 	lines := strings.Split(content, "\n")
 	newLines := make([]string, 0, len(lines)+4)
-	kindAdded := false
-	schemeAdded := false
+	kindAdded := hasKind
+	schemeAdded := hasScheme
 
 	for i, line := range lines {
 		newLines = append(newLines, line)
 
-		// Add Kind constant before closing paren of var block
-		if !kindAdded && strings.Contains(line, "Kind = reflect.TypeOf(") && strings.Contains(line, "{}).Name()") {
+		// Add Kind constant before closing paren of var block.
+		// Prefer reflect.TypeFor[T]() (current style); keep TypeOf as a fallback.
+		isKindLine := (strings.Contains(line, "Kind = reflect.TypeFor[") && strings.Contains(line, "]().Name()")) ||
+			(strings.Contains(line, "Kind = reflect.TypeOf(") && strings.Contains(line, "{}).Name()"))
+		if !kindAdded && isKindLine {
 			// Look ahead to see if next line is closing paren
 			if i+1 < len(lines) && strings.TrimSpace(lines[i+1]) == ")" {
 				// Add blank line and then the new kind
 				newLines = append(newLines, "")
 				kindComment := fmt.Sprintf("\t// %sKind is the kind name for %s resource.", cfg.GeneratorName, cfg.GeneratorName)
 				newLines = append(newLines, kindComment)
-				kindLine := fmt.Sprintf("\t%sKind = reflect.TypeOf(%s{}).Name()", cfg.GeneratorName, cfg.GeneratorName)
+				kindLine := fmt.Sprintf("\t%sKind = reflect.TypeFor[%s]().Name()", cfg.GeneratorName, cfg.GeneratorName)
 				newLines = append(newLines, kindLine)
 				kindAdded = true
 			}
@@ -505,18 +519,18 @@ func updateRegisterKindFile(rootDir string, cfg Config) error {
 	if !kindAdded || !schemeAdded {
 		fmt.Printf("⚠ Warning: Could not fully update register.go. Please manually add:\n")
 		if !kindAdded {
-			fmt.Printf("   1. Add Kind constant: %sKind = reflect.TypeOf(%s{}).Name()\n", cfg.GeneratorName, cfg.GeneratorName)
+			fmt.Printf("   1. Add Kind constant: %sKind = reflect.TypeFor[%s]().Name()\n", cfg.GeneratorName, cfg.GeneratorName)
 		}
 		if !schemeAdded {
 			fmt.Printf("   2. Add SchemeBuilder registration: SchemeBuilder.Register(&%s{}, &%sList{})\n", cfg.GeneratorName, cfg.GeneratorName)
 		}
-	} else {
-		if err := os.WriteFile(filepath.Clean(registerFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil { //nolint:gosec // paths are constructed internally
-			return err
-		}
-		fmt.Printf("✓ Updated register.go\n")
+		return fmt.Errorf("incomplete update of register.go (kind=%v scheme=%v)", kindAdded, schemeAdded)
 	}
 
+	if err := os.WriteFile(filepath.Clean(registerFile), []byte(strings.Join(newLines, "\n")), 0o600); err != nil { //nolint:gosec // paths are constructed internally
+		return err
+	}
+	fmt.Printf("✓ Updated register.go\n")
 	return nil
 }
 
@@ -531,8 +545,8 @@ func updateExternalSecretGeneratorRef(rootDir string, cfg Config) error {
 
 	content := string(data)
 
-	// Check if already exists
-	if strings.Contains(content, ";"+cfg.GeneratorName) {
+	// Check if already exists as a complete enum entry (not a substring).
+	if contentHasExactEnumValue(content, cfg.GeneratorName) {
 		fmt.Printf("⚠ Generator %s already exists in v1 GeneratorRef enum\n", cfg.GeneratorName)
 		return nil
 	}
@@ -547,11 +561,13 @@ func updateExternalSecretGeneratorRef(rootDir string, cfg Config) error {
 		if !updated && strings.Contains(line, "+kubebuilder:validation:Enum=") &&
 			strings.Contains(line, "ACRAccessToken") &&
 			strings.Contains(line, "ClusterGenerator") {
-			// This is the enum line we need to update
-			// Add the new generator to the end of the enum list
 			line = strings.TrimRight(line, "\n")
-			line = line + ";" + cfg.GeneratorName
-			updated = true
+			if enumAnnotationHasValue(line, cfg.GeneratorName) {
+				updated = true
+			} else {
+				line = line + ";" + cfg.GeneratorName
+				updated = true
+			}
 		}
 
 		newLines = append(newLines, line)
