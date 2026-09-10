@@ -28,6 +28,7 @@ import (
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -623,6 +624,78 @@ DXZDjC5Ty3zfDBeWUA==
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			runTest(t, name, tc)
+		})
+	}
+}
+
+func TestSecretExists(t *testing.T) {
+	tests := []struct {
+		name             string
+		remoteKey        string
+		property         string
+		resources        map[string]bool
+		expectedResource string
+		expectedExists   bool
+	}{
+		{
+			name:      "Empty property checks policy (exists)",
+			remoteKey: "data/eso",
+			resources: map[string]bool{
+				"policy:data/eso": true,
+			},
+			expectedResource: "policy:data/eso",
+			expectedExists:   true,
+		},
+		{
+			name:      "Empty property checks policy (does not exist)",
+			remoteKey: "data/eso",
+			resources: map[string]bool{
+				"policy:data/eso": false,
+			},
+			expectedResource: "policy:data/eso",
+			expectedExists:   false,
+		},
+		{
+			name:      "Property present checks variable path (exists)",
+			remoteKey: "data/eso",
+			property:  "db-pass",
+			resources: map[string]bool{
+				"variable:data/eso/db-pass": true,
+			},
+			expectedResource: "variable:data/eso/db-pass",
+			expectedExists:   true,
+		},
+		{
+			name:      "Property present checks variable path (does not exist)",
+			remoteKey: "data/eso",
+			property:  "db-pass",
+			resources: map[string]bool{
+				"variable:data/eso/db-pass": false,
+			},
+			expectedResource: "variable:data/eso/db-pass",
+			expectedExists:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mock := &fake.ConjurMockClient{
+				ResourceExistence: tt.resources,
+			}
+
+			provider := &Client{
+				client: mock,
+			}
+
+			ref := RemoteRef{
+				RemoteKey: tt.remoteKey,
+				Property:  tt.property,
+			}
+
+			exists, err := provider.SecretExists(context.Background(), ref)
+			assert.NoError(t, err)
+
+			assert.Equal(t, tt.expectedExists, exists)
 		})
 	}
 }

@@ -106,8 +106,28 @@ func (c *Client) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) err
 }
 
 // SecretExists checks if a secret exists in the provider.
-func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New("not implemented")
+func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+	conjurClient, getConjurClientError := c.GetConjurClient(ctx)
+	if getConjurClientError != nil {
+		return false, getConjurClientError
+	}
+	/*
+		If the property is empty, we should check if the policy exists - that's the best we can do
+		as variables are dynamically populated from the k8s secret fields.
+
+		If the property is present, we should check if the variable exists.
+	*/
+	resourceid := fmt.Sprintf("policy:%s", ref.GetRemoteKey())
+	if ref.GetProperty() != "" {
+		resourceid = fmt.Sprintf("variable:%s/%s", ref.GetRemoteKey(), ref.GetProperty())
+	}
+
+	exists, err := conjurClient.ResourceExists(resourceid)
+	if err != nil {
+		return false, fmt.Errorf("failed to check remote secret: %w", err)
+	}
+
+	return exists, nil
 }
 
 // Validate validates the provider configuration.
