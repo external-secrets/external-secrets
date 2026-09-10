@@ -98,33 +98,12 @@ var webhookCmd = &cobra.Command{
 			}
 		}(c, dnsName, certCheckInterval)
 
-		cipherList, err := getTLSCipherSuitesIDs(tlsCiphers)
+		webhookTLSOpts, err := buildTLSConfigFuncs(tlsCiphers, tlsMinVersion, tlsCurvePreferences, enableHTTP2)
 		if err != nil {
-			ctrl.Log.Error(err, "unable to fetch tls ciphers")
+			setupLog.Error(err, "unable to configure TLS for webhook server")
 			os.Exit(1)
 		}
 
-		// Configure TLS options for webhook server
-		var webhookTLSOpts []func(*tls.Config)
-
-		// Add cipher configuration if needed
-		if len(cipherList) > 0 {
-			webhookTLSOpts = append(webhookTLSOpts, func(cfg *tls.Config) {
-				cfg.CipherSuites = cipherList
-			})
-		}
-
-		// Add TLS version configuration
-		webhookTLSOpts = append(webhookTLSOpts, func(c *tls.Config) {
-			c.MinVersion = tlsVersion(tlsMinVersion)
-		})
-
-		// Add HTTP/2 disabling if needed
-		if !enableHTTP2 {
-			webhookTLSOpts = append(webhookTLSOpts, disableHTTP2)
-		}
-
-		// Configure metrics server options
 		metricsServerOpts := server.Options{
 			BindAddress: metricsAddr,
 		}
@@ -144,10 +123,10 @@ var webhookCmd = &cobra.Command{
 			os.Exit(1)
 		}
 
-		// Configure TLS options for metrics server
-		var metricsTLSOpts []func(*tls.Config)
-		if !enableHTTP2 {
-			metricsTLSOpts = append(metricsTLSOpts, disableHTTP2)
+		metricsTLSOpts, err := buildTLSConfigFuncs(tlsCiphers, tlsMinVersion, tlsCurvePreferences, enableHTTP2)
+		if err != nil {
+			setupLog.Error(err, "unable to configure TLS for webhook metrics server")
+			os.Exit(1)
 		}
 		metricsServerOpts.TLSOpts = metricsTLSOpts
 
@@ -200,20 +179,19 @@ var webhookCmd = &cobra.Command{
 
 // tlsVersion converts from human-readable TLS version (for example "1.1")
 // to the values accepted by tls.Config (for example 0x301).
-func tlsVersion(version string) uint16 {
+// Returns an error for unrecognized version strings.
+func tlsVersion(version string) (uint16, error) {
 	switch version {
-	case "":
-		return tls.VersionTLS10
 	case "1.0":
-		return tls.VersionTLS10
+		return tls.VersionTLS10, nil
 	case "1.1":
-		return tls.VersionTLS11
+		return tls.VersionTLS11, nil
 	case "1.2":
-		return tls.VersionTLS12
+		return tls.VersionTLS12, nil
 	case "1.3":
-		return tls.VersionTLS13
+		return tls.VersionTLS13, nil
 	default:
-		return tls.VersionTLS13
+		return 0, fmt.Errorf("unsupported TLS minimum version %q; valid values are 1.0, 1.1, 1.2, 1.3", version)
 	}
 }
 
@@ -282,7 +260,12 @@ func init() {
 		" The order of this list does not give preference to the ciphers, the ordering is done automatically."+
 		" Full lists of available ciphers can be found at https://pkg.go.dev/crypto/tls#pkg-constants."+
 		" E.g. 'TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256,TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256'")
-	webhookCmd.Flags().StringVar(&tlsMinVersion, "tls-min-version", "1.2", "minimum version of TLS supported.")
+	webhookCmd.Flags().StringVar(&tlsMinVersion, "tls-min-version", "", "minimum version of TLS supported. "+
+		"If not specified, Go's default minimum version is used. Valid values: 1.0, 1.1, 1.2, 1.3")
+	webhookCmd.Flags().StringSliceVar(&tlsCurvePreferences, "tls-curve-preferences", nil,
+		"ordered list of TLS key exchange curves for the webhook and metrics servers "+
+			"(for example X25519,CurveP256, or decimal tls.CurveID values supported by this Go toolchain). "+
+			"If omitted, Go defaults are used.")
 	webhookCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook server")
 }

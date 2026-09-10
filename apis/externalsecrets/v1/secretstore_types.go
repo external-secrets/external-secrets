@@ -153,7 +153,7 @@ type SecretStoreProvider struct {
 	// +optional
 	YandexLockbox *YandexLockboxProvider `json:"yandexlockbox,omitempty"`
 
-	// Github configures this store to push GitHub Actions secrets using the GitHub API provider.
+	// Github configures this store to push GitHub Actions or Dependabot secrets using the GitHub API provider.
 	// Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub
 	// +optional
 	Github *GithubProvider `json:"github,omitempty"`

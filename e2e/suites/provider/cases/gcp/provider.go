@@ -33,7 +33,6 @@ import (
 	"google.golang.org/api/option"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilpointer "k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
@@ -267,7 +266,7 @@ func (s *GcpProvider) CreateSpecifcSASecretStore() {
 						ClusterName:     s.clusterName,
 						ServiceAccountRef: esmeta.ServiceAccountSelector{
 							Name:      s.ServiceAccountName,
-							Namespace: utilpointer.String(s.ServiceAccountNamespace),
+							Namespace: new(s.ServiceAccountNamespace),
 						},
 					},
 				},

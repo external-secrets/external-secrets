@@ -33,7 +33,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilpointer "k8s.io/utils/pointer"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -147,7 +146,7 @@ func (s *azureProvider) CreateSecret(key string, val framework.SecretEntry) {
 			Value: &val.Value,
 			SecretAttributes: &keyvault.SecretAttributes{
 				RecoveryLevel: keyvault.Purgeable,
-				Enabled:       utilpointer.Bool(true),
+				Enabled:       new(true),
 			},
 		})
 	Expect(err).ToNot(HaveOccurred())
@@ -170,7 +169,7 @@ func (s *azureProvider) CreateKey(key string) *keyvault.JSONWebKey {
 			Kty: keyvault.RSA,
 			KeyAttributes: &keyvault.KeyAttributes{
 				RecoveryLevel: keyvault.Purgeable,
-				Enabled:       utilpointer.Bool(true),
+				Enabled:       new(true),
 			},
 		},
 	)
@@ -191,20 +190,20 @@ func (s *azureProvider) CreateCertificate(key string) {
 		keyvault.CertificateCreateParameters{
 			CertificatePolicy: &keyvault.CertificatePolicy{
 				X509CertificateProperties: &keyvault.X509CertificateProperties{
-					Subject:          utilpointer.String("CN=e2e.test"),
-					ValidityInMonths: utilpointer.Int32(42),
+					Subject:          new("CN=e2e.test"),
+					ValidityInMonths: new(int32(42)),
 				},
 				IssuerParameters: &keyvault.IssuerParameters{
-					Name: utilpointer.String("Self"),
+					Name: new("Self"),
 				},
 				Attributes: &keyvault.CertificateAttributes{
 					RecoveryLevel: keyvault.Purgeable,
-					Enabled:       utilpointer.Bool(true),
+					Enabled:       new(true),
 				},
 			},
 			CertificateAttributes: &keyvault.CertificateAttributes{
 				RecoveryLevel: keyvault.Purgeable,
-				Enabled:       utilpointer.Bool(true),
+				Enabled:       new(true),
 			},
 		},
 	)
