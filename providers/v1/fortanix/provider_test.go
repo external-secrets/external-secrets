@@ -92,6 +92,42 @@ func TestNewClient(t *testing.T) {
 
 		assert.ErrorContains(t, err, "cannot resolve secret key ref")
 	})
+
+	t.Run("should fail to create new client if CABundle is invalid base64", func(t *testing.T) {
+		ctx := context.Background()
+		p := &Provider{}
+		secret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "secret-name",
+				Namespace: "test",
+			},
+			Data: map[string][]byte{
+				"apiKey": []byte("apiKey"),
+			},
+		}
+		s := esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Fortanix: &esv1.FortanixProvider{
+						CABundle: []byte("invalid-base64-!@#$"),
+						APIKey: &esv1.FortanixProviderSecretRef{
+							SecretRef: &v1.SecretKeySelector{
+								Name: "secret-name",
+								Key:  "apiKey",
+							},
+						},
+					},
+				},
+			},
+		}
+		scheme := runtime.NewScheme()
+		require.NoError(t, esv1.AddToScheme(scheme))
+		require.NoError(t, corev1.AddToScheme(scheme))
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret, &s).Build()
+		_, err := p.NewClient(ctx, &s, fakeClient, "test")
+
+		assert.ErrorContains(t, err, "failed to decode ca bundle")
+	})
 }
 
 func TestValidateStore(t *testing.T) {
