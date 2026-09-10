@@ -18,6 +18,7 @@ package fortanix
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -177,10 +178,18 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 		require.NoError(t, esv1.AddToScheme(scheme))
 		require.NoError(t, corev1.AddToScheme(scheme))
 		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(secret, &s).Build()
-		client, err := p.NewClient(context.Background(), &s, fakeClient, "test")
+		clientInterface, err := p.NewClient(context.Background(), &s, fakeClient, "test")
 
-		assert.NoError(t, err)
-		assert.NotNil(t, client)
+		require.NoError(t, err)
+		require.NotNil(t, clientInterface)
+
+		fortanixClient, ok := clientInterface.(*client)
+		require.True(t, ok)
+
+		transport, ok := fortanixClient.sdkms.HTTPClient.Transport.(*http.Transport)
+		require.True(t, ok, "transport should be *http.Transport")
+		require.NotNil(t, transport.TLSClientConfig, "TLSClientConfig should not be nil")
+		require.NotNil(t, transport.TLSClientConfig.RootCAs, "RootCAs should not be nil")
 	})
 }
 
