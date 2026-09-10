@@ -62,6 +62,33 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 	return []byte(result.Str), nil
 }
 
+// formatSecretKey returns the secret key, optionally prefixed with the relative
+// path when includeSecretPath is enabled. Secrets at the root path (/) are
+// never prefixed.
+//
+// Example (basePath="/", includeSecretPath=true):
+//
+//	("/",       "FOO") -> "FOO"
+//	("/sub",    "FOO") -> "sub/FOO"
+//	("/a/b",    "FOO") -> "a/b/FOO"
+//
+// Example (basePath="/path", includeSecretPath=true):
+//
+//	("/path",       "FOO") -> "FOO"
+//	("/path/sub",   "FOO") -> "sub/FOO"
+func formatSecretKey(secretKey, secretPath, basePath string, includeSecretPath bool) string {
+	if !includeSecretPath {
+		return secretKey
+	}
+
+	rel := strings.TrimPrefix(secretPath, basePath)
+	rel = strings.TrimPrefix(rel, "/")
+	if rel == "" {
+		return secretKey
+	}
+	return rel + "/" + secretKey
+}
+
 // getSecretAddress returns the (folder, name) pair to look up in Infisical for the given key.
 //
 // Resolution rules:
@@ -169,6 +196,7 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 		Recursive:              p.apiScope.Recursive,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 		IncludeImports:         true,
+		SkipUniqueValidation:   p.apiScope.IncludeSecretPath,
 	})
 	metrics.ObserveAPICall(constants.ProviderName, getSecretsV3, err)
 	if err != nil {
@@ -178,7 +206,8 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 	if ref.Name == nil {
 		secretMap := make(map[string][]byte, len(secrets))
 		for _, secret := range secrets {
-			secretMap[secret.SecretKey] = []byte(secret.SecretValue)
+			key := formatSecretKey(secret.SecretKey, secret.SecretPath, secretPath, p.apiScope.IncludeSecretPath)
+			secretMap[key] = []byte(secret.SecretValue)
 		}
 		return secretMap, nil
 	}
@@ -191,7 +220,8 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 	selected := map[string][]byte{}
 	for _, secret := range secrets {
 		if matcher.MatchName(secret.SecretKey) {
-			selected[secret.SecretKey] = []byte(secret.SecretValue)
+			key := formatSecretKey(secret.SecretKey, secret.SecretPath, secretPath, p.apiScope.IncludeSecretPath)
+			selected[key] = []byte(secret.SecretValue)
 		}
 	}
 	return selected, nil

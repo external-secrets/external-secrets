@@ -7798,6 +7798,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>
@@ -8189,6 +8190,19 @@ bool
 <td>
 <em>(Optional)</em>
 <p>ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>includeSecretPath</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IncludeSecretPath indicates whether the secret path should be included as a prefix
+in the secret key. Secrets at the root path (/) are not prefixed.</p>
 </td>
 </tr>
 </tbody>

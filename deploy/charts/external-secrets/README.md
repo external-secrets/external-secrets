@@ -161,6 +161,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | grafanaDashboard.annotations | object | `{}` | Annotations that ConfigMaps can have to get configured in Grafana, See: sidecar.dashboards.folderAnnotation for specifying the dashboard folder. https://github.com/grafana/helm-charts/tree/main/charts/grafana |
 | grafanaDashboard.enabled | bool | `false` | If true creates a Grafana dashboard. |
 | grafanaDashboard.extraLabels | object | `{}` | Extra labels to add to the Grafana dashboard ConfigMap. |
+| grafanaDashboard.namespace | string | `""` | Namespace where the dashboard ConfigMap should be created. Resolution order: grafanaDashboard.namespace, then namespaceOverride, then the release namespace. |
 | grafanaDashboard.sidecarLabel | string | `"grafana_dashboard"` | Label that ConfigMaps should have to be loaded as dashboards. |
 | grafanaDashboard.sidecarLabelValue | string | `"1"` | Label value that ConfigMaps should have to be loaded as dashboards. |
 | hostAliases | list | `[]` | Specifies `hostAliases` to deployment |

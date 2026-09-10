@@ -558,6 +558,9 @@
                 "extraLabels": {
                     "type": "object"
                 },
+                "namespace": {
+                    "type": "string"
+                },
                 "sidecarLabel": {
                     "type": "string"
                 },

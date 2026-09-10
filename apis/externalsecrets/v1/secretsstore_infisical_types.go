@@ -154,6 +154,11 @@ type MachineIdentityScopeInWorkspace struct {
 	// +kubebuilder:default=true
 	// +optional
 	ExpandSecretReferences bool `json:"expandSecretReferences,omitempty"`
+	// IncludeSecretPath indicates whether the secret path should be included as a prefix
+	// in the secret key. Secrets at the root path (/) are not prefixed.
+	// +kubebuilder:default=false
+	// +optional
+	IncludeSecretPath bool `json:"includeSecretPath,omitempty"`
 }
 
 // InfisicalProvider configures a store to sync secrets using the Infisical provider.

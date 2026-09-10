@@ -33,7 +33,6 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -463,7 +462,7 @@ func (r *k8sSATokenReader) SubjectToken(ctx context.Context, options externalacc
 	}
 
 	resp, err := r.saTokenGenerator.Generate(ctx, r.saAudience, r.serviceAccount.Name, r.serviceAccount.Namespace)
-	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGenerateSAToken, err)
+	metrics.ObserveAPICall(ProviderGCPSM, CallGCPSMGenerateSAToken, err)
 	if err != nil {
 		return "", fmt.Errorf(errFetchPodToken, err)
 	}

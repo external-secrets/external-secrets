@@ -28,7 +28,6 @@ import (
 	"github.com/Azure/azure-sdk-for-go/services/keyvault/v7.0/keyvault"
 	"github.com/Azure/go-autorest/autorest/azure"
 
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -109,7 +108,7 @@ func (a *Azure) handleDeletedSecretRecovery(ctx context.Context, secretName stri
 		return false, nil
 	}
 	err := a.secretRecoverer.recoverDeletedSecret(ctx, secretName)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVRecoverSecret, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVRecoverSecret, err)
 	if err != nil {
 		return true, fmt.Errorf("could not recover soft-deleted secret %v: %w", secretName, err)
 	}

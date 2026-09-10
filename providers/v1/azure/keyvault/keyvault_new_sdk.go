@@ -38,7 +38,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
@@ -72,7 +71,7 @@ func newSDKSecretUnchanged(existingValue, existingContentType *string, value []b
 // New SDK implementations for setter methods.
 func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName string, value []byte, contentType *string, tags map[string]string) error {
 	existingSecret, err := a.secretsClient.GetSecret(ctx, secretName, "", nil)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetSecret, err)
 
 	if err != nil && !isNotFoundErr(err) {
 		return fmt.Errorf("cannot get secret %v: %w", secretName, parseNewSDKError(err))
@@ -113,7 +112,7 @@ func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName stri
 	// This is a limitation compared to the legacy SDK - expiration would need to be handled differently
 
 	_, err = a.secretsClient.SetSecret(ctx, secretName, params, nil)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVSetSecret, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVSetSecret, err)
 	if handled, recoveryErr := a.handleDeletedSecretRecovery(ctx, secretName, err); handled {
 		return recoveryErr
 	}
@@ -132,7 +131,7 @@ func (a *Azure) setKeyVaultCertificateWithNewSDK(ctx context.Context, secretName
 
 	// Check if certificate exists
 	cert, err := a.certsClient.GetCertificate(ctx, secretName, "", nil)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetCertificate, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetCertificate, err)
 
 	if err != nil {
 		var respErr *azcore.ResponseError
@@ -168,7 +167,7 @@ func (a *Azure) setKeyVaultCertificateWithNewSDK(ctx context.Context, secretName
 	}
 
 	_, err = a.certsClient.ImportCertificate(ctx, secretName, params, nil)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVImportCertificate, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVImportCertificate, err)
 	if err != nil {
 		return fmt.Errorf("could not import certificate %v: %w", secretName, parseNewSDKError(err))
 	}
@@ -197,7 +196,7 @@ func (a *Azure) setKeyVaultKeyWithNewSDK(ctx context.Context, secretName string,
 
 	// Check if key exists
 	keyFromVault, err := a.keysClient.GetKey(ctx, secretName, "", nil)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetKey, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetKey, err)
 
 	if err != nil {
 		var respErr *azcore.ResponseError
@@ -231,7 +230,7 @@ func (a *Azure) setKeyVaultKeyWithNewSDK(ctx context.Context, secretName string,
 	}
 
 	_, err = a.keysClient.ImportKey(ctx, secretName, params, nil)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVImportKey, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVImportKey, err)
 	if err != nil {
 		return fmt.Errorf("could not import key %v: %w", secretName, parseNewSDKError(err))
 	}
@@ -294,7 +293,7 @@ func (a *Azure) processSecretsPage(ctx context.Context, secrets []*azsecrets.Sec
 
 		// Get the secret value
 		secretResp, err := a.secretsClient.GetSecret(ctx, secretName, "", nil)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetSecret, err)
 		if err != nil {
 			return parseNewSDKError(err)
 		}
@@ -312,7 +311,7 @@ func (a *Azure) getAllSecretsWithNewSDK(ctx context.Context, ref esv1.ExternalSe
 
 	for pager.More() {
 		page, err := pager.NextPage(ctx)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecrets, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetSecrets, err)
 		if err != nil {
 			return nil, parseNewSDKError(err)
 		}
@@ -327,7 +326,7 @@ func (a *Azure) getAllSecretsWithNewSDK(ctx context.Context, ref esv1.ExternalSe
 func (a *Azure) getSecretTagsWithNewSDK(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string]*string, error) {
 	_, secretName := getObjType(ref)
 	secretResp, err := a.secretsClient.GetSecret(ctx, secretName, ref.Version, nil)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetSecret, err)
 	if err != nil {
 		return nil, parseNewSDKError(err)
 	}
@@ -625,7 +624,7 @@ func canDeleteWithNewSDK(tags map[string]*string, err error) (bool, error) {
 // Delete methods using new Azure SDK.
 func (a *Azure) deleteKeyVaultSecretWithNewSDK(ctx context.Context, secretName string) error {
 	secret, err := a.secretsClient.GetSecret(ctx, secretName, "", nil)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetSecret, err)
 
 	ok, err := canDeleteWithNewSDK(secret.Tags, err)
 	if err != nil {
@@ -634,7 +633,7 @@ func (a *Azure) deleteKeyVaultSecretWithNewSDK(ctx context.Context, secretName s
 
 	if ok {
 		_, err = a.secretsClient.DeleteSecret(ctx, secretName, nil)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVDeleteSecret, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVDeleteSecret, err)
 		if err != nil {
 			return fmt.Errorf("error deleting secret %v: %w", secretName, err)
 		}
@@ -644,7 +643,7 @@ func (a *Azure) deleteKeyVaultSecretWithNewSDK(ctx context.Context, secretName s
 
 func (a *Azure) deleteKeyVaultCertificateWithNewSDK(ctx context.Context, certName string) error {
 	cert, err := a.certsClient.GetCertificate(ctx, certName, "", nil)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetCertificate, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetCertificate, err)
 
 	ok, err := canDeleteWithNewSDK(cert.Tags, err)
 	if err != nil {
@@ -653,7 +652,7 @@ func (a *Azure) deleteKeyVaultCertificateWithNewSDK(ctx context.Context, certNam
 
 	if ok {
 		_, err = a.certsClient.DeleteCertificate(ctx, certName, nil)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVDeleteCertificate, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVDeleteCertificate, err)
 		if err != nil {
 			return fmt.Errorf("error deleting certificate %v: %w", certName, err)
 		}
@@ -663,7 +662,7 @@ func (a *Azure) deleteKeyVaultCertificateWithNewSDK(ctx context.Context, certNam
 
 func (a *Azure) deleteKeyVaultKeyWithNewSDK(ctx context.Context, keyName string) error {
 	key, err := a.keysClient.GetKey(ctx, keyName, "", nil)
-	metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetKey, err)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetKey, err)
 
 	ok, err := canDeleteWithNewSDK(key.Tags, err)
 	if err != nil {
@@ -672,7 +671,7 @@ func (a *Azure) deleteKeyVaultKeyWithNewSDK(ctx context.Context, keyName string)
 
 	if ok {
 		_, err = a.keysClient.DeleteKey(ctx, keyName, nil)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVDeleteKey, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVDeleteKey, err)
 		if err != nil {
 			return fmt.Errorf("error deleting key %v: %w", keyName, err)
 		}
@@ -688,7 +687,7 @@ func (a *Azure) getSecretWithNewSDK(ctx context.Context, ref esv1.ExternalSecret
 	case defaultObjType:
 		// Get secret using new SDK
 		resp, err := a.secretsClient.GetSecret(ctx, secretName, ref.Version, nil)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetSecret, err)
 		if err != nil {
 			return nil, parseNewSDKError(err)
 		}
@@ -700,7 +699,7 @@ func (a *Azure) getSecretWithNewSDK(ctx context.Context, ref esv1.ExternalSecret
 	case objectTypeCert:
 		// Get certificate using new SDK
 		resp, err := a.certsClient.GetCertificate(ctx, secretName, ref.Version, nil)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetCertificate, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetCertificate, err)
 		if err != nil {
 			return nil, parseNewSDKError(err)
 		}
@@ -712,7 +711,7 @@ func (a *Azure) getSecretWithNewSDK(ctx context.Context, ref esv1.ExternalSecret
 	case objectTypeKey:
 		// Get key using new SDK
 		resp, err := a.keysClient.GetKey(ctx, secretName, ref.Version, nil)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetKey, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetKey, err)
 		if err != nil {
 			return nil, parseNewSDKError(err)
 		}
@@ -738,13 +737,13 @@ func (a *Azure) secretExistsWithNewSDK(ctx context.Context, remoteRef esv1.PushS
 	switch objectType {
 	case defaultObjType:
 		_, err = a.secretsClient.GetSecret(ctx, secretName, "", nil)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetSecret, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetSecret, err)
 	case objectTypeCert:
 		_, err = a.certsClient.GetCertificate(ctx, secretName, "", nil)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetCertificate, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetCertificate, err)
 	case objectTypeKey:
 		_, err = a.keysClient.GetKey(ctx, secretName, "", nil)
-		metrics.ObserveAPICall(constants.ProviderAzureKV, constants.CallAzureKVGetKey, err)
+		metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetKey, err)
 	default:
 		errMsg := fmt.Sprintf("secret type '%v' is not supported", objectType)
 		return false, errors.New(errMsg)
