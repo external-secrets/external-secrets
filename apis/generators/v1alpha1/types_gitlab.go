@@ -45,6 +45,7 @@ const (
 
 // GitlabDeployTokenSpec defines the desired state to generate a GitLab deploy token.
 // +kubebuilder:validation:XValidation:rule="has(self.projectID) != has(self.groupID)",message="exactly one of projectID or groupID must be set"
+// +kubebuilder:validation:XValidation:rule="!(has(self.expiresAt) && has(self.expiresAfter))",message="expiresAt and expiresAfter are mutually exclusive"
 type GitlabDeployTokenSpec struct {
 	// URL configures the GitLab instance URL. Defaults to https://gitlab.com.
 	// +optional
@@ -77,6 +78,16 @@ type GitlabDeployTokenSpec struct {
 	// cleaned up (on regeneration or when the consuming ExternalSecret is deleted).
 	// +optional
 	ExpiresAt *metav1.Time `json:"expiresAt,omitempty"`
+
+	// ExpiresAfter sets a relative expiry, computed as now + expiresAfter on
+	// each generation, so every token carries a fresh expiry with nothing to
+	// bump by hand. metav1.Duration syntax, largest unit hours (e.g. "720h").
+	// Mutually exclusive with expiresAt; minimum 24h. Keep it larger than the
+	// consuming ExternalSecret refreshInterval so a token cannot expire before
+	// the next rotation replaces it.
+	// +optional
+	// +kubebuilder:validation:XValidation:rule="duration(self) >= duration('24h')",message="expiresAfter must be at least 24h"
+	ExpiresAfter *metav1.Duration `json:"expiresAfter,omitempty"`
 
 	// Username is an optional username for the deploy token. GitLab defaults it to
 	// gitlab+deploy-token-{n} when omitted.

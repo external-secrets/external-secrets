@@ -8,6 +8,7 @@ spec:
         key: string
         name: string
         namespace: string
+  expiresAfter: string
   expiresAt: 2024-10-11T12:48:44Z
   groupID: string
   name: string
