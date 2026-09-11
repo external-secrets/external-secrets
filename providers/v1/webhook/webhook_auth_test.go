@@ -70,8 +70,8 @@ func TestWebhookAuth(t *testing.T) {
 	// define test cases
 	creds := mockCreds{"correctuser123", "correctpassword123"}
 	basicAuthExpect := "Basic " + b64.StdEncoding.EncodeToString([]byte(creds.UserName+":"+creds.Password))
-	ntlmExpect := "NTLM TlRMTVNTUAABAAAAAQCIoAAAAAAoAAAAAAAAACgAAAAGAbEdAAAADw=="
-	negotiateExpect := "Negotiate TlRMTVNTUAABAAAAAQCIoAAAAAAoAAAAAAAAACgAAAAGAbEdAAAADw=="
+	ntlmExpect := "NTLM TlRMTVNTUAABAAAAAYKIoAAAAAAoAAAAAAAAACgAAAAGAbEdAAAADw=="
+	negotiateExpect := "Negotiate TlRMTVNTUAABAAAAAYKIoAAAAAAoAAAAAAAAACgAAAAGAbEdAAAADw=="
 
 	// due to integrated nature of GetSecret(), we use a mock server
 	// to return relevant parts of a request, in this case, the auth header.

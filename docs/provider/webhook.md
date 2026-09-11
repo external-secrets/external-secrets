@@ -237,6 +237,10 @@ A `Ready` condition of `False` with reason `InvalidProviderConfig` means the cli
 not be created or that store validation failed. The accompanying event carries the
 underlying error, which is usually more specific than the condition message.
 
+Reason `ProviderNotFound` is narrower: the provider named in `spec.provider` could not be
+resolved at all, so no provider code ran. There the condition message names the backend and
+is as specific as the event.
+
 For per-secret failures, check the `ExternalSecret` instead:
 
 ```sh
@@ -352,9 +356,11 @@ secrets:
       name: webhook-credentials
 ```
 
+{% raw %}
 the values are `{{ .creds.username }}` and `{{ .creds.password }}`. Referring to
 `{{ .creds }}` renders a Go map rather than a value. Note also that every key of the
 referenced secret is exposed; a `key` field on the `secretRef` does not narrow it.
+{% endraw %}
 
 #### A templated `url` is validated before templating
 

@@ -28,7 +28,6 @@ import (
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pointer "k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -184,13 +183,13 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 			provider: &esv1.AzureKVProvider{
 				VaultURL: &vaultURL,
 				AuthType: &authType,
-				TenantID: pointer.To(tenantID),
+				TenantID: new(tenantID),
 				ServiceAccountRef: &v1.ServiceAccountSelector{
 					Name: saName,
 				},
 				AuthSecretRef: &esv1.AzureKVAuth{
-					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: clientID},
-					TenantID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: tenantID},
+					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: new(namespace), Key: clientID},
+					TenantID: &v1.SecretKeySelector{Name: secretName, Namespace: new(namespace), Key: tenantID},
 				},
 			},
 			k8sObjects: []client.Object{
@@ -222,7 +221,7 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 			provider: &esv1.AzureKVProvider{
 				VaultURL: &vaultURL,
 				AuthType: &authType,
-				TenantID: pointer.To(tenantID),
+				TenantID: new(tenantID),
 				ServiceAccountRef: &v1.ServiceAccountSelector{
 					Name: saName,
 				},
@@ -266,8 +265,8 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 					Name: saName,
 				},
 				AuthSecretRef: &esv1.AzureKVAuth{
-					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: clientID},
-					TenantID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: tenantID},
+					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: new(namespace), Key: clientID},
+					TenantID: &v1.SecretKeySelector{Name: secretName, Namespace: new(namespace), Key: tenantID},
 				},
 			},
 			k8sObjects: []client.Object{
@@ -295,12 +294,12 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 			provider: &esv1.AzureKVProvider{
 				VaultURL: &vaultURL,
 				AuthType: &authType,
-				TenantID: pointer.To(tenantID),
+				TenantID: new(tenantID),
 				ServiceAccountRef: &v1.ServiceAccountSelector{
 					Name: saName,
 				},
 				AuthSecretRef: &esv1.AzureKVAuth{
-					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: clientID},
+					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: new(namespace), Key: clientID},
 				},
 			},
 			k8sObjects: []client.Object{

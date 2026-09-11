@@ -694,6 +694,12 @@ const (
 	ConditionReasonSecretDeleted = "SecretDeleted"
 	// ConditionReasonSecretMissing indicates that the secret is missing.
 	ConditionReasonSecretMissing = "SecretMissing"
+	// ConditionReasonSecretImmutable indicates that the target secret is immutable
+	// and cannot be updated.
+	ConditionReasonSecretImmutable = "SecretImmutable"
+	// ConditionReasonSecretOwnedByOther indicates that the target secret is owned
+	// by another ExternalSecret.
+	ConditionReasonSecretOwnedByOther = "SecretOwnedByOther"
 
 	// ReasonUpdateFailed indicates that the update operation failed.
 	ReasonUpdateFailed = "UpdateFailed"

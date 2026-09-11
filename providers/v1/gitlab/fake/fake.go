@@ -125,8 +125,8 @@ func makeAPIResponse(page, pages int) *gitlab.Response {
 		Response: &http.Response{
 			StatusCode: http.StatusOK,
 		},
-		CurrentPage: page,
-		TotalPages:  pages,
+		CurrentPage: int64(page),
+		TotalPages:  int64(pages),
 	}
 }
 

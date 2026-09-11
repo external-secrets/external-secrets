@@ -36,12 +36,15 @@ var (
 	errEmptyUserName                 = errors.New("username must not be empty")
 	errEmptyPassword                 = errors.New("password must be set")
 	errEmptyServerURL                = errors.New("serverURL must be set")
+	errInvalidSiteID                 = errors.New("siteId must be greater than zero")
 	errMissingStore                  = errors.New("missing store specification")
 	errInvalidSpec                   = errors.New("invalid specification for secret server provider")
 	errClusterStoreRequiresNamespace = errors.New("when using a ClusterSecretStore, namespaces must be explicitly set")
 	errMissingSecretName             = errors.New("must specify a secret name")
 	errMissingSecretKey              = errors.New("must specify a secret key")
 )
+
+const defaultSiteID = 1
 
 // Provider struct that implements the ESO esv1.Provider.
 type Provider struct{}
@@ -102,8 +105,17 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
+	siteID := defaultSiteID
+	if cfg.SiteID != nil {
+		siteID = *cfg.SiteID
+	} else if cfg.DisableSiteIDValidation {
+		siteID = 0
+	}
+
 	return &client{
-		api: secretServer,
+		api:                     secretServer,
+		siteID:                  siteID,
+		disableSiteIDValidation: cfg.DisableSiteIDValidation,
 	}, nil
 }
 
@@ -203,6 +215,9 @@ func getConfig(store esv1.GenericStore) (*esv1.SecretServerProvider, error) {
 
 	if cfg.ServerURL == "" {
 		return nil, errEmptyServerURL
+	}
+	if cfg.SiteID != nil && *cfg.SiteID <= 0 {
+		return nil, errInvalidSiteID
 	}
 
 	// Token authentication takes precedence over username/password.

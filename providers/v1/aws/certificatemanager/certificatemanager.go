@@ -44,7 +44,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	awsutil "github.com/external-secrets/external-secrets/providers/v1/aws/util"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
@@ -241,7 +240,7 @@ func (cm *CertificateManager) reimportCertificate(ctx context.Context, arn strin
 	log.Info("re-importing existing ACM certificate", "arn", arn, "remoteKey", remoteKey)
 
 	_, err = cm.client.ImportCertificate(ctx, input)
-	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMImportCertificate, err)
+	metrics.ObserveAPICall(ProviderAWSACM, CallAWSACMImportCertificate, err)
 	if err != nil {
 		return fmt.Errorf("failed to import certificate: %w", awsutil.SanitizeErr(err))
 	}
@@ -267,7 +266,7 @@ func (cm *CertificateManager) importNewCertificate(ctx context.Context, b certBu
 	log.Info("importing new ACM certificate", "remoteKey", remoteKey)
 
 	out, err := cm.client.ImportCertificate(ctx, input)
-	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMImportCertificate, err)
+	metrics.ObserveAPICall(ProviderAWSACM, CallAWSACMImportCertificate, err)
 	if err != nil {
 		return fmt.Errorf("failed to import certificate: %w", awsutil.SanitizeErr(err))
 	}
@@ -327,7 +326,7 @@ func (cm *CertificateManager) DeleteSecret(ctx context.Context, remoteRef esv1.P
 	_, err = cm.client.DeleteCertificate(ctx, &acm.DeleteCertificateInput{
 		CertificateArn: aws.String(arn),
 	})
-	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMDeleteCertificate, err)
+	metrics.ObserveAPICall(ProviderAWSACM, CallAWSACMDeleteCertificate, err)
 	if err != nil {
 		return fmt.Errorf("failed to delete certificate %s: %w", arn, awsutil.SanitizeErr(err))
 	}
@@ -357,7 +356,7 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 	descCertOut, err := cm.client.DescribeCertificate(ctx, &acm.DescribeCertificateInput{
 		CertificateArn: aws.String(certARN),
 	})
-	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMDescribeCertificate, err)
+	metrics.ObserveAPICall(ProviderAWSACM, CallAWSACMDescribeCertificate, err)
 	if err != nil {
 		return nil, fmt.Errorf("failed to describe certificate %s: %w", certARN, awsutil.SanitizeErr(err))
 	}
@@ -376,7 +375,7 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 		CertificateArn: aws.String(certARN),
 		Passphrase:     passphrase,
 	})
-	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMExportCertificate, err)
+	metrics.ObserveAPICall(ProviderAWSACM, CallAWSACMExportCertificate, err)
 	if err != nil {
 		return nil, fmt.Errorf("failed to export certificate %s: %w", certARN, awsutil.SanitizeErr(err))
 	}
@@ -451,7 +450,7 @@ func (cm *CertificateManager) searchCertificatesByTag(ctx context.Context, remot
 	var arns []string
 	for paginator.HasMorePages() {
 		out, err := paginator.NextPage(ctx)
-		metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMGetResources, err)
+		metrics.ObserveAPICall(ProviderAWSACM, CallAWSACMGetResources, err)
 		if err != nil {
 			return "", awsutil.SanitizeErr(err)
 		}
@@ -478,7 +477,7 @@ func (cm *CertificateManager) getCertificate(ctx context.Context, arn string) (*
 	out, err := cm.client.GetCertificate(ctx, &acm.GetCertificateInput{
 		CertificateArn: aws.String(arn),
 	})
-	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMGetCertificate, err)
+	metrics.ObserveAPICall(ProviderAWSACM, CallAWSACMGetCertificate, err)
 	if err != nil {
 		var aerr smithy.APIError
 		if errors.As(err, &aerr) && aerr.ErrorCode() == errResourceNotFound {
@@ -493,7 +492,7 @@ func (cm *CertificateManager) listTags(ctx context.Context, arn string) ([]types
 	out, err := cm.client.ListTagsForCertificate(ctx, &acm.ListTagsForCertificateInput{
 		CertificateArn: aws.String(arn),
 	})
-	metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMListTagsForCertificate, err)
+	metrics.ObserveAPICall(ProviderAWSACM, CallAWSACMListTagsForCertificate, err)
 	if err != nil {
 		var aerr smithy.APIError
 		if errors.As(err, &aerr) && aerr.ErrorCode() == errResourceNotFound {
@@ -517,7 +516,7 @@ func (cm *CertificateManager) syncTags(ctx context.Context, arn string, desiredT
 			CertificateArn: aws.String(arn),
 			Tags:           toRemove,
 		})
-		metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMRemoveTagsFromCertificate, err)
+		metrics.ObserveAPICall(ProviderAWSACM, CallAWSACMRemoveTagsFromCertificate, err)
 		if err != nil {
 			return awsutil.SanitizeErr(err)
 		}
@@ -528,7 +527,7 @@ func (cm *CertificateManager) syncTags(ctx context.Context, arn string, desiredT
 			CertificateArn: aws.String(arn),
 			Tags:           toAdd,
 		})
-		metrics.ObserveAPICall(constants.ProviderAWSACM, constants.CallAWSACMAddTagsToCertificate, err)
+		metrics.ObserveAPICall(ProviderAWSACM, CallAWSACMAddTagsToCertificate, err)
 		if err != nil {
 			return awsutil.SanitizeErr(err)
 		}

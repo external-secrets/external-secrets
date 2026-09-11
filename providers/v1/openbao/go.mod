@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/openbao
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
@@ -8,6 +8,7 @@ require (
 	github.com/go-viper/mapstructure/v2 v2.5.0
 	github.com/onsi/gomega v1.39.1
 	github.com/openbao/openbao/api/auth/approle/v2 v2.5.1
+	github.com/openbao/openbao/api/auth/kubernetes/v2 v2.5.1
 	github.com/openbao/openbao/api/auth/userpass/v2 v2.5.1
 	github.com/openbao/openbao/api/v2 v2.5.1-0.20260603121413-a08669ff09ec
 	gopkg.in/dnaeon/go-vcr.v4 v4.0.6
