@@ -376,6 +376,18 @@ func TestPushSecret(t *testing.T) {
 		assert.JSONEq(t, `{"username":"alice","password":"s3cr3t"}`, string(db.secret(secretName).versions[0].data))
 	})
 
+	t.Run("whole secret push does not HTML-escape values", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "whole-secret-html"
+		wholeSecret := &corev1.Secret{Data: map[string][]byte{"markup": []byte(`<a href="x">&</a>`)}}
+
+		pushErr := c.PushSecret(ctx, wholeSecret, testingfake.PushSecretData{RemoteKey: "name:" + secretName})
+
+		assert.NoError(t, pushErr)
+		assert.Equal(t, `{"markup":"<a href=\"x\">&</a>"}`, string(db.secret(secretName).versions[0].data))
+	})
+
 	t.Run("whole secret push without change does not create a version", func(t *testing.T) {
 		ctx := context.Background()
 		c := newTestClient()
@@ -432,6 +444,17 @@ func TestPushSecret(t *testing.T) {
 		})
 		assert.NoError(t, getErr)
 		assert.Equal(t, []byte("CERT"), got)
+	})
+
+	t.Run("property push does not HTML-escape values", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "property-html"
+
+		pushErr := c.PushSecret(ctx, secret([]byte(`<a href="x">&</a>`)), pushSecretDataWithProperty("name:"+secretName, "markup"))
+
+		assert.NoError(t, pushErr)
+		assert.Equal(t, `{"markup":"<a href=\"x\">&</a>"}`, string(db.secret(secretName).versions[0].data))
 	})
 
 	t.Run("property push updates an existing nested path in place", func(t *testing.T) {

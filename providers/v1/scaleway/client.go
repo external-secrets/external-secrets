@@ -34,6 +34,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/find"
 )
 
@@ -126,7 +127,7 @@ func pushPayload(secret *corev1.Secret, data esv1.PushSecretData) ([]byte, error
 		}
 		values[k] = string(v)
 	}
-	payload, err := json.Marshal(values)
+	payload, err := esutils.JSONMarshal(values)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal secret data: %w", err)
 	}
@@ -627,7 +628,13 @@ func setJSONProperty(existing []byte, property string, value []byte) ([]byte, er
 		}
 		doc = string(existing)
 	}
-	merged, err := sjson.Set(doc, jsonPropertyPath(doc, property), string(value))
+	// sjson falls back to encoding/json (which escapes <, > and &) for strings
+	// with quotes or non-ASCII characters: encode the value ourselves.
+	encoded, err := esutils.JSONMarshal(string(value))
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal property %q: %w", property, err)
+	}
+	merged, err := sjson.SetRaw(doc, jsonPropertyPath(doc, property), string(encoded))
 	if err != nil {
 		return nil, fmt.Errorf("failed to set property %q: %w", property, err)
 	}
