@@ -26,6 +26,33 @@ spec:
       registry: string
       scope: string
       tenantId: string
+    azureAccessTokenSpec:
+      auth:
+        managedIdentity:
+          identityId: string
+          identityType: "ClientID" # "ClientID", "ObjectID", "ResourceID"
+        servicePrincipal:
+          secretRef:
+            clientCertificate:
+              key: string
+              name: string
+              namespace: string
+            clientId:
+              key: string
+              name: string
+              namespace: string
+            clientSecret:
+              key: string
+              name: string
+              namespace: string
+        workloadIdentity:
+          serviceAccountRef:
+            audiences: [] # minItems 0 of type string
+            name: string
+            namespace: string
+      environmentType: "PublicCloud"
+      resource: string
+      tenantId: string
     beyondtrustWorkloadCredentialsDynamicSecretSpec:
       controller: string
       provider:
@@ -391,4 +418,4 @@ spec:
           name: string
       timeout: string
       url: string
-  kind: "ACRAccessToken" # "ACRAccessToken", "BeyondtrustWorkloadCredentialsDynamicSecret", "CloudsmithAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "GitlabDeployToken", "QuayAccessToken", "Password", "SSHKey", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana", "MFA"
+  kind: "ACRAccessToken" # "ACRAccessToken", "AzureAccessToken", "BeyondtrustWorkloadCredentialsDynamicSecret", "CloudsmithAccessToken", "ECRAuthorizationToken", "Fake", "GCRAccessToken", "GithubAccessToken", "GitlabDeployToken", "QuayAccessToken", "Password", "SSHKey", "STSSessionToken", "UUID", "VaultDynamicSecret", "Webhook", "Grafana", "MFA"
