@@ -56,7 +56,7 @@ Build tags live in `pkg/register/<name>.go`.
 
 Defined at `apis/externalsecrets/v1/provider.go`. All eight methods are mandatory; `Close` may be a no-op.
 
-- Return `esv1.NoSecretErr` from `GetSecret` when the secret is missing. The reconciler depends on this for `deletionPolicy`.
+- Return `esv1.NoSecretErr` from both `GetSecret` and `GetSecretMap` when the secret is missing. The reconciler depends on this for `deletionPolicy`. This also backs the `DeletionPolicy Merge/Delete` feature-matrix cell: mark it only when the read path actually returns `esv1.NoSecretErr` (matchable via `errors.Is`) on not-found — a `NoSecretErr` `errors.Is` *check* elsewhere in the provider does not count.
 - Set `Capabilities()` honestly: `SecretStoreReadOnly`, `SecretStoreWriteOnly`, or `SecretStoreReadWrite`. Read-only
   providers still implement Push/Delete but return a sentinel error! Do _NOT_ return `nil`!
 - `gjson` is the conventional path extractor for `ref.Property` on JSON payloads.
@@ -111,6 +111,26 @@ Maintenance values: `MaintenanceStatusMaintained`, `NotMaintained`, `Deprecated`
 - YAML examples live in `docs/snippets/<name>-secret-store.yaml`, `<name>-external-secret.yaml`, `<name>-push-secret.yaml`.
   Pull them in via `{% include '<name>-secret-store.yaml' %}`.
 - Add nav entry to the `Provider:` block in `hack/api-docs/mkdocs.yml`. Order is historical; append at the bottom.
+
+- Update the support matrix (`docs/introduction/stability-support.md`) in the same PR: add a row to the
+  "Provider Stability and Support Level" table and fill the "Provider Feature Support" columns from the code,
+  never from the docs or a guess. How to fill each feature column:
+  - `find by name` / `find by tags`: `GetAllSecrets` actually honours `ref.Name.RegExp` / `ref.Tags` (not a
+    stub, not silently ignored).
+  - `metadataPolicy Fetch`: `GetSecret` honours `metadataPolicy: Fetch`.
+  - `referent authentication`: `ValidateStore` uses the relaxed referent validators
+    (`ValidateReferentSecretSelector` / `ValidateReferentServiceAccountSelector`) and the client resolves
+    credentials via `resolvers.SecretKeyRef(..., namespace, ...)` against the ExternalSecret namespace, with no
+    namespace guard that rejects a namespace-less ClusterSecretStore ref.
+  - `store validation`: `ValidateStore` performs meaningful validation (not just a nil check).
+  - `push secret`: `Capabilities()` includes write and `PushSecret` is implemented.
+  - `DeletionPolicy Merge/Delete`: `GetSecret` and `GetSecretMap` return `esv1.NoSecretErr` (matchable via
+    `errors.Is`) on a missing secret. Implementing `DeleteSecret` alone is **not** sufficient and does **not**
+    justify this column.
+- When a provider's capabilities, find, push, or deletion behaviour changes, update the provider doc page and the
+  support matrix in the same PR, so the docs never advertise a capability the code does not have (or omit one it
+  does).
+
 
 ## Adding a Generator
 
