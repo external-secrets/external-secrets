@@ -280,7 +280,8 @@ func TestPushSecret(t *testing.T) {
 
 	t.Run("to secret created by us", func(t *testing.T) {
 		ctx := context.Background()
-		c := newTestClient()
+		api := buildDB(&fakeSecretAPI{})
+		c := &client{api: api, cache: newCache()}
 		data := []byte("some secret data a11d416b-9169-4f4a-8c27-d2959b22e189")
 		secretName := "secret-update-test"
 		assert.NoError(t, c.PushSecret(ctx, secret([]byte("original data")), pushSecretData(fmt.Sprintf("name:%s", secretName))))
@@ -288,8 +289,8 @@ func TestPushSecret(t *testing.T) {
 		pushErr := c.PushSecret(ctx, secret(data), pushSecretData(fmt.Sprintf("name:%s", secretName)))
 
 		assert.NoError(t, pushErr)
-		assert.Len(t, db.secret(secretName).versions, 2)
-		assert.Equal(t, data, db.secret(secretName).versions[1].data)
+		assert.Len(t, api.secret(secretName).versions, 2)
+		assert.Equal(t, data, api.secret(secretName).versions[1].data)
 	})
 
 	t.Run("to secret partially created by us with no version", func(t *testing.T) {
@@ -644,17 +645,21 @@ func TestGetAllSecrets(t *testing.T) {
 
 func TestDeleteSecretProperty(t *testing.T) {
 	ctx := context.Background()
-	seed := func(t *testing.T, name string, data []byte) *fakeSecret {
-		t.Helper()
-		c := newTestClient()
-		assert.NoError(t, c.PushSecret(ctx, &corev1.Secret{Data: map[string][]byte{"k": data}},
-			testingfake.PushSecretData{SecretKey: "k", RemoteKey: "name:" + name}))
-		return db.secret(name)
+	seed := func(name string, data []byte) (esv1.SecretsClient, *fakeSecretAPI, *fakeSecret) {
+		api := buildDB(&fakeSecretAPI{
+			secrets: []*fakeSecret{
+				{
+					name:     name,
+					versions: []*fakeSecretVersion{{revision: 1, data: data}},
+				},
+			},
+		})
+		fs := api.secret(name)
+		return &client{api: api, cache: newCache()}, api, fs
 	}
 
 	t.Run("removes only the property and disables the previous version", func(t *testing.T) {
-		c := newTestClient()
-		fs := seed(t, "delete-prop-partial", []byte(`{"username":"alice","password":"s3cr3t"}`))
+		c, _, fs := seed("delete-prop-partial", []byte(`{"username":"alice","password":"s3cr3t"}`))
 
 		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "password"})
 
@@ -665,8 +670,7 @@ func TestDeleteSecretProperty(t *testing.T) {
 	})
 
 	t.Run("removes a literal dotted key", func(t *testing.T) {
-		c := newTestClient()
-		fs := seed(t, "delete-prop-dotted", []byte(`{"tls.crt":"CERT","username":"alice"}`))
+		c, _, fs := seed("delete-prop-dotted", []byte(`{"tls.crt":"CERT","username":"alice"}`))
 
 		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "tls.crt"})
 
@@ -675,18 +679,16 @@ func TestDeleteSecretProperty(t *testing.T) {
 	})
 
 	t.Run("deletes the whole secret when the last property is removed", func(t *testing.T) {
-		c := newTestClient()
-		fs := seed(t, "delete-prop-last", []byte(`{"username":"alice"}`))
+		c, api, fs := seed("delete-prop-last", []byte(`{"username":"alice"}`))
 
 		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "username"})
 
 		assert.NoError(t, err)
-		assert.Nil(t, db.secret(fs.name))
+		assert.Nil(t, api.secret(fs.name))
 	})
 
 	t.Run("missing property is a no-op", func(t *testing.T) {
-		c := newTestClient()
-		fs := seed(t, "delete-prop-missing", []byte(`{"username":"alice"}`))
+		c, _, fs := seed("delete-prop-missing", []byte(`{"username":"alice"}`))
 
 		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "nope"})
 
@@ -695,8 +697,7 @@ func TestDeleteSecretProperty(t *testing.T) {
 	})
 
 	t.Run("raw non-object value is a no-op", func(t *testing.T) {
-		c := newTestClient()
-		fs := seed(t, "delete-prop-raw", []byte("raw bytes"))
+		c, _, fs := seed("delete-prop-raw", []byte("raw bytes"))
 
 		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "username"})
 
@@ -814,10 +815,23 @@ func TestNameRefTargetsRootPath(t *testing.T) {
 
 func TestDeleteSecret(t *testing.T) {
 	ctx := context.Background()
-	c := newTestClient()
+	api := buildDB(&fakeSecretAPI{
+		secrets: []*fakeSecret{
+			{
+				name:     "secret-1",
+				versions: []*fakeSecretVersion{{revision: 1}},
+			},
+			{
+				name:     "nested-secret",
+				path:     "/subpath",
+				versions: []*fakeSecretVersion{{revision: 1}},
+			},
+		},
+	})
+	c := &client{api: api, cache: newCache()}
 
-	secret := db.secrets[0]
-	byPath := db.secret("nested-secret")
+	secret := api.secret("secret-1")
+	byPath := api.secret("nested-secret")
 
 	testCases := map[string]struct {
 		ref testingfake.PushSecretData
