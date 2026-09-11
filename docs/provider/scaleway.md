@@ -30,6 +30,9 @@ spec:
 
 Secrets can be referenced by name, id or path, using the prefixes `"name:"`, `"id:"` and `"path:"` respectively.
 
+Secret names are only unique within a path, so a `name:<NAME>` reference addresses the secret at the
+root path (`/`). A secret stored under a sub-path must be referenced with `path:/<PATH>/<NAME>` or `id:<SECRET_UUID>`.
+
 A PushSecret resource can use name or path references.
 
 ```yaml

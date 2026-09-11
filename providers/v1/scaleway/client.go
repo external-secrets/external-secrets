@@ -144,7 +144,10 @@ func (c *client) listSecretsRequest(scwRef *scwSecretRef) (*smapi.ListSecretsReq
 
 	switch scwRef.RefType {
 	case refTypeName:
+		// Secret names are only unique within a path: a name: reference
+		// addresses the secret at the root path, like the one PushSecret creates.
 		request.Name = &scwRef.Value
+		request.Path = new("/")
 	case refTypePath:
 		name, path, ok := splitNameAndPath(scwRef.Value)
 		if !ok {

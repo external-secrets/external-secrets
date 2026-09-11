@@ -194,6 +194,13 @@ func TestGetSecret(t *testing.T) {
 			},
 			response: []byte("secret data"),
 		},
+		"name ref does not match a secret under a sub-path": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:     "name:nested-secret",
+				Version: "latest",
+			},
+			err: esv1.NoSecretErr,
+		},
 		"non existing secret id should yield NoSecretErr": {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key: "id:730aa98d-ec0c-4426-8202-b11aeec8ea1e",
@@ -722,7 +729,10 @@ func TestSecretExists(t *testing.T) {
 			ref: testingfake.PushSecretData{RemoteKey: "name:json-dotted-keys", Property: "nope"},
 		},
 		"property on non-object value": {
-			ref: testingfake.PushSecretData{RemoteKey: "name:nested-secret", Property: "username"},
+			ref: testingfake.PushSecretData{RemoteKey: "path:/subpath/nested-secret", Property: "username"},
+		},
+		"name ref does not match a secret under a sub-path": {
+			ref: testingfake.PushSecretData{RemoteKey: "name:nested-secret"},
 		},
 		"invalid ref": {
 			ref: testingfake.PushSecretData{RemoteKey: "no-colon"},
@@ -745,6 +755,38 @@ func TestSecretExists(t *testing.T) {
 			assert.Equal(t, tc.exists, exists)
 		})
 	}
+}
+
+func TestNameRefTargetsRootPath(t *testing.T) {
+	ctx := context.Background()
+	// Isolated fake: the shared db indexes fixtures by name and cannot hold
+	// two secrets with the same name under different paths.
+	api := buildDB(&fakeSecretAPI{
+		secrets: []*fakeSecret{
+			{
+				name:     "same-name",
+				path:     "/subpath",
+				versions: []*fakeSecretVersion{{revision: 1, data: []byte("under subpath")}},
+			},
+		},
+	})
+	underSubPath := api.secrets[0]
+	c := &client{api: api, cache: newCache()}
+
+	pushErr := c.PushSecret(ctx,
+		&corev1.Secret{Data: map[string][]byte{"k": []byte("at root")}},
+		testingfake.PushSecretData{SecretKey: "k", RemoteKey: "name:same-name"})
+
+	assert.NoError(t, pushErr)
+	assert.Len(t, api.secrets, 2, "a secret must be created at the root path")
+	assert.Equal(t, "/", api.secrets[1].path)
+	assert.Equal(t, []byte("at root"), api.secrets[1].versions[0].data)
+	assert.Len(t, underSubPath.versions, 1, "the sub-path secret must be untouched")
+
+	deleteErr := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:same-name"})
+
+	assert.NoError(t, deleteErr)
+	assert.Equal(t, []*fakeSecret{underSubPath}, api.secrets, "only the root secret must be deleted")
 }
 
 func TestDeleteSecret(t *testing.T) {
