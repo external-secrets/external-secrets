@@ -141,13 +141,16 @@ type ConjurCert struct {
 // It uses the AWS STS GetCallerIdentity endpoint to authenticate.
 type ConjurIAM struct {
 	// Account is the Conjur organization account name.
+	// +required
 	Account string `json:"account"`
 
 	// ServiceID is the Conjur authn-iam webservice identifier (e.g. "prod").
+	// +required
 	ServiceID string `json:"serviceID"`
 
 	// HostID is the Conjur host mapped to the AWS IAM role
 	// (e.g. "data/myapp/123456789012/MyRole").
+	// +required
 	HostID string `json:"hostId"`
 
 	// SecretRef holds optional references to Kubernetes Secrets containing explicit
@@ -155,6 +158,12 @@ type ConjurIAM struct {
 	// (IRSA, instance metadata, environment variables, etc.).
 	// +optional
 	SecretRef *ConjurIAMSecretRef `json:"secretRef,omitempty"`
+
+	// Insecure allows authenticating to Conjur over plain HTTP. The AWS IAM authenticator
+	// sends a signed request as a bearer credential, so this should only be enabled when the
+	// connection is otherwise protected (e.g. a service mesh sidecar terminating TLS).
+	// +optional
+	Insecure bool `json:"insecure,omitempty"`
 }
 
 // ConjurIAMSecretRef holds secret selectors for explicit AWS credentials.
@@ -176,13 +185,16 @@ type ConjurIAMSecretRef struct {
 // Metadata Service (IMDS) automatically, or sourced from a Kubernetes ServiceAccount token.
 type ConjurAzure struct {
 	// Account is the Conjur organization account name.
+	// +required
 	Account string `json:"account"`
 
 	// ServiceID is the Conjur authn-azure webservice identifier (e.g. "prod").
+	// +required
 	ServiceID string `json:"serviceID"`
 
 	// HostID is the Conjur host mapped to the Azure managed identity
 	// (e.g. "data/myapp/myhost").
+	// +required
 	HostID string `json:"hostId"`
 
 	// ClientID is the Azure managed identity client ID. Required for user-assigned
@@ -203,6 +215,7 @@ type ConjurAzure struct {
 // Kubernetes Secret.
 type ConjurGCP struct {
 	// Account is the Conjur organization account name.
+	// +required
 	Account string `json:"account"`
 
 	// ServiceID is the Conjur authn-gcp webservice identifier (e.g. "prod").
@@ -213,6 +226,7 @@ type ConjurGCP struct {
 
 	// HostID is the Conjur host mapped to the GCP service account
 	// (e.g. "data/myapp/myhost").
+	// +required
 	HostID string `json:"hostId"`
 
 	// SecretRef holds a reference to a Kubernetes Secret containing a pre-obtained

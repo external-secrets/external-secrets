@@ -20,6 +20,7 @@ package conjur
 import (
 	"errors"
 	"fmt"
+	"strings"
 
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -65,7 +66,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	if prov.Auth.IAM != nil {
-		err := validateIAMStore(store, *prov.Auth.IAM)
+		err := validateIAMStore(store, prov.URL, *prov.Auth.IAM)
 		if err != nil {
 			return nil, err
 		}
@@ -133,7 +134,10 @@ func validateAPIKeyStore(store esv1.GenericStore, auth esv1.ConjurAPIKey) error 
 	return nil
 }
 
-func validateIAMStore(store esv1.GenericStore, auth esv1.ConjurIAM) error {
+func validateIAMStore(store esv1.GenericStore, conjurURL string, auth esv1.ConjurIAM) error {
+	if !auth.Insecure && !strings.HasPrefix(strings.ToLower(conjurURL), "https://") {
+		return errors.New("conjur URL must use https when using Auth.IAM authentication, or set Auth.IAM.Insecure to true")
+	}
 	if auth.Account == "" {
 		return errors.New("missing Auth.IAM.Account")
 	}

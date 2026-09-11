@@ -203,6 +203,10 @@ Optionally, you may reference a Kubernetes Secret that contains explicit AWS cre
 
 If `secretRef` is omitted, the default AWS SDK credential chain is used.
 
+The Secrets Manager `url` must use `https://` when using IAM authentication, since the AWS IAM authenticator sends
+a signed request as a bearer credential. If you must connect over plain HTTP (for example, a service mesh sidecar
+that terminates TLS locally), set `insecure: true` to explicitly opt out of this check.
+
 #### Step 1: Define an external secret store
 
 ```yaml

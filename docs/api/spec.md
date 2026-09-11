@@ -4074,6 +4074,20 @@ AWS credentials. If omitted, the default AWS SDK credential chain is used
 (IRSA, instance metadata, environment variables, etc.).</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>insecure</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Insecure allows authenticating to Conjur over plain HTTP. The AWS IAM authenticator
+sends a signed request as a bearer credential, so this should only be enabled when the
+connection is otherwise protected (e.g. a service mesh sidecar terminating TLS).</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.ConjurIAMSecretRef">ConjurIAMSecretRef

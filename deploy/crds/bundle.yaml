@@ -4156,6 +4156,12 @@ spec:
                                     HostID is the Conjur host mapped to the AWS IAM role
                                     (e.g. "data/myapp/123456789012/MyRole").
                                   type: string
+                                insecure:
+                                  description: |-
+                                    Insecure allows authenticating to Conjur over plain HTTP. The AWS IAM authenticator
+                                    sends a signed request as a bearer credential, so this should only be enabled when the
+                                    connection is otherwise protected (e.g. a service mesh sidecar terminating TLS).
+                                  type: boolean
                                 secretRef:
                                   description: |-
                                     SecretRef holds optional references to Kubernetes Secrets containing explicit
@@ -17833,6 +17839,12 @@ spec:
                                     HostID is the Conjur host mapped to the AWS IAM role
                                     (e.g. "data/myapp/123456789012/MyRole").
                                   type: string
+                                insecure:
+                                  description: |-
+                                    Insecure allows authenticating to Conjur over plain HTTP. The AWS IAM authenticator
+                                    sends a signed request as a bearer credential, so this should only be enabled when the
+                                    connection is otherwise protected (e.g. a service mesh sidecar terminating TLS).
+                                  type: boolean
                                 secretRef:
                                   description: |-
                                     SecretRef holds optional references to Kubernetes Secrets containing explicit
