@@ -36,6 +36,7 @@ import (
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/metrics"
+	ctrlutil "github.com/external-secrets/external-secrets/pkg/controllers/util"
 
 	// Load registered providers.
 	_ "github.com/external-secrets/external-secrets/pkg/register"
@@ -182,9 +183,15 @@ func validateStore(ctx context.Context, namespace, controllerClass string, store
 	}()
 	cl, err := mgr.GetFromStore(ctx, store, namespace)
 	if err != nil {
-		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, errUnableCreateClient)
+		// resolving the provider happens before any provider code runs, so that
+		// failure carries no remote payload and can be reported verbatim.
+		reason, msg := esapi.ReasonInvalidProviderConfig, errUnableCreateClient
+		if detail := ctrlutil.SafeMessage(err); detail != "" && errors.Is(err, ErrProviderResolution) {
+			reason, msg = esapi.ReasonProviderNotFound, detail
+		}
+		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, reason, msg)
 		SetExternalSecretCondition(store, *cond, gaugeVecGetter)
-		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidProviderConfig, err.Error())
+		recorder.Event(store, v1.EventTypeWarning, reason, err.Error())
 		return fmt.Errorf(errStoreClient, err)
 	}
 	validationResult, err := cl.Validate()

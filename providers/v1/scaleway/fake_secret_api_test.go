@@ -105,9 +105,9 @@ func (s *fakeSecret) getVersion(revision string) (*fakeSecretVersion, bool) {
 	}
 
 	if revision == "latest_enabled" {
-		for i := len(s.versions) - 1; i >= 0; i-- {
-			if s.versions[i].status == "enabled" {
-				return s.versions[i], true
+		for _, version := range slices.Backward(s.versions) {
+			if version.status == "enabled" {
+				return version, true
 			}
 		}
 		return nil, false

@@ -30,10 +30,9 @@ make docker.build IMAGE_NAME=external-secrets IMAGE_TAG=latest
 ```
 
 Run tests and lint the code:
-```shell
+```console
 make test
-make lint # OR
-docker run --rm -v $(pwd):/app -w /app golangci/golangci-lint:v1.49.0 golangci-lint run
+make lint
 ```
 
 Build the documentation:

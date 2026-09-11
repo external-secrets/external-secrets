@@ -75,7 +75,6 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
 	@GOWORK=off go -C hack/tools mod tidy # Tools and their deps are not to be included in project's GOWORK or in the project go.mod/sum. We consider them external.
 	@GOWORK=off go -C hack/tools/gen-crd-api-reference-docs mod tidy
-	@GOWORK=off go -C hack/tools/golangci-lint mod tidy
 	@go mod tidy
 	@cd e2e/ && go mod tidy
 	@cd apis/ && go mod tidy
@@ -93,7 +92,7 @@ update-deps: ## Update dependencies across all modules (root, apis, runtime, e2e
 
 .PHONY: license.check
 license.check:
-	$(DOCKER) run --rm -u $(shell id -u) -v $(shell pwd):/github/workspace apache/skywalking-eyes:0.6.0 header check
+	$(DOCKER) run --rm -u $(shell id -u) -v $(shell pwd):/github/workspace docker.io/apache/skywalking-eyes:0.9.0@sha256:b503ab18f5b29d7e04abe05668faf42f1023f9347b095d97592a5208102588ef header check
 
 # ====================================================================================
 # Golang
@@ -155,7 +154,11 @@ build-%: generate ## Build binary for the specified arch
 		go build -tags $(PROVIDER) -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
-lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
+.PHONY: provider-replaces.check
+provider-replaces.check: ## Ensure cross-provider dependencies use local replacements
+	@./hack/check-provider-replaces.sh
+
+lint: golangci-lint provider-replaces.check ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
 	@if [ -n "$(LINT_TARGET)" ]; then \
 		$(INFO) Running golangci-lint on $(LINT_TARGET); \
 		(cd $(LINT_TARGET) && $(GOLANGCI_LINT) run ./...) || exit 1; \
@@ -460,8 +463,8 @@ $(GEN_CRD_API_REFERENCE_DOCS): Makefile hack/tools/gen-crd-api-reference-docs/go
 
 .PHONY: golangci-lint
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
-$(GOLANGCI_LINT): Makefile hack/tools/golangci-lint/go.mod hack/tools/golangci-lint/go.sum | $(LOCALBIN)
-	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools/golangci-lint install -mod=readonly github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+$(GOLANGCI_LINT): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
+	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/golangci/golangci-lint/v2/cmd/golangci-lint
 
 .PHONY: dlv
 dlv: $(DLV) ## Build Delve locally for the Tilt debug image.

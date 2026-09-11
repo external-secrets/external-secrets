@@ -23,6 +23,7 @@ import (
 
 	"github.com/DelineaXPM/tss-sdk-go/v3/server"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	kubeErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -214,6 +215,14 @@ func TestValidateStore(t *testing.T) {
 			},
 			want: esutils.ErrValueOrRefMissing,
 		},
+		"invalid with zero site ID": {
+			cfg: esv1.SecretServerProvider{
+				Token:     validSecretRefUsingValue,
+				ServerURL: testURL,
+				SiteID:    new(0),
+			},
+			want: errInvalidSiteID,
+		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
@@ -227,6 +236,73 @@ func TestValidateStore(t *testing.T) {
 			p := &Provider{}
 			_, got := p.ValidateStore(&s)
 			assert.Equal(t, tc.want, got)
+		})
+	}
+}
+
+func TestNewClientSiteIDConfiguration(t *testing.T) {
+	newProvider := func(siteID *int, disableValidation bool) *esv1.SecretServerProvider {
+		return &esv1.SecretServerProvider{
+			Token:                   makeSecretRefUsingValue("token"),
+			ServerURL:               "https://example.com",
+			SiteID:                  siteID,
+			DisableSiteIDValidation: disableValidation,
+		}
+	}
+
+	tests := map[string]struct {
+		store        esv1.GenericStore
+		wantSiteID   int
+		wantDisabled bool
+	}{
+		"SecretStore uses default": {
+			store: &esv1.SecretStore{
+				TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{
+					SecretServer: newProvider(nil, false),
+				}},
+			},
+			wantSiteID: defaultSiteID,
+		},
+		"SecretStore uses configured value": {
+			store: &esv1.SecretStore{
+				TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{
+					SecretServer: newProvider(new(7), false),
+				}},
+			},
+			wantSiteID: 7,
+		},
+		"ClusterSecretStore uses configured value": {
+			store: &esv1.ClusterSecretStore{
+				TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{
+					SecretServer: newProvider(new(9), false),
+				}},
+			},
+			wantSiteID: 9,
+		},
+		"disabled validation preserves missing value": {
+			store: &esv1.SecretStore{
+				TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{
+					SecretServer: newProvider(nil, true),
+				}},
+			},
+			wantDisabled: true,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			provider := &Provider{}
+			secretsClient, err := provider.NewClient(t.Context(), tc.store, clientfake.NewClientBuilder().Build(), "default")
+			require.NoError(t, err)
+
+			secretServerClient, ok := secretsClient.(*client)
+			require.True(t, ok)
+			assert.Equal(t, tc.wantSiteID, secretServerClient.siteID)
+			assert.Equal(t, tc.wantDisabled, secretServerClient.disableSiteIDValidation)
 		})
 	}
 }

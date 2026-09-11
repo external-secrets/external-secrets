@@ -24,7 +24,6 @@ import (
 	"github.com/hashicorp/vault/api/auth/approle"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
@@ -71,7 +70,7 @@ func (c *client) requestTokenWithAppRoleRef(ctx context.Context, appRole *esv1.V
 		return err
 	}
 	_, err = c.auth.Login(ctx, appRoleClient)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	metrics.ObserveAPICall(ProviderHCVault, CallHCVaultLogin, err)
 	if err != nil {
 		return err
 	}

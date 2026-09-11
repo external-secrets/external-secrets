@@ -31,8 +31,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
-
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 func TestGenerate(t *testing.T) {
@@ -90,10 +88,10 @@ func TestGenerate(t *testing.T) {
 					t := time.Unix(1234, 0)
 					return &sts.GetSessionTokenOutput{
 						Credentials: &ststypes.Credentials{
-							AccessKeyId:     esutils.Ptr("access-key-id"),
-							Expiration:      esutils.Ptr(t),
-							SecretAccessKey: esutils.Ptr("secret-access-key"),
-							SessionToken:    esutils.Ptr("session-token"),
+							AccessKeyId:     new("access-key-id"),
+							Expiration:      new(t),
+							SecretAccessKey: new("secret-access-key"),
+							SessionToken:    new("session-token"),
 						},
 					}, nil
 				},

@@ -19,7 +19,9 @@ package v1
 import esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 
 // NebiusAuth defines the authentication method for the Nebius provider.
-// +kubebuilder:validation:XValidation:rule="has(self.serviceAccountCredsSecretRef) || has(self.tokenSecretRef)",message="either serviceAccountCredsSecretRef or tokenSecretRef must be set"
+// +kubebuilder:validation:XValidation:rule="(has(self.serviceAccountCredsSecretRef) && has(self.serviceAccountCredsSecretRef.name) && size(self.serviceAccountCredsSecretRef.name) > 0 ? 1 : 0) + (has(self.tokenSecretRef) && has(self.tokenSecretRef.name) && size(self.tokenSecretRef.name) > 0 ? 1 : 0) + (has(self.workloadIdentity) ? 1 : 0) == 1",message="exactly one of serviceAccountCredsSecretRef, tokenSecretRef, or workloadIdentity must be set"
+//
+//nolint:lll // Kubebuilder validation markers cannot be split across multiple lines.
 type NebiusAuth struct {
 	// ServiceAccountCreds references a Kubernetes Secret key that contains a JSON
 	// document with service account credentials used to get an IAM token.
@@ -39,12 +41,33 @@ type NebiusAuth struct {
 	// Token authenticates with Nebius Mysterybox by presenting a token.
 	// +optional
 	Token esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`
+
+	// WorkloadIdentity defines configuration for workload identity authentication to Nebius IAM.
+	// +optional
+	WorkloadIdentity *NebiusWorkloadIdentity `json:"workloadIdentity,omitempty"`
 }
 
 // NebiusCAProvider The provider for the CA bundle to use to validate Nebius server certificate.
 type NebiusCAProvider struct {
 	// +optional
 	Certificate esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
+}
+
+// NebiusWorkloadIdentity defines configuration for workload identity authentication to Nebius IAM.
+type NebiusWorkloadIdentity struct {
+	// ServiceAccountRef references a Kubernetes ServiceAccount used to request a
+	// temporary JWT via the TokenRequest API. The JWT is then exchanged for a
+	// Nebius IAM token using workload federation.
+	// +kubebuilder:validation:Required
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
+
+	// IAMServiceAccountID is the Nebius IAM service account identifier that the
+	// federated Kubernetes service account should impersonate during token exchange.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Pattern:=`^serviceaccount-[a-z][a-z0-9]{2}`
+	// +kubebuilder:example="serviceaccount-e00example"
+	IAMServiceAccountID string `json:"iamServiceAccountID"`
 }
 
 // NebiusMysteryboxProvider Configures a store to sync secrets using the Nebius Mysterybox provider.

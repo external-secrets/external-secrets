@@ -42,6 +42,7 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakeoracle "github.com/external-secrets/external-secrets/providers/v1/oracle/fake"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 	testingfake "github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 
@@ -120,6 +121,29 @@ var setAPIErr = func(smtc *vaultTestCase) {
 var setNilMockClient = func(smtc *vaultTestCase) {
 	smtc.mockClient = nil
 	smtc.expectError = errUninitalizedOracleProvider
+}
+
+func TestIsNil(t *testing.T) {
+	tbl := []struct {
+		name string
+		val  any
+		exp  bool
+	}{
+		{
+			name: "oracle vault",
+			val:  vault.VaultsClient{},
+			exp:  false,
+		},
+	}
+
+	for _, row := range tbl {
+		t.Run(row.name, func(t *testing.T) {
+			res := esutils.IsNil(row.val)
+			if res != row.exp {
+				t.Errorf("IsNil(%#v)=%t, expected %t", row.val, res, row.exp)
+			}
+		})
+	}
 }
 
 func TestOracleVaultGetSecret(t *testing.T) {
