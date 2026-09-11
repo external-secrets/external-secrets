@@ -398,6 +398,25 @@ func TestGetAllSecrets(t *testing.T) {
 				},
 			},
 		},
+		"NameAndTagSearchAppliesBothFilters": {
+			reason: "Should apply name and tags together, so tags narrow down a name search.",
+			args: args{
+				store: makeAPIKeySecretStore(svcURL, "conjur-hostid", "conjur-apikey", "myconjuraccount"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(makeFakeAPIKeySecrets()...).Build(),
+				namespace: "default",
+				search:    "^secret[1,2]$",
+				tags: map[string]string{
+					"conjur/kind": "password",
+				},
+			},
+			want: want{
+				err: nil,
+				values: map[string][]byte{
+					"secret2": []byte("secret"),
+				},
+			},
+		},
 	}
 
 	runTest := func(t *testing.T, _ string, tc testCase) {
