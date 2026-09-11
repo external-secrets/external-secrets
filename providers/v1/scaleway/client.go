@@ -311,8 +311,7 @@ func (c *client) deleteSecretProperty(ctx context.Context, secretID, property st
 		Revision: "latest",
 	}, scw.WithContext(ctx))
 	if err != nil {
-		var errNotFound *scw.ResourceNotFoundError
-		if errors.As(err, &errNotFound) {
+		if _, ok := errors.AsType[*scw.ResourceNotFoundError](err); ok {
 			return nil
 		}
 		return err
@@ -388,8 +387,7 @@ func (c *client) secretVersionExists(ctx context.Context, secretID, property str
 		Revision: "latest",
 	}, scw.WithContext(ctx))
 	if err != nil {
-		var errNotFound *scw.ResourceNotFoundError
-		if errors.As(err, &errNotFound) {
+		if _, ok := errors.AsType[*scw.ResourceNotFoundError](err); ok {
 			return false, nil
 		}
 		return false, err
