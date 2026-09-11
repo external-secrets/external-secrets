@@ -18,7 +18,9 @@ package conjur
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/cyberark/conjur-api-go/conjurapi"
 	"github.com/cyberark/conjur-api-go/conjurapi/authn"
@@ -35,6 +37,10 @@ var (
 
 // conjurClientFromIAM creates a Conjur client using the authn-iam authenticator.
 func (c *Client) conjurClientFromIAM(ctx context.Context, config conjurapi.Config, prov *esv1.ConjurProvider) (SecretsClient, error) {
+	if !prov.Auth.IAM.Insecure && !strings.HasPrefix(strings.ToLower(prov.URL), "https://") {
+		return nil, errors.New("conjur URL must use https when using Auth.IAM authentication, or set Auth.IAM.Insecure to true")
+	}
+
 	config.AuthnType = "iam"
 	config.Account = prov.Auth.IAM.Account
 	config.ServiceID = prov.Auth.IAM.ServiceID

@@ -155,6 +155,14 @@ func TestValidateStore(t *testing.T) {
 			store: makeIAMSecretStore("", "myorg", "prod", "data/myapp/123456789/MyRole", false),
 			err:   errors.New("conjur URL cannot be empty"),
 		},
+		{
+			store: makeIAMSecretStore("http://example.com", "myorg", "prod", "data/myapp/123456789/MyRole", false),
+			err:   errors.New("conjur URL must use https when using Auth.IAM authentication, or set Auth.IAM.Insecure to true"),
+		},
+		{
+			store: makeIAMSecretStoreInsecure("http://example.com", "myorg", "prod", "data/myapp/123456789/MyRole"),
+			err:   nil,
+		},
 
 		{
 			store: makeAzureSecretStore(svcURL, "myorg", "prod", "data/myapp/myhost", false),
@@ -303,6 +311,12 @@ func makeIAMSecretStore(svcURL, account, serviceID, hostID string, withSecretRef
 			},
 		},
 	}
+}
+
+func makeIAMSecretStoreInsecure(svcURL, account, serviceID, hostID string) *esv1.SecretStore {
+	store := makeIAMSecretStore(svcURL, account, serviceID, hostID, false)
+	store.Spec.Provider.Conjur.Auth.IAM.Insecure = true
+	return store
 }
 
 func makeIAMSecretStoreWithSessionToken(svcURL, account, serviceID, hostID string) *esv1.SecretStore {
