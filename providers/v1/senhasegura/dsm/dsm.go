@@ -30,6 +30,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	senhaseguraAuth "github.com/external-secrets/external-secrets/providers/v1/senhasegura/auth"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 type clientDSMInterface interface {
@@ -173,10 +174,12 @@ func (dsm *DSM) FetchSecrets() (respObj IsoDappResponse, err error) {
 	u, _ := url.ParseRequestURI(dsm.isoSession.URL)
 	u.Path = "/iso/dapp/application"
 
-	tr := &http.Transport{
-		//nolint
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: dsm.isoSession.IgnoreSslCertificate},
+	tr, err := esutils.CloneDefaultHTTPTransport()
+	if err != nil {
+		return respObj, err
 	}
+	//nolint
+	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: dsm.isoSession.IgnoreSslCertificate}
 
 	client := &http.Client{Transport: tr}
 
