@@ -203,6 +203,10 @@ func buildPushTestProvider(t *testing.T, mock *infisicalMock, useTLS bool) (*Pro
 		hostAPI:      server.URL,
 		authIdentity: "test-identity",
 	}
+	// The cache is process wide and keyed on the host, so a later test that
+	// draws the port this server just released would answer from its entry.
+	t.Cleanup(func() { projectIDCache.Delete(p.projectCacheKey()) })
+
 	if useTLS && server.Certificate() != nil {
 		p.caCertificate = string(pem.EncodeToMemory(&pem.Block{
 			Type:  "CERTIFICATE",
