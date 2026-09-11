@@ -275,6 +275,170 @@ func TestGetSecret(t *testing.T) {
 				value: "",
 			},
 		},
+		"IamAmbientCredsReadSecretSuccess": {
+			reason: "Should read a secret using IAM auth with ambient AWS credentials.",
+			args: args{
+				store:      makeIAMSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/123/MyRole", false),
+				kube:       clientfake.NewClientBuilder().Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"IamExplicitCredsReadSecretSuccess": {
+			reason: "Should read a secret using IAM auth with explicit AWS credentials from Secrets.",
+			args: args{
+				store: makeIAMSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/123/MyRole", true),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "aws-creds",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"access-key-id":     []byte("AKIAIOSFODNN7EXAMPLE"),
+							"secret-access-key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+						},
+					}).Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"IamExplicitCredsMissingAccessKeySecret": {
+			reason: "Should fail when the AWS access key ID secret does not exist.",
+			args: args{
+				store:      makeIAMSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/123/MyRole", true),
+				kube:       clientfake.NewClientBuilder().Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   fmt.Errorf(errBadIAMAccessKeyID, fmt.Errorf("cannot get Kubernetes secret %q from namespace %q: %w", "aws-creds", "default", errors.New(`secrets "aws-creds" not found`))),
+				value: "",
+			},
+		},
+		"IamExplicitCredsMissingSessionTokenSecret": {
+			reason: "Should fail when a referenced AWS session token secret does not exist.",
+			args: args{
+				store: makeIAMSecretStoreWithSessionToken(svcURL, "myconjuraccount", "prod", "data/myapp/123/MyRole"),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "aws-creds",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"access-key-id":     []byte("AKIAIOSFODNN7EXAMPLE"),
+							"secret-access-key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+						},
+					}).Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err: fmt.Errorf(errBadIAMSessionToken, fmt.Errorf("cannot get Kubernetes secret %q from namespace %q: %w",
+					"aws-session-token", "default", errors.New(`secrets "aws-session-token" not found`))),
+				value: "",
+			},
+		},
+		"AzureAmbientTokenSuccess": {
+			reason: "Should read a secret using Azure auth with ambient IMDS token.",
+			args: args{
+				store:      makeAzureSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/myhost", false),
+				kube:       clientfake.NewClientBuilder().Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"AzureServiceAccountTokenSuccess": {
+			reason: "Should read a secret using Azure auth with a Kubernetes ServiceAccount token.",
+			args: args{
+				store:      makeAzureSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/myhost", true),
+				kube:       clientfake.NewClientBuilder().Build(),
+				namespace:  "default",
+				corev1:     utilfake.NewCreateTokenMock().WithToken(createFakeJwtToken(true)),
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"AzureServiceAccountTokenRequestFailure": {
+			reason: "Should fail when the ServiceAccount token request fails.",
+			args: args{
+				store:      makeAzureSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/myhost", true),
+				kube:       clientfake.NewClientBuilder().Build(),
+				namespace:  "default",
+				corev1:     utilfake.NewCreateTokenMock().WithError(errors.New("token request failed")),
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err: fmt.Errorf("could not get Azure JWT from ServiceAccount: %w",
+					fmt.Errorf(errGetKubeSATokenRequest, "my-service-account", errors.New("token request failed"))),
+				value: "",
+			},
+		},
+		"GCPAmbientTokenSuccess": {
+			reason: "Should read a secret using GCP auth with ambient GCP Metadata Service token.",
+			args: args{
+				store:      makeGCPSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/myhost", false),
+				kube:       clientfake.NewClientBuilder().Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"GCPSecretRefTokenSuccess": {
+			reason: "Should read a secret using GCP auth with an explicit token from a Kubernetes Secret.",
+			args: args{
+				store: makeGCPSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/myhost", true),
+				kube: clientfake.NewClientBuilder().
+					WithObjects(&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "gcp-token-secret",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"token": []byte(createFakeJwtToken(true)),
+						},
+					}).Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err:   nil,
+				value: "secret",
+			},
+		},
+		"GCPSecretRefMissingTokenSecret": {
+			reason: "Should fail when the referenced GCP token secret does not exist.",
+			args: args{
+				store:      makeGCPSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/myhost", true),
+				kube:       clientfake.NewClientBuilder().Build(),
+				namespace:  "default",
+				secretPath: "path/to/secret",
+			},
+			want: want{
+				err: fmt.Errorf(errBadGCPToken, fmt.Errorf("cannot get Kubernetes secret %q from namespace %q: %w",
+					"gcp-token-secret", "default", errors.New(`secrets "gcp-token-secret" not found`))),
+				value: "",
+			},
+		},
 	}
 
 	runTest := func(t *testing.T, _ string, tc testCase) {
@@ -937,6 +1101,18 @@ func (c *ConjurMockAPIClient) NewClientFromKey(_ conjurapi.Config, _ authn.Login
 }
 
 func (c *ConjurMockAPIClient) NewClientFromJWT(_ conjurapi.Config) (SecretsClient, error) {
+	return &fake.ConjurMockClient{}, nil
+}
+
+func (c *ConjurMockAPIClient) NewClientFromIAM(_ conjurapi.Config, _ *authn.IAMCredentials) (SecretsClient, error) {
+	return &fake.ConjurMockClient{}, nil
+}
+
+func (c *ConjurMockAPIClient) NewClientFromAzure(_ conjurapi.Config) (SecretsClient, error) {
+	return &fake.ConjurMockClient{}, nil
+}
+
+func (c *ConjurMockAPIClient) NewClientFromGCP(_ conjurapi.Config) (SecretsClient, error) {
 	return &fake.ConjurMockClient{}, nil
 }
 
