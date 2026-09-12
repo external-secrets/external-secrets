@@ -81,12 +81,36 @@ func formatSecretKey(secretKey, secretPath, basePath string, includeSecretPath b
 		return secretKey
 	}
 
-	rel := strings.TrimPrefix(secretPath, basePath)
-	rel = strings.TrimPrefix(rel, "/")
+	// secretsPath is taken from the store spec verbatim, so a trailing slash
+	// ("/path/") must not change the result.
+	basePath = trimTrailingSlash(basePath)
+	secretPath = trimTrailingSlash(secretPath)
+
+	// Use CutPrefix with a trailing "/" to ensure we only strip whole path
+	// segments. Without the slash, basePath "/app" would incorrectly turn
+	// "/application/SECRET" into "lication/SECRET".
+	var rel string
+	if secretPath == basePath {
+		return secretKey
+	} else if after, ok := strings.CutPrefix(secretPath, basePath+"/"); ok {
+		rel = after
+	} else {
+		rel = strings.TrimPrefix(secretPath, "/")
+	}
 	if rel == "" {
 		return secretKey
 	}
 	return rel + "/" + secretKey
+}
+
+// trimTrailingSlash removes trailing slashes from a path, preserving "/" as the
+// root path.
+func trimTrailingSlash(path string) string {
+	trimmed := strings.TrimRight(path, "/")
+	if trimmed == "" {
+		return "/"
+	}
+	return trimmed
 }
 
 // getSecretAddress returns the (folder, name) pair to look up in Infisical for the given key.

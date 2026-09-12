@@ -779,7 +779,7 @@ The `secretsScope` configuration controls which secrets are accessible:
 | `secretsPath` | No | `/` | The base path for secrets retrieval |
 | `recursive` | No | `false` | When true, fetches secrets recursively from subfolders |
 | `expandSecretReferences` | No | `true` | When true, expands secret references (e.g., `${SECRET_NAME}`) |
-| `keepDuplicateKeys` | No | `false` | When true, keep duplicate keys by appending the secret path to it (e.g. `/path/to/secret:SECRET_NAME`)
+| `includeSecretPath` | No | `false` | When true, secret keys are prefixed with their path relative to `secretsPath`, without a leading slash (e.g. with the default `secretsPath` of `/`, a secret at `/path/to/secret` becomes `path/to/secret/SECRET_NAME`) |
 
 !!! tip
     To get your project slug from Infisical, head over to the project settings and click the button `Copy Project Slug`.
