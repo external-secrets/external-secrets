@@ -126,6 +126,14 @@ func TestFormatSecretKey(t *testing.T) {
 	//   basePath "/app" must NOT incorrectly strip "/application"
 	assert.Equal(t, "application/SECRET", formatSecretKey("SECRET", "/application", "/app", true))
 	assert.Equal(t, "application/nested/SECRET", formatSecretKey("SECRET", "/application/nested", "/app", true))
+
+	//   a trailing slash on secretsPath must not change the result
+	assert.Equal(t, "FOO", formatSecretKey("FOO", "/path", "/path/", true))
+	assert.Equal(t, "child/FOO", formatSecretKey("FOO", "/path/child", "/path/", true))
+	assert.Equal(t, "a/b/FOO", formatSecretKey("FOO", "/path/a/b", "/path/", true))
+	assert.Equal(t, "FOO", formatSecretKey("FOO", "/", "//", true))
+	assert.Equal(t, "sub/FOO", formatSecretKey("FOO", "/sub/", "/", true))
+	assert.Equal(t, "application/SECRET", formatSecretKey("SECRET", "/application", "/app/", true))
 }
 
 func TestGetAllSecretsListRequest(t *testing.T) {
