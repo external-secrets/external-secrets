@@ -207,11 +207,10 @@ not: sprig expects a `map[string]interface{}` while the template data is
 
 #### The `method` is shared, but its default is not
 
-`method` is a single field used by read, push and delete alike, but the default depends
-on the operation. When left empty the provider uses `GET` for a read, `POST` for a push,
-and `DELETE` for a delete (deletes always use `DELETE`). Setting `method: GET` therefore
-silently turns every push into a `GET`, because the explicit value overrides the push
-default.
+`method` is shared by read and push; delete requests always use `DELETE`, regardless of
+`method`. When left empty the provider uses `GET` for a read and `POST` for a push.
+Setting `method: GET` therefore silently turns every push into a `GET`, because the
+explicit value overrides the push default.
 
 #### Remote key names when `body` is unset
 
@@ -225,7 +224,8 @@ remote key is not a bare identifier.
 
 #### Unsupported features
 
-`remoteRef.property` has no effect on this provider: `GetSecret` uses the ref only to
+`spec.remoteRef.property` is not applied automatically to response selection. Its value
+remains available as `.remoteRef.property` in templates. `GetSecret` uses the ref only to
 render the templates and then applies `result.jsonPath`, so a `property` in an
 `ExternalSecret` is silently ignored. The equivalent is to template the jsonPath itself.
 `dataFrom.find` is not supported either, because `GetAllSecrets` returns
@@ -243,7 +243,7 @@ spec:
     webhook:
       # Url to call.  Use templating engine to fill in the request parameters
       url: <url>
-      # http method; defaults per operation: GET for reads, POST for pushes, DELETE for deletes
+      # http method; defaults to GET for reads and POST for pushes. Deletes always use DELETE.
       method: <method>
       # Timeout in duration (1s, 1m, etc)
       timeout: 1s
