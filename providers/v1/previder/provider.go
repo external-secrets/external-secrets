@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"regexp"
 
 	previderclient "github.com/previder/vault-cli/pkg"
 	corev1 "k8s.io/api/core/v1"
@@ -30,6 +29,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/find"
 )
 
 const (
@@ -183,14 +183,14 @@ func (s *SecretManager) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecr
 // findMatcher compiles ref into a predicate over secret descriptions. An
 // absent name selects every secret.
 func findMatcher(ref esv1.ExternalSecretFind) (func(string) bool, error) {
-	if ref.Name == nil || ref.Name.RegExp == "" {
+	if ref.Name == nil {
 		return func(string) bool { return true }, nil
 	}
-	re, err := regexp.Compile(ref.Name.RegExp)
+	matcher, err := find.New(*ref.Name)
 	if err != nil {
-		return nil, fmt.Errorf("could not compile find.name.regexp %q: %w", ref.Name.RegExp, err)
+		return nil, err
 	}
-	return re.MatchString, nil
+	return matcher.MatchName, nil
 }
 
 // Close cleans up any resources held by the client.
