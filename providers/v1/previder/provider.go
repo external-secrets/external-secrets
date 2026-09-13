@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 
 	previderclient "github.com/previder/vault-cli/pkg"
 	corev1 "k8s.io/api/core/v1"
@@ -32,7 +33,9 @@ import (
 )
 
 const (
-	errNotImplemented = "not implemented"
+	errNotImplemented   = "not implemented"
+	errTagsNotSupported = "previder vault does not support tags, use name.regexp instead"
+	errPathNotSupported = "previder vault has no secret hierarchy, path is not supported"
 )
 
 var _ esv1.Provider = &SecretManager{}
@@ -142,9 +145,52 @@ func (s *SecretManager) GetSecretMap(ctx context.Context, ref esv1.ExternalSecre
 	return secretData, nil
 }
 
-// GetAllSecrets is not implemented for Previder Vault.
-func (s *SecretManager) GetAllSecrets(context.Context, esv1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, errors.New(errNotImplemented)
+// GetAllSecrets retrieves all secrets from Previder Vault whose description
+// matches the given find criteria.
+func (s *SecretManager) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	if ref.Tags != nil {
+		return nil, errors.New(errTagsNotSupported)
+	}
+	if ref.Path != nil {
+		return nil, errors.New(errPathNotSupported)
+	}
+
+	matcher, err := findMatcher(ref)
+	if err != nil {
+		return nil, err
+	}
+
+	secrets, err := s.VaultClient.GetSecrets()
+	if err != nil {
+		return nil, err
+	}
+
+	secretData := make(map[string][]byte)
+	for _, secret := range secrets {
+		if !matcher(secret.Description) {
+			continue
+		}
+		// Addressed by description, the same key GetSecret takes.
+		value, err := s.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secret.Description})
+		if err != nil {
+			return nil, err
+		}
+		secretData[secret.Description] = value
+	}
+	return secretData, nil
+}
+
+// findMatcher compiles ref into a predicate over secret descriptions. An
+// absent name selects every secret.
+func findMatcher(ref esv1.ExternalSecretFind) (func(string) bool, error) {
+	if ref.Name == nil || ref.Name.RegExp == "" {
+		return func(string) bool { return true }, nil
+	}
+	re, err := regexp.Compile(ref.Name.RegExp)
+	if err != nil {
+		return nil, fmt.Errorf("could not compile find.name.regexp %q: %w", ref.Name.RegExp, err)
+	}
+	return re.MatchString, nil
 }
 
 // Close cleans up any resources held by the client.
