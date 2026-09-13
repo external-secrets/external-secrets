@@ -62,3 +62,31 @@ spec:
       remoteRef:
         key: token-name-or-id
 ```
+
+## Finding secrets
+
+Instead of naming each secret, `dataFrom.find` copies every secret in the vault
+whose name matches a regular expression. Omit `name` to select all of them.
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: example-find
+spec:
+  refreshInterval: 1h0m0s
+  secretStoreRef:
+    name: previder-secretstore-sample
+    kind: SecretStore
+  target:
+    name: example-secret
+    creationPolicy: Owner
+  dataFrom:
+    - find:
+        name:
+          regexp: "^production-"
+```
+
+Each matching secret becomes one key in the resulting Kubernetes secret, named
+after the secret in the vault. Previder Vault has neither tags nor a secret
+hierarchy, so `find.tags` and `find.path` are rejected.
