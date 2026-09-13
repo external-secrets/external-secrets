@@ -27,7 +27,7 @@ type PreviderVaultFakeClient struct {
 }
 
 var (
-	secrets = map[string]string{"secret1": "secret1content", "secret2": "secret2content"}
+	secrets = map[string]string{"secret1": "secret1content", "secret2": "secret2content", "other1": "other1content"}
 )
 
 func (v *PreviderVaultFakeClient) DecryptSecret(id string) (*model.SecretDecrypt, error) {
