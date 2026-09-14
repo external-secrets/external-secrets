@@ -260,9 +260,7 @@ func postJSONRequestInternal(ctx context.Context, url string, requestBody any, p
 	} else {
 		transport = &http.Transport{}
 	}
-	transport.TLSClientConfig = &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
+	transport.TLSClientConfig = &tls.Config{}
 
 	client := &http.Client{
 		Timeout:   10 * time.Second,

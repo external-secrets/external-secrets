@@ -318,10 +318,7 @@ func (c *DopplerClient) performRequest(path, method string, headers headers, par
 
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 
-	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
-
+	tlsConfig := &tls.Config{}
 	if !c.VerifyTLS {
 		tlsConfig.InsecureSkipVerify = true
 	}

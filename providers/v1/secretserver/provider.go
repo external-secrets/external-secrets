@@ -95,8 +95,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		}
 
 		ssConfig.TLSClientConfig = &tls.Config{
-			RootCAs:    caCertPool,
-			MinVersion: tls.VersionTLS12,
+			RootCAs: caCertPool,
 		}
 	}
 
