@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -140,14 +141,18 @@ func (c *DopplerClient) BaseURL() *url.URL {
 
 // SetBaseURL sets the base URL for the Doppler API.
 func (c *DopplerClient) SetBaseURL(urlStr string) error {
-	baseURL, err := url.Parse(strings.TrimSuffix(urlStr, "/"))
+	urlStr = strings.TrimSuffix(urlStr, "/")
+	if !strings.Contains(urlStr, "://") {
+		urlStr = "https://" + urlStr
+	}
 
+	baseURL, err := url.Parse(urlStr)
 	if err != nil {
 		return err
 	}
 
-	if baseURL.Scheme == "" {
-		baseURL.Scheme = "https"
+	if baseURL.Hostname() == "" {
+		return errors.New("missing hostname")
 	}
 
 	c.baseURL = baseURL

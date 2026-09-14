@@ -40,6 +40,7 @@ import (
 const (
 	errNewClient    = "unable to create DopplerClient : %s"
 	errInvalidStore = "invalid store: %s"
+	errInvalidHost  = "host is not a valid URL"
 	errDopplerStore = "missing or invalid Doppler SecretStore"
 )
 
@@ -200,8 +201,8 @@ func (p *Provider) configureDopplerClient(client *Client) error {
 		return fmt.Errorf(errNewClient, err)
 	}
 
-	if customBaseURL, found := os.LookupEnv(customBaseURLEnvVar); found {
-		if err := doppler.SetBaseURL(customBaseURL); err != nil {
+	if baseURL := resolveBaseURL(client.store); baseURL != "" {
+		if err := doppler.SetBaseURL(baseURL); err != nil {
 			return fmt.Errorf(errNewClient, err)
 		}
 	}
@@ -254,7 +255,28 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, fmt.Errorf(errInvalidStore, "either auth.secretRef or auth.oidcConfig must be specified")
 	}
 
+	if dopplerStoreSpec.Host != "" {
+		if err := (&dclient.DopplerClient{}).SetBaseURL(dopplerStoreSpec.Host); err != nil {
+			return nil, fmt.Errorf(errInvalidStore, errInvalidHost)
+		}
+	}
+
 	return nil, nil
+}
+
+// resolveBaseURL prefers the host configured on the SecretStore over the
+// operator-wide DOPPLER_BASE_URL override. An empty result leaves the client
+// pointed at its default host.
+func resolveBaseURL(dopplerStoreSpec *esv1.DopplerProvider) string {
+	if dopplerStoreSpec.Host != "" {
+		return dopplerStoreSpec.Host
+	}
+
+	if customBaseURL, found := os.LookupEnv(customBaseURLEnvVar); found {
+		return customBaseURL
+	}
+
+	return ""
 }
 
 // NewProvider creates a new Provider instance.
