@@ -99,6 +99,7 @@ var (
 	enablePushSecretReconciler            bool
 	enableFloodGate                       bool
 	enableGeneratorState                  bool
+	enableExternalSecretCleanupFinalizer  bool
 	enableExtendedMetricLabels            bool
 	storeRequeueInterval                  time.Duration
 	serviceName, serviceNamespace         string
@@ -269,6 +270,7 @@ var rootCmd = &cobra.Command{
 			ClusterSecretStoreEnabled:          enableClusterStoreReconciler,
 			EnableFloodGate:                    enableFloodGate,
 			EnableGeneratorState:               enableGeneratorState,
+			EnableCleanupFinalizer:             enableExternalSecretCleanupFinalizer,
 			AllowGenericTargets:                allowGenericTargets,
 		}).SetupWithManager(cmd.Context(), mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
 			setupLog.Error(err, errCreateController, "controller", "ExternalSecret")
@@ -390,6 +392,7 @@ func init() {
 	rootCmd.Flags().DurationVar(&storeRequeueInterval, "store-requeue-interval", time.Minute*5, "Default Time duration between reconciling (Cluster)SecretStores")
 	rootCmd.Flags().BoolVar(&enableFloodGate, "enable-flood-gate", true, "Enable flood gate. External secret will be reconciled only if the ClusterStore or Store have an healthy or unknown state.")
 	rootCmd.Flags().BoolVar(&enableGeneratorState, "enable-generator-state", true, "Whether the Controller should manage GeneratorState")
+	rootCmd.Flags().BoolVar(&enableExternalSecretCleanupFinalizer, "enable-external-secret-cleanup-finalizer", true, "Add the externalsecret-cleanup finalizer to ExternalSecret resources to ensure managed secret cleanup on deletion. Disable to avoid blocking namespace deletion when the operator cannot reconcile. Does not affect the ClusterExternalSecret finalizer.")
 	rootCmd.Flags().BoolVar(&enableExtendedMetricLabels, "enable-extended-metric-labels", false, "Enable recommended kubernetes annotations as labels in metrics.")
 	rootCmd.Flags().StringVar(&tlsCiphers, "tls-ciphers", "", "comma separated list of tls ciphers allowed for the metrics server. "+
 		"This does not apply to TLS 1.3 as the ciphers are selected automatically. "+
