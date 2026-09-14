@@ -598,3 +598,11 @@ tests:
             initialDelaySeconds: 5
             periodSeconds: 15
             failureThreshold: 40
+  - it: should not render ValidatingWebhookConfiguration when webhook.createValidatingWebhookConfiguration is false
+    set:
+      webhook.createValidatingWebhookConfiguration: false
+    templates:
+      - validatingwebhook.yaml
+    asserts:
+      - hasDocuments:
+          count: 0

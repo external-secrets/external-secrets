@@ -514,6 +514,8 @@ webhook:
   annotations: {}
   # -- Specifies whether a webhook deployment be created. If set to false, crds.conversion.enabled should also be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint.
   create: true
+  # -- Specifies whether the ValidatingWebhookConfiguration is created. Only takes effect when webhook.create is true. Set to false to run the webhook workload without registering the ValidatingWebhookConfiguration, e.g. when it is managed separately.
+  createValidatingWebhookConfiguration: true
   # -- Specifies the time to check if the cert is valid
   certCheckInterval: "5m"
   # -- Specifies the lookaheadInterval for certificate validity
