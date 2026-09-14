@@ -5627,7 +5627,7 @@ Example: <strong><code>{{ index .data "service-account-token" }}</code></strong>
 <span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">/grafana/password</span>
 </code></pre></div>
-<p>Lastly, <code>TemplateFrom</code> also supports adding <code>Literal</code> blocks for quick templating. These <code>Literal</code> blocks differ from <code>Template.Data</code> as they are rendered as a a <code>key:value</code> pair (while the <code>Template.Data</code>, you can only template the value).</p>
+<p>Lastly, <code>TemplateFrom</code> also supports adding <code>Literal</code> blocks for quick templating. These <code>Literal</code> blocks differ from <code>Template.Data</code> as they are rendered as a <code>key:value</code> pair (while the <code>Template.Data</code>, you can only template the value).</p>
 <h4 id="valuesdecodingstrategy-example">ValuesDecodingStrategy example</h4>
 <p><code>TemplateFrom</code> entries can also decode rendered values with <code>ValuesDecodingStrategy</code>. This is useful when the template selects Base64-encoded values from structured provider data and the final Kubernetes Secret must contain the decoded bytes.</p>
 <p>For example, imagine several remote secrets matched by <code>dataFrom.find</code> contain JSON values like this:</p>
