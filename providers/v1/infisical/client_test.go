@@ -108,6 +108,43 @@ func (s *listStub) get(key string) string {
 	return s.query.Get(key)
 }
 
+func TestFormatSecretKey(t *testing.T) {
+	// includeSecretPath=false always returns the bare key.
+	assert.Equal(t, "FOO", formatSecretKey("FOO", "/app/sub", "/app", false))
+
+	// includeSecretPath=true cases:
+	//   secretPath == basePath -> bare key
+	assert.Equal(t, "FOO", formatSecretKey("FOO", "/app", "/app", true))
+	assert.Equal(t, "FOO", formatSecretKey("FOO", "/", "/", true))
+
+	//   secretPath under basePath -> relative prefix, "/" rendered as "."
+	assert.Equal(t, "sub.FOO", formatSecretKey("FOO", "/sub", "/", true))
+	assert.Equal(t, "a.b.FOO", formatSecretKey("FOO", "/a/b", "/", true))
+	assert.Equal(t, "sub.FOO", formatSecretKey("FOO", "/path/sub", "/path", true))
+	assert.Equal(t, "a.b.c.FOO", formatSecretKey("FOO", "/path/a/b/c", "/path", true))
+
+	//   every separator in a deeply nested path is replaced
+	assert.Equal(t, "a.b.c.d.e.FOO", formatSecretKey("FOO", "/a/b/c/d/e", "/", true))
+
+	//   basePath "/app" must NOT incorrectly strip "/application"
+	assert.Equal(t, "application.SECRET", formatSecretKey("SECRET", "/application", "/app", true))
+	assert.Equal(t, "application.nested.SECRET", formatSecretKey("SECRET", "/application/nested", "/app", true))
+
+	//   a trailing slash on secretsPath must not change the result
+	assert.Equal(t, "FOO", formatSecretKey("FOO", "/path", "/path/", true))
+	assert.Equal(t, "child.FOO", formatSecretKey("FOO", "/path/child", "/path/", true))
+	assert.Equal(t, "a.b.FOO", formatSecretKey("FOO", "/path/a/b", "/path/", true))
+	assert.Equal(t, "FOO", formatSecretKey("FOO", "/", "//", true))
+	assert.Equal(t, "sub.FOO", formatSecretKey("FOO", "/sub/", "/", true))
+	assert.Equal(t, "application.SECRET", formatSecretKey("SECRET", "/application", "/app/", true))
+
+	//   dots already present in path segments or keys are left untouched
+	assert.Equal(t, "my.dir.FOO.BAR", formatSecretKey("FOO.BAR", "/my.dir", "/", true))
+
+	//   no "/" may survive in the formatted key
+	assert.NotContains(t, formatSecretKey("FOO", "/a/b/c", "/", true), "/")
+}
+
 func TestGetAllSecretsListRequest(t *testing.T) {
 	const emptyList = `{"secrets":[],"imports":[]}`
 
