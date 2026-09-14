@@ -15857,7 +15857,9 @@ Kubernetes meta/v1.LabelSelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Selector chooses secrets using a labelSelector.</p>
+<p>Selector chooses secrets using a labelSelector.
+It must not be empty: an empty selector resolves to labels.Everything(),
+which would push every Secret in the namespace to the provider.</p>
 </td>
 </tr>
 </tbody>
