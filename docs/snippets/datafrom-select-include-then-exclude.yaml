@@ -1,0 +1,22 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: example-include-then-exclude
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    kind: SecretStore
+    name: backend
+  target:
+    name: selected-secret
+  dataFrom:
+  - extract:
+      key: my-secret
+    select:
+    # 1) Keep only keys that start with db_
+    - regexp: "^db_"
+      operation: Include
+    # 2) Drop db_password from that set
+    - names:
+      - db_password
+      operation: Exclude
