@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/openbao/openbao/api/v2"
@@ -34,6 +35,7 @@ import (
 	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/find"
@@ -161,12 +163,25 @@ func (c *client) setupAuth(ctx context.Context, kube k8sClient.Client, namespace
 	case c.store.Auth.Kubernetes != nil:
 		kubernetes := c.store.Auth.Kubernetes
 
-		jwt, err := c.getJwt(ctx, kube, namespace)
+		jwt, err := c.getKubernetesAuthJwt(ctx, kube, namespace)
 		if err != nil {
 			return err
 		}
 
 		auth, err = provider.AuthMethodFactory.Kubernetes(kubernetes.Role, jwt, kubernetes.Path)
+		if err != nil {
+			return err
+		}
+
+	case c.store.Auth.Jwt != nil:
+		jwtAuth := c.store.Auth.Jwt
+
+		jwt, err := c.getJwtAuthJwt(ctx, kube, namespace)
+		if err != nil {
+			return err
+		}
+
+		auth, err = provider.AuthMethodFactory.JWT(strings.TrimSpace(jwtAuth.Role), jwt, jwtAuth.Path)
 		if err != nil {
 			return err
 		}
@@ -373,37 +388,11 @@ func (c *client) Validate() (esv1.ValidationResult, error) {
 	return esv1.ValidationResultReady, nil
 }
 
-// getJwt retrieves a JWT token from the given Kubernetes ServiceAccount (`serviceAccountRef`) or Kubernetes secret (`secretRef`).
-func (c *client) getJwt(ctx context.Context, kube k8sClient.Client, namespace string) (string, error) {
+func (c *client) getKubernetesAuthJwt(ctx context.Context, kube k8sClient.Client, namespace string) (string, error) {
 	kubernetesAuth := c.store.Auth.Kubernetes
 
 	if kubernetesAuth.ServiceAccountRef != nil {
-		var expirationSeconds int64 = 600
-
-		saNamespace := namespace
-		if c.storeKind == esv1.ClusterSecretStoreKind && kubernetesAuth.ServiceAccountRef.Namespace != nil {
-			saNamespace = *kubernetesAuth.ServiceAccountRef.Namespace
-		}
-
-		sa := &v1.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      kubernetesAuth.ServiceAccountRef.Name,
-				Namespace: saNamespace,
-			},
-		}
-
-		tokenRequest := &authv1.TokenRequest{
-			Spec: authv1.TokenRequestSpec{
-				Audiences:         kubernetesAuth.ServiceAccountRef.Audiences,
-				ExpirationSeconds: &expirationSeconds,
-			},
-		}
-
-		if err := kube.SubResource("token").Create(ctx, sa, tokenRequest); err != nil {
-			return "", fmt.Errorf("cannot request Kubernetes service account token for service account %q: %w", kubernetesAuth.ServiceAccountRef.Name, err)
-		}
-
-		return tokenRequest.Status.Token, nil
+		return c.createServiceAccountToken(ctx, kube, namespace, *kubernetesAuth.ServiceAccountRef, kubernetesAuth.ServiceAccountRef.Audiences, 600)
 	}
 
 	if kubernetesAuth.SecretRef != nil {
@@ -420,4 +409,54 @@ func (c *client) getJwt(ctx context.Context, kube k8sClient.Client, namespace st
 	}
 
 	return "", fmt.Errorf("serviceAccountRef or secretRef was not set. Unable to get a jwt")
+}
+
+func (c *client) getJwtAuthJwt(ctx context.Context, kube k8sClient.Client, namespace string) (string, error) {
+	jwtAuth := c.store.Auth.Jwt
+
+	if jwtAuth.SecretRef != nil {
+		return resolvers.SecretKeyRef(ctx, kube, c.storeKind, namespace, jwtAuth.SecretRef)
+	}
+
+	if k8sServiceAccountToken := jwtAuth.KubernetesServiceAccountToken; k8sServiceAccountToken != nil {
+		audiences := k8sServiceAccountToken.Audiences
+		if audiences == nil {
+			audiences = &[]string{"openbao"}
+		}
+		expirationSeconds := k8sServiceAccountToken.ExpirationSeconds
+		if expirationSeconds == nil {
+			tmp := int64(600)
+			expirationSeconds = &tmp
+		}
+		return c.createServiceAccountToken(ctx, kube, namespace, k8sServiceAccountToken.ServiceAccountRef, *audiences, *expirationSeconds)
+	}
+
+	return "", fmt.Errorf("neither `secretRef` nor `kubernetesServiceAccountToken` was supplied as token source for jwt authentication")
+}
+
+func (c *client) createServiceAccountToken(ctx context.Context, kube k8sClient.Client, namespace string, serviceAccountRef esmeta.ServiceAccountSelector, audiences []string, expirationSeconds int64) (string, error) {
+	saNamespace := namespace
+	if c.storeKind == esv1.ClusterSecretStoreKind && serviceAccountRef.Namespace != nil {
+		saNamespace = *serviceAccountRef.Namespace
+	}
+
+	sa := &v1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      serviceAccountRef.Name,
+			Namespace: saNamespace,
+		},
+	}
+
+	tokenRequest := &authv1.TokenRequest{
+		Spec: authv1.TokenRequestSpec{
+			Audiences:         audiences,
+			ExpirationSeconds: &expirationSeconds,
+		},
+	}
+
+	if err := kube.SubResource("token").Create(ctx, sa, tokenRequest); err != nil {
+		return "", fmt.Errorf("cannot request Kubernetes service account token for service account %q: %w", serviceAccountRef.Name, err)
+	}
+
+	return tokenRequest.Status.Token, nil
 }
