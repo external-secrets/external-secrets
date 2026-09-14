@@ -33,9 +33,15 @@ import (
 )
 
 const (
+	// tokenTypeReadOnly tokens can decrypt a secret whose name or id is already
+	// known, but cannot enumerate the vault.
+	tokenTypeReadOnly = "ReadOnly"
+
 	errNotImplemented   = "not implemented"
 	errTagsNotSupported = "previder vault does not support tags, use name.regexp instead"
 	errPathNotSupported = "previder vault has no secret hierarchy, path is not supported"
+	errReadOnlyToken    = "a ReadOnly previder vault token cannot enumerate secrets, " +
+		"use a ReadWrite token or address secrets individually with data.remoteRef"
 )
 
 var _ esv1.Provider = &SecretManager{}
@@ -148,6 +154,9 @@ func (s *SecretManager) GetSecretMap(ctx context.Context, ref esv1.ExternalSecre
 // GetAllSecrets retrieves all secrets from Previder Vault whose description
 // matches the given find criteria.
 func (s *SecretManager) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	if s.TokenType == tokenTypeReadOnly {
+		return nil, errors.New(errReadOnlyToken)
+	}
 	if ref.Tags != nil {
 		return nil, errors.New(errTagsNotSupported)
 	}

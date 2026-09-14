@@ -42,10 +42,11 @@ func TestSecretManagerClose(t *testing.T) {
 func TestSecretManagerGetAllSecrets(t *testing.T) {
 	path := "some/path"
 	for _, tc := range []struct {
-		name    string
-		ref     esv1.ExternalSecretFind
-		want    map[string][]byte
-		wantErr bool
+		name     string
+		ref      esv1.ExternalSecretFind
+		want     map[string][]byte
+		readOnly bool
+		wantErr  bool
 	}{
 		{
 			name: "no criteria returns every secret",
@@ -75,6 +76,12 @@ func TestSecretManagerGetAllSecrets(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:     "a ReadOnly token cannot enumerate",
+			ref:      esv1.ExternalSecretFind{},
+			readOnly: true,
+			wantErr:  true,
+		},
+		{
 			name:    "tags are not supported",
 			ref:     esv1.ExternalSecretFind{Tags: map[string]string{"env": "prod"}},
 			wantErr: true,
@@ -86,7 +93,11 @@ func TestSecretManagerGetAllSecrets(t *testing.T) {
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			previderProvider := &SecretManager{VaultClient: &PreviderVaultFakeClient{}}
+			tokenType := "ReadWrite"
+			if tc.readOnly {
+				tokenType = "ReadOnly"
+			}
+			previderProvider := &SecretManager{VaultClient: &PreviderVaultFakeClient{}, TokenType: tokenType}
 			got, err := previderProvider.GetAllSecrets(context.Background(), tc.ref)
 			if tc.wantErr {
 				if err == nil {
