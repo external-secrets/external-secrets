@@ -64,18 +64,19 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 
 // formatSecretKey returns the secret key, optionally prefixed with the relative
 // path when includeSecretPath is enabled. Secrets at the root path (/) are
-// never prefixed.
+// never prefixed. Path separators are rendered as "." so the resulting key
+// survives Kubernetes secret key validation without being rewritten to "_".
 //
 // Example (basePath="/", includeSecretPath=true):
 //
 //	("/",       "FOO") -> "FOO"
-//	("/sub",    "FOO") -> "sub/FOO"
-//	("/a/b",    "FOO") -> "a/b/FOO"
+//	("/sub",    "FOO") -> "sub.FOO"
+//	("/a/b",    "FOO") -> "a.b.FOO"
 //
 // Example (basePath="/path", includeSecretPath=true):
 //
 //	("/path",       "FOO") -> "FOO"
-//	("/path/sub",   "FOO") -> "sub/FOO"
+//	("/path/sub",   "FOO") -> "sub.FOO"
 func formatSecretKey(secretKey, secretPath, basePath string, includeSecretPath bool) string {
 	if !includeSecretPath {
 		return secretKey
@@ -100,7 +101,11 @@ func formatSecretKey(secretKey, secretPath, basePath string, includeSecretPath b
 	if rel == "" {
 		return secretKey
 	}
-	return rel + "/" + secretKey
+
+	// We replace all `/` occurrences with `.` because Kubernetes
+	// does not allow slashes in the secret keys. Only dashes, underscores
+	// and dots.
+	return strings.ReplaceAll(rel, "/", ".") + "." + secretKey
 }
 
 // trimTrailingSlash removes trailing slashes from a path, preserving "/" as the

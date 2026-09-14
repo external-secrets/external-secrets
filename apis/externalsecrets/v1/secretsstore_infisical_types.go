@@ -155,7 +155,8 @@ type MachineIdentityScopeInWorkspace struct {
 	// +optional
 	ExpandSecretReferences bool `json:"expandSecretReferences,omitempty"`
 	// IncludeSecretPath indicates whether the secret path should be included as a prefix
-	// in the secret key. Secrets at the root path (/) are not prefixed.
+	// in the secret key, with path separators rendered as ".".
+	// Secrets at the root path (/) are not prefixed.
 	// +kubebuilder:default=false
 	// +optional
 	IncludeSecretPath bool `json:"includeSecretPath,omitempty"`

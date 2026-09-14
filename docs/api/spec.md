@@ -8201,7 +8201,8 @@ bool
 <td>
 <em>(Optional)</em>
 <p>IncludeSecretPath indicates whether the secret path should be included as a prefix
-in the secret key. Secrets at the root path (/) are not prefixed.</p>
+in the secret key, with path separators rendered as &ldquo;.&rdquo;.
+Secrets at the root path (/) are not prefixed.</p>
 </td>
 </tr>
 </tbody>
