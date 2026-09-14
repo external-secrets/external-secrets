@@ -19,11 +19,15 @@ package doppler
 import (
 	"context"
 	"errors"
+	"os"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	kclient "sigs.k8s.io/controller-runtime/pkg/client"
+	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -44,6 +48,12 @@ const (
 	missingSecretErr  = "could not get secret"
 	missingDeleteErr  = "could not delete secrets"
 	missingPushErr    = "could not push secrets"
+
+	testNamespace          = "ns"
+	dopplerTokenSecretName = "doppler-token-secret"
+	defaultHost            = "https://api.doppler.com"
+	storeHost              = "https://doppler.internal.example.com"
+	envHost                = "https://doppler-env.example.com"
 )
 
 type dopplerTestCase struct {
@@ -435,6 +445,13 @@ func withOIDCAuth(identityID, saName string, saNamespace *string) storeModifier 
 	}
 }
 
+func withHost(host string) storeModifier {
+	return func(store *esv1.SecretStore) *esv1.SecretStore {
+		store.Spec.Provider.Doppler.Host = host
+		return store
+	}
+}
+
 type ValidateStoreTestCase struct {
 	label string
 	store *esv1.SecretStore
@@ -442,8 +459,8 @@ type ValidateStoreTestCase struct {
 }
 
 func TestValidateStore(t *testing.T) {
-	namespace := "ns"
-	secretName := "doppler-token-secret"
+	namespace := testNamespace
+	secretName := dopplerTokenSecretName
 	testCases := []ValidateStoreTestCase{
 		{
 			label: "invalid store missing dopplerToken.name",
@@ -498,6 +515,26 @@ func TestValidateStore(t *testing.T) {
 			store: makeSecretStore(withOIDCAuth("identity-123", "sa-name", &namespace)),
 			err:   errors.New("invalid store: namespace should either be empty or match the namespace of the SecretStore for a namespaced SecretStore"),
 		},
+		{
+			label: "valid custom host",
+			store: makeSecretStore(withAuth(secretName, "", nil), withHost(storeHost)),
+			err:   nil,
+		},
+		{
+			label: "valid bare host with port",
+			store: makeSecretStore(withAuth(secretName, "", nil), withHost("doppler.internal.example.com:8443")),
+			err:   nil,
+		},
+		{
+			label: "invalid host",
+			store: makeSecretStore(withAuth(secretName, "", nil), withHost(storeHost+"/\x7f")),
+			err:   errors.New("invalid store: host is not a valid URL"),
+		},
+		{
+			label: "invalid host without hostname",
+			store: makeSecretStore(withAuth(secretName, "", nil), withHost("/")),
+			err:   errors.New("invalid store: host is not a valid URL"),
+		},
 	}
 	p := Provider{}
 	for _, tc := range testCases {
@@ -512,4 +549,85 @@ func TestValidateStore(t *testing.T) {
 			}
 		})
 	}
+}
+
+type NewClientBaseURLTestCase struct {
+	label           string
+	store           *esv1.SecretStore
+	envHost         string
+	expectedBaseURL string
+}
+
+func TestNewClientBaseURL(t *testing.T) {
+	testCases := []NewClientBaseURLTestCase{
+		{
+			label:           "defaults to the public Doppler API",
+			store:           makeSecretStore(withAuth(dopplerTokenSecretName, "", nil)),
+			expectedBaseURL: defaultHost,
+		},
+		{
+			label:           "uses the host from the store",
+			store:           makeSecretStore(withAuth(dopplerTokenSecretName, "", nil), withHost(storeHost)),
+			expectedBaseURL: storeHost,
+		},
+		{
+			label:           "falls back to the environment override",
+			store:           makeSecretStore(withAuth(dopplerTokenSecretName, "", nil)),
+			envHost:         envHost,
+			expectedBaseURL: envHost,
+		},
+		{
+			label:           "store host takes precedence over the environment override",
+			store:           makeSecretStore(withAuth(dopplerTokenSecretName, "", nil), withHost(storeHost)),
+			envHost:         envHost,
+			expectedBaseURL: storeHost,
+		},
+		{
+			label:           "defaults the scheme of a bare host",
+			store:           makeSecretStore(withAuth(dopplerTokenSecretName, "", nil), withHost(strings.TrimPrefix(storeHost, "https://"))),
+			expectedBaseURL: storeHost,
+		},
+		{
+			label:           "defaults the scheme of a bare host with a port",
+			store:           makeSecretStore(withAuth(dopplerTokenSecretName, "", nil), withHost("doppler.internal.example.com:8443")),
+			expectedBaseURL: "https://doppler.internal.example.com:8443",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.label, func(t *testing.T) {
+			// t.Setenv records the original value and restores it on cleanup,
+			// so unsetting afterwards pins the variable as absent without
+			// leaking an inherited DOPPLER_BASE_URL into the assertion.
+			t.Setenv(customBaseURLEnvVar, tc.envHost)
+			if tc.envHost == "" {
+				os.Unsetenv(customBaseURLEnvVar)
+			}
+
+			p := Provider{}
+			secretsClient, err := p.NewClient(context.Background(), tc.store, newFakeKubeClient(), testNamespace)
+			if err != nil {
+				t.Fatalf("want nil got err %v", err)
+			}
+
+			baseURL := secretsClient.(*Client).doppler.BaseURL().String()
+			if baseURL != tc.expectedBaseURL {
+				t.Errorf("test failed! want %v, got %v", tc.expectedBaseURL, baseURL)
+			}
+		})
+	}
+}
+
+func newFakeKubeClient() kclient.Client {
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dopplerTokenSecretName,
+			Namespace: testNamespace,
+		},
+		Data: map[string][]byte{
+			"dopplerToken": []byte("dp.st.test"),
+		},
+	}
+
+	return clientfake.NewClientBuilder().WithObjects(secret).Build()
 }

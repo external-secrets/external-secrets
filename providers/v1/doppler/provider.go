@@ -40,6 +40,7 @@ import (
 const (
 	errNewClient    = "unable to create DopplerClient : %s"
 	errInvalidStore = "invalid store: %s"
+	errInvalidHost  = "host is not a valid URL"
 	errDopplerStore = "missing or invalid Doppler SecretStore"
 )
 
@@ -191,6 +192,10 @@ func (p *Provider) setupOIDCAuth(client *Client, dopplerStoreSpec *esv1.DopplerP
 		store.GetName(),
 	)
 
+	if client.oidcManager == nil {
+		return errors.New("unable to build an OIDC token manager from auth.oidcConfig")
+	}
+
 	return nil
 }
 
@@ -200,8 +205,13 @@ func (p *Provider) configureDopplerClient(client *Client) error {
 		return fmt.Errorf(errNewClient, err)
 	}
 
-	if customBaseURL, found := os.LookupEnv(customBaseURLEnvVar); found {
-		if err := doppler.SetBaseURL(customBaseURL); err != nil {
+	baseURL, err := resolveBaseURL(client.store)
+	if err != nil {
+		return fmt.Errorf(errNewClient, err)
+	}
+
+	if baseURL != "" {
+		if err := doppler.SetBaseURL(baseURL); err != nil {
 			return fmt.Errorf(errNewClient, err)
 		}
 	}
@@ -254,7 +264,49 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, fmt.Errorf(errInvalidStore, "either auth.secretRef or auth.oidcConfig must be specified")
 	}
 
+	if dopplerStoreSpec.Host != "" {
+		if err := (&dclient.DopplerClient{}).SetBaseURL(dopplerStoreSpec.Host); err != nil {
+			return nil, fmt.Errorf(errInvalidStore, errInvalidHost)
+		}
+	}
+
 	return nil, nil
+}
+
+// configuredHost returns the host the store asks for, falling back to the
+// operator-wide DOPPLER_BASE_URL override. An empty result means neither is
+// set.
+func configuredHost(dopplerStoreSpec *esv1.DopplerProvider) string {
+	if dopplerStoreSpec.Host != "" {
+		return dopplerStoreSpec.Host
+	}
+
+	if customBaseURL, found := os.LookupEnv(customBaseURLEnvVar); found {
+		return customBaseURL
+	}
+
+	return ""
+}
+
+// resolveBaseURL returns the configured host in the form the client will use
+// it: scheme filled in, trailing slash removed. Both auth paths resolve
+// through here, so a scheme-less or trailing-slash host cannot mean one thing
+// to the API client and another to the OIDC token exchange. An empty result
+// leaves the caller pointed at its default host.
+func resolveBaseURL(dopplerStoreSpec *esv1.DopplerProvider) (string, error) {
+	host := configuredHost(dopplerStoreSpec)
+	if host == "" {
+		return "", nil
+	}
+
+	// The client owns the normalization rules; borrow them instead of
+	// repeating them here.
+	baseURL, err := dclient.NormalizeBaseURL(host)
+	if err != nil {
+		return "", err
+	}
+
+	return baseURL.String(), nil
 }
 
 // NewProvider creates a new Provider instance.

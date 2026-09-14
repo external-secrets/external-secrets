@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -138,16 +139,43 @@ func (c *DopplerClient) BaseURL() *url.URL {
 	return &u
 }
 
-// SetBaseURL sets the base URL for the Doppler API.
-func (c *DopplerClient) SetBaseURL(urlStr string) error {
-	baseURL, err := url.Parse(strings.TrimSuffix(urlStr, "/"))
-
-	if err != nil {
-		return err
+// NormalizeBaseURL returns urlStr in the form the client stores it: the scheme
+// defaulted to https when absent, and no trailing slash. Callers that need the
+// canonical host without building a client share it with SetBaseURL, so both
+// resolve a host the same way.
+func NormalizeBaseURL(urlStr string) (*url.URL, error) {
+	if !strings.Contains(urlStr, "://") {
+		urlStr = "https://" + urlStr
 	}
 
-	if baseURL.Scheme == "" {
-		baseURL.Scheme = "https"
+	baseURL, err := url.Parse(urlStr)
+	if err != nil {
+		return nil, err
+	}
+
+	if baseURL.Hostname() == "" {
+		return nil, errors.New("missing hostname")
+	}
+
+	// A base URL is a prefix for request paths: a query would end up before
+	// the path, and credentials would be dropped in favor of the Doppler
+	// token rather than used.
+	if baseURL.RawQuery != "" || baseURL.Fragment != "" || baseURL.User != nil {
+		return nil, errors.New("unexpected query, fragment or user info")
+	}
+
+	// Callers append a path to this value, so a leftover slash would send
+	// requests to //v3/projects rather than /v3/projects.
+	baseURL.Path = strings.TrimRight(baseURL.Path, "/")
+
+	return baseURL, nil
+}
+
+// SetBaseURL sets the base URL for the Doppler API.
+func (c *DopplerClient) SetBaseURL(urlStr string) error {
+	baseURL, err := NormalizeBaseURL(urlStr)
+	if err != nil {
+		return err
 	}
 
 	c.baseURL = baseURL

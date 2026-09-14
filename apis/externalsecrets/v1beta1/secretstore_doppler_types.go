@@ -47,6 +47,10 @@ type DopplerProvider struct {
 	// +optional
 	Config string `json:"config,omitempty"`
 
+	// Doppler API host (defaults to https://api.doppler.com, overrides the DOPPLER_BASE_URL environment variable)
+	// +optional
+	Host string `json:"host,omitempty"`
+
 	// Environment variable compatible name transforms that change secret names to a different format
 	// +kubebuilder:validation:Enum=upper-camel;camel;lower-snake;tf-var;dotnet-env;lower-kebab
 	// +optional

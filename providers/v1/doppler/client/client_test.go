@@ -95,3 +95,50 @@ func TestPerformRequestSurfacesStatus(t *testing.T) {
 		t.Errorf("error %q should not surface the request endpoint", got)
 	}
 }
+
+// TestSetBaseURL covers the normalization the provider relies on: a bare host
+// gains a scheme and a trailing slash is trimmed, so callers that append a
+// path get a usable URL.
+func TestSetBaseURL(t *testing.T) {
+	testCases := []struct {
+		label    string
+		urlStr   string
+		expected string
+		wantErr  string
+	}{
+		{label: "keeps an https url", urlStr: "https://doppler.internal.example.com", expected: "https://doppler.internal.example.com"},
+		{label: "trims a trailing slash", urlStr: "https://doppler.internal.example.com/", expected: "https://doppler.internal.example.com"},
+		{label: "defaults the scheme of a bare host", urlStr: "doppler.internal.example.com", expected: "https://doppler.internal.example.com"},
+		{label: "defaults the scheme of a bare host with a port", urlStr: "doppler.internal.example.com:8443", expected: "https://doppler.internal.example.com:8443"},
+		{label: "trims repeated trailing slashes", urlStr: "https://doppler.internal.example.com//", expected: "https://doppler.internal.example.com"},
+		{label: "keeps a path prefix", urlStr: "https://doppler.internal.example.com/api/", expected: "https://doppler.internal.example.com/api"},
+		{label: "rejects a missing hostname", urlStr: "/", wantErr: "missing hostname"},
+		{label: "rejects a query string", urlStr: "https://doppler.internal.example.com?x=1", wantErr: "unexpected query, fragment or user info"},
+		{label: "rejects a fragment", urlStr: "https://doppler.internal.example.com#x", wantErr: "unexpected query, fragment or user info"},
+		{label: "rejects embedded credentials", urlStr: "https://user:pw@doppler.internal.example.com", wantErr: "unexpected query, fragment or user info"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.label, func(t *testing.T) {
+			c := &DopplerClient{}
+			err := c.SetBaseURL(tc.urlStr)
+
+			if tc.wantErr != "" {
+				if err == nil {
+					t.Fatalf("want err containing %q, got nil", tc.wantErr)
+				}
+				if !strings.Contains(err.Error(), tc.wantErr) {
+					t.Errorf("error %q does not contain %q", err, tc.wantErr)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("want nil got err %v", err)
+			}
+			if got := c.BaseURL().String(); got != tc.expected {
+				t.Errorf("test failed! want %v, got %v", tc.expected, got)
+			}
+		})
+	}
+}
