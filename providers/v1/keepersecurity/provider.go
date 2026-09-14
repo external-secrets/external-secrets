@@ -38,7 +38,6 @@ const (
 	errKeeperSecurityNilSpec                       = "nil spec"
 	errKeeperSecurityNilSpecProvider               = "nil spec.provider"
 	errKeeperSecurityNilSpecProviderKeeperSecurity = "nil spec.provider.keepersecurity"
-	errKeeperSecurityStoreMissingFolderID          = "missing: spec.provider.keepersecurity.folderID"
 )
 
 // Provider implements the necessary NewClient() and ValidateStore() funcs for Keeper Security.
@@ -101,9 +100,6 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 
 	if err := esutils.ValidateSecretSelector(store, config.Auth); err != nil {
 		return nil, fmt.Errorf("error validating secret selector: %w", err)
-	}
-	if config.FolderID == "" {
-		return nil, errors.New(errKeeperSecurityStoreMissingFolderID)
 	}
 
 	return nil, nil

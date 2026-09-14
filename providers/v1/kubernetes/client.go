@@ -33,7 +33,6 @@ import (
 	"k8s.io/apimachinery/pkg/labels"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/find"
@@ -84,7 +83,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 // It requires a property to be specified in the RemoteRef.
 func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	extSecret, getErr := c.userSecretClient.Get(ctx, remoteRef.GetRemoteKey(), metav1.GetOptions{})
-	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, getErr)
+	metrics.ObserveAPICall(ProviderKubernetes, CallKubernetesGetSecret, getErr)
 	if getErr != nil {
 		if apierrors.IsNotFound(getErr) {
 			// return gracefully if no secret exists
@@ -108,7 +107,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 // SecretExists checks if a secret exists in Kubernetes.
 func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	secret, err := c.userSecretClient.Get(ctx, ref.GetRemoteKey(), metav1.GetOptions{})
-	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, err)
+	metrics.ObserveAPICall(ProviderKubernetes, CallKubernetesGetSecret, err)
 	if err != nil {
 		if apierrors.IsNotFound(err) {
 			return false, nil
@@ -203,7 +202,7 @@ func (c *Client) mergePushSecretData(remoteRef esv1.PushSecretData, pushMeta *me
 
 func (c *Client) createOrUpdate(ctx context.Context, secretClient KClient, targetSecret *v1.Secret, f func() error) error {
 	target, err := secretClient.Get(ctx, targetSecret.Name, metav1.GetOptions{})
-	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, err)
+	metrics.ObserveAPICall(ProviderKubernetes, CallKubernetesGetSecret, err)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return err
@@ -212,7 +211,7 @@ func (c *Client) createOrUpdate(ctx context.Context, secretClient KClient, targe
 			return err
 		}
 		_, err := secretClient.Create(ctx, targetSecret, metav1.CreateOptions{})
-		metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesCreateSecret, err)
+		metrics.ObserveAPICall(ProviderKubernetes, CallKubernetesCreateSecret, err)
 		if err != nil {
 			return err
 		}
@@ -230,7 +229,7 @@ func (c *Client) createOrUpdate(ctx context.Context, secretClient KClient, targe
 	}
 
 	_, err = secretClient.Update(ctx, targetSecret, metav1.UpdateOptions{})
-	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesUpdateSecret, err)
+	metrics.ObserveAPICall(ProviderKubernetes, CallKubernetesUpdateSecret, err)
 	if err != nil {
 		return err
 	}
@@ -256,7 +255,7 @@ func (c *Client) marshalData(secret *v1.Secret) ([]byte, error) {
 // The secret data is converted to a map of key/value pairs.
 func (c *Client) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	secret, err := c.userSecretClient.Get(ctx, ref.Key, metav1.GetOptions{})
-	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesGetSecret, err)
+	metrics.ObserveAPICall(ProviderKubernetes, CallKubernetesGetSecret, err)
 	if apierrors.IsNotFound(err) {
 		return nil, esv1.NoSecretError{}
 	}
@@ -373,7 +372,7 @@ func (c *Client) findByTags(ctx context.Context, ref esv1.ExternalSecretFind) (m
 		return nil, fmt.Errorf("unable to validate selector tags: %w", err)
 	}
 	secrets, err := c.userSecretClient.List(ctx, metav1.ListOptions{LabelSelector: sel.String()})
-	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesListSecrets, err)
+	metrics.ObserveAPICall(ProviderKubernetes, CallKubernetesListSecrets, err)
 	if err != nil {
 		return nil, fmt.Errorf("unable to list secrets: %w", err)
 	}
@@ -390,7 +389,7 @@ func (c *Client) findByTags(ctx context.Context, ref esv1.ExternalSecretFind) (m
 
 func (c *Client) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	secrets, err := c.userSecretClient.List(ctx, metav1.ListOptions{})
-	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesListSecrets, err)
+	metrics.ObserveAPICall(ProviderKubernetes, CallKubernetesListSecrets, err)
 	if err != nil {
 		return nil, fmt.Errorf("unable to list secrets: %w", err)
 	}
@@ -428,7 +427,7 @@ func convertMap(in map[string][]byte) map[string]string {
 // fullDelete removes remote secret completely.
 func (c *Client) fullDelete(ctx context.Context, secretName string) error {
 	err := c.userSecretClient.Delete(ctx, secretName, metav1.DeleteOptions{})
-	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesDeleteSecret, err)
+	metrics.ObserveAPICall(ProviderKubernetes, CallKubernetesDeleteSecret, err)
 
 	// gracefully return on not found
 	if apierrors.IsNotFound(err) {
@@ -441,7 +440,7 @@ func (c *Client) fullDelete(ctx context.Context, secretName string) error {
 func (c *Client) removeProperty(ctx context.Context, extSecret *v1.Secret, remoteRef esv1.PushSecretRemoteRef) error {
 	delete(extSecret.Data, remoteRef.GetProperty())
 	_, err := c.userSecretClient.Update(ctx, extSecret, metav1.UpdateOptions{})
-	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesUpdateSecret, err)
+	metrics.ObserveAPICall(ProviderKubernetes, CallKubernetesUpdateSecret, err)
 	return err
 }
 

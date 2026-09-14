@@ -36,7 +36,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 	"github.com/external-secrets/external-secrets/runtime/template/v2"
@@ -298,7 +297,7 @@ func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byt
 	}
 
 	resp, err := w.HTTP.Do(req)
-	metrics.ObserveAPICall(constants.ProviderWebhook, constants.CallWebhookHTTPReq, err)
+	metrics.ObserveAPICall(ProviderWebhook, CallWebhookHTTPReq, err)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call endpoint: %w", err)
 	}

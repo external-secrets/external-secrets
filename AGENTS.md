@@ -50,7 +50,7 @@ Build tags live in `pkg/register/<name>.go`.
 - `runtime/esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{...})` for CA bundles.
 - `runtime/esutils.ValidateSecretSelector` / `ValidateReferentSecretSelector` / `ValidateServiceAccountSelector` for spec validation.
 - `runtime/esutils/metadata` for parsing `PushSecretMetadata` into a typed spec.
-- `runtime/constants` for metric label values.
+- `runtime/metrics.ObserveAPICall` for provider API metrics. Keep provider and call label constants in the provider package.
 
 ### `SecretsClient` contract
 

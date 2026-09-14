@@ -92,3 +92,43 @@ tests:
           count: 1
       - exists:
           path: data["external-secrets.json"]
+  - it: should default namespace to release namespace
+    set:
+      grafanaDashboard.enabled: true
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.namespace
+          value: NAMESPACE
+  - it: should override namespace
+    set:
+      grafanaDashboard.enabled: true
+      grafanaDashboard.namespace: monitoring
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.namespace
+          value: monitoring
+  - it: should use namespaceOverride when grafanaDashboard.namespace is unset
+    set:
+      grafanaDashboard.enabled: true
+      namespaceOverride: override-ns
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.namespace
+          value: override-ns
+  - it: should prefer grafanaDashboard.namespace over namespaceOverride
+    set:
+      grafanaDashboard.enabled: true
+      grafanaDashboard.namespace: monitoring
+      namespaceOverride: override-ns
+    asserts:
+      - hasDocuments:
+          count: 1
+      - equal:
+          path: metadata.namespace
+          value: monitoring

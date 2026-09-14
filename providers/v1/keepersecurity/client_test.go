@@ -920,6 +920,25 @@ func TestClientPushSecret(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "Push new secret fails without folderID",
+			fields: fields{
+				ksmClient: &fake.MockKeeperClient{
+					GetSecretsByTitleFn: func(recordTitle string) (records []*ksm.Record, err error) {
+						return generateRecords()[0:0], nil
+					},
+				},
+				folderID: "",
+			},
+			args: args{
+				data: testingfake.PushSecretData{
+					SecretKey: secretKey,
+					RemoteKey: invalidRecord,
+				},
+				value: []byte("foo"),
+			},
+			wantErr: true,
+		},
+		{
 			name: "Unable to save existing valid secret",
 			fields: fields{
 				ksmClient: &fake.MockKeeperClient{
