@@ -92,6 +92,7 @@ Each matching secret becomes one key in the resulting Kubernetes secret, named
 after the secret's description. Previder Vault has neither tags nor a secret
 hierarchy, so `find.tags` and `find.path` are rejected.
 
-Finding secrets requires a **ReadWrite** vault token. A ReadOnly token can
-decrypt a secret whose name or id is already known, but cannot enumerate the
-vault, so use `data.remoteRef` with that token type.
+Finding secrets requires a **ReadWrite** vault token, the only type that may
+enumerate the vault. A ReadOnly token can decrypt a secret whose id or name is
+already known, and the admin token types manage tokens rather than secrets, so
+use `data.remoteRef` with those.
