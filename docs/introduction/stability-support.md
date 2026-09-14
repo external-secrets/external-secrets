@@ -101,6 +101,7 @@ The following table describes the stability level of each provider and who's res
 | [Passbolt](https://external-secrets.io/latest/provider/passbolt)                                               |     alpha | [@stripthis](https://github.com/stripthis)                                                                                  |
 | [Password Depot](https://external-secrets.io/latest/provider-passworddepot)                                    |     alpha | [@Sulfixx](https://github.com/Sulfixx)                                                              |
 | [Previder](https://external-secrets.io/latest/provider/previder)                                               |    stable | [@previder](https://github.com/previder)                                                            |
+| [Proton Pass](https://external-secrets.io/latest/provider/proton-pass)                                        |     alpha | [@rothgar](https://github.com/rothgar)                                                                |
 | [Pulumi ESC](https://external-secrets.io/latest/provider/pulumi)                                               |     alpha | [@dirien](https://github.com/dirien)                                                                |
 | [Scaleway](https://external-secrets.io/latest/provider/scaleway)                                               |     alpha | [@azert9](https://github.com/azert9/)                                                               |
 | [SecretServer](https://external-secrets.io/latest/provider/secretserver)                                       |      beta | [@gmurugezan](https://github.com/gmurugezan)                                                    |
@@ -149,6 +150,7 @@ The following table show the support for features across different providers.
 | Oracle Vault                     |      x       |      x       |                      |                         |        x         |      x      |              x              |
 | OVHcloud                         |      x       |              |                      |            x            |        x         |      x      |              x              |
 | Passbolt                         |      x       |              |                      |            x            |        x         |             |                             |
+| Proton Pass                      |              |              |                      |                         |        x         |             |                             |
 | Password Depot                   |              |              |                      |                         |                  |             |                             |
 | Previder                         |              |              |                      |            x            |        x         |             |                             |
 | Pulumi ESC                       |              |              |                      |            x            |        x         |             |                             |
