@@ -27,6 +27,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 // DopplerClient represents a client for interacting with Doppler's API.
@@ -326,10 +328,13 @@ func (c *DopplerClient) performRequest(path, method string, headers headers, par
 		tlsConfig.InsecureSkipVerify = true
 	}
 
-	httpClient.Transport = &http.Transport{
-		DisableKeepAlives: true,
-		TLSClientConfig:   tlsConfig,
+	transport, err := esutils.CloneDefaultHTTPTransport()
+	if err != nil {
+		return nil, newErr(0, err, "unable to configure http transport")
 	}
+	transport.DisableKeepAlives = true
+	transport.TLSClientConfig = tlsConfig
+	httpClient.Transport = transport
 
 	r, err := httpClient.Do(req)
 	if err != nil {
