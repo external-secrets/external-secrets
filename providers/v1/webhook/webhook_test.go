@@ -518,6 +518,22 @@ want:
   path: /api/pushsecret?id=testkey
   body: 'pre testkey value post'
   err: ''
+---
+case: url resolves pushed value when remote key needs escaping
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}&value={{ index .remoteRef .remoteRef.remoteKey }}
+  key: prod/testkey
+  secretkey: secretkey
+  body: '{{ index .remoteRef .remoteRef.remoteKey }}'
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: value
+want:
+  path: /api/pushsecret?id=prod%2Ftestkey&value=value
+  body: 'value'
+  err: ''
 `
 
 func TestWebhookPushSecret(t *testing.T) {
