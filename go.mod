@@ -203,7 +203,7 @@ require (
 	github.com/BeyondTrust/go-client-library-passwordsafe v1.3.0 // indirect
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.2.0 // indirect
 	github.com/DelineaXPM/tss-sdk-go/v3 v3.0.2 // indirect
-	github.com/Devolutions/go-dvls v0.19.1 // indirect
+	github.com/Devolutions/go-dvls v0.20.1 // indirect
 	github.com/Onboardbase/go-cryptojs-aes-decrypt v0.0.0-20230430095000-27c0d3a9016d // indirect
 	github.com/ProtonMail/go-crypto v1.4.1 // indirect
 	github.com/ProtonMail/gopenpgp/v3 v3.4.1 // indirect
