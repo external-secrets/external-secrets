@@ -133,7 +133,7 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           flags: unittests
-          file: ./cover.out
+          files: ./cover.out
 
   publish-artifacts:
     needs: detect-noop
