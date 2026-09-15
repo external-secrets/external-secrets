@@ -106,7 +106,7 @@ func TestNewClient(t *testing.T) {
 			},
 		},
 		"Authentication method conflict": {
-			errshould: "failed to create new ovh provider client: store validation failed: only one authentication method allowed (mtls | token)",
+			errshould: "failed to create new ovh provider client: store validation failed: only one authentication method allowed (mtls | token | oauth2)",
 			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
@@ -129,6 +129,64 @@ func TestNewClient(t *testing.T) {
 								},
 								ClientToken: &esv1.OvhClientToken{
 									ClientTokenSecret: esmeta.SecretKeySelector{
+										Name:      fillingStr,
+										Namespace: &namespace,
+										Key:       fillingStr,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"OAuth2 without a client secret": {
+			errshould: "failed to create new ovh provider client: store validation failed: missing client id or client secret for oauth2 authentication",
+			kube:      kube,
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						OVHcloud: &esv1.OvhProvider{
+							Server: fillingStr,
+							OkmsID: okmsId,
+							Auth: esv1.OvhAuth{
+								ClientOAuth2: &esv1.OvhClientOAuth2{
+									ClientID: esmeta.SecretKeySelector{
+										Name:      fillingStr,
+										Namespace: &namespace,
+										Key:       fillingStr,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		"OAuth2 conflicting with a token": {
+			errshould: "failed to create new ovh provider client: store validation failed: only one authentication method allowed (mtls | token | oauth2)",
+			kube:      kube,
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						OVHcloud: &esv1.OvhProvider{
+							Server: fillingStr,
+							OkmsID: okmsId,
+							Auth: esv1.OvhAuth{
+								ClientToken: &esv1.OvhClientToken{
+									ClientTokenSecret: esmeta.SecretKeySelector{
+										Name:      fillingStr,
+										Namespace: &namespace,
+										Key:       fillingStr,
+									},
+								},
+								ClientOAuth2: &esv1.OvhClientOAuth2{
+									ClientID: esmeta.SecretKeySelector{
+										Name:      fillingStr,
+										Namespace: &namespace,
+										Key:       fillingStr,
+									},
+									ClientSecret: esmeta.SecretKeySelector{
 										Name:      fillingStr,
 										Namespace: &namespace,
 										Key:       fillingStr,
@@ -297,7 +355,7 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		"Authentication method conflict": {
-			errshould: "only one authentication method allowed (mtls | token)",
+			errshould: "only one authentication method allowed (mtls | token | oauth2)",
 			kube:      kube,
 			store: &esv1.SecretStore{
 				Spec: esv1.SecretStoreSpec{
@@ -449,6 +507,55 @@ func TestValidateStore(t *testing.T) {
 				}
 			} else if err != nil {
 				t.Errorf("\nunexpected error: %v\n\n", err)
+			}
+		})
+	}
+}
+
+// TestResolveOAuth2TokenURL covers the guard that keeps a SecretStore editor from choosing where
+// the client credentials are sent.
+func TestResolveOAuth2TokenURL(t *testing.T) {
+	tests := map[string]struct {
+		raw       string
+		want      string
+		wantError bool
+	}{
+		"empty falls back to the European endpoint": {
+			raw:  "",
+			want: "https://www.ovh.com/auth/oauth2/token",
+		},
+		"the Canadian endpoint is accepted": {
+			raw:  "https://ca.ovh.com/auth/oauth2/token",
+			want: "https://ca.ovh.com/auth/oauth2/token",
+		},
+		"the US endpoint is accepted": {
+			raw:  "https://us.ovhcloud.com/auth/oauth2/token",
+			want: "https://us.ovhcloud.com/auth/oauth2/token",
+		},
+		"another host is refused": {
+			raw:       "https://attacker.example/auth/oauth2/token",
+			wantError: true,
+		},
+		"plain http on an OVHcloud host is refused": {
+			raw:       "http://www.ovh.com/auth/oauth2/token",
+			wantError: true,
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got, err := resolveOAuth2TokenURL(tc.raw)
+			if tc.wantError {
+				if err == nil {
+					t.Fatalf("expected an error for %q, got none", tc.raw)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error for %q: %v", tc.raw, err)
+			}
+			if got != tc.want {
+				t.Fatalf("expected %q, got %q", tc.want, got)
 			}
 		})
 	}

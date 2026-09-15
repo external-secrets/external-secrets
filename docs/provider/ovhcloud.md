@@ -43,6 +43,47 @@ metadata:
 data:
   token: BASE64-TOKEN-VALUE-PLACEHOLDER
 ```
+OAuth2 authentication, with an OVHcloud service account:
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: secret-store-ovh
+  namespace: default
+spec:
+  provider:
+    ovh:
+      server: <kms-endpoint> # for example: "https://eu-west-rbx.okms.ovh.net"
+      okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017"
+      auth:
+        oauth2:
+          clientIDSecretRef:
+            name: ovh-oauth2
+            key: clientID
+          clientSecretSecretRef:
+            name: ovh-oauth2
+            key: clientSecret
+          # Optional. Defaults to the European endpoint. Canada is
+          # https://ca.ovh.com/auth/oauth2/token and the US is
+          # https://us.ovhcloud.com/auth/oauth2/token. Only those three hosts
+          # are accepted, over HTTPS.
+          tokenURL: https://www.ovh.com/auth/oauth2/token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ovh-oauth2
+  namespace: default
+data:
+  clientID: BASE64-CLIENT-ID-PLACEHOLDER
+  clientSecret: BASE64-CLIENT-SECRET-PLACEHOLDER
+```
+
+A service account is the identity OVHcloud intends for machines: creating one
+yields an OAuth2 client id and client secret, with no browser validation step,
+unlike a personal access token which belongs to a user. The access token they
+are exchanged for is short lived, and the provider renews it on its own.
+
 mTLS authentication:
 ```yaml
 apiVersion: external-secrets.io/v1
