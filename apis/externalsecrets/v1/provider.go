@@ -79,10 +79,15 @@ type SecretsClient interface {
 	// PushSecret will write a single secret into the provider
 	PushSecret(ctx context.Context, secret *corev1.Secret, data PushSecretData) error
 
-	// DeleteSecret will delete the secret from a provider
+	// DeleteSecret will delete the secret from a provider.
+	// Callers must pass the full PushSecretData, not data.Match.RemoteRef:
+	// PushSecretRemoteRef carries no metadata, so providers that route by
+	// metadata (e.g. kubernetes remoteNamespace) cannot locate the pushed secret.
 	DeleteSecret(ctx context.Context, remoteRef PushSecretRemoteRef) error
 
 	// SecretExists checks if a secret is already present in the provider at the given location.
+	// As with DeleteSecret, callers must pass the full PushSecretData so
+	// metadata-aware providers check the same location PushSecret wrote to.
 	SecretExists(ctx context.Context, remoteRef PushSecretRemoteRef) (bool, error)
 
 	// Validate checks if the client is configured correctly
