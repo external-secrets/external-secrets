@@ -17,19 +17,24 @@ limitations under the License.
 package volcengine
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 
+	"github.com/tidwall/gjson"
 	"github.com/volcengine/volcengine-go-sdk/service/kms"
+	"github.com/volcengine/volcengine-go-sdk/volcengine/volcengineerr"
 	corev1 "k8s.io/api/core/v1"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 const (
-	notImplemented = "not implemented"
+	notImplemented            = "not implemented"
+	errUninitializedKMSClient = "kms client is not initialized"
 )
 
 var _ esapi.SecretsClient = &Client{}
@@ -57,10 +62,17 @@ func (c *Client) SecretExists(ctx context.Context, remoteRef esapi.PushSecretRem
 	if secretName == "" {
 		return false, errors.New("secret name is empty")
 	}
+	if c.kms == nil {
+		return false, errors.New(errUninitializedKMSClient)
+	}
+
 	_, err := c.kms.DescribeSecretWithContext(ctx, &kms.DescribeSecretInput{
 		SecretName: &secretName,
 	})
 	if err != nil {
+		if isNotFoundError(err) {
+			return false, nil
+		}
 		return false, err
 	}
 	return true, nil
@@ -71,7 +83,7 @@ func (c *Client) Validate() (esapi.ValidationResult, error) {
 	if c.kms != nil {
 		return esapi.ValidationResultReady, nil
 	}
-	return esapi.ValidationResultError, errors.New("kms client is not initialized")
+	return esapi.ValidationResultError, errors.New(errUninitializedKMSClient)
 }
 
 // GetSecretMap retrieves a secret value and unmarshals it as a map.
@@ -90,7 +102,7 @@ func (c *Client) GetSecretMap(ctx context.Context, ref esapi.ExternalSecretDataR
 
 	secretMap := make(map[string][]byte, len(rawSecretMap))
 	for key, value := range rawSecretMap {
-		secretMap[key] = []byte(value)
+		secretMap[key] = rawMessageBytes(value)
 	}
 	return secretMap, nil
 }
@@ -116,11 +128,18 @@ func (c *Client) Close(_ context.Context) error {
 }
 
 func (c *Client) getSecretValue(ctx context.Context, ref esapi.ExternalSecretDataRemoteRef) ([]byte, error) {
+	if c.kms == nil {
+		return nil, errors.New(errUninitializedKMSClient)
+	}
+
 	output, err := c.kms.GetSecretValueWithContext(ctx, &kms.GetSecretValueInput{
 		SecretName: &ref.Key,
 		VersionID:  resolveVersion(ref),
 	})
 	if err != nil {
+		if isNotFoundError(err) {
+			return nil, esapi.NoSecretErr
+		}
 		return nil, err
 	}
 
@@ -128,33 +147,41 @@ func (c *Client) getSecretValue(ctx context.Context, ref esapi.ExternalSecretDat
 		return nil, fmt.Errorf("secret %s has no value", ref.Key)
 	}
 
-	secret := []byte(*output.SecretValue)
+	secret := *output.SecretValue
 
 	if ref.Property == "" {
-		return secret, nil
+		return []byte(secret), nil
 	}
 
 	return extractProperty(secret, ref.Property)
 }
 
-func extractProperty(secret []byte, property string) ([]byte, error) {
-	var secretMap map[string]json.RawMessage
-	if err := json.Unmarshal(secret, &secretMap); err != nil {
-		// Do not wrap the original error as json.Unmarshal errors may contain
-		// sensitive secret data in the error message
+func extractProperty(secret, property string) ([]byte, error) {
+	if !gjson.Valid(secret) {
 		return nil, errors.New("failed to unmarshal secret: invalid JSON format")
 	}
 
-	value, ok := secretMap[property]
-	if !ok {
+	val := gjson.Get(secret, property)
+	if !val.Exists() {
 		return nil, fmt.Errorf("property %q not found in secret", property)
 	}
+	return []byte(val.String()), nil
+}
 
-	var s string
-	if json.Unmarshal(value, &s) == nil {
-		return []byte(s), nil
+func rawMessageBytes(value json.RawMessage) []byte {
+	trimmedValue := bytes.TrimSpace(value)
+	if len(trimmedValue) > 0 && trimmedValue[0] == '"' {
+		var stringValue string
+		if err := json.Unmarshal(value, &stringValue); err == nil {
+			return []byte(stringValue)
+		}
 	}
-	return value, nil
+	return []byte(value)
+}
+
+func isNotFoundError(err error) bool {
+	var requestFailure volcengineerr.RequestFailure
+	return errors.As(err, &requestFailure) && requestFailure.StatusCode() == http.StatusNotFound
 }
 
 func resolveVersion(ref esapi.ExternalSecretDataRemoteRef) *string {
