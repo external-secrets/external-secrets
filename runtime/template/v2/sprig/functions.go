@@ -128,7 +128,7 @@ var genericMap = map[string]interface{}{
 		}
 		return val
 	},
-	"randInt": func(min, max int) int { return rand.Intn(max-min) + min },
+	"randInt": func(minimum, maximum int) int { return rand.Intn(maximum-minimum) + minimum },
 	"add1f": func(i interface{}) float64 {
 		return execDecimalOp(i, []interface{}{1}, func(d1, d2 decimal.Decimal) decimal.Decimal { return d1.Add(d2) })
 	},
