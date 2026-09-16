@@ -107,7 +107,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 		// Remove finalizer from ClusterExternalSecret if it exists
 		patch := client.MergeFrom(clusterExternalSecret.DeepCopy())
-		if updated := controllerutil.RemoveFinalizer(&clusterExternalSecret, ClusterExternalSecretFinalizer); updated {
+		if controllerutil.RemoveFinalizer(&clusterExternalSecret, ClusterExternalSecretFinalizer) {
+			// Updated
 			if err := r.Patch(ctx, &clusterExternalSecret, patch); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -119,7 +120,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// This ensures the ClusterExternalSecret cannot be deleted until we've cleaned up all
 	// ExternalSecrets it created and removed our finalizers from namespaces.
 	patch := client.MergeFrom(clusterExternalSecret.DeepCopy())
-	if updated := controllerutil.AddFinalizer(&clusterExternalSecret, ClusterExternalSecretFinalizer); updated {
+	if controllerutil.AddFinalizer(&clusterExternalSecret, ClusterExternalSecretFinalizer) {
+		// Updated
 		if err := r.Patch(ctx, &clusterExternalSecret, patch); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -354,7 +356,8 @@ func (r *Reconciler) updateNamespaceRemoveFinalizer(ctx context.Context, log log
 	}
 
 	// Only update if the finalizer was actually removed
-	if updated := controllerutil.RemoveFinalizer(namespace, finalizer); updated {
+	if controllerutil.RemoveFinalizer(namespace, finalizer) {
+		// Updated
 		if err := r.Update(ctx, namespace); err != nil {
 			// Ignore NotFound (namespace deleted)
 			if apierrors.IsNotFound(err) {
@@ -440,7 +443,8 @@ func (r *Reconciler) addNamespaceFinalizer(ctx context.Context, namespaceName, f
 	}
 
 	// Only update if the finalizer was actually added
-	if updated := controllerutil.AddFinalizer(namespace, finalizer); updated {
+	if controllerutil.AddFinalizer(namespace, finalizer) {
+		// Updated
 		if err := r.Update(ctx, namespace); err != nil {
 			// If conflict, return error to trigger requeue
 			if apierrors.IsConflict(err) {
