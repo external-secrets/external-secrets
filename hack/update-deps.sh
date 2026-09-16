@@ -120,7 +120,7 @@ main() {
     # 6. Update all provider modules
     info "Updating provider modules..."
     for provider_dir in "$REPO_ROOT"/providers/v1/*/; do
-        if [ -f "$provider_dir/go.mod" ]; then
+        if [[ -f "$provider_dir/go.mod" ]]; then
             provider_name=$(basename "$provider_dir")
             relative_path="providers/v1/$provider_name"
             if ! update_module "$relative_path" "provider/$provider_name"; then
@@ -133,7 +133,7 @@ main() {
     # 7. Update all generator modules
     info "Updating generator modules..."
     for generator_dir in "$REPO_ROOT"/generators/v1/*/; do
-        if [ -f "$generator_dir/go.mod" ]; then
+        if [[ -f "$generator_dir/go.mod" ]]; then
             generator_name=$(basename "$generator_dir")
             relative_path="generators/v1/$generator_name"
             if ! update_module "$relative_path" "generator/$generator_name"; then
@@ -145,7 +145,7 @@ main() {
     
     # Summary
     echo "=================================================="
-    if [ ${#failed_modules[@]} -eq 0 ]; then
+    if [[ ${#failed_modules[@]} -eq 0 ]]; then
         success "All modules updated successfully!"
     else
         warn "Some modules encountered issues during update:"

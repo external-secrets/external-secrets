@@ -7,7 +7,7 @@
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 # Check if all required arguments are provided
-if [ $# -ne 1 ]; then
+if [[ $# -ne 1 ]]; then
     echo "Usage: $0 <ESO_VERSION>"
     echo "Example: $0 '0.17.x'"
     exit 1
@@ -15,16 +15,15 @@ fi
 
 # Assign parameters to variables
 ESO_VERSION="$1"
-K8S_VERSION="$(echo 1.$(cat "${ROOT}"/go.mod | grep 'k8s.io/client-go' | cut -d'v' -f2 | cut -d'.' -f2))"
+K8S_VERSION=$(sed -n 's#^.*k8s.io/client-go.*v0\.\([[:digit:]][[:digit:]]*\)\..*#1.\1#p' "${ROOT}"/go.mod)
 RELEASE_DATE=$(date +%B\ %d,\ %Y)
-
 
 
 # Path to the stability-support.md file
 FILE_PATH="$ROOT/docs/introduction/stability-support.md"
 
 # Check if the file exists
-if [ ! -f "$FILE_PATH" ]; then
+if [[ ! -f "$FILE_PATH" ]]; then
     echo "Error: File $FILE_PATH does not exist."
     exit 1
 fi

@@ -18,13 +18,15 @@ set -o errexit
 set -o nounset
 set -o pipefail
 
-readonly HERE=$(cd $(dirname $0) && pwd)
-readonly REPO=$(cd ${HERE}/../.. && pwd)
-readonly GEN_CRD_API_REFERENCE_DOCS=${REPO}/bin/gen-crd-api-reference-docs
+HERE=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+readonly HERE
+REPO=$(cd -- "${HERE}/../.." && pwd)
+readonly REPO
+readonly GEN_CRD_API_REFERENCE_DOCS="${REPO}/bin/gen-crd-api-reference-docs"
 
 # Exec the doc generator.
 gendoc::exec() {
-    local readonly confdir="${REPO}/hack/api-docs"
+    local -r confdir="${REPO}/hack/api-docs"
 
     "${GEN_CRD_API_REFERENCE_DOCS}" \
         -template-dir "${confdir}" \
@@ -32,7 +34,7 @@ gendoc::exec() {
         "$@"
 }
 
-if [ "$#" != "1" ]; then
+if [[ $# -ne 1 ]]; then
     echo "usage: generate.sh OUTFILE"
     exit 2
 fi
