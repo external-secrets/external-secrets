@@ -18,14 +18,14 @@ package onepasswordsdk
 
 // Metrics constants identify the 1Password SDK provider and API calls.
 const (
-	ProviderOnePasswordSDK                = "1Password/SDK"
-	CallOnePasswordSDKResolve             = "Resolve"
-	CallOnePasswordSDKItemsList           = "ItemsList"
-	CallOnePasswordSDKItemsGet            = "ItemsGet"
-	CallOnePasswordSDKItemsCreate         = "ItemsCreate"
-	CallOnePasswordSDKItemsPut            = "ItemsPut"
-	CallOnePasswordSDKItemsDelete         = "ItemsDelete"
-	CallOnePasswordSDKFilesRead           = "FilesRead"
-	CallOnePasswordSDKVaultsList          = "VaultsList"
-	CallOnePasswordSDKEnvironmentsGetVars = "EnvironmentsGetVariables"
+	ProviderOnePasswordSDK                = "1Password/SDK"            // sonar-resolve go:S2068 "false positive, this is not a password"
+	CallOnePasswordSDKResolve             = "Resolve"                  // sonar-resolve go:S2068 "false positive, this is not a password"
+	CallOnePasswordSDKItemsList           = "ItemsList"                // sonar-resolve go:S2068 "false positive, this is not a password"
+	CallOnePasswordSDKItemsGet            = "ItemsGet"                 // sonar-resolve go:S2068 "false positive, this is not a password"
+	CallOnePasswordSDKItemsCreate         = "ItemsCreate"              // sonar-resolve go:S2068 "false positive, this is not a password"
+	CallOnePasswordSDKItemsPut            = "ItemsPut"                 // sonar-resolve go:S2068 "false positive, this is not a password"
+	CallOnePasswordSDKItemsDelete         = "ItemsDelete"              // sonar-resolve go:S2068 "false positive, this is not a password"
+	CallOnePasswordSDKFilesRead           = "FilesRead"                // sonar-resolve go:S2068 "false positive, this is not a password"
+	CallOnePasswordSDKVaultsList          = "VaultsList"               // sonar-resolve go:S2068 "false positive, this is not a password"
+	CallOnePasswordSDKEnvironmentsGetVars = "EnvironmentsGetVariables" // sonar-resolve go:S2068 "false positive, this is not a password"
 )

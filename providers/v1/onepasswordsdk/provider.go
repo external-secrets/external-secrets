@@ -36,15 +36,15 @@ import (
 )
 
 const (
-	errOnePasswordSdkStore                              = "received invalid 1PasswordSdk SecretStore resource: %w"
-	errOnePasswordSdkStoreNilSpec                       = "nil spec"
-	errOnePasswordSdkStoreNilSpecProvider               = "nil spec.provider"
-	errOnePasswordSdkStoreNilSpecProviderOnePasswordSdk = "nil spec.provider.onepasswordsdk"
-	errOnePasswordSdkStoreMissingRefName                = "missing: spec.provider.onepasswordsdk.auth.secretRef.serviceAccountTokenSecretRef.name"
-	errOnePasswordSdkStoreMissingRefKey                 = "missing: spec.provider.onepasswordsdk.auth.secretRef.serviceAccountTokenSecretRef.key"
-	errOnePasswordSdkStoreMissingTarget                 = "missing: exactly one of spec.provider.onepasswordsdk.vault or spec.provider.onepasswordsdk.environment must be set"
-	errOnePasswordSdkStoreBothTargets                   = "spec.provider.onepasswordsdk.vault and spec.provider.onepasswordsdk.environment are mutually exclusive"
-	errOnePasswordSdkEnvironmentReadOnly                = "1Password Environment is read-only: %s is not supported"
+	errOnePasswordSdkStore                              = "received invalid 1PasswordSdk SecretStore resource: %w"                                                             // sonar-resolve go:S2068 "false positive, this is not a password"
+	errOnePasswordSdkStoreNilSpec                       = "nil spec"                                                                                                           // sonar-resolve go:S2068 "false positive, this is not a password"
+	errOnePasswordSdkStoreNilSpecProvider               = "nil spec.provider"                                                                                                  // sonar-resolve go:S2068 "false positive, this is not a password"
+	errOnePasswordSdkStoreNilSpecProviderOnePasswordSdk = "nil spec.provider.onepasswordsdk"                                                                                   // sonar-resolve go:S2068 "false positive, this is not a password"
+	errOnePasswordSdkStoreMissingRefName                = "missing: spec.provider.onepasswordsdk.auth.secretRef.serviceAccountTokenSecretRef.name"                             // sonar-resolve go:S2068 "false positive, this is not a password"
+	errOnePasswordSdkStoreMissingRefKey                 = "missing: spec.provider.onepasswordsdk.auth.secretRef.serviceAccountTokenSecretRef.key"                              // sonar-resolve go:S2068 "false positive, this is not a password"
+	errOnePasswordSdkStoreMissingTarget                 = "missing: exactly one of spec.provider.onepasswordsdk.vault or spec.provider.onepasswordsdk.environment must be set" // sonar-resolve go:S2068 "false positive, this is not a password"
+	errOnePasswordSdkStoreBothTargets                   = "spec.provider.onepasswordsdk.vault and spec.provider.onepasswordsdk.environment are mutually exclusive"             // sonar-resolve go:S2068 "false positive, this is not a password"
+	errOnePasswordSdkEnvironmentReadOnly                = "1Password Environment is read-only: %s is not supported"                                                            // sonar-resolve go:S2068 "false positive, this is not a password"
 	errVersionNotImplemented                            = "'remoteRef.version' is not implemented in the 1Password SDK provider"
 	errNotImplemented                                   = "not implemented"
 )
