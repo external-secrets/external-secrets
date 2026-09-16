@@ -32,6 +32,7 @@ gendoc::exec() {
         -template-dir "${confdir}" \
         -config "${confdir}/config.json" \
         "$@"
+    return 0
 }
 
 if [[ $# -ne 1 ]]; then
