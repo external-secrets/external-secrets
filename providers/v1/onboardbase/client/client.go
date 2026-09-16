@@ -31,6 +31,7 @@ import (
 	"time"
 
 	aesdecrypt "github.com/Onboardbase/go-cryptojs-aes-decrypt/decrypt"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 const (
@@ -150,10 +151,12 @@ func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*Onboa
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 	}
-	httpTransport := &http.Transport{
-		DisableKeepAlives: true,
-		TLSClientConfig:   tlsConfig,
+	httpTransport, err := esutils.CloneDefaultHTTPTransport()
+	if err != nil {
+		return nil, err
 	}
+	httpTransport.DisableKeepAlives = true
+	httpTransport.TLSClientConfig = tlsConfig
 	client := &OnboardbaseClient{
 		OnboardbaseAPIKey:   onboardbaseAPIKey,
 		OnboardbasePassCode: onboardbasePasscode,
