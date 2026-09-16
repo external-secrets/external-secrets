@@ -134,11 +134,9 @@ func NewAPI(ctx context.Context, baseURL, username, password, hostPort string) (
 		username: username,
 		password: password,
 	}
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{MinVersion: tls.VersionTLS12},
+	api.client = &http.Client{
+		Transport: &http.Transport{TLSClientConfig: &tls.Config{}},
 	}
-
-	api.client = &http.Client{Transport: tr}
 	err := api.login(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to login: %w", err)
