@@ -28,7 +28,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/mysterybox"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -53,7 +52,7 @@ func (c *SecretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDa
 	secretKey := ref.Property
 	if secretKey == "" {
 		payload, err := c.mysteryboxClient.GetSecret(ctx, c.token, ref.Key, ref.Version)
-		metrics.ObserveAPICall(constants.ProviderNebiusMysterybox, constants.CallNebiusMysteryboxGetSecret, err)
+		metrics.ObserveAPICall(ProviderNebiusMysterybox, CallNebiusMysteryboxGetSecret, err)
 		if err != nil {
 			return nil, handleGetSecretError(err, ref)
 		}
@@ -69,7 +68,7 @@ func (c *SecretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDa
 		return out, nil
 	}
 	payloadEntry, err := c.mysteryboxClient.GetSecretByKey(ctx, c.token, ref.Key, ref.Version, secretKey)
-	metrics.ObserveAPICall(constants.ProviderNebiusMysterybox, constants.CallNebiusMysteryboxGetSecretByKey, err)
+	metrics.ObserveAPICall(ProviderNebiusMysterybox, CallNebiusMysteryboxGetSecretByKey, err)
 	if err != nil {
 		return nil, handleGetSecretByKeyError(err, ref)
 	}
@@ -79,7 +78,7 @@ func (c *SecretsClient) GetSecret(ctx context.Context, ref esv1.ExternalSecretDa
 // GetSecretMap retrieves a map of secret key-value pairs from Mysterybox using the provided reference.
 func (c *SecretsClient) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	payload, err := c.mysteryboxClient.GetSecret(ctx, c.token, ref.Key, ref.Version)
-	metrics.ObserveAPICall(constants.ProviderNebiusMysterybox, constants.CallNebiusMysteryboxGetSecret, err)
+	metrics.ObserveAPICall(ProviderNebiusMysterybox, CallNebiusMysteryboxGetSecret, err)
 	if err != nil {
 		return nil, handleGetSecretError(err, ref)
 	}

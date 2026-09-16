@@ -28,7 +28,6 @@ import (
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
 	v1 "k8s.io/api/core/v1"
-	"k8s.io/utils/ptr"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -58,9 +57,9 @@ var _ = Describe("grafana generator", Label("grafana"), func() {
 	AfterEach(func() {
 		// ESO does clean up tokens, but not the service accounts.
 		accounts, err := grafanaClient.ServiceAccounts.SearchOrgServiceAccountsWithPaging(&grafanasa.SearchOrgServiceAccountsWithPagingParams{
-			Perpage: ptr.To(int64(100)),
-			Page:    ptr.To(int64(1)),
-			Query:   ptr.To(f.Namespace.Name),
+			Perpage: new(int64(100)),
+			Page:    new(int64(1)),
+			Query:   new(f.Namespace.Name),
 		})
 		Expect(err).ToNot(HaveOccurred())
 		if accounts.GetPayload().ServiceAccounts != nil && len(accounts.GetPayload().ServiceAccounts) > 0 {
@@ -141,7 +140,7 @@ var _ = Describe("grafana generator", Label("grafana"), func() {
 			Expect(string(secret.Data["token"])).ToNot(BeEmpty())
 
 			_, err := grafanaClient.Search.Search(&grafanasearch.SearchParams{
-				Query: ptr.To(""),
+				Query: new(""),
 			})
 			Expect(err).ToNot(HaveOccurred())
 			ensureExternalSecretPurgesGeneratorState(tc)
@@ -167,9 +166,9 @@ var _ = Describe("grafana generator", Label("grafana"), func() {
 
 			// ensure service accounts are cleaned up
 			saList, err := grafanaClient.ServiceAccounts.SearchOrgServiceAccountsWithPaging(&grafanasa.SearchOrgServiceAccountsWithPagingParams{
-				Perpage: ptr.To(int64(100)),
-				Page:    ptr.To(int64(1)),
-				Query:   ptr.To(f.Namespace.Name),
+				Perpage: new(int64(100)),
+				Page:    new(int64(1)),
+				Query:   new(f.Namespace.Name),
 			})
 			Expect(err).ToNot(HaveOccurred())
 			Expect(saList.GetPayload().ServiceAccounts).To(HaveLen(1))

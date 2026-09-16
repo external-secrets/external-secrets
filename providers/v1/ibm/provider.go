@@ -36,7 +36,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
@@ -408,7 +407,7 @@ func getSecretData(ibm *providerIBM, secretName *string, secretType, secretGroup
 				SecretGroupName: &secretGroupName,
 				SecretType:      &secretType,
 			})
-		metrics.ObserveAPICall(constants.ProviderIBMSM, constants.CallIBMSMGetSecretByNameType, err)
+		metrics.ObserveAPICall(ProviderIBMSM, CallIBMSMGetSecretByNameType, err)
 		if err != nil {
 			return nil, err
 		}
@@ -422,7 +421,7 @@ func getSecretData(ibm *providerIBM, secretName *string, secretType, secretGroup
 		&sm.GetSecretOptions{
 			ID: secretName,
 		})
-	metrics.ObserveAPICall(constants.ProviderIBMSM, constants.CallIBMSMGetSecret, err)
+	metrics.ObserveAPICall(ProviderIBMSM, CallIBMSMGetSecret, err)
 	if err != nil {
 		return nil, err
 	}

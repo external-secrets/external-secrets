@@ -41,7 +41,6 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/find"
@@ -117,7 +116,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: name,
 	})
-	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGetSecret, err)
+	metrics.ObserveAPICall(ProviderGCPSM, CallGCPSMGetSecret, err)
 	if err != nil {
 		if status.Code(err) == codes.NotFound {
 			return nil
@@ -134,7 +133,7 @@ func (c *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 		Etag: gcpSecret.Etag,
 	}
 	err = c.smClient.DeleteSecret(ctx, deleteSecretVersionReq)
-	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMDeleteSecret, err)
+	metrics.ObserveAPICall(ProviderGCPSM, CallGCPSMDeleteSecret, err)
 	return err
 }
 
@@ -182,7 +181,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 	gcpSecret, err := c.smClient.GetSecret(ctx, &secretmanagerpb.GetSecretRequest{
 		Name: secretName,
 	})
-	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMGetSecret, err)
+	metrics.ObserveAPICall(ProviderGCPSM, CallGCPSMGetSecret, err)
 
 	if err != nil {
 		if status.Code(err) != codes.NotFound {
@@ -238,7 +237,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 			SecretId: pushSecretData.GetRemoteKey(),
 			Secret:   scrt,
 		})
-		metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMCreateSecret, err)
+		metrics.ObserveAPICall(ProviderGCPSM, CallGCPSMCreateSecret, err)
 		if err != nil {
 			return err
 		}
@@ -290,7 +289,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 				Paths: []string{"labels", "annotations"},
 			},
 		})
-		metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMUpdateSecret, err)
+		metrics.ObserveAPICall(ProviderGCPSM, CallGCPSMUpdateSecret, err)
 		if err != nil {
 			return err
 		}
@@ -305,7 +304,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 	gcpVersion, err := c.smClient.AccessSecretVersion(ctx, &secretmanagerpb.AccessSecretVersionRequest{
 		Name: fmt.Sprintf("%s/versions/latest", secretName),
 	})
-	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
+	metrics.ObserveAPICall(ProviderGCPSM, CallGCPSMAccessSecretVersion, err)
 
 	if err != nil && status.Code(err) != codes.NotFound {
 		return err
@@ -335,7 +334,7 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 	}
 
 	_, err = c.smClient.AddSecretVersion(ctx, addSecretVersionReq)
-	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAddSecretVersion, err)
+	metrics.ObserveAPICall(ProviderGCPSM, CallGCPSMAddSecretVersion, err)
 	return err
 }
 
@@ -368,7 +367,7 @@ func (c *Client) findByName(ctx context.Context, ref esv1.ExternalSecretFind) (m
 	it := c.smClient.ListSecrets(ctx, req)
 	secretMap := make(map[string][]byte)
 	var resp *secretmanagerpb.Secret
-	defer metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMListSecrets, err)
+	defer metrics.ObserveAPICall(ProviderGCPSM, CallGCPSMListSecrets, err)
 	for {
 		resp, err = it.Next()
 		if errors.Is(err, iterator.Done) {
@@ -427,7 +426,7 @@ func (c *Client) findByTags(ctx context.Context, ref esv1.ExternalSecretFind) (m
 	it := c.smClient.ListSecrets(ctx, req)
 	var resp *secretmanagerpb.Secret
 	var err error
-	defer metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMListSecrets, err)
+	defer metrics.ObserveAPICall(ProviderGCPSM, CallGCPSMListSecrets, err)
 	secretMap := make(map[string][]byte)
 	for {
 		resp, err = it.Next()
@@ -489,7 +488,7 @@ func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 		Name: name,
 	}
 	result, err := c.smClient.AccessSecretVersion(ctx, req)
-	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
+	metrics.ObserveAPICall(ProviderGCPSM, CallGCPSMAccessSecretVersion, err)
 	if err != nil && c.store.SecretVersionSelectionPolicy == esv1.SecretVersionSelectionPolicyLatestOrFetch &&
 		ref.Version == "" && isErrSecretDestroyedOrDisabled(err) {
 		// if the secret is destroyed or disabled, and we are configured to get the latest enabled secret,
@@ -738,7 +737,7 @@ func getLatestEnabledVersion(ctx context.Context, client GoogleSecretManagerClie
 		Name: versionName,
 	}
 	version, err := client.AccessSecretVersion(ctx, req)
-	metrics.ObserveAPICall(constants.ProviderGCPSM, constants.CallGCPSMAccessSecretVersion, err)
+	metrics.ObserveAPICall(ProviderGCPSM, CallGCPSMAccessSecretVersion, err)
 	if err != nil {
 		return nil, err
 	}

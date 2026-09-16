@@ -1180,6 +1180,23 @@ configuration is not supported with the legacy go-autorest SDK.</p>
 <tbody>
 <tr>
 <td>
+<code>authType</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanAuthType">
+BarbicanAuthType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AuthType selects how Barbican authenticates.
+- &ldquo;password&rdquo;: use username and password.
+- &ldquo;applicationCredential&rdquo;: use application credential ID and secret.
+Defaults to &ldquo;password&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>username</code></br>
 <em>
 <a href="#external-secrets.io/v1.BarbicanProviderUsernameRef">
@@ -1188,6 +1205,8 @@ BarbicanProviderUsernameRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>Username / Password authentication fields.</p>
 </td>
 </tr>
 <tr>
@@ -1200,9 +1219,61 @@ BarbicanProviderPasswordRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>applicationCredentialID</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProviderAppCredIDRef">
+BarbicanProviderAppCredIDRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ID of the application credential used for authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>applicationCredentialSecret</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProviderAppCredSecretRef">
+BarbicanProviderAppCredSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanAuthType">BarbicanAuthType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
+</p>
+<p>
+<p>BarbicanAuthType defines the authentication method used by the Barbican provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;applicationCredential&#34;</p></td>
+<td><p>BarbicanAuthTypeApplicationCredential uses OpenStack Application Credentials.</p>
+</td>
+</tr><tr><td><p>&#34;password&#34;</p></td>
+<td><p>BarbicanAuthTypePassword uses username/password Keystone authentication.</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.BarbicanProvider">BarbicanProvider
 </h3>
@@ -1267,6 +1338,78 @@ string
 <em>
 <a href="#external-secrets.io/v1.BarbicanAuth">
 BarbicanAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProviderAppCredIDRef">BarbicanProviderAppCredIDRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
+</p>
+<p>
+<p>BarbicanProviderAppCredIDRef defines a reference to an Application Credential ID.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProviderAppCredSecretRef">BarbicanProviderAppCredSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
+</p>
+<p>
+<p>BarbicanProviderAppCredSecretRef defines a reference to an Application Credential Secret.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
 </a>
 </em>
 </td>
@@ -7655,6 +7798,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>
@@ -8046,6 +8190,19 @@ bool
 <td>
 <em>(Optional)</em>
 <p>ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>includeSecretPath</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IncludeSecretPath indicates whether the secret path should be included as a prefix
+in the secret key. Secrets at the root path (/) are not prefixed.</p>
 </td>
 </tr>
 </tbody>

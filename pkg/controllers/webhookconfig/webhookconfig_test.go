@@ -26,7 +26,6 @@ import (
 	discoveryv1 "k8s.io/api/discovery/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	pointer "k8s.io/utils/ptr"
 
 	"github.com/external-secrets/external-secrets/runtime/constants"
 
@@ -256,7 +255,7 @@ func makeValidatingWebhookConfig() *admissionregistration.ValidatingWebhookConfi
 		Webhooks: []admissionregistration.ValidatingWebhook{
 			{
 				Name:                    "secretstores.external-secrets.io",
-				SideEffects:             (*admissionregistration.SideEffectClass)(pointer.To(string(admissionregistration.SideEffectClassNone))),
+				SideEffects:             new(admissionregistration.SideEffectClassNone),
 				AdmissionReviewVersions: []string{"v1"},
 				ClientConfig: admissionregistration.WebhookClientConfig{
 					CABundle: []byte("Cg=="),
@@ -269,7 +268,7 @@ func makeValidatingWebhookConfig() *admissionregistration.ValidatingWebhookConfi
 			},
 			{
 				Name:                    "clustersecretstores.external-secrets.io",
-				SideEffects:             (*admissionregistration.SideEffectClass)(pointer.To(string(admissionregistration.SideEffectClassNone))),
+				SideEffects:             new(admissionregistration.SideEffectClassNone),
 				AdmissionReviewVersions: []string{"v1"},
 				ClientConfig: admissionregistration.WebhookClientConfig{
 					CABundle: []byte("Cg=="),

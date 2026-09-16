@@ -33,7 +33,6 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	vaultiamauth "github.com/external-secrets/external-secrets/providers/v1/vault/iamauth"
 	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -152,7 +151,7 @@ func (c *client) requestTokenWithIamAuth(
 	}
 
 	_, err = c.auth.Login(ctx, awsAuthClient)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	metrics.ObserveAPICall(ProviderHCVault, CallHCVaultLogin, err)
 	if err != nil {
 		return err
 	}

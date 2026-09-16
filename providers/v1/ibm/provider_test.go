@@ -31,7 +31,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilpointer "k8s.io/utils/ptr"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -105,7 +104,7 @@ func makeValidAPIInput() *sm.GetSecretOptions {
 
 func makeValidAPIOutput() sm.SecretIntf {
 	secret := &sm.Secret{
-		SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
+		SecretType: new(sm.Secret_SecretType_Arbitrary),
 		Name:       new("testyname"),
 		ID:         new(secretUUID),
 	}
@@ -223,7 +222,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// key is passed in, output is sent back
 	setSecretString := func(smtc *secretManagerTestCase) {
 		secret := &sm.ArbitrarySecret{
-			SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
+			SecretType: new(sm.Secret_SecretType_Arbitrary),
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
 			Payload:    &secretString,
@@ -237,7 +236,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: custom version set
 	setCustomKey := func(smtc *secretManagerTestCase) {
 		secret := &sm.ArbitrarySecret{
-			SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
+			SecretType: new(sm.Secret_SecretType_Arbitrary),
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
 			Payload:    &secretString,
@@ -252,7 +251,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// bad case: arbitrary type secret which is destroyed
 	badArbitSecret := func(smtc *secretManagerTestCase) {
 		secret := &sm.ArbitrarySecret{
-			SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
+			SecretType: new(sm.Secret_SecretType_Arbitrary),
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
 		}
@@ -267,7 +266,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	secretUserPass := "username_password/" + secretUUID
 	badSecretUserPass := func(smtc *secretManagerTestCase) {
 		secret := &sm.UsernamePasswordSecret{
-			SecretType: utilpointer.To(sm.Secret_SecretType_UsernamePassword),
+			SecretType: new(sm.Secret_SecretType_UsernamePassword),
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
 			Username:   &secretUsername,
@@ -284,7 +283,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	funcSetUserPass := func(secretName, property, name string) func(smtc *secretManagerTestCase) {
 		return func(smtc *secretManagerTestCase) {
 			secret := &sm.UsernamePasswordSecret{
-				SecretType: utilpointer.To(sm.Secret_SecretType_UsernamePassword),
+				SecretType: new(sm.Secret_SecretType_UsernamePassword),
 				Name:       new("testyname"),
 				ID:         new(secretUUID),
 				Username:   &secretUsername,
@@ -308,7 +307,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	funcSetSecretIam := func(secretName, name string) func(*secretManagerTestCase) {
 		return func(smtc *secretManagerTestCase) {
 			secret := &sm.IAMCredentialsSecret{
-				SecretType: utilpointer.To(sm.Secret_SecretType_IamCredentials),
+				SecretType: new(sm.Secret_SecretType_IamCredentials),
 				Name:       new("testyname"),
 				ID:         new(secretUUID),
 				ApiKey:     new(secretAPIKey),
@@ -327,14 +326,14 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	funcSetSecretIamNew := func(secretName, groupName, name string) func(*secretManagerTestCase) {
 		return func(smtc *secretManagerTestCase) {
 			secret := &sm.IAMCredentialsSecret{
-				SecretType: utilpointer.To(sm.Secret_SecretType_IamCredentials),
+				SecretType: new(sm.Secret_SecretType_IamCredentials),
 				Name:       new("testyname"),
 				ID:         new(secretUUID),
 				ApiKey:     new(secretAPIKey),
 			}
 			smtc.getByNameInput.Name = &secretName
 			smtc.getByNameInput.SecretGroupName = &groupName
-			smtc.getByNameInput.SecretType = utilpointer.To(sm.Secret_SecretType_IamCredentials)
+			smtc.getByNameInput.SecretType = new(sm.Secret_SecretType_IamCredentials)
 
 			smtc.name = name
 			smtc.getByNameOutput = secret
@@ -352,7 +351,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	funcSetSecretSrvCred := func(secretName, name string) func(*secretManagerTestCase) {
 		return func(smtc *secretManagerTestCase) {
 			secret := &sm.ServiceCredentialsSecret{
-				SecretType:  utilpointer.To(sm.Secret_SecretType_ServiceCredentials),
+				SecretType:  new(sm.Secret_SecretType_ServiceCredentials),
 				Name:        new("testyname"),
 				ID:          new(secretUUID),
 				Credentials: dummySrvCreds,
@@ -384,7 +383,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 
 	// good case: imported_cert type with property
 	importedCert := &sm.ImportedCertificate{
-		SecretType:   utilpointer.To(sm.Secret_SecretType_ImportedCert),
+		SecretType:   new(sm.Secret_SecretType_ImportedCert),
 		Name:         new("testyname"),
 		ID:           new(secretUUID),
 		Certificate:  new(secretCertificate),
@@ -396,7 +395,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: imported_cert type without a private_key
 	importedCertNoPvtKey := func(smtc *secretManagerTestCase) {
 		secret := &sm.ImportedCertificate{
-			SecretType:  utilpointer.To(sm.Secret_SecretType_ImportedCert),
+			SecretType:  new(sm.Secret_SecretType_ImportedCert),
 			Name:        new("testyname"),
 			ID:          new(secretUUID),
 			Certificate: new(secretCertificate),
@@ -414,7 +413,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 
 	// good case: public_cert type with property
 	publicCert := &sm.PublicCertificate{
-		SecretType:   utilpointer.To(sm.Secret_SecretType_PublicCert),
+		SecretType:   new(sm.Secret_SecretType_PublicCert),
 		Name:         new("testyname"),
 		ID:           new(secretUUID),
 		Certificate:  new(secretCertificate),
@@ -428,7 +427,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 
 	// good case: private_cert type with property
 	privateCert := &sm.PrivateCertificate{
-		SecretType:  utilpointer.To(sm.Secret_SecretType_PublicCert),
+		SecretType:  new(sm.Secret_SecretType_PublicCert),
 		Name:        new("testyname"),
 		ID:          new(secretUUID),
 		Certificate: new(secretCertificate),
@@ -451,7 +450,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// bad case: kv type with key which is not in payload
 	badSecretKV := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			SecretType: new(sm.Secret_SecretType_Kv),
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
 			Data:       secretDataKV,
@@ -467,7 +466,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: kv type with property
 	setSecretKV := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			SecretType: new(sm.Secret_SecretType_Kv),
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
 			Data:       secretDataKV,
@@ -483,7 +482,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: kv type with property, returns specific value
 	setSecretKVWithKey := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			SecretType: new(sm.Secret_SecretType_Kv),
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
 			Data:       secretDataKVComplex,
@@ -499,7 +498,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: kv type with property and path, returns specific value
 	setSecretKVWithKeyPath := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			SecretType: new(sm.Secret_SecretType_Kv),
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
 			Data:       secretDataKVComplex,
@@ -515,7 +514,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: kv type with property and dot, returns specific value
 	setSecretKVWithKeyDot := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			SecretType: new(sm.Secret_SecretType_Kv),
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
 			Data:       secretDataKVComplex,
@@ -531,7 +530,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: kv type without property, returns all
 	setSecretKVWithOutKey := func(smtc *secretManagerTestCase) {
 		secret := &sm.KVSecret{
-			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			SecretType: new(sm.Secret_SecretType_Kv),
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
 			Data:       secretDataKVComplex,
@@ -555,7 +554,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// bad case: custom credentials type with key which is not in payload
 	badSecretCustomCredentials := func(smtc *secretManagerTestCase) {
 		secret := &sm.CustomCredentialsSecret{
-			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			SecretType:         new(sm.Secret_SecretType_CustomCredentials),
 			Name:               new("testyname"),
 			ID:                 new(secretUUID),
 			CredentialsContent: customCredentialsSecretCredentialsContent,
@@ -571,7 +570,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: custom credentials type with property
 	setSecretCustomCredentials := func(smtc *secretManagerTestCase) {
 		secret := &sm.CustomCredentialsSecret{
-			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			SecretType:         new(sm.Secret_SecretType_CustomCredentials),
 			Name:               new("testyname"),
 			ID:                 new(secretUUID),
 			CredentialsContent: customCredentialsSecretCredentialsContent,
@@ -587,7 +586,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: custom_credentials type with property, returns specific value
 	setSecretCustomCredentialsWithKey := func(smtc *secretManagerTestCase) {
 		secret := &sm.CustomCredentialsSecret{
-			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			SecretType:         new(sm.Secret_SecretType_CustomCredentials),
 			Name:               new("testyname"),
 			ID:                 new(secretUUID),
 			CredentialsContent: customCredentialsSecretCredentialsContentComplex,
@@ -603,7 +602,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: custom_credentials type with property and path, returns specific value
 	setSecretCustomCredentialsWithKeyPath := func(smtc *secretManagerTestCase) {
 		secret := &sm.CustomCredentialsSecret{
-			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			SecretType:         new(sm.Secret_SecretType_CustomCredentials),
 			Name:               new("testyname"),
 			ID:                 new(secretUUID),
 			CredentialsContent: customCredentialsSecretCredentialsContentComplex,
@@ -619,7 +618,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: custom_credentials type with property and dot, returns specific value
 	setSecretCustomCredentialsWithKeyDot := func(smtc *secretManagerTestCase) {
 		secret := &sm.CustomCredentialsSecret{
-			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			SecretType:         new(sm.Secret_SecretType_CustomCredentials),
 			Name:               new("testyname"),
 			ID:                 new(secretUUID),
 			CredentialsContent: customCredentialsSecretCredentialsContentComplex,
@@ -635,7 +634,7 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 	// good case: custom_credentials type without property, returns all
 	setSecretCustomCredentialsWithOutKey := func(smtc *secretManagerTestCase) {
 		secret := &sm.CustomCredentialsSecret{
-			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			SecretType:         new(sm.Secret_SecretType_CustomCredentials),
 			Name:               new("testyname"),
 			ID:                 new(secretUUID),
 			CredentialsContent: customCredentialsSecretCredentialsContentComplex,
@@ -725,7 +724,7 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.ArbitrarySecret{
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
-			SecretType: utilpointer.To(sm.Secret_SecretType_Arbitrary),
+			SecretType: new(sm.Secret_SecretType_Arbitrary),
 			Payload:    &payload,
 		}
 		smtc.name = "good case: arbitrary"
@@ -740,7 +739,7 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.UsernamePasswordSecret{
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
-			SecretType: utilpointer.To(sm.Secret_SecretType_UsernamePassword),
+			SecretType: new(sm.Secret_SecretType_UsernamePassword),
 			Username:   &secretUsername,
 			Password:   &secretPassword,
 		}
@@ -757,7 +756,7 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.IAMCredentialsSecret{
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
-			SecretType: utilpointer.To(sm.Secret_SecretType_IamCredentials),
+			SecretType: new(sm.Secret_SecretType_IamCredentials),
 			ApiKey:     new(secretAPIKey),
 		}
 		smtc.name = "good case: iam_credentials"
@@ -772,13 +771,13 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.IAMCredentialsSecret{
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
-			SecretType: utilpointer.To(sm.Secret_SecretType_IamCredentials),
+			SecretType: new(sm.Secret_SecretType_IamCredentials),
 			ApiKey:     new(secretAPIKey),
 		}
 		smtc.name = "good case: iam_credentials by name using new mechanism"
 		smtc.getByNameInput.Name = new("testyname")
 		smtc.getByNameInput.SecretGroupName = new("groupName")
-		smtc.getByNameInput.SecretType = utilpointer.To(sm.Secret_SecretType_IamCredentials)
+		smtc.getByNameInput.SecretType = new(sm.Secret_SecretType_IamCredentials)
 
 		smtc.getByNameOutput = secret
 		smtc.apiOutput = secret
@@ -791,7 +790,7 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.IAMCredentialsSecret{
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
-			SecretType: utilpointer.To(sm.Secret_SecretType_IamCredentials),
+			SecretType: new(sm.Secret_SecretType_IamCredentials),
 		}
 		smtc.name = "bad case: iam_credentials of a destroyed secret"
 		smtc.apiInput.ID = new(secretUUID)
@@ -817,7 +816,7 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.ServiceCredentialsSecret{
 			Name:        new("testyname"),
 			ID:          new(secretUUID),
-			SecretType:  utilpointer.To(sm.Secret_SecretType_IamCredentials),
+			SecretType:  new(sm.Secret_SecretType_IamCredentials),
 			Credentials: dummySrvCreds,
 		}
 		smtc.name = "good case: service_credentials"
@@ -829,7 +828,7 @@ func TestGetSecretMap(t *testing.T) {
 
 	// good case: imported_cert
 	importedCert := &sm.ImportedCertificate{
-		SecretType:   utilpointer.To(sm.Secret_SecretType_ImportedCert),
+		SecretType:   new(sm.Secret_SecretType_ImportedCert),
 		Name:         new("testyname"),
 		ID:           new(secretUUID),
 		Certificate:  new(secretCertificate),
@@ -840,7 +839,7 @@ func TestGetSecretMap(t *testing.T) {
 
 	// good case: public_cert
 	publicCert := &sm.PublicCertificate{
-		SecretType:   utilpointer.To(sm.Secret_SecretType_PublicCert),
+		SecretType:   new(sm.Secret_SecretType_PublicCert),
 		Name:         new("testyname"),
 		ID:           new(secretUUID),
 		Certificate:  new(secretCertificate),
@@ -854,7 +853,7 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.PrivateCertificate{
 			Name:        new("testyname"),
 			ID:          new(secretUUID),
-			SecretType:  utilpointer.To(sm.Secret_SecretType_PrivateCert),
+			SecretType:  new(sm.Secret_SecretType_PrivateCert),
 			Certificate: &secretCertificate,
 			PrivateKey:  &secretPrivateKey,
 		}
@@ -1203,7 +1202,7 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.KVSecret{
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
-			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			SecretType: new(sm.Secret_SecretType_Kv),
 			Data:       secretComplex,
 		}
 		smtc.name = "good case: kv, no property, return entire payload as key:value pairs"
@@ -1220,7 +1219,7 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.KVSecret{
 			Name:       new("d5deb37a-7883-4fe2-a5e7-3c15420adc76"),
 			ID:         new(secretUUID),
-			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			SecretType: new(sm.Secret_SecretType_Kv),
 			Data:       secretComplex,
 		}
 		smtc.name = "good case: kv, with property"
@@ -1236,7 +1235,7 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.KVSecret{
 			Name:       new(secretUUID),
 			ID:         new(secretUUID),
-			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			SecretType: new(sm.Secret_SecretType_Kv),
 			Data:       secretComplex,
 		}
 		smtc.name = "good case: kv, with property and path"
@@ -1253,7 +1252,7 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.KVSecret{
 			Name:       new("testyname"),
 			ID:         new(secretUUID),
-			SecretType: utilpointer.To(sm.Secret_SecretType_Kv),
+			SecretType: new(sm.Secret_SecretType_Kv),
 			Data:       secretComplex,
 		}
 		smtc.name = "bad case: kv, with property and path"
@@ -1270,7 +1269,7 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.CustomCredentialsSecret{
 			Name:               new("testyname"),
 			ID:                 new(secretUUID),
-			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			SecretType:         new(sm.Secret_SecretType_CustomCredentials),
 			CredentialsContent: secretComplex,
 		}
 		smtc.name = "good case: custom_credentials, no property, return entire payload as key:value pairs"
@@ -1287,7 +1286,7 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.CustomCredentialsSecret{
 			Name:               new("d5deb37a-7883-4fe2-a5e7-3c15420adc76"),
 			ID:                 new(secretUUID),
-			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			SecretType:         new(sm.Secret_SecretType_CustomCredentials),
 			CredentialsContent: secretComplex,
 		}
 		smtc.name = "good case: custom_credentials, with property"
@@ -1303,7 +1302,7 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.CustomCredentialsSecret{
 			Name:               new(secretUUID),
 			ID:                 new(secretUUID),
-			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			SecretType:         new(sm.Secret_SecretType_CustomCredentials),
 			CredentialsContent: secretComplex,
 		}
 		smtc.name = "good case: custom_credentials, with property and path"
@@ -1320,7 +1319,7 @@ func TestGetSecretMap(t *testing.T) {
 		secret := &sm.CustomCredentialsSecret{
 			Name:               new("testyname"),
 			ID:                 new(secretUUID),
-			SecretType:         utilpointer.To(sm.Secret_SecretType_CustomCredentials),
+			SecretType:         new(sm.Secret_SecretType_CustomCredentials),
 			CredentialsContent: secretComplex,
 		}
 		smtc.name = "bad case: custom_credentials, with property and path"
