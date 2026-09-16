@@ -63,6 +63,7 @@ func NewMockClient(status int, data any) (infisicalSdk.InfisicalClientInterface,
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	infisicalSdk := infisicalSdk.NewInfisicalClient(ctx, infisicalConfig)
 
 	closeFunc := func() {
