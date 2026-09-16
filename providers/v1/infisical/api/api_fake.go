@@ -25,7 +25,6 @@ import (
 	"net/http/httptest"
 	"net/url"
 
-	infisical "github.com/infisical/go-sdk"
 	infisicalSdk "github.com/infisical/go-sdk"
 )
 
@@ -64,14 +63,14 @@ func NewMockClient(status int, data any) (infisicalSdk.InfisicalClientInterface,
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	infisicalSdk := infisicalSdk.NewInfisicalClient(ctx, infisicalConfig)
+	infisicalSdkCl := infisicalSdk.NewInfisicalClient(ctx, infisicalConfig)
 
 	closeFunc := func() {
 		cancel()
 		server.Close()
 	}
 
-	return infisicalSdk, closeFunc
+	return infisicalSdkCl, closeFunc
 }
 
 // NewAPIClient creates a new Infisical API client with the specified base URL and optional certificate.
@@ -81,7 +80,7 @@ func NewAPIClient(baseURL string, certificate *x509.Certificate) (infisicalSdk.I
 		return nil, nil, err
 	}
 
-	infisicalConfig := infisical.Config{
+	infisicalConfig := infisicalSdk.Config{
 		SiteUrl: baseParsedURL.String(),
 	}
 
@@ -93,7 +92,7 @@ func NewAPIClient(baseURL string, certificate *x509.Certificate) (infisicalSdk.I
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	infisicalSdk := infisicalSdk.NewInfisicalClient(ctx, infisicalConfig)
+	infisicalSdkCl := infisicalSdk.NewInfisicalClient(ctx, infisicalConfig)
 
-	return infisicalSdk, cancel, nil
+	return infisicalSdkCl, cancel, nil
 }
