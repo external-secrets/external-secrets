@@ -43,7 +43,7 @@ warn() {
 }
 
 error() {
-    echo -e "${RED}[ERROR]${NC} $*"
+    echo -e "${RED}[ERROR]${NC} $*" >&2
 }
 
 # Update a single module's dependencies

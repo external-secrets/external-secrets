@@ -24,7 +24,7 @@ FILE_PATH="$ROOT/docs/introduction/stability-support.md"
 
 # Check if the file exists
 if [[ ! -f "$FILE_PATH" ]]; then
-    echo "Error: File $FILE_PATH does not exist."
+    echo "Error: File $FILE_PATH does not exist." >&2
     exit 1
 fi
 
