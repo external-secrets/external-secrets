@@ -145,9 +145,9 @@ var genericMap = map[string]interface{}{
 	"mulf": func(a interface{}, v ...interface{}) float64 {
 		return execDecimalOp(a, v, func(d1, d2 decimal.Decimal) decimal.Decimal { return d1.Mul(d2) })
 	},
-	"biggest": max,
-	"max":     max,
-	"min":     min,
+	"biggest": maximum,
+	"max":     maximum,
+	"min":     minimum,
 	"maxf":    maxf,
 	"minf":    minf,
 	"ceil":    ceil,
