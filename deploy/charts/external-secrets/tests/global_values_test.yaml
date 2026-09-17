@@ -463,6 +463,24 @@ tests:
           path: spec.template.spec.containers[0].image
           pattern: ^mirror\.corp\.io/platform/eso(-webhook|-cert-controller)?:.*
 
+  - it: should drop a trailing slash on imageRegistry rather than render an empty path component
+    template: deployment.yaml
+    set:
+      global.imageRegistry: "mirror.corp.io/"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^mirror\.corp\.io/external-secrets/external-secrets:.*
+
+  - it: should treat an imageRegistry of only slashes as unset
+    template: deployment.yaml
+    set:
+      global.imageRegistry: "/"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^external-secrets/external-secrets:.*
+
   - it: should place the registry before the repository and the flavour after the tag
     template: deployment.yaml
     set:

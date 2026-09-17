@@ -188,11 +188,14 @@ Determine the image to use, including if using a flavour.
 */}}
 {{- define "external-secrets.image" -}}
 {{- $repository := "" -}}
+{{/* A trailing slash would render an empty path component, which the image
+     reference grammar rejects. */}}
+{{- $registry := trimSuffix "/" (.context.Values.global.imageRegistry | default "") -}}
 {{- if .context.Values.global.repository -}}
 {{/* Deprecated. A full path including the host, so it is used as-is. */}}
 {{- $repository = .context.Values.global.repository -}}
-{{- else if .context.Values.global.imageRegistry -}}
-{{- $repository = printf "%s/%s" .context.Values.global.imageRegistry .image.repository -}}
+{{- else if $registry -}}
+{{- $repository = printf "%s/%s" $registry .image.repository -}}
 {{- else -}}
 {{- $repository = .image.repository -}}
 {{- end -}}
