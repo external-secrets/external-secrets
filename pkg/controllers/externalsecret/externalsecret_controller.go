@@ -231,7 +231,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		// Use Patch instead of Update to avoid claiming ownership of spec fields like refreshInterval
 		patch := client.MergeFrom(externalSecret.DeepCopy())
 		if controllerutil.RemoveFinalizer(externalSecret, ExternalSecretFinalizer) {
-			// Updated
 			if err := r.Patch(ctx, externalSecret, patch); err != nil {
 				return ctrl.Result{}, err
 			}
