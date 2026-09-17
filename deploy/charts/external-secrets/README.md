@@ -156,7 +156,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | global.nodeSelector | object | `{}` |  |
 | global.podAnnotations | object | `{}` | Global pod annotations to be applied to all deployments |
 | global.podLabels | object | `{}` | Global pod labels to be applied to all deployments |
-| global.repository | string | `""` | Global image repository to be applied to all deployments. Takes a full path including the registry host, and so is used as-is: `imageRegistry` is not prefixed to it. |
+| global.repository | string | `""` | DEPRECATED, use `global.imageRegistry` with the per-image `repository` values instead. Takes a full path including the registry host and is used as-is, so `imageRegistry` is not prefixed to it. The name collides with other charts that define their own `global.repository`, which is why it is going away. To migrate `my.io/org/es`, set `global.imageRegistry: my.io` and `org/es` as the `repository` of each of the three images. |
 | global.tolerations | list | `[]` |  |
 | global.topologySpreadConstraints | list | `[]` |  |
 | grafanaDashboard.annotations | object | `{}` | Annotations that ConfigMaps can have to get configured in Grafana, See: sidecar.dashboards.folderAnnotation for specifying the dashboard folder. https://github.com/grafana/helm-charts/tree/main/charts/grafana |

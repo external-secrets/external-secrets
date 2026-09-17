@@ -29,9 +29,12 @@ global:
   # `certController.image.repository` must each carry a registry host of their
   # own, or they resolve against Docker Hub.
   imageRegistry: ghcr.io
-  # -- Global image repository to be applied to all deployments. Takes a full
-  # path including the registry host, and so is used as-is: `imageRegistry` is
-  # not prefixed to it.
+  # -- DEPRECATED, use `global.imageRegistry` with the per-image `repository`
+  # values instead. Takes a full path including the registry host and is used
+  # as-is, so `imageRegistry` is not prefixed to it. The name collides with
+  # other charts that define their own `global.repository`, which is why it is
+  # going away. To migrate `my.io/org/es`, set `global.imageRegistry: my.io`
+  # and `org/es` as the `repository` of each of the three images.
   repository: ""
   compatibility:
     openshift:
