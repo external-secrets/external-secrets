@@ -92,6 +92,7 @@ func NewAPIClient(baseURL string, certificate *x509.Certificate) (infisicalSdk.I
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	infisicalSdkCl := infisicalSdk.NewInfisicalClient(ctx, infisicalConfig)
 
 	return infisicalSdkCl, cancel, nil
