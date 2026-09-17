@@ -143,6 +143,31 @@ spec:
 			server: server,
 		},
 		{
+			name: "missing secret includes namespace in error",
+			args: args{
+				ctx:       context.TODO(),
+				namespace: "foo",
+				kube:      clientfake.NewClientBuilder().Build(),
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubToken
+spec:
+  appID: "0000000"
+  installID: "00000000"
+  auth:
+    privateKey:
+      secretRef:
+        name: "missing"
+        key: "privateKey"`),
+				},
+			},
+			assertErr: func(t *testing.T, err error) {
+				require.Error(t, err)
+				assert.ErrorContains(t, err, `cannot get Kubernetes secret "missing" from namespace "foo"`)
+			},
+			server: server,
+		},
+		{
 			name: "fail on bad request",
 			args: args{
 				ctx:       context.TODO(),

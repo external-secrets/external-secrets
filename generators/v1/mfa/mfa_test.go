@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -34,11 +35,12 @@ func TestGenerate(t *testing.T) {
 		client   client.Client
 	}
 	tests := []struct {
-		name    string
-		g       *Generator
-		args    args
-		want    map[string][]byte
-		wantErr bool
+		name            string
+		g               *Generator
+		args            args
+		want            map[string][]byte
+		wantErr         bool
+		wantErrContains string
 	}{
 		{
 			name: "no json spec should result in error",
@@ -55,6 +57,17 @@ func TestGenerate(t *testing.T) {
 				},
 			},
 			wantErr: true,
+		},
+		{
+			name: "missing secret includes namespace in error",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec": {"secret": {"name": "missing", "key": "secret"}, "when": "1998-05-05T05:05:05Z"}}`),
+				},
+				client: clientfake.NewClientBuilder().Build(),
+			},
+			wantErr:         true,
+			wantErrContains: `cannot get Kubernetes secret "missing" from namespace "namespace"`,
 		},
 		{
 			name: "spec with secret should result in valid token",
@@ -87,6 +100,9 @@ func TestGenerate(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Generator.Generate() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			if tt.wantErrContains != "" {
+				require.ErrorContains(t, err, tt.wantErrContains)
 			}
 			assert.Equal(t, tt.want, got)
 		})
