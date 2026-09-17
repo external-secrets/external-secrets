@@ -34,11 +34,11 @@ import (
 // Requires PASSWORDDEPOT_TOKEN and PASSWORDDEPOT_PROJECT_ID to be set in environment variables
 
 const (
-	errPasswordDepotCredSecretName            = "credentials are empty" // sonar-resolve go:S2068 "false positive, this is not a password"
+	errPasswordDepotCredSecretName            = "credentials are empty"
 	errInvalidClusterStoreMissingSAKNamespace = "invalid clusterStore missing SAK namespace"
 	errFetchSAKSecret                         = "couldn't find secret on cluster: %w"
 	errMissingSAK                             = "missing credentials while setting auth"
-	errUninitalizedPasswordDepotProvider      = "provider passworddepot is not initialized" // sonar-resolve go:S2068 "false positive, this is not a password"
+	errUninitalizedPasswordDepotProvider      = "provider passworddepot is not initialized"
 	errNotImplemented                         = "%s not implemented"
 )
 
