@@ -195,10 +195,12 @@ targets:
     kind: file
     sourceid: ubi9
     transformers:
-      - addprefix: 'registry.access.redhat.com/ubi9/ubi:'
+      # Dockerfile.ubi pins the digest without retaining the floating latest tag.
+      - trimprefix: 'latest'
+      - addprefix: 'registry.access.redhat.com/ubi9/ubi'
     spec:
       file: Dockerfile.ubi
-      matchpattern: 'registry.access.redhat.com/ubi9/ubi:[^[:space:]]+'
+      matchpattern: 'registry.access.redhat.com/ubi9/ubi@sha256:[a-f0-9]{64}'
   skywalking:
     #{{- if .scm.enabled }}
     scmid: default
