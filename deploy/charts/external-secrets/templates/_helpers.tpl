@@ -189,7 +189,10 @@ Determine the image to use, including if using a flavour.
 {{- define "external-secrets.image" -}}
 {{- $repository := "" -}}
 {{- if .context.Values.global.repository -}}
+{{/* A full path including the registry host, so it is used as-is. */}}
 {{- $repository = .context.Values.global.repository -}}
+{{- else if .context.Values.global.imageRegistry -}}
+{{- $repository = printf "%s/%s" .context.Values.global.imageRegistry .image.repository -}}
 {{- else -}}
 {{- $repository = .image.repository -}}
 {{- end -}}

@@ -290,6 +290,7 @@ tests:
     template: deployment.yaml
     set:
       global.repository: ""
+      global.imageRegistry: ""
       image.repository: "ghcr.io/external-secrets/external-secrets"
     asserts:
       - matchRegex:
@@ -309,6 +310,7 @@ tests:
     template: webhook-deployment.yaml
     set:
       global.repository: ""
+      global.imageRegistry: ""
       webhook.image.repository: "ghcr.io/external-secrets/external-secrets"
     asserts:
       - matchRegex:
@@ -328,11 +330,149 @@ tests:
     template: cert-controller-deployment.yaml
     set:
       global.repository: ""
+      global.imageRegistry: ""
       certController.image.repository: "ghcr.io/external-secrets/external-secrets"
     asserts:
       - matchRegex:
           path: spec.template.spec.containers[0].image
           pattern: ^ghcr\.io/external-secrets/external-secrets:.*
+
+  # Test global.imageRegistry
+  - it: should prefix the default registry to the repository (controller)
+    template: deployment.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^ghcr\.io/external-secrets/external-secrets:.*
+
+  - it: should prefix the default registry to the repository (webhook)
+    template: webhook-deployment.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^ghcr\.io/external-secrets/external-secrets:.*
+
+  - it: should prefix the default registry to the repository (cert-controller)
+    template: cert-controller-deployment.yaml
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^ghcr\.io/external-secrets/external-secrets:.*
+
+  - it: should use global imageRegistry when set (controller)
+    template: deployment.yaml
+    set:
+      global.imageRegistry: "mirror.corp.io"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^mirror\.corp\.io/external-secrets/external-secrets:.*
+
+  - it: should use global imageRegistry when set (webhook)
+    template: webhook-deployment.yaml
+    set:
+      global.imageRegistry: "mirror.corp.io"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^mirror\.corp\.io/external-secrets/external-secrets:.*
+
+  - it: should use global imageRegistry when set (cert-controller)
+    template: cert-controller-deployment.yaml
+    set:
+      global.imageRegistry: "mirror.corp.io"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^mirror\.corp\.io/external-secrets/external-secrets:.*
+
+  - it: should let an empty imageRegistry pass a fully qualified repository (controller)
+    template: deployment.yaml
+    set:
+      global.imageRegistry: ""
+      image.repository: "mirror.corp.io/platform/eso"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^mirror\.corp\.io/platform/eso:.*
+
+  - it: should let an empty imageRegistry pass a fully qualified repository (webhook)
+    template: webhook-deployment.yaml
+    set:
+      global.imageRegistry: ""
+      webhook.image.repository: "mirror.corp.io/platform/eso"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^mirror\.corp\.io/platform/eso:.*
+
+  - it: should let an empty imageRegistry pass a fully qualified repository (cert-controller)
+    template: cert-controller-deployment.yaml
+    set:
+      global.imageRegistry: ""
+      certController.image.repository: "mirror.corp.io/platform/eso"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^mirror\.corp\.io/platform/eso:.*
+
+  - it: should use global repository verbatim, without the imageRegistry prefix (controller)
+    template: deployment.yaml
+    set:
+      global.imageRegistry: "mirror.corp.io"
+      global.repository: "other-registry.io/custom/external-secrets"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^other-registry\.io/custom/external-secrets:.*
+
+  - it: should use global repository verbatim, without the imageRegistry prefix (webhook)
+    template: webhook-deployment.yaml
+    set:
+      global.imageRegistry: "mirror.corp.io"
+      global.repository: "other-registry.io/custom/external-secrets"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^other-registry\.io/custom/external-secrets:.*
+
+  - it: should use global repository verbatim, without the imageRegistry prefix (cert-controller)
+    template: cert-controller-deployment.yaml
+    set:
+      global.imageRegistry: "mirror.corp.io"
+      global.repository: "other-registry.io/custom/external-secrets"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^other-registry\.io/custom/external-secrets:.*
+
+  # Clearing imageRegistry drops the prefix for every deployment at once, so
+  # all three repositories have to carry a host of their own.
+  - it: should render every deployment when an empty imageRegistry is paired with fully qualified repositories
+    templates:
+      - deployment.yaml
+      - webhook-deployment.yaml
+      - cert-controller-deployment.yaml
+    set:
+      global.imageRegistry: ""
+      image.repository: "mirror.corp.io/platform/eso"
+      webhook.image.repository: "mirror.corp.io/platform/eso-webhook"
+      certController.image.repository: "mirror.corp.io/platform/eso-cert-controller"
+    asserts:
+      - matchRegex:
+          path: spec.template.spec.containers[0].image
+          pattern: ^mirror\.corp\.io/platform/eso(-webhook|-cert-controller)?:.*
+
+  - it: should place the registry before the repository and the flavour after the tag
+    template: deployment.yaml
+    set:
+      global.imageRegistry: "mirror.corp.io"
+      image.tag: "v0.0.1"
+      image.flavour: "ubi"
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].image
+          value: mirror.corp.io/external-secrets/external-secrets:v0.0.1-ubi
 
   # Combined test - all global values set
   - it: should apply all global values when local values not set (controller)

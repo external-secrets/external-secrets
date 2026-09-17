@@ -44,6 +44,20 @@ tests:
       - isKind:
           of: Deployment
 
+  - it: should accept valid global.imageRegistry as string
+    set:
+      global.imageRegistry: "mirror.corp.io"
+    asserts:
+      - isKind:
+          of: Deployment
+
+  - it: should accept empty global.imageRegistry string
+    set:
+      global.imageRegistry: ""
+    asserts:
+      - isKind:
+          of: Deployment
+
   - it: should accept all global values together
     set:
       global.repository: "my-registry.io/org/external-secrets"
