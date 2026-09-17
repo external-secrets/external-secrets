@@ -177,7 +177,7 @@ data:
 
 ## Limitations
 
-Regexp Rewrite is based on golang `regexp`, which in turns implements `RE2` regexp language. There a a series of known limitations to this implementation, such as:
+Regexp Rewrite is based on golang `regexp`, which in turns implements `RE2` regexp language. There are a series of known limitations to this implementation, such as:
 
 * Lack of ability to do lookaheads or lookbehinds;
 * Lack of negation expressions;
