@@ -51,7 +51,8 @@ func NewMockClient(status int, data any) (infisicalSdk.InfisicalClientInterface,
 	caCert := server.Certificate()
 
 	infisicalConfig := infisicalSdk.Config{
-		SiteUrl: server.URL,
+		SiteUrl:          server.URL,
+		AutoTokenRefresh: new(false),
 	}
 
 	if caCert != nil {
@@ -61,16 +62,9 @@ func NewMockClient(status int, data any) (infisicalSdk.InfisicalClientInterface,
 		}))
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	infisicalSdkCl := infisicalSdk.NewInfisicalClient(ctx, infisicalConfig)
+	infisicalSdkCl := infisicalSdk.NewInfisicalClient(context.Background(), infisicalConfig)
 
-	closeFunc := func() {
-		cancel()
-		server.Close()
-	}
-
-	return infisicalSdkCl, closeFunc
+	return infisicalSdkCl, server.Close
 }
 
 // NewAPIClient creates a new Infisical API client with the specified base URL and optional certificate.
@@ -92,7 +86,6 @@ func NewAPIClient(baseURL string, certificate *x509.Certificate) (infisicalSdk.I
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	infisicalSdkCl := infisicalSdk.NewInfisicalClient(ctx, infisicalConfig)
 
 	return infisicalSdkCl, cancel, nil
