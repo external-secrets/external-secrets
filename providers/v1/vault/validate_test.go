@@ -301,6 +301,106 @@ func TestValidateStore(t *testing.T) {
 			},
 			wantErr: false,
 		},
+		{
+			name: "valid GCP auth with SecretRef",
+			args: args{
+				auth: esv1.VaultAuth{
+					GCP: &esv1.VaultGCPAuth{
+						Role: "test-role",
+						SecretRef: &esv1.GCPSMAuthSecretRef{
+							SecretAccessKey: esmeta.SecretKeySelector{
+								Name: fakeValidationValue,
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid GCP auth with WorkloadIdentity",
+			args: args{
+				auth: esv1.VaultAuth{
+					GCP: &esv1.VaultGCPAuth{
+						Role: "test-role",
+						WorkloadIdentity: &esv1.GCPWorkloadIdentity{
+							ServiceAccountRef: esmeta.ServiceAccountSelector{
+								Name: fakeValidationValue,
+							},
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid GCP auth with WIF ServiceAccountRef",
+			args: args{
+				auth: esv1.VaultAuth{
+					GCP: &esv1.VaultGCPAuth{
+						Role: "test-role",
+						WorkloadIdentityFederation: &esv1.GCPWorkloadIdentityFederation{
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name: fakeValidationValue,
+							},
+							Audience: "//iam.googleapis.com/projects/123/locations/global/workloadIdentityPools/pool/providers/provider",
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid GCP auth with WIF missing Audience",
+			args: args{
+				auth: esv1.VaultAuth{
+					GCP: &esv1.VaultGCPAuth{
+						Role: "test-role",
+						WorkloadIdentityFederation: &esv1.GCPWorkloadIdentityFederation{
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name: fakeValidationValue,
+							},
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid GCP auth with WIF multiple sources",
+			args: args{
+				auth: esv1.VaultAuth{
+					GCP: &esv1.VaultGCPAuth{
+						Role: "test-role",
+						WorkloadIdentityFederation: &esv1.GCPWorkloadIdentityFederation{
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{
+								Name: fakeValidationValue,
+							},
+							CredConfig: &esv1.ConfigMapReference{
+								Name: fakeValidationValue,
+								Key:  "config.json",
+							},
+							Audience: "//iam.googleapis.com/projects/123/locations/global/workloadIdentityPools/pool/providers/provider",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid GCP auth with WIF zero sources",
+			args: args{
+				auth: esv1.VaultAuth{
+					GCP: &esv1.VaultGCPAuth{
+						Role: "test-role",
+						WorkloadIdentityFederation: &esv1.GCPWorkloadIdentityFederation{
+							Audience: "//iam.googleapis.com/projects/123/locations/global/workloadIdentityPools/pool/providers/provider",
+						},
+					},
+				},
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
