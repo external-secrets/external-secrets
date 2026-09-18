@@ -794,11 +794,27 @@ func TestGetSecretMetadataPath(t *testing.T) {
 			},
 		},
 		"PathForV2": {
-			reason: "path should compose with mount point if set without data",
+			reason: "path should compose with mount point if set and strip the mount prefix like buildPath does",
 			args: args{
 				store:    storeV2.Spec.Provider.Vault,
 				path:     "secret/path/data/test",
-				expected: "secret/path/metadata/secret/path/data/test",
+				expected: "secret/path/metadata/test",
+			},
+		},
+		"PathForV2MountPrefixed": {
+			reason: "path that only carries the mount prefix should still resolve under the mount",
+			args: args{
+				store:    storeV2.Spec.Provider.Vault,
+				path:     "secret/path/test",
+				expected: "secret/path/metadata/test",
+			},
+		},
+		"PathForV2PlainKey": {
+			reason: "plain key should compose with mount point",
+			args: args{
+				store:    storeV2.Spec.Provider.Vault,
+				path:     "test",
+				expected: "secret/path/metadata/test",
 			},
 		},
 		"PathForV2WithData": {

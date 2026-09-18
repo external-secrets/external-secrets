@@ -238,7 +238,17 @@ func (c *client) buildMetadataPath(path string) (string, error) {
 			path = strings.Replace(path, "/data/", "/metadata/", 1)
 			url = path
 		} else {
-			url = fmt.Sprintf("%s/metadata/%s", *c.store.Path, path)
+			// mirror buildPath: strip the mount prefix (and the data/
+			// segment on kv v2) so the metadata path matches the data path
+			out := path
+			cut := *c.store.Path + "/"
+			if strings.HasPrefix(out, cut) {
+				_, out, _ = strings.Cut(out, cut)
+				if strings.HasPrefix(out, "data/") && c.store.Version == esv1.VaultKVStoreV2 {
+					_, out, _ = strings.Cut(out, "data/")
+				}
+			}
+			url = fmt.Sprintf("%s/metadata/%s", *c.store.Path, out)
 		}
 	}
 	return url, nil
