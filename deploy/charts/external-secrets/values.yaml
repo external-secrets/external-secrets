@@ -22,7 +22,19 @@ global:
   podAnnotations: {}
   # -- Global imagePullSecrets to be applied to all deployments
   imagePullSecrets: []
-  # -- Global image repository to be applied to all deployments
+  # -- Global image registry, prefixed to the `repository` of every image this
+  # chart deploys. Point it at a mirror or an air-gapped registry to move all
+  # images at once. Setting it to an empty string drops the prefix chart-wide,
+  # in which case `image.repository`, `webhook.image.repository` and
+  # `certController.image.repository` must each carry a registry host of their
+  # own, or they resolve against Docker Hub.
+  imageRegistry: ghcr.io
+  # -- DEPRECATED, use `global.imageRegistry` with the per-image `repository`
+  # values instead. Takes a full path including the registry host and is used
+  # as-is, so `imageRegistry` is not prefixed to it. The name collides with
+  # other charts that define their own `global.repository`, which is why it is
+  # going away. To migrate `my.io/org/es`, set `global.imageRegistry: my.io`
+  # and `org/es` as the `repository` of each of the three images.
   repository: ""
   compatibility:
     openshift:
@@ -43,7 +55,10 @@ bitwarden-sdk-server:
 revisionHistoryLimit: 10
 
 image:
-  repository: ghcr.io/external-secrets/external-secrets
+  # -- The image repository, appended to `global.imageRegistry`. Include a
+  # registry host here only when `global.imageRegistry` is set to an empty
+  # string.
+  repository: external-secrets/external-secrets
   pullPolicy: IfNotPresent
   # -- The image tag to use. The default is the chart appVersion.
   tag: ""
@@ -576,7 +591,10 @@ webhook:
     egress: []
 
   image:
-    repository: ghcr.io/external-secrets/external-secrets
+    # -- The image repository, appended to `global.imageRegistry`. Include a
+    # registry host here only when `global.imageRegistry` is set to an empty
+    # string.
+    repository: external-secrets/external-secrets
     pullPolicy: IfNotPresent
     # -- The image tag to use. The default is the chart appVersion.
     tag: ""
@@ -829,7 +847,10 @@ certController:
     curvePreferences: []
 
   image:
-    repository: ghcr.io/external-secrets/external-secrets
+    # -- The image repository, appended to `global.imageRegistry`. Include a
+    # registry host here only when `global.imageRegistry` is set to an empty
+    # string.
+    repository: external-secrets/external-secrets
     pullPolicy: IfNotPresent
     tag: ""
     flavour: ""
