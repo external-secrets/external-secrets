@@ -37,6 +37,22 @@ spec:
       vaultUrl: "https://xx-xxxx-xx.vault.azure.net"
 ```
 
+### HTTP connection pooling
+
+The legacy Azure Key Vault client (`useAzureSDK: false`, or omitted) shares an HTTP connection pool across stores and reconciliations within each ESO controller process. By default, it retains up to **2 idle connections per host**, preserving the legacy SDK's existing limit. Authentication remains separate for each client.
+
+To change the per-host limit, set the controller flag `--azure-kv-max-idle-connections-per-host`. The value must be a positive integer. For example, to retain up to 20 idle connections per host in a Helm installation, configure `extraArgs` in your values file:
+
+```yaml
+{% include 'azkv-connection-pool-values.yaml' %}
+```
+
+This setting limits idle connections retained for reuse, not active requests or controller concurrency. Increasing it can reduce connection churn during concurrent HTTP/1.1 requests, at the cost of retaining more sockets. The pool retains at most 100 idle connections in total across hosts, or the configured per-host limit if that is higher than 100. Idle connections expire after 90 seconds; requests separated by longer intervals may still need new connections. HTTP/2 can multiplex requests on a connection, so its connection requirements differ.
+
+Choose a value based on concurrent requests to each Key Vault and the number of hosts sharing the pool. A larger per-host limit can also evict idle connections to other hosts when the total limit is reached. The example value is a tuning starting point, not a recommendation for every workload.
+
+The setting applies to Key Vault requests using the legacy SDK, including secrets, keys and certificates. It does not configure token acquisition connections or token caching, and does not affect stores with `useAzureSDK: true`. Restart the controller to apply a changed value.
+
 ### Authentication
 
 ESO supports multiple authentication methods to connect to Azure Key Vault:
