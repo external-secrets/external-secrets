@@ -30,96 +30,54 @@ scms:
         footers: 'Signed-off-by: External Secrets Operator <ExternalSecretsOperator@users.noreply.github.com>'
 #{{- end }}
 
-# Keep images explicit so each registry source is resolved once, regardless of
-# how many Dockerfiles use it.
+# Resolve each upstream image once, even when several files use it. Dockerfile
+# autodiscovery skips digest-only references, so keep their moving tag policies
+# here explicitly. Go and kind use version tags only; everything else uses an
+# image-index digest without a tag (hidetag), tracking latest within its image
+# repository (e.g. UBI 9 and distroless Debian 12 stay on those distro lines).
 sources:
-  alpine_tag:
-    kind: dockerimage
-    spec:
-      image: alpine
-      tag: 3.24.1
-      versionfilter:
-        kind: semver
-        # Avoid unrelated date-like tags such as Alpine's 20260805 tag.
-        pattern: '3.x'
   alpine:
     kind: dockerdigest
     spec:
       image: alpine
-      tag: '{{ source "alpine_tag" }}'
-  golang_tag:
+      tag: latest
+      hidetag: true
+  golang:
     kind: dockerimage
     spec:
       image: golang
-      tag: 1.27.0
       versionfilter:
         kind: semver
-        pattern: '1.x.x-0'
-  golang_alpine:
-    kind: dockerdigest
-    spec:
-      image: golang
-      tag: '{{ source "golang_tag" }}-alpine'
-  golang_bookworm:
-    kind: dockerdigest
-    spec:
-      image: golang
-      tag: '{{ source "golang_tag" }}-bookworm'
+        pattern: '1.x'
   distroless_static:
     kind: dockerdigest
     spec:
       image: gcr.io/distroless/static
       tag: latest
+      hidetag: true
   ubi9:
     kind: dockerdigest
     spec:
       image: registry.access.redhat.com/ubi9/ubi
       tag: latest
+      hidetag: true
 
-  skywalking_tag:
-    kind: dockerimage
-    spec:
-      image: apache/skywalking-eyes
-      tag: 0.6.0
-      versionfilter:
-        kind: semver
-        pattern: '*'
   skywalking:
     kind: dockerdigest
     spec:
       image: apache/skywalking-eyes
-      tag: '{{ source "skywalking_tag" }}'
-  helm_docs_tag:
-    kind: dockerimage
-    spec:
-      image: jnorwood/helm-docs
-      tag: v1.14.2
-      versionfilter:
-        kind: semver
-        pattern: '*'
+      tag: latest
+      hidetag: true
   helm_docs:
     kind: dockerdigest
     spec:
       image: jnorwood/helm-docs
-      tag: '{{ source "helm_docs_tag" }}'
-  kind_node_tag:
-    kind: dockerimage
-    spec:
-      image: kindest/node
-      tag: v1.33.4
-      versionfilter:
-        kind: semver
-        pattern: '*'
+      tag: latest
+      hidetag: true
   kind_node:
-    kind: dockerdigest
-    spec:
-      image: kindest/node
-      tag: '{{ source "kind_node_tag" }}'
-  curl_tag:
     kind: dockerimage
     spec:
-      image: curlimages/curl
-      tag: 8.11.0
+      image: kindest/node
       versionfilter:
         kind: semver
         pattern: '*'
@@ -127,17 +85,20 @@ sources:
     kind: dockerdigest
     spec:
       image: curlimages/curl
-      tag: '{{ source "curl_tag" }}'
+      tag: latest
+      hidetag: true
   distroless_debian12:
     kind: dockerdigest
     spec:
       image: gcr.io/distroless/static-debian12
       tag: latest
+      hidetag: true
   pull_request_label_checker:
     kind: dockerdigest
     spec:
       image: agilepathway/pull-request-label-checker
       tag: latest
+      hidetag: true
 
 targets:
   alpine:
@@ -147,20 +108,22 @@ targets:
     kind: file
     sourceid: alpine
     transformers:
-      - addprefix: 'alpine:'
+      - addprefix: 'alpine'
     spec:
       files:
         - e2e/Dockerfile
         - hack/api-docs/Dockerfile
-      matchpattern: 'alpine:v?[0-9]+\.[0-9]+(?:\.[0-9]+)?(?:@sha256:[a-f0-9]{64})?'
+        - tilt.dockerfile
+      matchpattern: 'alpine[:@][^[:space:]]+'
   golang_alpine:
     #{{- if .scm.enabled }}
     scmid: default
     #{{- end }}
     kind: file
-    sourceid: golang_alpine
+    sourceid: golang
     transformers:
       - addprefix: 'golang:'
+      - addsuffix: '-alpine'
     spec:
       file: Dockerfile.standalone
       matchpattern: 'golang:v?[0-9]+\.[0-9]+\.[0-9]+-alpine(?:@sha256:[a-f0-9]{64})?'
@@ -169,12 +132,24 @@ targets:
     scmid: default
     #{{- end }}
     kind: file
-    sourceid: golang_bookworm
+    sourceid: golang
     transformers:
       - addprefix: 'golang:'
+      - addsuffix: '-bookworm'
     spec:
       file: e2e/Dockerfile
       matchpattern: 'golang:v?[0-9]+\.[0-9]+\.[0-9]+-bookworm(?:@sha256:[a-f0-9]{64})?'
+  golang:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: golang
+    transformers:
+      - addprefix: 'golang:'
+    spec:
+      file: tilt.debug.dockerfile
+      matchpattern: 'golang:v?[0-9]+\.[0-9]+\.[0-9]+(?:@sha256:[a-f0-9]{64})?'
   distroless_static:
     #{{- if .scm.enabled }}
     scmid: default
@@ -182,12 +157,12 @@ targets:
     kind: file
     sourceid: distroless_static
     transformers:
-      - addprefix: 'gcr.io/distroless/static:'
+      - addprefix: 'gcr.io/distroless/static'
     spec:
       files:
         - Dockerfile
         - Dockerfile.standalone
-      matchpattern: 'gcr.io/distroless/static:[^[:space:]]+'
+      matchpattern: 'gcr.io/distroless/static[:@][^[:space:]]+'
   ubi9:
     #{{- if .scm.enabled }}
     scmid: default
@@ -195,12 +170,10 @@ targets:
     kind: file
     sourceid: ubi9
     transformers:
-      # Dockerfile.ubi pins the digest without retaining the floating latest tag.
-      - trimprefix: 'latest'
       - addprefix: 'registry.access.redhat.com/ubi9/ubi'
     spec:
       file: Dockerfile.ubi
-      matchpattern: 'registry.access.redhat.com/ubi9/ubi@sha256:[a-f0-9]{64}'
+      matchpattern: 'registry.access.redhat.com/ubi9/ubi[:@][^[:space:]]+'
   skywalking:
     #{{- if .scm.enabled }}
     scmid: default
@@ -208,10 +181,10 @@ targets:
     kind: file
     sourceid: skywalking
     transformers:
-      - addprefix: 'apache/skywalking-eyes:'
+      - addprefix: 'apache/skywalking-eyes'
     spec:
       file: Makefile
-      matchpattern: 'apache/skywalking-eyes:[^[:space:]]+'
+      matchpattern: 'apache/skywalking-eyes[:@][^[:space:]]+'
   helm_docs:
     #{{- if .scm.enabled }}
     scmid: default
@@ -219,10 +192,10 @@ targets:
     kind: file
     sourceid: helm_docs
     transformers:
-      - addprefix: 'docker.io/jnorwood/helm-docs:'
+      - addprefix: 'docker.io/jnorwood/helm-docs'
     spec:
       file: Makefile
-      matchpattern: 'docker.io/jnorwood/helm-docs:[^[:space:]]+'
+      matchpattern: 'docker\.io/jnorwood/helm-docs[:@][^[:space:]]+'
   kind_node:
     #{{- if .scm.enabled }}
     scmid: default
@@ -235,6 +208,7 @@ targets:
       files:
         - .github/workflows/e2e.yml
         - .github/workflows/e2e-reusable.yml
+        - e2e/Makefile
       matchpattern: 'kindest/node:v?[0-9]+\.[0-9]+\.[0-9]+(?:@sha256:[a-f0-9]{64})?'
   curl:
     #{{- if .scm.enabled }}
@@ -243,10 +217,10 @@ targets:
     kind: file
     sourceid: curl
     transformers:
-      - addprefix: 'curlimages/curl:'
+      - addprefix: 'curlimages/curl'
     spec:
       file: e2e/framework/addon/conjur.go
-      matchpattern: 'curlimages/curl:[^"[:space:]]+'
+      matchpattern: 'curlimages/curl[:@][^"[:space:]]+'
   distroless_debian12:
     #{{- if .scm.enabled }}
     scmid: default
@@ -254,10 +228,10 @@ targets:
     kind: file
     sourceid: distroless_debian12
     transformers:
-      - addprefix: 'gcr.io/distroless/static-debian12:'
+      - addprefix: 'gcr.io/distroless/static-debian12'
     spec:
       file: e2e/framework/addon/conjur.go
-      matchpattern: 'gcr.io/distroless/static-debian12:[^"[:space:]]+'
+      matchpattern: 'gcr.io/distroless/static-debian12[:@][^"[:space:]]+'
   pull_request_label_checker:
     #{{- if .scm.enabled }}
     scmid: default
@@ -265,7 +239,7 @@ targets:
     kind: file
     sourceid: pull_request_label_checker
     transformers:
-      - addprefix: 'docker://agilepathway/pull-request-label-checker:'
+      - addprefix: 'docker://agilepathway/pull-request-label-checker'
     spec:
       file: .github/workflows/pull-request-label.yml
-      matchpattern: 'docker://agilepathway/pull-request-label-checker:[^[:space:]]+'
+      matchpattern: 'docker://agilepathway/pull-request-label-checker[:@][^[:space:]]+'
