@@ -64,29 +64,58 @@ func getPropertyValue(jsonData, propertyName, keyName string) ([]byte, error) {
 
 // formatSecretKey returns the secret key, optionally prefixed with the relative
 // path when includeSecretPath is enabled. Secrets at the root path (/) are
-// never prefixed.
+// never prefixed. Path separators are rendered as "." so the resulting key
+// survives Kubernetes secret key validation without being rewritten to "_".
 //
 // Example (basePath="/", includeSecretPath=true):
 //
 //	("/",       "FOO") -> "FOO"
-//	("/sub",    "FOO") -> "sub/FOO"
-//	("/a/b",    "FOO") -> "a/b/FOO"
+//	("/sub",    "FOO") -> "sub.FOO"
+//	("/a/b",    "FOO") -> "a.b.FOO"
 //
 // Example (basePath="/path", includeSecretPath=true):
 //
 //	("/path",       "FOO") -> "FOO"
-//	("/path/sub",   "FOO") -> "sub/FOO"
+//	("/path/sub",   "FOO") -> "sub.FOO"
 func formatSecretKey(secretKey, secretPath, basePath string, includeSecretPath bool) string {
 	if !includeSecretPath {
 		return secretKey
 	}
 
-	rel := strings.TrimPrefix(secretPath, basePath)
-	rel = strings.TrimPrefix(rel, "/")
+	// secretsPath is taken from the store spec verbatim, so a trailing slash
+	// ("/path/") must not change the result.
+	basePath = trimTrailingSlash(basePath)
+	secretPath = trimTrailingSlash(secretPath)
+
+	// Use CutPrefix with a trailing "/" to ensure we only strip whole path
+	// segments. Without the slash, basePath "/app" would incorrectly turn
+	// "/application/SECRET" into "lication/SECRET".
+	var rel string
+	if secretPath == basePath {
+		return secretKey
+	} else if after, ok := strings.CutPrefix(secretPath, basePath+"/"); ok {
+		rel = after
+	} else {
+		rel = strings.TrimPrefix(secretPath, "/")
+	}
 	if rel == "" {
 		return secretKey
 	}
-	return rel + "/" + secretKey
+
+	// We replace all `/` occurrences with `.` because Kubernetes
+	// does not allow slashes in the secret keys. Only dashes, underscores
+	// and dots.
+	return strings.ReplaceAll(rel, "/", ".") + "." + secretKey
+}
+
+// trimTrailingSlash removes trailing slashes from a path, preserving "/" as the
+// root path.
+func trimTrailingSlash(path string) string {
+	trimmed := strings.TrimRight(path, "/")
+	if trimmed == "" {
+		return "/"
+	}
+	return trimmed
 }
 
 // getSecretAddress returns the (folder, name) pair to look up in Infisical for the given key.
