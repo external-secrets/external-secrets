@@ -42,9 +42,26 @@ make docs
 
 ## Updating dependencies
 
+All is done with updatecli.
+Run `make update-deps` to apply every Updatecli manifest in `.updatecli.d`.
+
 Updatecli needs an authenticated GitHub token to avoid the anonymous API rate
 limit. Export `GITHUB_TOKEN`, or authenticate the GitHub CLI with
 `gh auth login`; the Make target uses either source.
+
+### Current env vars in a nutshell
+
+- `UPDATECLI_ACTION=diff` is preview mode (no actual changes on filesystem)
+- `UPDATECLI_PUBLISH=true` creates a PR through update cli
+  (change files, write a commit, pushes, creates a PR)
+- `UPDATECLI_KIND=` restricts the automatic bump to an ecosystem subset
+  (for example, only do docker container updates, or helm chart updates).
+
+Those env vars are _cumulative_: They can be defined together.
+Of course, publish true and preview mode does not make sense, so you should
+be careful when using this.
+
+### Preview mode
 
 Preview available updates without changing files:
 
@@ -52,17 +69,30 @@ Preview available updates without changing files:
 make update-deps UPDATECLI_ACTION=diff
 ```
 
-GitHub Action autodiscovery checks each reference as a branch, tag, and release,
-so unsuccessful alternative checks can appear with a `✗`. They are not pipeline
-failures; check the final `Run Summary` and command exit status.
+This will run _all pipelines_ but will not store the changes on filesystem.
 
-Run `make update-deps` to apply every Updatecli manifest in
-`.updatecli.d`. Limit an update to one dependency kind with
-`UPDATECLI_KIND`, or use its convenience target:
+### Publish mode
+
+By default, applying updates only changes the current checkout. To let Updatecli
+commit, push, and create or update a pull request for all selected dependency
+kind, opt in explicitly:
 
 ```shell
-make update-deps UPDATECLI_KIND=go
-make update-deps-go
+UPDATECLI_PUBLISH=true make update-deps
+```
+
+Publishing uses `GITHUB_REPOSITORY` when available and otherwise detects the
+repository with `gh`. The token must have write access to repository contents,
+pull requests, and workflows.
+
+### Restrict by ecosystem
+
+To limit an update to one dependency kind, use the env var `UPDATECLI_KIND`,
+or use its convenience target:
+
+```shell
+make update-deps-gomodules
+make update-deps-golang
 make update-deps-github-actions
 make update-deps-containers
 make update-deps-tools
@@ -71,40 +101,75 @@ make update-deps-python
 make update-deps-terraform
 ```
 
+Behind the scenes, these convenience targets are defining UPDATECLI_KIND.
+See the Makefile for more details.
+
+The current supported `UPDATECLI_KIND` values are `gomodules`, `golang`,
+`github-actions`, `docker`, `tools`, `helm`, `python`, and `terraform`.
+
+### Doing diff for a specific subsystem:
+
 `UPDATECLI_ACTION=diff` works with either form, for example:
 
 ```shell
-make update-deps-go UPDATECLI_ACTION=diff
+make update-deps-gomodules UPDATECLI_ACTION=diff
 ```
 
-The Go pipeline uses Updatecli's native `golang`, `golang/module`,
+### containers management
+
+The container pipeline keeps its image inventory and upstream tag policies in
+`.updatecli.d/docker.yaml`. Go and kind/node track stable version tags and write
+tag-only references. Other direct image references track `latest` in their
+existing repositories and write digest-only pins (`image@sha256:...`); UBI 9
+and distroless Debian 12 therefore stay on those distro lines.
+
+We do this for two reasons:
+
+- Explicit sources avoid repeated tag discovery and keep digest-only references
+updatable (Dockerfile autodiscovery skips them). When adding a direct image
+reference, add its file to an existing target or add a source and target here.
+Preview with `make update-deps-containers UPDATECLI_ACTION=diff`.
+
+- When defining both a tag and a digest, the tag is silently ignored by docker.
+Sonarqube mentions this is a bad practice to keep both the tag and the digest,
+as it leads to ppl mistakenly believe things are updated when updating the tag
+without bumping the sha. While this is not our case (we bump at the same time),
+we avoid the sonarqube alerts by removing the tags.
+
+### golang toolkit and modules management
+
+The Go dependency pipeline uses Updatecli's native `golang/module`,
 `golang/gomod`, and `file` resources for version resolution and every bump. The
 file target covers Go's `tool` directive, which the gomod target cannot write.
-Before Updatecli runs, `hack/updatecli-go-values.py` reads the local module files
-and produces a deduplicated source/target map: a dependency shared by dozens of
-modules is queried only once, then native targets write that resolved version to
-every module declaring it. A final shell target only runs `go mod tidy`; it does
-not select or bump versions.
+The standard-library Go generator in `hack/updatecli-gomodules` reads
+the canonical modules declared by the root module plus the isolated e2e and
+documentation-tool modules without invoking Git.
 
-By default, applying updates only changes the current checkout. To let Updatecli
-commit, push, and create or update a pull request for each selected dependency
-kind, opt in explicitly:
+`make updatecli-go-manifests` renders the templates in
+`hack/updatecli-gomodules/templates` as
+`.updatecli.d/gomodules.yaml` and `.updatecli.d/golang.yaml`.
 
-```shell
-UPDATECLI_PUBLISH=true make update-deps-tools
-```
+The Go modules manifest resolves a dependency shared by dozens of modules only
+once, then native targets write that version to every module declaring it.
+Ordinary indirect requirements are left to `go mod tidy`; modules backing a Go
+`tool` directive remain explicit update targets. A final shell target only runs
+`go mod tidy`; it does not select or bump versions. The separate generated
+`golang.yaml` uses the same canonical module list so `make update-deps-golang`
+updates the Go version in every known module.
 
-Publishing uses `GITHUB_REPOSITORY` when available and otherwise detects the
-repository with `gh`. The token must have write access to repository contents,
-pull requests, and workflows.
+This is a bit more efficient than our previous shell script, and use native
+updatecli features.
 
-The supported `UPDATECLI_KIND` values are `go`, `github-actions`, `docker`,
-`tools`, `helm`, `python`, and `terraform`. Development tool versions and
-platform checksums are pinned directly in the `Tool Binaries` section of the
-Makefile. Make downloads and verifies their upstream release assets with
+### development tools
+
+Development tool versions and platform checksums are pinned directly in the
+`Tool Binaries` section of the Makefile.
+`make` downloads and verifies their upstream release assets with
 `curl`, `tar`, and either `sha256sum` or `shasum`, then installs them into
-`bin/`. Set `LOCALBIN` to use another location. The installed binaries are the
+`bin/`. Set `LOCALBIN` env var to use another location. The installed binaries are the
 Make outputs; no additional installation-state files are maintained.
+
+#### envtest details
 
 The `SETUP_ENVTEST_VERSION` variable pins the `setup-envtest` CLI. The
 independent `ENVTEST_KUBERNETES_VERSION` variable selects the Kubernetes test
@@ -112,8 +177,11 @@ control-plane binaries downloaded by that CLI. The
 `gen-crd-api-reference-docs` tool remains source-built from its isolated Go
 module.
 
+### Check your updates are fine
+
 After applying updates, inspect and commit all changes, then run
-`make check-diff` to verify that generated files are current.
+`make updatecli-go-manifests` followed by the usual
+`make test` and `make check-diff` to verify that generated files are current.
 
 ## License Headers
 
