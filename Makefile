@@ -90,7 +90,7 @@ UPDATECLI_ACTION ?= apply
 UPDATECLI_KIND ?=
 UPDATECLI_PUBLISH ?= false
 UPDATECLI_CONFIG = .updatecli.d$(if $(UPDATECLI_KIND),/$(UPDATECLI_KIND).yaml)
-update-deps: updatecli ## Update dependencies; use UPDATECLI_KIND=<kind> to limit scope, UPDATECLI_ACTION=diff to preview, or UPDATECLI_PUBLISH=true to publish PRs.
+update-deps: updatecli-go-manifests updatecli ## Update dependencies; use UPDATECLI_KIND=<kind> to limit scope, UPDATECLI_ACTION=diff to preview, or UPDATECLI_PUBLISH=true to publish PRs.
 	@test -e "$(UPDATECLI_CONFIG)" || (echo "unknown dependency kind: $(UPDATECLI_KIND)" >&2; exit 1)
 	@set -e; \
 	publish="$(UPDATECLI_PUBLISH)"; \
@@ -108,7 +108,7 @@ update-deps: updatecli ## Update dependencies; use UPDATECLI_KIND=<kind> to limi
 		--values-inline "$$values" \
 		--disable-changelog --disable-version-check
 
-.PHONY: update-deps update-deps-gomodules update-deps-golang update-deps-github-actions update-deps-containers update-deps-tools update-deps-helm update-deps-python update-deps-terraform
+.PHONY: update-deps update-deps-gomodules update-deps-golang update-deps-github-actions update-deps-containers update-deps-tools update-deps-helm update-deps-python update-deps-terraform updatecli-go-manifests
 update-deps-gomodules: UPDATECLI_KIND=gomodules
 update-deps-gomodules: update-deps ## Update Go dependencies in every module.
 update-deps-golang: UPDATECLI_KIND=golang
@@ -125,6 +125,9 @@ update-deps-python: UPDATECLI_KIND=python
 update-deps-python: update-deps ## Update Python dependencies only.
 update-deps-terraform: UPDATECLI_KIND=terraform
 update-deps-terraform: update-deps ## Update Terraform dependencies only.
+updatecli-go-manifests:
+	@go run ./hack/updatecli-gomodules
+
 
 .PHONY: license.check
 license.check:
@@ -234,10 +237,6 @@ generate: controller-gen ## Generate code and crds
 	@CONTROLLER_GEN=$(LOCALBIN)/controller-gen ./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
 
-.PHONY: updatecli-go-manifests
-updatecli-go-manifests:
-	@go run ./hack/updatecli-gomodules
-
 # ====================================================================================
 # Local Utility
 
@@ -279,9 +278,9 @@ helm.build: helm.generate ## Build helm chart
 	@mv $(OUTPUT_DIR)/chart/external-secrets-$(HELM_VERSION).tgz $(OUTPUT_DIR)/chart/external-secrets.tgz
 	@$(OK) helm package
 
-HELM_SCHEMA_PLUGIN_VERSION := 2.2.1
+HELM_SCHEMA_PLUGIN_VERSION := 2.6.0
 HELM_SCHEMA_PLUGIN_URL := https://github.com/losisin/helm-values-schema-json.git
-HELM_UNITTEST_PLUGIN_VERSION := 1.0.0
+HELM_UNITTEST_PLUGIN_VERSION := 1.1.2
 HELM_UNITTEST_PLUGIN_URL := https://github.com/helm-unittest/helm-unittest.git
 
 define install_helm_plugin
@@ -451,55 +450,55 @@ TOOL_OS := $(shell uname -s | tr '[:lower:]' '[:upper:]')
 TOOL_ARCH := $(shell uname -m | sed -e 's/^x86_64$$/AMD64/' -e 's/^amd64$$/AMD64/' -e 's/^aarch64$$/ARM64/' -e 's/^arm64$$/ARM64/')
 TOOL_PLATFORM := $(TOOL_OS)_$(TOOL_ARCH)
 
-ENVTEST_KUBERNETES_VERSION := 1.33.x
+ENVTEST_KUBERNETES_VERSION := 1.37.x
 
-CONTROLLER_GEN_VERSION := v0.19.0
+CONTROLLER_GEN_VERSION := v0.22.0
 CONTROLLER_GEN_REPOSITORY := kubernetes-sigs/controller-tools
 CONTROLLER_GEN_FORMAT := binary
 CONTROLLER_GEN_DARWIN_AMD64_ASSET := controller-gen-darwin-amd64
 CONTROLLER_GEN_DARWIN_AMD64_BINARY := controller-gen-darwin-amd64
-CONTROLLER_GEN_DARWIN_AMD64_SHA256 := 20ba6eab9c769c7de27b85d3a0bd115c2e03f81d06d2a522d9c28500853a5e06
+CONTROLLER_GEN_DARWIN_AMD64_SHA256 := fa4c4d01cacdc6e2209b71beac16d87d2b3c641866a5ddeb6d8e7dd6ba381f0f
 CONTROLLER_GEN_DARWIN_ARM64_ASSET := controller-gen-darwin-arm64
 CONTROLLER_GEN_DARWIN_ARM64_BINARY := controller-gen-darwin-arm64
-CONTROLLER_GEN_DARWIN_ARM64_SHA256 := 09f2f22eaffb179374cab99ab55953236a0daea64ef61b573818ac9f329bc48b
+CONTROLLER_GEN_DARWIN_ARM64_SHA256 := 5e0d7c16ed9cc0ae887c02ebf5244a2739495c93eeaa7b20ccdd3abb20a53846
 CONTROLLER_GEN_LINUX_AMD64_ASSET := controller-gen-linux-amd64
 CONTROLLER_GEN_LINUX_AMD64_BINARY := controller-gen-linux-amd64
-CONTROLLER_GEN_LINUX_AMD64_SHA256 := 5df5d2cced0621d7d8d8040ef20482f5c6e2ced32f1b1ad825f1bdf52f433161
+CONTROLLER_GEN_LINUX_AMD64_SHA256 := a7d671f0e0da07a67b3a1618a6cab50353dffea5625cd2d8a8b3e18bacb497e6
 CONTROLLER_GEN_LINUX_ARM64_ASSET := controller-gen-linux-arm64
 CONTROLLER_GEN_LINUX_ARM64_BINARY := controller-gen-linux-arm64
-CONTROLLER_GEN_LINUX_ARM64_SHA256 := 50dc28b10d4080e0bc547f8de91b26054fd58d51147f5cb36fd632400a3c5f4f
+CONTROLLER_GEN_LINUX_ARM64_SHA256 := c5151f30c3a51ddc8d722c18c263b495dae994ca246e9fa8994b1d4c95f3253a
 
-SETUP_ENVTEST_VERSION := v0.24.1
+SETUP_ENVTEST_VERSION := v0.25.1
 SETUP_ENVTEST_REPOSITORY := kubernetes-sigs/controller-runtime
 SETUP_ENVTEST_FORMAT := binary
 SETUP_ENVTEST_DARWIN_AMD64_ASSET := setup-envtest-darwin-amd64
 SETUP_ENVTEST_DARWIN_AMD64_BINARY := setup-envtest-darwin-amd64
-SETUP_ENVTEST_DARWIN_AMD64_SHA256 := 3fb17f2b1b0f09b7e5395180bd2bcb1d53bb78d72bb0415106b7ae8bf64e23d0
+SETUP_ENVTEST_DARWIN_AMD64_SHA256 := f1cf04940d7d686c0c32fc755e08e4d4833c129f9d3dcd07a45df495567a9024
 SETUP_ENVTEST_DARWIN_ARM64_ASSET := setup-envtest-darwin-arm64
 SETUP_ENVTEST_DARWIN_ARM64_BINARY := setup-envtest-darwin-arm64
-SETUP_ENVTEST_DARWIN_ARM64_SHA256 := 7e59a0d526f6946aa2f114d34b2e309639c811f3a4f83d56f37b6e3197c6fdfb
+SETUP_ENVTEST_DARWIN_ARM64_SHA256 := 6110a436b854b205eb3771c72622fcbec17ffffea6c3fca64f8c2ebb2e780053
 SETUP_ENVTEST_LINUX_AMD64_ASSET := setup-envtest-linux-amd64
 SETUP_ENVTEST_LINUX_AMD64_BINARY := setup-envtest-linux-amd64
-SETUP_ENVTEST_LINUX_AMD64_SHA256 := a9a78fadfc338a38188332f36863c76877f1c86df1a83d2241d2bfc3935297d2
+SETUP_ENVTEST_LINUX_AMD64_SHA256 := 531726d9a1d9e4c5661e22ab90186e186f5dbebbc109b13333fa7e237068f06d
 SETUP_ENVTEST_LINUX_ARM64_ASSET := setup-envtest-linux-arm64
 SETUP_ENVTEST_LINUX_ARM64_BINARY := setup-envtest-linux-arm64
-SETUP_ENVTEST_LINUX_ARM64_SHA256 := c5d8968ec3f2a120b66bc13bd36f80fe4150c34aae7cc491bf9624c8680296c7
+SETUP_ENVTEST_LINUX_ARM64_SHA256 := 91df5abb84e60b8e20fe9d40e86beaabb49b176a1ed77a13e6caa06d7b0acf6c
 
-GOLANGCI_LINT_VERSION := v2.12.2
+GOLANGCI_LINT_VERSION := v2.13.2
 GOLANGCI_LINT_REPOSITORY := golangci/golangci-lint
 GOLANGCI_LINT_FORMAT := tar.gz
 GOLANGCI_LINT_DARWIN_AMD64_ASSET := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-darwin-amd64.tar.gz
 GOLANGCI_LINT_DARWIN_AMD64_BINARY := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-darwin-amd64/golangci-lint
-GOLANGCI_LINT_DARWIN_AMD64_SHA256 := f6f06d94b6241521c53d15450c5209b028270bf966f842afb11c030c79f5bc16
+GOLANGCI_LINT_DARWIN_AMD64_SHA256 := 8a13aaf9cbbb1dee52824e862cf0d0720e5bb97c1f4260d1e51623a09492b57b
 GOLANGCI_LINT_DARWIN_ARM64_ASSET := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-darwin-arm64.tar.gz
 GOLANGCI_LINT_DARWIN_ARM64_BINARY := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-darwin-arm64/golangci-lint
-GOLANGCI_LINT_DARWIN_ARM64_SHA256 := a9c54498731b3128f79e090be6110f3e5fffccc617b08142ed244d4126c73f29
+GOLANGCI_LINT_DARWIN_ARM64_SHA256 := f4bf83f0b64f055c42b28fc9a38861839f69c096e61c788e72dfaae412011789
 GOLANGCI_LINT_LINUX_AMD64_ASSET := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-linux-amd64.tar.gz
 GOLANGCI_LINT_LINUX_AMD64_BINARY := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-linux-amd64/golangci-lint
-GOLANGCI_LINT_LINUX_AMD64_SHA256 := 8df580d2670fed8fa984aac0507099af8df275e665215f5c7a2ae3943893a553
+GOLANGCI_LINT_LINUX_AMD64_SHA256 := 2277d43b98ec0054280f2ac26b53268bae97682444678a59a657dd565da021d6
 GOLANGCI_LINT_LINUX_ARM64_ASSET := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-linux-arm64.tar.gz
 GOLANGCI_LINT_LINUX_ARM64_BINARY := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-linux-arm64/golangci-lint
-GOLANGCI_LINT_LINUX_ARM64_SHA256 := 44cd40a8c76c86755375adfeea52cfd3533cb43d7bd647771e0ae065e166df3a
+GOLANGCI_LINT_LINUX_ARM64_SHA256 := a2a4e0065aa41be71f7c5ac90f271b61751331e5d04314e62afe4027855f0893
 
 DLV_VERSION := v1.26.3
 DLV_REPOSITORY := go-delve/delve
@@ -517,37 +516,37 @@ DLV_LINUX_ARM64_ASSET := dlv_$(patsubst v%,%,$(DLV_VERSION))_linux_arm64.tar.gz
 DLV_LINUX_ARM64_BINARY := dlv
 DLV_LINUX_ARM64_SHA256 := 5b03fd74895d676c4435bec1aade0863be1489a4be1bb5c9269c6ef389bf5d2d
 
-CRANE_VERSION := v0.22.0
+CRANE_VERSION := v0.22.1
 CRANE_REPOSITORY := google/go-containerregistry
 CRANE_FORMAT := tar.gz
 CRANE_DARWIN_AMD64_ASSET := go-containerregistry_Darwin_x86_64.tar.gz
 CRANE_DARWIN_AMD64_BINARY := crane
-CRANE_DARWIN_AMD64_SHA256 := 7ece3bde64b8eb14f8f1d33affc70f7e0b9b2fe0b2e115c46d246a17e73ed622
+CRANE_DARWIN_AMD64_SHA256 := 6fedd06a648c11335f0e8b9547e4783002c30e9336047fec292942cd518bb799
 CRANE_DARWIN_ARM64_ASSET := go-containerregistry_Darwin_arm64.tar.gz
 CRANE_DARWIN_ARM64_BINARY := crane
-CRANE_DARWIN_ARM64_SHA256 := 0d6955caf5168b163824317b3b0caed699b3ca3ca9523dd4442e3227e83dd1ef
+CRANE_DARWIN_ARM64_SHA256 := 2231fc8df8806d20d680ff1225db44e095a55dd6ac1ae8eced4faf4b278b78fb
 CRANE_LINUX_AMD64_ASSET := go-containerregistry_Linux_x86_64.tar.gz
 CRANE_LINUX_AMD64_BINARY := crane
-CRANE_LINUX_AMD64_SHA256 := edb74d53fad9a596860f59d1c5d04a43dfb5f441dc71f57060dd0bf39483c833
+CRANE_LINUX_AMD64_SHA256 := 0ab7a1d6932a213aed964ce97666c3077fe691c8606413674a8b3e0b9ec4cda0
 CRANE_LINUX_ARM64_ASSET := go-containerregistry_Linux_arm64.tar.gz
 CRANE_LINUX_ARM64_BINARY := crane
-CRANE_LINUX_ARM64_SHA256 := 971e8e2de7e09172330527a9dfb10689e344b160fd81bac7fb91adcb109bad37
+CRANE_LINUX_ARM64_SHA256 := 898c0cff975f898a33e8c4580bdafb0e7c02c7faa33374e946762f97c4ab7110
 
-TILT_VERSION := v0.33.21
+TILT_VERSION := v0.37.7
 TILT_REPOSITORY := tilt-dev/tilt
 TILT_FORMAT := tar.gz
 TILT_DARWIN_AMD64_ASSET := tilt.$(patsubst v%,%,$(TILT_VERSION)).mac.x86_64.tar.gz
 TILT_DARWIN_AMD64_BINARY := tilt
-TILT_DARWIN_AMD64_SHA256 := 40d49940a17333020614bf7fc8b3cf210811fd2fef6cbc203ee165e7fc0106bf
+TILT_DARWIN_AMD64_SHA256 := 2022e675f9a32cdc651e8096a12caa38720be2d692d7347798607873a107fd61
 TILT_DARWIN_ARM64_ASSET := tilt.$(patsubst v%,%,$(TILT_VERSION)).mac.arm64.tar.gz
 TILT_DARWIN_ARM64_BINARY := tilt
-TILT_DARWIN_ARM64_SHA256 := 3038f8fbfb815d3c65f2b79cf55b524b46081b21e784a843ff058e06cc433172
+TILT_DARWIN_ARM64_SHA256 := 7f54afff29cae67e2751c13df00a66d56f6fbc4463573089059ba673cf128687
 TILT_LINUX_AMD64_ASSET := tilt.$(patsubst v%,%,$(TILT_VERSION)).linux.x86_64.tar.gz
 TILT_LINUX_AMD64_BINARY := tilt
-TILT_LINUX_AMD64_SHA256 := 10696e07eacfee5489f66ed1934b53eddabd3144c36b3533427f528e3a6dce89
+TILT_LINUX_AMD64_SHA256 := b695193fab68def8310cb971fa60bbe47ba0a782e24f54ebad287c13316a61b0
 TILT_LINUX_ARM64_ASSET := tilt.$(patsubst v%,%,$(TILT_VERSION)).linux.arm64.tar.gz
 TILT_LINUX_ARM64_BINARY := tilt
-TILT_LINUX_ARM64_SHA256 := d76162001028091ca33389ae2f5f3808c8ddcd105204e32d79135494e947fa39
+TILT_LINUX_ARM64_SHA256 := 9f381347fa18ffca3f1d3dcdd3f6745281a6647e6107199832ceaa62a461964a
 
 CTY_VERSION := v1.1.5
 CTY_REPOSITORY := Skarlso/crd-to-sample-yaml
@@ -565,21 +564,21 @@ CTY_LINUX_ARM64_ASSET := cty_linux_arm64.tar.gz
 CTY_LINUX_ARM64_BINARY := cty
 CTY_LINUX_ARM64_SHA256 := 472250183a3f70bf89de2ca388984f05608638bf4fd5fba09a4b98bdb01343ab
 
-UPDATECLI_VERSION := v0.120.1
+UPDATECLI_VERSION := v0.121.0
 UPDATECLI_REPOSITORY := updatecli/updatecli
 UPDATECLI_FORMAT := tar.gz
 UPDATECLI_DARWIN_AMD64_ASSET := updatecli_Darwin_x86_64.tar.gz
 UPDATECLI_DARWIN_AMD64_BINARY := updatecli
-UPDATECLI_DARWIN_AMD64_SHA256 := 75f2d2c174c7d85086fd7982b1d35e8450ab24e44a0dfcc3050480a524a90ebd
+UPDATECLI_DARWIN_AMD64_SHA256 := 9de5c81cb3713d14c83fe4b57d5e0ce4a40fe4157d188a446291de0b7274afad
 UPDATECLI_DARWIN_ARM64_ASSET := updatecli_Darwin_arm64.tar.gz
 UPDATECLI_DARWIN_ARM64_BINARY := updatecli
-UPDATECLI_DARWIN_ARM64_SHA256 := df4c9bdbe7c3003a4f382cee97a78080cb97189e6650d5ee85857de59057eb0d
+UPDATECLI_DARWIN_ARM64_SHA256 := 99851b662e2a99d53f7f04a15609db5af2fbc6d067ee44cff32150ffc8dec170
 UPDATECLI_LINUX_AMD64_ASSET := updatecli_Linux_x86_64.tar.gz
 UPDATECLI_LINUX_AMD64_BINARY := updatecli
-UPDATECLI_LINUX_AMD64_SHA256 := e2a17372253bcfcd0759ed6ddaaffef07f26ff2d5e8205d1cb1baa2cf4efab2c
+UPDATECLI_LINUX_AMD64_SHA256 := b765ce382e8d46e9f71d249f6cf79d21c24be29df959aba89e2b69917bd80409
 UPDATECLI_LINUX_ARM64_ASSET := updatecli_Linux_arm64.tar.gz
 UPDATECLI_LINUX_ARM64_BINARY := updatecli
-UPDATECLI_LINUX_ARM64_SHA256 := 52fb346c469f4f3f7d084edccc8ad4ebf90cc8f68dfa4d924384b533904faa36
+UPDATECLI_LINUX_ARM64_SHA256 := bf03f8275db292065979af994acad3f21b707ee1f4b0abac0bd33f9586f06c5e
 
 define install_tool
 	@set -eu; \
