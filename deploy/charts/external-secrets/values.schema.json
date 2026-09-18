@@ -526,9 +526,6 @@
                 "imagePullSecrets": {
                     "type": "array"
                 },
-                "imageRegistry": {
-                    "type": "string"
-                },
                 "nodeSelector": {
                     "type": "object"
                 },
