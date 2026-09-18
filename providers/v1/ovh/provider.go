@@ -241,17 +241,12 @@ func configureHTTPOAuth2Client(ctx context.Context, p *Provider, cl *ovhClient, 
 	// The timeout applies to the token exchange as well as to the KMS calls: without this the
 	// exchange would use the default client and ignore okmsTimeout entirely.
 	//
-	// CheckRedirect refuses a redirect that leaves HTTPS. The client credentials travel in the
-	// exchange request, so a token endpoint answering a redirect to plain HTTP would put them on
-	// the wire in clear.
+	// CheckRedirect holds a redirect to the same rules as the configured endpoint: the client
+	// credentials travel in the exchange request, so a token endpoint answering a redirect to
+	// plain HTTP, or to a host that is not OVHcloud's, would hand them to somebody else.
 	exchangeClient := &http.Client{
-		Timeout: cl.okmsTimeout,
-		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
-			if req.URL.Scheme != "https" {
-				return fmt.Errorf("refusing redirect to a non-https token endpoint: %s", req.URL.Scheme)
-			}
-			return nil
-		},
+		Timeout:       cl.okmsTimeout,
+		CheckRedirect: checkOAuth2Redirect,
 	}
 	ctx = context.WithValue(ctx, oauth2.HTTPClient, exchangeClient)
 	httpClient := config.Client(ctx)
@@ -283,6 +278,18 @@ func newOAuth2Config(clientID, clientSecret, tokenURL string) *clientcredentials
 		Scopes:       []string{oauth2Scope},
 		AuthStyle:    oauth2.AuthStyleInHeader,
 	}
+}
+
+// checkOAuth2Redirect refuses a redirect that would take the token exchange off HTTPS or off
+// one of OVHcloud's hosts.
+func checkOAuth2Redirect(req *http.Request, _ []*http.Request) error {
+	if req.URL.Scheme != "https" {
+		return fmt.Errorf("refusing redirect to a non-https token endpoint: %s", req.URL.Scheme)
+	}
+	if !slices.Contains(oauth2TokenURLHosts, req.URL.Host) {
+		return fmt.Errorf("refusing redirect to a token endpoint outside OVHcloud: %s", req.URL.Host)
+	}
+	return nil
 }
 
 // resolveOAuth2TokenURL returns the token endpoint to use, and refuses anything that is not one
@@ -432,10 +439,10 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	// Validate the provider's authentication method.
-	return p.validateAuth(provider)
+	return p.validateAuth(store, provider)
 }
 
-func (p *Provider) validateAuth(provider *esv1.SecretStoreProvider) (admission.Warnings, error) {
+func (p *Provider) validateAuth(store esv1.GenericStore, provider *esv1.SecretStoreProvider) (admission.Warnings, error) {
 	auth := provider.OVHcloud.Auth
 	configured := 0
 	for _, set := range []bool{auth.ClientMTLS != nil, auth.ClientToken != nil, auth.ClientOAuth2 != nil} {
@@ -454,10 +461,32 @@ func (p *Provider) validateAuth(provider *esv1.SecretStoreProvider) (admission.W
 	if auth.ClientMTLS != nil && (auth.ClientMTLS.ClientCertificate == (v1.SecretKeySelector{}) || auth.ClientMTLS.ClientKey == (v1.SecretKeySelector{})) {
 		return nil, errors.New("missing tls certificate or key for mtls authentication")
 	}
-	if auth.ClientOAuth2 != nil && (auth.ClientOAuth2.ClientID == (v1.SecretKeySelector{}) || auth.ClientOAuth2.ClientSecret == (v1.SecretKeySelector{})) {
-		return nil, errors.New("missing client id or client secret for oauth2 authentication")
+	if auth.ClientOAuth2 != nil {
+		return nil, validateOAuth2Selectors(store, auth.ClientOAuth2)
 	}
 	return nil, nil
+}
+
+// validateOAuth2Selectors rejects a selector the client could not resolve. The CRD requires the
+// two selector objects but neither name nor key inside them, and OVHcloud has no default key to
+// fall back on, so an incomplete one is caught here rather than at the first reconcile.
+func validateOAuth2Selectors(store esv1.GenericStore, clientOAuth2 *esv1.OvhClientOAuth2) error {
+	selectors := []struct {
+		field string
+		ref   v1.SecretKeySelector
+	}{
+		{"clientIDSecretRef", clientOAuth2.ClientID},
+		{"clientSecretSecretRef", clientOAuth2.ClientSecret},
+	}
+	for _, selector := range selectors {
+		if selector.ref.Name == "" || selector.ref.Key == "" {
+			return fmt.Errorf("auth.oauth2.%s needs both a name and a key", selector.field)
+		}
+		if err := esutils.ValidateReferentSecretSelector(store, selector.ref); err != nil {
+			return fmt.Errorf("auth.oauth2.%s: %w", selector.field, err)
+		}
+	}
+	return nil
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).

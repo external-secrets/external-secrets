@@ -133,7 +133,7 @@ data:
 ```
 
 !!! note
-     A `ClusterSecretStore` configuration is the same except you must provide the `namespace` for `tokenSecretRef`, `certSecretRef` and `keySecretRef` according to your chosen authentication method.  
+     A `ClusterSecretStore` configuration is the same except you must provide the `namespace` for `tokenSecretRef`, `clientIDSecretRef` and `clientSecretSecretRef`, or `certSecretRef` and `keySecretRef` according to your chosen authentication method.  
 
 ### <u>ExternalSecret</u>
  
