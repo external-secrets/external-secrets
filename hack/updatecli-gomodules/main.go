@@ -33,6 +33,7 @@ import (
 )
 
 const internalModule = "github.com/external-secrets/external-secrets"
+const gomodFilename = "go.mod"
 
 var (
 	pseudoVersion = regexp.MustCompile(`^v\d+\.\d+\.\d+-\d{14}-[0-9a-f]+$`)
@@ -111,7 +112,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "updatecli-gomodules: %v\n", err)
 		os.Exit(1)
 	}
-        fmt.Println("Manifest generation successful")
+	fmt.Println("Manifest generation successful")
 }
 
 func run() error {
@@ -149,27 +150,8 @@ func buildManifestData(root string) (manifestData, error) {
 
 	dependencies := make(map[dependencyKey]map[string]bool)
 	for _, file := range files {
-		mod, err := readGoMod(root, file)
-		if err != nil {
+		if err := collectModuleDependencies(root, file, dependencies); err != nil {
 			return manifestData{}, err
-		}
-		modules, err := directModules(file, mod)
-		if err != nil {
-			return manifestData{}, err
-		}
-		for module, item := range modules {
-			if module == internalModule || strings.HasPrefix(module, internalModule+"/") {
-				continue
-			}
-			kind, pattern, err := versionFilter(item.Version)
-			if err != nil {
-				return manifestData{}, fmt.Errorf("%s: module %s: %w", file, module, err)
-			}
-			key := dependencyKey{Module: module, Kind: kind, Pattern: pattern}
-			if dependencies[key] == nil {
-				dependencies[key] = make(map[string]bool)
-			}
-			dependencies[key][file] = item.Indirect
 		}
 	}
 
@@ -215,6 +197,33 @@ func buildManifestData(root string) (manifestData, error) {
 	return data, nil
 }
 
+// collectModuleDependencies groups a module file's external dependencies by version filter.
+func collectModuleDependencies(root, file string, dependencies map[dependencyKey]map[string]bool) error {
+	mod, err := readGoMod(root, file)
+	if err != nil {
+		return err
+	}
+	modules, err := directModules(file, mod)
+	if err != nil {
+		return err
+	}
+	for module, item := range modules {
+		if module == internalModule || strings.HasPrefix(module, internalModule+"/") {
+			continue
+		}
+		kind, pattern, err := versionFilter(item.Version)
+		if err != nil {
+			return fmt.Errorf("%s: module %s: %w", file, module, err)
+		}
+		key := dependencyKey{Module: module, Kind: kind, Pattern: pattern}
+		if dependencies[key] == nil {
+			dependencies[key] = make(map[string]bool)
+		}
+		dependencies[key][file] = item.Indirect
+	}
+	return nil
+}
+
 func renderManifest(name string, data manifestData) ([]byte, error) {
 	manifest, err := template.New(name).Delims("<%", "%>").ParseFS(manifestTemplates, "templates/"+name)
 	if err != nil {
@@ -252,12 +261,12 @@ func writeFileAtomically(path string, contents []byte) error {
 }
 
 func moduleFiles(root string) ([]string, error) {
-	rootMod, err := readGoMod(root, "go.mod")
+	rootMod, err := readGoMod(root, gomodFilename)
 	if err != nil {
 		return nil, err
 	}
 
-	files := map[string]struct{}{"go.mod": {}}
+	files := map[string]struct{}{gomodFilename: {}}
 	for _, replace := range rootMod.Replace {
 		if replace.Old.Path != internalModule && !strings.HasPrefix(replace.Old.Path, internalModule+"/") {
 			continue
@@ -265,7 +274,7 @@ func moduleFiles(root string) ([]string, error) {
 		if replace.New.Version != "" || filepath.IsAbs(replace.New.Path) {
 			continue
 		}
-		path := filepath.Clean(filepath.Join(replace.New.Path, "go.mod"))
+		path := filepath.Clean(filepath.Join(replace.New.Path, gomodFilename))
 		if path == ".." || strings.HasPrefix(path, ".."+string(filepath.Separator)) {
 			return nil, fmt.Errorf("root go.mod replacement escapes repository: %s", replace.New.Path)
 		}
