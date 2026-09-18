@@ -1,0 +1,17 @@
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: fake
+spec:
+  provider:
+    fake:
+      data:
+      - key: "/foo/bar"
+        value: "HELLO1"
+        version: "v1"
+      - key: "/foo/bar"
+        value: "HELLO2"
+        version: "v2"
+      - key: "/foo/baz"
+        value: '{"john": "doe"}'
+        version: "v1"

@@ -1,0 +1,21 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: vault-backend
+  namespace: example
+spec:
+  provider:
+    vault:
+      server: "https://vault.acme.org"
+      path: "secret"
+      version: "v2"
+      auth:
+        # VaultUserPass authenticates with Vault using the UserPass auth mechanism
+        # https://www.vaultproject.io/docs/auth/userpass
+        userPass:
+          # Path where the UserPass authentication backend is mounted
+          path: "userpass"
+          username: "username"
+          secretRef:
+            name: "my-secret"
+            key: "password"
