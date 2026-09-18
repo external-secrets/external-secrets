@@ -202,24 +202,30 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 	// existing installations wrote custom_metadata to the mount-prefixed
 	// path that buildMetadataPath used to return. read the legacy path as
 	// a fallback so secrets created before the fix stay manageable.
-	tryLegacy := func() *vault.Secret {
+	tryLegacy := func() (*vault.Secret, error) {
 		if c.store.Version != esv1.VaultKVStoreV2 || c.store.Path == nil {
-			return nil
+			return nil, nil
 		}
 		legacyURL := fmt.Sprintf("%s/metadata/%s", *c.store.Path, path)
 		if legacyURL == url {
-			return nil
+			return nil, nil
 		}
 		legacySecret, legacyErr := c.logical.ReadWithDataWithContext(ctx, legacyURL, nil)
-		if legacyErr != nil || legacySecret == nil {
-			return nil
+		metrics.ObserveAPICall(ProviderHCVault, CallHCVaultReadSecretData, legacyErr)
+		if legacyErr != nil {
+			return nil, legacyErr
 		}
-		return legacySecret
+		return legacySecret, nil
 	}
 	if secret == nil {
-		secret = tryLegacy()
-		if secret == nil {
+		legacySecret, legacyErr := tryLegacy()
+		switch {
+		case legacyErr != nil:
+			return nil, fmt.Errorf(errReadSecret, legacyErr)
+		case legacySecret == nil:
 			return nil, errors.New(errNotFound)
+		default:
+			secret = legacySecret
 		}
 	}
 	if c.store.Version == esv1.VaultKVStoreV2 {
@@ -252,7 +258,11 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 	mergeCustomMetadata(secret)
 	// consult the legacy path again when the detected path has no managed-by stamp
 	if _, ok := metadata["managed-by"]; !ok {
-		if legacySecret := tryLegacy(); legacySecret != nil && legacySecret != secret {
+		legacySecret, legacyErr := tryLegacy()
+		if legacyErr != nil {
+			return nil, fmt.Errorf(errReadSecret, legacyErr)
+		}
+		if legacySecret != nil && legacySecret != secret {
 			mergeCustomMetadata(legacySecret)
 		}
 	}
