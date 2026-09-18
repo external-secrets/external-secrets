@@ -57,7 +57,9 @@ const (
 	// defaultOAuth2TokenURL is OVHcloud's European token endpoint. Canada and the US have
 	// their own, and a store may name either through auth.oauth2.tokenURL.
 	defaultOAuth2TokenURL = "https://www.ovh.com/auth/oauth2/token"
-	invalidTokenURLError  = "invalid auth.oauth2.tokenURL"
+	// oauth2Scope is the only scope OVHcloud's token endpoint accepts.
+	oauth2Scope          = "all"
+	invalidTokenURLError = "invalid auth.oauth2.tokenURL"
 )
 
 // oauth2TokenURLHosts are the hosts OVHcloud publishes token endpoints on, one per region.
@@ -234,12 +236,7 @@ func configureHTTPOAuth2Client(ctx context.Context, p *Provider, cl *ovhClient, 
 		return fmt.Errorf("%s: %w", configureOAuth2OkmsClientError, err)
 	}
 
-	config := &clientcredentials.Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		TokenURL:     tokenURL,
-		AuthStyle:    oauth2.AuthStyleInHeader,
-	}
+	config := newOAuth2Config(clientID, clientSecret, tokenURL)
 
 	// The timeout applies to the token exchange as well as to the KMS calls: without this the
 	// exchange would use the default client and ignore okmsTimeout entirely.
@@ -272,6 +269,20 @@ func configureHTTPOAuth2Client(ctx context.Context, p *Provider, cl *ovhClient, 
 	cl.okmsClient.WithCustomHeader("Content-type", "application/json")
 
 	return nil
+}
+
+// newOAuth2Config builds the client credentials configuration for OVHcloud's token endpoint.
+//
+// The scope is not optional: OVHcloud answers a request without one with invalid_scope, and
+// "all" is the only value it accepts.
+func newOAuth2Config(clientID, clientSecret, tokenURL string) *clientcredentials.Config {
+	return &clientcredentials.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		TokenURL:     tokenURL,
+		Scopes:       []string{oauth2Scope},
+		AuthStyle:    oauth2.AuthStyleInHeader,
+	}
 }
 
 // resolveOAuth2TokenURL returns the token endpoint to use, and refuses anything that is not one

@@ -84,6 +84,22 @@ yields an OAuth2 client id and client secret, with no browser validation step,
 unlike a personal access token which belongs to a user. The access token they
 are exchanged for is short lived, and the provider renews it on its own.
 
+A service account carries no rights by itself: an IAM policy must grant it
+actions on the KMS. Without one, the store fails validation with
+`Domain was not found or no actions have been granted for your identity on this domain`.
+The actions are split across two resource types, so the policy must name both
+the KMS (`urn:v1:eu:resource:okms:<okms-id>`) and its secrets
+(`urn:v1:eu:resource:okms:<okms-id>/secret/*`):
+
+| Resource      | Actions                                                                                                                                 | Needed for                          |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `okms`        | `okms:apikms:secret/create`                                                                                                             | `PushSecret` to a new path          |
+| `okms/secret` | `okms:apikms:secret/get`, `okms:apikms:secret/version/getData`                                                                          | store validation, `ExternalSecret`  |
+| `okms/secret` | `okms:apikms:secret/version/create`, `okms:apikms:secret/delete`                                                                        | `PushSecret` update and deletion    |
+
+Secret paths carry no leading slash (`test/secret`, not `/test/secret`), both in
+`remoteRef.key` and in any `ResourceName` condition on the policy.
+
 mTLS authentication:
 ```yaml
 apiVersion: external-secrets.io/v1

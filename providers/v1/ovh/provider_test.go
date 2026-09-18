@@ -20,6 +20,7 @@ import (
 	"context"
 	"testing"
 
+	"golang.org/x/oauth2"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -509,6 +510,25 @@ func TestValidateStore(t *testing.T) {
 				t.Errorf("\nunexpected error: %v\n\n", err)
 			}
 		})
+	}
+}
+
+// TestNewOAuth2Config pins the token request shape OVHcloud expects. The scope was learnt the hard
+// way: without it the endpoint answers invalid_scope and no token is ever issued.
+func TestNewOAuth2Config(t *testing.T) {
+	config := newOAuth2Config("client-id", "client-secret", "https://www.ovh.com/auth/oauth2/token")
+
+	if config.ClientID != "client-id" || config.ClientSecret != "client-secret" {
+		t.Fatalf("credentials not carried over: %+v", config)
+	}
+	if config.TokenURL != "https://www.ovh.com/auth/oauth2/token" {
+		t.Fatalf("unexpected token url %q", config.TokenURL)
+	}
+	if len(config.Scopes) != 1 || config.Scopes[0] != "all" {
+		t.Fatalf("OVHcloud requires scope=all, got %v", config.Scopes)
+	}
+	if config.AuthStyle != oauth2.AuthStyleInHeader {
+		t.Fatalf("client credentials must travel in the Authorization header, got %v", config.AuthStyle)
 	}
 }
 
