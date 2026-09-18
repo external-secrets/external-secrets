@@ -111,6 +111,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "updatecli-gomodules: %v\n", err)
 		os.Exit(1)
 	}
+        fmt.Println("Manifest generation successful")
 }
 
 func run() error {
