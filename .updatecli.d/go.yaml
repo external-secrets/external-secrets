@@ -1,0 +1,137 @@
+name: Update Go dependencies
+
+pipelineid: dependencies/go
+
+# Publishing is opt-in so local runs continue to update the current checkout.
+#{{- if .scm.enabled }}
+actions:
+  dependency-pr:
+    kind: github/pullrequest
+    scmid: default
+    title: "chore(deps): update Go dependencies"
+
+scms:
+  default:
+    kind: github
+    spec:
+      owner: "{{ .scm.owner }}"
+      repository: "{{ .scm.repository }}"
+      branch: main
+      token: '{{ requiredEnv "GITHUB_TOKEN" }}'
+      user: External Secrets Operator
+      email: ExternalSecretsOperator@users.noreply.github.com
+      commitusingapi: true
+      workingbranchprefix: dependencies
+      workingbranchseparator: "/"
+      commitmessage:
+        type: chore
+        scope: deps
+        hidecredit: true
+        footers: 'Signed-off-by: External Secrets Operator <ExternalSecretsOperator@users.noreply.github.com>'
+#{{- end }}
+
+# Resolve each module/version family once. The generated values deduplicate
+# dependencies shared by this repository's many Go modules.
+sources:
+  go-version:
+    name: Get latest Go release
+    kind: golang
+    spec:
+      age:
+        minimum: 168h
+      versionfilter:
+        kind: semver
+        pattern: '1.x'
+#{{- range $dependencyIndex, $dependency := .go.dependencies }}
+  dependency_{{ $dependencyIndex }}:
+    name: Get latest {{ $dependency.module }} release
+    kind: golang/module
+    spec:
+      age:
+        minimum: 168h
+      module: '{{ $dependency.module }}'
+      versionfilter:
+        kind: '{{ $dependency.kind }}'
+#{{- if $dependency.pattern }}
+        pattern: '{{ $dependency.pattern }}'
+#{{- end }}
+#{{- end }}
+
+# Native Updatecli targets perform every version bump. Each source is reused by
+# every go.mod that declares the dependency, keeping versions synchronized.
+targets:
+#{{- range $fileIndex, $file := .go.files }}
+  go-version_{{ $fileIndex }}:
+    name: Bump Go in {{ $file }}
+    kind: golang/gomod
+    sourceid: go-version
+#{{- if $.scm.enabled }}
+    scmid: default
+#{{- end }}
+    spec:
+      file: '{{ $file }}'
+#{{- end }}
+#{{- range $dependencyIndex, $dependency := .go.dependencies }}
+#{{- range $fileIndex, $file := $dependency.files }}
+  dependency_{{ $dependencyIndex }}_{{ $fileIndex }}:
+    name: Bump {{ $dependency.module }} in {{ $file.path }}
+#{{- if $file.filetarget }}
+    kind: file
+#{{- else }}
+    kind: golang/gomod
+#{{- end }}
+    sourceid: dependency_{{ $dependencyIndex }}
+#{{- if $.scm.enabled }}
+    scmid: default
+#{{- end }}
+    spec:
+      file: '{{ $file.path }}'
+#{{- if $file.filetarget }}
+      matchpattern: '{{ $file.matchpattern }}'
+      replacepattern: '${1}{{ $dependency.module }} {{ "{{" }} source "dependency_{{ $dependencyIndex }}" {{ "}}" }}${2}'
+#{{- else }}
+      module: '{{ $dependency.module }}'
+#{{- end }}
+#{{- end }}
+#{{- end }}
+  tidy-modules:
+    name: Tidy all Go modules
+    kind: shell
+    disablesourceinput: true
+    dependsonchange: true
+    dependson:
+#{{- range $fileIndex, $_ := .go.files }}
+      - go-version_{{ $fileIndex }}:or
+#{{- end }}
+#{{- range $dependencyIndex, $dependency := .go.dependencies }}
+#{{- range $fileIndex, $_ := $dependency.files }}
+      - dependency_{{ $dependencyIndex }}_{{ $fileIndex }}:or
+#{{- end }}
+#{{- end }}
+#{{- if .scm.enabled }}
+    scmid: default
+#{{- end }}
+    spec:
+      shell: /bin/bash
+      command: |
+        # Native targets render the complete go.mod diff during a preview.
+        if [[ "$DRY_RUN" == true ]]; then
+          exit 0
+        fi
+
+        set -euo pipefail
+        modules="$(mktemp)"
+        trap 'rm -f "$modules"' EXIT
+        find . -name go.mod -not -path './.git/*' -not -path './bin/*' \
+          -exec dirname '{}' \; | sort > "$modules"
+
+        jobs="$(getconf _NPROCESSORS_ONLN 2>/dev/null || printf '4')"
+        if ! [[ "$jobs" =~ ^[1-9][0-9]*$ ]]; then
+          jobs=4
+        elif (( jobs > 8 )); then
+          jobs=8
+        fi
+
+        # shellcheck disable=SC2016 # The quoted script is evaluated by the inner shell.
+        xargs -P "$jobs" -I '{}' /bin/bash -c \
+          'GOWORK=off go -C "$1" mod tidy' _ '{}' < "$modules"

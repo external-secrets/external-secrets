@@ -77,6 +77,15 @@ make update-deps-terraform
 make update-deps-go UPDATECLI_ACTION=diff
 ```
 
+The Go pipeline uses Updatecli's native `golang`, `golang/module`,
+`golang/gomod`, and `file` resources for version resolution and every bump. The
+file target covers Go's `tool` directive, which the gomod target cannot write.
+Before Updatecli runs, `hack/updatecli-go-values.py` reads the local module files
+and produces a deduplicated source/target map: a dependency shared by dozens of
+modules is queried only once, then native targets write that resolved version to
+every module declaring it. A final shell target only runs `go mod tidy`; it does
+not select or bump versions.
+
 By default, applying updates only changes the current checkout. To let Updatecli
 commit, push, and create or update a pull request for each selected dependency
 kind, opt in explicitly:
