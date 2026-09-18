@@ -4799,6 +4799,11 @@ func (in *VaultGCPAuth) DeepCopyInto(out *VaultGCPAuth) {
 		*out = new(GCPWorkloadIdentity)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.WorkloadIdentityFederation != nil {
+		in, out := &in.WorkloadIdentityFederation, &out.WorkloadIdentityFederation
+		*out = new(GCPWorkloadIdentityFederation)
+		(*in).DeepCopyInto(*out)
+	}
 	if in.ServiceAccountRef != nil {
 		in, out := &in.ServiceAccountRef, &out.ServiceAccountRef
 		*out = new(apismetav1.ServiceAccountSelector)
