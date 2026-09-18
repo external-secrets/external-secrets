@@ -542,6 +542,14 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					}
 				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
 
+				// Confirm the finalizer was actually added before we test its removal,
+				// so a regression in ensureNamespaceFinalizer wouldn't slip past this test.
+				Eventually(func(g Gomega) {
+					var ns v1.Namespace
+					g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: namespaces[0].Name}, &ns)).ShouldNot(HaveOccurred())
+					g.Expect(ns.Finalizers).Should(ContainElement(fmt.Sprintf("externalsecrets.external-secrets.io/ces-%s", created.Name)))
+				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+
 				// Retry on conflict since controller may be updating namespace with finalizers
 				Eventually(func() error {
 					var ns v1.Namespace
@@ -550,6 +558,12 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 					}
 					ns.Labels = map[string]string{}
 					return k8sClient.Update(ctx, &ns)
+				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+
+				Eventually(func(g Gomega) {
+					var ns v1.Namespace
+					g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: namespaces[0].Name}, &ns)).ShouldNot(HaveOccurred())
+					g.Expect(ns.Finalizers).ShouldNot(ContainElement(fmt.Sprintf("externalsecrets.external-secrets.io/ces-%s", created.Name)))
 				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
 			},
 			expectedClusterExternalSecret: func(namespaces []v1.Namespace, created esv1.ClusterExternalSecret) esv1.ClusterExternalSecret {
