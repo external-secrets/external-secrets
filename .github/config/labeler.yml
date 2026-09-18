@@ -2,7 +2,7 @@
 kind/dependency:
 - any:
   - head-branch: 'dependencies/*'
-  - head-branch: 'dependabot/*'
+  - head-branch: 'update-deps'
   - changed-files:
     - any-glob-to-any-file: ['go.mod', 'go.sum']
 component/github-actions:
