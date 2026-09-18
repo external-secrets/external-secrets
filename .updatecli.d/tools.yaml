@@ -377,6 +377,16 @@ sources:
       versionfilter:
         kind: semver
         pattern: '*'
+  # Kind nodes container images
+  # are tightly coupled with kind version, so
+  # they are only bumped when kind is bumped.
+  kind_node:
+    kind: dockerimage
+    spec:
+      image: kindest/node
+      versionfilter:
+        kind: semver
+        pattern: '*'
   kubectl_version:
     kind: githubrelease
     spec:
@@ -920,6 +930,20 @@ targets:
       matchpattern: 'KIND_VERSION: ''v?[0-9]+\.[0-9]+\.[0-9]+'''
       replacepattern: 'KIND_VERSION: ''{{ source "kind_version" }}'''
     sourceid: kind_version
+  kind_node:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: kind_node
+    transformers:
+      - addprefix: 'kindest/node:'
+    spec:
+      files:
+        - .github/workflows/e2e.yml
+        - .github/workflows/e2e-reusable.yml
+        - e2e/Makefile
+      matchpattern: 'kindest/node:v?[0-9]+\.[0-9]+\.[0-9]+(?:@sha256:[a-f0-9]{64})?'
   kubectl_version:
     #{{- if .scm.enabled }}
     scmid: default

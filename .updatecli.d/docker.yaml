@@ -74,13 +74,6 @@ sources:
       image: jnorwood/helm-docs
       tag: latest
       hidetag: true
-  kind_node:
-    kind: dockerimage
-    spec:
-      image: kindest/node
-      versionfilter:
-        kind: semver
-        pattern: '*'
   curl:
     kind: dockerdigest
     spec:
@@ -196,20 +189,6 @@ targets:
     spec:
       file: Makefile
       matchpattern: 'docker\.io/jnorwood/helm-docs[:@][^[:space:]]+'
-  kind_node:
-    #{{- if .scm.enabled }}
-    scmid: default
-    #{{- end }}
-    kind: file
-    sourceid: kind_node
-    transformers:
-      - addprefix: 'kindest/node:'
-    spec:
-      files:
-        - .github/workflows/e2e.yml
-        - .github/workflows/e2e-reusable.yml
-        - e2e/Makefile
-      matchpattern: 'kindest/node:v?[0-9]+\.[0-9]+\.[0-9]+(?:@sha256:[a-f0-9]{64})?'
   curl:
     #{{- if .scm.enabled }}
     scmid: default
