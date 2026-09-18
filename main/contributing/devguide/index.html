@@ -5261,7 +5261,10 @@ kind<span class="w"> </span>load<span class="w"> </span>docker-image<span class=
 
 <span class="c1"># Update helm charts and install to KinD cluster</span>
 make<span class="w"> </span>helm.generate
+<span class="c1"># $IMAGE already includes the registry host, so clear global.imageRegistry to</span>
+<span class="c1"># stop the chart prefixing its own.</span>
 helm<span class="w"> </span>upgrade<span class="w"> </span>--install<span class="w"> </span>external-secrets<span class="w"> </span>./deploy/charts/external-secrets/<span class="w"> </span><span class="se">\</span>
+--set<span class="w"> </span>global.imageRegistry<span class="o">=</span><span class="w"> </span><span class="se">\</span>
 --set<span class="w"> </span>image.repository<span class="o">=</span><span class="nv">$IMAGE</span><span class="w"> </span>--set<span class="w"> </span>image.tag<span class="o">=</span><span class="nv">$TAG</span><span class="w"> </span><span class="se">\</span>
 --set<span class="w"> </span>webhook.image.repository<span class="o">=</span><span class="nv">$IMAGE</span><span class="w"> </span>--set<span class="w"> </span>webhook.image.tag<span class="o">=</span><span class="nv">$TAG</span><span class="w"> </span><span class="se">\</span>
 --set<span class="w"> </span>certController.image.repository<span class="o">=</span><span class="nv">$IMAGE</span><span class="w"> </span>--set<span class="w"> </span>certController.image.tag<span class="o">=</span><span class="nv">$TAG</span>
