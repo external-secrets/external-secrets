@@ -104,6 +104,24 @@ replace (
 	}
 }
 
+func TestReadGoModWithoutPATH(t *testing.T) {
+	root := t.TempDir()
+	contents := "module example.com/test\n\ngo 1.26.0\n\nrequire example.com/dependency v1.2.3\n"
+	if err := os.WriteFile(filepath.Join(root, gomodFilename), []byte(contents), 0o600); err != nil {
+		t.Fatalf("write go.mod: %v", err)
+	}
+	t.Setenv("PATH", "")
+
+	got, err := readGoMod(root, gomodFilename)
+	if err != nil {
+		t.Fatalf("readGoMod() without PATH error = %v", err)
+	}
+	want := []requirement{{Path: "example.com/dependency", Version: "v1.2.3"}}
+	if !reflect.DeepEqual(got.Require, want) {
+		t.Errorf("readGoMod().Require = %#v, want %#v", got.Require, want)
+	}
+}
+
 func TestRenderManifests(t *testing.T) {
 	t.Parallel()
 

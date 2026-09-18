@@ -27,6 +27,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"text/template"
@@ -297,9 +298,10 @@ func moduleFiles(root string) ([]string, error) {
 
 func readGoMod(root, file string) (goMod, error) {
 	directory := filepath.Dir(filepath.Join(root, filepath.FromSlash(file)))
-	// The directory comes from the repository's canonical module inventory.
-	//nolint:gosec // Running the pinned Go tool is the parser boundary for go.mod files.
-	command := exec.Command("go", "-C", directory, "mod", "edit", "-json")
+	// Use the running program's Go toolchain rather than resolving Go through PATH.
+	goBinary := filepath.Join(runtime.GOROOT(), "bin", "go")
+	//nolint:gosec // The executable is from GOROOT; the directory is from the canonical module inventory.
+	command := exec.Command(goBinary, "-C", directory, "mod", "edit", "-json")
 	command.Env = environmentWithoutGoWork()
 	var stderr bytes.Buffer
 	command.Stderr = &stderr
