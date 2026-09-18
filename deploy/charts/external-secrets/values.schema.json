@@ -1074,6 +1074,9 @@
                 }
             }
         },
+        "watchNamespaces": {
+            "type": "array"
+        },
         "webhook": {
             "type": "object",
             "properties": {
