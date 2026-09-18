@@ -10,6 +10,7 @@ the API. Please pick one of the following guides:
 * [Generating Passwords using generators](generator.md)
 * [Ownership and Deletion Policy](ownership-deletion-policy.md)
 * [Key Rewriting](datafrom-rewrite.md)
+* [Filtering Keys with Select](datafrom-select.md)
 * [Controller Class](controller-class.md)
 * [Decoding Strategy](decoding-strategy.md)
 * [v1beta1 Migration](v1beta1.md)
