@@ -98,13 +98,6 @@ update-deps: updatecli ## Update dependencies; use UPDATECLI_KIND=<kind> to limi
 	token="$${GITHUB_TOKEN:-$$(gh auth token 2>/dev/null)}"; \
 	test -n "$$token" || (echo "GITHUB_TOKEN is required; set it or run 'gh auth login'" >&2; exit 1); \
 	values="{scm: {enabled: false}}"; \
-	values_args=(); go_values_dir=""; \
-	case "$(UPDATECLI_CONFIG)" in \
-		.updatecli.d|.updatecli.d/go.yaml) \
-			go_values_dir="$$(mktemp -d)"; trap 'rm -rf "$$go_values_dir"' EXIT; \
-			./hack/updatecli-go-values.py > "$$go_values_dir/go.yaml"; \
-			values_args=(--values "$$go_values_dir/go.yaml");; \
-	esac; \
 	if test "$$publish" = true; then \
 		slug="$${GITHUB_REPOSITORY:-$$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null)}"; \
 		test -n "$$slug" || (echo "GITHUB_REPOSITORY is required when the repository cannot be detected with gh" >&2; exit 1); \
@@ -112,12 +105,14 @@ update-deps: updatecli ## Update dependencies; use UPDATECLI_KIND=<kind> to limi
 		values="{scm: {enabled: true, owner: $$owner, repository: $$repository}}"; \
 	fi; \
 	GITHUB_TOKEN="$$token" $(LOCALBIN)/updatecli pipeline $(UPDATECLI_ACTION) --config $(UPDATECLI_CONFIG) \
-		"$${values_args[@]}" --values-inline "$$values" \
+		--values-inline "$$values" \
 		--disable-changelog --disable-version-check
 
-.PHONY: update-deps update-deps-go update-deps-github-actions update-deps-containers update-deps-tools update-deps-helm update-deps-python update-deps-terraform
-update-deps-go: UPDATECLI_KIND=go
-update-deps-go: update-deps ## Update Go dependencies in every module.
+.PHONY: update-deps update-deps-gomodules update-deps-golang update-deps-github-actions update-deps-containers update-deps-tools update-deps-helm update-deps-python update-deps-terraform
+update-deps-gomodules: UPDATECLI_KIND=gomodules
+update-deps-gomodules: update-deps ## Update Go dependencies in every module.
+update-deps-golang: UPDATECLI_KIND=golang
+update-deps-golang: update-deps ## Update the Go version in every module.
 update-deps-github-actions: UPDATECLI_KIND=github-actions
 update-deps-github-actions: update-deps ## Update GitHub Actions only.
 update-deps-containers: UPDATECLI_KIND=docker
@@ -238,6 +233,10 @@ lint: golangci-lint provider-replaces.check ## Run golangci-lint (set LINT_TARGE
 generate: controller-gen ## Generate code and crds
 	@CONTROLLER_GEN=$(LOCALBIN)/controller-gen ./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
+
+.PHONY: updatecli-go-manifests
+updatecli-go-manifests:
+	@go run ./hack/updatecli-gomodules
 
 # ====================================================================================
 # Local Utility
