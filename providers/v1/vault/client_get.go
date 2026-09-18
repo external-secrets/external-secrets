@@ -199,8 +199,28 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
 	}
+	// existing installations wrote custom_metadata to the mount-prefixed
+	// path that buildMetadataPath used to return. read the legacy path as
+	// a fallback so secrets created before the fix stay manageable.
+	tryLegacy := func() *vault.Secret {
+		if c.store.Version != esv1.VaultKVStoreV2 || c.store.Path == nil {
+			return nil
+		}
+		legacyURL := fmt.Sprintf("%s/metadata/%s", *c.store.Path, path)
+		if legacyURL == url {
+			return nil
+		}
+		legacySecret, legacyErr := c.logical.ReadWithDataWithContext(ctx, legacyURL, nil)
+		if legacyErr != nil || legacySecret == nil {
+			return nil
+		}
+		return legacySecret
+	}
 	if secret == nil {
-		return nil, errors.New(errNotFound)
+		secret = tryLegacy()
+		if secret == nil {
+			return nil, errors.New(errNotFound)
+		}
 	}
 	if c.store.Version == esv1.VaultKVStoreV2 {
 		for _, key := range systemMetadataKeys {
@@ -210,6 +230,9 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 		}
 	}
 	mergeCustomMetadata := func(s *vault.Secret) {
+		if s == nil {
+			return
+		}
 		t, ok := s.Data["custom_metadata"]
 		if !ok {
 			return
@@ -227,16 +250,10 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 		}
 	}
 	mergeCustomMetadata(secret)
-	// existing installations wrote custom_metadata to the mount-prefixed
-	// path that buildMetadataPath used to return. read the legacy path as
-	// a fallback so secrets created before the fix stay manageable.
-	if _, ok := metadata["managed-by"]; !ok && c.store.Version == esv1.VaultKVStoreV2 && c.store.Path != nil {
-		legacyURL := fmt.Sprintf("%s/metadata/%s", *c.store.Path, path)
-		if legacyURL != url {
-			legacySecret, legacyErr := c.logical.ReadWithDataWithContext(ctx, legacyURL, nil)
-			if legacyErr == nil && legacySecret != nil {
-				mergeCustomMetadata(legacySecret)
-			}
+	// consult the legacy path again when the detected path has no managed-by stamp
+	if _, ok := metadata["managed-by"]; !ok {
+		if legacySecret := tryLegacy(); legacySecret != nil && legacySecret != secret {
+			mergeCustomMetadata(legacySecret)
 		}
 	}
 	return metadata, nil

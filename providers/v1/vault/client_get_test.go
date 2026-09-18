@@ -919,6 +919,31 @@ func TestReadSecretMetadataLegacyFallback(t *testing.T) {
 				},
 			},
 		},
+		"LegacyUsedWhenCorrectedMissing": {
+			reason: "readSecretMetadata should read the legacy path before giving up when the corrected path has no metadata",
+			args: args{
+				store: func() *esv1.VaultProvider {
+					s := makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault
+					s.Path = &mount
+					return s
+				}(),
+				logical: &fake.Logical{
+					ReadWithDataWithContextFn: func(_ context.Context, p string, _ map[string][]string) (*vault.Secret, error) {
+						if p == legacyURL {
+							return &vault.Secret{Data: map[string]any{
+								"custom_metadata": map[string]any{"managed-by": "external-secrets"},
+							}}, nil
+						}
+						return nil, nil
+					},
+				},
+			},
+			want: want{
+				metadata: map[string]string{
+					"managed-by": "external-secrets",
+				},
+			},
+		},
 	}
 
 	for name, tc := range cases {
