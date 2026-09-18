@@ -92,8 +92,8 @@ var _ = Describe("Provider", func() {
 
 	Describe("Capabilities", func() {
 		It("should return write-only capability", func() {
-			cap := provider.Capabilities()
-			Expect(cap).To(Equal(esv1.SecretStoreWriteOnly))
+			caps := provider.Capabilities()
+			Expect(caps).To(Equal(esv1.SecretStoreWriteOnly))
 		})
 	})
 

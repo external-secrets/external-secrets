@@ -143,7 +143,7 @@ func runTest(t *testing.T, name string, provider *SecretStoreProvider, expPanic 
 	}
 	if expPanic {
 		defer func() {
-			if r := recover(); r == nil {
+			if recover() == nil {
 				t.Errorf("Register should panic")
 			}
 		}()

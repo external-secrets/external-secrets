@@ -83,7 +83,7 @@ var contextTimeout = time.Second * 25
 
 // DatabagFetcher defines the interface for fetching data bags from Chef Infra Server.
 type DatabagFetcher interface {
-	GetItem(databagName string, databagItem string) (item chef.DataBagItem, err error)
+	GetItem(databagName, databagItem string) (item chef.DataBagItem, err error)
 	ListItems(name string) (data *chef.DataBagListResult, err error)
 }
 
