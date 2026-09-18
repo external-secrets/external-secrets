@@ -24,6 +24,7 @@ import (
 	"strings"
 
 	"github.com/tidwall/gjson"
+	vault "github.com/hashicorp/vault/api"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
@@ -198,8 +199,34 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
 	}
+	// existing installations wrote custom_metadata to the mount-prefixed
+	// path that buildMetadataPath used to return. read the legacy path as
+	// a fallback so secrets created before the fix stay manageable.
+	tryLegacy := func() (*vault.Secret, error) {
+		if c.store.Version != esv1.VaultKVStoreV2 || c.store.Path == nil {
+			return nil, nil
+		}
+		legacyURL := fmt.Sprintf("%s/metadata/%s", *c.store.Path, path)
+		if legacyURL == url {
+			return nil, nil
+		}
+		legacySecret, legacyErr := c.logical.ReadWithDataWithContext(ctx, legacyURL, nil)
+		metrics.ObserveAPICall(ProviderHCVault, CallHCVaultReadSecretData, legacyErr)
+		if legacyErr != nil {
+			return nil, legacyErr
+		}
+		return legacySecret, nil
+	}
 	if secret == nil {
-		return nil, errors.New(errNotFound)
+		legacySecret, legacyErr := tryLegacy()
+		switch {
+		case legacyErr != nil:
+			return nil, fmt.Errorf(errReadSecret, legacyErr)
+		case legacySecret == nil:
+			return nil, errors.New(errNotFound)
+		default:
+			secret = legacySecret
+		}
 	}
 	if c.store.Version == esv1.VaultKVStoreV2 {
 		for _, key := range systemMetadataKeys {
@@ -208,19 +235,35 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 			}
 		}
 	}
-	t, ok := secret.Data["custom_metadata"]
-	if !ok {
-		return metadata, nil
+	mergeCustomMetadata := func(s *vault.Secret) {
+		if s == nil {
+			return
+		}
+		t, ok := s.Data["custom_metadata"]
+		if !ok {
+			return
+		}
+		d, ok := t.(map[string]any)
+		if !ok {
+			return
+		}
+		for k, v := range d {
+			if s, ok := v.(string); ok {
+				metadata[k] = s
+			} else {
+				metadata[k] = fmt.Sprintf("%v", v)
+			}
+		}
 	}
-	d, ok := t.(map[string]any)
-	if !ok {
-		return metadata, nil
-	}
-	for k, v := range d {
-		if s, ok := v.(string); ok {
-			metadata[k] = s
-		} else {
-			metadata[k] = fmt.Sprintf("%v", v)
+	mergeCustomMetadata(secret)
+	// consult the legacy path again when the detected path has no managed-by stamp
+	if _, ok := metadata["managed-by"]; !ok {
+		legacySecret, legacyErr := tryLegacy()
+		if legacyErr != nil {
+			return nil, fmt.Errorf(errReadSecret, legacyErr)
+		}
+		if legacySecret != nil && legacySecret != secret {
+			mergeCustomMetadata(legacySecret)
 		}
 	}
 	return metadata, nil
@@ -238,7 +281,17 @@ func (c *client) buildMetadataPath(path string) (string, error) {
 			path = strings.Replace(path, "/data/", "/metadata/", 1)
 			url = path
 		} else {
-			url = fmt.Sprintf("%s/metadata/%s", *c.store.Path, path)
+			// mirror buildPath: strip the mount prefix (and the data/
+			// segment on kv v2) so the metadata path matches the data path
+			out := path
+			cut := *c.store.Path + "/"
+			if strings.HasPrefix(out, cut) {
+				_, out, _ = strings.Cut(out, cut)
+				if strings.HasPrefix(out, "data/") && c.store.Version == esv1.VaultKVStoreV2 {
+					_, out, _ = strings.Cut(out, "data/")
+				}
+			}
+			url = fmt.Sprintf("%s/metadata/%s", *c.store.Path, out)
 		}
 	}
 	return url, nil
