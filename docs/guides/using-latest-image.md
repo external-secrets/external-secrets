@@ -6,7 +6,7 @@ You can test a feature that was not yet released using the following methods, us
 replicaCount: 1
 
 image:
-  repository: ghcr.io/external-secrets/external-secrets
+  repository: external-secrets/external-secrets
   pullPolicy: IfNotPresent
   # -- The image tag to use. The default is the chart appVersion.
   tag: "main"

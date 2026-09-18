@@ -51,7 +51,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.hostUsers | bool | `nil` | Specifies if certController pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33. @schema type: [boolean, null] |
 | certController.image.flavour | string | `""` |  |
 | certController.image.pullPolicy | string | `"IfNotPresent"` |  |
-| certController.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
+| certController.image.repository | string | `"external-secrets/external-secrets"` | The image repository, appended to `global.imageRegistry`. Include a registry host here only when `global.imageRegistry` is set to an empty string. |
 | certController.image.tag | string | `""` |  |
 | certController.imagePullSecrets | list | `[]` |  |
 | certController.livenessProbe.enabled | bool | `false` |  |
@@ -152,10 +152,11 @@ The command removes all the Kubernetes components associated with the chart and 
 | global.compatibility.openshift.adaptSecurityContext | string | `"auto"` | Manages the securityContext properties to make them compatible with OpenShift. Possible values: auto - Apply configurations if it is detected that OpenShift is the target platform. force - Always apply configurations. disabled - No modification applied. |
 | global.hostAliases | list | `[]` | Global hostAliases to be applied to all deployments |
 | global.imagePullSecrets | list | `[]` | Global imagePullSecrets to be applied to all deployments |
+| global.imageRegistry | string | `"ghcr.io"` | Global image registry, prefixed to the `repository` of every image this chart deploys. Point it at a mirror or an air-gapped registry to move all images at once. Setting it to an empty string drops the prefix chart-wide, in which case `image.repository`, `webhook.image.repository` and `certController.image.repository` must each carry a registry host of their own, or they resolve against Docker Hub. |
 | global.nodeSelector | object | `{}` |  |
 | global.podAnnotations | object | `{}` | Global pod annotations to be applied to all deployments |
 | global.podLabels | object | `{}` | Global pod labels to be applied to all deployments |
-| global.repository | string | `""` | Global image repository to be applied to all deployments |
+| global.repository | string | `""` | DEPRECATED, use `global.imageRegistry` with the per-image `repository` values instead. Takes a full path including the registry host and is used as-is, so `imageRegistry` is not prefixed to it. The name collides with other charts that define their own `global.repository`, which is why it is going away. To migrate `my.io/org/es`, set `global.imageRegistry: my.io` and `org/es` as the `repository` of each of the three images. |
 | global.tolerations | list | `[]` |  |
 | global.topologySpreadConstraints | list | `[]` |  |
 | grafanaDashboard.annotations | object | `{}` | Annotations that ConfigMaps can have to get configured in Grafana, See: sidecar.dashboards.folderAnnotation for specifying the dashboard folder. https://github.com/grafana/helm-charts/tree/main/charts/grafana |
@@ -169,7 +170,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | hostUsers | bool | `nil` | Specifies if controller pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33. @schema type: [boolean, null] |
 | image.flavour | string | `""` | The flavour of tag you want to use There are different image flavours available, like distroless and ubi. Please see GitHub release notes for image tags for these flavors. By default, the distroless image is used. |
 | image.pullPolicy | string | `"IfNotPresent"` |  |
-| image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
+| image.repository | string | `"external-secrets/external-secrets"` | The image repository, appended to `global.imageRegistry`. Include a registry host here only when `global.imageRegistry` is set to an empty string. |
 | image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | imagePullSecrets | list | `[]` |  |
 | installCRDs | bool | `true` | If set, install and upgrade CRDs through helm chart. |
@@ -305,7 +306,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.hostUsers | bool | `nil` | Specifies if webhook pod should use hostUsers or not. If hostNetwork is true, hostUsers should be too. Only available in Kubernetes ≥ 1.33. @schema type: [boolean, null] |
 | webhook.image.flavour | string | `""` | The flavour of tag you want to use |
 | webhook.image.pullPolicy | string | `"IfNotPresent"` |  |
-| webhook.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
+| webhook.image.repository | string | `"external-secrets/external-secrets"` | The image repository, appended to `global.imageRegistry`. Include a registry host here only when `global.imageRegistry` is set to an empty string. |
 | webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | webhook.imagePullSecrets | list | `[]` |  |
 | webhook.livenessProbe.enabled | bool | `false` |  |
