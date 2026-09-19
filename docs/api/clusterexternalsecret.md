@@ -38,6 +38,22 @@ use the [Kubernetes provider](../provider/kubernetes.md) to fan that
 
 ![Fan-out pattern: only the source ExternalSecret polls the provider](../pictures/diagrams-ces-fanout-pattern.png)
 
+!!! warning "Fan-out targets and `creationPolicy`"
+    Omitting `spec.externalSecretSpec.target.creationPolicy` defaults to `Owner`.
+    The ClusterExternalSecret owns and deletes per-namespace ExternalSecrets
+    when the CES is replaced or a namespace stops matching `namespaceSelectors`.
+    With `Owner`, Kubernetes also garbage-collects the fanned-out Secrets via
+    `ownerReference`. `deletionPolicy: Retain` does not prevent that — Retain is
+    the provider-side axis.
+    No combination gives both properties. `Owner`
+    revokes the copy when a namespace is de-selected, but CES replacement
+    also drops the Secret. `Orphan` / `CreateOrMerge` + `Retain` survives
+    replacement, but the de-selected namespace keeps a stale, unrefreshed
+    copy. Use `Orphan` when a mount gap hurts (CA bundles, wildcard TLS).
+    Keep `Owner` for credentials that must disappear when the namespace is
+    unlabelled. The snippet below is a CA bundle, so it sets `Orphan`. See
+    [Lifecycle: ownership & deletion](../guides/ownership-deletion-policy.md).
+
 ```yaml
 {% include 'cluster-external-secret-fanout.yaml' %}
 ```
