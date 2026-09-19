@@ -255,7 +255,7 @@ func (r *Reconciler) deletePushSecret(ctx context.Context, esName, cesName, name
 	}
 
 	err = r.Delete(ctx, &existingPs, &client.DeleteOptions{})
-	if err != nil {
+	if client.IgnoreNotFound(err) != nil {
 		return fmt.Errorf("external secret in non matching namespace could not be deleted: %w", err)
 	}
 
