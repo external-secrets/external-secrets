@@ -218,7 +218,7 @@ tests:
           value: "--metrics-addr=:8888"
   - it: should override image flavour
     set:
-      webhook.image.repository: external-secrets/external-secrets
+      webhook.image.repository: ghcr.io/external-secrets/external-secrets
       webhook.image.tag: v0.9.8
       webhook.image.flavour: ubi-boringssl
     templates:
@@ -229,8 +229,7 @@ tests:
           value: ghcr.io/external-secrets/external-secrets:v0.9.8-ubi-boringssl
   - it: should override image flavour
     set:
-      global.imageRegistry: example.com
-      webhook.image.repository: external-secrets/external-secrets
+      webhook.image.repository: example.com/external-secrets/external-secrets
       webhook.image.tag: v0.9.9-ubi
     templates:
       - webhook-deployment.yaml
