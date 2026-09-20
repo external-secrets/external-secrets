@@ -226,7 +226,13 @@ func (c *client) buildMetadataPath(path string) (string, error) {
 			path = strings.Replace(path, "/data/", "/metadata/", 1)
 			url = path
 		} else {
-			url = fmt.Sprintf("%s/metadata/%s", *c.store.Path, path)
+			// Strip the mount prefix from path, similar to buildPath
+			out := path
+			cut := *c.store.Path + "/"
+			if strings.HasPrefix(out, cut) {
+				_, out, _ = strings.Cut(out, cut)
+			}
+			url = fmt.Sprintf("%s/metadata/%s", *c.store.Path, out)
 		}
 	}
 	return url, nil

@@ -732,7 +732,7 @@ func TestGetSecretMetadataPath(t *testing.T) {
 			args: args{
 				store:    storeV2.Spec.Provider.Vault,
 				path:     "secret/path/data/test",
-				expected: "secret/path/metadata/secret/path/data/test",
+				expected: "secret/path/metadata/data/test",
 			},
 		},
 		"PathForV2WithData": {
