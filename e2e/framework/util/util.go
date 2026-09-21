@@ -36,7 +36,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
 	restclient "k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/client-go/tools/remotecommand"
@@ -301,7 +300,7 @@ func NewConfig() (*restclient.Config, *kubernetes.Clientset, crclient.Client) {
 	return cfg, kubeClientSet, CRClient
 }
 
-func BuildKubeConfig() (*rest.Config, error) {
+func BuildKubeConfig() (*restclient.Config, error) {
 	// 1. If KUBECONFIG is explicitly set, use it
 	if kubeconfigEnv := os.Getenv("KUBECONFIG"); kubeconfigEnv != "" {
 		cfg, err := clientcmd.BuildConfigFromFlags("", kubeconfigEnv)
@@ -324,7 +323,7 @@ func BuildKubeConfig() (*rest.Config, error) {
 	}
 
 	// 3. Fallback to in-cluster config
-	cfg, err := rest.InClusterConfig()
+	cfg, err := restclient.InClusterConfig()
 	if err != nil {
 		return nil, fmt.Errorf("failed to load in-cluster config: %w", err)
 	}

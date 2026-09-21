@@ -128,7 +128,7 @@ var genericMap = map[string]interface{}{
 		}
 		return val
 	},
-	"randInt": func(min, max int) int { return rand.Intn(max-min) + min },
+	"randInt": func(minimum, maximum int) int { return rand.Intn(maximum-minimum) + minimum },
 	"add1f": func(i interface{}) float64 {
 		return execDecimalOp(i, []interface{}{1}, func(d1, d2 decimal.Decimal) decimal.Decimal { return d1.Add(d2) })
 	},
@@ -145,9 +145,9 @@ var genericMap = map[string]interface{}{
 	"mulf": func(a interface{}, v ...interface{}) float64 {
 		return execDecimalOp(a, v, func(d1, d2 decimal.Decimal) decimal.Decimal { return d1.Mul(d2) })
 	},
-	"biggest": max,
-	"max":     max,
-	"min":     min,
+	"biggest": maximum,
+	"max":     maximum,
+	"min":     minimum,
 	"maxf":    maxf,
 	"minf":    minf,
 	"ceil":    ceil,
@@ -162,7 +162,7 @@ var genericMap = map[string]interface{}{
 	"empty":            empty,
 	"coalesce":         coalesce,
 	"all":              all,
-	"any":              any,
+	"any":              hasany,
 	"compact":          compact,
 	"mustCompact":      mustCompact,
 	"fromJson":         fromJson,
