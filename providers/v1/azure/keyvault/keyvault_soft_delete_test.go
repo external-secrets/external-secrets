@@ -29,15 +29,21 @@ import (
 )
 
 type fakeNewSDKSecretRecoveryClient struct {
-	err       error
-	recovered bool
-	name      string
+	tags       map[string]*string
+	getErr     error
+	recoverErr error
+	recovered  bool
+	name       string
+}
+
+func (c *fakeNewSDKSecretRecoveryClient) GetDeletedSecret(_ context.Context, name string, _ *azsecrets.GetDeletedSecretOptions) (azsecrets.GetDeletedSecretResponse, error) {
+	return azsecrets.GetDeletedSecretResponse{DeletedSecret: azsecrets.DeletedSecret{Tags: c.tags}}, c.getErr
 }
 
 func (c *fakeNewSDKSecretRecoveryClient) RecoverDeletedSecret(_ context.Context, name string, _ *azsecrets.RecoverDeletedSecretOptions) (azsecrets.RecoverDeletedSecretResponse, error) {
 	c.recovered = true
 	c.name = name
-	return azsecrets.RecoverDeletedSecretResponse{}, c.err
+	return azsecrets.RecoverDeletedSecretResponse{}, c.recoverErr
 }
 
 func newSoftDeletedResponseError() error {
@@ -95,24 +101,51 @@ func TestNewSDKDeletedSecretRecoverer(t *testing.T) {
 
 func TestHandleDeletedSecretRecovery(t *testing.T) {
 	tests := []struct {
-		name        string
-		recoveryErr error
-		wantErr     string
+		name          string
+		tags          map[string]*string
+		getErr        error
+		recoveryErr   error
+		wantHandled   bool
+		wantRecovered bool
+		wantErr       string
 	}{
 		{
-			name:    "recovery succeeds",
-			wantErr: "recovered soft-deleted secret test-secret; waiting for the next reconciliation to update it",
+			name:          "owned secret is recovered",
+			tags:          map[string]*string{managedBy: new(managerLabel)},
+			wantHandled:   true,
+			wantRecovered: true,
+			wantErr:       "recovered soft-deleted secret test-secret; waiting for the next reconciliation to update it",
 		},
 		{
-			name:        "recovery fails",
-			recoveryErr: errors.New("recovery failed"),
-			wantErr:     "could not recover soft-deleted secret test-secret: recovery failed",
+			name:          "owned secret recovery fails",
+			tags:          map[string]*string{managedBy: new(managerLabel)},
+			recoveryErr:   errors.New("recovery failed"),
+			wantHandled:   true,
+			wantRecovered: true,
+			wantErr:       "could not recover soft-deleted secret test-secret: recovery failed",
+		},
+		{
+			name: "unmanaged secret is not recovered",
+			tags: map[string]*string{managedBy: new("another-controller")},
+		},
+		{
+			name: "secret without ownership is not recovered",
+		},
+		{
+			name:        "ownership lookup failure is returned",
+			getErr:      errors.New("lookup failed"),
+			wantHandled: true,
+			wantErr:     "could not inspect soft-deleted secret test-secret: lookup failed",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			client := &fakeNewSDKSecretRecoveryClient{err: tt.recoveryErr}
+			client := &fakeNewSDKSecretRecoveryClient{
+				tags:       tt.tags,
+				getErr:     tt.getErr,
+				recoverErr: tt.recoveryErr,
+			}
 			azureClient := &Azure{secretRecoverer: &newSDKDeletedSecretRecoverer{client: client}}
 
 			handled, err := azureClient.handleDeletedSecretRecovery(
@@ -120,14 +153,20 @@ func TestHandleDeletedSecretRecovery(t *testing.T) {
 				"test-secret",
 				&azcore.ResponseError{StatusCode: 409, ErrorCode: softDeletedSecretErrorCode},
 			)
-			if !handled {
-				t.Fatal("handleDeletedSecretRecovery() handled = false, want true")
+			if handled != tt.wantHandled {
+				t.Fatalf("handleDeletedSecretRecovery() handled = %v, want %v", handled, tt.wantHandled)
 			}
-			if err == nil || err.Error() != tt.wantErr {
+			if tt.wantErr == "" && err != nil {
+				t.Fatalf("handleDeletedSecretRecovery() error = %v, want nil", err)
+			}
+			if tt.wantErr != "" && (err == nil || err.Error() != tt.wantErr) {
 				t.Fatalf("handleDeletedSecretRecovery() error = %v, want %q", err, tt.wantErr)
 			}
-			if !client.recovered || client.name != "test-secret" {
-				t.Fatalf("RecoverDeletedSecret() called = %v with name %q", client.recovered, client.name)
+			if client.recovered != tt.wantRecovered {
+				t.Fatalf("RecoverDeletedSecret() called = %v, want %v", client.recovered, tt.wantRecovered)
+			}
+			if tt.wantRecovered && client.name != "test-secret" {
+				t.Fatalf("RecoverDeletedSecret() name = %q, want test-secret", client.name)
 			}
 		})
 	}

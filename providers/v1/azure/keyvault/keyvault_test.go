@@ -23,6 +23,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -81,8 +82,9 @@ type secretManagerTestCase struct {
 
 type softDeletedSecretClient struct {
 	SecretClient
-	recovered bool
-	setCalls  int
+	deletedTags map[string]*string
+	recovered   bool
+	setCalls    int
 }
 
 func (c *softDeletedSecretClient) GetSecret(_ context.Context, _, _, _ string) (keyvault.SecretBundle, error) {
@@ -110,13 +112,17 @@ func (c *softDeletedSecretClient) SetSecret(_ context.Context, _, _ string, _ ke
 	return keyvault.SecretBundle{}, nil
 }
 
+func (c *softDeletedSecretClient) GetDeletedSecret(_ context.Context, _, _ string) (keyvault.DeletedSecretBundle, error) {
+	return keyvault.DeletedSecretBundle{Tags: c.deletedTags}, nil
+}
+
 func (c *softDeletedSecretClient) RecoverDeletedSecret(_ context.Context, _, _ string) (keyvault.SecretBundle, error) {
 	c.recovered = true
 	return keyvault.SecretBundle{}, nil
 }
 
 func TestSetKeyVaultSecretRecoversSoftDeletedSecret(t *testing.T) {
-	client := &softDeletedSecretClient{}
+	client := &softDeletedSecretClient{deletedTags: map[string]*string{managedBy: new(managerLabel)}}
 	azureClient := Azure{
 		provider:        &esv1.AzureKVProvider{VaultURL: new(fakeURL)},
 		baseClient:      client,
@@ -140,6 +146,23 @@ func TestSetKeyVaultSecretRecoversSoftDeletedSecret(t *testing.T) {
 	}
 	if client.setCalls != 2 {
 		t.Fatalf("SetSecret() calls after next reconciliation = %d, want 2", client.setCalls)
+	}
+}
+
+func TestSetKeyVaultSecretDoesNotRecoverUnmanagedSoftDeletedSecret(t *testing.T) {
+	client := &softDeletedSecretClient{deletedTags: map[string]*string{managedBy: new("another-controller")}}
+	azureClient := Azure{
+		provider:        &esv1.AzureKVProvider{VaultURL: new(fakeURL)},
+		baseClient:      client,
+		secretRecoverer: &legacyDeletedSecretRecoverer{client: client, vaultURL: fakeURL},
+	}
+
+	err := azureClient.setKeyVaultSecret(context.Background(), secretName, []byte(secretString), nil, nil, nil)
+	if err == nil || !strings.Contains(err.Error(), "could not set secret") {
+		t.Fatalf("setKeyVaultSecret() error = %v, want original set conflict", err)
+	}
+	if client.recovered {
+		t.Fatal("setKeyVaultSecret() recovered a soft-deleted secret owned by another controller")
 	}
 }
 

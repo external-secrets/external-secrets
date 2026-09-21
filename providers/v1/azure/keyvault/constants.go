@@ -23,6 +23,7 @@ const (
 	CallAzureKVDeleteKey         = "DeleteKey"
 	CallAzureKVImportKey         = "ImportKey"
 	CallAzureKVGetSecret         = "GetSecret"
+	CallAzureKVGetDeletedSecret  = "GetDeletedSecret"
 	CallAzureKVGetSecrets        = "GetSecrets"
 	CallAzureKVSetSecret         = "SetSecret"
 	CallAzureKVRecoverSecret     = "RecoverDeletedSecret"

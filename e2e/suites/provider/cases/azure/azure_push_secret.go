@@ -95,6 +95,14 @@ func useNewSDKForPush(tc *framework.TestCase) {
 }
 
 func verifySoftDeleteRecovery(tc *framework.TestCase, prov *azureProvider, remoteKey string) {
+	registerSoftDeleteCleanup(prov, remoteKey)
+	waitForSecretValue(prov, remoteKey, softDeleteInitialValue, "initial")
+	deleteAndWaitForSoftDeletedSecret(prov, remoteKey)
+	updateSourceAndEnableRefresh(tc)
+	waitForRecoveredSecret(prov, remoteKey)
+}
+
+func registerSoftDeleteCleanup(prov *azureProvider, remoteKey string) {
 	DeferCleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Minute*3)
 		defer cancel()
@@ -103,18 +111,22 @@ func verifySoftDeleteRecovery(tc *framework.TestCase, prov *azureProvider, remot
 			return cleanupSoftDeletedSecret(ctx, prov, remoteKey)
 		}, time.Minute*2, time.Second*5).Should(Succeed())
 	})
+}
 
+func waitForSecretValue(prov *azureProvider, remoteKey, want, stage string) {
 	Eventually(func() error {
 		secret, err := prov.client.GetSecret(GinkgoT().Context(), prov.vaultURL, remoteKey, "")
 		if err != nil {
-			return fmt.Errorf("get initial secret: %s", err)
+			return fmt.Errorf("get %s secret: %s", stage, err)
 		}
-		if secret.Value == nil || *secret.Value != softDeleteInitialValue {
-			return fmt.Errorf("secret value = %v, want %q", secret.Value, softDeleteInitialValue)
+		if secret.Value == nil || *secret.Value != want {
+			return fmt.Errorf("secret value = %v, want %q", secret.Value, want)
 		}
 		return nil
 	}, time.Minute*2, time.Second*5).Should(Succeed())
+}
 
+func deleteAndWaitForSoftDeletedSecret(prov *azureProvider, remoteKey string) {
 	_, err := prov.client.DeleteSecret(GinkgoT().Context(), prov.vaultURL, remoteKey)
 	Expect(err).ToNot(HaveOccurred())
 	Eventually(func() error {
@@ -124,7 +136,9 @@ func verifySoftDeleteRecovery(tc *framework.TestCase, prov *azureProvider, remot
 		}
 		return nil
 	}, time.Minute*2, time.Second*5).Should(Succeed())
+}
 
+func updateSourceAndEnableRefresh(tc *framework.TestCase) {
 	source := &corev1.Secret{}
 	Expect(tc.Framework.CRClient.Get(GinkgoT().Context(), types.NamespacedName{
 		Name:      tc.PushSecretSource.Name,
@@ -140,7 +154,9 @@ func verifySoftDeleteRecovery(tc *framework.TestCase, prov *azureProvider, remot
 	}, pushSecret)).To(Succeed())
 	pushSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second * 5}
 	Expect(tc.Framework.CRClient.Update(GinkgoT().Context(), pushSecret)).To(Succeed())
+}
 
+func waitForRecoveredSecret(prov *azureProvider, remoteKey string) {
 	Eventually(func() error {
 		secret, err := prov.client.GetSecret(GinkgoT().Context(), prov.vaultURL, remoteKey, "")
 		if err != nil {

@@ -47,7 +47,7 @@ func isNotFoundErr(err error) bool {
 	return errors.As(err, &respErr) && respErr.StatusCode == 404
 }
 
-func isManagedByESONewSDK(tags map[string]*string) bool {
+func isManagedByESO(tags map[string]*string) bool {
 	if tags == nil {
 		return false
 	}
@@ -77,7 +77,7 @@ func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName stri
 		return fmt.Errorf("cannot get secret %v: %w", secretName, parseNewSDKError(err))
 	}
 	if err == nil {
-		if !isManagedByESONewSDK(existingSecret.Tags) {
+		if !isManagedByESO(existingSecret.Tags) {
 			return fmt.Errorf("secret %v not managed by external-secrets", secretName)
 		}
 		// Note: the new SDK doesn't set expiration in SetSecretParameters, so

@@ -33,10 +33,12 @@ import (
 
 type deletedSecretRecoverer interface {
 	isDeletedButRecoverable(error) bool
+	getDeletedSecretTags(context.Context, string) (map[string]*string, error)
 	recoverDeletedSecret(context.Context, string) error
 }
 
 type legacySecretRecoveryClient interface {
+	GetDeletedSecret(context.Context, string, string) (keyvault.DeletedSecretBundle, error)
 	RecoverDeletedSecret(context.Context, string, string) (keyvault.SecretBundle, error)
 }
 
@@ -57,12 +59,18 @@ func (r *legacyDeletedSecretRecoverer) isDeletedButRecoverable(err error) bool {
 	return ok && innerCode == softDeletedSecretErrorCode
 }
 
+func (r *legacyDeletedSecretRecoverer) getDeletedSecretTags(ctx context.Context, secretName string) (map[string]*string, error) {
+	secret, err := r.client.GetDeletedSecret(ctx, r.vaultURL, secretName)
+	return secret.Tags, err
+}
+
 func (r *legacyDeletedSecretRecoverer) recoverDeletedSecret(ctx context.Context, secretName string) error {
 	_, err := r.client.RecoverDeletedSecret(ctx, r.vaultURL, secretName)
 	return err
 }
 
 type newSDKSecretRecoveryClient interface {
+	GetDeletedSecret(context.Context, string, *azsecrets.GetDeletedSecretOptions) (azsecrets.GetDeletedSecretResponse, error)
 	RecoverDeletedSecret(context.Context, string, *azsecrets.RecoverDeletedSecretOptions) (azsecrets.RecoverDeletedSecretResponse, error)
 }
 
@@ -98,6 +106,11 @@ func (r *newSDKDeletedSecretRecoverer) isDeletedButRecoverable(err error) bool {
 	return envelope.Error.InnerError.Code == softDeletedSecretErrorCode
 }
 
+func (r *newSDKDeletedSecretRecoverer) getDeletedSecretTags(ctx context.Context, secretName string) (map[string]*string, error) {
+	secret, err := r.client.GetDeletedSecret(ctx, secretName, nil)
+	return secret.Tags, parseNewSDKError(err)
+}
+
 func (r *newSDKDeletedSecretRecoverer) recoverDeletedSecret(ctx context.Context, secretName string) error {
 	_, err := r.client.RecoverDeletedSecret(ctx, secretName, nil)
 	return parseNewSDKError(err)
@@ -107,7 +120,15 @@ func (a *Azure) handleDeletedSecretRecovery(ctx context.Context, secretName stri
 	if a.secretRecoverer == nil || !a.secretRecoverer.isDeletedButRecoverable(setErr) {
 		return false, nil
 	}
-	err := a.secretRecoverer.recoverDeletedSecret(ctx, secretName)
+	tags, err := a.secretRecoverer.getDeletedSecretTags(ctx, secretName)
+	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVGetDeletedSecret, err)
+	if err != nil {
+		return true, fmt.Errorf("could not inspect soft-deleted secret %v: %w", secretName, err)
+	}
+	if !isManagedByESO(tags) {
+		return false, nil
+	}
+	err = a.secretRecoverer.recoverDeletedSecret(ctx, secretName)
 	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVRecoverSecret, err)
 	if err != nil {
 		return true, fmt.Errorf("could not recover soft-deleted secret %v: %w", secretName, err)
