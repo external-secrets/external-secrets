@@ -224,6 +224,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | rbac.aggregateToEdit | bool | `true` | Specifies whether permissions are aggregated to the edit ClusterRole |
 | rbac.aggregateToView | bool | `true` | Specifies whether permissions are aggregated to the view ClusterRole |
 | rbac.create | bool | `true` | Specifies whether role and rolebinding resources should be created. |
+| rbac.leaderElection | object | `{"create":true}` | Specifies whether the namespaced leader election Role and RoleBinding are created. These are only used when leaderElect is true; set to false to omit them when running without leader election. Only takes effect when rbac.create is true. |
 | rbac.serviceAccountTokenCreate | bool | `true` | Specifies whether the serviceaccounts/token create permission is included in the controller RBAC. When set to false, users must create per-ServiceAccount Role/RoleBinding with resourceNames constraint to grant ESO token creation for specific ServiceAccounts referenced in SecretStore specs. |
 | rbac.servicebindings.create | bool | `true` | Specifies whether a clusterrole to give servicebindings read access should be created. |
 | readinessProbe.enabled | bool | `false` | Determines whether the readiness probe is enabled. Disabled by default. Enabling this will auto-start the health server (--live-addr) even if livenessProbe is disabled. Health server address/port are configured via livenessProbe.spec.address and livenessProbe.spec.port. |
