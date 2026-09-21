@@ -360,7 +360,7 @@ func (vms *VaultManagementService) constructOptions(storeSpec *esv1.SecretStoreS
 		opts = append(opts, common.WithMaximumNumberAttempts(attempts))
 	}
 
-	if ri := storeSpec.RetrySettings.RetryInterval; ri != nil {
+	if storeSpec.RetrySettings.RetryInterval != nil {
 		i, err := time.ParseDuration(*storeSpec.RetrySettings.RetryInterval)
 		if err != nil {
 			return nil, fmt.Errorf(errOracleClient, err)

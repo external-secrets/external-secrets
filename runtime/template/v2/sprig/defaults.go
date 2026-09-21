@@ -58,7 +58,7 @@ func all(v ...interface{}) bool {
 	return true
 }
 
-func any(v ...interface{}) bool {
+func hasany(v ...interface{}) bool {
 	for _, val := range v {
 		if !empty(val) {
 			return true

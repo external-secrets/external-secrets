@@ -250,7 +250,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 }
 
 func (a *Akeyless) contextWithToken(ctx context.Context) (context.Context, error) {
-	if v := ctx.Value(aKeylessToken); v != nil {
+	if ctx.Value(aKeylessToken) != nil {
 		return ctx, nil
 	}
 	token, err := a.Client.TokenFromSecretRef(ctx)
