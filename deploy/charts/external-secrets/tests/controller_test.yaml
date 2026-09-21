@@ -56,7 +56,7 @@ tests:
           content: "--metrics-addr=:8888"
   - it: should override image flavour
     set:
-      image.repository: external-secrets/external-secrets
+      image.repository: ghcr.io/external-secrets/external-secrets
       image.tag: v0.9.8
       image.flavour: ubi-boringssl
     asserts:
@@ -65,8 +65,7 @@ tests:
           value: ghcr.io/external-secrets/external-secrets:v0.9.8-ubi-boringssl
   - it: should override image flavour
     set:
-      global.imageRegistry: example.com
-      image.repository: external-secrets/external-secrets
+      image.repository: example.com/external-secrets/external-secrets
       image.tag: v0.9.9-ubi
     asserts:
       - equal:
