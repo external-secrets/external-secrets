@@ -471,7 +471,13 @@ func (r *Reconciler) deleteExternalSecret(ctx context.Context, esName, cesName, 
 		return nil
 	}
 
-	err = r.Delete(ctx, &existingES, &client.DeleteOptions{})
+	// The Get above may have been served from a stale informer cache, so the
+	// object can already be gone by the time we delete it. NotFound therefore
+	// means the cleanup succeeded. The UID precondition keeps the harmful half
+	// of that race closed: should an unowned ExternalSecret of the same name
+	// have been recreated in the meantime, the delete is rejected instead of
+	// removing somebody else's object.
+	err = client.IgnoreNotFound(r.Delete(ctx, &existingES, client.Preconditions{UID: &existingES.UID}))
 	if err != nil {
 		return fmt.Errorf("external secret in non matching namespace could not be deleted: %w", err)
 	}
