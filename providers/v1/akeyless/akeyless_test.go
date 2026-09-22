@@ -168,6 +168,22 @@ func TestAkeylessGetSecret(t *testing.T) {
 	}
 }
 
+// TestAkeylessGetSecretTranslatesNoSecretErr guards against a regression where
+// GetSecret returned the raw ErrItemNotExists instead of the sentinel
+// esv1.NoSecretErr callers (deletionPolicy, SecretExists, PushSecret) rely on.
+func TestAkeylessGetSecretTranslatesNoSecretErr(t *testing.T) {
+	sm := Akeyless{
+		Client: fakeakeyless.New().SetGetSecretFn(func(_ string, _ int32) (string, error) {
+			return "", ErrItemNotExists
+		}),
+	}
+
+	out, err := sm.GetSecret(context.Background(), *makeValidRef())
+
+	require.ErrorIs(t, err, esv1.NoSecretErr)
+	require.Nil(t, out)
+}
+
 func TestValidateStore(t *testing.T) {
 	provider := Provider{}
 
