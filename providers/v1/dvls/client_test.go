@@ -994,13 +994,18 @@ func TestClient_PushSecret_CreateIsReadableByGetSecret(t *testing.T) {
 }
 
 func TestClient_PushSecret_CreateRequiresVault(t *testing.T) {
+	// The remote key has to parse as a legacy "<vault>/<entry>" pair, or the
+	// push fails on the reference long before it reaches the create path and
+	// the guard below goes untested.
 	mockCred := newMockCredentialClient(nil)
 	c := NewClient(mockCred, newMockFolderClient(), "")
 	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
-	data := pushSecretDataStub{remoteKey: "some-vault-id/some-entry-id", secretKey: "password"}
+	data := pushSecretDataStub{remoteKey: testVaultUUID + "/" + testEntryUUID, secretKey: "password"}
 
 	err := c.PushSecret(context.Background(), secret, data)
 	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "must set a vault")
+	assert.Equal(t, 0, mockCred.created)
 }
 
 func TestClient_PushSecret_CreatesEveryFolderLevel(t *testing.T) {

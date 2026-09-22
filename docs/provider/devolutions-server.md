@@ -125,6 +125,8 @@ The DVLS provider supports pushing secrets back to DVLS:
 
 **Note:** A `remoteKey` may name folders, as in `prod/db/postgres-password`. DVLS keeps folders as entries of their own, so any level of that path the vault does not hold yet is created before the entry is, from the root down. Existing folders are reused; only the missing levels are added.
 
+**Note:** Creating an entry or a folder needs the application identity to hold **Add** permission on the target folder. Without it a push to a remote key the vault does not have fails with a permission error from the server, while pushes to entries that already exist keep working.
+
 ## Limitations
 
 - **GetAllSecrets**: The `find` operation for discovering secrets is not currently supported
