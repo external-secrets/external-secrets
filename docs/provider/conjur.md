@@ -347,6 +347,91 @@ kubectl apply -n external-secrets -f conjur-external-secret.yaml
 kubectl get secret -n external-secrets conjur -o jsonpath="{.data.secret00}"  | base64 --decode && echo
 ```
 
+## Define a push secret
+
+The Secrets Manager provider also supports [PushSecret](../guides/pushsecrets.md). This means that you can
+push the values of a Kubernetes secret into Secrets Manager variables.
+
+Here is an example of how to push a single key of a Kubernetes secret into Secrets Manager:
+
+```yaml
+{% include 'conjur-push-secret.yaml' %}
+```
+
+Save the push secret file as `conjur-push-secret.yaml`.
+
+### Remote key and policy
+
+In Secrets Manager, a variable must be declared in a policy before a value can be stored in it. For this reason,
+ESO does not write values directly to `remoteKey`. It first loads a policy that declares the variables, and then
+sets their values.
+
+The `remoteRef.remoteKey` must contain at least one `/`. ESO splits it at the last `/`:
+
+* the part before the last `/` is the **parent policy**, which must already exist (for example `data/app1`)
+* the last segment is the name of a **policy** that ESO creates under the parent (for example `pushed`)
+
+On each sync, ESO loads a policy into the parent policy (in `POST` mode, which only adds to it). The policy contains:
+
+* one variable for each value that is pushed, annotated with `managed-by: external-secrets`
+* a `delegation/consumers` group, annotated with `editable: "true"`, which has `read` and `execute` privileges on
+  those variables. To give an application access to the pushed values, add its host or layer to this group.
+
+The Secrets Manager host that the `SecretStore` uses must have permission to load policy into the parent policy
+(`create`) and to set the values of the variables that it creates (`update`).
+
+### Secret key and property
+
+The name of the variable depends on whether `secretKey` and `remoteRef.property` are set:
+
+| `secretKey` | `property` | Result                                                                                           |
+|-------------|------------|--------------------------------------------------------------------------------------------------|
+| set         | not set    | One variable `<remoteKey>/<secretKey>` that holds the value of that key                          |
+| set         | set        | One variable `<remoteKey>/<property>` that holds the value of that key                           |
+| not set     | not set    | One variable `<remoteKey>/<key>` for each key in the source secret                               |
+| not set     | set        | One variable `<remoteKey>/<property>` that holds all keys of the source secret as a JSON object |
+
+Pushing all keys into one `property` only works if every value in the source secret is valid UTF-8 text.
+Binary values cannot be written into the JSON object correctly.
+
+### Existing variables
+
+Before ESO writes a variable, it checks whether the variable already exists:
+
+* If the variable does not exist, ESO creates it.
+* If the variable exists but does not have the `managed-by: external-secrets` annotation, ESO skips it and does
+  not change it. ESO does not report an error for this. Variables that other tools manage are never overwritten.
+* If ESO cannot read the current value of the variable, it skips the variable.
+* If the value is the same as the value in Kubernetes, ESO skips the variable, so no new version is created.
+
+### Update and deletion policies
+
+* `updatePolicy: IfNotExists` is not supported. Use the default `Replace` policy.
+* `deletionPolicy: Delete` is not supported. ESO cannot remove variables from Secrets Manager, so deleting the
+  PushSecret, or removing an entry from `spec.data`, returns an error. Keep the default `deletionPolicy: None` and
+  remove the variables from Secrets Manager yourself.
+
+## Create the push secret
+
+```shell
+# WARNING: creates the push-secret in the "external-secrets" namespace, update the value as needed
+#
+kubectl apply -n external-secrets -f conjur-push-secret.yaml
+
+# WARNING: running the delete command will delete the push-secrets configuration
+# It does not delete the variables in Secrets Manager
+#
+# If there is a need to delete the push secret
+# kubectl delete pushsecret -n external-secrets conjur
+```
+
+## Get the Secrets Manager variable
+
+* Check that the push secret is synced: `kubectl get pushsecret -n external-secrets conjur`
+* Log in to your Secrets Manager server and verify that the variable exists and has the
+  `managed-by: external-secrets` annotation
+* Review the value of the variable to verify that it contains the same value as your Kubernetes secret
+
 ## See also
 
 * [Accelerator-K8s-External-Secrets repo](https://github.com/conjurdemos/Accelerator-K8s-External-Secrets)
