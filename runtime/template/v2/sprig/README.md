@@ -12,5 +12,6 @@ The following functions have been intentionally excluded:
 - `env` — exposes environment variables to templates
 - `expandenv` — expands environment variables in strings
 - `getHostByName` — performs DNS lookups
+- `fail` — deliberately returns caller-controlled error messages
 
 These functions were removed to prevent information disclosure through templates.

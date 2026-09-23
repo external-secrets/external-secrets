@@ -22,7 +22,6 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
-	"fmt"
 
 	gopkcs12 "software.sslmate.com/src/go-pkcs12"
 )
@@ -30,12 +29,12 @@ import (
 func pkcs12keyPass(pass, input string) (string, error) {
 	privateKey, _, _, err := gopkcs12.DecodeChain([]byte(input), pass)
 	if err != nil {
-		return "", fmt.Errorf(errDecodePKCS12WithPass, err)
+		return "", errors.New("unable to decode pkcs12")
 	}
 
 	marshalPrivateKey, err := x509.MarshalPKCS8PrivateKey(privateKey)
 	if err != nil {
-		return "", err
+		return "", errors.New("unable to encode private key")
 	}
 
 	var buf bytes.Buffer
@@ -68,7 +67,7 @@ func pkcs12key(input string) (string, error) {
 func pkcs12certPass(pass, input string) (string, error) {
 	_, certificate, caCerts, err := gopkcs12.DecodeChain([]byte(input), pass)
 	if err != nil {
-		return "", fmt.Errorf(errDecodeCertWithPass, err)
+		return "", errors.New("unable to decode pkcs12 certificate")
 	}
 
 	var pemData []byte
