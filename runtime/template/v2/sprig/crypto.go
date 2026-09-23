@@ -231,6 +231,7 @@ func parsePrivateKeyPEM(pemBlock string) (crypto.PrivateKey, error) {
 	if block.Type == "PRIVATE KEY" {
 		priv, err := x509.ParsePKCS8PrivateKey(block.Bytes)
 		if err != nil {
+			// ParsePKCS8PrivateKey and asn1 parse errors never display the key. At best it might reveal that the secret is validly formated key. I think we are fine to leave it exposed.
 			return nil, fmt.Errorf("decoding PEM as PKCS#8: %s", err)
 		}
 		return priv, nil
@@ -242,12 +243,14 @@ func parsePrivateKeyPEM(pemBlock string) (crypto.PrivateKey, error) {
 	case "RSA":
 		priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
 		if err != nil {
+			// Same std library display behaviour: It should never display the key
 			return nil, fmt.Errorf("parsing RSA private key from PEM: %s", err)
 		}
 		return priv, nil
 	case "EC":
 		priv, err := x509.ParseECPrivateKey(block.Bytes)
 		if err != nil {
+			// Same std library display behaviour: It should never display the key
 			return nil, fmt.Errorf("parsing EC private key from PEM: %s", err)
 		}
 		return priv, nil
@@ -255,6 +258,7 @@ func parsePrivateKeyPEM(pemBlock string) (crypto.PrivateKey, error) {
 		var k DSAKeyFormat
 		_, err := asn1.Unmarshal(block.Bytes, &k)
 		if err != nil {
+			// Same std library display behaviour: It should never display the key
 			return nil, fmt.Errorf("parsing DSA private key from PEM: %s", err)
 		}
 		priv := &dsa.PrivateKey{
@@ -308,17 +312,14 @@ func buildCustomCertificate(b64cert string, b64key string) (certificate, error) 
 	_, err = x509.ParseCertificate(decodedCert.Bytes)
 	if err != nil {
 		return crt, fmt.Errorf(
-			"error parsing certificate: decodedCert.Bytes: %s",
+			"error parsing private key: %s",
 			err,
 		)
 	}
 
 	_, err = parsePrivateKeyPEM(string(key))
 	if err != nil {
-		return crt, fmt.Errorf(
-			"error parsing private key: %s",
-			err,
-		)
+		return crt, errors.New("invalid private key")
 	}
 
 	crt.Cert = string(cert)
@@ -333,7 +334,7 @@ func generateCertificateAuthority(
 ) (certificate, error) {
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return certificate{}, fmt.Errorf("error generating rsa key: %s", err)
+		return certificate{}, errors.New("failed to generate RSA key")
 	}
 
 	return generateCertificateAuthorityWithKeyInternal(cn, daysValid, priv)
@@ -380,7 +381,7 @@ func generateSelfSignedCertificate(
 ) (certificate, error) {
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return certificate{}, fmt.Errorf("error generating rsa key: %s", err)
+		return certificate{}, errors.New("failed to generate RSA key")
 	}
 	return generateSelfSignedCertificateWithKeyInternal(cn, ips, alternateDNS, daysValid, priv)
 }
@@ -427,7 +428,7 @@ func generateSignedCertificate(
 ) (certificate, error) {
 	priv, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return certificate{}, fmt.Errorf("error generating rsa key: %s", err)
+		return certificate{}, errors.New("failed to generate RSA key")
 	}
 	return generateSignedCertificateWithKeyInternal(cn, ips, alternateDNS, daysValid, ca, priv)
 }
@@ -509,7 +510,7 @@ func getCertAndKey(
 		signingKey,
 	)
 	if err != nil {
-		return "", "", fmt.Errorf("error creating certificate: %s", err)
+		return "", "", errors.New("failed to create certificate")
 	}
 
 	certBuffer := bytes.Buffer{}
@@ -517,7 +518,8 @@ func getCertAndKey(
 		&certBuffer,
 		&pem.Block{Type: "CERTIFICATE", Bytes: derBytes},
 	); err != nil {
-		return "", "", fmt.Errorf("error pem-encoding certificate: %s", err)
+		// This needs to not be displayed verbatim.
+		return "", "", errors.New("failed to encode certificate")
 	}
 
 	keyBuffer := bytes.Buffer{}
@@ -525,7 +527,8 @@ func getCertAndKey(
 		&keyBuffer,
 		pemBlockForKey(signeeKey),
 	); err != nil {
-		return "", "", fmt.Errorf("error pem-encoding key: %s", err)
+		// This needs to not be displayed verbatim.
+		return "", "", errors.New("failed to encode private key")
 	}
 
 	return certBuffer.String(), keyBuffer.String(), nil
@@ -579,11 +582,11 @@ func getNetIPs(ips []interface{}) ([]net.IP, error) {
 	for i, ip := range ips {
 		ipStr, ok = ip.(string)
 		if !ok {
-			return nil, fmt.Errorf("error parsing ip: %v is not a string", ip)
+			return nil, errInvalidIP
 		}
 		netIP = net.ParseIP(ipStr)
 		if netIP == nil {
-			return nil, fmt.Errorf("error parsing ip: %s", ipStr)
+			return nil, errInvalidIP
 		}
 		netIPs[i] = netIP
 	}
@@ -600,10 +603,7 @@ func getAlternateDNSStrs(alternateDNS []interface{}) ([]string, error) {
 	for i, dns := range alternateDNS {
 		dnsStr, ok = dns.(string)
 		if !ok {
-			return nil, fmt.Errorf(
-				"error processing alternate dns name: %v is not a string",
-				dns,
-			)
+			return nil, errInvalidDNS
 		}
 		alternateDNSStrs[i] = dnsStr
 	}
