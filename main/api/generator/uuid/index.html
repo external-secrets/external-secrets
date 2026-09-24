@@ -5122,7 +5122,7 @@
 
   <h1>UUID</h1>
 
-<p>The UUID generator provides random UUIDs that you can feed into your applications. A UUID (Universally Unique Identifier) is a 128-bit label used for information in computer systems. Please see below for the format in use.</p>
+<p>The UUID generator provides random UUIDs that you can feed into your applications. A UUID (Universally Unique Identifier) is a 128-bit label used for information in computer systems. The generator produces version 4 (random) UUIDs as defined in <a href="https://www.rfc-editor.org/rfc/rfc9562">RFC 9562</a>, in the lowercase canonical form.</p>
 <h2 id="output-keys-and-values">Output Keys and Values</h2>
 <table>
 <thead>
@@ -5164,10 +5164,7 @@
 <span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;my-uuid&quot;</span>
 </code></pre></div>
 <p>Which will generate a <code>Kind=Secret</code> with a key called 'uuid' that may look like:</p>
-<div class="highlight"><pre><span></span><code>EA111697-E7D0-452C-A24C-8E396947E865
-</code></pre></div>
-<p>With default values you would get something like:</p>
-<div class="highlight"><pre><span></span><code>4BEE258F-64C9-4755-92DC-AFF76451471B
+<div class="highlight"><pre><span></span><code>21061816-abbd-40ef-8985-6db0fbcbc4c4
 </code></pre></div>
 
 
