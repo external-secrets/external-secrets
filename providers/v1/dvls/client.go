@@ -33,6 +33,7 @@ import (
 const (
 	errFailedToGetEntry = "failed to get entry: %w"
 	errVaultNotFound    = "vault %q was not found or has been deleted: %w"
+	errEntryMustExist   = "entry %s not found in vault %s: entry must exist before pushing secrets"
 )
 
 var errNotImplemented = errors.New("not implemented")
@@ -215,6 +216,13 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	switch {
 	case isVaultNotFoundError(err):
 		return fmt.Errorf(errVaultNotFound, vaultID, err)
+	case isNotFoundError(err) && c.vaultID == "":
+		// A store that sets no vault addresses entries as "<vault-uuid>/<entry-uuid>",
+		// which names one specific entry rather than a name and a path, so there is
+		// nothing to create from it. Setting vault would change how every other key
+		// on that store resolves, so it is not the advice to give here: report the
+		// miss exactly as this provider always has.
+		return fmt.Errorf(errEntryMustExist, entryID, vaultID)
 	case isNotFoundError(err):
 		// The reference resolved to an id the vault no longer has, so the name
 		// cache is stale. Drop it and create the entry the key asks for.
@@ -246,6 +254,10 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 // single field GetSecret reads back as "password", so a value pushed here is
 // readable by an ExternalSecret that sets no property. Any folder the path
 // names is created first, so that the entry lands in a tree that exists.
+//
+// A vault is a precondition, since an entry can only be placed by name within
+// one. PushSecret reports a miss on a store with no vault before it gets here;
+// the guard keeps the invariant local to the function that relies on it.
 func (c *Client) createEntry(ctx context.Context, remoteKey string, value []byte) error {
 	if c.vaultID == "" {
 		return fmt.Errorf("cannot create entry %q: the store must set a vault to address entries by name", remoteKey)
@@ -364,8 +376,6 @@ func (c *Client) ensureFolder(ctx context.Context, name, parent, fullPath string
 	return nil
 }
 
-// hasFolder reports whether entries holds the folder named name sitting
-// directly under parent.
 // hasFolder reports whether these entries contain the folder itself rather than
 // something merely near it. The server is asymmetric about Path: creating a
 // folder expects Path to name the parent it goes under, but reading one back

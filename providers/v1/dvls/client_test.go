@@ -993,16 +993,36 @@ func TestClient_PushSecret_CreateIsReadableByGetSecret(t *testing.T) {
 	assert.Equal(t, []byte("round-trip"), got)
 }
 
-func TestClient_PushSecret_CreateRequiresVault(t *testing.T) {
-	// The remote key has to parse as a legacy "<vault>/<entry>" pair, or the
-	// push fails on the reference long before it reaches the create path and
-	// the guard below goes untested.
+func TestClient_PushSecret_LegacyRefIsNeverCreated(t *testing.T) {
+	// A store with no vault addresses entries as "<vault-uuid>/<entry-uuid>",
+	// which names one specific entry rather than a name and a path. There is
+	// nothing to create from it, and telling the user to set a vault would be
+	// wrong: that flips resolveRef onto the name-and-path branch and every
+	// other key on the store would resolve differently. The push has to fail
+	// exactly as it did before creation existed.
 	mockCred := newMockCredentialClient(nil)
-	c := NewClient(mockCred, newMockFolderClient(), "")
+	mockFolder := newMockFolderClient()
+	c := NewClient(mockCred, mockFolder, "")
 	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
 	data := pushSecretDataStub{remoteKey: testVaultUUID + "/" + testEntryUUID, secretKey: "password"}
 
 	err := c.PushSecret(context.Background(), secret, data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "entry must exist before pushing secrets")
+	assert.Contains(t, err.Error(), testEntryUUID)
+	assert.Contains(t, err.Error(), testVaultUUID)
+	assert.NotContains(t, err.Error(), "must set a vault")
+	assert.Equal(t, 0, mockCred.created)
+	assert.Empty(t, mockFolder.created)
+}
+
+func TestClient_CreateEntry_RequiresVault(t *testing.T) {
+	// PushSecret reports the miss before it reaches createEntry on a store with
+	// no vault, so this covers the precondition where it lives.
+	mockCred := newMockCredentialClient(nil)
+	c := NewClient(mockCred, newMockFolderClient(), "")
+
+	err := c.createEntry(context.Background(), `prod\db\postgres`, []byte("pw"))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "must set a vault")
 	assert.Equal(t, 0, mockCred.created)
