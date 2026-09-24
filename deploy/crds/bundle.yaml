@@ -28807,6 +28807,11 @@ spec:
                           default: false
                           description: Set NoUpper to disable uppercase characters
                           type: boolean
+                        prefix:
+                          description: |-
+                            Prefix is prepended to every generated password after encoding.
+                            It is not counted in length or subject to the character settings.
+                          type: string
                         secretKeys:
                           description: |-
                             SecretKeys defines the keys that will be populated with generated passwords.
@@ -28815,6 +28820,11 @@ spec:
                             type: string
                           minItems: 1
                           type: array
+                        suffix:
+                          description: |-
+                            Suffix is appended to every generated password after encoding.
+                            It is not counted in length or subject to the character settings.
+                          type: string
                         symbolCharacters:
                           description: |-
                             SymbolCharacters specifies the special characters that should be used
@@ -31434,6 +31444,11 @@ spec:
                   default: false
                   description: Set NoUpper to disable uppercase characters
                   type: boolean
+                prefix:
+                  description: |-
+                    Prefix is prepended to every generated password after encoding.
+                    It is not counted in length or subject to the character settings.
+                  type: string
                 secretKeys:
                   description: |-
                     SecretKeys defines the keys that will be populated with generated passwords.
@@ -31442,6 +31457,11 @@ spec:
                     type: string
                   minItems: 1
                   type: array
+                suffix:
+                  description: |-
+                    Suffix is appended to every generated password after encoding.
+                    It is not counted in length or subject to the character settings.
+                  type: string
                 symbolCharacters:
                   description: |-
                     SymbolCharacters specifies the special characters that should be used
