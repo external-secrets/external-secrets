@@ -231,7 +231,7 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 			}
 		}
 	}
-	mergeCustomMetadata := func(s *vault.Secret) {
+	mergeCustomMetadata := func(s *vault.Secret, overwrite bool) {
 		if s == nil {
 			return
 		}
@@ -244,6 +244,9 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 			return
 		}
 		for k, v := range d {
+			if _, exists := metadata[k]; exists && !overwrite {
+				continue
+			}
 			if s, ok := v.(string); ok {
 				metadata[k] = s
 			} else {
@@ -251,15 +254,17 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 			}
 		}
 	}
-	mergeCustomMetadata(secret)
-	// consult the legacy path when the normalized path has no managed-by stamp
+	mergeCustomMetadata(secret, true)
+	// consult the legacy path when the normalized path has no managed-by stamp.
+	// the legacy entry is stale pre-fix data: it only fills keys missing from
+	// the corrected path and never overwrites corrected values.
 	if _, ok := metadata["managed-by"]; !ok {
 		legacySecret, legacyErr := tryLegacy()
 		if legacyErr != nil {
 			return nil, fmt.Errorf(errReadSecret, legacyErr)
 		}
 		if legacySecret != nil {
-			mergeCustomMetadata(legacySecret)
+			mergeCustomMetadata(legacySecret, false)
 		}
 	}
 	return metadata, nil

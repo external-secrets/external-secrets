@@ -892,6 +892,37 @@ func TestReadSecretMetadataLegacyFallback(t *testing.T) {
 				},
 			},
 		},
+		"LegacyFillsMissingKeysOnly": {
+			reason: "readSecretMetadata should keep corrected-path values on conflicting keys and only fill absent keys from the legacy path",
+			args: args{
+				store: func() *esv1.VaultProvider {
+					s := makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault
+					s.Path = &mount
+					return s
+				}(),
+				logical: &fake.Logical{
+					ReadWithDataWithContextFn: func(_ context.Context, p string, _ map[string][]string) (*vault.Secret, error) {
+						switch p {
+						case correctedURL:
+							return &vault.Secret{Data: map[string]any{
+								"custom_metadata": map[string]any{"owner": "team-a"},
+							}}, nil
+						case legacyURL:
+							return &vault.Secret{Data: map[string]any{
+								"custom_metadata": map[string]any{"owner": "team-old", "managed-by": "external-secrets"},
+							}}, nil
+						}
+						return nil, nil
+					},
+				},
+			},
+			want: want{
+				metadata: map[string]string{
+					"owner":      "team-a",
+					"managed-by": "external-secrets",
+				},
+			},
+		},
 		"LegacyNotConsultedWhenStampPresent": {
 			reason: "readSecretMetadata should not read the legacy path when the corrected path already carries the managed-by stamp",
 			args: args{
