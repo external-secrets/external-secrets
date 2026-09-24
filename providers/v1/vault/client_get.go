@@ -23,8 +23,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/tidwall/gjson"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/tidwall/gjson"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
@@ -217,16 +217,12 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 		}
 		return legacySecret, nil
 	}
+	// KV v2 auto-creates metadata at the corrected path whenever data is
+	// written there, so a nil read means the secret itself is gone. An
+	// orphaned legacy entry must not stand in for it (e.g. a managed-by
+	// stamp returned for a metadataPolicy: Fetch read of a deleted secret).
 	if secret == nil {
-		legacySecret, legacyErr := tryLegacy()
-		switch {
-		case legacyErr != nil:
-			return nil, fmt.Errorf(errReadSecret, legacyErr)
-		case legacySecret == nil:
-			return nil, errors.New(errNotFound)
-		default:
-			secret = legacySecret
-		}
+		return nil, errors.New(errNotFound)
 	}
 	if c.store.Version == esv1.VaultKVStoreV2 {
 		for _, key := range systemMetadataKeys {
@@ -256,13 +252,13 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 		}
 	}
 	mergeCustomMetadata(secret)
-	// consult the legacy path again when the detected path has no managed-by stamp
+	// consult the legacy path when the normalized path has no managed-by stamp
 	if _, ok := metadata["managed-by"]; !ok {
 		legacySecret, legacyErr := tryLegacy()
 		if legacyErr != nil {
 			return nil, fmt.Errorf(errReadSecret, legacyErr)
 		}
-		if legacySecret != nil && legacySecret != secret {
+		if legacySecret != nil {
 			mergeCustomMetadata(legacySecret)
 		}
 	}

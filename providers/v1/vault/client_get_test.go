@@ -849,7 +849,7 @@ func TestReadSecretMetadataLegacyFallback(t *testing.T) {
 	legacyURL := mount + "/metadata/" + key
 
 	type args struct {
-		store *esv1.VaultProvider
+		store   *esv1.VaultProvider
 		logical vaultutil.Logical
 	}
 	type want struct {
@@ -919,8 +919,8 @@ func TestReadSecretMetadataLegacyFallback(t *testing.T) {
 				},
 			},
 		},
-		"LegacyUsedWhenCorrectedMissing": {
-			reason: "readSecretMetadata should read the legacy path before giving up when the corrected path has no metadata",
+		"ErrNotFoundWhenCorrectedMissing": {
+			reason: "readSecretMetadata should return errNotFound when the corrected path has no metadata, even if an orphaned legacy entry exists (the secret itself is gone)",
 			args: args{
 				store: func() *esv1.VaultProvider {
 					s := makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault
@@ -939,9 +939,7 @@ func TestReadSecretMetadataLegacyFallback(t *testing.T) {
 				},
 			},
 			want: want{
-				metadata: map[string]string{
-					"managed-by": "external-secrets",
-				},
+				err: errors.New(errNotFound),
 			},
 		},
 	}
