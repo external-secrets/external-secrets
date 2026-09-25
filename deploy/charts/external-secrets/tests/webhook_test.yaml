@@ -598,3 +598,24 @@ tests:
             initialDelaySeconds: 5
             periodSeconds: 15
             failureThreshold: 40
+  - it: should not render ValidatingWebhookConfiguration when webhook.createValidatingWebhookConfiguration is false
+    set:
+      webhook.createValidatingWebhookConfiguration: false
+    templates:
+      - validatingwebhook.yaml
+    asserts:
+      - hasDocuments:
+          count: 0
+  - it: should still render the webhook deployment when webhook.createValidatingWebhookConfiguration is false
+    set:
+      webhook.createValidatingWebhookConfiguration: false
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - hasDocuments:
+          count: 1
+      - isKind:
+          of: Deployment
+      - equal:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-webhook

@@ -293,6 +293,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.certManager.cert.signatureAlgorithm | string | `""` | Specific settings on the signatureAlgorithm used on the cert. signatureAlgorithm is only valid for cert-manager v1.18.0+ |
 | webhook.certManager.enabled | bool | `false` | Enabling cert-manager support will disable the built in secret and switch to using cert-manager (installed separately) to automatically issue and renew the webhook certificate. This chart does not install cert-manager for you, See https://cert-manager.io/docs/ |
 | webhook.create | bool | `true` | Specifies whether a webhook deployment be created. If set to false, crds.conversion.enabled should also be set to false otherwise the kubeapi will be hammered because the conversion is looking for a webhook endpoint. |
+| webhook.createValidatingWebhookConfiguration | bool | `true` | Specifies whether the ValidatingWebhookConfiguration is created. Only takes effect when webhook.create is true. Set to false to run the webhook workload without registering the ValidatingWebhookConfiguration, e.g. when it is managed separately. |
 | webhook.deploymentAnnotations | object | `{}` | Annotations to add to Deployment |
 | webhook.extraArgs | object | `{}` |  |
 | webhook.extraEnv | list | `[]` |  |
