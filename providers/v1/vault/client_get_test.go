@@ -794,11 +794,27 @@ func TestGetSecretMetadataPath(t *testing.T) {
 			},
 		},
 		"PathForV2": {
-			reason: "path should compose with mount point if set without data",
+			reason: "path should compose with mount point if set and strip the mount prefix like buildPath does",
 			args: args{
 				store:    storeV2.Spec.Provider.Vault,
 				path:     "secret/path/data/test",
-				expected: "secret/path/metadata/secret/path/data/test",
+				expected: "secret/path/metadata/test",
+			},
+		},
+		"PathForV2MountPrefixed": {
+			reason: "path that only carries the mount prefix should still resolve under the mount",
+			args: args{
+				store:    storeV2.Spec.Provider.Vault,
+				path:     "secret/path/test",
+				expected: "secret/path/metadata/test",
+			},
+		},
+		"PathForV2PlainKey": {
+			reason: "plain key should compose with mount point",
+			args: args{
+				store:    storeV2.Spec.Provider.Vault,
+				path:     "test",
+				expected: "secret/path/metadata/test",
 			},
 		},
 		"PathForV2WithData": {
@@ -820,6 +836,157 @@ func TestGetSecretMetadataPath(t *testing.T) {
 			want, _ := vStore.buildMetadataPath(tc.args.path)
 			if diff := cmp.Diff(want, tc.args.expected); diff != "" {
 				t.Errorf("\n%s\nvault.buildPath(...): -want expected, +got error:\n%s", tc.reason, diff)
+			}
+		})
+	}
+}
+
+func TestReadSecretMetadataLegacyFallback(t *testing.T) {
+	const key = "secret/path/data/test"
+	mount := "secret/path"
+
+	correctedURL := mount + "/metadata/test"
+	legacyURL := mount + "/metadata/" + key
+
+	type args struct {
+		store   *esv1.VaultProvider
+		logical vaultutil.Logical
+	}
+	type want struct {
+		metadata map[string]string
+		err      error
+	}
+	cases := map[string]struct {
+		reason string
+		args   args
+		want   want
+	}{
+		"LegacyMetadataUsedWhenStampMissing": {
+			reason: "readSecretMetadata should fall back to the mount-prefixed path when the corrected path has no managed-by stamp",
+			args: args{
+				store: func() *esv1.VaultProvider {
+					s := makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault
+					s.Path = &mount
+					return s
+				}(),
+				logical: &fake.Logical{
+					ReadWithDataWithContextFn: func(_ context.Context, p string, _ map[string][]string) (*vault.Secret, error) {
+						switch p {
+						case correctedURL:
+							return &vault.Secret{Data: map[string]any{
+								"custom_metadata": map[string]any{"owner": "team-a"},
+							}}, nil
+						case legacyURL:
+							return &vault.Secret{Data: map[string]any{
+								"custom_metadata": map[string]any{"managed-by": "external-secrets"},
+							}}, nil
+						}
+						return nil, nil
+					},
+				},
+			},
+			want: want{
+				metadata: map[string]string{
+					"owner":      "team-a",
+					"managed-by": "external-secrets",
+				},
+			},
+		},
+		"LegacyFillsMissingKeysOnly": {
+			reason: "readSecretMetadata should keep corrected-path values on conflicting keys and only fill absent keys from the legacy path",
+			args: args{
+				store: func() *esv1.VaultProvider {
+					s := makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault
+					s.Path = &mount
+					return s
+				}(),
+				logical: &fake.Logical{
+					ReadWithDataWithContextFn: func(_ context.Context, p string, _ map[string][]string) (*vault.Secret, error) {
+						switch p {
+						case correctedURL:
+							return &vault.Secret{Data: map[string]any{
+								"custom_metadata": map[string]any{"owner": "team-a"},
+							}}, nil
+						case legacyURL:
+							return &vault.Secret{Data: map[string]any{
+								"custom_metadata": map[string]any{"owner": "team-old", "managed-by": "external-secrets"},
+							}}, nil
+						}
+						return nil, nil
+					},
+				},
+			},
+			want: want{
+				metadata: map[string]string{
+					"owner":      "team-a",
+					"managed-by": "external-secrets",
+				},
+			},
+		},
+		"LegacyNotConsultedWhenStampPresent": {
+			reason: "readSecretMetadata should not read the legacy path when the corrected path already carries the managed-by stamp",
+			args: args{
+				store: func() *esv1.VaultProvider {
+					s := makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault
+					s.Path = &mount
+					return s
+				}(),
+				logical: &fake.Logical{
+					ReadWithDataWithContextFn: func(_ context.Context, p string, _ map[string][]string) (*vault.Secret, error) {
+						if p == legacyURL {
+							return &vault.Secret{Data: map[string]any{
+								"custom_metadata": map[string]any{"managed-by": "stale"},
+							}}, nil
+						}
+						return &vault.Secret{Data: map[string]any{
+							"custom_metadata": map[string]any{"managed-by": "external-secrets"},
+						}}, nil
+					},
+				},
+			},
+			want: want{
+				metadata: map[string]string{
+					"managed-by": "external-secrets",
+				},
+			},
+		},
+		"ErrNotFoundWhenCorrectedMissing": {
+			reason: "readSecretMetadata should return errNotFound when the corrected path has no metadata, even if an orphaned legacy entry exists (the secret itself is gone)",
+			args: args{
+				store: func() *esv1.VaultProvider {
+					s := makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault
+					s.Path = &mount
+					return s
+				}(),
+				logical: &fake.Logical{
+					ReadWithDataWithContextFn: func(_ context.Context, p string, _ map[string][]string) (*vault.Secret, error) {
+						if p == legacyURL {
+							return &vault.Secret{Data: map[string]any{
+								"custom_metadata": map[string]any{"managed-by": "external-secrets"},
+							}}, nil
+						}
+						return nil, nil
+					},
+				},
+			},
+			want: want{
+				err: errors.New(errNotFound),
+			},
+		},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			client := &client{
+				logical: tc.args.logical,
+				store:   tc.args.store,
+			}
+			got, err := client.readSecretMetadata(context.Background(), key)
+			if diff := cmp.Diff(err, tc.want.err, EquateErrors()); diff != "" {
+				t.Errorf("\n%s\nvault.readSecretMetadata(...): -want error, +got error:\n%s", tc.reason, diff)
+			}
+			if diff := cmp.Diff(got, tc.want.metadata); diff != "" {
+				t.Errorf("\n%s\nvault.readSecretMetadata(...): -want metadata, +got metadata:\n%s", tc.reason, diff)
 			}
 		})
 	}
