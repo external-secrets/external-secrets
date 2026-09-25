@@ -4630,6 +4630,9 @@ spec:
                             - yaml
                             - docker
                           type: string
+                        host:
+                          description: Doppler API host, which must use https (defaults to https://api.doppler.com, overrides the DOPPLER_BASE_URL environment variable)
+                          type: string
                         nameTransformer:
                           description: Environment variable compatible name transforms that change secret names to a different format
                           enum:
@@ -11128,6 +11131,9 @@ spec:
                             - env
                             - yaml
                             - docker
+                          type: string
+                        host:
+                          description: Doppler API host, which must use https (defaults to https://api.doppler.com, overrides the DOPPLER_BASE_URL environment variable)
                           type: string
                         nameTransformer:
                           description: Environment variable compatible name transforms that change secret names to a different format
@@ -18081,6 +18087,9 @@ spec:
                             - yaml
                             - docker
                           type: string
+                        host:
+                          description: Doppler API host, which must use https (defaults to https://api.doppler.com, overrides the DOPPLER_BASE_URL environment variable)
+                          type: string
                         nameTransformer:
                           description: Environment variable compatible name transforms that change secret names to a different format
                           enum:
@@ -24579,6 +24588,9 @@ spec:
                             - env
                             - yaml
                             - docker
+                          type: string
+                        host:
+                          description: Doppler API host, which must use https (defaults to https://api.doppler.com, overrides the DOPPLER_BASE_URL environment variable)
                           type: string
                         nameTransformer:
                           description: Environment variable compatible name transforms that change secret names to a different format

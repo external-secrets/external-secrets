@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -163,4 +164,57 @@ func TestNewOIDCTokenManager_ValidConfig(t *testing.T) {
 	)
 
 	assert.NotNil(t, manager)
+}
+
+// TestNewOIDCTokenManager_BaseURL checks that OIDC token exchange targets the
+// host configured on the store, falling back to the environment override and
+// then to the public API.
+func TestNewOIDCTokenManager_BaseURL(t *testing.T) {
+	const (
+		defaultHost = "https://api.doppler.com"
+		storeHost   = "https://doppler.internal.example.com"
+		envHost     = "https://doppler-env.example.com"
+	)
+
+	testCases := []struct {
+		label    string
+		host     string
+		envHost  string
+		expected string
+	}{
+		{label: "defaults to the public Doppler API", expected: defaultHost},
+		{label: "uses the host from the store", host: storeHost, expected: storeHost},
+		{label: "falls back to the environment override", envHost: envHost, expected: envHost},
+		{label: "store host takes precedence over the environment override", host: storeHost, envHost: envHost, expected: storeHost},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.label, func(t *testing.T) {
+			t.Setenv(customBaseURLEnvVar, tc.envHost)
+			if tc.envHost == "" {
+				os.Unsetenv(customBaseURLEnvVar)
+			}
+
+			store := &esv1.DopplerProvider{
+				Host: tc.host,
+				Auth: &esv1.DopplerAuth{
+					OIDCConfig: &esv1.DopplerOIDCAuth{
+						Identity:          "test-identity",
+						ServiceAccountRef: esmeta.ServiceAccountSelector{Name: "test-sa"},
+					},
+				},
+			}
+
+			manager := NewOIDCTokenManager(
+				fake.NewSimpleClientset().CoreV1(),
+				store,
+				"default",
+				esv1.SecretStoreKind,
+				"test-store",
+			)
+
+			assert.NotNil(t, manager)
+			assert.Equal(t, tc.expected, manager.BaseURL)
+		})
+	}
 }

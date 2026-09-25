@@ -4398,6 +4398,18 @@ string
 </tr>
 <tr>
 <td>
+<code>host</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Doppler API host, which must use https (defaults to <a href="https://api.doppler.com">https://api.doppler.com</a>, overrides the DOPPLER_BASE_URL environment variable)</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>nameTransformer</code></br>
 <em>
 string
@@ -19377,6 +19389,18 @@ string
 <td>
 <em>(Optional)</em>
 <p>Doppler config (required if not using a Service Token)</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>host</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Doppler API host, which must use https (defaults to <a href="https://api.doppler.com">https://api.doppler.com</a>, overrides the DOPPLER_BASE_URL environment variable)</p>
 </td>
 </tr>
 <tr>
