@@ -1562,6 +1562,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#prefix-and-suffix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefix and Suffix
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -5178,6 +5189,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#prefix-and-suffix" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Prefix and Suffix
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -5270,6 +5292,16 @@
 <td>encoding</td>
 <td>raw</td>
 <td>Encoding format for the generated password. Valid values: <code>raw</code>, <code>base64</code>, <code>base64url</code>, <code>base32</code>, <code>hex</code>.</td>
+</tr>
+<tr>
+<td>prefix</td>
+<td></td>
+<td>Literal string prepended to each password after encoding. See <a href="#prefix-and-suffix">Prefix and Suffix</a>.</td>
+</tr>
+<tr>
+<td>suffix</td>
+<td></td>
+<td>Literal string appended to each password after encoding. See <a href="#prefix-and-suffix">Prefix and Suffix</a>.</td>
 </tr>
 </tbody>
 </table>
@@ -5398,6 +5430,20 @@ Vk9*mwXE30Q+&gt;H?lY$5I64_q
 <p><strong>base64url</strong>: <code>VGVzdD4-UGFzcz8_d29yZA==</code> uses <code>-</code> and <code>_</code> in place of <code>+</code> and <code>/</code> (URL-safe), and still uses <code>=</code> padding</p>
 </li>
 </ul>
+<h2 id="prefix-and-suffix">Prefix and Suffix</h2>
+<p>Some systems expect credentials in a fixed shape, such as Garage access keys, which are <code>GK</code> followed by 24 hex characters. <code>prefix</code> and <code>suffix</code> add literal text around each generated password:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Password</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">garage-access-key</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># 12 random characters, hex encoded to 24 characters</span>
+<span class="w">  </span><span class="nt">length</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">12</span>
+<span class="w">  </span><span class="nt">encoding</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">hex</span>
+<span class="w">  </span><span class="nt">prefix</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GK</span>
+</code></pre></div>
+<p>This produces a value such as <code>GK7fa2c8d1e4b671aa9f3d8c22</code>.</p>
+<p>The prefix and suffix are added after <code>encoding</code>, so they are never encoded themselves. They are not counted in <code>length</code> and are not affected by <code>digits</code>, <code>symbols</code>, <code>symbolCharacters</code>, <code>noUpper</code> or <code>allowRepeat</code>. With <code>secretKeys</code>, every key gets the same prefix and suffix.</p>
 
 
 
