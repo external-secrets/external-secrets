@@ -17,8 +17,10 @@ limitations under the License.
 package controller
 
 import (
+	"context"
 	"crypto/tls"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -317,12 +319,8 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-		if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
-			setupLog.Error(err, "unable to add controller healthz check")
-			os.Exit(1)
-		}
-		if err := mgr.AddReadyzCheck("readyz", healthz.Ping); err != nil {
-			setupLog.Error(err, "unable to add controller readyz check")
+		if err := setupHealthChecks(mgr); err != nil {
+			setupLog.Error(err, "unable to add health checks")
 			os.Exit(1)
 		}
 
@@ -407,6 +405,37 @@ func init() {
 	fs := feature.Features()
 	for _, f := range fs {
 		rootCmd.Flags().AddFlagSet(f.Flags)
+	}
+}
+
+// setupHealthChecks registers the liveness and readiness probes on mgr.
+func setupHealthChecks(mgr ctrl.Manager) error {
+	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
+		return err
+	}
+	return mgr.AddReadyzCheck("readyz", cacheSyncChecker(mgr.GetCache()))
+}
+
+// cacheWaiter is the minimal interface required by cacheSyncChecker, satisfied
+// by controller-runtime's cache.Cache.
+type cacheWaiter interface {
+	WaitForCacheSync(ctx context.Context) bool
+}
+
+// cacheSyncChecker returns a readiness Checker that reports "not ready" until
+// the controller-runtime informer cache has completed its initial sync.
+func cacheSyncChecker(c cacheWaiter) healthz.Checker {
+	return func(req *http.Request) error {
+		ctx := context.Background()
+		if req != nil {
+			ctx = req.Context()
+		}
+		ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
+		defer cancel()
+		if c.WaitForCacheSync(ctx) {
+			return nil
+		}
+		return fmt.Errorf("cache not yet synced")
 	}
 }
 
