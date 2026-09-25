@@ -65,7 +65,9 @@ func TestAPIErrorError(t *testing.T) {
 // Doppler API response must yield an error naming the HTTP status, without
 // leaking the request endpoint.
 func TestPerformRequestSurfacesStatus(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	// TLS, because SetBaseURL only accepts https. The certificate is
+	// self-signed, hence VerifyTLS false.
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		_, _ = w.Write([]byte(`{"messages":["Invalid Auth token"],"success":false}`))
@@ -76,6 +78,7 @@ func TestPerformRequestSurfacesStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDopplerClient: %v", err)
 	}
+	c.VerifyTLS = false
 	if err := c.SetBaseURL(server.URL); err != nil {
 		t.Fatalf("SetBaseURL: %v", err)
 	}
@@ -93,5 +96,47 @@ func TestPerformRequestSurfacesStatus(t *testing.T) {
 	}
 	if strings.Contains(got, "/v3/projects") {
 		t.Errorf("error %q should not surface the request endpoint", got)
+	}
+}
+
+// TestSetBaseURL covers scheme defaulting and the two rejections: a host that
+// parses but names no host, and a scheme other than https.
+func TestSetBaseURL(t *testing.T) {
+	testCases := []struct {
+		label    string
+		urlStr   string
+		expected string
+		wantErr  string
+	}{
+		{label: "keeps an https url", urlStr: "https://doppler.internal.example.com", expected: "https://doppler.internal.example.com"},
+		{label: "trims a trailing slash", urlStr: "https://doppler.internal.example.com/", expected: "https://doppler.internal.example.com"},
+		{label: "defaults the scheme of a bare host", urlStr: "doppler.internal.example.com", expected: "https://doppler.internal.example.com"},
+		{label: "defaults the scheme of a bare host with a port", urlStr: "doppler.internal.example.com:8443", expected: "https://doppler.internal.example.com:8443"},
+		{label: "rejects a missing hostname", urlStr: "/", wantErr: "missing hostname"},
+		{label: "rejects a plain http url", urlStr: "http://doppler.internal.example.com", wantErr: "scheme must be https"},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.label, func(t *testing.T) {
+			c := &DopplerClient{}
+			err := c.SetBaseURL(tc.urlStr)
+
+			if tc.wantErr != "" {
+				if err == nil {
+					t.Fatalf("want err containing %q, got nil", tc.wantErr)
+				}
+				if !strings.Contains(err.Error(), tc.wantErr) {
+					t.Errorf("error %q does not contain %q", err, tc.wantErr)
+				}
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("want nil got err %v", err)
+			}
+			if got := c.BaseURL().String(); got != tc.expected {
+				t.Errorf("test failed! want %v, got %v", tc.expected, got)
+			}
+		})
 	}
 }

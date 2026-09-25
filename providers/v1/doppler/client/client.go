@@ -155,6 +155,10 @@ func (c *DopplerClient) SetBaseURL(urlStr string) error {
 		return errors.New("missing hostname")
 	}
 
+	if baseURL.Scheme != "https" {
+		return fmt.Errorf("scheme must be https, got %q", baseURL.Scheme)
+	}
+
 	c.baseURL = baseURL
 	return nil
 }

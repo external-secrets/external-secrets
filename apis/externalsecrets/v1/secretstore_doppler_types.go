@@ -72,7 +72,7 @@ type DopplerProvider struct {
 	// +optional
 	Config string `json:"config,omitempty"`
 
-	// Doppler API host (defaults to https://api.doppler.com, overrides the DOPPLER_BASE_URL environment variable)
+	// Doppler API host, which must use https (defaults to https://api.doppler.com, overrides the DOPPLER_BASE_URL environment variable)
 	// +optional
 	Host string `json:"host,omitempty"`
 
