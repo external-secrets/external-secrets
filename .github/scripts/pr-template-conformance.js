@@ -100,6 +100,21 @@ function stripFences(text) {
 }
 
 /**
+ * Drop HTML comments before section/heading scanning, so text a contributor
+ * wrapped in `<!-- -->` (rendered invisible by GitHub) cannot satisfy the
+ * checklist or AI-disclosure checks below: the script reads the raw body
+ * text, which still contains a hidden comment's content verbatim, but a
+ * maintainer reading the rendered pull request never sees it. An unclosed
+ * comment runs to end of text, matching how GitHub itself renders one.
+ * Runs before stripFences so example fence markers written inside a hidden
+ * comment (e.g. documentation showing comment syntax) can't be mistaken for
+ * a real, unclosed fence that then eats real content after it.
+ */
+function stripHiddenContent(text) {
+  return text.replace(/<!--[\s\S]*?(?:-->|$)/g, '');
+}
+
+/**
  * Lowercase, strip markdown emphasis and punctuation, collapse whitespace.
  * Two headings or items that differ only in styling or trailing
  * punctuation must still be treated as the same one.
@@ -120,7 +135,7 @@ export function normalise(text) {
  * that was deleted outright has nothing in it to satisfy the checks below.
  */
 export function extractSection(text, heading) {
-  const lines = stripFences(text).split('\n');
+  const lines = stripFences(stripHiddenContent(text)).split('\n');
   const target = normalise(heading);
   let capturing = false;
   const collected = [];
