@@ -30,12 +30,16 @@ type ClusterGeneratorSpec struct {
 }
 
 // GeneratorKind represents a kind of generator.
-// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;CloudsmithAccessToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;GitlabDeployToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
+// +kubebuilder:validation:Enum=ACRAccessToken;BeyondtrustWorkloadCredentialsDynamicSecret;CloudsmithAccessToken;CodeArtifactAuthorizationToken;ECRAuthorizationToken;Fake;GCRAccessToken;GithubAccessToken;GitlabDeployToken;QuayAccessToken;Password;SSHKey;STSSessionToken;UUID;VaultDynamicSecret;Webhook;Grafana;MFA
+//
+//nolint:lll // kubebuilder Enum markers must fit on a single line
 type GeneratorKind string
 
 const (
 	// GeneratorKindACRAccessToken represents an Azure Container Registry access token generator.
 	GeneratorKindACRAccessToken GeneratorKind = "ACRAccessToken"
+	// GeneratorKindCodeArtifactAuthorizationToken represents an AWS CodeArtifact authorization token generator.
+	GeneratorKindCodeArtifactAuthorizationToken GeneratorKind = "CodeArtifactAuthorizationToken"
 	// GeneratorKindECRAuthorizationToken represents an AWS ECR authorization token generator.
 	GeneratorKindECRAuthorizationToken GeneratorKind = "ECRAuthorizationToken"
 	// GeneratorKindFake represents a fake generator for testing purposes.
@@ -77,6 +81,7 @@ type GeneratorSpec struct {
 	ACRAccessTokenSpec                              *ACRAccessTokenSpec                              `json:"acrAccessTokenSpec,omitempty"`
 	BeyondtrustWorkloadCredentialsDynamicSecretSpec *BeyondtrustWorkloadCredentialsDynamicSecretSpec `json:"beyondtrustWorkloadCredentialsDynamicSecretSpec,omitempty"`
 	CloudsmithAccessTokenSpec                       *CloudsmithAccessTokenSpec                       `json:"cloudsmithAccessTokenSpec,omitempty"`
+	CodeArtifactAuthorizationTokenSpec              *CodeArtifactAuthorizationTokenSpec              `json:"codeArtifactAuthorizationTokenSpec,omitempty"`
 	ECRAuthorizationTokenSpec                       *ECRAuthorizationTokenSpec                       `json:"ecrAuthorizationTokenSpec,omitempty"`
 	FakeSpec                                        *FakeSpec                                        `json:"fakeSpec,omitempty"`
 	GCRAccessTokenSpec                              *GCRAccessTokenSpec                              `json:"gcrAccessTokenSpec,omitempty"`

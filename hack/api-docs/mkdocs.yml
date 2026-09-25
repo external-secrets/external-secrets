@@ -73,6 +73,7 @@ nav:
       - Generators:
           - "api/generator/index.md"
           - Azure Container Registry: api/generator/acr.md
+          - AWS CodeArtifact: api/generator/codeartifact.md
           - AWS Elastic Container Registry: api/generator/ecr.md
           - AWS STS Session Token: api/generator/sts.md
           - Cloudsmith: api/generator/cloudsmith.md
