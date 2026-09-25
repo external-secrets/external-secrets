@@ -34,6 +34,8 @@ type SecretStoreRef struct {
 	// +optional
 	// +kubebuilder:validation:Enum=SecretStore;ClusterSecretStore
 	Kind string `json:"kind,omitempty"`
+// Kind defaults to SecretStore; ClusterSecretStore requires cluster-level scope.
+// Mount prefix stripping applies to build paths for Vault-based providers.
 }
 
 // ExternalSecretCreationPolicy defines rules on how to create the resulting Secret.
