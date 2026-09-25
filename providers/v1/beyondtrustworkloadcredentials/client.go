@@ -32,14 +32,13 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/httpclient"
 	btwcutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/util"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 const (
 	// ErrMsgNotImplemented is the error message for unimplemented methods.
 	ErrMsgNotImplemented = "not implemented: %s"
 
-	// validationTimeout is the timeout for SecretStore validation operations (network check and session validation).
+	// validationTimeout is the timeout for SecretStore session validation.
 	// Set to 15 seconds to balance between allowing sufficient time for API responses and failing fast on connectivity issues.
 	validationTimeout = 15 * time.Second
 )
@@ -62,17 +61,6 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	// Check for nil beyondtrustWorkloadCredentialsClient
 	if c.beyondtrustWorkloadCredentialsClient == nil {
 		return esv1.ValidationResultError, fmt.Errorf("beyondtrustWorkloadCredentialsClient is not initialized")
-	}
-
-	// Check for nil BaseURL
-	baseURL := c.beyondtrustWorkloadCredentialsClient.BaseURL()
-	if baseURL == nil {
-		return esv1.ValidationResultError, fmt.Errorf("base URL is not configured")
-	}
-
-	clientURL := baseURL.String()
-	if err := esutils.NetworkValidate(clientURL, validationTimeout); err != nil {
-		return esv1.ValidationResultError, err
 	}
 
 	// Validate authentication by checking session

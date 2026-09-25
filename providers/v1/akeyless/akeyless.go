@@ -81,7 +81,6 @@ type akeylessBase struct {
 // Akeyless represents a client for the Akeyless Vault service.
 type Akeyless struct {
 	Client akeylessVaultInterface
-	url    string
 }
 
 type akeylessVaultInterface interface {
@@ -246,7 +245,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	akl.akeylessGwAPIURL = akeylessGwAPIURL
 	akl.ignoreCache = ignoreCacheEnabled(spec)
 	akl.RestAPI = RestAPIClient
-	return &Akeyless{Client: akl, url: akeylessGwAPIURL}, nil
+	return &Akeyless{Client: akl}, nil
 }
 
 func (a *Akeyless) contextWithToken(ctx context.Context) (context.Context, error) {
@@ -265,13 +264,13 @@ func (a *Akeyless) Close(_ context.Context) error {
 	return nil
 }
 
-// Validate validates the Akeyless connection by testing network connectivity.
+// Validate validates Akeyless credentials via the same HTTP auth path used for sync.
 func (a *Akeyless) Validate() (esv1.ValidationResult, error) {
-	timeout := 15 * time.Second
-	serviceURL := a.url
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
 
-	if err := esutils.NetworkValidate(serviceURL, timeout); err != nil {
-		return esv1.ValidationResultError, err
+	if _, err := a.Client.TokenFromSecretRef(ctx); err != nil {
+		return esv1.ValidationResultError, fmt.Errorf("failed to validate credentials: %w", err)
 	}
 
 	return esv1.ValidationResultReady, nil
