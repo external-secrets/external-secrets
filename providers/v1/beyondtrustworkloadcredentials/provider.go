@@ -261,11 +261,13 @@ func fetchServerValuesFromSpec(ctx context.Context, spec *esv1.BeyondtrustWorklo
 		return "", "", fmt.Errorf("failed to load server URL configuration: %w", err)
 	}
 
-	// Normalize baseURL by removing trailing slash to prevent double slashes
-	baseURL = strings.TrimRight(baseURL, "/")
-	serverURL := fmt.Sprintf("%s/%s/secrets", baseURL, siteID)
+	return siteServerURL(baseURL, siteID), apiKey, nil
+}
 
-	return serverURL, apiKey, nil
+// siteServerURL is the root of the site's Workload Credentials API: {apiUrl}/{siteId}/wlc.
+func siteServerURL(baseURL, siteID string) string {
+	// Normalize baseURL by removing trailing slash to prevent double slashes
+	return fmt.Sprintf("%s/%s/wlc", strings.TrimRight(baseURL, "/"), siteID)
 }
 
 // NewProvider creates a new Provider instance.
