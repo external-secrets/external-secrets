@@ -30182,6 +30182,32 @@ Valid values are:
 - &ldquo;hex&rdquo;: hexadecimal encoding</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix is prepended to every generated password after encoding.
+It is not counted in length or subject to the character settings.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>suffix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Suffix is appended to every generated password after encoding.
+It is not counted in length or subject to the character settings.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -30303,6 +30329,32 @@ Valid values are:
 - &ldquo;base64url&rdquo;: base64url encoding
 - &ldquo;base32&rdquo;: base32 encoding
 - &ldquo;hex&rdquo;: hexadecimal encoding</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix is prepended to every generated password after encoding.
+It is not counted in length or subject to the character settings.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>suffix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Suffix is appended to every generated password after encoding.
+It is not counted in length or subject to the character settings.</p>
 </td>
 </tr>
 </tbody>
