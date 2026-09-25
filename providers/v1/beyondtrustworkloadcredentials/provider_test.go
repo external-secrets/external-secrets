@@ -660,3 +660,37 @@ func TestGetSecretMap(t *testing.T) {
 		})
 	}
 }
+
+func TestSiteServerURL(t *testing.T) {
+	const siteID = "d6878b18-039a-4011-a1e4-a4523dbd4837"
+
+	tests := []struct {
+		name    string
+		baseURL string
+		want    string
+	}{
+		{
+			name:    "addresses the Workload Credentials path under the site",
+			baseURL: "https://api.beyondtrust.io/site",
+			want:    "https://api.beyondtrust.io/site/" + siteID + "/wlc",
+		},
+		{
+			name:    "drops a trailing slash on the base URL",
+			baseURL: "https://api.beyondtrust.io/site/",
+			want:    "https://api.beyondtrust.io/site/" + siteID + "/wlc",
+		},
+		{
+			name:    "drops repeated trailing slashes on the base URL",
+			baseURL: "https://api.beyondtrust.io/site//",
+			want:    "https://api.beyondtrust.io/site/" + siteID + "/wlc",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if diff := cmp.Diff(tt.want, siteServerURL(tt.baseURL, siteID)); diff != "" {
+				t.Errorf("siteServerURL() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
