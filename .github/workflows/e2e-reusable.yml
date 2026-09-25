@@ -160,9 +160,9 @@ jobs:
         run: git fetch --prune --unshallow
 
       - name: Free Disk Space
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
+        uses: jlumbroso/free-disk-space@ceedf095f4ec1a097402bc6bd80831f2e1a6fde6 # v2.0.0
         with:
-          tool-cache: true
+          preinstalled-runtimes: true
           android: true
           dotnet: true
           haskell: true
@@ -196,7 +196,7 @@ jobs:
           restore-keys: ${{ runner.os }}-pkg-
 
       - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
         with:
           install: true
 

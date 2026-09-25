@@ -295,6 +295,9 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRem
 		}
 	}
 	value, err := a.Client.GetSecretByType(ctx, ref.Key, version)
+	if errors.Is(err, ErrItemNotExists) {
+		return nil, esv1.NoSecretErr
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -434,7 +437,7 @@ func (a *Akeyless) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRe
 		return false, errors.New(errUninitalizedAkeylessProvider)
 	}
 	secret, err := a.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: ref.GetRemoteKey()})
-	if errors.Is(err, ErrItemNotExists) {
+	if errors.Is(err, esv1.NoSecretErr) {
 		return false, nil
 	}
 	if err != nil {
@@ -472,7 +475,7 @@ func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd es
 		return err
 	}
 	secretRemote, err := a.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: psd.GetRemoteKey()})
-	isNotExists := errors.Is(err, ErrItemNotExists)
+	isNotExists := errors.Is(err, esv1.NoSecretErr)
 	if err != nil && !isNotExists {
 		return err
 	}
