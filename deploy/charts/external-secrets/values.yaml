@@ -256,6 +256,9 @@ rbac:
 ## -- Extra environment variables to add to container.
 extraEnv: []
 
+## -- Extra environment variables from sources to add to container.
+extraEnvFrom: []
+
 ## -- Map of extra arguments to pass to container.
 extraArgs: {}
 
@@ -739,6 +742,9 @@ webhook:
     ## -- Extra environment variables to add to container.
   extraEnv: []
 
+    ## -- Extra environment variables from sources to add to container.
+  extraEnvFrom: []
+
     ## -- Map of extra arguments to pass to container.
   extraArgs: {}
 
@@ -968,6 +974,9 @@ certController:
 
     ## -- Extra environment variables to add to container.
   extraEnv: []
+
+    ## -- Extra environment variables from sources to add to container.
+  extraEnvFrom: []
 
     ## -- Map of extra arguments to pass to container.
   extraArgs: {}
