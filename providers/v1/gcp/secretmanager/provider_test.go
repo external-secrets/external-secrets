@@ -253,6 +253,26 @@ func TestClusterProjectIDDefaultCredentials(t *testing.T) {
 	})
 }
 
+func TestResolveEndpoint(t *testing.T) {
+	tests := []struct {
+		name     string
+		envValue string
+		location string
+		want     string
+	}{
+		{"no override and no location returns empty", "", "", ""},
+		{"location only uses the regional endpoint pattern", "", "us-east1", "secretmanager.us-east1.rep.googleapis.com:443"},
+		{"env override only uses the literal override", "secretmanager.example-sovereign-endpoint.goog:443", "", "secretmanager.example-sovereign-endpoint.goog:443"},
+		{"env override takes precedence over location", "secretmanager.example-sovereign-endpoint.goog:443", "us-east1", "secretmanager.example-sovereign-endpoint.goog:443"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Setenv(endpointOverrideEnvVar, tt.envValue)
+			assert.Equal(t, tt.want, resolveEndpoint(tt.location))
+		})
+	}
+}
+
 func TestValidateStoreNilGCPSM(t *testing.T) {
 	p := &Provider{}
 
