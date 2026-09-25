@@ -1,0 +1,36 @@
+suite: test notes
+templates:
+  - NOTES.txt
+tests:
+  - it: should not warn with default values
+    asserts:
+      - notMatchRegexRaw:
+          pattern: leaderElect is false
+  - it: should warn when replicaCount > 1 without leader election
+    set:
+      replicaCount: 2
+    asserts:
+      - matchRegexRaw:
+          pattern: "WARNING: replicaCount is 2 but leaderElect is false"
+  - it: should warn when certController.replicaCount > 1 without leader election
+    set:
+      certController.replicaCount: 2
+    asserts:
+      - matchRegexRaw:
+          pattern: "WARNING: certController.replicaCount is 2 but leaderElect is false"
+  - it: should not warn when leader election is enabled
+    set:
+      replicaCount: 2
+      certController.replicaCount: 2
+      leaderElect: true
+    asserts:
+      - notMatchRegexRaw:
+          pattern: leaderElect is false
+  - it: should not warn for cert controller when cert-manager is used
+    set:
+      certController.replicaCount: 2
+      webhook.certManager.enabled: true
+      webhook.certManager.cert.create: false
+    asserts:
+      - notMatchRegexRaw:
+          pattern: leaderElect is false
