@@ -387,6 +387,18 @@ or `Kind=ClusterSecretStore` resource.
 set of AWS Programmatic access credentials stored in a `Kind=Secret` and referenced by the
 `secretRef` or by getting the authentication token from an [IRSA](https://docs.aws.amazon.com/eks/latest/userguide/iam-roles-for-service-accounts.html) enabled service account
 
+#### GCP authentication
+
+[GCP auth method](https://developer.hashicorp.com/vault/docs/auth/gcp) allows authentication with Vault using Google Cloud credentials. External Secrets Operator supports several GCP authentication mechanisms:
+- **Workload Identity Federation (WIF)** (`workloadIdentityFederation`): Authenticates from clusters outside GCP (e.g. AWS EKS, Azure AKS, on-premises Kubernetes) or GKE by exchanging tokens via Google Cloud STS, eliminating static service account keys.
+- **Workload Identity** (`workloadIdentity`): Authenticates using GKE native Workload Identity.
+- **Service Account Key** (`secretRef`): Authenticates using a static GCP service account key JSON stored in a Kubernetes secret.
+- **Default ADC / GCE**: Falls back to Application Default Credentials from the pod environment.
+
+```yaml
+{% include 'vault-gcp-wif-store.yaml' %}
+```
+
 #### TLS certificates authentication
 
 [TLS certificates auth method](https://developer.hashicorp.com/vault/docs/auth/cert) allows authentication using SSL/TLS client certificates which are either signed by a CA or self-signed. SSL/TLS client certificates are defined as having an ExtKeyUsage extension with the usage set to either ClientAuth or Any.

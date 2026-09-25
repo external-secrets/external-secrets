@@ -205,7 +205,25 @@ func TestSetupGCPAuthPriority(t *testing.T) {
 			description: "WorkloadIdentity should be tried when SecretRef is nil",
 		},
 		{
-			name: "ServiceAccountRef third priority",
+			name: "WorkloadIdentityFederation third priority",
+			gcpAuth: &esv1.VaultGCPAuth{
+				Role:      "test-role",
+				ProjectID: "test-project",
+				WorkloadIdentityFederation: &esv1.GCPWorkloadIdentityFederation{
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name: "test-sa",
+					},
+					Audience: "//iam.googleapis.com/projects/123/locations/global/workloadIdentityPools/pool/providers/provider",
+				},
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{
+					Name: "test-sa",
+				},
+			},
+			expectError: true, // Will fail because WIF setup will fail in mock client
+			description: "WorkloadIdentityFederation should be tried when SecretRef and WorkloadIdentity are nil",
+		},
+		{
+			name: "ServiceAccountRef fourth priority",
 			gcpAuth: &esv1.VaultGCPAuth{
 				Role: "test-role",
 				ServiceAccountRef: &esmeta.ServiceAccountSelector{
@@ -316,6 +334,29 @@ func TestGCPAuthMethodSelection(t *testing.T) {
 			description: "Should attempt to use WorkloadIdentity method",
 		},
 		{
+			name: "WorkloadIdentityFederation method selected",
+			setupClient: func() *client {
+				return &client{
+					log:       logr.Discard(),
+					kube:      clientfake.NewClientBuilder().Build(),
+					namespace: "default",
+					storeKind: "SecretStore",
+				}
+			},
+			gcpAuth: &esv1.VaultGCPAuth{
+				Role:      "test-role",
+				ProjectID: "test-project",
+				WorkloadIdentityFederation: &esv1.GCPWorkloadIdentityFederation{
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name: "test-sa",
+					},
+					Audience: "//iam.googleapis.com/projects/123/locations/global/workloadIdentityPools/pool/providers/provider",
+				},
+			},
+			expectError: true, // Expected to fail in test environment
+			description: "Should attempt to use WorkloadIdentityFederation method",
+		},
+		{
 			name: "Default ADC method selected",
 			setupClient: func() *client {
 				return &client{
@@ -360,6 +401,136 @@ func TestGCPAuthMethodSelection(t *testing.T) {
 
 			// All tests should at least not panic and follow the correct code path
 			t.Logf("%s: test completed successfully", tt.description)
+		})
+	}
+}
+
+func TestGetServiceAccountEmail(t *testing.T) {
+	saWithAnnotation := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "annotated-sa",
+			Namespace: "default",
+			Annotations: map[string]string{
+				"iam.gke.io/gcp-service-account": "annotated-gsa@project.iam.gserviceaccount.com",
+			},
+		},
+	}
+
+	saSecret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "gcp-sa-key",
+			Namespace: "default",
+		},
+		Data: map[string][]byte{
+			"key.json": []byte(`{"type":"service_account","client_email":"secret-gsa@project.iam.gserviceaccount.com"}`),
+		},
+	}
+
+	saWithoutAnnotation := &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "unannotated-sa",
+			Namespace: "default",
+		},
+	}
+
+	c := &client{
+		log:       logr.Discard(),
+		kube:      clientfake.NewClientBuilder().WithObjects(saWithAnnotation, saWithoutAnnotation, saSecret).Build(),
+		namespace: "default",
+		storeKind: "SecretStore",
+	}
+
+	tests := []struct {
+		name          string
+		gcpAuth       *esv1.VaultGCPAuth
+		expectedEmail string
+	}{
+		{
+			name: "explicit ServiceAccountEmail on VaultGCPAuth",
+			gcpAuth: &esv1.VaultGCPAuth{
+				ServiceAccountEmail: "explicit@project.iam.gserviceaccount.com",
+			},
+			expectedEmail: "explicit@project.iam.gserviceaccount.com",
+		},
+		{
+			name: "GCPServiceAccountEmail on WorkloadIdentityFederation",
+			gcpAuth: &esv1.VaultGCPAuth{
+				WorkloadIdentityFederation: &esv1.GCPWorkloadIdentityFederation{
+					GCPServiceAccountEmail: "wif-email@project.iam.gserviceaccount.com",
+				},
+			},
+			expectedEmail: "wif-email@project.iam.gserviceaccount.com",
+		},
+		{
+			name: "ServiceAccountRef on WorkloadIdentityFederation with annotation",
+			gcpAuth: &esv1.VaultGCPAuth{
+				WorkloadIdentityFederation: &esv1.GCPWorkloadIdentityFederation{
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name: "annotated-sa",
+					},
+				},
+			},
+			expectedEmail: "annotated-gsa@project.iam.gserviceaccount.com",
+		},
+		{
+			name: "WorkloadIdentity with annotated ServiceAccount",
+			gcpAuth: &esv1.VaultGCPAuth{
+				WorkloadIdentity: &esv1.GCPWorkloadIdentity{
+					ServiceAccountRef: esmeta.ServiceAccountSelector{
+						Name: "annotated-sa",
+					},
+				},
+			},
+			expectedEmail: "annotated-gsa@project.iam.gserviceaccount.com",
+		},
+		{
+			name: "SecretRef with client_email",
+			gcpAuth: &esv1.VaultGCPAuth{
+				SecretRef: &esv1.GCPSMAuthSecretRef{
+					SecretAccessKey: esmeta.SecretKeySelector{
+						Name: "gcp-sa-key",
+						Key:  "key.json",
+					},
+				},
+			},
+			expectedEmail: "secret-gsa@project.iam.gserviceaccount.com",
+		},
+		{
+			name: "ServiceAccountRef on WorkloadIdentityFederation without annotation",
+			gcpAuth: &esv1.VaultGCPAuth{
+				WorkloadIdentityFederation: &esv1.GCPWorkloadIdentityFederation{
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{
+						Name: "unannotated-sa",
+					},
+				},
+			},
+			expectedEmail: "",
+		},
+		{
+			name: "WIF with CredConfig and no email configured",
+			gcpAuth: &esv1.VaultGCPAuth{
+				WorkloadIdentityFederation: &esv1.GCPWorkloadIdentityFederation{
+					CredConfig: &esv1.ConfigMapReference{
+						Name: "gcp-cred-config",
+						Key:  "config.json",
+					},
+				},
+			},
+			expectedEmail: "",
+		},
+		{
+			name:          "No email configured or resolvable",
+			gcpAuth:       &esv1.VaultGCPAuth{},
+			expectedEmail: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			email := c.getServiceAccountEmail(context.Background(), tt.gcpAuth)
+			if email != tt.expectedEmail {
+				t.Errorf("getServiceAccountEmail() = %q, want %q", email, tt.expectedEmail)
+			}
 		})
 	}
 }

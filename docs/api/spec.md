@@ -6643,6 +6643,7 @@ If not specified, it fetches information from the metadata server</p>
 <p>
 (<em>Appears on:</em>
 <a href="#external-secrets.io/v1.GCPSMAuth">GCPSMAuth</a>, 
+<a href="#external-secrets.io/v1.VaultGCPAuth">VaultGCPAuth</a>, 
 <a href="#generators.external-secrets.io/v1alpha1.GCPSMAuth">GCPSMAuth</a>)
 </p>
 <p>
@@ -13393,8 +13394,8 @@ If no key for the Secret is specified, external-secret will default to &lsquo;tl
 <p>
 <p>VaultGCPAuth authenticates with Vault using Google Cloud Platform authentication method.
 Refer: <a href="https://developer.hashicorp.com/vault/docs/auth/gcp">https://developer.hashicorp.com/vault/docs/auth/gcp</a></p>
-<p>When ServiceAccountRef, SecretRef and WorkloadIdentity are not specified, the provider will use the controller pod&rsquo;s
-identity to authenticate with GCP. This supports both GKE Workload Identity and service account keys.</p>
+<p>When ServiceAccountRef, SecretRef, WorkloadIdentity and WorkloadIdentityFederation are not specified, the provider will use the controller pod&rsquo;s
+identity to authenticate with GCP. This supports GKE Workload Identity, Workload Identity Federation and service account keys.</p>
 </p>
 <table>
 <thead>
@@ -13477,6 +13478,32 @@ GCPWorkloadIdentity
 <td>
 <em>(Optional)</em>
 <p>Specify a service account with Workload Identity</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>workloadIdentityFederation</code></br>
+<em>
+<a href="#external-secrets.io/v1.GCPWorkloadIdentityFederation">
+GCPWorkloadIdentityFederation
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Specify Workload Identity Federation configuration</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountEmail</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountEmail is the email of the Google Cloud service account to use for IAM authentication</p>
 </td>
 </tr>
 <tr>
