@@ -252,36 +252,8 @@ func execute(k, val string, data map[string][]byte) ([]byte, error) {
 
 // setData sets the data field of the object.
 func setField(obj client.Object, field, k string, val []byte) error {
-	m, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
-	if err != nil {
-		return fmt.Errorf(errConvertingToUnstructured, err)
-	}
-	_, ok := m[field]
-	if !ok {
-		m[field] = map[string]any{}
-	}
-	specMap, ok := m[field].(map[string]any)
-	if !ok {
-		return fmt.Errorf("failed to convert data to map[string][]byte")
-	}
-
-	// Secrets require base64-encoded []byte values in the data field
-	// Other resources (ConfigMaps, custom resources) need plain string values
-	_, isSecret := obj.(*corev1.Secret)
-	if isSecret {
-		// For Secrets, keep as []byte (will be base64-encoded during serialization)
-		specMap[k] = val
-	} else {
-		// For generic (ConfigMaps, custom resources), use plain strings
-		specMap[k] = string(val)
-	}
-	m[field] = specMap
-
-	// Convert back to the original object type
-	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(m, obj); err != nil {
-		return fmt.Errorf(errConvertingToObject, err)
-	}
-	return nil
+	// Fast path: directly set Data field for Secrets and ConfigMaps to avoid
+	// O(n^2) unstructured round-trip per key (introduced in #5470, v1.0.0)\n	if field == "data" {\n		switch o := obj.(type) {\n		case *corev1.Secret:\n			if o.Data == nil {\n				o.Data = make(map[string][]byte)\n			}\n			o.Data[k] = val\n			return nil\n		case *corev1.ConfigMap:\n			if o.Data == nil {\n				o.Data = make(map[string]string)\n			}\n			o.Data[k] = string(val)\n			return nil\n		}\n	}\n\n	m, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)\n	if err != nil {\n		return fmt.Errorf(errConvertingToUnstructured, err)\n	}\n	_, ok := m[field]\n	if !ok {\n		m[field] = map[string]any{}\n	}\n	specMap, ok := m[field].(map[string]any)\n	if !ok {\n		return fmt.Errorf("failed to convert data to map[string][]byte")\n	}\n\n	// Secrets require base64-encoded []byte values in the data field\n	// Other resources (ConfigMaps, custom resources) need plain string values\n	_, isSecret := obj.(*corev1.Secret)\n	if isSecret {\n		// For Secrets, keep as []byte (will be base64-encoded during serialization)\n		specMap[k] = val\n	} else {\n		// For generic (ConfigMaps, custom resources), use plain strings\n		specMap[k] = string(val)\n	}\n	m[field] = specMap\n\n	// Convert back to the original object type\n	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(m, obj); err != nil {\n		return fmt.Errorf(errConvertingToObject, err)\n	}\n	return nil
 }
 
 // tryParseYAML attempts to parse a string value as YAML, returns original value if parsing fails.
