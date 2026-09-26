@@ -28,16 +28,17 @@ import (
 type GithubAccessTokenSpec struct {
 	// URL configures the GitHub instance URL. Defaults to https://github.com/.
 	URL string `json:"url,omitempty"`
-	// AppID is the GitHub App ID. Mutually exclusive with AppIDRef.
+	// AppID is the GitHub App ID. Exactly one of AppID or AppIDRef must be set.
 	// +optional
 	AppID string `json:"appID,omitempty"`
-	// AppIDRef references a secret key containing the GitHub App ID. Mutually exclusive with AppID.
+	// AppIDRef references a secret key containing the GitHub App ID. Exactly one of AppID or AppIDRef must be set.
 	// +optional
 	AppIDRef *esmeta.SecretKeySelector `json:"appIDRef,omitempty"`
-	// InstallID is the GitHub App installation ID. Mutually exclusive with InstallIDRef.
+	// InstallID is the GitHub App installation ID. Exactly one of InstallID or InstallIDRef must be set.
 	// +optional
 	InstallID string `json:"installID,omitempty"`
-	// InstallIDRef references a secret key containing the GitHub App installation ID. Mutually exclusive with InstallID.
+	// InstallIDRef references a secret key containing the GitHub App installation ID. Exactly one of InstallID or
+	// InstallIDRef must be set.
 	// +optional
 	InstallIDRef *esmeta.SecretKeySelector `json:"installIDRef,omitempty"`
 	// List of repositories the token will have access to. If omitted, defaults to all repositories the GitHub App

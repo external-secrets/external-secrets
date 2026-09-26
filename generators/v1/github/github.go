@@ -214,12 +214,24 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 }
 
 func resolveAppIdentity(ctx context.Context, k client.Client, n string, spec genv1alpha1.GithubAccessTokenSpec) (appIdentity, error) {
-	appID, err := resolveIdentityValue(ctx, k, n, "appID", spec.AppID, spec.AppIDRef, errAppIDNotSet, errAppIDBothSet)
+	appID, err := identitySource{
+		field:      "appID",
+		literal:    spec.AppID,
+		ref:        spec.AppIDRef,
+		errNotSet:  errAppIDNotSet,
+		errBothSet: errAppIDBothSet,
+	}.resolve(ctx, k, n)
 	if err != nil {
 		return appIdentity{}, err
 	}
 
-	installID, err := resolveIdentityValue(ctx, k, n, "installID", spec.InstallID, spec.InstallIDRef, errInstallIDNotSet, errInstallIDBothSet)
+	installID, err := identitySource{
+		field:      "installID",
+		literal:    spec.InstallID,
+		ref:        spec.InstallIDRef,
+		errNotSet:  errInstallIDNotSet,
+		errBothSet: errInstallIDBothSet,
+	}.resolve(ctx, k, n)
 	if err != nil {
 		return appIdentity{}, err
 	}
@@ -227,21 +239,32 @@ func resolveAppIdentity(ctx context.Context, k client.Client, n string, spec gen
 	return appIdentity{appID: appID, installID: installID}, nil
 }
 
+type identitySource struct {
+	field      string
+	literal    string
+	ref        *esmeta.SecretKeySelector
+	errNotSet  error
+	errBothSet error
+}
+
 // Secret data commonly carries a trailing newline, which would corrupt the URL path and JWT issuer.
-func resolveIdentityValue(ctx context.Context, k client.Client, n, field, literal string, ref *esmeta.SecretKeySelector, errNotSet, errBothSet error) (string, error) {
+func (s identitySource) resolve(ctx context.Context, k client.Client, n string) (string, error) {
 	switch {
-	case literal != "" && ref != nil:
-		return "", errBothSet
-	case ref != nil:
-		val, err := resolvers.SecretKeyRef(ctx, k, resolvers.EmptyStoreKind, n, ref)
+	case s.literal != "" && s.ref != nil:
+		return "", s.errBothSet
+	case s.ref != nil:
+		val, err := resolvers.SecretKeyRef(ctx, k, resolvers.EmptyStoreKind, n, s.ref)
 		if err != nil {
-			return "", fmt.Errorf("error getting %s from secret: %w", field, err)
+			return "", fmt.Errorf("error getting %s from secret: %w", s.field, err)
 		}
-		return strings.TrimSpace(val), nil
-	case literal != "":
-		return strings.TrimSpace(literal), nil
+		if val = strings.TrimSpace(val); val == "" {
+			return "", fmt.Errorf("%s secret %q key %q is empty: %w", s.field, s.ref.Name, s.ref.Key, s.errNotSet)
+		}
+		return val, nil
+	case strings.TrimSpace(s.literal) != "":
+		return strings.TrimSpace(s.literal), nil
 	default:
-		return "", errNotSet
+		return "", s.errNotSet
 	}
 }
 

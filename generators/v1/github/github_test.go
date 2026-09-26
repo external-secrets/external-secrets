@@ -24,8 +24,10 @@ import (
 	"net/http/httptest"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
@@ -48,6 +50,13 @@ func testHTTPSrv(t *testing.T, r []byte, s int) *httptest.Server {
 		assert.NotEmpty(t, req.Body)
 		assert.NotEmpty(t, req.Header.Get("Authorization"))
 		assert.Equal(t, "application/vnd.github.v3+json", req.Header.Get("Accept"))
+		assert.Equal(t, "/app/installations/00000000/access_tokens", req.URL.Path)
+
+		rawToken := strings.TrimPrefix(req.Header.Get("Authorization"), "Bearer ")
+		claims := jwt.RegisteredClaims{}
+		_, _, err := jwt.NewParser().ParseUnverified(rawToken, &claims)
+		assert.NoError(t, err)
+		assert.Equal(t, "0000000", claims.Issuer)
 
 		// Send response to be tested
 		rw.WriteHeader(s)
@@ -313,13 +322,13 @@ spec:
 	}
 }
 
-func TestResolveIdentityValue(t *testing.T) {
+func TestIdentitySourceResolve(t *testing.T) {
 	notSetErr := errors.New("not set")
 	bothSetErr := errors.New("both set")
 
 	secretWithNewline := &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Name: "configSecret", Namespace: "foo"},
-		Data:       map[string][]byte{"value": []byte("123\n")},
+		Data:       map[string][]byte{"value": []byte("123\n"), "blank": []byte(" \n")},
 	}
 
 	tests := []struct {
@@ -357,6 +366,21 @@ func TestResolveIdentityValue(t *testing.T) {
 			},
 		},
 		{
+			name:    "whitespace-only literal",
+			literal: " \n",
+			assertErr: func(t *testing.T, err error) {
+				require.ErrorIs(t, err, notSetErr)
+			},
+		},
+		{
+			name: "ref points at a whitespace-only secret value",
+			ref:  &esmeta.SecretKeySelector{Name: "configSecret", Key: "blank"},
+			kube: clientfake.NewClientBuilder().WithObjects(secretWithNewline).Build(),
+			assertErr: func(t *testing.T, err error) {
+				require.ErrorIs(t, err, notSetErr)
+			},
+		},
+		{
 			name: "neither literal nor ref set",
 			assertErr: func(t *testing.T, err error) {
 				require.ErrorIs(t, err, notSetErr)
@@ -382,7 +406,8 @@ func TestResolveIdentityValue(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := resolveIdentityValue(context.TODO(), tt.kube, "foo", "field", tt.literal, tt.ref, notSetErr, bothSetErr)
+			src := identitySource{field: "field", literal: tt.literal, ref: tt.ref, errNotSet: notSetErr, errBothSet: bothSetErr}
+			got, err := src.resolve(context.TODO(), tt.kube, "foo")
 			tt.assertErr(t, err)
 			assert.Equal(t, tt.want, got)
 		})

@@ -28860,7 +28860,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>AppID is the GitHub App ID. Mutually exclusive with AppIDRef.</p>
+<p>AppID is the GitHub App ID. Exactly one of AppID or AppIDRef must be set.</p>
 </td>
 </tr>
 <tr>
@@ -28874,7 +28874,7 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>AppIDRef references a secret key containing the GitHub App ID. Mutually exclusive with AppID.</p>
+<p>AppIDRef references a secret key containing the GitHub App ID. Exactly one of AppID or AppIDRef must be set.</p>
 </td>
 </tr>
 <tr>
@@ -28886,7 +28886,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>InstallID is the GitHub App installation ID. Mutually exclusive with InstallIDRef.</p>
+<p>InstallID is the GitHub App installation ID. Exactly one of InstallID or InstallIDRef must be set.</p>
 </td>
 </tr>
 <tr>
@@ -28900,7 +28900,8 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>InstallIDRef references a secret key containing the GitHub App installation ID. Mutually exclusive with InstallID.</p>
+<p>InstallIDRef references a secret key containing the GitHub App installation ID. Exactly one of InstallID or
+InstallIDRef must be set.</p>
 </td>
 </tr>
 <tr>
@@ -28982,7 +28983,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>AppID is the GitHub App ID. Mutually exclusive with AppIDRef.</p>
+<p>AppID is the GitHub App ID. Exactly one of AppID or AppIDRef must be set.</p>
 </td>
 </tr>
 <tr>
@@ -28996,7 +28997,7 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>AppIDRef references a secret key containing the GitHub App ID. Mutually exclusive with AppID.</p>
+<p>AppIDRef references a secret key containing the GitHub App ID. Exactly one of AppID or AppIDRef must be set.</p>
 </td>
 </tr>
 <tr>
@@ -29008,7 +29009,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>InstallID is the GitHub App installation ID. Mutually exclusive with InstallIDRef.</p>
+<p>InstallID is the GitHub App installation ID. Exactly one of InstallID or InstallIDRef must be set.</p>
 </td>
 </tr>
 <tr>
@@ -29022,7 +29023,8 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>InstallIDRef references a secret key containing the GitHub App installation ID. Mutually exclusive with InstallID.</p>
+<p>InstallIDRef references a secret key containing the GitHub App installation ID. Exactly one of InstallID or
+InstallIDRef must be set.</p>
 </td>
 </tr>
 <tr>

@@ -28467,10 +28467,10 @@ spec:
                       description: GithubAccessTokenSpec defines the desired state to generate a GitHub access token.
                       properties:
                         appID:
-                          description: AppID is the GitHub App ID. Mutually exclusive with AppIDRef.
+                          description: AppID is the GitHub App ID. Exactly one of AppID or AppIDRef must be set.
                           type: string
                         appIDRef:
-                          description: AppIDRef references a secret key containing the GitHub App ID. Mutually exclusive with AppID.
+                          description: AppIDRef references a secret key containing the GitHub App ID. Exactly one of AppID or AppIDRef must be set.
                           properties:
                             key:
                               description: |-
@@ -28536,10 +28536,12 @@ spec:
                             - privateKey
                           type: object
                         installID:
-                          description: InstallID is the GitHub App installation ID. Mutually exclusive with InstallIDRef.
+                          description: InstallID is the GitHub App installation ID. Exactly one of InstallID or InstallIDRef must be set.
                           type: string
                         installIDRef:
-                          description: InstallIDRef references a secret key containing the GitHub App installation ID. Mutually exclusive with InstallID.
+                          description: |-
+                            InstallIDRef references a secret key containing the GitHub App installation ID. Exactly one of InstallID or
+                            InstallIDRef must be set.
                           properties:
                             key:
                               description: |-
@@ -30966,10 +30968,10 @@ spec:
               description: GithubAccessTokenSpec defines the desired state to generate a GitHub access token.
               properties:
                 appID:
-                  description: AppID is the GitHub App ID. Mutually exclusive with AppIDRef.
+                  description: AppID is the GitHub App ID. Exactly one of AppID or AppIDRef must be set.
                   type: string
                 appIDRef:
-                  description: AppIDRef references a secret key containing the GitHub App ID. Mutually exclusive with AppID.
+                  description: AppIDRef references a secret key containing the GitHub App ID. Exactly one of AppID or AppIDRef must be set.
                   properties:
                     key:
                       description: |-
@@ -31035,10 +31037,12 @@ spec:
                     - privateKey
                   type: object
                 installID:
-                  description: InstallID is the GitHub App installation ID. Mutually exclusive with InstallIDRef.
+                  description: InstallID is the GitHub App installation ID. Exactly one of InstallID or InstallIDRef must be set.
                   type: string
                 installIDRef:
-                  description: InstallIDRef references a secret key containing the GitHub App installation ID. Mutually exclusive with InstallID.
+                  description: |-
+                    InstallIDRef references a secret key containing the GitHub App installation ID. Exactly one of InstallID or
+                    InstallIDRef must be set.
                   properties:
                     key:
                       description: |-
