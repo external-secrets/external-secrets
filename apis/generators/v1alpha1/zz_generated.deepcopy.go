@@ -1270,6 +1270,11 @@ func (in *GitlabDeployTokenSpec) DeepCopyInto(out *GitlabDeployTokenSpec) {
 		in, out := &in.ExpiresAt, &out.ExpiresAt
 		*out = (*in).DeepCopy()
 	}
+	if in.ExpiresAfter != nil {
+		in, out := &in.ExpiresAfter, &out.ExpiresAfter
+		*out = new(apismetav1.Duration)
+		**out = **in
+	}
 	in.Auth.DeepCopyInto(&out.Auth)
 }
 
