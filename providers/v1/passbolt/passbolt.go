@@ -48,17 +48,17 @@ var errPassboltCustomFieldNotFound = errors.New("custom field not found")
 const (
 	customFieldPrefix = "custom_fields."
 
-	errPassboltStoreMissingProvider                = "missing: spec.provider.passbolt"
-	errPassboltStoreMissingAuth                    = "missing: spec.provider.passbolt.auth"
-	errPassboltStoreMissingAuthPassword            = "missing: spec.provider.passbolt.auth.passwordSecretRef"
-	errPassboltStoreMissingAuthPrivateKey          = "missing: spec.provider.passbolt.auth.privateKeySecretRef"
-	errPassboltStoreMissingHost                    = "missing: spec.provider.passbolt.host"
-	errPassboltExternalSecretMissingFindNameRegExp = "missing: find.name.regexp"
-	errPassboltStoreHostSchemeNotHTTPS             = "host Url has to be https scheme"
-	errPassboltSecretPropertyInvalid               = "property must be one of name, username, uri, password, description, or " + customFieldPrefix + "<name>"
-	errPassboltCAInvalid                           = "failed to parse CA certificate for Passbolt provider"
-	errPassboltUnexpectedTransport                 = "unexpected default http transport type"
-	errNotImplemented                              = "not implemented"
+	errPassboltStoreMissingProvider            = "missing: spec.provider.passbolt"
+	errPassboltStoreMissingAuth                = "missing: spec.provider.passbolt.auth"
+	errPassboltStoreMissingAuthPassword        = "missing: spec.provider.passbolt.auth.passwordSecretRef"
+	errPassboltStoreMissingAuthPrivateKey      = "missing: spec.provider.passbolt.auth.privateKeySecretRef"
+	errPassboltStoreMissingHost                = "missing: spec.provider.passbolt.host"
+	errPassboltExternalSecretMissingFindFilter = "missing: find.path or find.name.regexp"
+	errPassboltStoreHostSchemeNotHTTPS         = "host Url has to be https scheme"
+	errPassboltSecretPropertyInvalid           = "property must be one of name, username, uri, password, description, or " + customFieldPrefix + "<name>"
+	errPassboltCAInvalid                       = "failed to parse CA certificate for Passbolt provider"
+	errPassboltUnexpectedTransport             = "unexpected default http transport type"
+	errNotImplemented                          = "not implemented"
 )
 
 // ProviderPassbolt implements the External Secrets provider interface for Passbolt.
@@ -169,20 +169,31 @@ func (provider *ProviderPassbolt) GetSecretMap(_ context.Context, _ esv1.Externa
 func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
 	res := make(map[string][]byte)
 
-	if ref.Name == nil || ref.Name.RegExp == "" {
-		return res, errors.New(errPassboltExternalSecretMissingFindNameRegExp)
+	hasPath := ref.Path != nil && *ref.Path != ""
+	hasName := ref.Name != nil && ref.Name.RegExp != ""
+	if !hasPath && !hasName {
+		return res, errors.New(errPassboltExternalSecretMissingFindFilter)
+	}
+
+	var nameRegexp *regexp.Regexp
+	if hasName {
+		var err error
+		nameRegexp, err = regexp.Compile(ref.Name.RegExp)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if err := assureLoggedIn(ctx, provider.client); err != nil {
 		return nil, err
 	}
 
-	resources, err := provider.client.GetResources(ctx, &api.GetResourcesOptions{})
-	if err != nil {
-		return nil, err
+	opts := &api.GetResourcesOptions{}
+	if hasPath {
+		opts.FilterHasParent = []string{*ref.Path}
 	}
 
-	nameRegexp, err := regexp.Compile(ref.Name.RegExp)
+	resources, err := provider.client.GetResources(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +209,7 @@ func (provider *ProviderPassbolt) GetAllSecrets(ctx context.Context, ref esv1.Ex
 		}
 
 		// Filter by decrypted name (works for both V4 and V5)
-		if !nameRegexp.MatchString(secret.Name) {
+		if nameRegexp != nil && !nameRegexp.MatchString(secret.Name) {
 			continue
 		}
 
