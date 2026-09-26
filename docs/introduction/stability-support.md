@@ -151,7 +151,7 @@ The following table show the support for features across different providers.
 | OVHcloud                         |      x       |              |                      |            x            |        x         |      x      |              x              |
 | Passbolt                         |      x       |              |                      |            x            |        x         |             |                             |
 | Password Depot                   |              |              |                      |                         |                  |             |                             |
-| Previder                         |              |              |                      |            x            |        x         |             |                             |
+| Previder                         |      x       |              |                      |            x            |        x         |             |                             |
 | Pulumi ESC                       |              |              |                      |            x            |        x         |             |                             |
 | Scaleway                         |      x       |      x       |                      |            x            |        x         |      x      |              x              |
 | SecretServer                     |              |              |                      |            x            |        x         |      x      |              x              |

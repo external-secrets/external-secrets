@@ -17,6 +17,7 @@ package previder
 
 import (
 	"context"
+	"reflect"
 	"testing"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -39,12 +40,87 @@ func TestSecretManagerClose(t *testing.T) {
 }
 
 func TestSecretManagerGetAllSecrets(t *testing.T) {
-	previderProvider := &SecretManager{}
-	ctx := context.Background()
-	ref := esv1.ExternalSecretFind{}
-	result, err := previderProvider.GetAllSecrets(ctx, ref)
-	if result != nil || err == nil {
-		t.Errorf("Store close acts different than expected")
+	path := "some/path"
+	for _, tc := range []struct {
+		name      string
+		ref       esv1.ExternalSecretFind
+		want      map[string][]byte
+		tokenType string
+		wantErr   bool
+	}{
+		{
+			name: "no criteria returns every secret",
+			ref:  esv1.ExternalSecretFind{},
+			want: map[string][]byte{
+				"secret1": []byte("secret1content"),
+				"secret2": []byte("secret2content"),
+				"other1":  []byte("other1content"),
+			},
+		},
+		{
+			name: "regexp selects a subset",
+			ref:  esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: "^secret"}},
+			want: map[string][]byte{
+				"secret1": []byte("secret1content"),
+				"secret2": []byte("secret2content"),
+			},
+		},
+		{
+			name: "regexp matching nothing returns an empty map",
+			ref:  esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: "^nomatch"}},
+			want: map[string][]byte{},
+		},
+		{
+			name:    "invalid regexp is an error",
+			ref:     esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: "[unterminated"}},
+			wantErr: true,
+		},
+		{
+			name:      "a ReadOnly token cannot enumerate",
+			ref:       esv1.ExternalSecretFind{},
+			tokenType: "ReadOnly",
+			wantErr:   true,
+		},
+		{
+			name:      "an EnvironmentAdmin token cannot enumerate",
+			ref:       esv1.ExternalSecretFind{},
+			tokenType: "EnvironmentAdmin",
+			wantErr:   true,
+		},
+		{
+			name:    "tags are not supported",
+			ref:     esv1.ExternalSecretFind{Tags: map[string]string{"env": "prod"}},
+			wantErr: true,
+		},
+		{
+			name:    "path is not supported",
+			ref:     esv1.ExternalSecretFind{Path: &path},
+			wantErr: true,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			tokenType := tc.tokenType
+			if tokenType == "" {
+				tokenType = "ReadWrite"
+			}
+			previderProvider := &SecretManager{VaultClient: &PreviderVaultFakeClient{}, TokenType: tokenType}
+			got, err := previderProvider.GetAllSecrets(context.Background(), tc.ref)
+			if tc.wantErr {
+				if err == nil {
+					t.Fatalf("expected an error, got result %v", got)
+				}
+				if got != nil {
+					t.Errorf("expected no result alongside the error, got %v", got)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("got %v, want %v", got, tc.want)
+			}
+		})
 	}
 }
 
