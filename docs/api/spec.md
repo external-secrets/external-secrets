@@ -28859,6 +28859,22 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>AppID is the GitHub App ID. Exactly one of AppID or AppIDRef must be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>appIDRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AppIDRef references a secret key containing the GitHub App ID. Exactly one of AppID or AppIDRef must be set.</p>
 </td>
 </tr>
 <tr>
@@ -28869,6 +28885,23 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>InstallID is the GitHub App installation ID. Exactly one of InstallID or InstallIDRef must be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>installIDRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>InstallIDRef references a secret key containing the GitHub App installation ID. Exactly one of InstallID or
+InstallIDRef must be set.</p>
 </td>
 </tr>
 <tr>
@@ -28949,6 +28982,22 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>AppID is the GitHub App ID. Exactly one of AppID or AppIDRef must be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>appIDRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AppIDRef references a secret key containing the GitHub App ID. Exactly one of AppID or AppIDRef must be set.</p>
 </td>
 </tr>
 <tr>
@@ -28959,6 +29008,23 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>InstallID is the GitHub App installation ID. Exactly one of InstallID or InstallIDRef must be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>installIDRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>InstallIDRef references a secret key containing the GitHub App installation ID. Exactly one of InstallID or
+InstallIDRef must be set.</p>
 </td>
 </tr>
 <tr>
