@@ -219,6 +219,43 @@ func TestGetSecretMap(t *testing.T) {
 	}
 }
 
+// A secret that is missing in the vault must surface as esv1.NoSecretErr,
+// because that is what the ExternalSecret controller gates
+// spec.target.deletionPolicy on.
+func TestOracleVaultGetSecretNotFound(t *testing.T) {
+	sm := VaultManagementService{}
+
+	notFound := makeValidVaultTestCaseCustom(func(smtc *vaultTestCase) {
+		smtc.apiErr = &fakeoracle.ServiceError{Code: 404}
+	})
+	sm.Client = notFound.mockClient
+
+	_, err := sm.GetSecret(context.Background(), *notFound.ref)
+	assert.ErrorIs(t, err, esv1.NoSecretErr)
+
+	// GetSecretMap delegates to GetSecret and must propagate it unchanged.
+	_, err = sm.GetSecretMap(context.Background(), *notFound.ref)
+	assert.ErrorIs(t, err, esv1.NoSecretErr)
+
+	// Any other service error is a real failure and must not be mistaken for a
+	// missing secret, otherwise deletionPolicy would fire on an outage.
+	serverErr := makeValidVaultTestCaseCustom(func(smtc *vaultTestCase) {
+		smtc.apiErr = &fakeoracle.ServiceError{Code: 500}
+	})
+	sm.Client = serverErr.mockClient
+
+	_, err = sm.GetSecret(context.Background(), *serverErr.ref)
+	assert.Error(t, err)
+	assert.NotErrorIs(t, err, esv1.NoSecretErr)
+}
+
+func TestIsSecretNotFoundErr(t *testing.T) {
+	assert.True(t, isSecretNotFoundErr(&fakeoracle.ServiceError{Code: 404}))
+	assert.False(t, isSecretNotFoundErr(&fakeoracle.ServiceError{Code: 500}))
+	assert.False(t, isSecretNotFoundErr(errors.New("not a service error")))
+	assert.False(t, isSecretNotFoundErr(nil))
+}
+
 func ErrorContains(out error, want string) bool {
 	if out == nil {
 		return want == ""
@@ -591,6 +628,33 @@ func TestOracleVaultGetAllSecrets(t *testing.T) {
 			map[string][]byte{
 				s1id: []byte(s1id),
 				s2id: []byte(s2id),
+			},
+		},
+		// A summary listing and the per-secret reads are not atomic, so a secret
+		// can be deleted in between and answer 404. That must not fail the whole
+		// find: NoSecretErr escaping here would let deletionPolicy drop every key
+		// of the Kubernetes Secret because one member went away.
+		"skips a secret that disappeared after it was listed": {
+			&VaultManagementService{
+				Client: &fakeoracle.OracleMockClient{
+					SecretBundles: map[string]secrets.SecretBundle{
+						s1id: s1bundle,
+					},
+				},
+				VaultClient: &fakeoracle.OracleMockVaultClient{
+					SecretSummaries: []vault.SecretSummary{
+						s1summary,
+						s2summary,
+					},
+				},
+			},
+			esv1.ExternalSecretFind{
+				Name: &esv1.FindName{
+					RegExp: ".*",
+				},
+			},
+			map[string][]byte{
+				s1id: []byte(s1id),
 			},
 		},
 	}
