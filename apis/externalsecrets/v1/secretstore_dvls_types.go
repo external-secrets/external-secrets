@@ -27,7 +27,9 @@ type DVLSProvider struct {
 	ServerURL string `json:"serverUrl"`
 
 	// Vault is the name or UUID of the vault to fetch secrets from.
-	// When omitted, the vault must be specified in the secret key using the legacy format "<vault-id>/<entry-id>".
+	// When omitted, each secret key must name its own vault: the first slash or backslash
+	// separates the vault from the entry reference. Both accept a name or a UUID, and the entry
+	// reference may include a folder path. This allows one store to serve secrets from many vaults.
 	// +optional
 	Vault string `json:"vault,omitempty"`
 
