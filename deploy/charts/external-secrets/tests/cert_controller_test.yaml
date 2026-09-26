@@ -122,7 +122,7 @@ tests:
           value: "--metrics-addr=:8888"
   - it: should override image flavour
     set:
-      certController.image.repository: external-secrets/external-secrets
+      certController.image.repository: ghcr.io/external-secrets/external-secrets
       certController.image.tag: v0.9.8
       certController.image.flavour: ubi-boringssl
     templates:
@@ -133,8 +133,7 @@ tests:
           value: ghcr.io/external-secrets/external-secrets:v0.9.8-ubi-boringssl
   - it: should override image flavour
     set:
-      global.imageRegistry: example.com
-      certController.image.repository: external-secrets/external-secrets
+      certController.image.repository: example.com/external-secrets/external-secrets
       certController.image.tag: v0.9.9-ubi
     templates:
       - cert-controller-deployment.yaml

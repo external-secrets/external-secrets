@@ -105,10 +105,7 @@ kind load docker-image $IMAGE:$TAG --name external-secrets
 
 # Update helm charts and install to KinD cluster
 make helm.generate
-# $IMAGE already includes the registry host, so clear global.imageRegistry to
-# stop the chart prefixing its own.
 helm upgrade --install external-secrets ./deploy/charts/external-secrets/ \
---set global.imageRegistry= \
 --set image.repository=$IMAGE --set image.tag=$TAG \
 --set webhook.image.repository=$IMAGE --set webhook.image.tag=$TAG \
 --set certController.image.repository=$IMAGE --set certController.image.tag=$TAG
