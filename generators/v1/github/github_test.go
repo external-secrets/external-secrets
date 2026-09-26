@@ -18,6 +18,7 @@ package github
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -32,6 +33,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
 const (
@@ -304,6 +308,176 @@ spec:
 			tt.assertErr(t, err)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Generator.Generate() = %s, want %s", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestResolveIdentityValue(t *testing.T) {
+	notSetErr := errors.New("not set")
+	bothSetErr := errors.New("both set")
+
+	secretWithNewline := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "configSecret", Namespace: "foo"},
+		Data:       map[string][]byte{"value": []byte("123\n")},
+	}
+
+	tests := []struct {
+		name      string
+		literal   string
+		ref       *esmeta.SecretKeySelector
+		kube      client.Client
+		want      string
+		assertErr func(t *testing.T, err error)
+	}{
+		{
+			name:    "literal only, trims whitespace",
+			literal: "  123\n",
+			want:    "123",
+			assertErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "ref only, trims trailing newline from secret data",
+			ref:  &esmeta.SecretKeySelector{Name: "configSecret", Key: "value"},
+			kube: clientfake.NewClientBuilder().WithObjects(secretWithNewline).Build(),
+			want: "123",
+			assertErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name:    "literal and ref both set",
+			literal: "123",
+			ref:     &esmeta.SecretKeySelector{Name: "configSecret", Key: "value"},
+			kube:    clientfake.NewClientBuilder().WithObjects(secretWithNewline).Build(),
+			assertErr: func(t *testing.T, err error) {
+				require.ErrorIs(t, err, bothSetErr)
+			},
+		},
+		{
+			name: "neither literal nor ref set",
+			assertErr: func(t *testing.T, err error) {
+				require.ErrorIs(t, err, notSetErr)
+			},
+		},
+		{
+			name: "ref points at a missing secret",
+			ref:  &esmeta.SecretKeySelector{Name: "missingSecret", Key: "value"},
+			kube: clientfake.NewClientBuilder().Build(),
+			assertErr: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "error getting field from secret")
+			},
+		},
+		{
+			name: "ref points at a missing key",
+			ref:  &esmeta.SecretKeySelector{Name: "configSecret", Key: "missingKey"},
+			kube: clientfake.NewClientBuilder().WithObjects(secretWithNewline).Build(),
+			assertErr: func(t *testing.T, err error) {
+				assert.ErrorContains(t, err, "error getting field from secret")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := resolveIdentityValue(context.TODO(), tt.kube, "foo", "field", tt.literal, tt.ref, notSetErr, bothSetErr)
+			tt.assertErr(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestResolveAppIdentity(t *testing.T) {
+	configSecret := &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "configSecret", Namespace: "foo"},
+		Data: map[string][]byte{
+			"appID":     []byte("111\n"),
+			"installID": []byte("222\n"),
+		},
+	}
+
+	tests := []struct {
+		name      string
+		spec      genv1alpha1.GithubAccessTokenSpec
+		kube      client.Client
+		want      appIdentity
+		assertErr func(t *testing.T, err error)
+	}{
+		{
+			name: "appID and installID literals",
+			spec: genv1alpha1.GithubAccessTokenSpec{AppID: "111", InstallID: "222"},
+			want: appIdentity{appID: "111", installID: "222"},
+			assertErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "appIDRef and installIDRef resolved from secret",
+			spec: genv1alpha1.GithubAccessTokenSpec{
+				AppIDRef:     &esmeta.SecretKeySelector{Name: "configSecret", Key: "appID"},
+				InstallIDRef: &esmeta.SecretKeySelector{Name: "configSecret", Key: "installID"},
+			},
+			kube: clientfake.NewClientBuilder().WithObjects(configSecret).Build(),
+			want: appIdentity{appID: "111", installID: "222"},
+			assertErr: func(t *testing.T, err error) {
+				require.NoError(t, err)
+			},
+		},
+		{
+			name: "appID and appIDRef both set",
+			spec: genv1alpha1.GithubAccessTokenSpec{
+				AppID:     "111",
+				AppIDRef:  &esmeta.SecretKeySelector{Name: "configSecret", Key: "appID"},
+				InstallID: "222",
+			},
+			kube: clientfake.NewClientBuilder().WithObjects(configSecret).Build(),
+			assertErr: func(t *testing.T, err error) {
+				require.ErrorIs(t, err, errAppIDBothSet)
+			},
+		},
+		{
+			name: "installID and installIDRef both set",
+			spec: genv1alpha1.GithubAccessTokenSpec{
+				AppID:        "111",
+				InstallID:    "222",
+				InstallIDRef: &esmeta.SecretKeySelector{Name: "configSecret", Key: "installID"},
+			},
+			kube: clientfake.NewClientBuilder().WithObjects(configSecret).Build(),
+			assertErr: func(t *testing.T, err error) {
+				require.ErrorIs(t, err, errInstallIDBothSet)
+			},
+		},
+		{
+			name: "no appID and no appIDRef",
+			spec: genv1alpha1.GithubAccessTokenSpec{InstallID: "222"},
+			assertErr: func(t *testing.T, err error) {
+				require.ErrorIs(t, err, errAppIDNotSet)
+			},
+		},
+		{
+			name: "no installID and no installIDRef",
+			spec: genv1alpha1.GithubAccessTokenSpec{AppID: "111"},
+			assertErr: func(t *testing.T, err error) {
+				require.ErrorIs(t, err, errInstallIDNotSet)
+			},
+		},
+		{
+			name: "none of appID, appIDRef, installID, installIDRef set",
+			spec: genv1alpha1.GithubAccessTokenSpec{},
+			assertErr: func(t *testing.T, err error) {
+				require.ErrorIs(t, err, errAppIDNotSet)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := resolveAppIdentity(context.TODO(), tt.kube, "foo", tt.spec)
+			tt.assertErr(t, err)
+			if err == nil {
+				assert.Equal(t, tt.want, got)
 			}
 		})
 	}

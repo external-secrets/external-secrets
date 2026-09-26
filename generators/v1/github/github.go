@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -35,6 +36,7 @@ import (
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
@@ -65,6 +67,18 @@ const (
 	contextTimeout    = 30 * time.Second
 	httpClientTimeout = 5 * time.Second
 )
+
+var (
+	errAppIDNotSet      = errors.New("appID or appIDRef must be set")
+	errAppIDBothSet     = errors.New("appID and appIDRef are mutually exclusive, only one may be set")
+	errInstallIDNotSet  = errors.New("installID or installIDRef must be set")
+	errInstallIDBothSet = errors.New("installID and installIDRef are mutually exclusive, only one may be set")
+)
+
+type appIdentity struct {
+	appID     string
+	installID string
+}
 
 // Generate creates an authentication token for GitHub.
 // It uses a GitHub App installation token to authenticate with GitHub API.
@@ -166,20 +180,9 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 		return nil, fmt.Errorf(errParseSpec, err)
 	}
 
-	appID := res.Spec.AppID
-	if res.Spec.AppIDRef != nil {
-		appID, err = resolvers.SecretKeyRef(ctx, k, resolvers.EmptyStoreKind, n, res.Spec.AppIDRef)
-		if err != nil {
-			return nil, fmt.Errorf("error getting appID from secret: %w", err)
-		}
-	}
-
-	installID := res.Spec.InstallID
-	if res.Spec.InstallIDRef != nil {
-		installID, err = resolvers.SecretKeyRef(ctx, k, resolvers.EmptyStoreKind, n, res.Spec.InstallIDRef)
-		if err != nil {
-			return nil, fmt.Errorf("error getting installID from secret: %w", err)
-		}
+	identity, err := resolveAppIdentity(ctx, k, n, res.Spec)
+	if err != nil {
+		return nil, err
 	}
 
 	gh := &Github{
@@ -190,7 +193,7 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 		Permissions:  res.Spec.Permissions,
 	}
 
-	ghPath := fmt.Sprintf("/app/installations/%s/access_tokens", installID)
+	ghPath := fmt.Sprintf("/app/installations/%s/access_tokens", identity.installID)
 	gh.URL = defaultGithubAPI + ghPath
 	if res.Spec.URL != "" {
 		gh.URL = res.Spec.URL + ghPath
@@ -204,10 +207,42 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 	if err != nil {
 		return nil, fmt.Errorf("error parsing RSA private key: %w", err)
 	}
-	if gh.InstallTkn, err = GetInstallationToken(pk, appID); err != nil {
+	if gh.InstallTkn, err = GetInstallationToken(pk, identity.appID); err != nil {
 		return nil, fmt.Errorf("can't get InstallationToken: %w", err)
 	}
 	return gh, nil
+}
+
+func resolveAppIdentity(ctx context.Context, k client.Client, n string, spec genv1alpha1.GithubAccessTokenSpec) (appIdentity, error) {
+	appID, err := resolveIdentityValue(ctx, k, n, "appID", spec.AppID, spec.AppIDRef, errAppIDNotSet, errAppIDBothSet)
+	if err != nil {
+		return appIdentity{}, err
+	}
+
+	installID, err := resolveIdentityValue(ctx, k, n, "installID", spec.InstallID, spec.InstallIDRef, errInstallIDNotSet, errInstallIDBothSet)
+	if err != nil {
+		return appIdentity{}, err
+	}
+
+	return appIdentity{appID: appID, installID: installID}, nil
+}
+
+// Secret data commonly carries a trailing newline, which would corrupt the URL path and JWT issuer.
+func resolveIdentityValue(ctx context.Context, k client.Client, n, field, literal string, ref *esmeta.SecretKeySelector, errNotSet, errBothSet error) (string, error) {
+	switch {
+	case literal != "" && ref != nil:
+		return "", errBothSet
+	case ref != nil:
+		val, err := resolvers.SecretKeyRef(ctx, k, resolvers.EmptyStoreKind, n, ref)
+		if err != nil {
+			return "", fmt.Errorf("error getting %s from secret: %w", field, err)
+		}
+		return strings.TrimSpace(val), nil
+	case literal != "":
+		return strings.TrimSpace(literal), nil
+	default:
+		return "", errNotSet
+	}
 }
 
 // GetInstallationToken generates a GitHub installation token using the provided private key and app ID.
