@@ -31,6 +31,7 @@ type SecretsClient interface {
 	RetrieveSecret(secret string) (result []byte, err error)
 	RetrieveBatchSecrets(variableIDs []string) (map[string][]byte, error)
 	Resources(filter *conjurapi.ResourceFilter) (resources []map[string]any, err error)
+	ResourceExists(resourceID string) (bool, error)
 }
 
 // SecretsClientFactory is an interface for creating a Conjur client.
