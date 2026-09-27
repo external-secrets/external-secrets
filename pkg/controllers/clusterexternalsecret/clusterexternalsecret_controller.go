@@ -46,6 +46,9 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+
+	"crypto/sha256"
+	"encoding/hex"
 )
 
 // Reconciler reconciles a ClusterExternalSecret object.
@@ -338,8 +341,22 @@ func (r *Reconciler) removeNamespaceFinalizer(ctx context.Context, log logr.Logg
 }
 
 // buildCESFinalizer creates the finalizer name for a CES.
+const (
+	cesFinalizerDomain    = "externalsecrets.external-secrets.io"
+	cesFinalizerPrefix    = "ces-"
+	maxFinalizerNamePart  = 63 // Kubernetes limit for the part after '/'
+	finalizerHashSuffixLen = 8
+)
+
 func (r *Reconciler) buildCESFinalizer(cesName string) string {
-	return "externalsecrets.external-secrets.io/ces-" + cesName
+	namePart := cesFinalizerPrefix + cesName
+	if len(namePart) > maxFinalizerNamePart {
+		sum := sha256.Sum256([]byte(cesName))
+		hashSuffix := hex.EncodeToString(sum[:])[:finalizerHashSuffixLen]
+		maxNameLen := maxFinalizerNamePart - len(cesFinalizerPrefix) - len(hashSuffix) - 1
+		namePart = cesFinalizerPrefix + cesName[:maxNameLen] + "-" + hashSuffix
+	}
+	return cesFinalizerDomain + "/" + namePart
 }
 
 // updateNamespaceRemoveFinalizer removes a finalizer from a namespace with conflict handling.
