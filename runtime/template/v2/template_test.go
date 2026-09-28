@@ -21,6 +21,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"os"
 	"strings"
 	"testing"
@@ -31,6 +32,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
@@ -1832,6 +1834,116 @@ func TestExecuteDecodesRenderedTemplateValues(t *testing.T) {
 			}
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantData, secret.Data)
+		})
+	}
+}
+
+// manyKeysTemplate returns a Values-scope template rendering n keys, and the
+// value each key renders to.
+func manyKeysTemplate(n int) (tpl, data map[string][]byte, want map[string]string) {
+	tpl = make(map[string][]byte, n)
+	want = make(map[string]string, n)
+	for i := range n {
+		k := fmt.Sprintf("KEY_%d", i)
+		tpl[k] = []byte(fmt.Sprintf("{{ .value }}-%d", i))
+		want[k] = fmt.Sprintf("value-%d", i)
+	}
+	return tpl, map[string][]byte{"value": []byte("value")}, want
+}
+
+// manyKeysTargets are the object shapes Execute writes a Data or spec target
+// into: typed Secrets, and Unstructured for ConfigMaps and generic targets.
+var manyKeysTargets = []struct {
+	name   string
+	target string
+	newObj func() client.Object
+}{
+	{"secret", "Data", func() client.Object { return &corev1.Secret{} }},
+	{"unstructured configmap", "Data", func() client.Object {
+		return &unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "v1", "kind": "ConfigMap", "data": map[string]any{},
+		}}
+	}},
+	{"unstructured spec", "spec", func() client.Object {
+		return &unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "example.com/v1", "kind": "Widget", "spec": map[string]any{},
+		}}
+	}},
+}
+
+func TestExecuteManyKeys(t *testing.T) {
+	tpl, data, want := manyKeysTemplate(500)
+
+	t.Run("secret keeps existing keys", func(t *testing.T) {
+		secret := &corev1.Secret{Data: map[string][]byte{"existing": []byte("kept")}}
+		require.NoError(t, Execute(tpl, data, esapi.TemplateScopeValues, "Data", secret, esapi.ExternalSecretDecodeNone))
+
+		wantData := map[string][]byte{"existing": []byte("kept")}
+		for k, v := range want {
+			wantData[k] = []byte(v)
+		}
+		assert.Equal(t, &corev1.Secret{
+			ObjectMeta: v1.ObjectMeta{Labels: map[string]string{}, Annotations: map[string]string{}},
+			Data:       wantData,
+		}, secret)
+	})
+
+	for field, kind := range map[string]string{"data": "ConfigMap", "spec": "Widget"} {
+		t.Run("unstructured "+field+" keeps existing keys", func(t *testing.T) {
+			obj := &unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": "v1",
+				"kind":       kind,
+				field:        map[string]any{"existing": "kept"},
+			}}
+			require.NoError(t, Execute(tpl, data, esapi.TemplateScopeValues, field, obj, esapi.ExternalSecretDecodeNone))
+
+			wantField := map[string]any{"existing": "kept"}
+			for k, v := range want {
+				wantField[k] = v
+			}
+			assert.Equal(t, map[string]any{
+				"apiVersion": "v1",
+				"kind":       kind,
+				"metadata":   map[string]any{"labels": map[string]any{}, "annotations": map[string]any{}},
+				field:        wantField,
+			}, obj.Object)
+		})
+	}
+
+	t.Run("unstructured field that is not a map", func(t *testing.T) {
+		obj := &unstructured.Unstructured{Object: map[string]any{"data": "not-a-map"}}
+		err := Execute(tpl, data, esapi.TemplateScopeValues, "Data", obj, esapi.ExternalSecretDecodeNone)
+		require.ErrorContains(t, err, "failed to convert data to map")
+	})
+}
+
+// Rendering must stay linear in the key count. Converting the whole object
+// once per key made it quadratic (issue #7037).
+func TestExecuteAllocsLinearInKeys(t *testing.T) {
+	allocs := func(n int, target string, newObj func() client.Object) float64 {
+		tpl, data, _ := manyKeysTemplate(n)
+		return testing.AllocsPerRun(3, func() {
+			require.NoError(t, Execute(tpl, data, esapi.TemplateScopeValues, target, newObj(), esapi.ExternalSecretDecodeNone))
+		})
+	}
+	for _, tt := range manyKeysTargets {
+		t.Run(tt.name, func(t *testing.T) {
+			small, large := allocs(100, tt.target, tt.newObj), allocs(400, tt.target, tt.newObj)
+			assert.Less(t, large, 6*small, "4x the keys should cost about 4x the allocations")
+		})
+	}
+}
+
+func BenchmarkExecuteManyKeys(b *testing.B) {
+	tpl, data, _ := manyKeysTemplate(400)
+	for _, tt := range manyKeysTargets {
+		b.Run(tt.name, func(b *testing.B) {
+			b.ReportAllocs()
+			for b.Loop() {
+				if err := Execute(tpl, data, esapi.TemplateScopeValues, tt.target, tt.newObj(), esapi.ExternalSecretDecodeNone); err != nil {
+					b.Fatal(err)
+				}
+			}
 		})
 	}
 }

@@ -26,6 +26,7 @@ import (
 
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/yaml"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -250,37 +251,58 @@ func execute(k, val string, data map[string][]byte) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// setData sets the data field of the object.
+// setField sets key k of the object's field map. Secrets and Unstructured are
+// written in place: converting the whole object once per key made rendering n
+// keys O(n^2) (issue #7037).
 func setField(obj client.Object, field, k string, val []byte) error {
+	switch o := obj.(type) {
+	case *corev1.Secret:
+		if field == "data" {
+			if o.Data == nil {
+				o.Data = make(map[string][]byte)
+			}
+			o.Data[k] = val
+			return nil
+		}
+	case *unstructured.Unstructured:
+		if o.Object == nil {
+			o.Object = make(map[string]any)
+		}
+		return setMapKey(o.Object, field, k, string(val))
+	}
+
 	m, err := runtime.DefaultUnstructuredConverter.ToUnstructured(obj)
 	if err != nil {
 		return fmt.Errorf(errConvertingToUnstructured, err)
 	}
-	_, ok := m[field]
-	if !ok {
-		m[field] = map[string]any{}
-	}
-	specMap, ok := m[field].(map[string]any)
-	if !ok {
-		return fmt.Errorf("failed to convert data to map[string][]byte")
-	}
 
-	// Secrets require base64-encoded []byte values in the data field
-	// Other resources (ConfigMaps, custom resources) need plain string values
-	_, isSecret := obj.(*corev1.Secret)
-	if isSecret {
-		// For Secrets, keep as []byte (will be base64-encoded during serialization)
-		specMap[k] = val
-	} else {
-		// For generic (ConfigMaps, custom resources), use plain strings
-		specMap[k] = string(val)
+	// Secrets keep []byte (base64-encoded on serialization); every other
+	// resource needs plain string values.
+	var v any = string(val)
+	if _, isSecret := obj.(*corev1.Secret); isSecret {
+		v = val
 	}
-	m[field] = specMap
+	if err := setMapKey(m, field, k, v); err != nil {
+		return err
+	}
 
 	// Convert back to the original object type
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(m, obj); err != nil {
 		return fmt.Errorf(errConvertingToObject, err)
 	}
+	return nil
+}
+
+// setMapKey sets m[field][k] = v, creating m[field] if it is absent.
+func setMapKey(m map[string]any, field, k string, v any) error {
+	if _, ok := m[field]; !ok {
+		m[field] = map[string]any{}
+	}
+	fieldMap, ok := m[field].(map[string]any)
+	if !ok {
+		return fmt.Errorf("failed to convert data to map[string][]byte")
+	}
+	fieldMap[k] = v
 	return nil
 }
 
