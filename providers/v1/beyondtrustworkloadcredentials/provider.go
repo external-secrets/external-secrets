@@ -312,6 +312,12 @@ func validateAPIURL(apiURL string) error {
 		return fmt.Errorf("apiUrl must include a host")
 	}
 
+	// The site path is appended to apiUrl as a string, so anything after a "?" or "#" would
+	// swallow it. Checked on the raw string: url.Parse drops a bare trailing "#".
+	if strings.ContainsAny(apiURL, "?#") {
+		return fmt.Errorf("apiUrl must not include a query string or fragment")
+	}
+
 	return nil
 }
 

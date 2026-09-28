@@ -694,3 +694,29 @@ func TestSiteServerURL(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateAPIURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		apiURL  string
+		wantErr bool
+	}{
+		{name: "https base URL", apiURL: "https://api.beyondtrust.io/site"},
+		{name: "https base URL with a trailing slash", apiURL: "https://api.beyondtrust.io/site/"},
+		{name: "http is rejected", apiURL: "http://api.beyondtrust.io/site", wantErr: true},
+		{name: "missing host is rejected", apiURL: "https:///site", wantErr: true},
+		{name: "query string is rejected", apiURL: "https://api.beyondtrust.io/site?region=us", wantErr: true},
+		{name: "bare query delimiter is rejected", apiURL: "https://api.beyondtrust.io/site?", wantErr: true},
+		{name: "fragment is rejected", apiURL: "https://api.beyondtrust.io/site#top", wantErr: true},
+		{name: "bare fragment delimiter is rejected", apiURL: "https://api.beyondtrust.io/site#", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateAPIURL(tt.apiURL)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateAPIURL(%q) error = %v, wantErr %v", tt.apiURL, err, tt.wantErr)
+			}
+		})
+	}
+}
