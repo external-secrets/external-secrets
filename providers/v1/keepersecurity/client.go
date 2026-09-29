@@ -52,6 +52,7 @@ const (
 	errInvalidSecretType                        = "ESO can only push/delete records of type %s. Secret %s is type %s"
 	errKeeperSecurityMissingFolderIDForCreate   = "folderID must be set on the SecretStore to create a new Keeper Security record"
 	errKeeperSecurityUnexpectedFieldState       = "keepersecurity: unexpected field state (property=%t, secretKey=%t)"
+	errKeeperSecurityWholeRecordKeyHasSlash     = "match.remoteRef.remoteKey. Whole-record push does not support '/' in the remote key, got %s"
 
 	externalSecretType = "externalSecrets"
 	secretType         = "secret"
@@ -261,7 +262,11 @@ func (c *Client) buildRecord(secret *corev1.Secret, data esv1.PushSecretData) (*
 }
 
 func buildWholeRecord(secret *corev1.Secret, data esv1.PushSecretData) (*Secret, error) {
-	return buildSecret(data.GetRemoteKey(), secret.Data), nil
+	remoteKey := data.GetRemoteKey()
+	if strings.Contains(remoteKey, "/") {
+		return nil, fmt.Errorf(errKeeperSecurityWholeRecordKeyHasSlash, remoteKey)
+	}
+	return buildSecret(remoteKey, secret.Data), nil
 }
 
 func buildPropertyRecord(secret *corev1.Secret, data esv1.PushSecretData) (*Secret, error) {
@@ -276,7 +281,7 @@ func buildPropertyRecord(secret *corev1.Secret, data esv1.PushSecretData) (*Secr
 func buildPropertyFromSecretKeyRecord(secret *corev1.Secret, data esv1.PushSecretData) (*Secret, error) {
 	secretValue, ok := secret.Data[data.GetSecretKey()]
 	if !ok {
-		return nil, errors.New(errKeeperSecurityNoFields)
+		return nil, fmt.Errorf(errKeeperSecurityNoFields, data.GetSecretKey())
 	}
 
 	return buildSecret(data.GetRemoteKey(), map[string][]byte{data.GetProperty(): secretValue}), nil
@@ -416,7 +421,7 @@ func removeKeeperRecordField(record *ksm.Record, key string) bool {
 	removed := false
 	for _, field := range fields {
 		fieldMap, ok := field.(map[string]any)
-		if !removed && ok && (isStandard && matchesStandardField(fieldMap, key, fieldType) || !isStandard && fieldMap["label"] == key) {
+		if !removed && ok && (isStandard && fieldMap["type"] == fieldType && matchesStandardField(fieldMap, key, fieldType) || !isStandard && fieldMap["label"] == key) {
 			removed = true
 			continue
 		}
