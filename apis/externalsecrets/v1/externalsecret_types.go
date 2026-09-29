@@ -390,18 +390,23 @@ type ExternalSecretDataFromRemoteRef struct {
 }
 
 // ExternalSecretSelect defines rules for filtering secret keys fetched from the provider.
-// +kubebuilder:validation:XValidation:rule="has(self.regexp) || (has(self.names) && size(self.names) > 0)",message="either regexp or at least one name must be specified"
+// +kubebuilder:validation:XValidation:rule="has(self.regexp) || (has(self.names) && size(self.names) > 0)",message="at least one of regexp or names must be specified"
 type ExternalSecretSelect struct {
 	// Used to match secret keys by a regular expression.
+	// +kubebuilder:validation:MinLength=1
 	// +optional
 	Regexp *string `json:"regexp,omitempty"`
 
 	// Used to match secret keys by exact names.
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:items:MinLength:=1
+	// +listType=set
 	// +optional
 	Names []string `json:"names,omitempty"`
 
 	// Defines whether the matched keys should be included or excluded.
 	// +kubebuilder:validation:Enum=Include;Exclude
+	// +required
 	Operation ExternalSecretSelectOperation `json:"operation"`
 }
 
@@ -410,9 +415,9 @@ type ExternalSecretSelect struct {
 type ExternalSecretSelectOperation string
 
 const (
-	// ExternalSecretSelectInclude includes the matched keys in the resulting secret.
+	// ExternalSecretSelectInclude copies only secret keys that match the regex or exact names to the target secret.
 	ExternalSecretSelectInclude ExternalSecretSelectOperation = "Include"
-	// ExternalSecretSelectExclude excludes the matched keys from the resulting secret.
+	// ExternalSecretSelectExclude copies all secret keys EXCEPT those matching the regex or exact names to the target secret.
 	ExternalSecretSelectExclude ExternalSecretSelectOperation = "Exclude"
 )
 

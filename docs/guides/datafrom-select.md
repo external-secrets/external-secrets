@@ -59,10 +59,10 @@ data:
 
 ### The Solution using `dataFrom.select`
 
-A single `Exclude` rule with a regexp drops all metadata keys by pattern, regardless of how many there are or what new metadata keys appear in the future:
+An `Exclude` rule with a regexp drops all metadata keys by pattern, and a second `Exclude` rule with `names` removes a specific unwanted key by exact name:
 
 ```yaml
-{% include 'datafrom-select-1password.yaml' %}
+{% include 'datafrom-select-vault.yaml' %}
 ```
 
 The resulting Kubernetes Secret contains only the application configuration keys:
@@ -77,12 +77,11 @@ data:
   db_host: ZGIuZXhhbXBsZS5jb20=
   db_port: NTQzMg==
   api_url: aHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20=
-  feature_dark_mode: dHJ1ZQ==
 ```
 
 ### How it works
 
-The `Exclude` operation matches all keys starting with `_` using the regexp `^_` and removes them from the working set. Because the rule is pattern-based, any new metadata keys added upstream are automatically filtered without updating the ExternalSecret manifest.
+The first `Exclude` operation matches all keys starting with `_` using the regexp `^_` and removes them from the working set. The second `Exclude` operation removes `feature_dark_mode` by exact name. Because regexp rules are pattern-based, any new metadata keys added upstream are automatically filtered without updating the ExternalSecret manifest. The `names` field is useful for removing specific keys that do not share a common pattern.
 
 For an allow-list approach, `Include` rules can keep only keys matching a specific pattern, dropping all others by default.
 

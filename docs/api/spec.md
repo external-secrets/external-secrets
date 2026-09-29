@@ -5590,10 +5590,10 @@ ExternalSecretSelectOperation
 </tr>
 </thead>
 <tbody><tr><td><p>&#34;Exclude&#34;</p></td>
-<td><p>ExternalSecretSelectExclude excludes the matched keys from the resulting secret.</p>
+<td><p>ExternalSecretSelectExclude copies all secret keys EXCEPT those matching the regex or exact names to the target secret.</p>
 </td>
 </tr><tr><td><p>&#34;Include&#34;</p></td>
-<td><p>ExternalSecretSelectInclude includes the matched keys in the resulting secret.</p>
+<td><p>ExternalSecretSelectInclude copies only secret keys that match the regex or exact names to the target secret.</p>
 </td>
 </tr></tbody>
 </table>
