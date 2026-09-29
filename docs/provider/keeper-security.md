@@ -88,7 +88,7 @@ PushSecret creates and updates only Keeper records of the custom `externalSecret
 * `selector`:
   * `secret.name`: name of the kubernetes secret to be pushed
 * `data.match`:
-    * Whole-record target: omit both `secretKey` and `remoteRef.property`. ESO pushes every key in the selected Secret to the Keeper record named by `remoteRef.remoteKey`. With `updatePolicy: Replace`, keys removed from the source Secret are removed from the Keeper record.
+    * Whole-record target: omit both `secretKey` and `remoteRef.property`. ESO pushes every key in the selected Secret to the Keeper record named by `remoteRef.remoteKey`. With `updatePolicy: Replace`, keys removed from the source Secret are removed from the Keeper record. `remoteRef.remoteKey` must not contain `/`, since that character is reserved for the legacy `record-name/key` target below.
     * Property target: set `remoteRef.remoteKey` to the Keeper record name and `remoteRef.property` to the target field name. Set `secretKey` to push one source key, or omit it to store the selected Secret as JSON in that property. Multiple entries can target different properties of the same Keeper record.
     * Legacy target: `remoteRef.remoteKey: record-name/key` with `secretKey` remains supported. Standard legacy keys (`login`, `username`, `password`, `url`, and `baseurl`) use Keeper's default standard fields.
 

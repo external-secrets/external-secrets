@@ -219,6 +219,30 @@ func TestClientDeleteSecretTargets(t *testing.T) {
 		}
 	})
 
+	t.Run("property field with multiple unlabelled standard fields removes only the matching type", func(t *testing.T) {
+		record := &ksm.Record{Uid: "record-uid", RecordDict: map[string]any{
+			"type": externalSecretType,
+			"fields": []any{
+				map[string]any{"type": PasswordType, "label": "", "value": []any{"secret"}},
+				map[string]any{"type": LoginType, "label": "", "value": []any{"alice"}},
+			},
+		}}
+		var saved *ksm.Record
+		client := &Client{ksmClient: &fake.MockKeeperClient{
+			GetSecretsByTitleFn: func(string) ([]*ksm.Record, error) { return []*ksm.Record{record}, nil },
+			SaveFn: func(r *ksm.Record) error {
+				saved = r
+				return nil
+			},
+		}}
+		if err := client.DeleteSecret(context.Background(), &v1alpha1.PushSecretRemoteRef{RemoteKey: record0, Property: "login"}); err != nil {
+			t.Fatal(err)
+		}
+		if saved == nil || len(saved.GetFieldsByType(LoginType)) != 0 || len(saved.GetFieldsByType(PasswordType)) != 1 {
+			t.Fatal("expected deleting the unlabelled login field to leave the unlabelled password field untouched")
+		}
+	})
+
 	t.Run("legacy custom field deletes an empty record", func(t *testing.T) {
 		record := &ksm.Record{Uid: "record-uid", RecordDict: map[string]any{
 			"type":   externalSecretType,
