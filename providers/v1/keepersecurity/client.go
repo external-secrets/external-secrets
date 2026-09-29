@@ -526,44 +526,55 @@ func syncRecordRawJSON(record *ksm.Record) {
 
 func mergeKeeperRecordFields(currentRecord *ksm.Record, recordData *Secret) error {
 	for _, field := range recordData.Fields {
-		key := field.Label
-		if key == "" {
-			key = field.Type
-		}
-		if len(currentRecord.GetFieldsByLabel(field.Label)) > 0 {
-			if err := currentRecord.SetStandardFieldValue(key, field.Value); err != nil {
-				return err
-			}
-		} else if (field.Label == "" || field.Label == field.Type) && hasUnlabelledStandardField(currentRecord, field.Type) {
-			if err := currentRecord.SetStandardFieldValue(field.Type, field.Value); err != nil {
-				return err
-			}
-		} else if err := insertStandardField(currentRecord, field); err != nil {
+		if err := mergeStandardField(currentRecord, field); err != nil {
 			return err
 		}
 	}
 
 	for _, field := range recordData.Custom {
-		if len(currentRecord.GetCustomFieldsByLabel(field.Label)) > 0 {
-			if err := currentRecord.SetCustomFieldValue(field.Label, field.Value); err != nil {
-				return err
-			}
-			continue
-		}
-		values := make([]string, len(field.Value))
-		for index, value := range field.Value {
-			stringValue, ok := value.(string)
-			if !ok {
-				return fmt.Errorf("custom field %q requires string values", field.Label)
-			}
-			values[index] = stringValue
-		}
-		if err := currentRecord.AddCustomField(ksm.Secret{KeeperRecordField: ksm.KeeperRecordField{Type: secretType, Label: field.Label}, Value: values}); err != nil {
+		if err := mergeCustomField(currentRecord, field); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func mergeStandardField(currentRecord *ksm.Record, field Field) error {
+	key := field.Label
+	if key == "" {
+		key = field.Type
+	}
+	if len(currentRecord.GetFieldsByLabel(field.Label)) > 0 {
+		return currentRecord.SetStandardFieldValue(key, field.Value)
+	}
+	if (field.Label == "" || field.Label == field.Type) && hasUnlabelledStandardField(currentRecord, field.Type) {
+		return currentRecord.SetStandardFieldValue(field.Type, field.Value)
+	}
+	return insertStandardField(currentRecord, field)
+}
+
+func mergeCustomField(currentRecord *ksm.Record, field CustomField) error {
+	if len(currentRecord.GetCustomFieldsByLabel(field.Label)) > 0 {
+		return currentRecord.SetCustomFieldValue(field.Label, field.Value)
+	}
+	values, err := customFieldStringValues(field)
+	if err != nil {
+		return err
+	}
+	return currentRecord.AddCustomField(ksm.Secret{KeeperRecordField: ksm.KeeperRecordField{Type: secretType, Label: field.Label}, Value: values})
+}
+
+func customFieldStringValues(field CustomField) ([]string, error) {
+	values := make([]string, len(field.Value))
+	for index, value := range field.Value {
+		stringValue, ok := value.(string)
+		if !ok {
+			return nil, fmt.Errorf("custom field %q requires string values", field.Label)
+		}
+		values[index] = stringValue
+	}
+	return values, nil
 }
 
 func insertStandardField(record *ksm.Record, field Field) error {
