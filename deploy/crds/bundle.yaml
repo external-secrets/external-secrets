@@ -28807,6 +28807,11 @@ spec:
                           default: false
                           description: Set NoUpper to disable uppercase characters
                           type: boolean
+                        prefix:
+                          description: |-
+                            Prefix is prepended to every generated password after encoding.
+                            It is not counted in length or subject to the character settings.
+                          type: string
                         secretKeys:
                           description: |-
                             SecretKeys defines the keys that will be populated with generated passwords.
@@ -28815,6 +28820,11 @@ spec:
                             type: string
                           minItems: 1
                           type: array
+                        suffix:
+                          description: |-
+                            Suffix is appended to every generated password after encoding.
+                            It is not counted in length or subject to the character settings.
+                          type: string
                         symbolCharacters:
                           description: |-
                             SymbolCharacters specifies the special characters that should be used
@@ -31434,6 +31444,11 @@ spec:
                   default: false
                   description: Set NoUpper to disable uppercase characters
                   type: boolean
+                prefix:
+                  description: |-
+                    Prefix is prepended to every generated password after encoding.
+                    It is not counted in length or subject to the character settings.
+                  type: string
                 secretKeys:
                   description: |-
                     SecretKeys defines the keys that will be populated with generated passwords.
@@ -31442,6 +31457,11 @@ spec:
                     type: string
                   minItems: 1
                   type: array
+                suffix:
+                  description: |-
+                    Suffix is appended to every generated password after encoding.
+                    It is not counted in length or subject to the character settings.
+                  type: string
                 symbolCharacters:
                   description: |-
                     SymbolCharacters specifies the special characters that should be used
@@ -31853,7 +31873,7 @@ spec:
     - name: v1alpha1
       schema:
         openAPIV3Schema:
-          description: UUID generates a version 1 UUID (e56657e3-764f-11ef-a397-65231a88c216).
+          description: UUID generates a version 4 UUID (21061816-abbd-40ef-8985-6db0fbcbc4c4).
           properties:
             apiVersion:
               description: |-
