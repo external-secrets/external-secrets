@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"maps"
 	"regexp"
+	"slices"
 	"strings"
 
 	ksm "github.com/keeper-security/secrets-manager-go/core"
@@ -270,7 +271,13 @@ func buildWholeRecord(secret *corev1.Secret, data esv1.PushSecretData) (*Secret,
 }
 
 func buildPropertyRecord(secret *corev1.Secret, data esv1.PushSecretData) (*Secret, error) {
-	secretContent, err := json.Marshal(secret.Data)
+	// json.Marshal base64-encodes []byte values, so convert to strings first to
+	// keep the stored property readable by ExternalSecrets.
+	stringData := make(map[string]string, len(secret.Data))
+	for key, value := range secret.Data {
+		stringData[key] = string(value)
+	}
+	secretContent, err := json.Marshal(stringData)
 	if err != nil {
 		return nil, err
 	}
@@ -315,7 +322,9 @@ func (c *Client) buildLegacyRecord(secret *corev1.Secret, data esv1.PushSecretDa
 
 func buildSecret(title string, data map[string][]byte) *Secret {
 	recordData := Secret{Type: externalSecretType, Title: title, Fields: []Field{}, Custom: []CustomField{}}
-	for key, value := range data {
+	// Iterate in sorted order so whole-record replacement keeps a stable field order.
+	for _, key := range slices.Sorted(maps.Keys(data)) {
+		value := data[key]
 		fieldType, isStandard := keeperFieldType(key)
 		if isStandard {
 			recordData.Fields = append(recordData.Fields, Field{Type: fieldType, Label: key, Value: []any{string(value)}})
@@ -381,6 +390,9 @@ func (c *Client) deleteWholeSecret(secretName string) error {
 	if secret == nil {
 		return nil
 	}
+	if secret.Type() != externalSecretType {
+		return fmt.Errorf(errInvalidSecretType, externalSecretType, secret.Title(), secret.Type())
+	}
 	_, err = c.ksmClient.DeleteSecrets([]string{secret.Uid})
 	metrics.ObserveAPICall(ProviderKeeperSecurity, CallKeeperSecurityDeleteSecrets, err)
 	return err
@@ -391,7 +403,13 @@ func (c *Client) deleteSecretField(secretName, fieldKey string) error {
 	if err != nil {
 		return err
 	}
-	if secret == nil || !removeKeeperRecordField(secret, fieldKey) {
+	if secret == nil {
+		return nil
+	}
+	if secret.Type() != externalSecretType {
+		return fmt.Errorf(errInvalidSecretType, externalSecretType, secret.Title(), secret.Type())
+	}
+	if !removeKeeperRecordField(secret, fieldKey) {
 		return nil
 	}
 	if keeperRecordIsEmpty(secret) {
