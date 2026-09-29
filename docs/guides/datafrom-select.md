@@ -59,10 +59,10 @@ data:
 
 ### The Solution using `dataFrom.select`
 
-A single `Exclude` rule with a regexp drops all metadata keys by pattern, regardless of how many there are or what new metadata keys appear in the future:
+An `Exclude` rule with a regexp drops all metadata keys by pattern, and a second `Exclude` rule with `names` removes a specific unwanted key by exact name:
 
 ```yaml
-{% include 'datafrom-select-1password.yaml' %}
+{% include 'datafrom-select-vault.yaml' %}
 ```
 
 The resulting Kubernetes Secret contains only the application configuration keys:
@@ -77,12 +77,11 @@ data:
   db_host: ZGIuZXhhbXBsZS5jb20=
   db_port: NTQzMg==
   api_url: aHR0cHM6Ly9hcGkuZXhhbXBsZS5jb20=
-  feature_dark_mode: dHJ1ZQ==
 ```
 
 ### How it works
 
-The `Exclude` operation matches all keys starting with `_` using the regexp `^_` and removes them from the working set. Because the rule is pattern-based, any new metadata keys added upstream are automatically filtered without updating the ExternalSecret manifest.
+The first `Exclude` operation matches all keys starting with `_` using the regexp `^_` and removes them from the working set. The second `Exclude` operation removes `feature_dark_mode` by exact name. Because regexp rules are pattern-based, any new metadata keys added upstream are automatically filtered without updating the ExternalSecret manifest. The `names` field is useful for removing specific keys that do not share a common pattern.
 
 For an allow-list approach, `Include` rules can keep only keys matching a specific pattern, dropping all others by default.
 
@@ -162,6 +161,8 @@ To further clarify these semantics, the following traces demonstrate how the ope
 | `Include .*` then `Exclude .*` | **Empty** | Include keeps everything, then Exclude removes everything |
 | `Exclude ^foo-` then `Include ^bar-` | Only remaining `bar-*` keys | Include never restores previously excluded `foo-*` keys |
 | `Exclude host` then `Include .*` | All keys except `host` | Include applies to the set after Exclude |
+| `Include ^host` then `Include url$` | All keys starting with `host` ending with `url` (e.g. `host_url`/`hosturl`/`host-url`)  | Each `Include` restricts the set further and the result is the intersection of multiple patterns |
+| `Exclude ^foo-` then `Exclude ^bar-` | Everything except `foo-*` and `bar-*` keys | Each `Exclude` deletes more keys and the resulting set only contain the keys which does not match both patterns |
 
 #### `Exclude .*` then `Include .*`
 1. **Initial Set:** `{host, port, password}`
@@ -186,6 +187,24 @@ To further clarify these semantics, the following traces demonstrate how the ope
 2. **Step 1 (`Exclude host`):** The operator removes `host`. The working set becomes `{port, password}`.
 3. **Step 2 (`Include .*`):** The operator filters the working set, keeping everything matching `.*`. This keeps `{port, password}`.
 4. **Final Result:** `{port, password}` (all keys except `host` are kept).
+
+#### `Include ^host` then `Include url$`
+1. **Initial Set:** `{host_url, hosturl, host-url, hostname, db_url}`
+2. **Step 1 (`Include ^host`):** The operator keeps only keys starting with `host`. `db_url` is dropped. The working set becomes `{host_url, hosturl, host-url, hostname}`.
+3. **Step 2 (`Include url$`):** The operator filters that set again, keeping only keys ending with `url`. `hostname` is dropped.
+4. **Final Result:** `{host_url, hosturl, host-url}`.
+
+Chaining `Include` operations is therefore **monotonically restrictive**: each one can only shrink the working set, never grow it. The outcome is the intersection of every `Include` pattern, which is a convenient way to express an "AND" condition that would otherwise need a single, harder-to-read regexp.
+
+---
+
+#### `Exclude ^foo-` then `Exclude ^bar-`
+1. **Initial Set:** `{foo-key1, bar-key1, other-key}`
+2. **Step 1 (`Exclude ^foo-`):** `foo-key1` is removed. The working set becomes `{bar-key1, other-key}`.
+3. **Step 2 (`Exclude ^bar-`):** `bar-key1` is removed.
+4. **Final Result:** `{other-key}`.
+
+Chaining `Exclude` operations is likewise monotonically restrictive, but the patterns accumulate as a **union** of what gets removed. Order does not matter between consecutive `Exclude` operations, whereas it always matters when `Include` and `Exclude` are mixed.
 
 ### Combining regexp and names
 
