@@ -37,7 +37,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
@@ -89,7 +88,7 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 	}
 
 	authOut, res, err := a.RestAPI.Auth(ctx).Body(*authBody).Execute()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMAuth, err)
+	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMAuth, err)
 	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
 		return "", fmt.Errorf("authentication failed: %v", string(apiErr.Body()))
 	}
@@ -149,7 +148,7 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName string) (*akey
 		return nil, err
 	}
 	gsvOut, res, err := a.RestAPI.DescribeItem(ctx).Body(body).Execute()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDescribeItem, err)
+	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMDescribeItem, err)
 	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
 		if res.StatusCode == http.StatusNotFound {
 			return nil, ErrItemNotExists
@@ -178,7 +177,7 @@ func (a *akeylessBase) GetCertificate(ctx context.Context, certificateName strin
 		return "", err
 	}
 	gcvOut, res, err := a.RestAPI.GetCertificateValue(ctx).Body(body).Execute()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetCertificateValue, err)
+	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMGetCertificateValue, err)
 	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
 		return "", fmt.Errorf("can't get certificate value: %v", string(apiErr.Body()))
 	}
@@ -209,7 +208,7 @@ func (a *akeylessBase) GetRotatedSecrets(ctx context.Context, secretName string,
 		return "", err
 	}
 	gsvOut, res, err := a.RestAPI.GetRotatedSecretValue(ctx).Body(body).Execute()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetRotatedSecretValue, err)
+	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMGetRotatedSecretValue, err)
 	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
 		return "", fmt.Errorf("can't get rotated secret value: %v", string(apiErr.Body()))
 	}
@@ -250,7 +249,7 @@ func (a *akeylessBase) GetDynamicSecrets(ctx context.Context, secretName string)
 		return "", err
 	}
 	gsvOut, res, err := a.RestAPI.GetDynamicSecretValue(ctx).Body(body).Execute()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetDynamicSecretValue, err)
+	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMGetDynamicSecretValue, err)
 	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
 		return "", fmt.Errorf("can't get dynamic secret value: %v", string(apiErr.Body()))
 	}
@@ -279,7 +278,7 @@ func (a *akeylessBase) GetStaticSecret(ctx context.Context, secretName string, v
 		return "", err
 	}
 	gsvOut, res, err := a.RestAPI.GetSecretValue(ctx).Body(body).Execute()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMGetSecretValue, err)
+	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMGetSecretValue, err)
 	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
 		return "", fmt.Errorf("can't get secret value: %v", string(apiErr.Body()))
 	}
@@ -329,7 +328,7 @@ func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag string) ([]str
 		return nil, err
 	}
 	lipOut, res, err := a.RestAPI.ListItems(ctx).Body(body).Execute()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMListItems, err)
+	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMListItems, err)
 	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
 		return nil, fmt.Errorf("can't get secrets list: %v", string(apiErr.Body()))
 	}
@@ -365,7 +364,7 @@ func (a *akeylessBase) CreateSecret(ctx context.Context, remoteKey, data string)
 	defer func() {
 		_ = res.Body.Close()
 	}()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMCreateSecret, err)
+	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMCreateSecret, err)
 	return err
 }
 
@@ -381,7 +380,7 @@ func (a *akeylessBase) UpdateSecret(ctx context.Context, remoteKey, data string)
 	defer func() {
 		_ = res.Body.Close()
 	}()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMUpdateSecretVal, err)
+	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMUpdateSecretVal, err)
 	return err
 }
 
@@ -396,7 +395,7 @@ func (a *akeylessBase) DeleteSecret(ctx context.Context, remoteKey string) error
 	defer func() {
 		_ = res.Body.Close()
 	}()
-	metrics.ObserveAPICall(constants.ProviderAKEYLESSSM, constants.CallAKEYLESSSMDeleteItem, err)
+	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMDeleteItem, err)
 	return err
 }
 

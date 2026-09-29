@@ -27,7 +27,6 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	gcpsm "github.com/external-secrets/external-secrets/providers/v1/gcp/secretmanager"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -86,7 +85,7 @@ func (c *client) requestTokenWithGcpAuth(ctx context.Context, gcpAuth *esv1.Vaul
 
 	// Authenticate with Vault using GCP auth
 	_, err = c.auth.Login(ctx, gcpAuthClient)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	metrics.ObserveAPICall(ProviderHCVault, CallHCVaultLogin, err)
 	if err != nil {
 		return err
 	}

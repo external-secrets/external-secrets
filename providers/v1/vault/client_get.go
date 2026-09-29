@@ -26,7 +26,6 @@ import (
 	"github.com/tidwall/gjson"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
@@ -133,7 +132,7 @@ func (c *client) readSecret(ctx context.Context, path, version string) (map[stri
 		params["version"] = []string{version}
 	}
 	vaultSecret, err := c.logical.ReadWithDataWithContext(ctx, dataPath, params)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultReadSecretData, err)
+	metrics.ObserveAPICall(ProviderHCVault, CallHCVaultReadSecretData, err)
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
 	}
@@ -195,7 +194,7 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 		return nil, err
 	}
 	secret, err := c.logical.ReadWithDataWithContext(ctx, url, nil)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultReadSecretData, err)
+	metrics.ObserveAPICall(ProviderHCVault, CallHCVaultReadSecretData, err)
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
 	}

@@ -389,6 +389,10 @@ grafanaDashboard:
   # -- If true creates a Grafana dashboard.
   enabled: false
 
+  # -- Namespace where the dashboard ConfigMap should be created.
+  # Resolution order: grafanaDashboard.namespace, then namespaceOverride, then the release namespace.
+  namespace: ""
+
   # -- Label that ConfigMaps should have to be loaded as dashboards.
   sidecarLabel: "grafana_dashboard"
 
