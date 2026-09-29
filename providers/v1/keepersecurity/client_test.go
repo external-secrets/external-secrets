@@ -243,6 +243,31 @@ func TestClientDeleteSecretTargets(t *testing.T) {
 		}
 	})
 
+	t.Run("record of another type with the same title is left untouched", func(t *testing.T) {
+		for _, ref := range []*v1alpha1.PushSecretRemoteRef{
+			{RemoteKey: record0},
+			{RemoteKey: record0, Property: "username"},
+			{RemoteKey: record0 + "/token"},
+		} {
+			record := newRecord()
+			record.RecordDict["type"] = LoginType
+			client := &Client{ksmClient: &fake.MockKeeperClient{
+				GetSecretsByTitleFn: func(string) ([]*ksm.Record, error) { return []*ksm.Record{record}, nil },
+				DeleteSecretsFn: func([]string) (map[string]string, error) {
+					t.Fatalf("DeleteSecret(%#v) deleted a %s record", ref, LoginType)
+					return nil, nil
+				},
+				SaveFn: func(*ksm.Record) error {
+					t.Fatalf("DeleteSecret(%#v) modified a %s record", ref, LoginType)
+					return nil
+				},
+			}}
+			if err := client.DeleteSecret(context.Background(), ref); err != nil {
+				t.Fatalf("DeleteSecret(%#v) error = %v", ref, err)
+			}
+		}
+	})
+
 	t.Run("legacy custom field deletes an empty record", func(t *testing.T) {
 		record := &ksm.Record{Uid: "record-uid", RecordDict: map[string]any{
 			"type":   externalSecretType,
@@ -380,6 +405,52 @@ func TestClientPushSecretSerializesRecordCreate(t *testing.T) {
 	}
 	if len(custom) != 1 || custom[0].(map[string]any)["label"] != "api-token" || custom[0].(map[string]any)["value"].([]any)[0] != "token-value" {
 		t.Fatalf("unexpected serialized custom fields: %#v", custom)
+	}
+}
+
+func TestBuildPropertyRecordStoresPlainValues(t *testing.T) {
+	secret := &corev1.Secret{Data: map[string][]byte{"user": []byte("bob"), "pass": []byte("hunter2")}}
+	data := &v1alpha1.PushSecretData{Match: v1alpha1.PushSecretMatch{
+		RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: record0, Property: "creds"},
+	}}
+
+	record, err := buildPropertyRecord(secret, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(record.Custom) != 1 || record.Custom[0].Label != "creds" {
+		t.Fatalf("unexpected custom fields: %#v", record.Custom)
+	}
+	var got map[string]string
+	if err := json.Unmarshal([]byte(record.Custom[0].Value[0].(string)), &got); err != nil {
+		t.Fatal(err)
+	}
+	if want := map[string]string{"user": "bob", "pass": "hunter2"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("property value = %v; want %v", got, want)
+	}
+}
+
+func TestBuildSecretFieldOrderIsStable(t *testing.T) {
+	data := map[string][]byte{}
+	for _, key := range []string{"zeta", "password", "alpha", "url", "mid", "login", "beta"} {
+		data[key] = []byte(key)
+	}
+	wantFields := []string{"login", "password", "url"}
+	wantCustom := []string{"alpha", "beta", "mid", "zeta"}
+
+	for range 20 {
+		record := buildSecret(record0, data)
+		gotFields := make([]string, 0, len(record.Fields))
+		gotCustom := make([]string, 0, len(record.Custom))
+		for _, field := range record.Fields {
+			gotFields = append(gotFields, field.Label)
+		}
+		for _, field := range record.Custom {
+			gotCustom = append(gotCustom, field.Label)
+		}
+		if !reflect.DeepEqual(gotFields, wantFields) || !reflect.DeepEqual(gotCustom, wantCustom) {
+			t.Fatalf("field order = %v %v; want %v %v", gotFields, gotCustom, wantFields, wantCustom)
+		}
 	}
 }
 
