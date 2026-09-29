@@ -337,10 +337,7 @@ func keeperFieldType(key string) (string, bool) {
 
 // DeleteSecret removes a secret from Keeper Security.
 func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1.PushSecretRemoteRef) error {
-	target, err := resolvePushTarget(remoteRef)
-	if err != nil {
-		return err
-	}
+	target := resolvePushTarget(remoteRef)
 	if target.fieldKey == "" {
 		return c.deleteWholeSecret(target.secretName)
 	}
@@ -352,16 +349,16 @@ type keeperPushTarget struct {
 	fieldKey   string
 }
 
-func resolvePushTarget(remoteRef esv1.PushSecretRemoteRef) (keeperPushTarget, error) {
+func resolvePushTarget(remoteRef esv1.PushSecretRemoteRef) keeperPushTarget {
 	if property := remoteRef.GetProperty(); property != "" {
-		return keeperPushTarget{secretName: remoteRef.GetRemoteKey(), fieldKey: property}, nil
+		return keeperPushTarget{secretName: remoteRef.GetRemoteKey(), fieldKey: property}
 	}
 	parts, err := buildSecretNameAndKey(remoteRef)
 	if err != nil {
-		return keeperPushTarget{secretName: remoteRef.GetRemoteKey()}, nil
+		return keeperPushTarget{secretName: remoteRef.GetRemoteKey()}
 	}
 
-	return keeperPushTarget{secretName: parts[0], fieldKey: legacyFieldKey(parts[1])}, nil
+	return keeperPushTarget{secretName: parts[0], fieldKey: legacyFieldKey(parts[1])}
 }
 
 func legacyFieldKey(key string) string {
@@ -410,15 +407,15 @@ func removeKeeperRecordField(record *ksm.Record, key string) bool {
 	if isStandard {
 		section = "fields"
 	}
-	fields, ok := record.RecordDict[section].([]interface{})
+	fields, ok := record.RecordDict[section].([]any)
 	if !ok {
 		return false
 	}
 
-	updatedFields := make([]interface{}, 0, len(fields))
+	updatedFields := make([]any, 0, len(fields))
 	removed := false
 	for _, field := range fields {
-		fieldMap, ok := field.(map[string]interface{})
+		fieldMap, ok := field.(map[string]any)
 		if !removed && ok && (isStandard && matchesStandardField(fieldMap, key, fieldType) || !isStandard && fieldMap["label"] == key) {
 			removed = true
 			continue
@@ -434,7 +431,7 @@ func removeKeeperRecordField(record *ksm.Record, key string) bool {
 
 func keeperRecordIsEmpty(record *ksm.Record) bool {
 	for _, section := range []string{"fields", "custom"} {
-		if fields, ok := record.RecordDict[section].([]interface{}); ok && len(fields) > 0 {
+		if fields, ok := record.RecordDict[section].([]any); ok && len(fields) > 0 {
 			return false
 		}
 	}
@@ -443,10 +440,7 @@ func keeperRecordIsEmpty(record *ksm.Record) bool {
 
 // SecretExists checks if a secret exists in Keeper Security.
 func (c *Client) SecretExists(_ context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
-	target, err := resolvePushTarget(ref)
-	if err != nil {
-		return false, err
-	}
+	target := resolvePushTarget(ref)
 	record, err := c.findSecretByName(target.secretName)
 	if err != nil || record == nil {
 		return record != nil, err
@@ -516,7 +510,7 @@ func replaceKeeperRecordFields(currentRecord *ksm.Record, recordData *Secret) er
 	if err != nil {
 		return err
 	}
-	var desiredRecord map[string]interface{}
+	var desiredRecord map[string]any
 	if err := json.Unmarshal(desiredJSON, &desiredRecord); err != nil {
 		return err
 	}
@@ -581,7 +575,7 @@ func insertStandardField(record *ksm.Record, field Field) error {
 			return fmt.Errorf("standard field %q requires string values", field.Type)
 		}
 	}
-	var keeperField interface{}
+	var keeperField any
 	switch field.Type {
 	case LoginType:
 		keeperField = ksm.NewLogin(value)
@@ -614,7 +608,7 @@ func hasUnlabelledStandardField(record *ksm.Record, fieldType string) bool {
 	return false
 }
 
-func matchesStandardField(field map[string]interface{}, key, fieldType string) bool {
+func matchesStandardField(field map[string]any, key, fieldType string) bool {
 	if label, ok := field["label"].(string); ok && label != "" {
 		return label == key
 	}

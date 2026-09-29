@@ -299,13 +299,13 @@ func TestClientUpdateSecret(t *testing.T) {
 		}
 	})
 
-	t.Run("targeted update adds differently labelled standard field", func(t *testing.T) {
+	t.Run("targeted update adds differently labeled standard field", func(t *testing.T) {
 		record := &ksm.Record{RecordDict: map[string]any{"type": externalSecretType, "fields": []any{map[string]any{"type": LoginType, "label": "login", "value": []any{"old"}}}}}
 		if err := client.updateSecret(record, &Secret{Fields: []Field{{Type: LoginType, Label: "username", Value: []any{"new"}}}}, false); err != nil {
 			t.Fatal(err)
 		}
 		if len(record.GetFieldsByLabel("login")) != 1 || len(record.GetFieldsByLabel("username")) != 1 {
-			t.Fatal("targeted update overwrote a differently labelled field")
+			t.Fatal("targeted update overwrote a differently labeled field")
 		}
 	})
 
@@ -375,9 +375,9 @@ func TestLegacyPushSecretCompatibility(t *testing.T) {
 		t.Fatalf("legacy username must map to the default login field: %#v", record.Fields)
 	}
 
-	target, err := resolvePushTarget(data.Match.RemoteRef)
-	if err != nil || target.fieldKey != LoginType {
-		t.Fatalf("legacy username target = %#v, %v; want default login", target, err)
+	target := resolvePushTarget(data.Match.RemoteRef)
+	if target.fieldKey != LoginType {
+		t.Fatalf("legacy username target = %#v; want default login", target)
 	}
 }
 
