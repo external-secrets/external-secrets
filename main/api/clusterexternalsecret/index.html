@@ -5310,11 +5310,28 @@ use the <a href="../../provider/kubernetes/">Kubernetes provider</a> to fan that
    source <code>ExternalSecret</code> in step 1.</li>
 </ol>
 <p><img alt="Fan-out pattern: only the source ExternalSecret polls the provider" src="../../pictures/diagrams-ces-fanout-pattern.png" /></p>
+<div class="admonition warning">
+<p class="admonition-title">Fan-out targets and <code>creationPolicy</code></p>
+<p>Omitting <code>spec.externalSecretSpec.target.creationPolicy</code> defaults to <code>Owner</code>.
+The ClusterExternalSecret owns and deletes per-namespace ExternalSecrets
+when the CES is replaced or a namespace stops matching <code>namespaceSelectors</code>.
+With <code>Owner</code>, Kubernetes also garbage-collects the fanned-out Secrets via
+<code>ownerReference</code>. <code>deletionPolicy: Retain</code> does not prevent that — Retain is
+the provider-side axis.
+No combination gives both properties. <code>Owner</code>
+revokes the copy when a namespace is de-selected, but CES replacement
+also drops the Secret. <code>Orphan</code> / <code>CreateOrMerge</code> + <code>Retain</code> survives
+replacement, but the de-selected namespace keeps a stale, unrefreshed
+copy. Use <code>Orphan</code> when a mount gap hurts (CA bundles, wildcard TLS).
+Keep <code>Owner</code> for credentials that must disappear when the namespace is
+unlabelled. The snippet below is a CA bundle, so it sets <code>Orphan</code>. See
+<a href="../../guides/ownership-deletion-policy/">Lifecycle: ownership &amp; deletion</a>.</p>
+</div>
 <div class="highlight"><pre><span></span><code><span class="c1"># Step 1: A single ExternalSecret pulls from the upstream provider.</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-ca-bundle</span>
 <span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eso-fanout-source</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1h&quot;</span>
@@ -5322,16 +5339,16 @@ use the <a href="../../provider/kubernetes/">Kubernetes provider</a> to fan that
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-upstream-store</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-ca-bundle</span>
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path/to/shared-credentials</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">path/to/shared-ca-bundle</span>
 <span class="nn">---</span>
 <span class="c1"># Step 2: ClusterSecretStore reads the source Secret via the Kubernetes provider.</span>
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials-store</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-ca-bundle-store</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">kubernetes</span><span class="p">:</span>
@@ -5351,22 +5368,27 @@ use the <a href="../../provider/kubernetes/">Kubernetes provider</a> to fan that
 <span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-ca-bundle</span>
 <span class="nt">spec</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">externalSecretName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials</span>
+<span class="w">  </span><span class="nt">externalSecretName</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-ca-bundle</span>
 <span class="w">  </span><span class="nt">namespaceSelectors</span><span class="p">:</span>
 <span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">matchLabels</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">shared-credentials</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
+<span class="w">      </span><span class="nt">shared-ca-bundle</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;true&quot;</span>
 <span class="w">  </span><span class="nt">externalSecretSpec</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;1h&quot;</span>
 <span class="w">    </span><span class="nt">secretStoreRef</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials-store</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-ca-bundle-store</span>
 <span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
 <span class="w">    </span><span class="nt">target</span><span class="p">:</span>
-<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-ca-bundle</span>
+<span class="w">      </span><span class="c1"># Orphan keeps the copied Secret when its child ExternalSecret is deleted.</span>
+<span class="w">      </span><span class="c1"># This protects CES replacement. A de-selected namespace keeps a stale</span>
+<span class="w">      </span><span class="c1"># copy; remove those manually. Do not copy this onto credentials that</span>
+<span class="w">      </span><span class="c1"># must be revoked when the namespace label is dropped.</span>
+<span class="w">      </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Orphan</span>
 <span class="w">    </span><span class="nt">dataFrom</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-credentials</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shared-ca-bundle</span>
 </code></pre></div>
 <p>The <code>ServiceAccount</code> and RBAC for the Kubernetes provider store are the same
 as described in the <a href="../../provider/kubernetes/">Kubernetes provider docs</a>.</p>
