@@ -5504,6 +5504,7 @@
 <span class="w">        </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">&lt;PULUMI_PATH_SYNTAX&gt;</span>
 </code></pre></div>
 <p>This will then push the secret to the Pulumi service. If the secret already exists, it will be updated.</p>
+<p>Only the pushed key is written. The rest of the environment definition (<code>imports</code>, <code>pulumiConfig</code>, <code>environmentVariables</code>, <code>files</code> and any <code>fn::</code> expressions) is left unchanged. The pushed value is stored as a plain literal; it is not wrapped in <code>fn::secret</code>.</p>
 <h2 id="limitations">Limitations</h2>
 <p>Currently, the Pulumi provider only supports nested objects up to a depth of 1. Any nested objects beyond this depth will be stored as a string with the JSON representation.</p>
 <p>This Pulumi ESC example:</p>
