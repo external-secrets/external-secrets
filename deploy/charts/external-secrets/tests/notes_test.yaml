@@ -18,6 +18,13 @@ tests:
     asserts:
       - matchRegexRaw:
           pattern: "WARNING: certController.replicaCount is 2 but leaderElect is false"
+  - it: should separate both warnings with a blank line
+    set:
+      replicaCount: 2
+      certController.replicaCount: 2
+    asserts:
+      - matchRegexRaw:
+          pattern: "more than one replica\\.\\n\\nWARNING: certController"
   - it: should not warn when leader election is enabled
     set:
       replicaCount: 2
