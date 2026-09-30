@@ -22,7 +22,7 @@ func toInt64(v interface{}) int64 {
 	return cast.ToInt64(v)
 }
 
-func max(a interface{}, i ...interface{}) int64 {
+func maximum(a interface{}, i ...interface{}) int64 {
 	aa := toInt64(a)
 	for _, b := range i {
 		bb := toInt64(b)
@@ -42,7 +42,7 @@ func maxf(a interface{}, i ...interface{}) float64 {
 	return aa
 }
 
-func min(a interface{}, i ...interface{}) int64 {
+func minimum(a interface{}, i ...interface{}) int64 {
 	aa := toInt64(a)
 	for _, b := range i {
 		bb := toInt64(b)
