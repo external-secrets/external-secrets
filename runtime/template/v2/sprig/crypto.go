@@ -311,10 +311,7 @@ func buildCustomCertificate(b64cert string, b64key string) (certificate, error) 
 	}
 	_, err = x509.ParseCertificate(decodedCert.Bytes)
 	if err != nil {
-		return crt, fmt.Errorf(
-			"error parsing private key: %s",
-			err,
-		)
+		return crt, errors.New("error parsing certificate")
 	}
 
 	_, err = parsePrivateKeyPEM(string(key))
