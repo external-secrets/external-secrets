@@ -25,6 +25,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode/utf8"
 
 	ksm "github.com/keeper-security/secrets-manager-go/core"
 	corev1 "k8s.io/api/core/v1"
@@ -54,6 +55,7 @@ const (
 	errKeeperSecurityMissingFolderIDForCreate   = "folderID must be set on the SecretStore to create a new Keeper Security record"
 	errKeeperSecurityUnexpectedFieldState       = "keepersecurity: unexpected field state (property=%t, secretKey=%t)"
 	errKeeperSecurityWholeRecordKeyHasSlash     = "match.remoteRef.remoteKey. Whole-record push does not support '/' in the remote key, got %s"
+	errKeeperSecurityNonUTF8Value               = "secret key %q is not valid UTF-8 and cannot be stored in a Keeper property"
 
 	externalSecretType = "externalSecrets"
 	secretType         = "secret"
@@ -275,6 +277,11 @@ func buildPropertyRecord(secret *corev1.Secret, data esv1.PushSecretData) (*Secr
 	// keep the stored property readable by ExternalSecrets.
 	stringData := make(map[string]string, len(secret.Data))
 	for key, value := range secret.Data {
+		// string(value) would silently corrupt non-UTF-8 bytes (json.Marshal
+		// replaces them with U+FFFD), so reject them instead.
+		if !utf8.Valid(value) {
+			return nil, fmt.Errorf(errKeeperSecurityNonUTF8Value, key)
+		}
 		stringData[key] = string(value)
 	}
 	secretContent, err := json.Marshal(stringData)
