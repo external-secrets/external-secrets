@@ -130,6 +130,12 @@ scopedNamespace: ""
 # controllers. Scoped to scopedNamespace if set, otherwise to .Release.Namespace.
 scopedRBAC: false
 
+# -- If set, the controller will watch only the provided namespaces, reconcile external secrets
+# only in those namespaces, and implicitly disable cluster stores, cluster external secrets
+# and cluster push secrets. If this feature is used and create.rbac is set to true, then a Role and RoleBinding will be
+# deployed in each watched namespace.
+watchNamespaces: []
+
 # -- If true the OpenShift finalizer permissions will be added to RBAC
 openshiftFinalizers: true
 

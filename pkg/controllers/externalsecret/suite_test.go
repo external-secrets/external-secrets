@@ -106,7 +106,7 @@ var _ = BeforeSuite(func() {
 
 	// by default, we use a separate cached client for secrets that are managed by the controller
 	// so we should test under the same conditions
-	secretClient, err := ctrlcommon.BuildManagedSecretClient(k8sManager, "")
+	secretClient, err := ctrlcommon.BuildManagedSecretClient(k8sManager, "", []string{})
 	Expect(err).ToNot(HaveOccurred())
 
 	err = (&Reconciler{
