@@ -18,18 +18,22 @@ package externalsecret
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
+	"strings"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/template"
 )
 
@@ -132,13 +136,18 @@ func (r *Reconciler) createGenericResource(ctx context.Context, log logr.Logger,
 	return nil
 }
 
-func (r *Reconciler) updateGenericResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret, existing *unstructured.Unstructured) error {
+func (r *Reconciler) patchGenericResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret, existing, patch *unstructured.Unstructured) error {
 	gvk := getTargetGVK(es)
 
-	log.Info("updating target resource", "gvk", gvk.String(), "name", getTargetName(es))
-	err := r.Client.Update(ctx, existing)
+	patchBody, err := strategicMergePatchBody(patch)
 	if err != nil {
-		return fmt.Errorf("failed to update target resource: %w", err)
+		return fmt.Errorf("failed to build strategic merge patch: %w", err)
+	}
+
+	log.Info("patching target resource", "gvk", gvk.String(), "name", getTargetName(es))
+	err = r.Client.Patch(ctx, existing, client.RawPatch(types.StrategicMergePatchType, patchBody))
+	if err != nil {
+		return fmt.Errorf("failed to patch target resource: %w", err)
 	}
 
 	r.recorder.Event(es, v1.EventTypeNormal, "Updated", fmt.Sprintf("Updated %s %s", gvk.Kind, getTargetName(es)))
@@ -168,26 +177,19 @@ func (r *Reconciler) deleteGenericResource(ctx context.Context, log logr.Logger,
 	return nil
 }
 
-// applyTemplateToManifest renders templates for generic resources and returns an unstructured object.
-// If existingObj is provided, templates will be applied to it (for merge behavior).
-// Otherwise, a new object is created.
-func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte, existingObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	var obj *unstructured.Unstructured
-	if existingObj != nil {
-		// use the existing object for merge behavior if it exists
-		obj = existingObj.DeepCopy()
-	} else {
-		gvk := getTargetGVK(es)
-		obj = &unstructured.Unstructured{}
-		obj.SetGroupVersionKind(gvk)
-		obj.SetName(getTargetName(es))
-		obj.SetNamespace(es.Namespace)
-		switch gvk.Kind {
-		case "ConfigMap", "Secret":
-			obj.Object["data"] = map[string]any{}
-		default:
-			obj.Object["spec"] = map[string]any{}
-		}
+// applyTemplateToManifest renders an unstructured object from the generic resource template. It returns a partial
+// unstructured object constructed only from the template data, suitable for strategic merge patching.
+func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte) (*unstructured.Unstructured, error) {
+	gvk := getTargetGVK(es)
+	obj := &unstructured.Unstructured{}
+	obj.SetGroupVersionKind(gvk)
+	obj.SetName(getTargetName(es))
+	obj.SetNamespace(es.Namespace)
+	switch gvk.Kind {
+	case "ConfigMap", "Secret":
+		obj.Object["data"] = map[string]any{}
+	default:
+		obj.Object["spec"] = map[string]any{}
 	}
 
 	labels := obj.GetLabels()
@@ -228,7 +230,7 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		ann = make(map[string]string)
 	}
 
-	hash, err := genericTargetContentHash(result)
+	hash, err := genericTargetManagedContentHash(es, result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash target %q content: %w", es.Spec.Target.Name, err)
 	}
@@ -335,4 +337,98 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 	}
 
 	return obj, nil
+}
+
+// strategicMergePatchBody builds a partial strategic merge patch payload from the templated object. Constructing the
+// patch payload with only metadata, spec, or data fields allows the API server to merge changes into the live object
+// using its schema (e.g., x-kubernetes-list-type / x-kubernetes-list-map-keys), preserving any unrelated fields.
+func strategicMergePatchBody(patch *unstructured.Unstructured) ([]byte, error) {
+	body := map[string]any{}
+	if metadata, ok := patch.Object["metadata"].(map[string]any); ok && len(metadata) > 0 {
+		body["metadata"] = metadata
+	}
+	if spec, ok := patch.Object["spec"].(map[string]any); ok && len(spec) > 0 {
+		body["spec"] = spec
+	}
+	if data, ok := patch.Object["data"].(map[string]any); ok && len(data) > 0 {
+		body["data"] = data
+	}
+	if len(body) == 0 {
+		return nil, fmt.Errorf("patch payload is empty")
+	}
+	return json.Marshal(body)
+}
+
+// templateTargetPaths returns the target paths (TemplateFrom targets and Template.Data) that the ExternalSecret
+// template writes to. These paths are used for calculating the managed-content hash.
+func templateTargetPaths(es *esv1.ExternalSecret) []string {
+	if es.Spec.Target.Template == nil {
+		return nil
+	}
+
+	paths := make([]string, 0, len(es.Spec.Target.Template.TemplateFrom)+1)
+	for _, tmplFrom := range es.Spec.Target.Template.TemplateFrom {
+		targetPath := tmplFrom.Target
+		if targetPath == "" {
+			targetPath = esv1.TemplateTargetData
+		}
+		paths = append(paths, normalizeTemplateTargetPath(targetPath))
+	}
+
+	if len(es.Spec.Target.Template.Data) > 0 {
+		paths = append(paths, esv1.TemplateTargetData)
+	}
+
+	return paths
+}
+
+// normalizeTemplateTargetPath maps target shorthands (like "annotations" and "labels") to their full metadata paths
+// ("metadata.annotations", "metadata.labels") for accurate hash calculations. Any other path is returned unchanged.
+func normalizeTemplateTargetPath(target string) string {
+	switch strings.ToLower(target) {
+	case "annotations":
+		return "metadata.annotations"
+	case "labels":
+		return "metadata.labels"
+	default:
+		return target
+	}
+}
+
+// extractTemplateTargetContent builds a nested structure with only the values at the configured target paths from the
+// given object. Paths that don't exist are silently ignored so a clean hash can still be calculated.
+func extractTemplateTargetContent(obj *unstructured.Unstructured, paths []string) (map[string]any, error) {
+	content := make(map[string]any, len(paths))
+	for _, path := range paths {
+		parts := strings.Split(path, ".")
+		val, found, err := unstructured.NestedFieldCopy(obj.Object, parts...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to read path %q: %w", path, err)
+		}
+		if !found {
+			continue
+		}
+		if err := unstructured.SetNestedField(content, val, parts...); err != nil {
+			return nil, fmt.Errorf("failed to store path %q for hashing: %w", path, err)
+		}
+	}
+	return content, nil
+}
+
+// genericTargetManagedContentHash calculates a hash of only the ExternalSecret template target paths, not the entire
+// spec or data map. Hashing the full parent field would include unmanaged child fields from the fetched object, which
+// would make AnnotationDataHash never match and force a refresh every reconcile.
+func genericTargetManagedContentHash(es *esv1.ExternalSecret, obj *unstructured.Unstructured) (string, error) {
+	paths := templateTargetPaths(es)
+	if len(paths) == 0 {
+		return genericTargetContentHash(obj)
+	}
+	content, err := extractTemplateTargetContent(obj, paths)
+	if err != nil {
+		return "", err
+	}
+	if len(content) == 0 {
+		return genericTargetContentHash(obj)
+	}
+	return esutils.ObjectHash(content), nil
 }
