@@ -1,25 +1,91 @@
+```yaml
+---
+title: Explicit error information
+version: v1alpha1
+authors: Jean-Philippe Evrard
+creation-date: 2026-09-25
+status: draft
+---
+```
+
 # Template cleaning and explicit public error information
 
-**Status:** Proposed implementation plan. This document does not implement the Go
-changes, and its example tests and commands have not yet been run.
+## Table of Contents
 
-## 1. Purpose and agreed decisions
+<!-- toc -->
+// autogen please
+<!-- /toc -->
 
+## Summary
+
+Review complete error chain to _proactively prevent_ errors to leak sensitive information.
+
+## Motivation
+
+We had a security issue, caused by the presence of the `fail` templating
+function. It leaked secret information. 
+
+We solved that issue, but I realised this is not enough to guarantee
+confidentiality in the future for multiple parts of the codebase, described below.
+
+### The sub-case of templating: Current risks
+
+The current path is:
+
+```text
+ExternalSecret Reconcile
+  GetProviderSecretData
+  createSecret / updateSecret
+    mutationFunc -> ApplyTemplate -> Parser.MergeMap
+      v2.Execute -> valueScopeApply -> execute
+        template receives plaintext map[string]string as dot
+        fail function (or whatever other function failing) returns errors.New(rendered argument)
+  markAsFailed -> Event(err.Error())
+  return original error -> controller-runtime logging
+```
+
+`markAsFailed` in `pkg/controllers/externalsecret/externalsecret_controller.go`
+separately calls `ctrlutil.SafeMessage` for the Ready condition. The Event
+has already received the unfiltered error, while the condition is safe.
+Existing `markasfailed_test.go` tests protect conditions but do not assert Event contents.
+
+The original example needs an actual `data` or `dataFrom` input to expose fetched
+values. The webhook rejects specs containing neither. But webhook can be disabled.
+
+Other paths must be included in implementation:
+
+| Path | Current behavior |
+| --- | --- |
+| `runtime/template/v2/template.go:mapScopeApply` | Calls `execute(tpl, tpl, data)`: complete source text is also the template's name. |
+| `pkg/controllers/templating/parser.go` | KeysAndValues maps sometimes use source text as their map key. |
+| `renderTemplatedManifest` | Renders Secret/ConfigMap sources into `tempSecret.Data`, then executes those values again; first-pass output becomes second-pass source. |
+| `runtime/esutils/utils.go:RewriteTransform` | Executes Go templates directly, bypassing v2 `Execute`, and prints the current key in errors. |
+| PushSecret `compileRewrite` / `rewriteWithKeyMapping` | Another direct execution path; outer errors print transformed keys. |
+| ExternalSecret `createSecret` / `updateSecret` | Mark arbitrary Kubernetes write errors with `Safe`; API rejections may echo rendered values. |
+| ExternalSecret status-update defers | Can log and replace the final returned error after normal control flow finishes. |
+| SecretStore `validateStore` | Uses generic conditions but publishes raw provider errors as Events. |
+| PushSecret `markAsFailed` | Accepts preformatted strings; several callers interpolate provider errors before calling it. |
+
+## Goals
 Prevent fetched secrets, sensitive template source, generated keys, and rejected
-values from appearing in Kubernetes Events and status through error messages.
-Protect the controller logging/return paths involved in the same failures. Remove
-source of explicit arbitrary-error primitives (like `fail`) that would report
-bad information. However, this recognizes that we can't delete everything.
+values from appearing in Kubernetes Events or Kubernetes resources
+(labels, annotations, status...) through the help of error messages.
+
+Protect the controller logging/return paths involved in the same failures.
+
+## Non-Goals
+This document does not detail the implementation to a deeper level (code, tests, ...)
+
+## Proposal
 
 The design principle is:
 
 > Producers (sdks, providers) explicitly describe what is public (the error information that will be published);
 > Consumers (controllers) always filter before publishing;
-> Publishing (to k8s api objects, logs, or events) is santized by default;
-> Preserve all error information/original causes internally for filtering
+> Publishing (to k8s api objects, logs, or events) is sanitized by default;
+> all error information/original causes are preserved internally for managing errors.
 
-Here, **sanitize means select only "classified as public" information and
-suppress all unclassified information**.
+Here, **sanitize means display only "classified as public" information and suppress all unclassified information**.
 It does not mean searching an arbitrary error string for known passwords and replacing them.
 
 ### Golden rules for error text management
@@ -104,45 +170,7 @@ Restricting templates to ExternalSecrets authors while keeping usefulness is
 impractical (admission controller on some parts of the custom resource is
 tedious).
 
-## Current templating risks
-
-The current path is:
-
-```text
-ExternalSecret Reconcile
-  GetProviderSecretData
-  createSecret / updateSecret
-    mutationFunc -> ApplyTemplate -> Parser.MergeMap
-      v2.Execute -> valueScopeApply -> execute
-        template receives plaintext map[string]string as dot
-        fail function (or whatever other function failing) returns errors.New(rendered argument)
-  markAsFailed -> Event(err.Error())
-  return original error -> controller-runtime logging
-```
-
-`markAsFailed` in `pkg/controllers/externalsecret/externalsecret_controller.go`
-separately calls `ctrlutil.SafeMessage` for the Ready condition. The Event
-has already received the unfiltered error, while the condition is safe.
-Existing `markasfailed_test.go` tests protect conditions but do not assert Event contents.
-
-The original example needs an actual `data` or `dataFrom` input to expose fetched
-values. The webhook rejects specs containing neither. But webhook can be disabled.
-
-Other paths must be included in implementation:
-
-| Path | Current behavior |
-| --- | --- |
-| `runtime/template/v2/template.go:mapScopeApply` | Calls `execute(tpl, tpl, data)`: complete source text is also the template's name. |
-| `pkg/controllers/templating/parser.go` | KeysAndValues maps sometimes use source text as their map key. |
-| `renderTemplatedManifest` | Renders Secret/ConfigMap sources into `tempSecret.Data`, then executes those values again; first-pass output becomes second-pass source. |
-| `runtime/esutils/utils.go:RewriteTransform` | Executes Go templates directly, bypassing v2 `Execute`, and prints the current key in errors. |
-| PushSecret `compileRewrite` / `rewriteWithKeyMapping` | Another direct execution path; outer errors print transformed keys. |
-| ExternalSecret `createSecret` / `updateSecret` | Mark arbitrary Kubernetes write errors with `Safe`; API rejections may echo rendered values. |
-| ExternalSecret status-update defers | Can log and replace the final returned error after normal control flow finishes. |
-| SecretStore `validateStore` | Uses generic conditions but publishes raw provider errors as Events. |
-| PushSecret `markAsFailed` | Accepts preformatted strings; several callers interpolate provider errors before calling it. |
-
-## High-level architecture
+### High-level architecture
 
 ```text
 Producer or adapter
@@ -187,13 +215,13 @@ There is no prerequisite to update all providers before fixing Events.
 - **Controllers**: make behavioral decisions and use the shared publication
   helpers at every affected sink.
 
-## 4. Shared error contract: `runtime/errinfo`
+### Shared error contract: `runtime/errinfo`
 
 Add `runtime/errinfo/error.go` and tests by evolving the behavior currently in
 `pkg/controllers/util/statuserr.go`. The following API is the implementation
 contract; normal package comments/license headers are omitted from snippets.
 
-### 4.1 Representation and constructor
+#### Representation and constructor
 
 ```go
 type Info struct {
@@ -236,7 +264,7 @@ as data, not computed by a provider callback when a controller reports the error
 Do not add generic `Details any` or automatically serialize causes (which are
 sensitive) into `Info` (which is less sensitive).
 
-### 4.2 Selecting public information
+#### Selecting public information
 
 Convenience function:
 
@@ -299,7 +327,7 @@ It must be explicitly expressed as Failure.
 Neither `PublicMessage` nor `Failure.Error` invokes `Error()` on an unknown cause
 to prevent leakage.
 
-### 4.3 Approved context composition
+#### Approved context composition
 
 Add the helper for higher-level context:
 
@@ -338,7 +366,7 @@ Only add context where it adds information. Do not call this helper in every
 stack frame or repeat the same operation at both origin and publication. It keeps
 the original error as cause so `errors.Is`/`errors.As` still work internally.
 
-### 4.4 Public projection for error-consuming sinks
+#### Public projection for error-consuming sinks
 
 ```go
 func PublicError(err error, fallback string) error {
@@ -363,9 +391,9 @@ Safe `Error()` does not authorize dumping the whole `Failure` struct or its caus
 with reflection, structured serialization, or a debug formatter. Public sinks
 receive the projection, not the internal object graph.
 
-## 5. Template core: execute text, then apply its result
+### Template core changes: execute text, then apply its result
 
-### 5.1 Small template types
+#### Introducing small template types
 
 Define these types in the `runtime/template` facade:
 
@@ -413,7 +441,7 @@ Indexes refer to real zero-based spec lists, not Go map iteration. Do not preten
 inline maps have stable entry indexes. Initially omit even inline configured key
 names; adding those later requires an explicit disclosure policy.
 
-### 5.2 Avoid an import cycle without another types framework
+#### Avoiding an import cycle without another types framework
 
 `runtime/template` already imports v2. Keep the low-level v2 function independent
 of facade types:
@@ -439,7 +467,7 @@ runtime/esutils -> runtime/template/v2 + runtime/errinfo
 No v2 import of its parent facade, no extra `TemplateRoot`/`StepKind` package, and
 no controller dependency from runtime are necessary.
 
-### 5.3 Evolve v2 `execute` into the low-level renderer
+#### Evolve template v2 `execute` into the low-level renderer
 
 In `runtime/template/v2/template.go`:
 
@@ -469,7 +497,7 @@ Do not add a general panic recovery layer around controllers. Existing Go templa
 function-panic conversion remains; built-in/type errors without a declaration get
 only the stage message. Private causes retain detailed debugging information.
 
-### 5.4 Separate output application from rendering
+#### Separate output application from rendering
 
 In this section, we extract "what to do with rendered bytes" from "how to execute a template",
 in order to makes errors from that second processing stage follow the same public/private classification rules
@@ -509,7 +537,7 @@ func ApplyDocument(ref TemplateRef, rendered []byte, target string,
     obj client.Object, decoding esv1.ExternalSecretDecodingStrategy) ([]string, error)
 ```
 
-#### ApplyValue
+##### ApplyValue case
 
 `ApplyValue` decodes and assigns one value to a caller-known key.
 
@@ -551,7 +579,7 @@ The same operation can populate labels, annotations, or supported paths, using t
 
 It never executes the bytes as template text.
 
-#### ApplyDocument
+##### ApplyDocument case
 
 `ApplyDocument` parses the rendered YAML and applies its map entries or nested structure. Its
 returned keys identify entries assigned to well-known map targets; they are
@@ -611,7 +639,7 @@ That is why the section calls the returned keys sensitive bookkeeping.
 This return value is not fundamental to the current rendering.
 It is simply the proposed mechanism for satisfying the provenance requirement.
 
-#### Why does this matter?
+##### Why does this matter?
 
 **Successful rendering does not mean processing has finished successfully**. Which means it could leak errors into
 events.
@@ -647,7 +675,7 @@ The public message identifies the responsible configuration and failing operatio
 
 This is the same error policy as rendering, not a separate mechanism.
 
-#### Common to ApplyValue/ApplyDocument
+##### Common to ApplyValue/ApplyDocument
 
 These functions do not compile or execute template text. All their public errors
 are a fixed operation plus the supplied structural `ref`. Private causes retain
@@ -679,7 +707,7 @@ provider push after rendering/application fails.
 At implementation time, we will need to care about not add an expensive deep-copy
 layer per template.
 
-### 5.5 Parser and controller migration
+#### Parser and controller migration
 
 In `pkg/controllers/templating/parser.go`:
 
@@ -720,7 +748,7 @@ Migrate tests and callers before removing the old `ExecFunc` and map-based v2
 errors. Characterization tests for the old successful behavior should accompany
 this refactor so security changes do not silently change output.
 
-### 5.6 Preserve provenance through generic-target double rendering
+#### Preserve provenance through generic-target double rendering
 
 `renderTemplatedManifest` currently renders some sources into a temporary Secret
 and then executes `tempSecret.Data` as templates.
@@ -748,7 +776,7 @@ Remove the wrapper that prints `targetPath` after failed merged-template executi
 A second-pass parse failure must identify the original configuration source, not
 print first-pass secret-derived output. Pass numbers are not required initially.
 
-### 5.7 Rewrite paths remain explicit
+#### Rewrite paths remain explicit
 
 Both rewrite paths execute Go templates directly and must adopt errinfo even
 though they do not render Kubernetes objects:
@@ -769,9 +797,9 @@ though they do not render Kubernetes objects:
 Do not route rewrites through the Kubernetes application functions, or silently
 change their template options to match v2's main renderer.
 
-## 6. Kubernetes classification and controller publication
+### Kubernetes classification and controller publication
 
-### 6.1 Classify real client errors at their origins
+#### Classify real client errors at their origins
 
 Add `ClassifyAPIError(err error) error` in `pkg/controllers/util/apierr.go`.
 Return nil for nil; otherwise construct `errinfo.NewFailure` with the original
@@ -813,7 +841,7 @@ password. The Event and condition should instead contain:
 could not update secret: Kubernetes object validation failed
 ```
 
-### 6.2 ExternalSecret origin migration
+#### ExternalSecret origin migration
 
 Replace broad `ctrlutil.Safe(err)` approval at these sites:
 
@@ -833,7 +861,7 @@ Hash/conversion/key-validation errors outside the new rendering boundary remain
 private unless their own producer deliberately supplies a declaration. Do not mark
 them safe simply because their wrapper was written by ESO.
 
-### 6.3 Compose one failure for Event, condition, and returned error
+#### Compose one failure for Event, condition, and returned error
 
 Evolve ExternalSecret `markAsFailed` to return the internally classified error:
 
@@ -861,7 +889,7 @@ second time at that gate.
 This makes the Event and condition use the same string while allowing a returned
 error to retain the same approved context and its original control-flow identity.
 
-### 6.4 Return filtering and deferred status errors
+#### Return filtering and deferred status errors
 
 ExternalSecret `Reconcile` already has named returns. Register a sanitizer as the
 **first defer**, before metrics and status-update defers:
@@ -894,7 +922,7 @@ Recheck for framework-specific error markers before introducing projection to
 additional controllers. The inspected paths do not use `TerminalError`; if that
 changes, handle its behavior before removing its cause chain.
 
-### 6.5 Logs are sinks too
+#### Logs are sinks too
 
 A final return gate does not protect earlier logs. Pass a public projection to
 explicit `log.Error` calls, and remove raw errors from Info fields on covered
@@ -920,7 +948,7 @@ No raw-cause debug toggle is added by this patch. Retaining causes permits inter
 inspection; it is not permission to send them to ordinary debug logs. A future
 restricted debugging facility would need an explicit access/retention policy.
 
-### 6.6 Other controller sinks
+#### Other controller sinks
 
 | Controller / file | Required implementation |
 | --- | --- |
@@ -944,7 +972,7 @@ can report only the actual `spec.data[i]` or `spec.dataFrom[i]` index rather tha
 remote key. Preserve reasons/deletion behavior. Generic-target success Events use
 kind/name from configuration, not rendered output; those identifiers can stay.
 
-## 7. Migrating the existing safe-message mechanism
+### Migrating the existing safe-message mechanism
 
 This is a replacement of representation and naming **within one mechanism**, not
 a second safety policy operating alongside the old one.
@@ -971,11 +999,11 @@ representation does not derive public text from the cause at all. This is why it
 can safely give an outer explicit declaration precedence, including withholding
 inner detail with an empty message.
 
-## 8. Provider adoption now and in the future
+### Provider adoption now and in the future
 
 This section was AI generated, take that with a pinch of salt.
 
-### 8.1 No new provider method or callback
+#### No new provider method or callback
 
 `apis/externalsecrets/v1/provider.go` continues returning ordinary Go `error` values
 from provider/client methods. Providers opt in by returning `*errinfo.Failure`.
@@ -1009,7 +1037,7 @@ predicates/codes, not message substring matching. AWS Secrets Manager's existing
 `smithy.APIError.ErrorCode()` handling is one concrete adoption point. Keep metrics
 observation and existing missing-secret translation in their current positions.
 
-### 8.2 Provider author rules
+#### Provider author rules
 
 - Declare fixed messages or reviewed fields that contain no secret-derived data.
 - Never put an SDK `Error()`, response body, authentication URL, token, property
@@ -1028,7 +1056,7 @@ observation and existing missing-secret translation in their current positions.
   review local log calls as part of adoption rather than assuming wrapping fixes
   logs already emitted by an SDK.
 
-### 8.3 Adoption checklist for each provider module
+#### Adoption checklist for each provider module
 
 1. Import `github.com/external-secrets/external-secrets/runtime/errinfo`. Many
    providers already depend on the runtime module; use the repository's existing
@@ -1050,7 +1078,7 @@ observation and existing missing-secret translation in their current positions.
 The security fix does not wait for this rollout: unknown provider failures already
 fall back safely at publication. Subsequent adoption improves troubleshooting.
 
-### 8.4 Future ESO/provider architectures
+#### Future ESO/provider architectures
 
 For a future process boundary, represent the public `Info` as response metadata.
 The local adapter reconstructs `Failure` with that metadata and whatever private
@@ -1068,11 +1096,11 @@ wire compatibility before adding it. It must not silently replace Kubernetes
 conflict checks or secret-not-found deletion semantics. No such field/interface
 is introduced by this security fix.
 
-## 9. Tests that demonstrate the design and close the leak
+### Tests that demonstrate the design and close the leak
 
 This section was AI generated, take that with a pinch of salt.
 
-### 9.1 `runtime/errinfo` contract tests
+#### `runtime/errinfo` contract tests
 
 Use a distinctive fake value such as `ESO_EVENT_CANARY_7F92` in private causes.
 Test:
@@ -1096,7 +1124,7 @@ Test raw causes are retained rather than asserting they were destroyed. Negative
 formatting assertions belong on public strings/projections, not reflective dumps
 of an internal Failure that intentionally contains a private cause.
 
-### 9.2 Renderer and application tests
+#### Renderer and application tests
 
 Characterize successful output before splitting v2 Execute. Reuse existing tests
 for delimiters, missing keys, decoding, labels/annotations, Secret encoding,
@@ -1133,7 +1161,7 @@ partial-success behavior atomic. Add `cmd/esoctl/template_test.go` coverage for 
 supported source kinds, retained successful CLI output, and sanitized error returns
 from malformed template/source data; isolate and restore its package-global flags.
 
-### 9.3 API and controller publication tests
+#### API and controller publication tests
 
 Construct real-shaped rejected-value errors:
 
@@ -1178,7 +1206,7 @@ all validation-result branches, namespace-failure status tests, and GeneratorSta
 cleanup condition tests. Reuse `client_manager_saferr_test.go` provider registration
 fixtures carefully; do not parallelize tests mutating global registrations.
 
-### 9.4 Integration and control-flow coverage
+#### Integration and control-flow coverage
 
 Use the existing ExternalSecret envtest suite for the invalid-label scenario.
 Provide a valid data/store reference and fake provider returning the canary. Wait
@@ -1198,7 +1226,7 @@ contain canary plaintext, base64 forms, or selected substrings. Pair absence tes
 with exact approved output: checking only absence of a full password misses
 partial leaks. Do not present finite tests as proof against behavioral side channels.
 
-## 10. Implementation order, documentation, and validation
+### Implementation order, documentation, and validation
 
 This section was AI generated, take that with a pinch of salt.
 
@@ -1261,9 +1289,26 @@ unrelated changes out. Record unavailable tools/environment blockers explicitly.
 These are implementation acceptance steps, not checks claimed for this
 proposal-only document.
 
-## 12. Definition of done
 
-This section was AI generated, take that with a pinch of salt.
+### User Stories
+As a user of ESO, I want to make sure my passwords are not leaked to a cluster administrator.
+
+### API
+No change
+
+### Behavior
+This is described in the proposal.
+
+### Drawbacks
+The error messages will be _less explanatory/harder to debug_ until the providers have adapted their codebases
+to use our convenience tools.
+
+### Acceptance Criteria
+
+When the core is merged, we can consider this initiative done.
+The provider usage is something we can track but should not be part of the success of this initiative.
+
+According to an AI (take this with a pinch of salt), this would be the Definition of Done:
 
 - One evolved error mechanism: Info/Failure, explicit producer declarations,
   context composition, and default-private public selection.
@@ -1285,3 +1330,4 @@ This section was AI generated, take that with a pinch of salt.
   non-diagnostic state are explicitly outside the completed claim.
 - Tests, documentation, and repository validation gates pass before implementation
   is presented as ready.
+
