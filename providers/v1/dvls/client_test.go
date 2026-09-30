@@ -18,6 +18,7 @@ package dvls
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -74,7 +75,7 @@ func (m *mockCredentialClient) GetByID(_ context.Context, _, entryID string) (dv
 	}
 
 	if entry, ok := m.entries[entryID]; ok {
-		return entry, nil
+		return roundTrip(entry), nil
 	}
 
 	return dvls.Entry{}, &dvls.RequestError{Err: fmt.Errorf("unexpected status code %d", http.StatusNotFound), Url: entryID, StatusCode: http.StatusNotFound}
@@ -118,9 +119,37 @@ func (m *mockCredentialClient) Update(_ context.Context, entry dvls.Entry) (dvls
 	if m.updateErr != nil {
 		return entry, m.updateErr
 	}
-	m.entries[entry.Id] = entry
-	m.lastUpdated = entry
-	return entry, nil
+	// DVLS keeps a data field an update leaves out, so the sent data is decoded
+	// over what is stored rather than replacing it.
+	updated := roundTrip(entry)
+	if stored, ok := m.entries[entry.Id]; ok && stored.Data != nil {
+		merged := roundTrip(stored)
+		body, err := json.Marshal(entry.Data)
+		if err != nil {
+			return entry, err
+		}
+		if err := json.Unmarshal(body, merged.Data); err != nil {
+			return entry, err
+		}
+		updated.Data = merged.Data
+	}
+	m.entries[entry.Id] = updated
+	m.lastUpdated = updated
+	return updated, nil
+}
+
+// roundTrip copies an entry through JSON, as the server hands one back, so
+// that nothing a test inspects shares a pointer with what the client changed.
+func roundTrip(entry dvls.Entry) dvls.Entry {
+	body, err := json.Marshal(entry)
+	if err != nil {
+		panic(err)
+	}
+	var out dvls.Entry
+	if err := json.Unmarshal(body, &out); err != nil {
+		panic(err)
+	}
+	return out
 }
 
 func (m *mockCredentialClient) DeleteByID(_ context.Context, _, entryID string) error {
@@ -1022,7 +1051,7 @@ func TestClient_CreateEntry_RequiresVault(t *testing.T) {
 	mockCred := newMockCredentialClient(nil)
 	c := NewClient(mockCred, newMockFolderClient(), "")
 
-	err := c.createEntry(context.Background(), `prod\db\postgres`, []byte("pw"))
+	err := c.createEntry(context.Background(), `prod\db\postgres`, "", []byte("pw"))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "must set a vault")
 	assert.Equal(t, 0, mockCred.created)
@@ -1165,6 +1194,178 @@ func TestClient_PushSecret_CreateError(t *testing.T) {
 	err := c.PushSecret(context.Background(), secret, data)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create entry")
+}
+
+// --- Tests: username and password ---
+
+func userPassSecret() *corev1.Secret {
+	return &corev1.Secret{Data: map[string][]byte{"username": []byte("app-user"), "password": []byte("app-pass")}}
+}
+
+func defaultEntry(username, password string) dvls.Entry {
+	return dvls.Entry{
+		Id:      testEntryUUID,
+		Name:    testEntryName,
+		Type:    dvls.EntryCredentialType,
+		SubType: dvls.EntryCredentialSubTypeDefault,
+		Data:    &dvls.EntryCredentialDefaultData{Username: username, Password: password},
+	}
+}
+
+func TestClient_PushSecret_PropertyCreatesDefaultEntry(t *testing.T) {
+	c, mockCred := newTestClient(nil)
+	data := pushSecretDataStub{remoteKey: `prod\db`, secretKey: "username", property: "username"}
+
+	assert.NoError(t, c.PushSecret(context.Background(), userPassSecret(), data))
+
+	created := mockCred.lastCreated
+	assert.Equal(t, dvls.EntryCredentialSubTypeDefault, created.SubType)
+	credData, ok := created.Data.(*dvls.EntryCredentialDefaultData)
+	assert.True(t, ok)
+	assert.Equal(t, "app-user", credData.Username)
+	assert.Equal(t, "", credData.Password)
+}
+
+func TestClient_PushSecret_UsernameAndPasswordFillOneEntry(t *testing.T) {
+	// The two items of one PushSecret reach the provider as two pushes to the
+	// same key. The first creates the entry and the second has to find it, or
+	// every field would get an entry of its own.
+	c, mockCred := newTestClient(nil)
+	for _, field := range []string{"username", "password"} {
+		data := pushSecretDataStub{remoteKey: `prod\db`, secretKey: field, property: field}
+		assert.NoError(t, c.PushSecret(context.Background(), userPassSecret(), data))
+	}
+	assert.Equal(t, 1, mockCred.created)
+
+	// Read back from a fresh client, as the ExternalSecret would.
+	fresh := NewClient(mockCred, newMockFolderClient(), testVaultUUID)
+	got, err := fresh.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: `prod\db`})
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("app-user"), got["username"])
+	assert.Equal(t, []byte("app-pass"), got["password"])
+
+	pw, err := fresh.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: `prod\db`})
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("app-pass"), pw)
+}
+
+func TestClient_PushSecret_PropertyUpdatesOnlyThatField(t *testing.T) {
+	// Before properties were honored, a push naming username overwrote the
+	// password with the username's value.
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("old-user", "kept-pass")})
+	data := pushSecretDataStub{remoteKey: testEntryName, secretKey: "username", property: "username"}
+
+	assert.NoError(t, c.PushSecret(context.Background(), userPassSecret(), data))
+
+	credData, ok := mockCred.entries[testEntryUUID].Data.(*dvls.EntryCredentialDefaultData)
+	assert.True(t, ok)
+	assert.Equal(t, "app-user", credData.Username)
+	assert.Equal(t, "kept-pass", credData.Password)
+}
+
+func TestClient_PushSecret_UsernameOnAccessCodeIsRefused(t *testing.T) {
+	c, mockCred := newTestClient(map[string]dvls.Entry{
+		testEntryUUID: {
+			Id: testEntryUUID, Name: testEntryName, Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeAccessCode,
+			Data: &dvls.EntryCredentialAccessCodeData{Password: "kept-pass"},
+		},
+	})
+	data := pushSecretDataStub{remoteKey: testEntryName, secretKey: "username", property: "username"}
+
+	err := c.PushSecret(context.Background(), userPassSecret(), data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "has no username field")
+	assert.Equal(t, "", mockCred.lastUpdated.Id)
+	credData, _ := mockCred.entries[testEntryUUID].Data.(*dvls.EntryCredentialAccessCodeData)
+	assert.Equal(t, "kept-pass", credData.Password)
+}
+
+func TestClient_PushSecret_UnknownPropertyIsRefused(t *testing.T) {
+	c, mockCred := newTestClient(nil)
+	data := pushSecretDataStub{remoteKey: `prod\db`, secretKey: "password", property: "api-key"}
+
+	err := c.PushSecret(context.Background(), userPassSecret(), data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), `property "api-key" cannot be pushed`)
+	assert.Equal(t, 0, mockCred.created)
+}
+
+func TestClient_SecretExists_PropertyChecksTheField(t *testing.T) {
+	c, _ := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("app-user", "")})
+
+	for property, want := range map[string]bool{"": true, "username": true, "password": false, "domain": false} {
+		exists, err := c.SecretExists(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: property})
+		assert.NoError(t, err)
+		assert.Equal(t, want, exists, "property %q", property)
+	}
+
+	_, err := c.SecretExists(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: "api-key"})
+	assert.Error(t, err)
+}
+
+func TestClient_SecretExists_IfNotExistsFillsEveryField(t *testing.T) {
+	// What the controller does under updatePolicy IfNotExists: check each item,
+	// then push it if missing. If the entry the first item creates counted as
+	// existing for the second, the password would never be written.
+	c, mockCred := newTestClient(nil)
+	ifNotExists := func() {
+		for _, field := range []string{"username", "password"} {
+			ref := pushSecretRemoteRefStub{remoteKey: `prod\db`, property: field}
+			exists, err := c.SecretExists(context.Background(), ref)
+			assert.NoError(t, err)
+			if !exists {
+				data := pushSecretDataStub{remoteKey: `prod\db`, secretKey: field, property: field}
+				assert.NoError(t, c.PushSecret(context.Background(), userPassSecret(), data))
+			}
+		}
+	}
+
+	ifNotExists()
+	assert.Equal(t, 1, mockCred.created)
+	credData, ok := mockCred.entries[mockCred.lastCreated.Id].Data.(*dvls.EntryCredentialDefaultData)
+	assert.True(t, ok)
+	assert.Equal(t, "app-user", credData.Username)
+	assert.Equal(t, "app-pass", credData.Password)
+
+	// A second reconcile finds both fields and writes nothing.
+	mockCred.lastUpdated = dvls.Entry{}
+	ifNotExists()
+	assert.Equal(t, 1, mockCred.created)
+	assert.Equal(t, "", mockCred.lastUpdated.Id)
+}
+
+func TestClient_DeleteSecret_PropertyClearsOnlyThatField(t *testing.T) {
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("app-user", "app-pass")})
+
+	assert.NoError(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: "username"}))
+	assert.Equal(t, "", mockCred.lastDeleted)
+	credData, _ := mockCred.entries[testEntryUUID].Data.(*dvls.EntryCredentialDefaultData)
+	assert.Equal(t, "", credData.Username)
+	assert.Equal(t, "app-pass", credData.Password)
+
+	// The password is now the last field, so deleting it deletes the entry.
+	assert.NoError(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: "password"}))
+	assert.Equal(t, testEntryUUID, mockCred.lastDeleted)
+}
+
+func TestClient_DeleteSecret_PropertyAlreadyClear(t *testing.T) {
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("", "app-pass")})
+
+	assert.NoError(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: "username"}))
+	assert.Equal(t, "", mockCred.lastDeleted)
+	assert.Equal(t, "", mockCred.lastUpdated.Id)
+}
+
+func TestClient_DeleteSecret_PasswordOfAccessCodeDeletesEntry(t *testing.T) {
+	c, mockCred := newTestClient(map[string]dvls.Entry{
+		testEntryUUID: {
+			Id: testEntryUUID, Name: testEntryName, Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeAccessCode,
+			Data: &dvls.EntryCredentialAccessCodeData{Password: "pw"},
+		},
+	})
+
+	assert.NoError(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: "password"}))
+	assert.Equal(t, testEntryUUID, mockCred.lastDeleted)
 }
 
 // --- Tests: isNotFoundError ---
