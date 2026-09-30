@@ -235,6 +235,12 @@ rbac:
   # -- Specifies whether role and rolebinding resources should be created.
   create: true
 
+  # -- Specifies whether the namespaced leader election Role and RoleBinding are created.
+  # These are only used when leaderElect is true; set to false to omit them when running
+  # without leader election. Only takes effect when rbac.create is true.
+  leaderElection:
+    create: true
+
   # -- Specifies whether the serviceaccounts/token create permission is included in the controller RBAC.
   # When set to false, users must create per-ServiceAccount Role/RoleBinding with resourceNames constraint
   # to grant ESO token creation for specific ServiceAccounts referenced in SecretStore specs.
