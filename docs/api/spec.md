@@ -8192,19 +8192,6 @@ bool
 <p>ExpandSecretReferences indicates whether secret references should be expanded. Defaults to true if not provided.</p>
 </td>
 </tr>
-<tr>
-<td>
-<code>includeSecretPath</code></br>
-<em>
-bool
-</em>
-</td>
-<td>
-<em>(Optional)</em>
-<p>IncludeSecretPath indicates whether the secret path should be included as a prefix
-in the secret key. Secrets at the root path (/) are not prefixed.</p>
-</td>
-</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.MaintenanceStatus">MaintenanceStatus
@@ -30195,6 +30182,32 @@ Valid values are:
 - &ldquo;hex&rdquo;: hexadecimal encoding</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix is prepended to every generated password after encoding.
+It is not counted in length or subject to the character settings.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>suffix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Suffix is appended to every generated password after encoding.
+It is not counted in length or subject to the character settings.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -30316,6 +30329,32 @@ Valid values are:
 - &ldquo;base64url&rdquo;: base64url encoding
 - &ldquo;base32&rdquo;: base32 encoding
 - &ldquo;hex&rdquo;: hexadecimal encoding</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix is prepended to every generated password after encoding.
+It is not counted in length or subject to the character settings.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>suffix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Suffix is appended to every generated password after encoding.
+It is not counted in length or subject to the character settings.</p>
 </td>
 </tr>
 </tbody>
@@ -30872,7 +30911,7 @@ string
 <h3 id="generators.external-secrets.io/v1alpha1.UUID">UUID
 </h3>
 <p>
-<p>UUID generates a version 1 UUID (e56657e3-764f-11ef-a397-65231a88c216).</p>
+<p>UUID generates a version 4 UUID (21061816-abbd-40ef-8985-6db0fbcbc4c4).</p>
 </p>
 <table>
 <thead>

@@ -191,7 +191,7 @@ func (r *Reconciler) updateCRD(ctx context.Context, req ctrl.Request) error {
 		Name:      r.SecretName,
 		Namespace: r.SecretNamespace,
 	}
-	err := r.Get(context.Background(), secretName, &secret)
+	err := r.Get(ctx, secretName, &secret)
 	if err != nil {
 		return err
 	}
