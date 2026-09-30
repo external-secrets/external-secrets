@@ -849,8 +849,9 @@ func TestReadSecretMetadataLegacyFallback(t *testing.T) {
 	legacyURL := mount + "/metadata/" + key
 
 	type args struct {
-		store   *esv1.VaultProvider
-		logical vaultutil.Logical
+		store    *esv1.VaultProvider
+		logical  vaultutil.Logical
+		fallback bool
 	}
 	type want struct {
 		metadata map[string]string
@@ -869,6 +870,7 @@ func TestReadSecretMetadataLegacyFallback(t *testing.T) {
 					s.Path = &mount
 					return s
 				}(),
+				fallback: true,
 				logical: &fake.Logical{
 					ReadWithDataWithContextFn: func(_ context.Context, p string, _ map[string][]string) (*vault.Secret, error) {
 						switch p {
@@ -900,6 +902,7 @@ func TestReadSecretMetadataLegacyFallback(t *testing.T) {
 					s.Path = &mount
 					return s
 				}(),
+				fallback: true,
 				logical: &fake.Logical{
 					ReadWithDataWithContextFn: func(_ context.Context, p string, _ map[string][]string) (*vault.Secret, error) {
 						switch p {
@@ -931,6 +934,7 @@ func TestReadSecretMetadataLegacyFallback(t *testing.T) {
 					s.Path = &mount
 					return s
 				}(),
+				fallback: true,
 				logical: &fake.Logical{
 					ReadWithDataWithContextFn: func(_ context.Context, p string, _ map[string][]string) (*vault.Secret, error) {
 						if p == legacyURL {
@@ -958,6 +962,7 @@ func TestReadSecretMetadataLegacyFallback(t *testing.T) {
 					s.Path = &mount
 					return s
 				}(),
+				fallback: true,
 				logical: &fake.Logical{
 					ReadWithDataWithContextFn: func(_ context.Context, p string, _ map[string][]string) (*vault.Secret, error) {
 						if p == legacyURL {
@@ -973,6 +978,32 @@ func TestReadSecretMetadataLegacyFallback(t *testing.T) {
 				err: errors.New(errNotFound),
 			},
 		},
+		"LegacyNotConsultedWhenFallbackDisabled": {
+			reason: "readSecretMetadata with fallback disabled (Fetch path) must not read the legacy path: the legacy URL errors, so any second read fails the test",
+			args: args{
+				store: func() *esv1.VaultProvider {
+					s := makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault
+					s.Path = &mount
+					return s
+				}(),
+				fallback: false,
+				logical: &fake.Logical{
+					ReadWithDataWithContextFn: func(_ context.Context, p string, _ map[string][]string) (*vault.Secret, error) {
+						if p == legacyURL {
+							return nil, errors.New("legacy path must not be read")
+						}
+						return &vault.Secret{Data: map[string]any{
+							"custom_metadata": map[string]any{"owner": "team-a"},
+						}}, nil
+					},
+				},
+			},
+			want: want{
+				metadata: map[string]string{
+					"owner": "team-a",
+				},
+			},
+		},
 	}
 
 	for name, tc := range cases {
@@ -981,7 +1012,7 @@ func TestReadSecretMetadataLegacyFallback(t *testing.T) {
 				logical: tc.args.logical,
 				store:   tc.args.store,
 			}
-			got, err := client.readSecretMetadata(context.Background(), key)
+			got, err := client.readSecretMetadata(context.Background(), key, tc.args.fallback)
 			if diff := cmp.Diff(err, tc.want.err, EquateErrors()); diff != "" {
 				t.Errorf("\n%s\nvault.readSecretMetadata(...): -want error, +got error:\n%s", tc.reason, diff)
 			}

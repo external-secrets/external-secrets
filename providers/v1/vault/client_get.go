@@ -56,7 +56,7 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 			return nil, errors.New(errUnsupportedMetadataKvVersion)
 		}
 
-		metadata, err := c.readSecretMetadata(ctx, ref.Key)
+		metadata, err := c.readSecretMetadata(ctx, ref.Key, false)
 		if err != nil {
 			return nil, err
 		}
@@ -188,7 +188,7 @@ func getSecretValue(data map[string]any, property string) ([]byte, error) {
 	return []byte(val.String()), nil
 }
 
-func (c *client) readSecretMetadata(ctx context.Context, path string) (map[string]string, error) {
+func (c *client) readSecretMetadata(ctx context.Context, path string, withLegacyFallback bool) (map[string]string, error) {
 	metadata := make(map[string]string)
 	url, err := c.buildMetadataPath(path)
 	if err != nil {
@@ -255,16 +255,21 @@ func (c *client) readSecretMetadata(ctx context.Context, path string) (map[strin
 		}
 	}
 	mergeCustomMetadata(secret, true)
-	// consult the legacy path when the normalized path has no managed-by stamp.
+	// consult the legacy path only for callers that check the managed-by
+	// stamp (PushSecret/DeleteSecret). plain Fetch reads never look at the
+	// stamp, so a second read there would cost an extra Vault call per
+	// refresh, 403 on least-privilege policies, and merge stale legacy keys.
 	// the legacy entry is stale pre-fix data: it only fills keys missing from
 	// the corrected path and never overwrites corrected values.
-	if _, ok := metadata["managed-by"]; !ok {
-		legacySecret, legacyErr := tryLegacy()
-		if legacyErr != nil {
-			return nil, fmt.Errorf(errReadSecret, legacyErr)
-		}
-		if legacySecret != nil {
-			mergeCustomMetadata(legacySecret, false)
+	if withLegacyFallback {
+		if _, ok := metadata["managed-by"]; !ok {
+			legacySecret, legacyErr := tryLegacy()
+			if legacyErr != nil {
+				return nil, fmt.Errorf(errReadSecret, legacyErr)
+			}
+			if legacySecret != nil {
+				mergeCustomMetadata(legacySecret, false)
+			}
 		}
 	}
 	return metadata, nil
