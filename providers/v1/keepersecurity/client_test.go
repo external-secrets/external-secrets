@@ -430,6 +430,17 @@ func TestBuildPropertyRecordStoresPlainValues(t *testing.T) {
 	}
 }
 
+func TestBuildPropertyRecordRejectsNonUTF8Values(t *testing.T) {
+	secret := &corev1.Secret{Data: map[string][]byte{"user": []byte("bob"), "blob": {0xff, 0xfe, 0x00}}}
+	data := &v1alpha1.PushSecretData{Match: v1alpha1.PushSecretMatch{
+		RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: record0, Property: "creds"},
+	}}
+
+	if _, err := buildPropertyRecord(secret, data); err == nil || !strings.Contains(err.Error(), `"blob"`) {
+		t.Fatalf("expected non-UTF-8 error naming key blob, got %v", err)
+	}
+}
+
 func TestBuildSecretFieldOrderIsStable(t *testing.T) {
 	data := map[string][]byte{}
 	for _, key := range []string{"zeta", "password", "alpha", "url", "mid", "login", "beta"} {
