@@ -5880,7 +5880,11 @@ one supported by this provider. For other secrets engines, please refer to the
 </code></pre></div>
 <strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, Be sure to provide <code>namespace</code> for <code>tokenSecretRef</code> with the namespace of the secret that we just created.</p>
 <p>Then create a simple k/v pair at path <code>secret/foo</code>:</p>
-<div class="highlight"><pre><span></span><code>vault kv put secret/foo my-value=s3cr3t
+<div class="highlight"><pre><span></span><code># Creates the secret data
+vault kv put secret/foo my-value=s3cr3t
+
+# Creates custom metadata used by the metadataPolicy: Fetch example below
+vault kv metadata put -custom-metadata=&#39;dev=development&#39; secret/foo
 </code></pre></div>
 <p>Can check kv version using following and check for <code>Options</code> column, it should indicate [version:2]:</p>
 <div class="highlight"><pre><span></span><code>vault secrets list -detailed
