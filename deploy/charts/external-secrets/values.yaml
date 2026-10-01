@@ -88,6 +88,7 @@ commonLabels: {}
 
 # -- If true, external-secrets will perform leader election between instances to ensure no more
 # than one instance of external-secrets operates at a time.
+# Should be enabled when replicaCount or certController.replicaCount is greater than 1.
 leaderElect: false
 
 # -- ID of the lease object used for leader election.
