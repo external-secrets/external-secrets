@@ -53,7 +53,7 @@ func dateModify(fmt string, date time.Time) time.Time {
 func mustDateModify(fmt string, date time.Time) (time.Time, error) {
 	d, err := time.ParseDuration(fmt)
 	if err != nil {
-		return time.Time{}, err
+		return time.Time{}, errInvalidDuration
 	}
 	return date.Add(d), nil
 }
@@ -138,7 +138,11 @@ func toDate(fmt, str string) time.Time {
 }
 
 func mustToDate(fmt, str string) (time.Time, error) {
-	return time.ParseInLocation(fmt, str, time.Local)
+	t, err := time.ParseInLocation(fmt, str, time.Local)
+	if err != nil {
+		return time.Time{}, errInvalidDate
+	}
+	return t, nil
 }
 
 func unixEpoch(date time.Time) string {

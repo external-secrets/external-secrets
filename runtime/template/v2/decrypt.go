@@ -23,7 +23,6 @@ import (
 	"crypto/sha512"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"hash"
 )
 
@@ -33,10 +32,9 @@ var (
 )
 
 const (
-	errSchemeNotSupported = "decryption scheme %v is not supported"
+	errSchemeNotSupported = "decryption scheme is not supported"
 	errParseRSAPK         = "could not parse RSA private key"
 	errDecodePEM          = "failed to decode PEM block"
-	errWrap               = "%w: %v"
 )
 
 func rsaDecrypt(scheme, hash, in, privateKey string) (string, error) {
@@ -47,26 +45,26 @@ func rsaDecrypt(scheme, hash, in, privateKey string) (string, error) {
 
 		pemBlock, _ := pem.Decode([]byte(privateKey))
 		if pemBlock == nil {
-			return "", fmt.Errorf(errDecodePEM)
+			return "", errors.New(errDecodePEM)
 		}
 
 		parsedPrivateKey, err := parsePrivateKey(pemBlock.Bytes)
 		if err != nil {
-			return "", fmt.Errorf(errWrap, errParsePK, err)
+			return "", errParsePK
 		}
 
 		rsaPrivateKey, isValid := parsedPrivateKey.(*rsa.PrivateKey)
 		if !isValid {
-			return "", fmt.Errorf(errParseRSAPK)
+			return "", errors.New(errParseRSAPK)
 		}
 
 		out, err := rsa.DecryptOAEP(getHash(hash), nil, rsaPrivateKey, []byte(in), nil)
 		if err != nil {
-			return "", fmt.Errorf(errWrap, errRSADecrypt, err)
+			return "", errRSADecrypt
 		}
 		return string(out), nil
 	default:
-		return "", fmt.Errorf(errSchemeNotSupported, scheme)
+		return "", errors.New(errSchemeNotSupported)
 	}
 }
 
