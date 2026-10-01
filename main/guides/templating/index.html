@@ -5938,7 +5938,7 @@ created at the provider.</p>
 <h2 id="helper-functions">Helper functions</h2>
 <div class="admonition info inline end">
 <p class="admonition-title">Info</p>
-<p>Note: we removed <code>env</code> and <code>expandenv</code> from sprig functions for security reasons.</p>
+<p>Note: we removed <code>env</code>, <code>expandenv</code>, <code>getHostByName</code>, and <code>fail</code> from sprig functions for security reasons. Templates should use supported helpers and report failures through reconciliation diagnostics.</p>
 </div>
 <p>We provide a couple of convenience functions that help you transform your secrets. This is useful when dealing with PKCS#12 archives or JSON Web Keys (JWK).</p>
 <p>In addition to that you can use over 200+ <a href="http://masterminds.github.io/sprig/">sprig functions</a>. If you feel a function is missing or might be valuable feel free to open an issue and submit a <a href="../../contributing/process/#submitting-a-pull-request">pull request</a>.</p>
