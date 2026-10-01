@@ -43,11 +43,11 @@ func toLowerCamel(name string) string {
 // already lists value as a complete ;-separated entry (not a substring/suffix).
 func enumAnnotationHasValue(line, value string) bool {
 	const marker = "+kubebuilder:validation:Enum="
-	idx := strings.Index(line, marker)
-	if idx < 0 {
+	_, after, ok := strings.Cut(line, marker)
+	if !ok {
 		return false
 	}
-	for _, part := range strings.Split(line[idx+len(marker):], ";") {
+	for part := range strings.SplitSeq(after, ";") {
 		if strings.TrimSpace(part) == value {
 			return true
 		}
@@ -57,7 +57,7 @@ func enumAnnotationHasValue(line, value string) bool {
 
 // contentHasExactEnumValue is true when any Enum annotation in content lists value exactly.
 func contentHasExactEnumValue(content, value string) bool {
-	for _, line := range strings.Split(content, "\n") {
+	for line := range strings.SplitSeq(content, "\n") {
 		if strings.Contains(line, "+kubebuilder:validation:Enum=") && enumAnnotationHasValue(line, value) {
 			return true
 		}
