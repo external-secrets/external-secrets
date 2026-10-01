@@ -173,7 +173,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | imagePullSecrets | list | `[]` |  |
 | installCRDs | bool | `true` | If set, install and upgrade CRDs through helm chart. |
-| leaderElect | bool | `false` | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. |
+| leaderElect | bool | `false` | If true, external-secrets will perform leader election between instances to ensure no more than one instance of external-secrets operates at a time. Should be enabled when replicaCount or certController.replicaCount is greater than 1. |
 | leaderElectionID | string | "external-secrets-controller" | ID of the lease object used for leader election. Leave empty to use the default ('external-secrets-controller'). Set to a unique value when running multiple independent ESO deployments in the same namespace. |
 | leaderElectionLeaseDuration | string | "15s" | Duration that non-leader candidates will wait to force acquire leadership. Increase this along with renewDeadline to tolerate a busy or briefly unavailable API server (for example during control plane maintenance) without churning leadership. Leave empty to use the controller default ('15s'). |
 | leaderElectionRenewDeadline | string | "10s" | Duration that the acting leader will retry refreshing leadership before giving up. Must be less than leaderElectionLeaseDuration. Leave empty to use the controller default ('10s'). |
