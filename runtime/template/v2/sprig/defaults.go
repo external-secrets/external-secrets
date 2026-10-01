@@ -74,8 +74,10 @@ func fromJson(v string) interface{} {
 
 func mustFromJson(v string) (interface{}, error) {
 	var output interface{}
-	err := json.Unmarshal([]byte(v), &output)
-	return output, err
+	if err := json.Unmarshal([]byte(v), &output); err != nil {
+		return nil, errInvalidJSON
+	}
+	return output, nil
 }
 
 func toJson(v interface{}) string {
@@ -86,7 +88,7 @@ func toJson(v interface{}) string {
 func mustToJson(v interface{}) (string, error) {
 	output, err := json.Marshal(v)
 	if err != nil {
-		return "", err
+		return "", errJSONEncode
 	}
 	return string(output), nil
 }
@@ -99,7 +101,7 @@ func toPrettyJson(v interface{}) string {
 func mustToPrettyJson(v interface{}) (string, error) {
 	output, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
-		return "", err
+		return "", errJSONEncode
 	}
 	return string(output), nil
 }
@@ -118,7 +120,7 @@ func mustToRawJson(v interface{}) (string, error) {
 	enc.SetEscapeHTML(false)
 	err := enc.Encode(&v)
 	if err != nil {
-		return "", err
+		return "", errJSONEncode
 	}
 	return strings.TrimSuffix(buf.String(), "\n"), nil
 }
