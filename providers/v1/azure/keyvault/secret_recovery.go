@@ -116,6 +116,8 @@ func (r *newSDKDeletedSecretRecoverer) recoverDeletedSecret(ctx context.Context,
 	return parseNewSDKError(err)
 }
 
+// handleDeletedSecretRecovery reports handled only together with an error. A successful recovery still returns an
+// error so the controller retries after Azure makes the recovered secret available, then writes the desired value.
 func (a *Azure) handleDeletedSecretRecovery(ctx context.Context, secretName string, setErr error) (bool, error) {
 	if a.secretRecoverer == nil || !a.secretRecoverer.isDeletedButRecoverable(setErr) {
 		return false, nil

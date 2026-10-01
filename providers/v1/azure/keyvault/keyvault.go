@@ -624,7 +624,7 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 	_, err = a.baseClient.SetSecret(ctx, *a.provider.VaultURL, secretName, secretParams)
 	metrics.ObserveAPICall(ProviderAzureKV, CallAzureKVSetSecret, err)
 	if handled, recoveryErr := a.handleDeletedSecretRecovery(ctx, secretName, err); handled {
-		return recoveryErr
+		return fmt.Errorf("could not handle soft-deleted secret %v: %w", secretName, recoveryErr)
 	}
 	if err != nil {
 		return fmt.Errorf("could not set secret %v: %w", secretName, err)

@@ -133,6 +133,10 @@ func TestSetKeyVaultSecretRecoversSoftDeletedSecret(t *testing.T) {
 	if err == nil {
 		t.Fatal("setKeyVaultSecret() error = nil, want retryable recovery error")
 	}
+	wantErr := fmt.Sprintf("could not handle soft-deleted secret %s: recovered soft-deleted secret %s; waiting for the next reconciliation to update it", secretName, secretName)
+	if err.Error() != wantErr {
+		t.Fatalf("setKeyVaultSecret() error = %q, want %q", err, wantErr)
+	}
 	if !client.recovered {
 		t.Fatal("setKeyVaultSecret() did not recover the soft-deleted secret")
 	}
