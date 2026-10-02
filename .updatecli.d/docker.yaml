@@ -1,0 +1,224 @@
+name: Update container images
+
+pipelineid: dependencies/docker
+
+# Publishing is opt-in so local runs continue to update the current checkout.
+#{{- if .scm.enabled }}
+actions:
+  dependency-pr:
+    kind: github/pullrequest
+    scmid: default
+    title: "chore(deps): update container images"
+
+scms:
+  default:
+    kind: github
+    spec:
+      owner: "{{ .scm.owner }}"
+      repository: "{{ .scm.repository }}"
+      branch: main
+      token: '{{ requiredEnv "GITHUB_TOKEN" }}'
+      user: External Secrets Operator
+      email: ExternalSecretsOperator@users.noreply.github.com
+      commitusingapi: true
+      workingbranchprefix: dependencies
+      workingbranchseparator: "/"
+      commitmessage:
+        type: chore
+        scope: deps
+        hidecredit: true
+        footers: 'Signed-off-by: External Secrets Operator <ExternalSecretsOperator@users.noreply.github.com>'
+#{{- end }}
+
+# Resolve each upstream image once, even when several files use it. Dockerfile
+# autodiscovery skips digest-only references, so keep their moving tag policies
+# here explicitly. Go and kind use version tags only; everything else uses an
+# image-index digest without a tag (hidetag), tracking latest within its image
+# repository (e.g. UBI 9 and distroless Debian 12 stay on those distro lines).
+sources:
+  alpine:
+    kind: dockerdigest
+    spec:
+      image: alpine
+      tag: latest
+      hidetag: true
+  golang:
+    kind: dockerimage
+    spec:
+      image: golang
+      versionfilter:
+        kind: semver
+        pattern: '1.x'
+  distroless_static:
+    kind: dockerdigest
+    spec:
+      image: gcr.io/distroless/static
+      tag: latest
+      hidetag: true
+  ubi9:
+    kind: dockerdigest
+    spec:
+      image: registry.access.redhat.com/ubi9/ubi
+      tag: latest
+      hidetag: true
+
+  skywalking:
+    kind: dockerdigest
+    spec:
+      image: apache/skywalking-eyes
+      tag: latest
+      hidetag: true
+  helm_docs:
+    kind: dockerdigest
+    spec:
+      image: jnorwood/helm-docs
+      tag: latest
+      hidetag: true
+  curl:
+    kind: dockerdigest
+    spec:
+      image: curlimages/curl
+      tag: latest
+      hidetag: true
+  distroless_debian12:
+    kind: dockerdigest
+    spec:
+      image: gcr.io/distroless/static-debian12
+      tag: latest
+      hidetag: true
+  pull_request_label_checker:
+    kind: dockerdigest
+    spec:
+      image: agilepathway/pull-request-label-checker
+      tag: latest
+      hidetag: true
+
+targets:
+  alpine:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: alpine
+    transformers:
+      - addprefix: 'alpine'
+    spec:
+      files:
+        - e2e/Dockerfile
+        - hack/api-docs/Dockerfile
+        - tilt.dockerfile
+      matchpattern: 'alpine[:@][^[:space:]]+'
+  golang_alpine:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: golang
+    transformers:
+      - addprefix: 'golang:'
+      - addsuffix: '-alpine'
+    spec:
+      file: Dockerfile.standalone
+      matchpattern: 'golang:v?[0-9]+\.[0-9]+\.[0-9]+-alpine(?:@sha256:[a-f0-9]{64})?'
+  golang_bookworm:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: golang
+    transformers:
+      - addprefix: 'golang:'
+      - addsuffix: '-bookworm'
+    spec:
+      file: e2e/Dockerfile
+      matchpattern: 'golang:v?[0-9]+\.[0-9]+\.[0-9]+-bookworm(?:@sha256:[a-f0-9]{64})?'
+  golang:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: golang
+    transformers:
+      - addprefix: 'golang:'
+    spec:
+      file: tilt.debug.dockerfile
+      matchpattern: 'golang:v?[0-9]+\.[0-9]+\.[0-9]+(?:@sha256:[a-f0-9]{64})?'
+  distroless_static:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: distroless_static
+    transformers:
+      - addprefix: 'gcr.io/distroless/static'
+    spec:
+      files:
+        - Dockerfile
+        - Dockerfile.standalone
+      matchpattern: 'gcr.io/distroless/static[:@][^[:space:]]+'
+  ubi9:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: ubi9
+    transformers:
+      - addprefix: 'registry.access.redhat.com/ubi9/ubi'
+    spec:
+      file: Dockerfile.ubi
+      matchpattern: 'registry.access.redhat.com/ubi9/ubi[:@][^[:space:]]+'
+  skywalking:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: skywalking
+    transformers:
+      - addprefix: 'apache/skywalking-eyes'
+    spec:
+      file: Makefile
+      matchpattern: 'apache/skywalking-eyes[:@][^[:space:]]+'
+  helm_docs:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: helm_docs
+    transformers:
+      - addprefix: 'docker.io/jnorwood/helm-docs'
+    spec:
+      file: Makefile
+      matchpattern: 'docker\.io/jnorwood/helm-docs[:@][^[:space:]]+'
+  curl:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: curl
+    transformers:
+      - addprefix: 'curlimages/curl'
+    spec:
+      file: e2e/framework/addon/conjur.go
+      matchpattern: 'curlimages/curl[:@][^"[:space:]]+'
+  distroless_debian12:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: distroless_debian12
+    transformers:
+      - addprefix: 'gcr.io/distroless/static-debian12'
+    spec:
+      file: e2e/framework/addon/conjur.go
+      matchpattern: 'gcr.io/distroless/static-debian12[:@][^"[:space:]]+'
+  pull_request_label_checker:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: pull_request_label_checker
+    transformers:
+      - addprefix: 'docker://agilepathway/pull-request-label-checker'
+    spec:
+      file: .github/workflows/pull-request-label.yml
+      matchpattern: 'docker://agilepathway/pull-request-label-checker[:@][^[:space:]]+'
