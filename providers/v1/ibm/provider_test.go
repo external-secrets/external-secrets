@@ -1447,3 +1447,212 @@ func ErrorContains(out error, want string) bool {
 	}
 	return strings.Contains(out.Error(), want)
 }
+
+func arbitraryMeta(id, name, group string) *sm.ArbitrarySecretMetadata {
+	return &sm.ArbitrarySecretMetadata{
+		ID:            new(id),
+		Name:          new(name),
+		SecretType:    new(sm.Secret_SecretType_Arbitrary),
+		SecretGroupID: new(group),
+	}
+}
+
+func arbitrarySecret(payload string) *sm.ArbitrarySecret {
+	return &sm.ArbitrarySecret{
+		SecretType: new(sm.Secret_SecretType_Arbitrary),
+		Payload:    new(payload),
+	}
+}
+
+func page(total int64, items ...sm.SecretMetadataIntf) *sm.SecretMetadataPaginatedCollection {
+	return &sm.SecretMetadataPaginatedCollection{
+		TotalCount: new(total),
+		Secrets:    items,
+	}
+}
+
+const (
+	idAlpha  = "11111111-1111-1111-1111-111111111111"
+	idBeta   = "22222222-2222-2222-2222-222222222222"
+	idGone   = "33333333-3333-3333-3333-333333333333"
+	idCert   = "44444444-4444-4444-4444-444444444444"
+	idUUIDly = "55555555-5555-5555-5555-555555555555"
+)
+
+func TestGetAllSecrets(t *testing.T) {
+	groups := []sm.SecretGroup{
+		{ID: new("grp-1"), Name: new("prod")},
+		{ID: new("grp-2"), Name: new("staging")},
+	}
+	prodPath := "prod"
+	missingPath := "nope"
+
+	for _, tc := range []struct {
+		name        string
+		ref         esv1.ExternalSecretFind
+		pages       []*sm.SecretMetadataPaginatedCollection
+		byID        map[string]sm.SecretIntf
+		notFoundIDs map[string]bool
+		want        map[string][]byte
+		wantErr     string
+		wantOptions []wantOption
+	}{
+		{
+			name: "no criteria returns every secret, keyed group/type/name",
+			ref:  esv1.ExternalSecretFind{},
+			pages: []*sm.SecretMetadataPaginatedCollection{
+				page(2, arbitraryMeta(idAlpha, "alpha", "grp-1"), arbitraryMeta(idBeta, "beta", "grp-2")),
+			},
+			byID: map[string]sm.SecretIntf{
+				idAlpha: arbitrarySecret("alpha-value"),
+				idBeta:  arbitrarySecret("beta-value"),
+			},
+			want: map[string][]byte{
+				"prod/arbitrary/alpha":   []byte("alpha-value"),
+				"staging/arbitrary/beta": []byte("beta-value"),
+			},
+			wantOptions: []wantOption{{offset: 0, limit: 200, groups: nil}},
+		},
+		{
+			name: "regexp selects a subset",
+			ref:  esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: "^al"}},
+			pages: []*sm.SecretMetadataPaginatedCollection{
+				page(2, arbitraryMeta(idAlpha, "alpha", "grp-1"), arbitraryMeta(idBeta, "beta", "grp-2")),
+			},
+			byID:        map[string]sm.SecretIntf{idAlpha: arbitrarySecret("alpha-value")},
+			want:        map[string][]byte{"prod/arbitrary/alpha": []byte("alpha-value")},
+			wantOptions: []wantOption{{offset: 0, limit: 200, groups: nil}},
+		},
+		{
+			name: "pages until TotalCount is covered, advancing the offset",
+			ref:  esv1.ExternalSecretFind{},
+			pages: []*sm.SecretMetadataPaginatedCollection{
+				page(2, arbitraryMeta(idAlpha, "alpha", "grp-1")),
+				page(2, arbitraryMeta(idBeta, "beta", "grp-1")),
+			},
+			byID: map[string]sm.SecretIntf{
+				idAlpha: arbitrarySecret("alpha-value"),
+				idBeta:  arbitrarySecret("beta-value"),
+			},
+			want: map[string][]byte{
+				"prod/arbitrary/alpha": []byte("alpha-value"),
+				"prod/arbitrary/beta":  []byte("beta-value"),
+			},
+			wantOptions: []wantOption{
+				{offset: 0, limit: 200, groups: nil},
+				{offset: 1, limit: 200, groups: nil},
+			},
+		},
+		{
+			name:        "find.path resolves to a group ID and is pushed to the API",
+			ref:         esv1.ExternalSecretFind{Path: &prodPath},
+			pages:       []*sm.SecretMetadataPaginatedCollection{page(1, arbitraryMeta(idAlpha, "alpha", "grp-1"))},
+			byID:        map[string]sm.SecretIntf{idAlpha: arbitrarySecret("alpha-value")},
+			want:        map[string][]byte{"prod/arbitrary/alpha": []byte("alpha-value")},
+			wantOptions: []wantOption{{offset: 0, limit: 200, groups: []string{"grp-1"}}},
+		},
+		{
+			name: "a UUID-shaped name is fetched by ID, not by name",
+			ref:  esv1.ExternalSecretFind{},
+			pages: []*sm.SecretMetadataPaginatedCollection{
+				page(1, arbitraryMeta(idUUIDly, idBeta, "grp-1")),
+			},
+			byID: map[string]sm.SecretIntf{idUUIDly: arbitrarySecret("correct-value")},
+			want: map[string][]byte{"prod/arbitrary/" + idBeta: []byte("correct-value")},
+		},
+		{
+			name: "a secret deleted between listing and read is skipped",
+			ref:  esv1.ExternalSecretFind{},
+			pages: []*sm.SecretMetadataPaginatedCollection{
+				page(2, arbitraryMeta(idAlpha, "alpha", "grp-1"), arbitraryMeta(idGone, "gone", "grp-1")),
+			},
+			byID:        map[string]sm.SecretIntf{idAlpha: arbitrarySecret("alpha-value")},
+			notFoundIDs: map[string]bool{idGone: true},
+			want:        map[string][]byte{"prod/arbitrary/alpha": []byte("alpha-value")},
+		},
+		{
+			name:    "unknown find.path is an error",
+			ref:     esv1.ExternalSecretFind{Path: &missingPath},
+			wantErr: "does not match any secret group",
+		},
+		{
+			name:    "tags are not supported",
+			ref:     esv1.ExternalSecretFind{Tags: map[string]string{"env": "prod"}},
+			wantErr: "find.tags is not supported",
+		},
+		{
+			name:    "invalid regexp is an error",
+			ref:     esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: "[unterminated"}},
+			wantErr: "could not compile",
+		},
+		{
+			name: "a type needing a property fails loudly and names the secret",
+			ref:  esv1.ExternalSecretFind{},
+			pages: []*sm.SecretMetadataPaginatedCollection{
+				page(1, &sm.PublicCertificateMetadata{
+					ID:            new(idCert),
+					Name:          new("web-tls"),
+					SecretType:    new(sm.Secret_SecretType_PublicCert),
+					SecretGroupID: new("grp-1"),
+				}),
+			},
+			wantErr: `secret "web-tls" has type public_cert`,
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			mc := &fakesm.IBMMockClient{
+				Groups:      groups,
+				ListPages:   tc.pages,
+				ByID:        tc.byID,
+				NotFoundIDs: tc.notFoundIDs,
+			}
+			provider := &providerIBM{IBMClient: mc}
+
+			got, err := provider.GetAllSecrets(context.Background(), tc.ref)
+			if tc.wantErr != "" {
+				if err == nil {
+					t.Fatalf("expected an error containing %q, got result %v", tc.wantErr, got)
+				}
+				if !strings.Contains(err.Error(), tc.wantErr) {
+					t.Fatalf("expected an error containing %q, got %v", tc.wantErr, err)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if !reflect.DeepEqual(got, tc.want) {
+				t.Errorf("got %v, want %v", got, tc.want)
+			}
+			if tc.wantOptions != nil {
+				assertListOptions(t, mc.ListCalled, tc.wantOptions)
+			}
+		})
+	}
+}
+
+type wantOption struct {
+	offset int64
+	limit  int64
+	groups []string
+}
+
+// assertListOptions checks the paging arithmetic and the server-side group
+// filter, which a call count alone would not catch.
+func assertListOptions(t *testing.T, got []*sm.ListSecretsOptions, want []wantOption) {
+	t.Helper()
+	if len(got) != len(want) {
+		t.Fatalf("made %d list calls, want %d", len(got), len(want))
+	}
+	for i, w := range want {
+		if got[i].Offset == nil || *got[i].Offset != w.offset {
+			t.Errorf("call %d: offset = %v, want %d", i, got[i].Offset, w.offset)
+		}
+		if got[i].Limit == nil || *got[i].Limit != w.limit {
+			t.Errorf("call %d: limit = %v, want %d", i, got[i].Limit, w.limit)
+		}
+		if !reflect.DeepEqual(got[i].Groups, w.groups) {
+			t.Errorf("call %d: groups = %v, want %v", i, got[i].Groups, w.groups)
+		}
+	}
+}
