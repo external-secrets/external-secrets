@@ -2580,6 +2580,63 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		),
 	)
 
+	It("prevents CreateOrMerge from retargeting a service account token Secret", func() {
+		ctx := context.Background()
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+
+		tc := makeDefaultTestcase()
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1.CreatePolicyCreateOrMerge
+		tc.externalSecret.Annotations = map[string]string{
+			v1.ServiceAccountNameKey: "higher-priv-workload",
+		}
+
+		secretKey := types.NamespacedName{
+			Name:      ExternalSecretTargetSecretName,
+			Namespace: ExternalSecretNamespace,
+		}
+		existingSecret := &v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      secretKey.Name,
+				Namespace: secretKey.Namespace,
+				Annotations: map[string]string{
+					v1.ServiceAccountNameKey: "current-workload",
+				},
+			},
+			Type: v1.SecretTypeServiceAccountToken,
+			Data: map[string][]byte{
+				targetProp: []byte(secretVal),
+			},
+		}
+
+		By("creating a service account token Secret for the current workload")
+		Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
+		Expect(k8sClient.Create(ctx, existingSecret)).To(Succeed())
+
+		// This is an integration check for the controller's final candidate guard.
+		// The candidate keeps the existing type, so without the guard Kubernetes
+		// would accept the update and replace the service account annotation.
+		By("attempting to retarget the Secret to a higher-privileged workload")
+		Expect(k8sClient.Create(ctx, tc.externalSecret)).To(Succeed())
+
+		esKey := types.NamespacedName{Name: ExternalSecretName, Namespace: ExternalSecretNamespace}
+		reconciledES := &esv1.ExternalSecret{}
+		Eventually(func() bool {
+			if err := k8sClient.Get(ctx, esKey, reconciledES); err != nil {
+				return false
+			}
+			condition := esv1.GetExternalSecretCondition(reconciledES.Status, esv1.ExternalSecretReady)
+			return condition != nil &&
+				condition.Status == v1.ConditionFalse &&
+				condition.Reason == esv1.ConditionReasonSecretSyncedError
+		}, timeout, interval).Should(BeTrue())
+
+		By("preserving the current workload annotation")
+		persistedSecret := &v1.Secret{}
+		Expect(k8sClient.Get(ctx, secretKey, persistedSecret)).To(Succeed())
+		Expect(persistedSecret.Type).To(Equal(v1.SecretTypeServiceAccountToken))
+		Expect(persistedSecret.Annotations).To(HaveKeyWithValue(v1.ServiceAccountNameKey, "current-workload"))
+	})
+
 	// Regression coverage for issue #6640: refreshPolicy CreatedOnce tracks its
 	// "once" on the ExternalSecret's own status, not on whether the target Secret
 	// already exists. Recreating the ExternalSecret object therefore re-syncs and
