@@ -21,6 +21,27 @@ The Infisical provider supports multiple authentication methods to accommodate d
 | [OCI Auth](#oci-auth) | Native authentication for Oracle Cloud Infrastructure resources |
 | [Token Auth](#token-auth) | Simple authentication using a pre-generated access token |
 
+### Access Token Cache
+
+By default, the operator logs in to Infisical on each sync and revokes the access token after the sync.
+On a large cluster, these logins can get HTTP 429 from Infisical.
+
+To keep the access tokens in memory, set the `--enable-infisical-token-cache` flag (default: `false`).
+With the Helm chart, add the flag to `extraArgs`:
+
+```yaml
+extraArgs:
+  enable-infisical-token-cache: true
+```
+
+When the cache is enabled:
+
+- The operator uses an access token again for all stores that log in with the same credentials against the same host.
+- It logs in again 5 minutes before the token expires, or at 80% of the TTL if the TTL is shorter than 25 minutes.
+- It also logs in again after Infisical rejects the token with HTTP 401.
+- It does not revoke a cached access token. The token stays valid until its TTL ends.
+- If the Machine Identity has an access token TTL of 0, the operator does not cache the token, and it revokes the token after each sync.
+
 ---
 
 ## Universal Auth

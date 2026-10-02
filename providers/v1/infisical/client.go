@@ -31,9 +31,7 @@ import (
 	"github.com/tidwall/gjson"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/providers/v1/infisical/constants"
 	"github.com/external-secrets/external-secrets/runtime/find"
-	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
 var (
@@ -99,7 +97,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 		IncludeImports:         true,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
-	metrics.ObserveAPICall(constants.ProviderName, getSecretByKeyV3, err)
+	p.observeAPICall(getSecretByKeyV3, err)
 
 	if err != nil {
 		// Translate a 404 into the NoSecret sentinel so deletionPolicy: Delete
@@ -170,7 +168,7 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 		IncludeImports:         true,
 	})
-	metrics.ObserveAPICall(constants.ProviderName, getSecretsV3, err)
+	p.observeAPICall(getSecretsV3, err)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +207,7 @@ func (p *Provider) Validate() (esv1.ValidationResult, error) {
 		SecretPath:             p.apiScope.SecretPath,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
-	metrics.ObserveAPICall(constants.ProviderName, getSecretsV3, err)
+	p.observeAPICall(getSecretsV3, err)
 
 	if err != nil {
 		return esv1.ValidationResultError, fmt.Errorf(

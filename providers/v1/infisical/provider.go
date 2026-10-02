@@ -111,8 +111,9 @@ func performUniversalAuthLogin(
 		return "", err
 	}
 
-	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).UniversalAuthLogin(clientID, clientSecret)
-	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaUniversalAuth, err)
+	err = cachedLogin(sdkClient, infisicalSpec, machineIdentityLoginViaUniversalAuth, []string{clientID, clientSecret}, func() (infisicalSdk.MachineIdentityCredential, error) {
+		return sdkClient.Auth().UniversalAuthLogin(clientID, clientSecret)
+	})
 
 	if err != nil {
 		return "", fmt.Errorf("failed to authenticate via universal auth %w", err)
@@ -146,8 +147,9 @@ func performAzureAuthLogin(
 		}
 	}
 
-	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).AzureAuthLogin(identityID, resource)
-	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaAzureAuth, err)
+	err = cachedLogin(sdkClient, infisicalSpec, machineIdentityLoginViaAzureAuth, []string{identityID, resource}, func() (infisicalSdk.MachineIdentityCredential, error) {
+		return sdkClient.Auth().AzureAuthLogin(identityID, resource)
+	})
 
 	if err != nil {
 		return "", fmt.Errorf("failed to authenticate via azure auth %w", err)
@@ -172,8 +174,9 @@ func performGcpIDTokenAuthLogin(
 		return "", fmt.Errorf(errSecretDataFormat, err)
 	}
 
-	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).GcpIdTokenAuthLogin(identityID)
-	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaGCPIDTokenAuth, err)
+	err = cachedLogin(sdkClient, infisicalSpec, machineIdentityLoginViaGCPIDTokenAuth, []string{identityID}, func() (infisicalSdk.MachineIdentityCredential, error) {
+		return sdkClient.Auth().GcpIdTokenAuthLogin(identityID)
+	})
 
 	if err != nil {
 		return "", fmt.Errorf("failed to authenticate via gcp id token auth %w", err)
@@ -203,8 +206,9 @@ func performGcpIamAuthLogin(
 		return "", fmt.Errorf("failed to get secret data serviceAccountKeyFilePath %w", err)
 	}
 
-	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).GcpIamAuthLogin(identityID, serviceAccountKeyFilePath)
-	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaGcpServiceAccountAuth, err)
+	err = cachedLogin(sdkClient, infisicalSpec, machineIdentityLoginViaGcpServiceAccountAuth, []string{identityID, serviceAccountKeyFilePath}, func() (infisicalSdk.MachineIdentityCredential, error) {
+		return sdkClient.Auth().GcpIamAuthLogin(identityID, serviceAccountKeyFilePath)
+	})
 
 	if err != nil {
 		return "", fmt.Errorf("failed to authenticate via gcp iam auth %w", err)
@@ -234,8 +238,9 @@ func performJwtAuthLogin(
 		return "", fmt.Errorf("failed to get secret data jwt %w", err)
 	}
 
-	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).JwtAuthLogin(identityID, jwt)
-	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaJwtAuth, err)
+	err = cachedLogin(sdkClient, infisicalSpec, machineIdentityLoginViaJwtAuth, []string{identityID, jwt}, func() (infisicalSdk.MachineIdentityCredential, error) {
+		return sdkClient.Auth().JwtAuthLogin(identityID, jwt)
+	})
 
 	if err != nil {
 		return "", fmt.Errorf("failed to authenticate via jwt auth %w", err)
@@ -270,8 +275,9 @@ func performLdapAuthLogin(
 		return "", fmt.Errorf("failed to get secret data ldapUsername %w", err)
 	}
 
-	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).LdapAuthLogin(identityID, ldapPassword, ldapUsername)
-	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaLdapAuth, err)
+	err = cachedLogin(sdkClient, infisicalSpec, machineIdentityLoginViaLdapAuth, []string{identityID, ldapPassword, ldapUsername}, func() (infisicalSdk.MachineIdentityCredential, error) {
+		return sdkClient.Auth().LdapAuthLogin(identityID, ldapPassword, ldapUsername)
+	})
 
 	if err != nil {
 		return "", fmt.Errorf("failed to authenticate via ldap auth %w", err)
@@ -302,8 +308,9 @@ func performOciAuthLogin(
 	}
 
 	var privateKeyPassphrase *string
+	var passphrase string
 	if ociAuthCredentials.PrivateKeyPassphrase.Name != "" {
-		passphrase, err := GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.PrivateKeyPassphrase)
+		passphrase, err = GetStoreSecretData(ctx, store, kube, namespace, ociAuthCredentials.PrivateKeyPassphrase)
 		if err != nil {
 			return "", fmt.Errorf("failed to get secret data privateKeyPassphrase %w", err)
 		}
@@ -330,16 +337,23 @@ func performOciAuthLogin(
 		return "", fmt.Errorf("failed to get secret data region %w", err)
 	}
 
-	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).OciAuthLogin(infisicalSdk.OciAuthLoginOptions{
-		IdentityID:  identityID,
-		PrivateKey:  privateKey,
-		Passphrase:  privateKeyPassphrase,
-		Fingerprint: fingerprint,
-		UserID:      userID,
-		TenancyID:   tenancyID,
-		Region:      region,
-	})
-	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaOciAuth, err)
+	err = cachedLogin(
+		sdkClient,
+		infisicalSpec,
+		machineIdentityLoginViaOciAuth,
+		[]string{identityID, privateKey, passphrase, fingerprint, userID, tenancyID, region},
+		func() (infisicalSdk.MachineIdentityCredential, error) {
+			return sdkClient.Auth().OciAuthLogin(infisicalSdk.OciAuthLoginOptions{
+				IdentityID:  identityID,
+				PrivateKey:  privateKey,
+				Passphrase:  privateKeyPassphrase,
+				Fingerprint: fingerprint,
+				UserID:      userID,
+				TenancyID:   tenancyID,
+				Region:      region,
+			})
+		},
+	)
 
 	if err != nil {
 		return "", fmt.Errorf("failed to authenticate via oci auth %w", err)
@@ -373,8 +387,9 @@ func performKubernetesAuthLogin(
 		}
 	}
 
-	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).KubernetesAuthLogin(identityID, serviceAccountTokenPath)
-	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaKubernetesAuth, err)
+	err = cachedLogin(sdkClient, infisicalSpec, machineIdentityLoginViaKubernetesAuth, []string{identityID, serviceAccountTokenPath}, func() (infisicalSdk.MachineIdentityCredential, error) {
+		return sdkClient.Auth().KubernetesAuthLogin(identityID, serviceAccountTokenPath)
+	})
 
 	if err != nil {
 		return "", fmt.Errorf("failed to authenticate via kubernetes auth %w", err)
@@ -399,8 +414,9 @@ func performAwsAuthLogin(
 		return "", fmt.Errorf(errSecretDataFormat, err)
 	}
 
-	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).AwsIamAuthLogin(identityID)
-	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaAwsAuth, err)
+	err = cachedLogin(sdkClient, infisicalSpec, machineIdentityLoginViaAwsAuth, []string{identityID}, func() (infisicalSdk.MachineIdentityCredential, error) {
+		return sdkClient.Auth().AwsIamAuthLogin(identityID)
+	})
 
 	if err != nil {
 		return "", fmt.Errorf("failed to authenticate via aws auth %w", err)
@@ -554,8 +570,8 @@ func hashAuthIdentity(authMethod, identity string) string {
 func (p *Provider) Close(_ context.Context) error {
 	p.cancelSdkClient()
 
-	// Don't revoke token if token auth was used
-	if p.authMethod == machineIdentityLoginViaTokenAuth {
+	// Don't revoke token if token auth was used or if the token is cached
+	if p.authMethod == machineIdentityLoginViaTokenAuth || enableTokenCache && !accessTokenCache.releaseOwned(p.sdkClient.Auth().GetAccessToken()) {
 		return nil
 	}
 
