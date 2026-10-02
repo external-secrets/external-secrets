@@ -26,6 +26,35 @@ const (
 	errExtractFindGenerator = "extract, find, or generatorRef cannot be set at the same time"
 )
 
+func TestValidateSecretTemplateFromTargets(t *testing.T) {
+	tests := []struct {
+		name    string
+		target  TemplateTarget
+		wantErr bool
+	}{
+		{name: "nested annotation path", target: "metadata.annotations", wantErr: true},
+		{name: "type", target: "type", wantErr: true},
+		{name: "immutable", target: "immutable", wantErr: true},
+		{name: "data", target: "data"},
+		{name: "mixed case annotations", target: "aNnOtAtIoNs"},
+		{name: "labels", target: TemplateTargetLabels},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateSecretTemplateFromTargets(&ExternalSecretTemplate{
+				TemplateFrom: []TemplateFrom{{Target: tt.target}},
+			})
+			if tt.wantErr && err == nil {
+				t.Fatal("validateSecretTemplateFromTargets() returned nil, want error")
+			}
+			if !tt.wantErr && err != nil {
+				t.Fatalf("validateSecretTemplateFromTargets() returned unexpected error: %v", err)
+			}
+		})
+	}
+}
+
 func TestValidateExternalSecret(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -36,6 +65,16 @@ func TestValidateExternalSecret(t *testing.T) {
 			name:        "nil",
 			obj:         nil,
 			expectedErr: "external secret cannot be nil during validation",
+		},
+		{
+			name: "nested Secret target is rejected",
+			obj: &ExternalSecret{Spec: ExternalSecretSpec{
+				Data: []ExternalSecretData{{SecretKey: "key"}},
+				Target: ExternalSecretTarget{Template: &ExternalSecretTemplate{
+					TemplateFrom: []TemplateFrom{{Target: "metadata.annotations"}},
+				}},
+			}},
+			expectedErr: `templateFrom target="metadata.annotations" is not allowed when targeting a Secret, must be one of "Data", "Annotations" or "Labels"`,
 		},
 		{
 			name: "deletion policy delete",
