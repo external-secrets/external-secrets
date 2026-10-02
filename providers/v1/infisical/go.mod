@@ -6,9 +6,11 @@ require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/infisical/go-sdk v0.9.1
+	github.com/spf13/pflag v1.1.0
 	github.com/stretchr/testify v1.12.1
 	github.com/tidwall/gjson v1.20.2
 	github.com/tidwall/sjson v1.2.9
+	golang.org/x/sync v0.24.0
 	k8s.io/api v0.37.2
 	sigs.k8s.io/controller-runtime v0.25.2
 )
@@ -96,7 +98,6 @@ require (
 	github.com/shopspring/decimal v1.6.0 // indirect
 	github.com/sony/gobreaker/v2 v2.4.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
-	github.com/spf13/pflag v1.1.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.3.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
@@ -113,7 +114,6 @@ require (
 	golang.org/x/crypto v0.58.0 // indirect
 	golang.org/x/net v0.62.0 // indirect
 	golang.org/x/oauth2 v0.37.0 // indirect
-	golang.org/x/sync v0.24.0 // indirect
 	golang.org/x/sys v0.49.0 // indirect
 	golang.org/x/term v0.47.0 // indirect
 	golang.org/x/text v0.43.0 // indirect
