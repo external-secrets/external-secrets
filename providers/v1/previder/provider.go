@@ -29,10 +29,21 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/find"
 )
 
 const (
-	errNotImplemented = "not implemented"
+	// tokenTypeReadWrite is the only token type that may enumerate the vault.
+	// ReadOnly tokens can decrypt a secret whose id or name is already known,
+	// and the admin types manage tokens rather than secrets. Replace with the
+	// constant from vault-cli once a release exports it.
+	tokenTypeReadWrite = "ReadWrite"
+
+	errNotImplemented    = "not implemented"
+	errTagsNotSupported  = "previder vault does not support tags, use name.regexp instead"
+	errPathNotSupported  = "previder vault has no secret hierarchy, path is not supported"
+	errNotReadWriteToken = "listing secrets requires a ReadWrite previder vault token, " +
+		"address secrets individually with data.remoteRef when using another token type"
 )
 
 var _ esv1.Provider = &SecretManager{}
@@ -142,9 +153,55 @@ func (s *SecretManager) GetSecretMap(ctx context.Context, ref esv1.ExternalSecre
 	return secretData, nil
 }
 
-// GetAllSecrets is not implemented for Previder Vault.
-func (s *SecretManager) GetAllSecrets(context.Context, esv1.ExternalSecretFind) (map[string][]byte, error) {
-	return nil, errors.New(errNotImplemented)
+// GetAllSecrets retrieves all secrets from Previder Vault whose description
+// matches the given find criteria.
+func (s *SecretManager) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	if s.TokenType != tokenTypeReadWrite {
+		return nil, errors.New(errNotReadWriteToken)
+	}
+	if ref.Tags != nil {
+		return nil, errors.New(errTagsNotSupported)
+	}
+	if ref.Path != nil {
+		return nil, errors.New(errPathNotSupported)
+	}
+
+	matcher, err := findMatcher(ref)
+	if err != nil {
+		return nil, err
+	}
+
+	secrets, err := s.VaultClient.GetSecrets()
+	if err != nil {
+		return nil, err
+	}
+
+	secretData := make(map[string][]byte)
+	for _, secret := range secrets {
+		if !matcher(secret.Description) {
+			continue
+		}
+		// Addressed by description, the same key GetSecret takes.
+		value, err := s.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: secret.Description})
+		if err != nil {
+			return nil, err
+		}
+		secretData[secret.Description] = value
+	}
+	return secretData, nil
+}
+
+// findMatcher compiles ref into a predicate over secret descriptions. An
+// absent name selects every secret.
+func findMatcher(ref esv1.ExternalSecretFind) (func(string) bool, error) {
+	if ref.Name == nil {
+		return func(string) bool { return true }, nil
+	}
+	matcher, err := find.New(*ref.Name)
+	if err != nil {
+		return nil, err
+	}
+	return matcher.MatchName, nil
 }
 
 // Close cleans up any resources held by the client.
