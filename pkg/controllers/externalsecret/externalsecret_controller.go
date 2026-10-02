@@ -506,7 +506,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		secret.Labels[esv1.LabelManaged] = esv1.LabelManagedValue
 		secret.Annotations[esv1.AnnotationDataHash] = esutils.ObjectHash(secret.Data)
 
-		return nil
+		return validateSecretCandidate(secret)
 	}
 
 	switch externalSecret.Spec.Target.CreationPolicy {
