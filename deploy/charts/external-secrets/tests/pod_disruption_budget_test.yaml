@@ -37,3 +37,17 @@ tests:
           value: 0
       - notExists:
           path: spec.minAvailable
+  - it: should render unhealthyPodEvictionPolicy when set
+    set:
+      podDisruptionBudget.enabled: true
+      podDisruptionBudget.unhealthyPodEvictionPolicy: AlwaysAllow
+    asserts:
+      - equal:
+          path: spec.unhealthyPodEvictionPolicy
+          value: AlwaysAllow
+  - it: should not render unhealthyPodEvictionPolicy by default
+    set:
+      podDisruptionBudget.enabled: true
+    asserts:
+      - notExists:
+          path: spec.unhealthyPodEvictionPolicy

@@ -13,6 +13,9 @@ spec:
   {{- else if hasKey .Values.webhook.podDisruptionBudget "minAvailable" }}
   minAvailable: {{ .Values.webhook.podDisruptionBudget.minAvailable }}
   {{- end }}
+  {{- with .Values.webhook.podDisruptionBudget.unhealthyPodEvictionPolicy }}
+  unhealthyPodEvictionPolicy: {{ . }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "external-secrets-webhook.selectorLabels" . | nindent 6 }}
