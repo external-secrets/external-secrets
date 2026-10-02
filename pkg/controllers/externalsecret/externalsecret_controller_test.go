@@ -2580,6 +2580,56 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		),
 	)
 
+	It("does not persist a privileged Secret assembled across reconciliations", func() {
+		ctx := context.Background()
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+
+		tc := makeDefaultTestcase()
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1.CreatePolicyCreateOrMerge
+
+		Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
+		Expect(k8sClient.Create(ctx, tc.externalSecret)).To(Succeed())
+
+		secretKey := types.NamespacedName{
+			Name:      ExternalSecretTargetSecretName,
+			Namespace: ExternalSecretNamespace,
+		}
+		createdSecret := &v1.Secret{}
+		Eventually(func() bool {
+			return k8sClient.Get(ctx, secretKey, createdSecret) == nil
+		}, timeout, interval).Should(BeTrue())
+
+		// Simulate metadata owned by another actor. It is valid while the Secret is
+		// Opaque and must survive CreateOrMerge reconciliation.
+		createdSecret.Annotations[v1.ServiceAccountNameKey] = "service-account"
+		Expect(k8sClient.Update(ctx, createdSecret)).To(Succeed())
+
+		esKey := types.NamespacedName{Name: ExternalSecretName, Namespace: ExternalSecretNamespace}
+		updatedES := &esv1.ExternalSecret{}
+		Expect(k8sClient.Get(ctx, esKey, updatedES)).To(Succeed())
+		updatedES.Spec.Target.Template = &esv1.ExternalSecretTemplate{
+			Type: v1.SecretTypeServiceAccountToken,
+		}
+		Expect(k8sClient.Update(ctx, updatedES)).To(Succeed())
+
+		Eventually(func() bool {
+			if err := k8sClient.Get(ctx, esKey, updatedES); err != nil {
+				return false
+			}
+			condition := esv1.GetExternalSecretCondition(updatedES.Status, esv1.ExternalSecretReady)
+			return condition != nil &&
+				condition.Status == v1.ConditionFalse &&
+				condition.Reason == esv1.ConditionReasonSecretSyncedError
+		}, timeout, interval).Should(BeTrue())
+
+		persistedSecret := &v1.Secret{}
+		Expect(k8sClient.Get(ctx, secretKey, persistedSecret)).To(Succeed())
+		Expect(persistedSecret.Type).To(Equal(v1.SecretTypeOpaque))
+		Expect(persistedSecret.Annotations).To(HaveKeyWithValue(v1.ServiceAccountNameKey, "service-account"))
+	})
+
 	// Regression coverage for issue #6640: refreshPolicy CreatedOnce tracks its
 	// "once" on the ExternalSecret's own status, not on whether the target Secret
 	// already exists. Recreating the ExternalSecret object therefore re-syncs and
