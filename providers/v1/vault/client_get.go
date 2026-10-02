@@ -234,12 +234,22 @@ func (c *client) buildMetadataPath(path string) (string, error) {
 		if c.store.Path == nil && !strings.Contains(path, "data") {
 			return "", errors.New(errPathInvalid)
 		}
-		if c.store.Path == nil {
-			path = strings.Replace(path, "/data/", "/metadata/", 1)
-			url = path
-		} else {
-			url = fmt.Sprintf("%s/metadata/%s", *c.store.Path, path)
+		// Strip the mount prefix from path to match buildPath behavior.
+		// Without this, paths like "mymount/team/app" would produce
+		// "mymount/metadata/mymount/team/app" instead of the correct
+		// "mymount/metadata/team/app". See issue #6968.
+		if c.store.Path != nil {
+			cutPrefix := *c.store.Path + "/"
+			if strings.HasPrefix(path, cutPrefix) {
+				_, path, _ = strings.Cut(path, cutPrefix)
+				// also strip optional "data/" prefix if present on v2
+				if strings.HasPrefix(path, "data/") {
+					path = path[5:]
+				}
+			}
 		}
+		path = strings.Replace(path, "/data/", "/metadata/", 1)
+		url = fmt.Sprintf("%s/%s", *c.store.Path, path)
 	}
 	return url, nil
 }
