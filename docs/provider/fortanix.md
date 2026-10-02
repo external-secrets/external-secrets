@@ -17,6 +17,7 @@ spec:
   provider:
     fortanix:
       apiUrl: <HOST_OF_SDKMS_API>
+      caBundle: <BASE64_ENCODED_CA_CERT> # or caProvider
       apiKey:
         secretRef:
           name: <NAME_OF_KUBE_SECRET>
@@ -74,5 +75,4 @@ spec:
 
 ## Limitations
 
-- **Custom CA certificates**: connecting to an SDKMS endpoint that uses a self-signed or custom CA certificate is not currently supported (tracked in [issue #6400](https://github.com/external-secrets/external-secrets/issues/6400)).
 - **Read-only**: this provider only reads secrets. Pushing secrets (`PushSecret`) and discovering secrets (`dataFrom.find`) are not supported.
