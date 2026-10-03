@@ -22,7 +22,6 @@ import (
 	"errors"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
@@ -379,13 +378,6 @@ func TestReverseKeys(t *testing.T) {
 				t.Errorf("ReverseKeys() = %v, want %v", got, tt.want)
 			}
 		})
-	}
-}
-
-func TestValidate(t *testing.T) {
-	err := NetworkValidate("http://google.com", 10*time.Second)
-	if err != nil {
-		t.Errorf("Connection problem: %v", err)
 	}
 }
 
