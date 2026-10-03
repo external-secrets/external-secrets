@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -53,7 +52,7 @@ func NewOIDCTokenManager(
 	oidcAuth := store.Auth.OIDCConfig
 
 	baseURL := "https://api.doppler.com"
-	if customURL := os.Getenv(customBaseURLEnvVar); customURL != "" {
+	if customURL := resolveBaseURL(store); customURL != "" {
 		baseURL = customURL
 	}
 

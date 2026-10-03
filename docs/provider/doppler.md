@@ -62,6 +62,19 @@ Then configure the SecretStore:
 {% include 'doppler-oidc-secret-store.yaml' %}
 ```
 
+## API host
+
+Requests go to `https://api.doppler.com` unless the `SecretStore` or `ClusterSecretStore` names a different `host`:
+
+```yaml
+{% include 'doppler-custom-host-secret-store.yaml' %}
+```
+
+The host must be an `https` URL. A host given without a scheme gets `https`, and a plain `http` host is rejected by the webhook. The same applies to `DOPPLER_BASE_URL`.
+
+Prefer `host` over the `DOPPLER_BASE_URL` environment variable, which exists for testing. `DOPPLER_BASE_URL` is read once per client and applies to every Doppler `SecretStore` and `ClusterSecretStore` the operator serves, so it cannot point two stores at two different hosts. The `host` field scopes the endpoint to a single store, and wins when both are set.
+
+Set `DOPPLER_VERIFY_TLS=false` on the operator to skip TLS verification, for example when a self-hosted host uses a self-signed certificate.
 
 ## Use Cases
 

@@ -40,6 +40,7 @@ import (
 const (
 	errNewClient    = "unable to create DopplerClient : %s"
 	errInvalidStore = "invalid store: %s"
+	errInvalidHost  = "host is not a valid URL"
 	errDopplerStore = "missing or invalid Doppler SecretStore"
 )
 
@@ -119,6 +120,13 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	dopplerStoreSpec := storeSpec.Provider.Doppler
+
+	// Reject a bad host before any credential leaves the cluster. The OIDC
+	// exchange in setupClientAuth posts a ServiceAccount token to this host,
+	// and it runs before the client is configured.
+	if err := validateBaseURL(dopplerStoreSpec); err != nil {
+		return nil, fmt.Errorf(errNewClient, err)
+	}
 
 	useCache := dopplerStoreSpec.Auth.OIDCConfig != nil && oidcClientCache != nil
 
@@ -200,8 +208,8 @@ func (p *Provider) configureDopplerClient(client *Client) error {
 		return fmt.Errorf(errNewClient, err)
 	}
 
-	if customBaseURL, found := os.LookupEnv(customBaseURLEnvVar); found {
-		if err := doppler.SetBaseURL(customBaseURL); err != nil {
+	if baseURL := resolveBaseURL(client.store); baseURL != "" {
+		if err := doppler.SetBaseURL(baseURL); err != nil {
 			return fmt.Errorf(errNewClient, err)
 		}
 	}
@@ -254,7 +262,44 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, fmt.Errorf(errInvalidStore, "either auth.secretRef or auth.oidcConfig must be specified")
 	}
 
+	if dopplerStoreSpec.Host != "" {
+		if err := (&dclient.DopplerClient{}).SetBaseURL(dopplerStoreSpec.Host); err != nil {
+			return nil, fmt.Errorf(errInvalidStore, errInvalidHost)
+		}
+	}
+
 	return nil, nil
+}
+
+// resolveBaseURL prefers the host configured on the SecretStore over the
+// operator-wide DOPPLER_BASE_URL override. An empty result leaves the caller
+// pointed at its default host.
+func resolveBaseURL(dopplerStoreSpec *esv1.DopplerProvider) string {
+	if dopplerStoreSpec.Host != "" {
+		return dopplerStoreSpec.Host
+	}
+
+	if customBaseURL, found := os.LookupEnv(customBaseURLEnvVar); found {
+		return customBaseURL
+	}
+
+	return ""
+}
+
+// validateBaseURL rejects a resolved host the client would refuse. NewClient
+// calls it before authenticating because the OIDC exchange posts a
+// ServiceAccount token to that host without going through the client, and
+// ValidateStore only runs in the admission webhook, so it misses stores that
+// predate the webhook or were admitted while it was unavailable.
+func validateBaseURL(dopplerStoreSpec *esv1.DopplerProvider) error {
+	baseURL := resolveBaseURL(dopplerStoreSpec)
+	if baseURL == "" {
+		return nil
+	}
+
+	// SetBaseURL owns what a usable host looks like; borrow it so the rules
+	// cannot drift between the client and the OIDC exchange.
+	return (&dclient.DopplerClient{}).SetBaseURL(baseURL)
 }
 
 // NewProvider creates a new Provider instance.
