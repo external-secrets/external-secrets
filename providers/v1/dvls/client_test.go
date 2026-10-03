@@ -21,10 +21,14 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/Devolutions/go-dvls"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
@@ -33,6 +37,8 @@ import (
 
 const (
 	testVaultUUID    = "00000000-0000-0000-0000-000000000001"
+	testVaultUUID2   = "00000000-0000-0000-0000-0000000000a1"
+	testVaultName2   = "other-vault"
 	testEntryUUID    = "00000000-0000-0000-0000-000000000002"
 	testEntryUUID3   = "00000000-0000-0000-0000-000000000003"
 	testEntryUUID4   = "00000000-0000-0000-0000-000000000004"
@@ -53,28 +59,44 @@ type mockCredentialClient struct {
 	deleteErr     error
 	lastUpdated   dvls.Entry
 	lastDeleted   string
+
+	mu           sync.Mutex
+	entriesCalls map[string]int
+}
+
+func (m *mockCredentialClient) countEntriesCall(vaultID string) {
+	m.mu.Lock()
+	m.entriesCalls[vaultID]++
+	m.mu.Unlock()
 }
 
 func newMockCredentialClient(entries map[string]dvls.Entry) *mockCredentialClient {
 	if entries == nil {
 		entries = make(map[string]dvls.Entry)
 	}
-	return &mockCredentialClient{entries: entries}
+	return &mockCredentialClient{entries: entries, entriesCalls: make(map[string]int)}
 }
 
-func (m *mockCredentialClient) GetByID(_ context.Context, _, entryID string) (dvls.Entry, error) {
+// entryMatchesVault scopes lookups to a vault so wrong-vault bugs are visible. Entries with
+// no VaultId belong to every vault, keeping single-vault fixtures terse.
+func entryMatchesVault(e dvls.Entry, vaultID string) bool {
+	return e.VaultId == "" || e.VaultId == vaultID
+}
+
+func (m *mockCredentialClient) GetByID(_ context.Context, vaultID, entryID string) (dvls.Entry, error) {
 	if m.getErr != nil {
 		return dvls.Entry{}, m.getErr
 	}
 
-	if entry, ok := m.entries[entryID]; ok {
+	if entry, ok := m.entries[entryID]; ok && entryMatchesVault(entry, vaultID) {
 		return entry, nil
 	}
 
 	return dvls.Entry{}, &dvls.RequestError{Err: fmt.Errorf("unexpected status code %d", http.StatusNotFound), Url: entryID, StatusCode: http.StatusNotFound}
 }
 
-func (m *mockCredentialClient) GetEntries(_ context.Context, _ string, opts dvls.GetEntriesOptions) ([]dvls.Entry, error) {
+func (m *mockCredentialClient) GetEntries(_ context.Context, vaultID string, opts dvls.GetEntriesOptions) ([]dvls.Entry, error) {
+	m.countEntriesCall(vaultID)
 	if m.getEntriesErr != nil {
 		return nil, m.getEntriesErr
 	}
@@ -83,7 +105,7 @@ func (m *mockCredentialClient) GetEntries(_ context.Context, _ string, opts dvls
 	}
 	var matches []dvls.Entry
 	for _, e := range m.entries {
-		if e.Name == *opts.Name {
+		if e.Name == *opts.Name && entryMatchesVault(e, vaultID) {
 			if opts.Path != nil && e.Path != *opts.Path {
 				continue
 			}
@@ -102,9 +124,14 @@ func (m *mockCredentialClient) Update(_ context.Context, entry dvls.Entry) (dvls
 	return entry, nil
 }
 
-func (m *mockCredentialClient) DeleteByID(_ context.Context, _, entryID string) error {
+func (m *mockCredentialClient) DeleteByID(_ context.Context, vaultID, entryID string) error {
 	if m.deleteErr != nil {
 		return m.deleteErr
+	}
+
+	// Mirror the API: deleting an entry the vault does not hold is a 404.
+	if entry, ok := m.entries[entryID]; !ok || !entryMatchesVault(entry, vaultID) {
+		return &dvls.RequestError{Err: fmt.Errorf("unexpected status code %d", http.StatusNotFound), Url: entryID, StatusCode: http.StatusNotFound}
 	}
 
 	delete(m.entries, entryID)
@@ -115,8 +142,16 @@ func (m *mockCredentialClient) DeleteByID(_ context.Context, _, entryID string) 
 // --- Mock vault client ---
 
 type mockVaultClient struct {
-	vaults map[string]dvls.Vault
-	getErr error
+	vaults     map[string]dvls.Vault
+	getErr     error
+	getByIDErr error
+	listErr    error
+	duplicate  string
+	listGate   chan struct{}
+
+	mu        sync.Mutex
+	listCalls int
+	getCalls  int
 }
 
 func newMockVaultClient(vaults map[string]dvls.Vault) *mockVaultClient {
@@ -134,6 +169,40 @@ func (m *mockVaultClient) GetByName(_ context.Context, name string) (dvls.Vault,
 		return v, nil
 	}
 	return dvls.Vault{}, dvls.ErrVaultNotFound
+}
+
+// Get reports the vault as reachable unless getByIDErr is set, so tests that expect a
+// plain missing entry keep working and only vault-outage tests opt in.
+func (m *mockVaultClient) Get(_ context.Context, id string) (dvls.Vault, error) {
+	m.mu.Lock()
+	m.getCalls++
+	m.mu.Unlock()
+	if m.getByIDErr != nil {
+		return dvls.Vault{}, m.getByIDErr
+	}
+	return dvls.Vault{Id: id}, nil
+}
+
+func (m *mockVaultClient) List(_ context.Context) ([]dvls.Vault, error) {
+	m.mu.Lock()
+	m.listCalls++
+	m.mu.Unlock()
+	// listGate lets a test hold List open to prove concurrent callers share one enumeration.
+	if m.listGate != nil {
+		<-m.listGate
+	}
+	if m.listErr != nil {
+		return nil, m.listErr
+	}
+	list := make([]dvls.Vault, 0, len(m.vaults)+1)
+	for name, v := range m.vaults {
+		v.Name = name
+		list = append(list, v)
+	}
+	if m.duplicate != "" {
+		list = append(list, dvls.Vault{Id: testVaultUUID2, Name: m.duplicate})
+	}
+	return list, nil
 }
 
 // --- Test stubs ---
@@ -157,12 +226,28 @@ type pushSecretRemoteRefStub struct {
 func (p pushSecretRemoteRefStub) GetRemoteKey() string { return p.remoteKey }
 func (p pushSecretRemoteRefStub) GetProperty() string  { return p.property }
 
-// --- Helper to create a test client ---
+// --- Helpers to create a test client ---
 
+// newTestClient builds a client with the vault pinned by the store.
 func newTestClient(entries map[string]dvls.Entry) (*Client, *mockCredentialClient) {
 	mockCred := newMockCredentialClient(entries)
-	c := NewClient(mockCred, testVaultUUID)
+	c := NewClient(mockCred, newMockVaultClient(nil), testVaultUUID, true)
 	return c, mockCred
+}
+
+// newDynamicTestClient builds a client with no pinned vault, so keys carry the vault.
+func newDynamicTestClient(entries map[string]dvls.Entry, vaults map[string]dvls.Vault) (*Client, *mockCredentialClient, *mockVaultClient) {
+	mockCred := newMockCredentialClient(entries)
+	mockVault := newMockVaultClient(vaults)
+	c := NewClient(mockCred, mockVault, "", false)
+	return c, mockCred, mockVault
+}
+
+func defaultTestVaults() map[string]dvls.Vault {
+	return map[string]dvls.Vault{
+		testVaultName:  {Id: testVaultUUID, Name: testVaultName},
+		testVaultName2: {Id: testVaultUUID2, Name: testVaultName2},
+	}
 }
 
 // --- Tests: parseEntryRef ---
@@ -272,14 +357,14 @@ func TestResolveEntryRef(t *testing.T) {
 
 	t.Run("UUID passthrough", func(t *testing.T) {
 		c, _ := newTestClient(nil)
-		entryID, err := c.resolveEntryRef(context.Background(), testEntryUUID)
+		entryID, err := c.resolveEntryRef(context.Background(), testVaultUUID, testEntryUUID)
 		assert.NoError(t, err)
 		assert.Equal(t, testEntryUUID, entryID)
 	})
 
 	t.Run("name resolved", func(t *testing.T) {
 		c, _ := newTestClient(map[string]dvls.Entry{testEntryUUID: entry})
-		entryID, err := c.resolveEntryRef(context.Background(), testEntryName)
+		entryID, err := c.resolveEntryRef(context.Background(), testVaultUUID, testEntryName)
 		assert.NoError(t, err)
 		assert.Equal(t, testEntryUUID, entryID)
 	})
@@ -293,7 +378,7 @@ func TestResolveEntryRef(t *testing.T) {
 			SubType: dvls.EntryCredentialSubTypeDefault,
 		}
 		c, _ := newTestClient(map[string]dvls.Entry{testEntryUUID: entryInPath})
-		entryID, err := c.resolveEntryRef(context.Background(), "go-dvls/folders/my-entry")
+		entryID, err := c.resolveEntryRef(context.Background(), testVaultUUID, "go-dvls/folders/my-entry")
 		assert.NoError(t, err)
 		assert.Equal(t, testEntryUUID, entryID)
 	})
@@ -302,14 +387,14 @@ func TestResolveEntryRef(t *testing.T) {
 		entryA := dvls.Entry{Id: testEntryUUID, Name: "db", Path: `prod`, Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeDefault}
 		entryB := dvls.Entry{Id: testEntryUUID5, Name: "db", Path: `staging`, Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeDefault}
 		c, _ := newTestClient(map[string]dvls.Entry{testEntryUUID: entryA, testEntryUUID5: entryB})
-		entryID, err := c.resolveEntryRef(context.Background(), "prod/db")
+		entryID, err := c.resolveEntryRef(context.Background(), testVaultUUID, "prod/db")
 		assert.NoError(t, err)
 		assert.Equal(t, testEntryUUID, entryID)
 	})
 
 	t.Run("name not found", func(t *testing.T) {
 		c, _ := newTestClient(nil)
-		_, err := c.resolveEntryRef(context.Background(), "nonexistent")
+		_, err := c.resolveEntryRef(context.Background(), testVaultUUID, "nonexistent")
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, dvls.ErrEntryNotFound)
 	})
@@ -321,7 +406,7 @@ func TestResolveEntryRef(t *testing.T) {
 			testEntryUUID3: entry2,
 			testEntryUUID4: entry3,
 		})
-		_, err := c.resolveEntryRef(context.Background(), "dup")
+		_, err := c.resolveEntryRef(context.Background(), testVaultUUID, "dup")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "found 2 credential entries")
 		assert.Contains(t, err.Error(), testEntryUUID3)
@@ -330,33 +415,48 @@ func TestResolveEntryRef(t *testing.T) {
 
 	t.Run("empty key", func(t *testing.T) {
 		c, _ := newTestClient(nil)
-		_, err := c.resolveEntryRef(context.Background(), "")
+		_, err := c.resolveEntryRef(context.Background(), testVaultUUID, "")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "cannot be empty")
 	})
 
 	t.Run("trailing separator produces empty name", func(t *testing.T) {
 		c, _ := newTestClient(nil)
-		_, err := c.resolveEntryRef(context.Background(), "folder/")
+		_, err := c.resolveEntryRef(context.Background(), testVaultUUID, "folder/")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "entry name cannot be empty")
 	})
 
+	// A non-404 failure is not a vault verdict, so it keeps the plain message and its chain.
 	t.Run("GetEntries API error", func(t *testing.T) {
 		c, mockCred := newTestClient(nil)
-		mockCred.getEntriesErr = errors.New("network error")
-		_, err := c.resolveEntryRef(context.Background(), testNonExistName)
+		wrapped := errors.New("network error")
+		mockCred.getEntriesErr = wrapped
+		_, err := c.resolveEntryRef(context.Background(), testVaultUUID, testNonExistName)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to resolve entry")
-		assert.Contains(t, err.Error(), "network error")
+		assert.ErrorIs(t, err, wrapped)
+		assert.False(t, isNotFoundError(err))
 	})
 
 	t.Run("vault not found during name resolution", func(t *testing.T) {
 		c, mockCred := newTestClient(nil)
 		mockCred.getEntriesErr = dvls.ErrVaultNotFound
-		_, err := c.resolveEntryRef(context.Background(), testNonExistName)
+		_, err := c.resolveEntryRef(context.Background(), testVaultUUID, testNonExistName)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, dvls.ErrVaultNotFound)
+		assert.False(t, isNotFoundError(err))
+	})
+
+	// A 404 from GetEntries is a vault/transport failure, never a missing entry: a missing
+	// name returns an empty list. It must not reach isNotFoundError or GetSecret would
+	// report NoSecretErr and deletionPolicy: Delete would prune a live Secret.
+	t.Run("GetEntries 404 is not treated as not-found", func(t *testing.T) {
+		c, mockCred := newTestClient(nil)
+		mockCred.getEntriesErr = &dvls.RequestError{Err: errors.New("unexpected status code 404"), StatusCode: http.StatusNotFound}
+		_, err := c.resolveEntryRef(context.Background(), testVaultUUID, testNonExistName)
+		assert.Error(t, err)
+		assert.False(t, isNotFoundError(err))
 	})
 
 	t.Run("cache hit avoids second GetEntries call", func(t *testing.T) {
@@ -369,79 +469,73 @@ func TestResolveEntryRef(t *testing.T) {
 		c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: entry})
 
 		// First call populates the cache.
-		id1, err := c.resolveEntryRef(context.Background(), testEntryName)
+		id1, err := c.resolveEntryRef(context.Background(), testVaultUUID, testEntryName)
 		assert.NoError(t, err)
 		assert.Equal(t, testEntryUUID, id1)
 
 		// Remove entries from mock so only the cache can satisfy the lookup.
 		mockCred.entries = map[string]dvls.Entry{}
 
-		id2, err := c.resolveEntryRef(context.Background(), testEntryName)
+		id2, err := c.resolveEntryRef(context.Background(), testVaultUUID, testEntryName)
 		assert.NoError(t, err)
 		assert.Equal(t, testEntryUUID, id2)
 	})
 }
 
-// --- Tests: parseLegacyRef ---
+// --- Tests: splitVaultRef ---
 
-func TestParseLegacyRef(t *testing.T) {
-	t.Run("valid format", func(t *testing.T) {
-		vaultID, entryID, err := parseLegacyRef(testVaultUUID + "/" + testEntryUUID)
-		assert.NoError(t, err)
-		assert.Equal(t, testVaultUUID, vaultID)
-		assert.Equal(t, testEntryUUID, entryID)
-	})
+func TestSplitVaultRef(t *testing.T) {
+	tests := []struct {
+		name      string
+		key       string
+		wantVault string
+		wantEntry string
+		wantErr   string
+	}{
+		{name: "legacy UUID pair", key: testVaultUUID + "/" + testEntryUUID, wantVault: testVaultUUID, wantEntry: testEntryUUID},
+		{name: "vault name and entry name", key: "my-vault/db-creds", wantVault: "my-vault", wantEntry: "db-creds"},
+		{name: "vault name with folder path", key: "my-vault/infra/dbs/db-creds", wantVault: "my-vault", wantEntry: "infra/dbs/db-creds"},
+		{name: "backslash separator", key: `my-vault\db-creds`, wantVault: "my-vault", wantEntry: "db-creds"},
+		{name: "vault UUID with entry name", key: testVaultUUID + "/db-creds", wantVault: testVaultUUID, wantEntry: "db-creds"},
+		{name: "surrounding whitespace", key: "  my-vault/db-creds  ", wantVault: "my-vault", wantEntry: "db-creds"},
+		{name: "uppercase UUIDs", key: strings.ToUpper(testVaultUUID) + "/" + strings.ToUpper(testEntryUUID), wantVault: strings.ToUpper(testVaultUUID), wantEntry: strings.ToUpper(testEntryUUID)},
 
-	t.Run("no separator", func(t *testing.T) {
-		_, _, err := parseLegacyRef(testEntryUUID)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid key format")
-	})
+		{name: "no separator", key: testEntryUUID, wantErr: "invalid key format"},
+		{name: "empty vault", key: "/" + testEntryUUID, wantErr: "vault reference cannot be empty"},
+		{name: "empty entry", key: testVaultUUID + "/", wantErr: "entry reference cannot be empty"},
+		// These two fail locally today and must keep failing: PushSecret and DeleteSecret
+		// share this parser, so accepting them would let an old broken key mutate a real entry.
+		{name: "doubled separator", key: testVaultUUID + "//" + testEntryUUID, wantErr: "empty path segment"},
+		{name: "mixed doubled separator", key: `my-vault/\db-creds`, wantErr: "empty path segment"},
+		{name: "entry UUID with trailing segment", key: testVaultUUID + "/" + testEntryUUID + "/extra", wantErr: "must be the whole entry reference"},
+		{name: "trailing separator on path", key: "my-vault/folder/", wantErr: "empty path segment"},
+	}
 
-	t.Run("empty vault", func(t *testing.T) {
-		_, _, err := parseLegacyRef("/" + testEntryUUID)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "vault ID cannot be empty")
-	})
-
-	t.Run("empty entry", func(t *testing.T) {
-		_, _, err := parseLegacyRef(testVaultUUID + "/")
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "entry ID cannot be empty")
-	})
-
-	t.Run("invalid vault UUID", func(t *testing.T) {
-		_, _, err := parseLegacyRef("not-a-uuid/" + testEntryUUID)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid vault UUID")
-	})
-
-	t.Run("invalid entry UUID", func(t *testing.T) {
-		_, _, err := parseLegacyRef(testVaultUUID + "/not-a-uuid")
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid entry UUID")
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			vaultRef, entryRef, err := splitVaultRef(tt.key)
+			if tt.wantErr != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.wantErr)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantVault, vaultRef)
+			assert.Equal(t, tt.wantEntry, entryRef)
+		})
+	}
 }
 
-// --- Tests: resolveRef legacy mode ---
+// --- Tests: resolveRef mode switching ---
 
-func TestResolveRef_LegacyMode(t *testing.T) {
+func TestResolveRef_PinnedVault(t *testing.T) {
 	entry := dvls.Entry{
 		Id: testEntryUUID, Name: "test",
 		Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeDefault,
 		Data: &dvls.EntryCredentialDefaultData{Password: "pass"},
 	}
 
-	t.Run("legacy format when vaultID is empty", func(t *testing.T) {
-		mockCred := newMockCredentialClient(map[string]dvls.Entry{testEntryUUID: entry})
-		c := NewClient(mockCred, "")
-		vaultID, entryID, err := c.resolveRef(context.Background(), testVaultUUID+"/"+testEntryUUID)
-		assert.NoError(t, err)
-		assert.Equal(t, testVaultUUID, vaultID)
-		assert.Equal(t, testEntryUUID, entryID)
-	})
-
-	t.Run("new format with name when vaultID is set", func(t *testing.T) {
+	t.Run("name resolved in pinned vault", func(t *testing.T) {
 		c, _ := newTestClient(map[string]dvls.Entry{testEntryUUID: entry})
 		vaultID, entryID, err := c.resolveRef(context.Background(), "test")
 		assert.NoError(t, err)
@@ -449,12 +543,182 @@ func TestResolveRef_LegacyMode(t *testing.T) {
 		assert.Equal(t, testEntryUUID, entryID)
 	})
 
-	t.Run("new format when vaultID is set", func(t *testing.T) {
+	t.Run("UUID resolved in pinned vault", func(t *testing.T) {
 		c, _ := newTestClient(map[string]dvls.Entry{testEntryUUID: entry})
 		vaultID, entryID, err := c.resolveRef(context.Background(), testEntryUUID)
 		assert.NoError(t, err)
 		assert.Equal(t, testVaultUUID, vaultID)
 		assert.Equal(t, testEntryUUID, entryID)
+	})
+
+	// A pinned vault keeps '/' meaning folder path, so a key that looks like
+	// "<vault>/<entry>" must not be reinterpreted as a vault reference.
+	t.Run("slash stays a folder path", func(t *testing.T) {
+		inFolder := dvls.Entry{
+			Id: testEntryUUID3, Name: "db", Path: "prod",
+			Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeDefault,
+		}
+		c, _ := newTestClient(map[string]dvls.Entry{testEntryUUID3: inFolder})
+		vaultID, entryID, err := c.resolveRef(context.Background(), "prod/db")
+		assert.NoError(t, err)
+		assert.Equal(t, testVaultUUID, vaultID)
+		assert.Equal(t, testEntryUUID3, entryID)
+	})
+}
+
+func TestResolveRef_VaultInKey(t *testing.T) {
+	entry := dvls.Entry{
+		Id: testEntryUUID, Name: "test", VaultId: testVaultUUID,
+		Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeDefault,
+	}
+
+	t.Run("legacy UUID pair needs no vault lookup", func(t *testing.T) {
+		c, _, mockVault := newDynamicTestClient(map[string]dvls.Entry{testEntryUUID: entry}, defaultTestVaults())
+		vaultID, entryID, err := c.resolveRef(context.Background(), testVaultUUID+"/"+testEntryUUID)
+		assert.NoError(t, err)
+		assert.Equal(t, testVaultUUID, vaultID)
+		assert.Equal(t, testEntryUUID, entryID)
+		assert.Equal(t, 0, mockVault.listCalls)
+	})
+
+	t.Run("vault name and entry name", func(t *testing.T) {
+		c, _, _ := newDynamicTestClient(map[string]dvls.Entry{testEntryUUID: entry}, defaultTestVaults())
+		vaultID, entryID, err := c.resolveRef(context.Background(), testVaultName+"/test")
+		assert.NoError(t, err)
+		assert.Equal(t, testVaultUUID, vaultID)
+		assert.Equal(t, testEntryUUID, entryID)
+	})
+
+	t.Run("vault name with folder path", func(t *testing.T) {
+		inFolder := dvls.Entry{
+			Id: testEntryUUID3, Name: "db", Path: `infra\dbs`, VaultId: testVaultUUID,
+			Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeDefault,
+		}
+		c, _, _ := newDynamicTestClient(map[string]dvls.Entry{testEntryUUID3: inFolder}, defaultTestVaults())
+		vaultID, entryID, err := c.resolveRef(context.Background(), testVaultName+"/infra/dbs/db")
+		assert.NoError(t, err)
+		assert.Equal(t, testVaultUUID, vaultID)
+		assert.Equal(t, testEntryUUID3, entryID)
+	})
+
+	t.Run("single segment key is rejected", func(t *testing.T) {
+		c, _, _ := newDynamicTestClient(nil, defaultTestVaults())
+		_, _, err := c.resolveRef(context.Background(), "db-creds")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid key format")
+	})
+
+	t.Run("unknown vault name", func(t *testing.T) {
+		c, _, _ := newDynamicTestClient(nil, defaultTestVaults())
+		_, _, err := c.resolveRef(context.Background(), "nope/db-creds")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), `vault "nope"`)
+		assert.False(t, isNotFoundError(err))
+	})
+
+	// The vault index is built once per client: GetByName enumerates every vault per call,
+	// so resolving N names must not cost N enumerations.
+	t.Run("vault index built once", func(t *testing.T) {
+		other := dvls.Entry{
+			Id: testEntryUUID4, Name: "test", VaultId: testVaultUUID2,
+			Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeDefault,
+		}
+		c, _, mockVault := newDynamicTestClient(map[string]dvls.Entry{testEntryUUID: entry, testEntryUUID4: other}, defaultTestVaults())
+
+		_, _, err := c.resolveRef(context.Background(), testVaultName+"/test")
+		assert.NoError(t, err)
+		_, _, err = c.resolveRef(context.Background(), testVaultName2+"/test")
+		assert.NoError(t, err)
+		assert.Equal(t, 1, mockVault.listCalls)
+	})
+
+	// nameCache is keyed by vault: one client now serves several, so an unscoped cache
+	// would return the first vault's entry for every later vault. Repeating each lookup
+	// also pins the cache itself — a removed cache would issue a second GetEntries.
+	t.Run("same entry name resolves per vault", func(t *testing.T) {
+		other := dvls.Entry{
+			Id: testEntryUUID4, Name: "test", VaultId: testVaultUUID2,
+			Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeDefault,
+		}
+		c, mockCred, _ := newDynamicTestClient(map[string]dvls.Entry{testEntryUUID: entry, testEntryUUID4: other}, defaultTestVaults())
+
+		for range 2 {
+			vaultID, entryID, err := c.resolveRef(context.Background(), testVaultName+"/test")
+			assert.NoError(t, err)
+			assert.Equal(t, testVaultUUID, vaultID)
+			assert.Equal(t, testEntryUUID, entryID)
+
+			vaultID, entryID, err = c.resolveRef(context.Background(), testVaultName2+"/test")
+			assert.NoError(t, err)
+			assert.Equal(t, testVaultUUID2, vaultID)
+			assert.Equal(t, testEntryUUID4, entryID)
+		}
+
+		// One lookup per vault, not per reference.
+		assert.Equal(t, map[string]int{testVaultUUID: 1, testVaultUUID2: 1}, mockCred.entriesCalls)
+	})
+
+	t.Run("duplicate vault names error", func(t *testing.T) {
+		c, _, mockVault := newDynamicTestClient(nil, defaultTestVaults())
+		mockVault.duplicate = testVaultName
+		_, _, err := c.resolveRef(context.Background(), testVaultName+"/test")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "multiple vaults named")
+	})
+
+	t.Run("vault list error is not a not-found", func(t *testing.T) {
+		c, _, mockVault := newDynamicTestClient(nil, defaultTestVaults())
+		mockVault.listErr = &dvls.RequestError{Err: errors.New("unexpected status code 404"), StatusCode: http.StatusNotFound}
+		_, _, err := c.resolveRef(context.Background(), testVaultName+"/test")
+		assert.Error(t, err)
+		assert.False(t, isNotFoundError(err))
+	})
+
+	// Holds List open so every other goroutine is in flight while the first enumerates.
+	// Without the lock spanning List, the waiters would each start their own enumeration.
+	t.Run("concurrent callers share one enumeration", func(t *testing.T) {
+		other := dvls.Entry{
+			Id: testEntryUUID4, Name: "test", VaultId: testVaultUUID2,
+			Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeDefault,
+		}
+		c, _, mockVault := newDynamicTestClient(map[string]dvls.Entry{testEntryUUID: entry, testEntryUUID4: other}, defaultTestVaults())
+		mockVault.listGate = make(chan struct{})
+
+		var wg sync.WaitGroup
+		for i := range 20 {
+			wg.Add(1)
+			go func(i int) {
+				defer wg.Done()
+				name := testVaultName
+				if i%2 == 0 {
+					name = testVaultName2
+				}
+				_, _, err := c.resolveRef(context.Background(), name+"/test")
+				assert.NoError(t, err)
+			}(i)
+		}
+
+		// Give every goroutine time to pile up, then confirm only one reached List.
+		for range 50 {
+			time.Sleep(time.Millisecond)
+			mockVault.mu.Lock()
+			calls := mockVault.listCalls
+			mockVault.mu.Unlock()
+			require.LessOrEqual(t, calls, 1, "more than one goroutine entered List")
+		}
+
+		close(mockVault.listGate)
+		wg.Wait()
+		assert.Equal(t, 1, mockVault.listCalls)
+	})
+
+	t.Run("invalid vault UUID from List is rejected", func(t *testing.T) {
+		c, _, _ := newDynamicTestClient(nil, map[string]dvls.Vault{
+			testVaultName: {Id: "not-a-uuid", Name: testVaultName},
+		})
+		_, _, err := c.resolveRef(context.Background(), testVaultName+"/test")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid UUID")
 	})
 }
 
@@ -468,15 +732,22 @@ func TestClient_Validate(t *testing.T) {
 		assert.Equal(t, esv1.ValidationResultError, result)
 	})
 
-	t.Run("empty vault ID is valid (legacy mode)", func(t *testing.T) {
-		c := &Client{cred: newMockCredentialClient(nil), vaultID: ""}
+	t.Run("pinned vault without vault client is valid", func(t *testing.T) {
+		c := &Client{cred: newMockCredentialClient(nil), vaultID: testVaultUUID, pinnedVault: true}
 		result, err := c.Validate()
 		assert.NoError(t, err)
 		assert.Equal(t, esv1.ValidationResultReady, result)
 	})
 
+	t.Run("vault in key requires a vault client", func(t *testing.T) {
+		c := &Client{cred: newMockCredentialClient(nil)}
+		result, err := c.Validate()
+		assert.Error(t, err)
+		assert.Equal(t, esv1.ValidationResultError, result)
+	})
+
 	t.Run("initialized client", func(t *testing.T) {
-		c := NewClient(newMockCredentialClient(nil), testVaultUUID)
+		c := NewClient(newMockCredentialClient(nil), newMockVaultClient(nil), testVaultUUID, true)
 		result, err := c.Validate()
 		assert.NoError(t, err)
 		assert.Equal(t, esv1.ValidationResultReady, result)
@@ -484,10 +755,11 @@ func TestClient_Validate(t *testing.T) {
 }
 
 func TestNewClient(t *testing.T) {
-	c := NewClient(nil, "")
+	c := NewClient(nil, nil, "", false)
 	assert.NotNil(t, c)
 	assert.Nil(t, c.cred)
 	assert.Empty(t, c.vaultID)
+	assert.False(t, c.pinnedVault)
 }
 
 // --- Tests: entryToSecretMap ---
@@ -666,6 +938,158 @@ func TestClient_GetSecret_VaultNotFoundDuringNameResolution(t *testing.T) {
 	_, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: testNonExistName})
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, dvls.ErrVaultNotFound)
+	assert.NotErrorIs(t, err, esv1.NoSecretErr)
+}
+
+// An unreachable vault must surface as an error, never as NoSecretErr: the reconciler
+// treats NoSecretErr as "the secret is gone" and deletionPolicy: Delete acts on it.
+func TestClient_GetSecret_VaultErrorIsNotNoSecretErr(t *testing.T) {
+	notFound := &dvls.RequestError{Err: errors.New("unexpected status code 404"), StatusCode: http.StatusNotFound}
+
+	t.Run("vault list 404", func(t *testing.T) {
+		c, _, mockVault := newDynamicTestClient(nil, defaultTestVaults())
+		mockVault.listErr = notFound
+		_, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: testVaultName + "/db"})
+		assert.Error(t, err)
+		assert.NotErrorIs(t, err, esv1.NoSecretErr)
+	})
+
+	t.Run("unknown vault name", func(t *testing.T) {
+		c, _, _ := newDynamicTestClient(nil, defaultTestVaults())
+		_, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "nope/db"})
+		assert.Error(t, err)
+		assert.NotErrorIs(t, err, esv1.NoSecretErr)
+	})
+
+	t.Run("GetEntries 404", func(t *testing.T) {
+		c, mockCred := newTestClient(nil)
+		mockCred.getEntriesErr = notFound
+		_, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: testNonExistName})
+		assert.Error(t, err)
+		assert.NotErrorIs(t, err, esv1.NoSecretErr)
+	})
+
+	t.Run("GetSecretMap vault list 404", func(t *testing.T) {
+		c, _, mockVault := newDynamicTestClient(nil, defaultTestVaults())
+		mockVault.listErr = notFound
+		_, err := c.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: testVaultName + "/db"})
+		assert.Error(t, err)
+		assert.NotErrorIs(t, err, esv1.NoSecretErr)
+	})
+}
+
+// The SDK addresses entries as /vault/{vaultID}/entry/{entryID}, so a direct 404 cannot
+// distinguish a deleted entry from an unreachable vault. Legacy "<vault-uuid>/<entry-uuid>"
+// keys hit this path with no name resolution at all, so the vault must be confirmed before
+// the entry is reported absent.
+func TestClient_DirectNotFound_DisambiguatesVault(t *testing.T) {
+	notFound := &dvls.RequestError{Err: errors.New("unexpected status code 404"), StatusCode: http.StatusNotFound}
+	legacyKey := testVaultUUID + "/" + testEntryUUID
+
+	newClient := func(vaultReachable bool) (*Client, *mockVaultClient) {
+		c, _, mockVault := newDynamicTestClient(nil, defaultTestVaults())
+		if !vaultReachable {
+			mockVault.getByIDErr = notFound
+		}
+		return c, mockVault
+	}
+
+	t.Run("GetSecret reports absent when vault is reachable", func(t *testing.T) {
+		c, mockVault := newClient(true)
+		_, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: legacyKey})
+		assert.ErrorIs(t, err, esv1.NoSecretErr)
+		assert.Equal(t, 1, mockVault.getCalls)
+	})
+
+	t.Run("GetSecret errors when vault is unreachable", func(t *testing.T) {
+		c, _ := newClient(false)
+		_, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: legacyKey})
+		assert.Error(t, err)
+		assert.NotErrorIs(t, err, esv1.NoSecretErr)
+	})
+
+	t.Run("GetSecretMap errors when vault is unreachable", func(t *testing.T) {
+		c, _ := newClient(false)
+		_, err := c.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: legacyKey})
+		assert.Error(t, err)
+		assert.NotErrorIs(t, err, esv1.NoSecretErr)
+	})
+
+	t.Run("DeleteSecret is idempotent only when vault is reachable", func(t *testing.T) {
+		c, _ := newClient(true)
+		assert.NoError(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: legacyKey}))
+
+		c, _ = newClient(false)
+		assert.Error(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: legacyKey}))
+	})
+
+	t.Run("SecretExists reports false only when vault is reachable", func(t *testing.T) {
+		c, _ := newClient(true)
+		exists, err := c.SecretExists(context.Background(), pushSecretRemoteRefStub{remoteKey: legacyKey})
+		assert.NoError(t, err)
+		assert.False(t, exists)
+
+		c, _ = newClient(false)
+		exists, err = c.SecretExists(context.Background(), pushSecretRemoteRefStub{remoteKey: legacyKey})
+		assert.Error(t, err)
+		assert.False(t, exists)
+	})
+
+	t.Run("PushSecret errors on vault outage rather than blaming the entry", func(t *testing.T) {
+		secret := &corev1.Secret{Data: map[string][]byte{"key": []byte("val")}}
+		data := pushSecretDataStub{remoteKey: legacyKey, secretKey: "key"}
+
+		c, _ := newClient(false)
+		err := c.PushSecret(context.Background(), secret, data)
+		assert.Error(t, err)
+		assert.NotContains(t, err.Error(), "must exist before pushing")
+
+		c, _ = newClient(true)
+		err = c.PushSecret(context.Background(), secret, data)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "must exist before pushing")
+	})
+}
+
+// Ordinary transport failures must keep their error chain: a reconciler canceling its
+// context needs errors.Is(err, context.Canceled) to keep working.
+func TestClient_TransportErrorsPreserveChain(t *testing.T) {
+	c, mockCred := newTestClient(nil)
+	mockCred.getEntriesErr = fmt.Errorf("dialing: %w", context.Canceled)
+
+	_, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: testNonExistName})
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, context.Canceled)
+	assert.NotErrorIs(t, err, esv1.NoSecretErr)
+}
+
+// DeleteSecret and SecretExists must not report success / "absent" when the vault is
+// unreachable, or a push flow would silently skip real work.
+func TestClient_MutatingPaths_VaultErrorSurfaces(t *testing.T) {
+	notFound := &dvls.RequestError{Err: errors.New("unexpected status code 404"), StatusCode: http.StatusNotFound}
+
+	t.Run("DeleteSecret", func(t *testing.T) {
+		c, _, mockVault := newDynamicTestClient(nil, defaultTestVaults())
+		mockVault.listErr = notFound
+		err := c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testVaultName + "/db"})
+		assert.Error(t, err)
+	})
+
+	t.Run("SecretExists", func(t *testing.T) {
+		c, _, mockVault := newDynamicTestClient(nil, defaultTestVaults())
+		mockVault.listErr = notFound
+		exists, err := c.SecretExists(context.Background(), pushSecretRemoteRefStub{remoteKey: testVaultName + "/db"})
+		assert.Error(t, err)
+		assert.False(t, exists)
+	})
+
+	t.Run("PushSecret names the vault reference", func(t *testing.T) {
+		c, _, _ := newDynamicTestClient(nil, defaultTestVaults())
+		secret := &corev1.Secret{Data: map[string][]byte{"key": []byte("val")}}
+		err := c.PushSecret(context.Background(), secret, pushSecretDataStub{remoteKey: "nope/db", secretKey: "key"})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), `vault "nope"`)
+	})
 }
 
 // --- Tests: GetSecretMap ---
