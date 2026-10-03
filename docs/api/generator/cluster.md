@@ -9,6 +9,9 @@ in the consuming `ExternalSecret`.
   This behavior is subject to change in future updates.
 - The objects referenced within the ClusterGenerator must also reside in the same namespace as the ES object that
   references them. This is due to the inherent, namespace-scoped nature of the embedded generator types.
+  Generator `SecretKeySelector` fields have no namespace: `auth.token` / `urlFrom` on Grafana (and the same shape on
+  other generators) resolve in the consuming ExternalSecret namespace. Two namespaces using one ClusterGenerator can
+  therefore hit different backends if their local Secrets differ.
 
 ## Example Manifest
 

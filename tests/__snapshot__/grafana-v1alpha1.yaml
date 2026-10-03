@@ -16,3 +16,6 @@ spec:
     role: string
     secondsToLive: 1
   url: string
+  urlFrom:
+    key: string
+    name: string
