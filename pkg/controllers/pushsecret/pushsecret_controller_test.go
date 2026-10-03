@@ -28,6 +28,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -782,6 +783,107 @@ var _ = Describe("PushSecret controller", func() {
 				return !exists || len(secrets) == 0
 			}, time.Second*10, time.Second).Should(BeTrue())
 
+			return true
+		}
+	}
+
+	// Pins the controller -> provider wiring for delete: the provider must
+	// receive the full PushSecretData (carrying metadata), not the bare
+	// Match.RemoteRef which has no GetMetadata. Reverting DeleteSecretFromStore
+	// to Match.RemoteRef fails this test.
+	deletePassesFullPushSecretData := func(tc *testCase) {
+		captured := make(chan esv1.PushSecretRemoteRef, 1)
+		fakeProvider.WithDeleteSecretCaptureFn(func(_ context.Context, ref esv1.PushSecretRemoteRef) error {
+			captured <- ref
+			return nil
+		})
+		tc.pushsecret = &v1alpha1.PushSecret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      PushSecretName,
+				Namespace: PushSecretNamespace,
+			},
+			Spec: v1alpha1.PushSecretSpec{
+				DeletionPolicy:  v1alpha1.PushSecretDeletionPolicyDelete,
+				RefreshInterval: &metav1.Duration{Duration: time.Second},
+				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
+					{
+						Name: PushSecretStore,
+						Kind: "SecretStore",
+					},
+				},
+				Selector: v1alpha1.PushSecretSelector{
+					Secret: &v1alpha1.PushSecretSecret{
+						Name: SecretName,
+					},
+				},
+				Data: []v1alpha1.PushSecretData{
+					{
+						Match: v1alpha1.PushSecretMatch{
+							SecretKey: defaultKey,
+							RemoteRef: v1alpha1.PushSecretRemoteRef{
+								RemoteKey: defaultPath,
+							},
+						},
+						Metadata: &apiextensionsv1.JSON{
+							Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"remoteNamespace":"capture-ns"}}`),
+						},
+					},
+				},
+			},
+		}
+		tc.assert = func(_ *v1alpha1.PushSecret, secret *v1.Secret) bool {
+			By("deleting source Secret to trigger provider delete")
+			Expect(k8sClient.Delete(context.Background(), secret, &client.DeleteOptions{})).Should(Succeed())
+
+			By("checking the provider received full PushSecretData with metadata")
+			Eventually(func() bool {
+				select {
+				case ref := <-captured:
+					data, ok := ref.(esv1.PushSecretData)
+					if !ok {
+						return false
+					}
+					m := data.GetMetadata()
+					return m != nil && bytes.Contains(m.Raw, []byte("capture-ns"))
+				default:
+					return false
+				}
+			}, time.Second*10, time.Second).Should(BeTrue())
+			return true
+		}
+	}
+
+	// Same wiring pin for the IfNotExists existence check: SecretExists must
+	// receive the full PushSecretData so metadata-aware providers check the
+	// same location PushSecret writes to. Reverting line to Match.RemoteRef
+	// fails this test.
+	existsPassesFullPushSecretData := func(tc *testCase) {
+		captured := make(chan esv1.PushSecretRemoteRef, 1)
+		fakeProvider.WithSecretExistsFn(func(_ context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+			select {
+			case captured <- ref:
+			default:
+			}
+			return false, nil
+		})
+		tc.pushsecret.Spec.UpdatePolicy = v1alpha1.PushSecretUpdatePolicyIfNotExists
+		tc.pushsecret.Spec.Data[0].Metadata = &apiextensionsv1.JSON{
+			Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"remoteNamespace":"capture-ns"}}`),
+		}
+		tc.assert = func(_ *v1alpha1.PushSecret, _ *v1.Secret) bool {
+			Eventually(func() bool {
+				select {
+				case ref := <-captured:
+					data, ok := ref.(esv1.PushSecretData)
+					if !ok {
+						return false
+					}
+					m := data.GetMetadata()
+					return m != nil && bytes.Contains(m.Raw, []byte("capture-ns"))
+				default:
+					return false
+				}
+			}, time.Second*10, time.Second).Should(BeTrue())
 			return true
 		}
 	}
@@ -2365,6 +2467,8 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should delete secrets with properties and update status correctly", syncAndDeleteWithProperties),
 		Entry("should delete after DeletionPolicy changed from Delete to None", syncChangePolicyAndDeleteSuccessfully),
 		Entry("should cleanup provider secrets when source Secret is deleted", deleteProviderSecretsOnSourceSecretDeleted),
+		Entry("should pass full PushSecretData to provider on delete", deletePassesFullPushSecretData),
+		Entry("should pass full PushSecretData to provider on exists check", existsPassesFullPushSecretData),
 		Entry("should track deletion tasks if Delete fails", failDelete),
 		Entry("should track deleted stores if Delete fails", failDeleteStore),
 		Entry("should delete all secrets if SecretStore changes", deleteWholeStore),
