@@ -33,6 +33,7 @@ import (
 const (
 	errFailedToGetEntry = "failed to get entry: %w"
 	errVaultNotFound    = "vault %q was not found or has been deleted: %w"
+	errEntryMustExist   = "entry %s not found in vault %s: entry must exist before pushing secrets"
 )
 
 var errNotImplemented = errors.New("not implemented")
@@ -41,21 +42,33 @@ var _ esv1.SecretsClient = &Client{}
 
 // Client implements the SecretsClient interface for DVLS.
 // The nameCache maps entry name/path keys to resolved UUIDs, avoiding
-// repeated GetEntries calls during a single reconciliation. The cache is
-// not persisted: each reconciliation creates a new Client via NewClient,
-// so stale entries (e.g. deleted or renamed) are naturally discarded.
+// repeated GetEntries calls during a single reconciliation, and the
+// folderCache records the folder paths already known to exist. Neither is
+// persisted: each reconciliation creates a new Client via NewClient, so stale
+// entries (e.g. deleted or renamed) are naturally discarded.
 type Client struct {
-	cred      credentialClient
-	vaultID   string
-	mu        sync.RWMutex
-	nameCache map[string]string
+	cred        credentialClient
+	folder      folderClient
+	vaultID     string
+	mu          sync.RWMutex
+	nameCache   map[string]string
+	folderCache map[string]struct{}
 }
 
 type credentialClient interface {
 	GetByID(ctx context.Context, vaultID, entryID string) (dvls.Entry, error)
 	GetEntries(ctx context.Context, vaultID string, opts dvls.GetEntriesOptions) ([]dvls.Entry, error)
+	New(ctx context.Context, entry dvls.Entry) (string, error)
 	Update(ctx context.Context, entry dvls.Entry) (dvls.Entry, error)
 	DeleteByID(ctx context.Context, vaultID, entryID string) error
+}
+
+// folderClient covers the folder entries a push has to create, since DVLS
+// keeps folders as entries of their own rather than as a path string on the
+// entry that lives in them.
+type folderClient interface {
+	GetEntries(ctx context.Context, vaultID string, opts dvls.GetEntriesOptions) ([]dvls.Entry, error)
+	New(ctx context.Context, entry dvls.Entry) (string, error)
 }
 
 type vaultGetter interface {
@@ -74,6 +87,10 @@ func (r *realCredentialClient) GetEntries(ctx context.Context, vaultID string, o
 	return r.cred.GetEntriesWithContext(ctx, vaultID, opts)
 }
 
+func (r *realCredentialClient) New(ctx context.Context, entry dvls.Entry) (string, error) {
+	return r.cred.NewWithContext(ctx, entry)
+}
+
 func (r *realCredentialClient) Update(ctx context.Context, entry dvls.Entry) (dvls.Entry, error) {
 	return r.cred.UpdateWithContext(ctx, entry)
 }
@@ -82,9 +99,27 @@ func (r *realCredentialClient) DeleteByID(ctx context.Context, vaultID, entryID 
 	return r.cred.DeleteByIdWithContext(ctx, vaultID, entryID)
 }
 
+type realFolderClient struct {
+	folder *dvls.EntryFolderService
+}
+
+func (r *realFolderClient) GetEntries(ctx context.Context, vaultID string, opts dvls.GetEntriesOptions) ([]dvls.Entry, error) {
+	return r.folder.GetEntriesWithContext(ctx, vaultID, opts)
+}
+
+func (r *realFolderClient) New(ctx context.Context, entry dvls.Entry) (string, error) {
+	return r.folder.NewWithContext(ctx, entry)
+}
+
 // NewClient creates a new DVLS secrets client.
-func NewClient(cred credentialClient, vaultID string) *Client {
-	return &Client{cred: cred, vaultID: vaultID, nameCache: make(map[string]string)}
+func NewClient(cred credentialClient, folder folderClient, vaultID string) *Client {
+	return &Client{
+		cred:        cred,
+		folder:      folder,
+		vaultID:     vaultID,
+		nameCache:   make(map[string]string),
+		folderCache: make(map[string]struct{}),
+	}
 }
 
 // GetSecret retrieves a secret from DVLS.
@@ -155,20 +190,11 @@ func (c *Client) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (ma
 	return nil, errNotImplemented
 }
 
-// PushSecret updates an existing entry's password field.
+// PushSecret writes the value to the entry the remote key addresses, creating
+// that entry when it does not exist yet.
 func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	if secret == nil {
 		return errors.New("secret is required for DVLS push")
-	}
-	vaultID, entryID, err := c.resolveRef(ctx, data.GetRemoteKey())
-	if isVaultNotFoundError(err) {
-		return fmt.Errorf(errVaultNotFound, c.vaultID, err)
-	}
-	if isNotFoundError(err) {
-		return fmt.Errorf("entry %q not found: entry must exist before pushing secrets", data.GetRemoteKey())
-	}
-	if err != nil {
-		return err
 	}
 
 	value, err := extractPushValue(secret, data)
@@ -176,14 +202,35 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return err
 	}
 
+	vaultID, entryID, err := c.resolveRef(ctx, data.GetRemoteKey())
+	switch {
+	case isVaultNotFoundError(err):
+		return fmt.Errorf(errVaultNotFound, c.vaultID, err)
+	case isNotFoundError(err):
+		return c.createEntry(ctx, data.GetRemoteKey(), value)
+	case err != nil:
+		return err
+	}
+
 	existingEntry, err := c.cred.GetByID(ctx, vaultID, entryID)
-	if isVaultNotFoundError(err) {
+	switch {
+	case isVaultNotFoundError(err):
 		return fmt.Errorf(errVaultNotFound, vaultID, err)
-	}
-	if isNotFoundError(err) {
-		return fmt.Errorf("entry %s not found in vault %s: entry must exist before pushing secrets", entryID, vaultID)
-	}
-	if err != nil {
+	case isNotFoundError(err) && c.vaultID == "":
+		// A store that sets no vault addresses entries as "<vault-uuid>/<entry-uuid>",
+		// which names one specific entry rather than a name and a path, so there is
+		// nothing to create from it. Setting vault would change how every other key
+		// on that store resolves, so it is not the advice to give here: report the
+		// miss exactly as this provider always has.
+		return fmt.Errorf(errEntryMustExist, entryID, vaultID)
+	case isNotFoundError(err):
+		// The reference resolved to an id the vault no longer has, so the name
+		// cache is stale. Drop it and create the entry the key asks for.
+		c.mu.Lock()
+		delete(c.nameCache, data.GetRemoteKey())
+		c.mu.Unlock()
+		return c.createEntry(ctx, data.GetRemoteKey(), value)
+	case err != nil:
 		return fmt.Errorf(errFailedToGetEntry, err)
 	}
 
@@ -192,11 +239,156 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return err
 	}
 
-	_, err = c.cred.Update(ctx, existingEntry)
-	if err != nil {
+	if _, err := c.cred.Update(ctx, existingEntry); err != nil {
 		return fmt.Errorf("failed to update entry: %w", err)
 	}
 	return nil
+}
+
+// createEntry creates the credential entry a push addressed but that the vault
+// does not hold yet. The remote key carries the entry's name and, optionally,
+// the folder path it belongs under, because DVLS addresses an entry by name
+// within a path rather than by the whole string.
+//
+// The entry is created as a Credential/AccessCode: that is the subtype whose
+// single field GetSecret reads back as "password", so a value pushed here is
+// readable by an ExternalSecret that sets no property. Any folder the path
+// names is created first, so that the entry lands in a tree that exists.
+//
+// A vault is a precondition, since an entry can only be placed by name within
+// one. PushSecret reports a miss on a store with no vault before it gets here;
+// the guard keeps the invariant local to the function that relies on it.
+func (c *Client) createEntry(ctx context.Context, remoteKey string, value []byte) error {
+	if c.vaultID == "" {
+		return fmt.Errorf("cannot create entry %q: the store must set a vault to address entries by name", remoteKey)
+	}
+	if isUUID(remoteKey) {
+		return fmt.Errorf("cannot create entry %q: a remote key given as a UUID names an entry that no longer exists", remoteKey)
+	}
+
+	name, path := parseEntryRef(remoteKey)
+	if name == "" {
+		return errors.New("entry name cannot be empty")
+	}
+
+	if err := c.ensureFolderPath(ctx, path); err != nil {
+		return err
+	}
+
+	entry := dvls.Entry{
+		VaultId: c.vaultID,
+		Name:    name,
+		Path:    path,
+		Type:    dvls.EntryCredentialType,
+		SubType: dvls.EntryCredentialSubTypeAccessCode,
+	}
+	// The subtype must be set first: SetCredentialSecret builds the data struct
+	// that matches it.
+	if err := entry.SetCredentialSecret(string(value)); err != nil {
+		return err
+	}
+
+	id, err := c.cred.New(ctx, entry)
+	if err != nil {
+		return fmt.Errorf("failed to create entry %q: %w", remoteKey, err)
+	}
+
+	c.mu.Lock()
+	c.nameCache[remoteKey] = id
+	c.mu.Unlock()
+	return nil
+}
+
+// ensureFolderPath creates every folder the path names that the vault does not
+// hold yet. DVLS keeps a folder as an entry of its own and an entry's path is
+// only a reference to it, so creating an entry under a path whose folders are
+// missing would place it in a tree that is not there. The path is walked from
+// the root because each level has to name the parent it sits under.
+func (c *Client) ensureFolderPath(ctx context.Context, path string) error {
+	if path == "" {
+		return nil
+	}
+	if c.folder == nil {
+		return fmt.Errorf("cannot create folder path %q: the client has no folder access", path)
+	}
+
+	var parent string
+	for segment := range strings.SplitSeq(path, `\`) {
+		if segment == "" {
+			return fmt.Errorf("invalid folder path %q: a path segment cannot be empty", path)
+		}
+
+		current := segment
+		if parent != "" {
+			current = parent + `\` + segment
+		}
+		if err := c.ensureFolder(ctx, segment, parent, current); err != nil {
+			return err
+		}
+		parent = current
+	}
+	return nil
+}
+
+// ensureFolder creates the single folder named name directly under parent,
+// unless it is already there. fullPath is where that folder ends up, used for
+// the cache key and for error messages.
+func (c *Client) ensureFolder(ctx context.Context, name, parent, fullPath string) error {
+	c.mu.RLock()
+	_, known := c.folderCache[fullPath]
+	c.mu.RUnlock()
+	if known {
+		return nil
+	}
+
+	opts := dvls.GetEntriesOptions{Name: &name}
+	if parent != "" {
+		opts.Path = &parent
+	}
+
+	entries, err := c.folder.GetEntries(ctx, c.vaultID, opts)
+	if isVaultNotFoundError(err) {
+		return fmt.Errorf(errVaultNotFound, c.vaultID, err)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to look up folder %q: %w", fullPath, err)
+	}
+
+	// Neither filter narrows the result to exactly this folder: the path filter
+	// also matches everything nested below it, so the match has to be checked.
+	if !hasFolder(entries, name, fullPath) {
+		folder := dvls.Entry{
+			VaultId: c.vaultID,
+			Name:    name,
+			Path:    parent,
+			Type:    dvls.EntryFolderType,
+			SubType: dvls.EntryFolderSubTypeFolder,
+			Data:    &dvls.EntryFolderData{},
+		}
+		if _, err := c.folder.New(ctx, folder); err != nil {
+			return fmt.Errorf("failed to create folder %q: %w", fullPath, err)
+		}
+	}
+
+	c.mu.Lock()
+	c.folderCache[fullPath] = struct{}{}
+	c.mu.Unlock()
+	return nil
+}
+
+// hasFolder reports whether these entries contain the folder itself rather than
+// something merely near it. The server is asymmetric about Path: creating a
+// folder expects Path to name the parent it goes under, but reading one back
+// returns the folder's own full path, so a folder "db" created under "prod"
+// comes back with Path "prod\\db". Matching on the parent would therefore never
+// hit, and every push would try to create folders that are already there.
+func hasFolder(entries []dvls.Entry, name, fullPath string) bool {
+	for _, e := range entries {
+		if e.Name == name && e.Path == fullPath {
+			return true
+		}
+	}
+	return false
 }
 
 // DeleteSecret deletes a secret from DVLS.
