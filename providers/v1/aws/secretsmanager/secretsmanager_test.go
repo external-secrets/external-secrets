@@ -1078,45 +1078,6 @@ func TestSetSecret(t *testing.T) {
 				err: nil,
 			},
 		},
-		"SetSecretSkipsDeleteResourcePolicyWhenNoPolicyAttached": {
-			reason: "when no resourcePolicy is configured and none is attached, GetResourcePolicy is called but DeleteResourcePolicy is not",
-			args: args{
-				store: makeValidSecretStore().Spec.Provider.AWS,
-				client: fakesm.Client{
-					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
-					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
-					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
-					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
-					UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
-					// GetResourcePolicy returns empty — no policy attached, so DeleteResourcePolicy must NOT be called.
-					GetResourcePolicyFn: fakesm.NewGetResourcePolicyFn(&awssm.GetResourcePolicyOutput{}, nil),
-				},
-				pushSecretData: pushSecretDataWithoutProperty,
-			},
-			want: want{
-				err: nil,
-			},
-		},
-		"SetSecretDeletesResourcePolicyWhenOneIsAttachedAndNoneConfigured": {
-			reason: "when no resourcePolicy is configured but one is attached, it should be deleted",
-			args: args{
-				store: makeValidSecretStore().Spec.Provider.AWS,
-				client: fakesm.Client{
-					GetSecretValueFn: fakesm.NewGetSecretValueFn(secretValueOutput, nil),
-					PutSecretValueFn: fakesm.NewPutSecretValueFn(putSecretOutput, nil),
-					DescribeSecretFn: fakesm.NewDescribeSecretFn(tagSecretOutput, nil),
-					TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
-					UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
-					// GetResourcePolicy returns an existing policy — DeleteResourcePolicy must be called.
-					GetResourcePolicyFn:    fakesm.NewGetResourcePolicyFn(makeValidGetResourcePolicyOutput(), nil),
-					DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil),
-				},
-				pushSecretData: pushSecretDataWithoutProperty,
-			},
-			want: want{
-				err: nil,
-			},
-		},
 		"SetSecretWithEmptyExistingResourcePolicy": {
 			reason: "sync a resource policy when no existing policy is present",
 			args: args{
@@ -1760,6 +1721,106 @@ func TestPushSecretEmptyExistingResourcePolicy(t *testing.T) {
 	err := sm.PushSecret(context.Background(), fakeSecret, pushSecretData)
 	require.NoError(t, err)
 	assert.True(t, putResourcePolicyCalled, "PutResourcePolicy should be called when existing policy is empty")
+}
+
+func TestPushSecretSkipsDeleteResourcePolicyWhenNoneAttached(t *testing.T) {
+	secretKey := fakeSecretKey
+	secretValue := []byte("fake-value")
+	fakeSecret := &corev1.Secret{
+		Data: map[string][]byte{
+			secretKey: secretValue,
+		},
+	}
+	arn := testARN
+	defaultVersion := testDefaultVersion
+	managedBy := managedBy
+	externalSecrets := externalSecrets
+
+	getResourcePolicyCalled := false
+	deleteResourcePolicyCalled := false
+
+	client := fakesm.Client{
+		GetSecretValueFn: fakesm.NewGetSecretValueFn(&awssm.GetSecretValueOutput{
+			ARN:       &arn,
+			VersionId: &defaultVersion,
+		}, nil),
+		DescribeSecretFn: fakesm.NewDescribeSecretFn(&awssm.DescribeSecretOutput{
+			ARN:  &arn,
+			Tags: []types.Tag{{Key: &managedBy, Value: &externalSecrets}},
+			VersionIdsToStages: map[string][]string{
+				defaultVersion: {"AWSCURRENT"},
+			},
+		}, nil),
+		PutSecretValueFn: fakesm.NewPutSecretValueFn(&awssm.PutSecretValueOutput{ARN: &arn}, nil),
+		TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+		UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+		GetResourcePolicyFn: fakesm.NewGetResourcePolicyFn(&awssm.GetResourcePolicyOutput{}, nil, func(_ *awssm.GetResourcePolicyInput) {
+			getResourcePolicyCalled = true
+		}),
+		DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil, func(_ *awssm.DeleteResourcePolicyInput) {
+			deleteResourcePolicyCalled = true
+		}),
+	}
+
+	sm := SecretsManager{client: &client}
+	pushSecretData := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: ""}
+
+	err := sm.PushSecret(context.Background(), fakeSecret, pushSecretData)
+	require.NoError(t, err, "PushSecret should not fail when no resource policy is configured or attached")
+	assert.True(t, getResourcePolicyCalled, "GetResourcePolicy should be called to check for an existing policy")
+	assert.False(t, deleteResourcePolicyCalled, "DeleteResourcePolicy must not be called when no policy is attached")
+}
+
+func TestPushSecretDeletesResourcePolicyWhenAttachedAndNoneConfigured(t *testing.T) {
+	secretKey := fakeSecretKey
+	secretValue := []byte("fake-value")
+	fakeSecret := &corev1.Secret{
+		Data: map[string][]byte{
+			secretKey: secretValue,
+		},
+	}
+	arn := testARN
+	defaultVersion := testDefaultVersion
+	managedBy := managedBy
+	externalSecrets := externalSecrets
+
+	getResourcePolicyCalled := false
+	deleteResourcePolicyCalled := false
+	var capturedDeleteInput *awssm.DeleteResourcePolicyInput
+
+	client := fakesm.Client{
+		GetSecretValueFn: fakesm.NewGetSecretValueFn(&awssm.GetSecretValueOutput{
+			ARN:       &arn,
+			VersionId: &defaultVersion,
+		}, nil),
+		DescribeSecretFn: fakesm.NewDescribeSecretFn(&awssm.DescribeSecretOutput{
+			ARN:  &arn,
+			Tags: []types.Tag{{Key: &managedBy, Value: &externalSecrets}},
+			VersionIdsToStages: map[string][]string{
+				defaultVersion: {"AWSCURRENT"},
+			},
+		}, nil),
+		PutSecretValueFn: fakesm.NewPutSecretValueFn(&awssm.PutSecretValueOutput{ARN: &arn}, nil),
+		TagResourceFn:    fakesm.NewTagResourceFn(&awssm.TagResourceOutput{}, nil),
+		UntagResourceFn:  fakesm.NewUntagResourceFn(&awssm.UntagResourceOutput{}, nil),
+		GetResourcePolicyFn: fakesm.NewGetResourcePolicyFn(makeValidGetResourcePolicyOutput(), nil, func(_ *awssm.GetResourcePolicyInput) {
+			getResourcePolicyCalled = true
+		}),
+		DeleteResourcePolicyFn: fakesm.NewDeleteResourcePolicyFn(&awssm.DeleteResourcePolicyOutput{}, nil, func(input *awssm.DeleteResourcePolicyInput) {
+			deleteResourcePolicyCalled = true
+			capturedDeleteInput = input
+		}),
+	}
+
+	sm := SecretsManager{client: &client}
+	pushSecretData := fake.PushSecretData{SecretKey: secretKey, RemoteKey: fakeKey, Property: ""}
+
+	err := sm.PushSecret(context.Background(), fakeSecret, pushSecretData)
+	require.NoError(t, err, "PushSecret should not fail when an attached policy needs to be removed")
+	assert.True(t, getResourcePolicyCalled, "GetResourcePolicy should be called to check for an existing policy")
+	assert.True(t, deleteResourcePolicyCalled, "DeleteResourcePolicy must be called when a policy is attached but none is configured")
+	require.NotNil(t, capturedDeleteInput, "DeleteResourcePolicyInput should be captured")
+	assert.Equal(t, fakeKey, *capturedDeleteInput.SecretId)
 }
 
 func TestDeleteSecret(t *testing.T) {
