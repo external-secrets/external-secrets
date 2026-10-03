@@ -16,7 +16,10 @@ spec:
   scopes:
     - read_repository
     - read_registry
-  expiresAt: "2027-01-01T00:00:00Z" # Optional
+  expiresAt: "2027-01-01T00:00:00Z" # Optional, absolute expiry (RFC3339).
+  # expiresAfter: "720h"            # Optional alternative: relative expiry, min 24h,
+  #                                 # computed as now + expiresAfter on each refresh.
+  #                                 # Mutually exclusive with expiresAt.
   username: "eso" # Optional, GitLab defaults to gitlab+deploy-token-{n}
   auth:
     token:
