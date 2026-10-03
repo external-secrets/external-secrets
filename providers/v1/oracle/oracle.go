@@ -235,6 +235,13 @@ func (vms *VaultManagementService) GetAllSecrets(ctx context.Context, ref esv1.E
 }
 
 // GetSecret retrieves a specific secret from the Oracle Cloud Infrastructure Vault.
+//
+//	if GetSecret returns an error with type NoSecretError
+//	then the secret entry will be deleted depending on the deletionPolicy.
+//
+// OCI reports a missing secret and a secret the caller is not allowed to read
+// with the same response, so a revoked IAM policy is surfaced here as a deleted
+// secret. See the Oracle provider docs for what that means for deletionPolicy.
 func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	if esutils.IsNil(vms.Client) {
 		return nil, errors.New(errUninitalizedOracleProvider)
@@ -246,6 +253,9 @@ func (vms *VaultManagementService) GetSecret(ctx context.Context, ref esv1.Exter
 		Stage:      secrets.GetSecretBundleByNameStageEnum(ref.Version),
 	})
 	if err != nil {
+		if isSecretNotFoundErr(err) {
+			return nil, esv1.NoSecretErr
+		}
 		return nil, sanitizeOCISDKErr(err)
 	}
 
@@ -281,7 +291,7 @@ func decodeBundle(sec secrets.GetSecretBundleByNameResponse) ([]byte, error) {
 func (vms *VaultManagementService) GetSecretMap(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) (map[string][]byte, error) {
 	data, err := vms.GetSecret(ctx, ref)
 	if err != nil {
-		return nil, sanitizeOCISDKErr(err)
+		return nil, err
 	}
 	kv := make(map[string]string)
 	err = json.Unmarshal(data, &kv)
@@ -392,14 +402,26 @@ func (vms *VaultManagementService) getSecretBundleWithCode(ctx context.Context, 
 func getSecretBundleCode(err error) int {
 	if err != nil {
 		// If we got a 404 service error, try to create the secret.
-
-		if serviceErr, ok := err.(common.ServiceError); ok && serviceErr.GetHTTPStatusCode() == 404 {
+		if isSecretNotFoundErr(err) {
 			return SecretNotFound
 		}
 		return SecretAPIError
 	}
 	// Otherwise, update the existing secret.
 	return SecretExists
+}
+
+// isSecretNotFoundErr reports whether err is an OCI service error for a secret
+// that does not exist. It asserts common.ServiceError rather than
+// common.ServiceErrorRichInfo because the former is what declares
+// GetHTTPStatusCode, and a plain service error carries no rich info.
+//
+// OCI answers with 404 NotAuthorizedOrNotFound both when the secret is missing
+// and when the caller may not read it, so the two cases are indistinguishable
+// from here.
+func isSecretNotFoundErr(err error) bool {
+	serviceErr, ok := common.IsServiceError(err)
+	return ok && serviceErr.GetHTTPStatusCode() == 404
 }
 
 func (vms *VaultManagementService) filteredSummaryResult(ctx context.Context, secretSummaries []vault.SecretSummary, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
@@ -416,6 +438,14 @@ func (vms *VaultManagementService) filteredSummaryResult(ctx context.Context, se
 			Key: *summary.SecretName,
 		})
 		if err != nil {
+			// Listing the summaries and reading each secret are not atomic, so a
+			// secret can go away in between. Skip it and keep the rest of the
+			// result: letting NoSecretErr out of here would surface from
+			// GetAllSecrets as "the whole find is gone" and let deletionPolicy
+			// remove every key of the Kubernetes Secret because one member did.
+			if errors.Is(err, esv1.NoSecretErr) {
+				continue
+			}
 			return nil, err
 		}
 		secretMap[*summary.SecretName] = secret
