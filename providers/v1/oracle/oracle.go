@@ -639,7 +639,7 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(
 		if err != nil {
 			return nil, err
 		}
-		vms.authConfigurationsCache.Add(defaultSACacheVersion, key, provider)
+		vms.authConfigurationsCache.ContainsOrAdd(defaultSACacheVersion, key, provider)
 		return provider, nil
 	}
 
@@ -673,7 +673,7 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(
 		return nil, err
 	}
 
-	vms.authConfigurationsCache.Add(store.GetResourceVersion(), key, provider)
+	vms.authConfigurationsCache.ContainsOrAdd(store.GetResourceVersion(), key, provider)
 	return provider, nil
 }
 
