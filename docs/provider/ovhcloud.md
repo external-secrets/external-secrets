@@ -43,6 +43,63 @@ metadata:
 data:
   token: BASE64-TOKEN-VALUE-PLACEHOLDER
 ```
+OAuth2 authentication, with an OVHcloud service account:
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: secret-store-ovh
+  namespace: default
+spec:
+  provider:
+    ovh:
+      server: <kms-endpoint> # for example: "https://eu-west-rbx.okms.ovh.net"
+      okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017"
+      auth:
+        oauth2:
+          clientIDSecretRef:
+            name: ovh-oauth2
+            key: clientID
+          clientSecretSecretRef:
+            name: ovh-oauth2
+            key: clientSecret
+          # Optional. Defaults to the European endpoint. Canada is
+          # https://ca.ovh.com/auth/oauth2/token and the US is
+          # https://us.ovhcloud.com/auth/oauth2/token. Only those three hosts
+          # are accepted, over HTTPS.
+          tokenURL: https://www.ovh.com/auth/oauth2/token
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ovh-oauth2
+  namespace: default
+data:
+  clientID: BASE64-CLIENT-ID-PLACEHOLDER
+  clientSecret: BASE64-CLIENT-SECRET-PLACEHOLDER
+```
+
+A service account is the identity OVHcloud intends for machines: creating one
+yields an OAuth2 client id and client secret, with no browser validation step,
+unlike a personal access token which belongs to a user. The access token they
+are exchanged for is short lived, and the provider renews it on its own.
+
+A service account carries no rights by itself: an IAM policy must grant it
+actions on the KMS. Without one, the store fails validation with
+`Domain was not found or no actions have been granted for your identity on this domain`.
+The actions are split across two resource types, so the policy must name both
+the KMS (`urn:v1:eu:resource:okms:<okms-id>`) and its secrets
+(`urn:v1:eu:resource:okms:<okms-id>/secret/*`):
+
+| Resource      | Actions                                                                                                                                 | Needed for                          |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------- |
+| `okms`        | `okms:apikms:secret/create`                                                                                                             | `PushSecret` to a new path          |
+| `okms/secret` | `okms:apikms:secret/get`, `okms:apikms:secret/version/getData`                                                                          | store validation, `ExternalSecret`  |
+| `okms/secret` | `okms:apikms:secret/version/create`, `okms:apikms:secret/delete`                                                                        | `PushSecret` update and deletion    |
+
+Secret paths carry no leading slash (`test/secret`, not `/test/secret`), both in
+`remoteRef.key` and in any `ResourceName` condition on the policy.
+
 mTLS authentication:
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -76,7 +133,7 @@ data:
 ```
 
 !!! note
-     A `ClusterSecretStore` configuration is the same except you must provide the `namespace` for `tokenSecretRef`, `certSecretRef` and `keySecretRef` according to your chosen authentication method.  
+     A `ClusterSecretStore` configuration is the same except you must provide the `namespace` for `tokenSecretRef`, `clientIDSecretRef` and `clientSecretSecretRef`, or `certSecretRef` and `keySecretRef` according to your chosen authentication method.  
 
 ### <u>ExternalSecret</u>
  
