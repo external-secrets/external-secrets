@@ -54,6 +54,16 @@ Instead of retrieving secrets by ID you can also use `dataFrom` to search for se
 ```
 
 
+## Finding secrets by folder
+
+Set `find.path` to the ID of a Passbolt folder to sync all secrets stored in that folder.
+You can combine it with `name.regexp` to filter the secrets in the folder by name.
+
+```yaml
+{% include 'passbolt-external-secret-findbyfolder.yaml' %}
+```
+
+
 ## Custom fields
 
 Passbolt resources can carry arbitrary custom fields beyond the standard

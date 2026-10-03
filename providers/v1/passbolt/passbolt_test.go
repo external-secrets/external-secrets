@@ -93,6 +93,52 @@ func TestValidateStore(t *testing.T) {
 	g.Expect(err).To(g.BeNil())
 }
 
+func TestGetAllSecretsFindValidation(t *testing.T) {
+	g.RegisterTestingT(t)
+
+	folderID := "fdc478e2-f09b-47a6-9764-2e5d13f7fd0c"
+
+	tests := []struct {
+		name    string
+		ref     esv1.ExternalSecretFind
+		wantErr bool
+	}{
+		{
+			name:    "neither path nor name.regexp set",
+			ref:     esv1.ExternalSecretFind{},
+			wantErr: true,
+		},
+		{
+			name:    "empty name.regexp without path",
+			ref:     esv1.ExternalSecretFind{Name: &esv1.FindName{}},
+			wantErr: true,
+		},
+		{
+			name:    "invalid name.regexp",
+			ref:     esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: "("}},
+			wantErr: true,
+		},
+		{
+			name: "invalid name.regexp combined with path",
+			ref: esv1.ExternalSecretFind{
+				Path: &folderID,
+				Name: &esv1.FindName{RegExp: "("},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			p := &ProviderPassbolt{}
+			_, err := p.GetAllSecrets(t.Context(), tt.ref)
+			if tt.wantErr {
+				g.Expect(err).ToNot(g.BeNil())
+			}
+		})
+	}
+}
+
 func TestSecretGetProp(t *testing.T) {
 	g.RegisterTestingT(t)
 
