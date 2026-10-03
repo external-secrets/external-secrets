@@ -147,6 +147,40 @@ test('an unclosed fence runs to end of document, not just to end of section', ()
   assert.equal(extractSection(text, 'Checklist').trim(), '');
 });
 
+// Regression: a checklist item or AI-disclosure answer hidden inside an
+// HTML comment is invisible when GitHub renders the pull request body, but
+// was still matched by these checks since they scan the raw markdown text.
+test('extractSection drops a heading hidden inside an HTML comment', () => {
+  const text = '## Checklist\n\n<!--\n## Also not a real heading\n-->\n\n- [x] Real item';
+  const section = extractSection(text, 'Checklist');
+  assert.doesNotMatch(section, /Also not a real heading/);
+  assert.match(section, /Real item/);
+});
+
+test('extractSection drops content hidden inside an HTML comment within a section', () => {
+  const text = '## Checklist\n\n<!-- - [x] Faked item -->\n\n- [x] Real item';
+  const section = extractSection(text, 'Checklist');
+  assert.doesNotMatch(section, /Faked item/);
+  assert.match(section, /Real item/);
+});
+
+test('an unclosed HTML comment runs to end of document', () => {
+  const text = '## Checklist\n\n<!--\n- [x] This item is inside an unclosed comment';
+  assert.equal(extractSection(text, 'Checklist').trim(), '');
+});
+
+test('hidden-content stripping runs before fence stripping, so example fence '
+  + 'markers written inside a hidden comment cannot swallow real content', () => {
+  const text = [
+    '## Checklist',
+    '',
+    '<!-- example: wrap a comment in a fence like this: ``` -->',
+    '',
+    '- [x] Real item',
+  ].join('\n');
+  assert.match(extractSection(text, 'Checklist'), /Real item/);
+});
+
 // Regression: every regex here anchored `$` without the `m` flag, relying
 // on `.`/`.*` stopping at a lone `\n`. JavaScript's `.` does not match
 // `\r`, so a line ending in `\r` (a CRLF body, what the GitHub web editor
