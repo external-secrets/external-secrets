@@ -37,6 +37,14 @@ spec:
       vaultUrl: "https://xx-xxxx-xx.vault.azure.net"
 ```
 
+### Connection reuse
+
+The legacy client (`useAzureSDK: false`, the default) shares an HTTP connection
+pool across reconciles and stores. It retains up to 100 idle connections per
+host and 100 in total, with a 90-second idle timeout. Authentication remains
+specific to each client. This pool reduces connection churn during concurrent
+refreshes; it does not cache Workload Identity tokens across reconciles.
+
 ### Authentication
 
 ESO supports multiple authentication methods to connect to Azure Key Vault:
