@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"sync"
 
 	secretmanager "cloud.google.com/go/secretmanager/apiv1"
@@ -48,6 +49,16 @@ thread to ask secrets from another thread).
 A Mutex was implemented to make sure only one connection can be in place at a time.
 */
 var useMu = sync.Mutex{}
+
+// endpointOverrideEnvVar lets operators point the Secret Manager client at a
+// non-standard host, mirroring the AWS SDK's AWS_ENDPOINT_URL_<SERVICE>
+// convention. Named after this provider's own established prefix (GCPSM, as
+// in GCPSMProvider) rather than a Google SDK convention, since Google's own
+// client libraries have no generic endpoint-override env var of their own
+// to align with. Needed for private/sovereign Google Cloud deployments that
+// expose Secret Manager under a host the regional endpoint pattern can't
+// express.
+const endpointOverrideEnvVar = "GCPSM_ENDPOINT_URL"
 
 // metadataClientFactory is used to create metadata clients.
 // It can be overridden in tests to inject a fake client.
@@ -150,9 +161,23 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	return nil, nil
 }
 
-func newSMClient(ctx context.Context, ts oauth2.TokenSource, location string) (*secretmanager.Client, error) {
+// resolveEndpoint decides which endpoint (if any) the Secret Manager client
+// should be pinned to. GCPSM_ENDPOINT_URL always wins when set, regardless of
+// Location — same precedence AWS gives its own per-service endpoint env
+// vars. Returns "" when neither is set, meaning the client should use its
+// default endpoint resolution.
+func resolveEndpoint(location string) string {
+	if override := os.Getenv(endpointOverrideEnvVar); override != "" {
+		return override
+	}
 	if location != "" {
-		ep := fmt.Sprintf("secretmanager.%s.rep.googleapis.com:443", location)
+		return fmt.Sprintf("secretmanager.%s.rep.googleapis.com:443", location)
+	}
+	return ""
+}
+
+func newSMClient(ctx context.Context, ts oauth2.TokenSource, location string) (*secretmanager.Client, error) {
+	if ep := resolveEndpoint(location); ep != "" {
 		return secretmanager.NewClient(ctx, option.WithTokenSource(ts), option.WithEndpoint(ep))
 	}
 	return secretmanager.NewClient(ctx, option.WithTokenSource(ts))

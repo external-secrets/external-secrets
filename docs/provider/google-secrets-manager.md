@@ -558,6 +558,22 @@ spec:
       location: us-east1 # uses regional secrets on us-east1
 ```
 
+## Custom Endpoint (private / sovereign Google Cloud deployments)
+
+Some Google Cloud deployments (private, dedicated, or sovereign-cloud offerings) expose Secret Manager under a
+hostname that doesn't match the standard regional pattern (`secretmanager.<location>.rep.googleapis.com`) the
+`location` field above produces. For these cases, set the `GCPSM_ENDPOINT_URL` environment variable on the
+external-secrets controller (mirroring the AWS SDK's `AWS_ENDPOINT_URL_<SERVICE>` convention):
+
+```yaml
+env:
+  - name: GCPSM_ENDPOINT_URL
+    value: "secretmanager.example-sovereign-endpoint.goog:443"
+```
+
+When set, this takes precedence over `location` for endpoint selection. Leave it unset to use the standard
+Google Cloud endpoints.
+
 ## Secret Version Management
 
 ### Secret Version Selection Policy
