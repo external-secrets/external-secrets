@@ -1148,6 +1148,9 @@
                 "create": {
                     "type": "boolean"
                 },
+                "createValidatingWebhookConfiguration": {
+                    "type": "boolean"
+                },
                 "deploymentAnnotations": {
                     "type": "object"
                 },

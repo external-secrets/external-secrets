@@ -1,4 +1,4 @@
-{{- if .Values.webhook.create }}
+{{- if and .Values.webhook.create .Values.webhook.createValidatingWebhookConfiguration }}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
