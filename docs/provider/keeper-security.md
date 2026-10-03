@@ -82,15 +82,19 @@ There are some limitations using this provider.
 
 ## Push Secrets
 
-Push Secret will only work with a custom KeeperSecurity Record type `externalSecrets`
+PushSecret creates and updates only Keeper records of the custom `externalSecrets` type. The configured `folderID` must grant write access to create a record.
 
 ### Behavior
 * `selector`:
   * `secret.name`: name of the kubernetes secret to be pushed
 * `data.match`:
-  * `secretKey`: key on the selected secret to be pushed
-  * `remoteRef.remoteKey`: Secret and key to be created on the remote provider
-    * Format: SecretName/SecretKey
+    * Whole-record target: omit both `secretKey` and `remoteRef.property`. ESO pushes every key in the selected Secret to the Keeper record named by `remoteRef.remoteKey`. With `updatePolicy: Replace`, keys removed from the source Secret are removed from the Keeper record. `remoteRef.remoteKey` must not contain `/`, since that character is reserved for the legacy `record-name/key` target below.
+    * Property target: set `remoteRef.remoteKey` to the Keeper record name and `remoteRef.property` to the target field name. Set `secretKey` to push one source key, or omit it to store the selected Secret as JSON in that property. Multiple entries can target different properties of the same Keeper record.
+    * Legacy target: `remoteRef.remoteKey: record-name/key` with `secretKey` remains supported. Standard legacy keys (`login`, `username`, `password`, `url`, and `baseurl`) use Keeper's default standard fields.
+
+Keeper standard keys are stored as standard fields: `login` and `username` use `login`, `password` uses `password`, and `url` and `baseurl` use `url`. Other keys are stored as custom `secret` fields.
+
+With `deletionPolicy: Delete`, deleting a whole-record target deletes the Keeper record. Deleting a property target removes only that property; if it was the record's final field, ESO deletes the empty Keeper record.
 
 ### Creating push secret
 To create a Keeper Security record from kubernetes a `Kind=PushSecret` is needed.
@@ -98,7 +102,3 @@ To create a Keeper Security record from kubernetes a `Kind=PushSecret` is needed
 ```yaml
 {% include 'keepersecurity-push-secret.yaml' %}
 ```
-
-### Limitations
-* Only possible to push one key per secret at the moment
-* If the record with the selected name exists but the key does not exist, the record cannot be updated. See [Ability to add custom fields to existing secret #17](https://github.com/Keeper-Security/secrets-manager-go/issues/17)
