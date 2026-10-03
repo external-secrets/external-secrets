@@ -22,12 +22,12 @@ import (
 	"errors"
 	"fmt"
 
-	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
 // Generator implements MFA token generation functionality.
@@ -60,17 +60,12 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 		opts = append(opts, WithWhen(res.Spec.When.Time))
 	}
 
-	secret := &corev1.Secret{}
-	if err := c.Get(ctx, client.ObjectKey{Namespace: namespace, Name: res.Spec.Secret.Name}, secret); err != nil {
+	seed, err := resolvers.SecretKeyRef(ctx, c, resolvers.EmptyStoreKind, namespace, &res.Spec.Secret)
+	if err != nil {
 		return nil, nil, fmt.Errorf("failed to find secret for token key: %w", err)
 	}
 
-	seed, ok := secret.Data[res.Spec.Secret.Key]
-	if !ok {
-		return nil, nil, fmt.Errorf("secret key %s does not exist in secret data map", res.Spec.Secret.Key)
-	}
-
-	opts = append(opts, WithToken(string(seed)))
+	opts = append(opts, WithToken(seed))
 
 	token, timeLeft, err := generateCode(opts...)
 	if err != nil {
