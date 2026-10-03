@@ -99,6 +99,8 @@ type passwordConfig struct {
 	symbols          int
 	symbolCharacters string
 	encoding         string
+	prefix           string
+	suffix           string
 	noUpper          bool
 	allowRepeat      bool
 }
@@ -127,6 +129,8 @@ func extractPasswordConfig(res *genv1alpha1.Password) passwordConfig {
 	if res.Spec.Encoding != nil {
 		config.encoding = *res.Spec.Encoding
 	}
+	config.prefix = res.Spec.Prefix
+	config.suffix = res.Spec.Suffix
 	config.noUpper = res.Spec.NoUpper
 	config.allowRepeat = res.Spec.AllowRepeat
 
@@ -164,7 +168,9 @@ func generatePasswords(keys []string, config passwordConfig, passGen generateFun
 		if err != nil {
 			return nil, err
 		}
-		passwords[key] = encodePassword([]byte(pass), config.encoding)
+		// Applied after encoding so the prefix and suffix stay literal.
+		encoded := encodePassword([]byte(pass), config.encoding)
+		passwords[key] = []byte(config.prefix + string(encoded) + config.suffix)
 	}
 	return passwords, nil
 }

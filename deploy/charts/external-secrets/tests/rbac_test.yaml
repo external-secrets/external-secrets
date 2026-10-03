@@ -113,6 +113,20 @@ tests:
     asserts:
       - matchSnapshot: {}
 
+  - it: should not create leader election Role and RoleBinding when rbac.leaderElection.create is false
+    set:
+      rbac:
+        leaderElection:
+          create: false
+    documentSelector:
+      path: apiVersion
+      value: rbac.authorization.k8s.io/v1
+      matchMany: true
+    asserts:
+      - notEqual:
+          path: metadata.name
+          value: RELEASE-NAME-external-secrets-leaderelection
+
   - it: should render resourceName as external-secrets-controller by default
     set:
       scopedRBAC: true
