@@ -431,11 +431,16 @@ func mergeSecretState(newMap, old esapi.SyncedPushSecretsMap) esapi.SyncedPushSe
 func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.PushSecret, newMap esapi.SyncedPushSecretsMap, mgr *secretstore.Manager) (esapi.SyncedPushSecretsMap, error) {
 	out := mergeSecretState(newMap, ps.Status.SyncedPushSecrets)
 	for storeName, oldData := range ps.Status.SyncedPushSecrets {
-		storeRef := esv1.SecretStoreRef{
-			Name: strings.Split(storeName, "/")[1],
-			Kind: strings.Split(storeName, "/")[0],
+		// Guard against malformed store references that lack "/" separator
+		parts := strings.SplitN(storeName, "/", 2)
+		if len(parts) != 2 {
+			log.Error(nil, "Skipping malformed store reference", "store", storeName)
+			continue
 		}
-		client, err := mgr.Get(ctx, storeRef, ps.Namespace, nil)
+		storeRef := esv1.SecretStoreRef{
+			Name: parts[1],
+			Kind: parts[0],
+		}
 		if err != nil {
 			return out, fmt.Errorf("could not get secrets client for store %v: %w", storeName, err)
 		}
