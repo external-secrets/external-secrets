@@ -18,6 +18,7 @@ package externalsecret
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 
@@ -31,6 +32,25 @@ import (
 
 	_ "github.com/external-secrets/external-secrets/pkg/register" // Loading registered providers.
 )
+
+var (
+	errServiceAccountTokenSecret = errors.New("service-account-token Secret with service-account-name annotation is not allowed")
+	errBootstrapTokenSecret      = errors.New("bootstrap-token Secret is not allowed")
+)
+
+func validateSecretCandidate(secret *v1.Secret) error {
+	//nolint:exhaustive // Only the privileged Secret types require special handling.
+	switch secret.Type {
+	case v1.SecretTypeServiceAccountToken:
+		if _, ok := secret.Annotations[v1.ServiceAccountNameKey]; ok {
+			return errServiceAccountTokenSecret
+		}
+	case v1.SecretTypeBootstrapToken:
+		return errBootstrapTokenSecret
+	}
+
+	return nil
+}
 
 // ApplyTemplate merges templates in the following order:
 // * template.Data (highest precedence)

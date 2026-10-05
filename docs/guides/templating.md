@@ -55,7 +55,7 @@ You do not have to define your templates inline in an ExternalSecret but you can
 {% include 'template-v2-scope-and-target.yaml' %}
 ```
 
-Lastly, `TemplateFrom` also supports adding `Literal` blocks for quick templating. These `Literal` blocks differ from `Template.Data` as they are rendered as a a `key:value` pair (while the `Template.Data`, you can only template the value).
+Lastly, `TemplateFrom` also supports adding `Literal` blocks for quick templating. These `Literal` blocks differ from `Template.Data` as they are rendered as a `key:value` pair (while the `Template.Data`, you can only template the value).
 
 #### ValuesDecodingStrategy example
 
@@ -289,7 +289,7 @@ created at the provider.
 
 !!! info inline end
 
-    Note: we removed `env` and `expandenv` from sprig functions for security reasons.
+    Note: we removed `env`, `expandenv`, `getHostByName`, and `fail` from sprig functions for security reasons. Templates should use supported helpers and report failures through reconciliation diagnostics.
 
 We provide a couple of convenience functions that help you transform your secrets. This is useful when dealing with PKCS#12 archives or JSON Web Keys (JWK).
 
