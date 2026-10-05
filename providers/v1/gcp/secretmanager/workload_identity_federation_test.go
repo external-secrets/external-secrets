@@ -56,7 +56,10 @@ const (
 	testOverrideGCPServiceAccountEmail = "override@override.iam.gserviceaccount.com"
 	testFromCredGCPServiceAccountEmail = "from-cred@cred.iam.gserviceaccount.com"
 	testSAToken                        = "test-sa-token"
-	testAwsRegion                      = "us-west-2"
+	// A dedicated universe (domain and service account email shape as seen on Google Cloud Dedicated).
+	testDedicatedUniverse            = "apis-berlin-build0.goog"
+	testDedicatedServiceAccountEmail = "eso@example-project.eu0.iam.gserviceaccount.com"
+	testAwsRegion                    = "us-west-2"
 	// below values taken from https://docs.aws.amazon.com/sdkref/latest/guide/feature-static-credentials.html
 	testAwsAccessKey = "AKIAIOSFODNN7EXAMPLE"
 	testAwsSecretKey = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
@@ -799,7 +802,25 @@ func TestValidateCredConfig(t *testing.T) {
 				UniverseDomain:                 "partner.example",
 				TokenURL:                       fmt.Sprintf(workloadIdentityTokenURLFormat, "partner.example"),
 				TokenInfoURL:                   fmt.Sprintf(workloadIdentityTokenInfoURLFormat, "partner.example"),
-				ServiceAccountImpersonationURL: testServiceAccountImpersonationURL,
+				ServiceAccountImpersonationURL: "https://iamcredentials.partner.example/v1/projects/-/serviceAccounts/test@test.iam.gserviceaccount.com:generateAccessToken",
+				CredentialSource: &externalaccount.CredentialSource{
+					File: autoMountedServiceAccountTokenPath,
+				},
+			},
+			wif: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{Name: testConfigMapName},
+			},
+			expectError: "",
+		},
+		{
+			name: "valid dedicated universe impersonation URL and service account email",
+			config: &externalaccount.Config{
+				Audience:                       testAudience,
+				SubjectTokenType:               workloadIdentitySubjectTokenType,
+				UniverseDomain:                 testDedicatedUniverse,
+				TokenURL:                       fmt.Sprintf(workloadIdentityTokenURLFormat, testDedicatedUniverse),
+				TokenInfoURL:                   fmt.Sprintf(workloadIdentityTokenInfoURLFormat, testDedicatedUniverse),
+				ServiceAccountImpersonationURL: serviceAccountImpersonationURL(testDedicatedUniverse, testDedicatedServiceAccountEmail),
 				CredentialSource: &externalaccount.CredentialSource{
 					File: autoMountedServiceAccountTokenPath,
 				},
@@ -860,7 +881,97 @@ func TestValidateCredConfig(t *testing.T) {
 			wif: &esv1.GCPWorkloadIdentityFederation{
 				CredConfig: &esv1.ConfigMapReference{Name: testConfigMapName},
 			},
-			expectError: "invalid external_account config\nservice_account_impersonation_url \"https://invalid-url.com\" must match \"^https://iamcredentials\\.(?:[a-z0-9-]+\\.)*googleapis\\.com/v1/projects/[^/]+/serviceAccounts/[a-z0-9-]+@[a-z0-9-]+\\.iam\\.gserviceaccount\\.com:generateAccessToken$\"",
+			expectError: "invalid external_account config\nservice_account_impersonation_url \"https://invalid-url.com\" must match \"^https://iamcredentials\\.[^/\\s]+/v1/projects/[^/]+/serviceAccounts/[a-z0-9-]+@[a-z0-9-]+(?:\\.[a-z0-9-]+)*\\.iam\\.gserviceaccount\\.com:generateAccessToken$\"",
+		},
+		{
+			name: "invalid service account impersonation URL with a non-iamcredentials host",
+			config: &externalaccount.Config{
+				Audience:                       testAudience,
+				TokenURL:                       testTokenURL,
+				TokenInfoURL:                   testTokenInfoURL,
+				ServiceAccountImpersonationURL: "https://evil.example/v1/projects/-/serviceAccounts/test@test.iam.gserviceaccount.com:generateAccessToken",
+			},
+			wif: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{Name: testConfigMapName},
+			},
+			expectError: "invalid external_account config\nservice_account_impersonation_url \"https://evil.example/v1/projects/-/serviceAccounts/test@test.iam.gserviceaccount.com:generateAccessToken\" must match \"^https://iamcredentials\\.[^/\\s]+/v1/projects/[^/]+/serviceAccounts/[a-z0-9-]+@[a-z0-9-]+(?:\\.[a-z0-9-]+)*\\.iam\\.gserviceaccount\\.com:generateAccessToken$\"",
+		},
+		{
+			name: "impersonation URL with userinfo is rejected",
+			config: &externalaccount.Config{
+				Audience:                       testAudience,
+				TokenURL:                       testTokenURL,
+				TokenInfoURL:                   testTokenInfoURL,
+				ServiceAccountImpersonationURL: "https://iamcredentials.googleapis.com@evil.example/v1/projects/-/serviceAccounts/test@test.iam.gserviceaccount.com:generateAccessToken",
+			},
+			wif: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{Name: testConfigMapName},
+			},
+			expectError: "invalid external_account config\nservice_account_impersonation_url \"https://iamcredentials.googleapis.com@evil.example/v1/projects/-/serviceAccounts/test@test.iam.gserviceaccount.com:generateAccessToken\" must not contain user information",
+		},
+		{
+			name: "token URL with userinfo is rejected",
+			config: &externalaccount.Config{
+				Audience:     testAudience,
+				TokenURL:     "https://sts.googleapis.com@evil.example/v1/token",
+				TokenInfoURL: testTokenInfoURL,
+			},
+			wif: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{Name: testConfigMapName},
+			},
+			expectError: "invalid external_account config\ntoken_url \"https://sts.googleapis.com@evil.example/v1/token\" must not contain user information",
+		},
+		{
+			name: "token info URL with userinfo is rejected",
+			config: &externalaccount.Config{
+				Audience:     testAudience,
+				TokenURL:     testTokenURL,
+				TokenInfoURL: "https://sts.googleapis.com@evil.example/v1/introspect",
+			},
+			wif: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{Name: testConfigMapName},
+			},
+			expectError: "invalid external_account config\ntoken_info_url \"https://sts.googleapis.com@evil.example/v1/introspect\" must not contain user information",
+		},
+		{
+			name: "token URL host of another universe is rejected",
+			config: &externalaccount.Config{
+				Audience:       testAudience,
+				UniverseDomain: "universe.example",
+				TokenURL:       "https://sts.other.example/v1/token",
+				TokenInfoURL:   "https://sts.universe.example/v1/introspect",
+			},
+			wif: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{Name: testConfigMapName},
+			},
+			expectError: "invalid external_account config\ntoken_url \"https://sts.other.example/v1/token\" host must be sts.universe.example",
+		},
+		{
+			name: "impersonation URL host of another universe is rejected",
+			config: &externalaccount.Config{
+				Audience:                       testAudience,
+				UniverseDomain:                 "universe.example",
+				TokenURL:                       "https://sts.universe.example/v1/token",
+				TokenInfoURL:                   "https://sts.universe.example/v1/introspect",
+				ServiceAccountImpersonationURL: "https://iamcredentials.other.example/v1/projects/-/serviceAccounts/test@test.iam.gserviceaccount.com:generateAccessToken",
+			},
+			wif: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{Name: testConfigMapName},
+			},
+			expectError: "invalid external_account config\nservice_account_impersonation_url \"https://iamcredentials.other.example/v1/projects/-/serviceAccounts/test@test.iam.gserviceaccount.com:generateAccessToken\" host must be iamcredentials.universe.example",
+		},
+		{
+			name: "impersonation URL host matching the selected universe is accepted",
+			config: &externalaccount.Config{
+				Audience:                       testAudience,
+				UniverseDomain:                 "universe.example",
+				TokenURL:                       "https://sts.universe.example/v1/token",
+				TokenInfoURL:                   "https://sts.universe.example/v1/introspect",
+				ServiceAccountImpersonationURL: "https://iamcredentials.universe.example/v1/projects/-/serviceAccounts/test@test.eu0.iam.gserviceaccount.com:generateAccessToken",
+			},
+			wif: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{Name: testConfigMapName},
+			},
 		},
 		{
 			name: "invalid token URL",
