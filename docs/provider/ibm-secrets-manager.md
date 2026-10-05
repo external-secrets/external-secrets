@@ -296,3 +296,45 @@ metadata:
   #uid: f5dff604-611b-4d41-9d65-b860c61a0b8d #immutable for a user
 type: Opaque
 ```
+
+## Finding secrets
+
+`dataFrom.find` copies every secret in the instance whose name matches a
+regular expression. Omit `name` to select all of them.
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: example-find
+spec:
+  refreshInterval: 1h
+  secretStoreRef:
+    name: secret-store
+    kind: SecretStore
+  target:
+    name: example-secret
+  dataFrom:
+    - find:
+        path: production          # optional, a secret group name
+        name:
+          regexp: "^database-"
+```
+
+Keys are returned in the same `secret-group/secret-type/secret-name` form that
+`remoteRef.key` accepts, so a discovered secret can be addressed directly
+afterwards. Use `rewrite` if you want shorter keys in the resulting Kubernetes
+secret.
+
+`find.path` is a secret group **name**, matching the key format. Secrets
+Manager reports a secret's group by ID, so the group list is read once per find
+to resolve it.
+
+Two limitations:
+
+- `find.tags` is not supported. Secrets Manager labels are plain strings rather
+  than key/value pairs, so they cannot express a tag match.
+- Secret types whose value spans several fields (`username_password` and the
+  three certificate types) cannot be resolved by `find`, because it has no
+  equivalent of `remoteRef.property`. A find that matches one fails and names
+  the secret; address those with `data.remoteRef` instead.

@@ -18,7 +18,9 @@ package fake
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/IBM/go-sdk-core/v5/core"
 	sm "github.com/IBM/secrets-manager-go-sdk/v2/secretsmanagerv2"
@@ -29,6 +31,24 @@ import (
 type IBMMockClient struct {
 	getSecretWithContext           func(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
 	getSecretByNameTypeWithContext func(ctx context.Context, getSecretByNameTypeOptions *sm.GetSecretByNameTypeOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
+
+	// ListPages are returned in order, one per ListSecretsWithContext call, so a
+	// test can exercise paging. ListCalled records the options of each call.
+	ListPages  []*sm.SecretMetadataPaginatedCollection
+	listCalls  int
+	Groups     []sm.SecretGroup
+	ListCalled []*sm.ListSecretsOptions
+
+	// ByName serves GetSecretByNameTypeWithContext keyed by secret name, for
+	// tests that read several secrets and do not care about exact options
+	// matching.
+	ByName map[string]sm.SecretIntf
+
+	// ByID serves GetSecretWithContext keyed by secret ID. GetAllSecrets reads
+	// by ID, so this is the hook its tests use. NotFoundIDs are reported as a
+	// 404 so the not-found translation can be exercised.
+	ByID        map[string]sm.SecretIntf
+	NotFoundIDs map[string]bool
 }
 
 type IBMMockClientParams struct {
@@ -41,6 +61,16 @@ type IBMMockClientParams struct {
 }
 
 func (mc *IBMMockClient) GetSecretWithContext(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error) {
+	if mc.ByID != nil || mc.NotFoundIDs != nil {
+		id := *getSecretOptions.ID
+		if mc.NotFoundIDs[id] {
+			return nil, &core.DetailedResponse{StatusCode: http.StatusNotFound}, errors.New("not found")
+		}
+		if secret, ok := mc.ByID[id]; ok {
+			return secret, &core.DetailedResponse{StatusCode: http.StatusOK}, nil
+		}
+		return nil, nil, fmt.Errorf("fake: no secret configured for id %q", id)
+	}
 	return mc.getSecretWithContext(ctx, getSecretOptions)
 }
 
@@ -48,7 +78,33 @@ func (mc *IBMMockClient) GetSecretByNameTypeWithContext(
 	ctx context.Context,
 	getSecretByNameTypeOptions *sm.GetSecretByNameTypeOptions,
 ) (result sm.SecretIntf, response *core.DetailedResponse, err error) {
+	if mc.ByName != nil {
+		secret, ok := mc.ByName[*getSecretByNameTypeOptions.Name]
+		if !ok || secret == nil {
+			return nil, nil, fmt.Errorf("fake: no secret configured for name %q", *getSecretByNameTypeOptions.Name)
+		}
+		return secret, nil, nil
+	}
 	return mc.getSecretByNameTypeWithContext(ctx, getSecretByNameTypeOptions)
+}
+
+// ListSecretsWithContext returns the configured pages in order.
+func (mc *IBMMockClient) ListSecretsWithContext(_ context.Context, options *sm.ListSecretsOptions) (*sm.SecretMetadataPaginatedCollection, *core.DetailedResponse, error) {
+	mc.ListCalled = append(mc.ListCalled, options)
+	if mc.listCalls >= len(mc.ListPages) {
+		return &sm.SecretMetadataPaginatedCollection{TotalCount: new(int64(0))}, nil, nil
+	}
+	page := mc.ListPages[mc.listCalls]
+	mc.listCalls++
+	return page, nil, nil
+}
+
+// ListSecretGroupsWithContext returns the configured secret groups.
+func (mc *IBMMockClient) ListSecretGroupsWithContext(_ context.Context, _ *sm.ListSecretGroupsOptions) (*sm.SecretGroupCollection, *core.DetailedResponse, error) {
+	return &sm.SecretGroupCollection{
+		SecretGroups: mc.Groups,
+		TotalCount:   new(int64(len(mc.Groups))),
+	}, nil, nil
 }
 
 func (mc *IBMMockClient) WithValue(params IBMMockClientParams) {
