@@ -7,12 +7,57 @@ changelog:
       - skip-changelog
 
   categories:
+    - title: "⚠️ Breaking Changes / Urgent Upgrade Notes"
+      labels:
+        - breaking-change
+    - title: "🚀 Features & Improvements"
+      labels:
+        - kind/feature
+        - kind/performance
+    - title: "🐛 Bug Fixes"
+      labels:
+        - kind/bug
+    - title: "📖 Documentation"
+      labels:
+        - kind/documentation
+        - area/documentation
+        - kind/design
+    - title: "🔒 Security"
+      labels:
+        - area/security
+    - title: "🧹 Maintenance & Refactoring"
+      labels:
+        - kind/chore
+        - kind/refactor
+        - kind/maintenance
+        - kind/cleanup
+        - area/testing
+    - title: Dependencies
+      labels:
+        - kind/dependency
+        - kind/dependencies
+        - area/dependencies
+        - dependencies
     - title: General
       labels:
         - "*"
       exclude:
         labels:
+          - breaking-change
+          - kind/feature
+          - kind/improvement
+          - kind/bug
+          - kind/documentation
+          - area/documentation
+          - area/security
+          - kind/chore
+          - kind/refactor
+          - kind/maintenance
+          - kind/dependency
+          - kind/dependencies
+          - area/dependencies
           - dependencies
-    - title: Dependencies
-      labels:
-        - dependencies
+          - kind/performance
+          - kind/design
+          - kind/cleanup
+          - area/testing
