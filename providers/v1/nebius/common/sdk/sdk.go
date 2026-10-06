@@ -34,8 +34,7 @@ import (
 // It sets up TLS configuration, including support for custom CA certificates, and gRPC dial options.
 // Returns the initialized SDK instance or an error if the setup fails.
 func NewSDK(ctx context.Context, apiDomain string, caCertificate []byte) (*gosdk.SDK, error) {
-	tlsCfg := &tls.Config{MinVersion: tls.VersionTLS12}
-
+	tlsCfg := &tls.Config{}
 	if len(caCertificate) > 0 {
 		certPool := x509.NewCertPool()
 		if !certPool.AppendCertsFromPEM(caCertificate) {
