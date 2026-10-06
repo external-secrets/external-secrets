@@ -30,6 +30,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/akeylesslabs/akeyless-go/v4"
@@ -76,12 +77,17 @@ type akeylessBase struct {
 	akeylessGwAPIURL string
 	ignoreCache      bool
 	RestAPI          *akeyless.V2ApiService
+	itemTypes        *itemTypeCache
 }
 
 // Akeyless represents a client for the Akeyless Vault service.
 type Akeyless struct {
 	Client akeylessVaultInterface
 	url    string
+
+	tokenMu     sync.Mutex
+	cachedToken string
+	tokenExpiry time.Time
 }
 
 type akeylessVaultInterface interface {
@@ -214,6 +220,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		namespace: namespace,
 		corev1:    corev1,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
+		itemTypes: newItemTypeCache(),
 	}
 
 	spec, err := GetAKeylessProvider(store)
@@ -250,10 +257,10 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 }
 
 func (a *Akeyless) contextWithToken(ctx context.Context) (context.Context, error) {
-	if ctx.Value(aKeylessToken) != nil {
+	if v := ctx.Value(aKeylessToken); v != nil {
 		return ctx, nil
 	}
-	token, err := a.Client.TokenFromSecretRef(ctx)
+	token, err := a.cachedOrFreshToken(ctx)
 	if err != nil {
 		return nil, err
 	}
