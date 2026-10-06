@@ -90,7 +90,7 @@ func TestGetSecretPayloadProperty(t *testing.T) {
 			payload:      testPayload,
 			property:     "username",
 			expectError:  false,
-			expectedData: []byte(`"admin"`),
+			expectedData: []byte("admin"),
 		},
 		{
 			name:         "nested property extraction",
@@ -129,6 +129,112 @@ func TestGetSecretPayloadProperty(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestGetSecret(t *testing.T) {
+	const uuid = "12345678-1234-1234-1234-123456789abc"
+	payload := `{"username":"admin","port":8080,"nested":{"key":"value"},"weird.key":"literal","bignum":123456789012345678}`
+
+	fakeServer := th.SetupHTTP()
+	defer fakeServer.Teardown()
+
+	fakeServer.Mux.HandleFunc("/secrets/"+uuid+"/payload", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(payload))
+	})
+
+	client := &Client{keyManager: thclient.ServiceClient(fakeServer)}
+
+	testCases := []struct {
+		name         string
+		property     string
+		expectError  bool
+		expectedData []byte
+	}{
+		{
+			name:         "no property returns full payload",
+			property:     "",
+			expectedData: []byte(payload),
+		},
+		{
+			name:         "string value is unquoted",
+			property:     "username",
+			expectedData: []byte("admin"),
+		},
+		{
+			name:         "number is returned as-is",
+			property:     "port",
+			expectedData: []byte("8080"),
+		},
+		{
+			name:         "large integer keeps precision",
+			property:     "bignum",
+			expectedData: []byte("123456789012345678"),
+		},
+		{
+			name:         "object stays as json",
+			property:     "nested",
+			expectedData: []byte(`{"key":"value"}`),
+		},
+		{
+			name:         "nested path is followed",
+			property:     "nested.key",
+			expectedData: []byte("value"),
+		},
+		{
+			name:         "dotted key matched as a literal",
+			property:     "weird.key",
+			expectedData: []byte("literal"),
+		},
+		{
+			name:        "missing property errors",
+			property:    "nonexistent",
+			expectError: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			data, err := client.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+				Key:      uuid,
+				Property: tc.property,
+			})
+
+			if tc.expectError {
+				assert.Error(t, err)
+				assert.Nil(t, data)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expectedData, data)
+			}
+		})
+	}
+}
+
+func TestGetSecretMap(t *testing.T) {
+	const uuid = "abcdef00-0000-0000-0000-000000000000"
+	payload := `{"username":"admin","port":8080,"enabled":true,"nested":{"key":"value"},"bignum":123456789012345678}`
+
+	fakeServer := th.SetupHTTP()
+	defer fakeServer.Teardown()
+
+	fakeServer.Mux.HandleFunc("/secrets/"+uuid+"/payload", func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(payload))
+	})
+
+	client := &Client{keyManager: thclient.ServiceClient(fakeServer)}
+
+	result, err := client.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: uuid})
+	assert.NoError(t, err)
+	// String values used to keep their surrounding JSON quotes.
+	assert.Equal(t, []byte("admin"), result["username"])
+	assert.Equal(t, []byte("8080"), result["port"])
+	assert.Equal(t, []byte("true"), result["enabled"])
+	assert.Equal(t, []byte(`{"key":"value"}`), result["nested"])
+	assert.Equal(t, []byte("123456789012345678"), result["bignum"])
 }
 
 func TestUnsupportedOperations(t *testing.T) {
