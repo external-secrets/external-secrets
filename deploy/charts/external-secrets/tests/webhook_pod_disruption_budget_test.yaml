@@ -41,3 +41,19 @@ tests:
           value: 0
       - notExists:
           path: spec.minAvailable
+  - it: should render unhealthyPodEvictionPolicy when set
+    set:
+      webhook.create: true
+      webhook.podDisruptionBudget.enabled: true
+      webhook.podDisruptionBudget.unhealthyPodEvictionPolicy: AlwaysAllow
+    asserts:
+      - equal:
+          path: spec.unhealthyPodEvictionPolicy
+          value: AlwaysAllow
+  - it: should not render unhealthyPodEvictionPolicy by default
+    set:
+      webhook.create: true
+      webhook.podDisruptionBudget.enabled: true
+    asserts:
+      - notExists:
+          path: spec.unhealthyPodEvictionPolicy
