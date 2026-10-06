@@ -72,7 +72,7 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # ====================================================================================
 # Conformance
 
-reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
+reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint helm.lint.whitespace license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
 	@GOWORK=off go -C hack/tools mod tidy # Tools and their deps are not to be included in project's GOWORK or in the project go.mod/sum. We consider them external.
 	@GOWORK=off go -C hack/tools/gen-crd-api-reference-docs mod tidy
 	@go mod tidy
@@ -279,6 +279,18 @@ helm.schema.update: helm.schema.plugin
 helm.generate:
 	./hack/helm.generate.sh $(BUNDLE_DIR) $(HELM_DIR)
 	@$(OK) Finished generating helm chart files
+
+helm.lint.whitespace: ## Check for trailing whitespace in helm chart files
+	@$(INFO) Checking for trailing whitespace in $(HELM_DIR)
+	@status=0; git grep -In -P '\s$$' -- 'deploy/charts/*' || status=$$?; \
+	if [ $$status -eq 0 ]; then \
+		$(ERR) Trailing whitespace found in helm chart files; \
+		exit 1; \
+	elif [ $$status -ne 1 ]; then \
+		$(ERR) Failed to scan helm chart files; \
+		exit $$status; \
+	fi
+	@$(OK) No trailing whitespace in helm chart files
 
 helm.test: helm.unittest.plugin helm.generate
 	@helm unittest deploy/charts/external-secrets/
