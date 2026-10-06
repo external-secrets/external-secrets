@@ -1,0 +1,18 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: vault-backend
+spec:
+  provider:
+    vault:
+      server: "https://vault.example.com:8200"
+      path: "secret"
+      version: "v2"
+      auth:
+        gcp:
+          role: "my-vault-role"
+          workloadIdentityFederation:
+            audience: "//iam.googleapis.com/projects/[PROJECT_NUMBER]/locations/global/workloadIdentityPools/[WORKLOAD_IDENTITY_POOL]/providers/[WORKLOAD_IDENTITY_PROVIDER]"
+            serviceAccountRef:
+              name: "vault-sa"
+            gcpServiceAccountEmail: "vault-gsa@my-project.iam.gserviceaccount.com"

@@ -310,6 +310,32 @@ func isReferentSpec(prov *esv1.VaultProvider) bool {
 			(prov.Auth.Iam.SecretRef.SessionToken != nil && prov.Auth.Iam.SecretRef.SessionToken.Namespace == nil)) {
 		return true
 	}
+	if prov.Auth.GCP != nil {
+		if prov.Auth.GCP.SecretRef != nil && prov.Auth.GCP.SecretRef.SecretAccessKey.Namespace == nil {
+			return true
+		}
+		if prov.Auth.GCP.WorkloadIdentity != nil && prov.Auth.GCP.WorkloadIdentity.ServiceAccountRef.Namespace == nil {
+			return true
+		}
+		if prov.Auth.GCP.ServiceAccountRef != nil && prov.Auth.GCP.ServiceAccountRef.Namespace == nil {
+			return true
+		}
+		if prov.Auth.GCP.WorkloadIdentityFederation != nil {
+			wif := prov.Auth.GCP.WorkloadIdentityFederation
+			if wif.CredConfig != nil && wif.CredConfig.Namespace == "" {
+				return true
+			}
+			if wif.ServiceAccountRef != nil && wif.ServiceAccountRef.Namespace == nil {
+				return true
+			}
+			if wif.AwsSecurityCredentials != nil {
+				awsCreds := wif.AwsSecurityCredentials.AwsCredentialsSecretRef
+				if awsCreds != nil && awsCreds.Namespace == "" {
+					return true
+				}
+			}
+		}
+	}
 	return false
 }
 

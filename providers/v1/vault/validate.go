@@ -156,6 +156,54 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 				}
 			}
 		}
+		if vaultProvider.Auth.GCP != nil {
+			if vaultProvider.Auth.GCP.SecretRef != nil {
+				if err := esutils.ValidateReferentSecretSelector(store, vaultProvider.Auth.GCP.SecretRef.SecretAccessKey); err != nil {
+					return nil, fmt.Errorf(errInvalidTokenRef, err)
+				}
+			}
+			if vaultProvider.Auth.GCP.WorkloadIdentity != nil {
+				if err := esutils.ValidateReferentServiceAccountSelector(store, vaultProvider.Auth.GCP.WorkloadIdentity.ServiceAccountRef); err != nil {
+					return nil, fmt.Errorf(errInvalidTokenRef, err)
+				}
+			}
+			if vaultProvider.Auth.GCP.ServiceAccountRef != nil {
+				if err := esutils.ValidateReferentServiceAccountSelector(store, *vaultProvider.Auth.GCP.ServiceAccountRef); err != nil {
+					return nil, fmt.Errorf(errInvalidTokenRef, err)
+				}
+			}
+			if vaultProvider.Auth.GCP.WorkloadIdentityFederation != nil {
+				wif := vaultProvider.Auth.GCP.WorkloadIdentityFederation
+				count := 0
+				if wif.CredConfig != nil {
+					count++
+					if store.GetKind() == esv1.ClusterSecretStoreKind && wif.CredConfig.Namespace == "" {
+						return nil, errors.New("invalid workloadIdentityFederation config: namespace is required for cluster secret store in credConfig")
+					}
+				}
+				if wif.ServiceAccountRef != nil {
+					count++
+					if err := esutils.ValidateReferentServiceAccountSelector(store, *wif.ServiceAccountRef); err != nil {
+						return nil, fmt.Errorf(errInvalidTokenRef, err)
+					}
+				}
+				if wif.AwsSecurityCredentials != nil {
+					count++
+					awsCreds := wif.AwsSecurityCredentials.AwsCredentialsSecretRef
+					if store.GetKind() == esv1.ClusterSecretStoreKind &&
+						awsCreds != nil &&
+						awsCreds.Namespace == "" {
+						return nil, errors.New("invalid workloadIdentityFederation config: namespace is required for cluster secret store in awsSecurityCredentials")
+					}
+				}
+				if count != 1 {
+					return nil, errors.New("invalid workloadIdentityFederation config: exactly one of credConfig, awsSecurityCredentials or serviceAccountRef must be provided")
+				}
+				if (wif.ServiceAccountRef != nil || wif.AwsSecurityCredentials != nil) && wif.Audience == "" {
+					return nil, errors.New("invalid workloadIdentityFederation config: audience must be provided, when serviceAccountRef or awsSecurityCredentials is provided")
+				}
+			}
+		}
 	}
 	if vaultProvider.ClientTLS.CertSecretRef != nil && vaultProvider.ClientTLS.KeySecretRef != nil {
 		if err := esutils.ValidateReferentSecretSelector(store, *vaultProvider.ClientTLS.CertSecretRef); err != nil {
