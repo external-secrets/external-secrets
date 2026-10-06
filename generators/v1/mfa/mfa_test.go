@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -57,6 +58,16 @@ func TestGenerate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "missing secret includes namespace in error",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec": {"secret": {"name": "missing", "key": "secret"}, "when": "1998-05-05T05:05:05Z"}}`),
+				},
+				client: clientfake.NewClientBuilder().Build(),
+			},
+			wantErr: true,
+		},
+		{
 			name: "spec with secret should result in valid token",
 			args: args{
 				jsonSpec: &apiextensions.JSON{
@@ -87,6 +98,9 @@ func TestGenerate(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Generator.Generate() error = %v, wantErr %v", err, tt.wantErr)
 				return
+			}
+			if tt.name == "missing secret includes namespace in error" {
+				require.ErrorContains(t, err, `cannot get Kubernetes secret "missing" from namespace "namespace"`)
 			}
 			assert.Equal(t, tt.want, got)
 		})

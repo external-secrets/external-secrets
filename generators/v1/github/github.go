@@ -29,12 +29,12 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
 // Generator implements GitHub token generation functionality.
@@ -177,12 +177,12 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 	if res.Spec.URL != "" {
 		gh.URL = res.Spec.URL + ghPath
 	}
-	secret := &corev1.Secret{}
-	if err := gh.Kube.Get(ctx, client.ObjectKey{Name: res.Spec.Auth.PrivateKey.SecretRef.Name, Namespace: n}, secret); err != nil {
-		return nil, fmt.Errorf("error getting GH pem from secret:%w", err)
+	pem, err := resolvers.SecretKeyRef(ctx, gh.Kube, resolvers.EmptyStoreKind, n, &res.Spec.Auth.PrivateKey.SecretRef)
+	if err != nil {
+		return nil, fmt.Errorf("error getting GH pem from secret: %w", err)
 	}
 
-	pk, err := jwt.ParseRSAPrivateKeyFromPEM(secret.Data[res.Spec.Auth.PrivateKey.SecretRef.Key])
+	pk, err := jwt.ParseRSAPrivateKeyFromPEM([]byte(pem))
 	if err != nil {
 		return nil, fmt.Errorf("error parsing RSA private key: %w", err)
 	}
