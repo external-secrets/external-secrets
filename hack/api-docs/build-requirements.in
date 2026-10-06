@@ -8,3 +8,5 @@
 # Regenerate with:
 # pip-compile --allow-unsafe --generate-hashes --output-file=build-requirements.txt build-requirements.in
 setuptools
+
+pip-tools==7.6.1
