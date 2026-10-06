@@ -80,13 +80,14 @@ type OpenBaoProvider struct {
 
 // OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
 // Currently the following authentication methods are supported: [AppRole],
-// [Kubernetes], [Token] and [UserPass]
+// [JWT/OIDC], [Kubernetes], [Token] and [UserPass]
 //
 // Additional authentication methods are planned for future releases.
 //
-// +kubebuilder:validation:ExactlyOneOf=appRole;tokenSecretRef;userPass;kubernetes
+// +kubebuilder:validation:ExactlyOneOf=appRole;tokenSecretRef;userPass;kubernetes;jwt
 //
 // [AppRole]: https://openbao.org/docs/auth/approle/
+// [JWT/OIDC]: https://openbao.org/docs/auth/jwt/
 // [Token]: https://openbao.org/docs/auth/token/
 // [UserPass]: https://openbao.org/docs/auth/userpass/
 // [Kubernetes]: https://openbao.org/docs/auth/kubernetes/
@@ -106,6 +107,12 @@ type OpenBaoAuth struct {
 	//
 	// [Kubernetes auth mechanism]: https://openbao.org/docs/auth/kubernetes/
 	Kubernetes *OpenBaoKubernetesAuth `json:"kubernetes,omitempty"`
+
+	// Jwt authenticates with OpenBao by passing role and JWT token using the
+	// JWT/OIDC authentication method.
+	//
+	// +optional
+	Jwt *OpenBaoJwtAuth `json:"jwt,omitempty"`
 
 	// Name of the [OpenBao Namespace] to authenticate to. This can be different
 	// than the namespace your secret is in. Namespaces is a set of features
@@ -227,4 +234,59 @@ type OpenBaoKubernetesAuth struct {
 	//
 	// +kubebuilder:validation:MinLength=1
 	Role string `json:"role"`
+}
+
+// OpenBaoKubernetesServiceAccountTokenAuth authenticates with OpenBao using a
+// temporary Kubernetes service account token retrieved by the `TokenRequest`
+// API.
+type OpenBaoKubernetesServiceAccountTokenAuth struct {
+	// Service account field containing the name of a Kubernetes ServiceAccount.
+	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
+
+	// Optional audiences field that will be used to request a temporary
+	// Kubernetes service account token for the service account referenced by
+	// `serviceAccountRef`.
+	// Defaults to a single audience `openbao` if not specified.
+	//
+	// +optional
+	Audiences *[]string `json:"audiences,omitempty"`
+
+	// Optional expiration time in seconds that will be used to request a
+	// temporary Kubernetes service account token for the service account
+	// referenced by `serviceAccountRef`.
+	// Defaults to 10 minutes.
+	//
+	// +optional
+	ExpirationSeconds *int64 `json:"expirationSeconds,omitempty"`
+}
+
+// OpenBaoJwtAuth authenticates with OpenBao using the JWT/OIDC authentication
+// method, with the role name and a token stored in a Kubernetes Secret resource
+// or a Kubernetes service account token retrieved via `TokenRequest`.
+//
+// +kubebuilder:validation:ExactlyOneOf=secretRef;kubernetesServiceAccountToken
+type OpenBaoJwtAuth struct {
+	// Path where the JWT authentication backend is mounted
+	// in OpenBao, e.g: "jwt"
+	// +kubebuilder:default=jwt
+	Path string `json:"path"`
+
+	// Role is a JWT role to authenticate using the JWT/OIDC OpenBao
+	// authentication method.
+	//
+	// +optional
+	Role string `json:"role,omitempty"`
+
+	// Optional SecretRef that refers to a key in a Secret resource containing JWT
+	// token to authenticate with OpenBao using the JWT/OIDC authentication
+	// method.
+	//
+	// +optional
+	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+
+	// Optional ServiceAccountToken specifies the Kubernetes service account for
+	// which to request a token with the `TokenRequest` API.
+	//
+	// +optional
+	KubernetesServiceAccountToken *OpenBaoKubernetesServiceAccountTokenAuth `json:"kubernetesServiceAccountToken,omitempty"`
 }
