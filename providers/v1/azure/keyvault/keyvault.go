@@ -230,6 +230,7 @@ func initializeLegacyClient(ctx context.Context, az *Azure) error {
 	}
 
 	cl := keyvault.New()
+	cl.Sender = getLegacyHTTPClient()
 	cl.Authorizer = authorizer
 	az.baseClient = &cl
 
