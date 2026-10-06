@@ -1,0 +1,17 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: controller-custom-example
+spec:
+  #define the controller label to the matching value of the deployment
+  controller: custom
+  #configure provider the same way
+  provider:
+    vault:
+      server: "http://vault.default:8200"
+      path: "secret"
+      version: "v2"
+      auth:
+        kubernetes:
+          mountPath: "kubernetes"
+          role: "demo-role"

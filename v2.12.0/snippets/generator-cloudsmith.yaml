@@ -1,0 +1,14 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: CloudsmithAccessToken
+metadata:
+  name: my-cloudsmith-token
+  namespace: default
+spec:
+  apiHost: "api.cloudsmith.io"  # Optional, defaults to api.cloudsmith.io
+  orgSlug: "my-organization"
+  serviceSlug: "my-oidc-service"
+  serviceAccountRef:
+    name: "default"
+    namespace: "default"
+    audiences:
+      - "https://api.cloudsmith.io"

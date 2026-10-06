@@ -1,0 +1,24 @@
+# 1. Register Github app https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app#registering-a-github-app
+#   `App ID: 123456` will be displayed after you create an app. Next on the bottom of the page, you'll find `Generate a private key` button.
+# 2. Get privateKey https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/managing-private-keys-for-github-apps#generating-private-keys put it in e.g `github-app-pem` k8s secret
+# 3. Set permissions for the app, e.g if you want to push OCI images to ghr set RW for packages https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/choosing-permissions-for-a-github-app#choosing-permissions-for-rest-api-access
+# 4. Install your Github app https://docs.github.com/en/apps/using-github-apps/installing-your-own-github-app
+# 5. Get `installID` https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/generating-an-installation-access-token-for-a-github-app#generating-an-installation-access-token (2)
+---
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: GithubAccessToken
+metadata:
+  name: github-auth-token
+spec:
+  appID: "0000000" # (1)
+  installID: "00000000" # (5)
+  url: "" # (Default https://api.github.com.)
+  repositories: # Optional
+    - "Hello-World"
+  permissions: # Optional
+    contents: read
+  auth:
+    privateKey:
+      secretRef:
+        name: github-app-pem # (2)
+        key: key

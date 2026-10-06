@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: vault-tls-cert
+  namespace: external-secrets
+type: kubernetes.io/tls
+stringData:
+  tls.crt: |
+    -----BEGIN CERTIFICATE-----
+    <your-client-certificate>
+    -----END CERTIFICATE-----
+  tls.key: |
+    -----BEGIN PRIVATE KEY-----
+    <your-client-private-key>
+    -----END PRIVATE KEY-----
+---
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: vault-cert-auth
+spec:
+  provider:
+    vault:
+      server: "https://vault.example.com"
+      path: "secret"
+      version: "v2"
+      caProvider:
+        type: "ConfigMap"
+        namespace: "external-secrets"
+        name: "vault-ca-bundle"
+        key: "ca.crt"
+      auth:
+        cert:
+          clientCert:
+            name: vault-tls-cert
+            namespace: "external-secrets"
+            key: tls.crt
+          secretRef:
+            name: vault-tls-cert
+            namespace: "external-secrets"
+            key: tls.key

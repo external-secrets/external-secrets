@@ -1,0 +1,29 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: GCRAccessToken
+metadata:
+  name: gcr-gen
+spec:
+  # project where gcr lives in
+  projectID: ""
+
+  # choose authentication strategy
+  auth:
+    # option 1: workload identity
+    workloadIdentity:
+      # point to the workload identity
+      # service account
+      serviceAccountRef:
+        name: ""
+        audiences: []
+      # the cluster can live in a different project or location
+      # use the following fields to configure where the cluster lives
+      clusterLocation: ""
+      clusterName: ""
+      clusterProjectID: ""
+
+
+    # option 2: GCP service account
+    secretRef:
+      secretAccessKeySecretRef:
+        name: ""
+        key: ""

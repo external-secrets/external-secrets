@@ -1,0 +1,8 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: SSHKey
+metadata:
+  name: example-rsa-key
+spec:
+  keyType: "rsa"
+  keySize: 4096
+  comment: "rsa@example.com"
