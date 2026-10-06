@@ -104,6 +104,25 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 
 // GetSecretByType retrieves a secret from Akeyless based on its type.
 func (a *akeylessBase) GetSecretByType(ctx context.Context, secretName string, version int32) (string, error) {
+	secretType, err := a.secretType(ctx, secretName)
+	if err != nil {
+		return "", err
+	}
+	value, err := a.fetchSecretByType(ctx, secretType, secretName, version)
+	if err != nil {
+		// Cached type may be stale (item recreated as a different kind).
+		a.itemTypes.invalidate(secretName)
+		return "", err
+	}
+	return value, nil
+}
+
+func (a *akeylessBase) secretType(ctx context.Context, secretName string) (string, error) {
+	if !a.ignoreCache {
+		if cached, ok := a.itemTypes.get(secretName); ok {
+			return cached, nil
+		}
+	}
 	item, err := a.DescribeItem(ctx, secretName)
 	if err != nil {
 		return "", err
@@ -112,6 +131,13 @@ func (a *akeylessBase) GetSecretByType(ctx context.Context, secretName string, v
 		return "", ErrItemNotExists
 	}
 	secretType := item.GetItemType()
+	if !a.ignoreCache {
+		a.itemTypes.set(secretName, secretType)
+	}
+	return secretType, nil
+}
+
+func (a *akeylessBase) fetchSecretByType(ctx context.Context, secretType, secretName string, version int32) (string, error) {
 	switch secretType {
 	case "STATIC_SECRET":
 		return a.GetStaticSecret(ctx, secretName, version)
