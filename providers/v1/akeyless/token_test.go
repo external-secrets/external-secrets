@@ -113,7 +113,7 @@ func TestGetSecretReusesTokenAcrossCalls(t *testing.T) {
 	}
 	client := &Akeyless{Client: mock}
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		out, err := client.GetSecret(context.Background(), *makeValidRef())
 		require.NoError(t, err, fmt.Sprintf("call %d", i))
 		require.Equal(t, "secret-val", string(out))
