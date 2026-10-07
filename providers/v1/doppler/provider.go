@@ -38,10 +38,11 @@ import (
 )
 
 const (
-	errNewClient    = "unable to create DopplerClient : %s"
-	errInvalidStore = "invalid store: %s"
-	errInvalidHost  = "host is not a valid URL"
-	errDopplerStore = "missing or invalid Doppler SecretStore"
+	errNewClient     = "unable to create DopplerClient : %s"
+	errInvalidStore  = "invalid store: %s"
+	errInvalidStoreW = "invalid store: %w"
+	errInvalidHost   = "host is not a valid URL"
+	errDopplerStore  = "missing or invalid Doppler SecretStore"
 )
 
 // Provider is a Doppler secrets provider implementing NewClient and ValidateStore for the esv1.Provider interface.
@@ -120,6 +121,16 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	dopplerStoreSpec := storeSpec.Provider.Doppler
+
+	// Reject a bad host before any credential leaves the cluster. SetBaseURL
+	// refuses it too, but only once configureDopplerClient runs, and by then
+	// the OIDC exchange in setupClientAuth has already posted a ServiceAccount
+	// token to this host. ValidateStore does not help either: it runs in the
+	// admission webhook, so it misses stores that predate the webhook or were
+	// admitted while it was unavailable.
+	if err := validateBaseURL(dopplerStoreSpec); err != nil {
+		return nil, fmt.Errorf(errNewClient, err)
+	}
 
 	useCache := dopplerStoreSpec.Auth.OIDCConfig != nil && oidcClientCache != nil
 
@@ -265,8 +276,8 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	if dopplerStoreSpec.Host != "" {
-		if err := (&dclient.DopplerClient{}).SetBaseURL(dopplerStoreSpec.Host); err != nil {
-			return nil, fmt.Errorf(errInvalidStore, errInvalidHost)
+		if err := validateHost(dopplerStoreSpec.Host); err != nil {
+			return nil, fmt.Errorf(errInvalidStoreW, err)
 		}
 	}
 
@@ -307,6 +318,35 @@ func resolveBaseURL(dopplerStoreSpec *esv1.DopplerProvider) (string, error) {
 	}
 
 	return baseURL.String(), nil
+}
+
+// validateHost rejects a host the client would refuse, naming which rule
+// failed: a malformed host and a cleartext one are different mistakes, and
+// "host is not a valid URL" is the wrong thing to tell someone who wrote
+// http://. SetBaseURL enforces the same rules when the client is built; this
+// runs earlier so nothing is sent first.
+func validateHost(host string) error {
+	baseURL, err := dclient.NormalizeBaseURL(host)
+	if err != nil {
+		return fmt.Errorf("%s: %w", errInvalidHost, err)
+	}
+
+	if baseURL.Scheme != "https" {
+		return fmt.Errorf("host must use https, got %q", baseURL.Scheme)
+	}
+
+	return nil
+}
+
+// validateBaseURL applies validateHost to whichever host the store resolves
+// to, the DOPPLER_BASE_URL override included.
+func validateBaseURL(dopplerStoreSpec *esv1.DopplerProvider) error {
+	host := configuredHost(dopplerStoreSpec)
+	if host == "" {
+		return nil
+	}
+
+	return validateHost(host)
 }
 
 // NewProvider creates a new Provider instance.

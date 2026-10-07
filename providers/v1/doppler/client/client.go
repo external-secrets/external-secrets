@@ -171,11 +171,17 @@ func NormalizeBaseURL(urlStr string) (*url.URL, error) {
 	return baseURL, nil
 }
 
-// SetBaseURL sets the base URL for the Doppler API.
+// SetBaseURL sets the base URL for the Doppler API. The host must be https:
+// the token travels on every request, so a cleartext endpoint is refused here
+// rather than in each caller.
 func (c *DopplerClient) SetBaseURL(urlStr string) error {
 	baseURL, err := NormalizeBaseURL(urlStr)
 	if err != nil {
 		return err
+	}
+
+	if baseURL.Scheme != "https" {
+		return fmt.Errorf("scheme must be https, got %q", baseURL.Scheme)
 	}
 
 	c.baseURL = baseURL
