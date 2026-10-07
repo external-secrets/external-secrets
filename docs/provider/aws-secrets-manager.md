@@ -76,7 +76,7 @@ If you're planning to use `PushSecret`, ensure you also have the following permi
 }
 ```
 
-**Note:** The resource policy permissions (`GetResourcePolicy`, `PutResourcePolicy`, `DeleteResourcePolicy`) are only required if you're using the `resourcePolicy` metadata option to manage resource-based policies on secrets.
+**Note:** The resource policy permissions (`GetResourcePolicy`, `PutResourcePolicy`, `DeleteResourcePolicy`) are always required when using `PushSecret`. ESO treats the PushSecret as the owner of the secret's resource policy and manages it on every reconciliation, even when `resourcePolicy` is not set in metadata.
 **Note:** The replication permissions (`ReplicateSecretToRegions`, `RemoveRegionsFromReplication`) are only required if you're using the `replicationLocations` metadata option to manage secret replication across multiple regions.
 
 Here's a more restrictive version of the IAM policy:
@@ -152,7 +152,7 @@ To control this behavior set the following provider metadata:
 - `tags` Key-value map of user-defined tags that are attached to the secret.
 - `replicationLocations` takes a list of valid AWS region names where the secret should be replicated.
 
-**Note:** ESO treats the PushSecret as the **source of truth** for tags, resource policy, and replication locations. When any of these resources are specified in `metadata`, they will be added or updated, and resources NOT specified but existing will be removed from AWS. This synchronization happens on every reconciliation, even when the secret value hasn't changed.
+**Note:** ESO treats the PushSecret as the **source of truth** for the secret value, tags, resource policy, and replication locations. When any of these are specified in `metadata`, they are added or updated on every reconciliation, even when the secret value hasn't changed. Omission behaves differently per field: if `resourcePolicy` is omitted, any existing resource policy is deleted from the secret; `tags` and `replicationLocations` are left untouched when omitted.
 
 - `resourcePolicy` Attach a resource-based policy to the secret for cross-account access or advanced access control.
   - `blockPublicPolicy` (optional) - Set to `true` to validate that the policy doesn't grant public access before applying. Defaults to AWS behavior.
@@ -161,6 +161,7 @@ To control this behavior set the following provider metadata:
     - `name` - Name of the ConfigMap or Secret.
     - `key` - Key within the ConfigMap/Secret data that contains the policy JSON.
 
+  > **Note:** The resource policy is synchronized on every reconciliation, even when the secret value hasn't changed. If the `resourcePolicy` field is removed from metadata, the existing policy will be deleted from the secret.
 
 ##### KMS Key
 
@@ -232,8 +233,6 @@ data:
       ]
     }
 ```
-
-**Note:** The resource policy is synchronized on every reconciliation, even when the secret value hasn't changed. If the `resourcePolicy` field is removed from metadata, the existing policy will be deleted from the secret.
 
 ##### Location Replication
 
