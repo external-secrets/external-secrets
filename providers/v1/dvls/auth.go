@@ -36,40 +36,59 @@ func (r *realVaultClient) GetByName(ctx context.Context, name string) (dvls.Vaul
 	return r.vaults.GetByNameWithContext(ctx, name)
 }
 
-// NewDVLSClient creates a new authenticated DVLS client and resolves the vault.
-func NewDVLSClient(ctx context.Context, kube kclient.Client, storeKind, namespace string, provider *esv1.DVLSProvider) (credentialClient, string, error) {
+func (r *realVaultClient) Get(ctx context.Context, id string) (dvls.Vault, error) {
+	return r.vaults.GetWithContext(ctx, id)
+}
+
+func (r *realVaultClient) List(ctx context.Context) ([]dvls.Vault, error) {
+	return r.vaults.ListWithContext(ctx)
+}
+
+// storeClients holds the service clients and resolved vault for a DVLS store.
+type storeClients struct {
+	cred        credentialClient
+	vaults      vaultGetter
+	vaultID     string
+	pinnedVault bool
+}
+
+// newStoreClients creates a new authenticated DVLS client and resolves the vault.
+func newStoreClients(ctx context.Context, kube kclient.Client, storeKind, namespace string, provider *esv1.DVLSProvider) (*storeClients, error) {
 	if provider == nil {
-		return nil, "", fmt.Errorf("missing provider configuration")
+		return nil, fmt.Errorf("missing provider configuration")
 	}
 
 	appID, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &provider.Auth.SecretRef.AppID)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to get appId: %w", err)
+		return nil, fmt.Errorf("failed to get appId: %w", err)
 	}
 
 	appSecret, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &provider.Auth.SecretRef.AppSecret)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to get appSecret: %w", err)
+		return nil, fmt.Errorf("failed to get appSecret: %w", err)
 	}
 
 	client, err := dvls.NewClient(appID, appSecret, provider.ServerURL)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to create DVLS client: %w", err)
+		return nil, fmt.Errorf("failed to create DVLS client: %w", err)
 	}
 
-	credClient := &realCredentialClient{cred: client.Entries.Credential}
+	clients := &storeClients{
+		cred:   &realCredentialClient{cred: client.Entries.Credential},
+		vaults: &realVaultClient{vaults: client.Vaults},
+	}
 
-	// When vault is empty, the provider operates in legacy mode where
-	// the vault ID is expected in the secret key (<vault-id>/<entry-id>).
+	// When vault is empty, each secret key names its own vault (<vault>/<entry>).
 	if provider.Vault == "" {
-		return credClient, "", nil
+		return clients, nil
 	}
 
-	vaultCl := &realVaultClient{vaults: client.Vaults}
-	vaultID, err := resolveVaultRef(ctx, provider.Vault, vaultCl)
+	vaultID, err := resolveVaultRef(ctx, provider.Vault, clients.vaults)
 	if err != nil {
-		return nil, "", fmt.Errorf("failed to resolve vault: %w", err)
+		return nil, fmt.Errorf("failed to resolve vault: %w", err)
 	}
+	clients.vaultID = vaultID
+	clients.pinnedVault = true
 
-	return credClient, vaultID, nil
+	return clients, nil
 }
