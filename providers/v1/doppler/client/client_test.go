@@ -65,7 +65,9 @@ func TestAPIErrorError(t *testing.T) {
 // Doppler API response must yield an error naming the HTTP status, without
 // leaking the request endpoint.
 func TestPerformRequestSurfacesStatus(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+	// TLS, because SetBaseURL only accepts https. The certificate is
+	// self-signed, hence VerifyTLS false.
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("content-type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		_, _ = w.Write([]byte(`{"messages":["Invalid Auth token"],"success":false}`))
@@ -76,6 +78,7 @@ func TestPerformRequestSurfacesStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewDopplerClient: %v", err)
 	}
+	c.VerifyTLS = false
 	if err := c.SetBaseURL(server.URL); err != nil {
 		t.Fatalf("SetBaseURL: %v", err)
 	}
@@ -116,6 +119,7 @@ func TestSetBaseURL(t *testing.T) {
 		{label: "rejects a query string", urlStr: "https://doppler.internal.example.com?x=1", wantErr: "unexpected query, fragment or user info"},
 		{label: "rejects a fragment", urlStr: "https://doppler.internal.example.com#x", wantErr: "unexpected query, fragment or user info"},
 		{label: "rejects embedded credentials", urlStr: "https://user:pw@doppler.internal.example.com", wantErr: "unexpected query, fragment or user info"},
+		{label: "rejects a plain http url", urlStr: "http://doppler.internal.example.com", wantErr: "scheme must be https"},
 	}
 
 	for _, tc := range testCases {

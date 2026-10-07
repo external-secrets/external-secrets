@@ -528,12 +528,22 @@ func TestValidateStore(t *testing.T) {
 		{
 			label: "invalid host",
 			store: makeSecretStore(withAuth(secretName, "", nil), withHost(storeHost+"/\x7f")),
-			err:   errors.New("invalid store: host is not a valid URL"),
+			err:   errors.New(`invalid store: host is not a valid URL: parse "https://doppler.internal.example.com/\x7f": net/url: invalid control character in URL`),
 		},
 		{
 			label: "invalid host without hostname",
 			store: makeSecretStore(withAuth(secretName, "", nil), withHost("/")),
-			err:   errors.New("invalid store: host is not a valid URL"),
+			err:   errors.New("invalid store: host is not a valid URL: missing hostname"),
+		},
+		{
+			label: "invalid host with a query string",
+			store: makeSecretStore(withAuth(secretName, "", nil), withHost(storeHost+"?x=1")),
+			err:   errors.New("invalid store: host is not a valid URL: unexpected query, fragment or user info"),
+		},
+		{
+			label: "invalid plain http host",
+			store: makeSecretStore(withAuth(secretName, "", nil), withHost("http://doppler.internal.example.com")),
+			err:   errors.New(`invalid store: host must use https, got "http"`),
 		},
 	}
 	p := Provider{}
@@ -630,4 +640,37 @@ func newFakeKubeClient() kclient.Client {
 	}
 
 	return clientfake.NewClientBuilder().WithObjects(secret).Build()
+}
+
+func TestNewClientRejectsBadHostBeforeAuth(t *testing.T) {
+	testCases := []struct {
+		label string
+		store *esv1.SecretStore
+	}{
+		{
+			label: "token auth",
+			store: makeSecretStore(withAuth(dopplerTokenSecretName, "", nil), withHost("http://doppler.internal.example.com")),
+		},
+		{
+			label: "oidc auth",
+			store: makeSecretStore(withOIDCAuth("identity-123", "sa-name", nil), withHost("http://doppler.internal.example.com")),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.label, func(t *testing.T) {
+			t.Setenv(customBaseURLEnvVar, "")
+			os.Unsetenv(customBaseURLEnvVar)
+
+			p := Provider{}
+			_, err := p.NewClient(context.Background(), tc.store, newFakeKubeClient(), testNamespace)
+
+			if err == nil {
+				t.Fatal("want an error for a plain http host, got nil")
+			}
+			if !strings.Contains(err.Error(), "must use https") {
+				t.Errorf("error %q does not name the scheme rejection", err)
+			}
+		})
+	}
 }

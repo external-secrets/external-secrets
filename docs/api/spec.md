@@ -4405,7 +4405,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Doppler API host (defaults to <a href="https://api.doppler.com">https://api.doppler.com</a>, overrides the DOPPLER_BASE_URL environment variable)</p>
+<p>Doppler API host, which must use https (defaults to <a href="https://api.doppler.com">https://api.doppler.com</a>, overrides the DOPPLER_BASE_URL environment variable)</p>
 </td>
 </tr>
 <tr>
@@ -19400,7 +19400,7 @@ string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Doppler API host (defaults to <a href="https://api.doppler.com">https://api.doppler.com</a>, overrides the DOPPLER_BASE_URL environment variable)</p>
+<p>Doppler API host, which must use https (defaults to <a href="https://api.doppler.com">https://api.doppler.com</a>, overrides the DOPPLER_BASE_URL environment variable)</p>
 </td>
 </tr>
 <tr>
