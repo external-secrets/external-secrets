@@ -18,6 +18,7 @@ package externalsecret
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -488,7 +489,7 @@ func TestApplyTemplateToManifest_SimpleConfigMap(t *testing.T) {
 	}
 
 	// Execute
-	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap, nil)
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap)
 
 	// Verify
 	require.NoError(t, err)
@@ -551,7 +552,7 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 	}
 
 	// Execute
-	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap, nil)
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap)
 
 	// Verify
 	require.NoError(t, err)
@@ -591,7 +592,7 @@ func TestApplyTemplateToManifest_AppliesOwnershipWhenCreationPolicyOwner(t *test
 		},
 	}
 
-	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")})
 
 	require.NoError(t, err)
 	owners := result.GetOwnerReferences()
@@ -728,7 +729,7 @@ func TestApplyTemplateToManifest_NoOwnerRefWhenCreationPolicyOrphan(t *testing.T
 		},
 	}
 
-	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")})
 
 	require.NoError(t, err)
 	assert.Empty(t, result.GetOwnerReferences())
@@ -762,7 +763,7 @@ func TestApplyTemplateToManifest_PropagatesESLabelsAndAnnotations(t *testing.T) 
 		},
 	}
 
-	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")})
 
 	require.NoError(t, err)
 	labels := result.GetLabels()
@@ -806,7 +807,7 @@ func TestApplyTemplateToManifest_TemplateMetadataWinsOverESLabels(t *testing.T) 
 		},
 	}
 
-	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")})
 
 	require.NoError(t, err)
 	labels := result.GetLabels()
@@ -836,7 +837,7 @@ func TestApplyTemplateToManifest_NoESLabels(t *testing.T) {
 		},
 	}
 
-	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")}, nil)
+	result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("val")})
 
 	require.NoError(t, err)
 	labels := result.GetLabels()
@@ -999,7 +1000,7 @@ template:
 		"version":  []byte("1.21"),
 	}
 
-	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap, nil)
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap)
 
 	require.NoError(t, err)
 	assert.NotNil(t, result)
@@ -1061,31 +1062,11 @@ func TestApplyTemplateToManifest_MergeBehavior(t *testing.T) {
 		},
 	}
 
-	existingResource := &unstructured.Unstructured{
-		Object: map[string]any{
-			"apiVersion": "notification.toolkit.fluxcd.io/v1beta1",
-			"kind":       "Provider",
-			"metadata": map[string]any{
-				"name":            "test-slack-config",
-				"namespace":       "default",
-				"resourceVersion": "12345",
-				"uid":             "test-uid-123",
-			},
-			"spec": map[string]any{
-				"type": "slack",
-				"slack": map[string]any{
-					"channel":  "general",
-					"username": "bot",
-				},
-			},
-		},
-	}
-
 	dataMap := map[string][]byte{
 		"url": []byte("https://hooks.slack.com/services/XXX"),
 	}
 
-	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap, existingResource)
+	result, err := r.applyTemplateToManifest(context.Background(), es, dataMap)
 
 	require.NoError(t, err)
 	assert.NotNil(t, result)
@@ -1094,26 +1075,556 @@ func TestApplyTemplateToManifest_MergeBehavior(t *testing.T) {
 
 	specType, found, err := unstructured.NestedString(result.Object, "spec", "type")
 	require.NoError(t, err)
-	require.True(t, found, "spec.type should be preserved")
-	assert.Equal(t, "slack", specType, "spec.type should be preserved from existing resource")
+	assert.False(t, found, "partial payload should not include unrelated spec fields")
+	assert.Empty(t, specType)
 
 	slackChannel, found, err := unstructured.NestedString(result.Object, "spec", "slack", "channel")
 	require.NoError(t, err)
-	require.True(t, found, "spec.slack.channel should be preserved")
-	assert.Equal(t, "general", slackChannel, "spec.slack.channel should be preserved from existing resource")
-
-	slackUsername, found, err := unstructured.NestedString(result.Object, "spec", "slack", "username")
-	require.NoError(t, err)
-	require.True(t, found, "spec.slack.username should be preserved")
-	assert.Equal(t, "bot", slackUsername, "spec.slack.username should be preserved from existing resource")
+	assert.False(t, found, "partial payload should not include unrelated slack fields")
+	assert.Empty(t, slackChannel)
 
 	apiURL, found, err := unstructured.NestedString(result.Object, "spec", "slack", "api_url")
 	require.NoError(t, err)
-	require.True(t, found, "spec.slack.api_url should be added from template")
-	assert.Equal(t, "https://hooks.slack.com/services/XXX", apiURL, "spec.slack.api_url should come from template")
-	assert.Equal(t, "12345", result.GetResourceVersion(), "resourceVersion should be preserved")
-	assert.Equal(t, "test-uid-123", string(result.GetUID()), "uid should be preserved")
+	require.True(t, found, "spec.slack.api_url should be present in partial payload")
+	assert.Equal(t, "https://hooks.slack.com/services/XXX", apiURL)
 	t.Logf("Result spec: %+v", result.Object["spec"])
+}
+
+func TestApplyTemplateToManifest_ManagedContentHash(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{
+		Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
+		Scheme: scheme.Scheme,
+	}
+
+	tests := []struct {
+		name               string
+		es                 *esv1.ExternalSecret
+		dataMap            map[string][]byte
+		wantDifferFromFull bool
+	}{
+		{
+			name: "stamps managed hash for nested TemplateFrom path",
+			es: &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-es", Namespace: "default"},
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Name: "test-provider",
+						Manifest: &esv1.ManifestReference{
+							APIVersion: "notification.toolkit.fluxcd.io/v1beta1",
+							Kind:       "Provider",
+						},
+						Template: &esv1.ExternalSecretTemplate{
+							EngineVersion: esv1.TemplateEngineV2,
+							TemplateFrom: []esv1.TemplateFrom{
+								{
+									Target:  "spec.slack",
+									Literal: new(`api_url: {{ .url }}`),
+								},
+							},
+						},
+					},
+				},
+			},
+			dataMap: map[string][]byte{"url": []byte("https://example.com")},
+		},
+		{
+			name: "stamps managed hash for Annotations shorthand, not full spec",
+			es: &esv1.ExternalSecret{
+				ObjectMeta: metav1.ObjectMeta{Name: "test-es", Namespace: "default"},
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Name: "test-provider",
+						Manifest: &esv1.ManifestReference{
+							APIVersion: "notification.toolkit.fluxcd.io/v1beta1",
+							Kind:       "Provider",
+						},
+						Template: &esv1.ExternalSecretTemplate{
+							EngineVersion: esv1.TemplateEngineV2,
+							TemplateFrom: []esv1.TemplateFrom{
+								{
+									Target:  "Annotations",
+									Literal: new(`eso.injected: "{{ .value }}"`),
+								},
+							},
+						},
+					},
+				},
+			},
+			dataMap:            map[string][]byte{"value": []byte("secret")},
+			wantDifferFromFull: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := r.applyTemplateToManifest(context.Background(), tt.es, tt.dataMap)
+			require.NoError(t, err)
+
+			gotHash := result.GetAnnotations()[esv1.AnnotationDataHash]
+			require.NotEmpty(t, gotHash)
+
+			// Recompute from the stamped object without the hash annotation,
+			// matching what applyTemplateToManifest hashed before writing it.
+			rehashObj := result.DeepCopy()
+			ann := rehashObj.GetAnnotations()
+			delete(ann, esv1.AnnotationDataHash)
+			rehashObj.SetAnnotations(ann)
+
+			wantHash, err := genericTargetManagedContentHash(tt.es, rehashObj)
+			require.NoError(t, err)
+			assert.Equal(t, wantHash, gotHash)
+
+			if tt.wantDifferFromFull {
+				fullHash, err := genericTargetContentHash(rehashObj)
+				require.NoError(t, err)
+				assert.NotEqual(t, fullHash, gotHash, "AnnotationDataHash should use managed paths, not the full parent field")
+			}
+		})
+	}
+}
+
+func TestStrategicMergePatchBody(t *testing.T) {
+	tests := []struct {
+		name        string
+		patch       *unstructured.Unstructured
+		wantKeys    []string
+		wantMissing []string
+		wantErr     bool
+	}{
+		{
+			name: "includes metadata and spec, excludes apiVersion",
+			patch: &unstructured.Unstructured{
+				Object: map[string]any{
+					"apiVersion": "apps/v1",
+					"kind":       "Deployment",
+					"metadata": map[string]any{
+						"labels": map[string]any{
+							esv1.LabelManaged: esv1.LabelManagedValue,
+						},
+						"annotations": map[string]any{
+							esv1.AnnotationDataHash: "abc123",
+						},
+					},
+					"spec": map[string]any{
+						"replicas": int64(1),
+					},
+				},
+			},
+			wantKeys:    []string{"metadata", "spec"},
+			wantMissing: []string{"apiVersion", "kind"},
+		},
+		{
+			name: "includes data for ConfigMap-style payloads",
+			patch: &unstructured.Unstructured{
+				Object: map[string]any{
+					"metadata": map[string]any{
+						"labels": map[string]any{esv1.LabelManaged: esv1.LabelManagedValue},
+					},
+					"data": map[string]any{
+						"key": "value",
+					},
+				},
+			},
+			wantKeys:    []string{"metadata", "data"},
+			wantMissing: []string{"spec"},
+		},
+		{
+			name: "skips empty metadata and spec maps",
+			patch: &unstructured.Unstructured{
+				Object: map[string]any{
+					"metadata": map[string]any{},
+					"spec":     map[string]any{},
+					"data": map[string]any{
+						"only": "this",
+					},
+				},
+			},
+			wantKeys:    []string{"data"},
+			wantMissing: []string{"metadata", "spec"},
+		},
+		{
+			name: "errors when patch payload is empty",
+			patch: &unstructured.Unstructured{
+				Object: map[string]any{
+					"apiVersion": "v1",
+					"kind":       "ConfigMap",
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			body, err := strategicMergePatchBody(tt.patch)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, body)
+				return
+			}
+
+			require.NoError(t, err)
+			var decoded map[string]any
+			require.NoError(t, json.Unmarshal(body, &decoded))
+			for _, key := range tt.wantKeys {
+				assert.Contains(t, decoded, key)
+			}
+			for _, key := range tt.wantMissing {
+				assert.NotContains(t, decoded, key)
+			}
+		})
+	}
+}
+
+func TestNormalizeTemplateTargetPath(t *testing.T) {
+	tests := []struct {
+		name   string
+		target string
+		want   string
+	}{
+		{
+			name:   "annotations shorthand",
+			target: "annotations",
+			want:   "metadata.annotations",
+		},
+		{
+			name:   "Annotations case-insensitive",
+			target: "Annotations",
+			want:   "metadata.annotations",
+		},
+		{
+			name:   "labels shorthand",
+			target: "labels",
+			want:   "metadata.labels",
+		},
+		{
+			name:   "Labels case-insensitive",
+			target: "Labels",
+			want:   "metadata.labels",
+		},
+		{
+			name:   "nested camelCase unchanged",
+			target: "spec.controllerConfig.annotations",
+			want:   "spec.controllerConfig.annotations",
+		},
+		{
+			name:   "data unchanged",
+			target: "data",
+			want:   "data",
+		},
+		{
+			name:   "empty unchanged",
+			target: "",
+			want:   "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, normalizeTemplateTargetPath(tt.target))
+		})
+	}
+}
+
+func TestTemplateTargetPaths(t *testing.T) {
+	tests := []struct {
+		name string
+		es   *esv1.ExternalSecret
+		want []string
+	}{
+		{
+			name: "nil template",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{},
+				},
+			},
+			want: nil,
+		},
+		{
+			name: "TemplateFrom target path",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Template: &esv1.ExternalSecretTemplate{
+							TemplateFrom: []esv1.TemplateFrom{
+								{Target: "spec.slack"},
+							},
+						},
+					},
+				},
+			},
+			want: []string{"spec.slack"},
+		},
+		{
+			name: "empty TemplateFrom target defaults to Data",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Template: &esv1.ExternalSecretTemplate{
+							TemplateFrom: []esv1.TemplateFrom{
+								{Literal: new("key: value")},
+							},
+						},
+					},
+				},
+			},
+			want: []string{string(esv1.TemplateTargetData)},
+		},
+		{
+			name: "Annotations shorthand is normalized",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Template: &esv1.ExternalSecretTemplate{
+							TemplateFrom: []esv1.TemplateFrom{
+								{Target: "Annotations"},
+							},
+						},
+					},
+				},
+			},
+			want: []string{"metadata.annotations"},
+		},
+		{
+			name: "Template.Data is included",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Template: &esv1.ExternalSecretTemplate{
+							TemplateFrom: []esv1.TemplateFrom{
+								{Target: "spec.slack"},
+							},
+							Data: map[string]string{
+								"extra": "value",
+							},
+						},
+					},
+				},
+			},
+			want: []string{"spec.slack", string(esv1.TemplateTargetData)},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, templateTargetPaths(tt.es))
+		})
+	}
+}
+
+func TestExtractTemplateTargetContent(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]any{
+			"metadata": map[string]any{
+				"annotations": map[string]any{
+					"eso": "injected",
+				},
+			},
+			"spec": map[string]any{
+				"type": "slack",
+				"slack": map[string]any{
+					"api_url": "https://example.com",
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name  string
+		paths []string
+		want  map[string]any
+	}{
+		{
+			name:  "extracts nested managed path",
+			paths: []string{"spec.slack"},
+			want: map[string]any{
+				"spec": map[string]any{
+					"slack": map[string]any{
+						"api_url": "https://example.com",
+					},
+				},
+			},
+		},
+		{
+			name:  "skips missing paths",
+			paths: []string{"spec.missing", "spec.slack"},
+			want: map[string]any{
+				"spec": map[string]any{
+					"slack": map[string]any{
+						"api_url": "https://example.com",
+					},
+				},
+			},
+		},
+		{
+			name:  "extracts metadata annotations",
+			paths: []string{"metadata.annotations"},
+			want: map[string]any{
+				"metadata": map[string]any{
+					"annotations": map[string]any{
+						"eso": "injected",
+					},
+				},
+			},
+		},
+		{
+			name:  "all missing yields empty map",
+			paths: []string{"spec.does.not.exist"},
+			want:  map[string]any{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := extractTemplateTargetContent(obj, tt.paths)
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestGenericTargetManagedContentHash(t *testing.T) {
+	obj := &unstructured.Unstructured{
+		Object: map[string]any{
+			"metadata": map[string]any{
+				"annotations": map[string]any{
+					"eso": "injected",
+				},
+			},
+			"spec": map[string]any{
+				"type": "slack",
+				"slack": map[string]any{
+					"channel": "general",
+					"api_url": "https://example.com",
+				},
+			},
+		},
+	}
+
+	tests := []struct {
+		name string
+		es   *esv1.ExternalSecret
+		obj  *unstructured.Unstructured
+		want func(t *testing.T, hash string, obj *unstructured.Unstructured)
+	}{
+		{
+			name: "hashes only managed template path",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Template: &esv1.ExternalSecretTemplate{
+							TemplateFrom: []esv1.TemplateFrom{
+								{Target: "spec.slack"},
+							},
+						},
+					},
+				},
+			},
+			obj: obj,
+			want: func(t *testing.T, hash string, obj *unstructured.Unstructured) {
+				expected, err := extractTemplateTargetContent(obj, []string{"spec.slack"})
+				require.NoError(t, err)
+				assert.Equal(t, esutils.ObjectHash(expected), hash)
+			},
+		},
+		{
+			name: "unmanaged sibling fields do not change the hash",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Template: &esv1.ExternalSecretTemplate{
+							TemplateFrom: []esv1.TemplateFrom{
+								{Target: "spec.slack"},
+							},
+						},
+					},
+				},
+			},
+			obj: obj,
+			want: func(t *testing.T, hash string, obj *unstructured.Unstructured) {
+				changed := obj.DeepCopy()
+				require.NoError(t, unstructured.SetNestedField(changed.Object, "other", "spec", "type"))
+				changedHash, err := genericTargetManagedContentHash(&esv1.ExternalSecret{
+					Spec: esv1.ExternalSecretSpec{
+						Target: esv1.ExternalSecretTarget{
+							Template: &esv1.ExternalSecretTemplate{
+								TemplateFrom: []esv1.TemplateFrom{
+									{Target: "spec.slack"},
+								},
+							},
+						},
+					},
+				}, changed)
+				require.NoError(t, err)
+				assert.Equal(t, hash, changedHash)
+			},
+		},
+		{
+			name: "falls back to full content hash when template is nil",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{},
+				},
+			},
+			obj: obj,
+			want: func(t *testing.T, hash string, obj *unstructured.Unstructured) {
+				expected, err := genericTargetContentHash(obj)
+				require.NoError(t, err)
+				assert.Equal(t, expected, hash)
+			},
+		},
+		{
+			name: "falls back to full content hash when managed paths are missing",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Template: &esv1.ExternalSecretTemplate{
+							TemplateFrom: []esv1.TemplateFrom{
+								{Target: "spec.does.not.exist"},
+							},
+						},
+					},
+				},
+			},
+			obj: obj,
+			want: func(t *testing.T, hash string, obj *unstructured.Unstructured) {
+				expected, err := genericTargetContentHash(obj)
+				require.NoError(t, err)
+				assert.Equal(t, expected, hash)
+			},
+		},
+		{
+			name: "hashes normalized Annotations shorthand",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Template: &esv1.ExternalSecretTemplate{
+							TemplateFrom: []esv1.TemplateFrom{
+								{Target: "Annotations"},
+							},
+						},
+					},
+				},
+			},
+			obj: obj,
+			want: func(t *testing.T, hash string, obj *unstructured.Unstructured) {
+				expected, err := extractTemplateTargetContent(obj, []string{"metadata.annotations"})
+				require.NoError(t, err)
+				assert.Equal(t, esutils.ObjectHash(expected), hash)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			hash, err := genericTargetManagedContentHash(tt.es, tt.obj)
+			require.NoError(t, err)
+			require.NotEmpty(t, hash)
+			tt.want(t, hash, tt.obj)
+		})
+	}
 }
 
 func TestGenericTargetContentHash(t *testing.T) {

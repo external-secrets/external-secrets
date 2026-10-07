@@ -655,17 +655,10 @@ func (r *Reconciler) reconcileGenericTarget(
 		}
 	}
 
-	// For Merge and CreateOrMerge with an existing resource, pass it to
-	// applyTemplateToManifest so templates are applied to the existing resource
-	// instead of creating a new one.
-	var baseObj *unstructured.Unstructured
-	if (externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
-		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyCreateOrMerge) && existing != nil {
-		baseObj = existing
-	}
-
-	// render the template for the manifest
-	obj, err := r.applyTemplateToManifest(ctx, externalSecret, dataMap, baseObj)
+	// applyTemplateToManifest builds the patch payload purely from the template, without using the read object. The
+	// CreationPolicy switch determines whether to create or modify, and strategic merge patch applies this payload to
+	// the live resource.
+	obj, err := r.applyTemplateToManifest(ctx, externalSecret, dataMap)
 	if err != nil {
 		// applyTemplateToManifest also applies ownership, so the same dead-end
 		// conflicts the Secret lane reports can surface here. Retrying does not
@@ -696,17 +689,10 @@ func (r *Reconciler) reconcileGenericTarget(
 			r.markAsDone(externalSecret, start, log, esv1.ConditionReasonResourceMissing, "resource will not be created due to CreationPolicy=Merge")
 			return r.getRequeueResult(externalSecret), nil
 		}
-
-		obj.SetResourceVersion(existing.GetResourceVersion())
-		obj.SetUID(existing.GetUID())
-
-		// update the existing resource
-		err = r.updateGenericResource(ctx, log, externalSecret, obj)
+		err = r.patchGenericResource(ctx, log, externalSecret, existing, obj)
 	case esv1.CreatePolicyOrphan, esv1.CreatePolicyOwner, esv1.CreatePolicyCreateOrMerge:
 		if existing != nil {
-			obj.SetResourceVersion(existing.GetResourceVersion())
-			obj.SetUID(existing.GetUID())
-			err = r.updateGenericResource(ctx, log, externalSecret, obj)
+			err = r.patchGenericResource(ctx, log, externalSecret, existing, obj)
 		} else {
 			err = r.createGenericResource(ctx, log, externalSecret, obj)
 		}
@@ -1338,7 +1324,7 @@ func isGenericTargetValid(existingTarget *unstructured.Unstructured, es *esv1.Ex
 		return false, nil
 	}
 
-	hash, err := genericTargetContentHash(existingTarget)
+	hash, err := genericTargetManagedContentHash(es, existingTarget)
 	if err != nil {
 		return false, fmt.Errorf("failed to hash target: %w", err)
 	}
