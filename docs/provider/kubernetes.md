@@ -520,13 +520,15 @@ spec:
 | targetMergePolicy | string: `Merge`, `Replace`, `Ignore` | The targetMergePolicy defines how ESO merges the metadata produced by the sourceMergePolicy with the target secret. With `Merge`, the source metadata is merged with the existing metadata from the target secret. `Replace` will replace the target metadata with the metadata defined in the source. `Ignore` leaves the target metadata as is. |
 | labels            | `map[string]string`                  | The labels.                                                                                                                                                                                                                                                                                                                                       |
 | annotations       | `map[string]string`                  | The annotations.                                                                                                                                                                                                                                                                                                                                  |
-| remoteNamespace   | string                               | The Namespace in which the remote Secret will created in if defined.                                                                                                                                                                                                                                                                              |
+| remoteNamespace   | string                               | The Namespace in which the remote Secret will created in if defined. Push, delete, and exists operations all target this namespace, so the store's credentials need `get`/`update`/`delete` on Secrets in the override namespace, not only in the store's own `remoteNamespace`.                                                                                                                                      |
 
 ### Implementation Considerations
 
 When using the PushSecret feature and configuring the permissions for the SecretStore, consider the following:
 
 * **RBAC Configuration**: Ensure that the Role-Based Access Control (RBAC) configuration for the SecretStore grants the appropriate permissions for creating, reading, and updating resources in the target cluster.
+
+* **Namespace overrides on delete**: when `data[].metadata.spec.remoteNamespace` is set (ClusterSecretStore only), `DeleteSecret` and `SecretExists` honor the override just like `PushSecret`. A token scoped to the store namespace only will start seeing `forbidden` on deletion in the override namespace; grant the `delete` verb in each override namespace you use.
 
 * **Least Privilege Principle**: Adhere to the principle of least privilege when assigning permissions to the SecretStore. Only provide the minimum required permissions to accomplish the desired synchronization between Secrets.
 
