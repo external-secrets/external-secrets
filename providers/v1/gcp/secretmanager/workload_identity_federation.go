@@ -260,7 +260,7 @@ func (w *workloadIdentityFederation) generateExternalAccountConfig(ctx context.C
 		return nil, err
 	}
 	w.updateExternalAccountConfigWithDefaultValues(config)
-	if err := validateExternalAccountConfig(config, w.config); err != nil {
+	if err := validateExternalAccountConfig(config, w.config, w.isClusterKind); err != nil {
 		return nil, err
 	}
 
@@ -387,7 +387,7 @@ func (w *workloadIdentityFederation) readAWSSecurityCredentials(ctx context.Cont
 
 // validateExternalAccountConfig is for validating the external_account credentials configurations, based on
 // suggestions made at https://cloud.google.com/docs/authentication/client-libraries#external-credentials.
-func validateExternalAccountConfig(config *externalaccount.Config, wif *esv1.GCPWorkloadIdentityFederation) error {
+func validateExternalAccountConfig(config *externalaccount.Config, wif *esv1.GCPWorkloadIdentityFederation, allowFileCredentialSource bool) error {
 	var errs []error
 	errs = append(errs, fmt.Errorf("invalid %s config", externalAccountCredentialType))
 
@@ -405,7 +405,7 @@ func validateExternalAccountConfig(config *externalaccount.Config, wif *esv1.GCP
 		errs = append(errs, fmt.Errorf("token_info_url \"%s\" must match \"%s\"", config.TokenInfoURL, gcpSTSTokenInfoURLRegex.String()))
 	}
 	if config.CredentialSource != nil {
-		errs = append(errs, validateCredConfigCredentialSource(config.CredentialSource, wif)...)
+		errs = append(errs, validateCredConfigCredentialSource(config.CredentialSource, wif, allowFileCredentialSource)...)
 	}
 	if len(errs) > 1 {
 		return errors.Join(errs...)
@@ -414,11 +414,14 @@ func validateExternalAccountConfig(config *externalaccount.Config, wif *esv1.GCP
 	return nil
 }
 
-func validateCredConfigCredentialSource(credSource *externalaccount.CredentialSource, wif *esv1.GCPWorkloadIdentityFederation) []error {
+func validateCredConfigCredentialSource(credSource *externalaccount.CredentialSource, wif *esv1.GCPWorkloadIdentityFederation, allowFileCredentialSource bool) []error {
 	var errs []error
 	// restricting the use of executables from security standpoint, since executables can't be validated.
 	if credSource.Executable != nil {
 		errs = append(errs, fmt.Errorf("credential_source.executable.command is not allowed"))
+	}
+	if credSource.File != "" && !allowFileCredentialSource {
+		errs = append(errs, fmt.Errorf("credential_source.file is only supported for ClusterSecretStore; use serviceAccountRef for Kubernetes service account tokens"))
 	}
 	if credSource.File == "" && credSource.URL == "" && credSource.EnvironmentID == "" {
 		errs = append(errs, fmt.Errorf("one of credential_source.file, credential_source.url, credential_source.aws.url or credential_source_environment_id should be provided"))
