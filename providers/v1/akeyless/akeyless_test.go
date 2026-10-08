@@ -379,6 +379,30 @@ func TestValidateStore(t *testing.T) {
 		require.Error(t, err)
 	})
 
+	t.Run("k8s auth without token source", func(t *testing.T) {
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							KubernetesAuth: &esv1.AkeylessKubernetesAuth{
+								AccessID:    "id",
+								K8sConfName: "name",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.EqualError(t, err, errKubernetesNoTokenSource)
+
+		_, err = (&akeylessBase{}).getK8SServiceAccountJWT(context.Background(), store.Spec.Provider.Akeyless.Auth.KubernetesAuth)
+		require.EqualError(t, err, errKubernetesNoTokenSource)
+	})
+
 	t.Run("bad k8s conf auth", func(t *testing.T) {
 		store := &esv1.SecretStore{
 			Spec: esv1.SecretStoreSpec{

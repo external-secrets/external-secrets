@@ -149,6 +149,9 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		}
 	}
 	if akeylessSpec.Auth.KubernetesAuth != nil {
+		if akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef == nil && akeylessSpec.Auth.KubernetesAuth.SecretRef == nil {
+			return nil, errors.New(errKubernetesNoTokenSource)
+		}
 		if akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef != nil {
 			if err := esutils.ValidateReferentServiceAccountSelector(store, *akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef); err != nil {
 				return nil, fmt.Errorf(errInvalidKubeSA, err)

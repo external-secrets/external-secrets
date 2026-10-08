@@ -559,8 +559,7 @@ External Secrets meta/v1.SecretKeySelector
 <em>(Optional)</em>
 <p>Optional secret field containing a Kubernetes ServiceAccount JWT used
 for authenticating with Akeyless. If a name is specified without a key,
-<code>token</code> is the default. If one is not specified, the one bound to
-the controller will be used.</p>
+<code>token</code> is the default. One of ServiceAccountRef or SecretRef is required.</p>
 </td>
 </tr>
 </tbody>
