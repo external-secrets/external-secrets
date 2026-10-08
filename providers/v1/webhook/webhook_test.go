@@ -489,6 +489,51 @@ want:
   body: '{"secretkey":"value"}'
   err: ''
 ---
+case: default body with a dotted remote key
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}
+  key: key.with.dots
+  secretkey: secretkey
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: real-secret-value
+want:
+  path: /api/pushsecret?id=key.with.dots
+  body: 'real-secret-value'
+  err: ''
+---
+case: default body with a dashed remote key
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}
+  key: my-key
+  secretkey: secretkey
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: real-secret-value
+want:
+  path: /api/pushsecret?id=my-key
+  body: 'real-secret-value'
+  err: ''
+---
+case: default body with a slashed remote key
+args:
+  url: /api/pushsecret?id={{ .remoteRef.remoteKey }}
+  key: path/to/key
+  secretkey: secretkey
+  pushsecret: true
+  secret:
+    name: test-secret
+    data:
+      secretkey: real-secret-value
+want:
+  path: /api/pushsecret?id=path%2Fto%2Fkey
+  body: 'real-secret-value'
+  err: ''
+---
 case: pushing without secret key
 args:
   url: /api/pushsecret?id={{ .remoteRef.remoteKey }}
