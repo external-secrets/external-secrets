@@ -194,6 +194,12 @@ func (r *Reconciler) handleGenerateSecrets(
 		return nil, fmt.Errorf(errRewrite, err)
 	}
 
+	// select/filter keys if needed
+	secretMap, err = esutils.SelectMap(remoteRef.Select, secretMap)
+	if err != nil {
+		return nil, fmt.Errorf(errSelect, err)
+	}
+
 	// validate the keys
 	err = esutils.ValidateKeys(r.Log, secretMap)
 	if err != nil {
@@ -234,6 +240,13 @@ func (r *Reconciler) handleExtractSecrets(
 	if err != nil {
 		return nil, fmt.Errorf(errRewrite, err)
 	}
+
+	// select/filter keys if needed
+	secretMap, err = esutils.SelectMap(remoteRef.Select, secretMap)
+	if err != nil {
+		return nil, fmt.Errorf(errSelect, err)
+	}
+
 	if len(remoteRef.Rewrite) == 0 {
 		secretMap, err = esutils.ConvertKeys(remoteRef.Extract.ConversionStrategy, secretMap)
 		if err != nil {
@@ -285,6 +298,13 @@ func (r *Reconciler) handleFindAllSecrets(
 	if err != nil {
 		return nil, fmt.Errorf(errRewrite, err)
 	}
+
+	// select/filter keys if needed
+	secretMap, err = esutils.SelectMap(remoteRef.Select, secretMap)
+	if err != nil {
+		return nil, fmt.Errorf(errSelect, err)
+	}
+
 	if len(remoteRef.Rewrite) == 0 {
 		secretMap, err = esutils.ConvertKeys(remoteRef.Find.ConversionStrategy, secretMap)
 		if err != nil {
