@@ -48,14 +48,3 @@ external API** which provides the roles. The Cluster Administrator does just the
 wiring. This approach may be desirable if you have an external entity - let's
 call it **Secret Administrator** - that manages access and lifecycle of the
 secrets.
-
-
-### ESO as a Service
-![Shared CSS](../pictures/diagrams-multi-tenancy-self-service.png)
-
-Every namespace is self-contained. Application developers manage `SecretStore`,
-`ExternalSecret` and secret infrastructure on their own. Cluster Administrators
-*just* provide the External Secrets Operator as a service.
-
-This makes sense if application developers should be completely autonomous while
-a central team provides common services.
