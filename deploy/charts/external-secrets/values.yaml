@@ -194,8 +194,8 @@ tls:
   # +docs:property
   ciphers: ""
 
-  # -- Ordered list of TLS key exchange curves (e.g. X25519, CurveP256, or decimal CurveID).
-  # If empty, Go defaults apply.
+  # -- Comma-separated list of TLS key exchange curves allowed.
+  # Use names like X25519, CurveP256, CurveP384, CurveP521, or a decimal CurveID. If empty, Go defaults apply.
   # +docs:property
   curvePreferences: []
 
@@ -546,7 +546,9 @@ webhook:
     # +docs:property
     ciphers: ""
 
-    # -- Ordered list of TLS key exchange curves. If empty, the global tls.curvePreferences is used.
+    # -- Comma-separated list of TLS key exchange curves allowed.
+    # Use names like X25519, CurveP256, CurveP384, CurveP521, or a decimal CurveID.
+    # If empty, the global tls.curvePreferences is used.
     # +docs:property
     curvePreferences: []
 
@@ -831,7 +833,9 @@ certController:
     # +docs:property
     ciphers: ""
 
-    # -- Ordered list of TLS key exchange curves. If empty, the global tls.curvePreferences is used.
+    # -- Comma-separated list of TLS key exchange curves allowed.
+    # Use names like X25519, CurveP256, CurveP384, CurveP521, or a decimal CurveID.
+    # If empty, the global tls.curvePreferences is used.
     # +docs:property
     curvePreferences: []
 

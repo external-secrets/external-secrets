@@ -17,10 +17,7 @@ limitations under the License.
 package controller
 
 import (
-	"crypto/tls"
-	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -33,8 +30,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -54,7 +49,6 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
-	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/feature"
 
 	// To allow using gcp auth.
@@ -155,31 +149,12 @@ var rootCmd = &cobra.Command{
 			// dont cache any configmaps
 			clientCacheDisableFor = append(clientCacheDisableFor, &v1.ConfigMap{})
 		}
-		metricsOpts := server.Options{
-			BindAddress: metricsAddr,
-		}
-		if metricsSecure {
-			metricsOpts.SecureServing = true
-			metricsOpts.CertDir = metricsCertDir
-			metricsOpts.CertName = metricsCertName
-			metricsOpts.KeyName = metricsKeyName
-		}
-		if metricsAuth {
-			metricsOpts.FilterProvider = filters.WithAuthenticationAndAuthorization
-		}
-		if metricsAuth && !metricsSecure {
-			setupLog.Error(nil, "--metrics-auth requires --metrics-secure; bearer tokens over plaintext HTTP is not allowed")
-			os.Exit(1)
-		}
-		metricsTLSOpts, err := buildTLSConfigFuncs(tlsCiphers, tlsMinVersion, tlsCurvePreferences, enableHTTP2)
-		if err != nil {
-			setupLog.Error(err, "unable to configure TLS for metrics server")
-			os.Exit(1)
-		}
-		metricsOpts.TLSOpts = metricsTLSOpts
+
+		metricsServerOpts := setupMetricServerOptions()
+
 		mgrOpts := ctrl.Options{
 			Scheme:                 scheme,
-			Metrics:                metricsOpts,
+			Metrics:                metricsServerOpts,
 			HealthProbeBindAddress: liveAddr,
 			WebhookServer: webhook.NewServer(webhook.Options{
 				Port: 9443,
@@ -397,8 +372,8 @@ func init() {
 	rootCmd.Flags().StringVar(&tlsMinVersion, "tls-min-version", "", "minimum version of TLS supported for the metrics server. "+
 		"If not specified, Go's default minimum version is used. Valid values: 1.0, 1.1, 1.2, 1.3")
 	rootCmd.Flags().StringSliceVar(&tlsCurvePreferences, "tls-curve-preferences", nil,
-		"ordered list of TLS key exchange curves for the metrics server "+
-			"(for example X25519,CurveP256, or decimal tls.CurveID values supported by this Go toolchain). "+
+		"comma separated list of TLS key exchange curves allowed for the metrics server. "+
+			"Use names like X25519, CurveP256, CurveP384, CurveP521, or a decimal CurveID. "+
 			"If omitted, Go defaults are used.")
 	rootCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics server")
@@ -408,73 +383,4 @@ func init() {
 	for _, f := range fs {
 		rootCmd.Flags().AddFlagSet(f.Flags)
 	}
-}
-
-// disableHTTP2 is a TLS configuration function that disables HTTP/2.
-func disableHTTP2(cfg *tls.Config) {
-	cfg.NextProtos = []string{"http/1.1"}
-}
-
-// parseTLSCurvePreferences converts human-readable curve names to tls.CurveID values.
-// It accepts well-known names (X25519, CurveP256, CurveP384, CurveP521 and aliases)
-// as well as decimal tls.CurveID values for forward-compat with new Go toolchains.
-func parseTLSCurvePreferences(names []string) ([]tls.CurveID, error) {
-	filtered := make([]string, 0, len(names))
-	for _, n := range names {
-		n = strings.TrimSpace(n)
-		if n == "" {
-			continue
-		}
-		filtered = append(filtered, n)
-	}
-	if len(filtered) == 0 {
-		return nil, nil
-	}
-	return esutils.ParseCurvePreferences(filtered)
-}
-
-// buildTLSConfigFuncs assembles a slice of tls.Config mutators from the current
-// flag values. It is shared across all subcommands (controller, webhook, certcontroller).
-func buildTLSConfigFuncs(ciphers, minVer string, curves []string, http2 bool) ([]func(*tls.Config), error) {
-	var opts []func(*tls.Config)
-
-	if !http2 {
-		opts = append(opts, disableHTTP2)
-	}
-
-	if ciphers != "" {
-		ids, err := getTLSCipherSuitesIDs(ciphers)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse tls ciphers: %w", err)
-		}
-		if len(ids) > 0 {
-			opts = append(opts, func(cfg *tls.Config) {
-				cfg.CipherSuites = ids
-			})
-		}
-	}
-
-	if minVer != "" {
-		ver, err := tlsVersion(minVer)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse tls min version: %w", err)
-		}
-		opts = append(opts, func(cfg *tls.Config) {
-			cfg.MinVersion = ver
-		})
-	}
-
-	if len(curves) > 0 {
-		curveIDs, err := parseTLSCurvePreferences(curves)
-		if err != nil {
-			return nil, fmt.Errorf("unable to parse tls curve preferences: %w", err)
-		}
-		if len(curveIDs) > 0 {
-			opts = append(opts, func(cfg *tls.Config) {
-				cfg.CurvePreferences = curveIDs
-			})
-		}
-	}
-
-	return opts, nil
 }
