@@ -1,0 +1,15 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Grafana
+metadata:
+  name: grafana-token
+spec:
+  urlFrom:
+    name: grafana-admin
+    key: url
+  auth:
+    token:
+      name: grafana-admin
+      key: token
+  serviceAccount:
+    name: my-service-account
+    role: Viewer
