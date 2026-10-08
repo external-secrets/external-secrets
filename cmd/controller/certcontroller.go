@@ -22,19 +22,14 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"go.uber.org/zap/zapcore"
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	v1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"k8s.io/apimachinery/pkg/labels"
-	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	ctrlcommon "github.com/external-secrets/external-secrets/pkg/controllers/common"
@@ -75,31 +70,7 @@ var certcontrollerCmd = &cobra.Command{
 			}
 		}
 
-		// Configure metrics server options
-		metricsServerOpts := server.Options{
-			BindAddress: metricsAddr,
-		}
-
-		if metricsSecure {
-			metricsServerOpts.SecureServing = true
-			metricsServerOpts.CertDir = metricsCertDir
-			metricsServerOpts.CertName = metricsCertName
-			metricsServerOpts.KeyName = metricsKeyName
-		}
-
-		if metricsAuth {
-			metricsServerOpts.FilterProvider = filters.WithAuthenticationAndAuthorization
-		}
-		if metricsAuth && !metricsSecure {
-			setupLog.Error(nil, "--metrics-auth requires --metrics-secure; bearer tokens over plaintext HTTP is not allowed")
-			os.Exit(1)
-		}
-		metricsTLSOpts, err := buildTLSConfigFuncs(tlsCiphers, tlsMinVersion, tlsCurvePreferences, enableHTTP2)
-		if err != nil {
-			setupLog.Error(err, "unable to configure TLS for certcontroller metrics server")
-			os.Exit(1)
-		}
-		metricsServerOpts.TLSOpts = metricsTLSOpts
+		metricsServerOpts := setupMetricServerOptions()
 
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:  scheme,
@@ -176,28 +147,6 @@ var certcontrollerCmd = &cobra.Command{
 	},
 }
 
-func setupLogger() {
-	var lvl zapcore.Level
-	var enc zapcore.TimeEncoder
-	lvlErr := lvl.UnmarshalText([]byte(loglevel))
-	if lvlErr != nil {
-		setupLog.Error(lvlErr, "error unmarshalling loglevel")
-		os.Exit(1)
-	}
-	encErr := enc.UnmarshalText([]byte(zapTimeEncoding))
-	if encErr != nil {
-		setupLog.Error(encErr, "error unmarshalling timeEncoding")
-		os.Exit(1)
-	}
-	opts := zap.Options{
-		Level:       lvl,
-		TimeEncoder: enc,
-	}
-	logger := zap.New(zap.UseFlagOptions(&opts))
-	ctrl.SetLogger(logger)
-	klog.SetLogger(logger)
-}
-
 func init() {
 	rootCmd.AddCommand(certcontrollerCmd)
 
@@ -228,8 +177,8 @@ func init() {
 	certcontrollerCmd.Flags().StringVar(&tlsMinVersion, "tls-min-version", "", "minimum version of TLS supported for the metrics server. "+
 		"If not specified, Go's default minimum version is used. Valid values: 1.0, 1.1, 1.2, 1.3")
 	certcontrollerCmd.Flags().StringSliceVar(&tlsCurvePreferences, "tls-curve-preferences", nil,
-		"ordered list of TLS key exchange curves for the metrics server "+
-			"(for example X25519,CurveP256, or decimal tls.CurveID values supported by this Go toolchain). "+
+		"comma separated list of TLS key exchange curves allowed for the metrics server. "+
+			"Use names like X25519, CurveP256, CurveP384, CurveP521, or a decimal CurveID. "+
 			"If omitted, Go defaults are used.")
 	certcontrollerCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics server")
