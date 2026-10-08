@@ -188,8 +188,26 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	}
 
 	// SetCredentialSecret only updates the password/secret field.
-	if err := existingEntry.SetCredentialSecret(string(value)); err != nil {
-		return err
+	// When a specific property is requested, write to the correct field instead.
+	if data.GetProperty() != "" {
+		switch data.GetProperty() {
+		case "username":
+			if defaultData, ok := existingEntry.GetCredentialDefaultData(); ok {
+				defaultData.Username = string(value)
+			} else {
+				existingEntry.Data = &dvls.EntryCredentialDefaultData{Username: string(value)}
+			}
+		case "password":
+			if err := existingEntry.SetCredentialSecret(string(value)); err != nil {
+				return err
+			}
+		default:
+			return fmt.Errorf("unsupported property %q for DVLS credential entry", data.GetProperty())
+		}
+	} else {
+		if err := existingEntry.SetCredentialSecret(string(value)); err != nil {
+			return err
+		}
 	}
 
 	_, err = c.cred.Update(ctx, existingEntry)

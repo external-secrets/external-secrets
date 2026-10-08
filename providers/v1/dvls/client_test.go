@@ -843,6 +843,79 @@ func TestClient_PushSecret_ByNameNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "entry must exist before pushing secrets")
 }
 
+func TestClient_PushSecret_PropertyUsername(t *testing.T) {
+	entry := dvls.Entry{
+		Id:      testEntryUUID,
+		Type:    dvls.EntryCredentialType,
+		SubType: dvls.EntryCredentialSubTypeDefault,
+		Data:    &dvls.EntryCredentialDefaultData{Password: "old-pass", Username: "old-user"},
+	}
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: entry})
+	secret := &corev1.Secret{Data: map[string][]byte{"username": []byte("new-user")}}
+	data := pushSecretDataStub{remoteKey: testEntryUUID, secretKey: "username", property: "username"}
+
+	err := c.PushSecret(context.Background(), secret, data)
+	assert.NoError(t, err)
+
+	credData, ok := mockCred.entries[testEntryUUID].Data.(*dvls.EntryCredentialDefaultData)
+	assert.True(t, ok)
+	assert.Equal(t, "new-user", credData.Username)
+	assert.Equal(t, "old-pass", credData.Password, "password should be preserved")
+}
+
+func TestClient_PushSecret_PropertyPassword(t *testing.T) {
+	entry := dvls.Entry{
+		Id:      testEntryUUID,
+		Type:    dvls.EntryCredentialType,
+		SubType: dvls.EntryCredentialSubTypeDefault,
+		Data:    &dvls.EntryCredentialDefaultData{Password: "old-pass", Username: "old-user"},
+	}
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: entry})
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("new-pass")}}
+	data := pushSecretDataStub{remoteKey: testEntryUUID, secretKey: "password", property: "password"}
+
+	err := c.PushSecret(context.Background(), secret, data)
+	assert.NoError(t, err)
+
+	credData, ok := mockCred.entries[testEntryUUID].Data.(*dvls.EntryCredentialDefaultData)
+	assert.True(t, ok)
+	assert.Equal(t, "new-pass", credData.Password)
+	assert.Equal(t, "old-user", credData.Username, "username should be preserved")
+}
+
+func TestClient_PushSecret_PropertyUnsupported(t *testing.T) {
+	entry := dvls.Entry{
+		Id:      testEntryUUID,
+		Type:    dvls.EntryCredentialType,
+		SubType: dvls.EntryCredentialSubTypeDefault,
+	}
+	c, _ := newTestClient(map[string]dvls.Entry{testEntryUUID: entry})
+	secret := &corev1.Secret{Data: map[string][]byte{"x": []byte("v")}}
+	data := pushSecretDataStub{remoteKey: testEntryUUID, secretKey: "x", property: "domain"}
+
+	err := c.PushSecret(context.Background(), secret, data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported property")
+}
+
+func TestClient_PushSecret_PropertyNewEntry(t *testing.T) {
+	entry := dvls.Entry{
+		Id:      testEntryUUID,
+		Type:    dvls.EntryCredentialType,
+		SubType: dvls.EntryCredentialSubTypeDefault,
+	}
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: entry})
+	secret := &corev1.Secret{Data: map[string][]byte{"username": []byte("new-user")}}
+	data := pushSecretDataStub{remoteKey: testEntryUUID, secretKey: "username", property: "username"}
+
+	err := c.PushSecret(context.Background(), secret, data)
+	assert.NoError(t, err)
+
+	credData, ok := mockCred.entries[testEntryUUID].Data.(*dvls.EntryCredentialDefaultData)
+	assert.True(t, ok)
+	assert.Equal(t, "new-user", credData.Username)
+}
+
 // --- Tests: isNotFoundError ---
 
 func TestIsNotFoundError(t *testing.T) {
