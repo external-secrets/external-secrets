@@ -20,7 +20,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
@@ -52,9 +51,15 @@ func NewOIDCTokenManager(
 
 	oidcAuth := store.Auth.OIDCConfig
 
-	baseURL := "https://api.doppler.com"
-	if customURL := os.Getenv(customBaseURLEnvVar); customURL != "" {
-		baseURL = customURL
+	// A host the client cannot normalize yields a nil manager, like the
+	// nil-config cases above; setupOIDCAuth turns that into an error.
+	baseURL, err := resolveBaseURL(store)
+	if err != nil {
+		return nil
+	}
+
+	if baseURL == "" {
+		baseURL = "https://api.doppler.com"
 	}
 
 	// Resource-specific audience binds the SA token to a specific
