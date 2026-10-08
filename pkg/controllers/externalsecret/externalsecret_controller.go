@@ -230,7 +230,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		// Remove finalizer if it exists
 		// Use Patch instead of Update to avoid claiming ownership of spec fields like refreshInterval
 		patch := client.MergeFrom(externalSecret.DeepCopy())
-		if updated := controllerutil.RemoveFinalizer(externalSecret, ExternalSecretFinalizer); updated {
+		if controllerutil.RemoveFinalizer(externalSecret, ExternalSecretFinalizer) {
 			if err := r.Patch(ctx, externalSecret, patch); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -241,7 +241,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	// Add finalizer if it doesn't exist
 	// Use Patch instead of Update to avoid claiming ownership of spec fields like refreshInterval
 	patch := client.MergeFrom(externalSecret.DeepCopy())
-	if updated := controllerutil.AddFinalizer(externalSecret, ExternalSecretFinalizer); updated {
+	if controllerutil.AddFinalizer(externalSecret, ExternalSecretFinalizer) {
 		if err := r.Patch(ctx, externalSecret, patch); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -506,7 +506,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		secret.Labels[esv1.LabelManaged] = esv1.LabelManagedValue
 		secret.Annotations[esv1.AnnotationDataHash] = esutils.ObjectHash(secret.Data)
 
-		return nil
+		return validateSecretCandidate(secret)
 	}
 
 	switch externalSecret.Spec.Target.CreationPolicy {

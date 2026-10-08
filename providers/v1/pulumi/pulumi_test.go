@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -27,8 +28,11 @@ import (
 	esc "github.com/pulumi/esc-sdk/sdk/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/yaml"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	testingfake "github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 
 // Constants for content type and value.
@@ -363,6 +367,138 @@ func TestGetSecretMap(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPushSecret(t *testing.T) {
+	definition := map[string]any{
+		"imports": []any{"base-env"},
+		"values": map[string]any{
+			"pulumiConfig": map[string]any{
+				"aws:region": "us-west-2",
+			},
+			"environmentVariables": map[string]any{
+				"AWS_REGION": "${aws.region}",
+			},
+			"files": map[string]any{
+				"KUBECONFIG": "${kubeconfig}",
+			},
+			"aws": map[string]any{
+				"login": map[string]any{
+					"fn::open::aws-login": map[string]any{
+						"oidc": map[string]any{
+							"roleArn": "arn:aws:iam::123456789012:role/esc",
+						},
+					},
+				},
+			},
+			"db": map[string]any{
+				"password": map[string]any{
+					"fn::secret": map[string]any{
+						"ciphertext": "ZXNjeAAAAAE=",
+					},
+				},
+			},
+			"app": map[string]any{
+				"token": map[string]any{
+					"fn::secret": "old-token",
+				},
+				"url": "https://app.example.com",
+			},
+		},
+	}
+
+	var patched map[string]any
+	client := newTestClient(t, "", "/environments/foo/default/bar", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add(contentType, contentTypeValue)
+		switch r.Method {
+		case http.MethodGet:
+			require.NoError(t, json.NewEncoder(w).Encode(definition))
+		case http.MethodPatch:
+			body, err := io.ReadAll(r.Body)
+			require.NoError(t, err)
+			require.NoError(t, yaml.Unmarshal(body, &patched))
+			_, _ = w.Write([]byte(`{}`))
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})
+
+	err := client.PushSecret(context.TODO(), &corev1.Secret{
+		Data: map[string][]byte{"token": []byte("new-token")},
+	}, testingfake.PushSecretData{SecretKey: "token", RemoteKey: "app.token"})
+	require.NoError(t, err)
+	require.NotNil(t, patched, "expected UpdateEnvironment to be called")
+
+	want := map[string]any{
+		"imports": []any{"base-env"},
+		"values": map[string]any{
+			"pulumiConfig": map[string]any{
+				"aws:region": "us-west-2",
+			},
+			"environmentVariables": map[string]any{
+				"AWS_REGION": "${aws.region}",
+			},
+			"files": map[string]any{
+				"KUBECONFIG": "${kubeconfig}",
+			},
+			"aws": map[string]any{
+				"login": map[string]any{
+					"fn::open::aws-login": map[string]any{
+						"oidc": map[string]any{
+							"roleArn": "arn:aws:iam::123456789012:role/esc",
+						},
+					},
+				},
+			},
+			"db": map[string]any{
+				"password": map[string]any{
+					"fn::secret": map[string]any{
+						"ciphertext": "ZXNjeAAAAAE=",
+					},
+				},
+			},
+			"app": map[string]any{
+				"token": "new-token",
+				"url":   "https://app.example.com",
+			},
+		},
+	}
+	assert.Equal(t, want, patched)
+}
+
+func TestPushSecretEmptyEnvironment(t *testing.T) {
+	// A brand-new environment has an empty definition (no values block yet),
+	// so definition.Values is nil after GetEnvironment.
+	var patched map[string]any
+	client := newTestClient(t, "", "/environments/foo/default/bar", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add(contentType, contentTypeValue)
+		switch r.Method {
+		case http.MethodGet:
+			_, _ = w.Write([]byte(`{}`))
+		case http.MethodPatch:
+			body, err := io.ReadAll(r.Body)
+			require.NoError(t, err)
+			require.NoError(t, yaml.Unmarshal(body, &patched))
+			_, _ = w.Write([]byte(`{}`))
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+		}
+	})
+
+	err := client.PushSecret(context.TODO(), &corev1.Secret{
+		Data: map[string][]byte{"token": []byte("new-token")},
+	}, testingfake.PushSecretData{SecretKey: "token", RemoteKey: "app.token"})
+	require.NoError(t, err)
+	require.NotNil(t, patched, "expected UpdateEnvironment to be called")
+
+	want := map[string]any{
+		"values": map[string]any{
+			"app": map[string]any{
+				"token": "new-token",
+			},
+		},
+	}
+	assert.Equal(t, want, patched)
 }
 
 func TestCreateSubmaps(t *testing.T) {

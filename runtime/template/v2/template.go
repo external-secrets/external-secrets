@@ -75,11 +75,9 @@ func FuncMap() tpl.FuncMap {
 }
 
 const (
-	errParse                = "unable to parse template at key %s: %s"
-	errExecute              = "unable to execute template at key %s: %s"
-	errDecodePKCS12WithPass = "unable to decode pkcs12 with password: %s"
-	errDecodeCertWithPass   = "unable to decode pkcs12 certificate with password: %s"
-	errParsePrivKey         = "unable to parse private key type"
+	errParse        = "unable to parse template at key %s: %s"
+	errExecute      = "unable to execute template at key %s: %s"
+	errParsePrivKey = "unable to parse private key type"
 
 	pemTypeCertificate = "CERTIFICATE"
 	pemTypeKey         = "PRIVATE KEY"

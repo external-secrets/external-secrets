@@ -222,9 +222,11 @@ func rsaEncryptOAEP(t testing.TB, publicKeyPEM []byte, hash, plaintext string) [
 	return ciphertext
 }
 
-func TestFuncMapDoesNotExposeGetHostByName(t *testing.T) {
-	if _, ok := FuncMap()["getHostByName"]; ok {
-		t.Fatalf("getHostByName should not be exposed in the template function map")
+func TestFuncMapDoesNotExposeExcludedFunctions(t *testing.T) {
+	for _, name := range []string{"env", "expandenv", "getHostByName", "fail"} {
+		if _, ok := FuncMap()[name]; ok {
+			t.Errorf("%s should not be exposed in the template function map", name)
+		}
 	}
 }
 
