@@ -53,14 +53,15 @@ const (
 	payloadConst      = "payload"
 	smAPIKeyConst     = "api_key"
 
-	errIBMClient                = "cannot setup new ibm client: %w"
-	errUninitializedIBMProvider = "provider IBM is not initialized"
-	errJSONSecretUnmarshal      = "unable to unmarshal secret from JSON: %w"
-	errJSONSecretMarshal        = "unable to marshal secret to JSON: %w"
-	errExtractingSecret         = "unable to extract the fetched secret %s of type %s while performing %s"
-	errNotImplemented           = "not implemented"
-	errKeyDoesNotExist          = "key %s does not exist in secret %s"
-	errFieldIsEmpty             = "warn: %s is empty for secret %s\n"
+	errIBMClient                 = "cannot setup new ibm client: %w"
+	errUninitializedIBMProvider  = "provider IBM is not initialized"
+	errJSONSecretUnmarshal       = "unable to unmarshal secret from JSON: %w"
+	errJSONSecretMarshal         = "unable to marshal secret to JSON: %w"
+	errExtractingSecret          = "unable to extract the fetched secret %s of type %s while performing %s"
+	errNotImplemented            = "not implemented"
+	errKeyDoesNotExist           = "key %s does not exist in secret %s"
+	errFieldIsEmpty              = "warn: %s is empty for secret %s\n"
+	errContainerAuthClusterStore = "container auth is only supported for ClusterSecretStore because it reads a token from the operator pod"
 
 	iamDefaultEndpoint = "https://iam.cloud.ibm.com"
 )
@@ -617,6 +618,10 @@ func (ibm *providerIBM) ValidateStore(store esv1.GenericStore) (admission.Warnin
 	}
 
 	if !missingContainerRef {
+		if store.GetKind() != esv1.ClusterSecretStoreKind {
+			return nil, errors.New(errContainerAuthClusterStore)
+		}
+
 		// catch undefined container auth profile
 		if containerRef.Profile == "" {
 			return nil, errors.New("container auth profile cannot be empty")
@@ -667,6 +672,9 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1.GenericStore, 
 	var err error
 	var secretsManager *sm.SecretsManagerV2
 	containerAuth := iStore.store.Auth.ContainerAuth
+	if !esutils.IsNil(containerAuth) && store.GetKind() != esv1.ClusterSecretStoreKind {
+		return nil, errors.New(errContainerAuthClusterStore)
+	}
 	if !esutils.IsNil(containerAuth) && containerAuth.Profile != "" {
 		// container-based auth
 		containerAuthProfile := iStore.store.Auth.ContainerAuth.Profile

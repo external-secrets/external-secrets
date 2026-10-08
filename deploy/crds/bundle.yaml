@@ -5444,7 +5444,9 @@ spec:
                           minProperties: 1
                           properties:
                             containerAuth:
-                              description: IBMAuthContainerAuth defines container-based authentication with IAM Trusted Profile.
+                              description: |-
+                                IBMAuthContainerAuth defines container-based authentication with IAM Trusted Profile.
+                                This authentication method is only supported for ClusterSecretStore because it reads a token from the operator pod.
                               properties:
                                 iamEndpoint:
                                   type: string
@@ -5452,7 +5454,7 @@ spec:
                                   description: the IBM Trusted Profile
                                   type: string
                                 tokenLocation:
-                                  description: Location the token is mounted on the pod
+                                  description: Location where the token is mounted in the operator pod.
                                   type: string
                               required:
                                 - profile
@@ -19121,7 +19123,9 @@ spec:
                           minProperties: 1
                           properties:
                             containerAuth:
-                              description: IBMAuthContainerAuth defines container-based authentication with IAM Trusted Profile.
+                              description: |-
+                                IBMAuthContainerAuth defines container-based authentication with IAM Trusted Profile.
+                                This authentication method is only supported for ClusterSecretStore because it reads a token from the operator pod.
                               properties:
                                 iamEndpoint:
                                   type: string
@@ -19129,7 +19133,7 @@ spec:
                                   description: the IBM Trusted Profile
                                   type: string
                                 tokenLocation:
-                                  description: Location the token is mounted on the pod
+                                  description: Location where the token is mounted in the operator pod.
                                   type: string
                               required:
                                 - profile

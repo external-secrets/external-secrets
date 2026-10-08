@@ -7688,7 +7688,8 @@ IBMAuthContainerAuth
 <a href="#external-secrets.io/v1.IBMAuth">IBMAuth</a>)
 </p>
 <p>
-<p>IBMAuthContainerAuth defines container-based authentication with IAM Trusted Profile.</p>
+<p>IBMAuthContainerAuth defines container-based authentication with IAM Trusted Profile.
+This authentication method is only supported for ClusterSecretStore because it reads a token from the operator pod.</p>
 </p>
 <table>
 <thead>
@@ -7717,7 +7718,7 @@ string
 </em>
 </td>
 <td>
-<p>Location the token is mounted on the pod</p>
+<p>Location where the token is mounted in the operator pod.</p>
 </td>
 </tr>
 <tr>
