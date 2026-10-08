@@ -86,6 +86,14 @@ var db = buildDB(&fakeSecretAPI{
 			},
 		},
 		{
+			name: "json-dotted-keys",
+			versions: []*fakeSecretVersion{
+				{revision: 1, data: []byte(
+					`{"tls.crt":"CERT","username":"alice","a.b":"literal","a":{"b":"nested"}}`,
+				)},
+			},
+		},
+		{
 			name: "nested-secret",
 			path: "/subpath",
 			versions: []*fakeSecretVersion{
@@ -94,6 +102,10 @@ var db = buildDB(&fakeSecretAPI{
 					data:     []byte("secret data"),
 				},
 			},
+		},
+		{
+			name:     "exists-no-version",
+			versions: []*fakeSecretVersion{},
 		},
 	},
 })
@@ -159,12 +171,35 @@ func TestGetSecret(t *testing.T) {
 			},
 			response: []byte("9"),
 		},
+		"literal dotted key is found without escaping": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:      "id:" + db.secret("json-dotted-keys").id,
+				Property: "tls.crt",
+				Version:  "latest",
+			},
+			response: []byte("CERT"),
+		},
+		"nested path still wins over literal fallback": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:      "id:" + db.secret("json-dotted-keys").id,
+				Property: "a.b",
+				Version:  "latest",
+			},
+			response: []byte("nested"),
+		},
 		"secret in path": {
 			ref: esv1.ExternalSecretDataRemoteRef{
 				Key:     "path:/subpath/nested-secret",
 				Version: "latest",
 			},
 			response: []byte("secret data"),
+		},
+		"name ref does not match a secret under a sub-path": {
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key:     "name:nested-secret",
+				Version: "latest",
+			},
+			err: esv1.NoSecretErr,
 		},
 		"non existing secret id should yield NoSecretErr": {
 			ref: esv1.ExternalSecretDataRemoteRef{
@@ -218,6 +253,13 @@ func TestPushSecret(t *testing.T) {
 			RemoteKey: remoteKey,
 		}
 	}
+	pushSecretDataWithProperty := func(remoteKey, property string) testingfake.PushSecretData {
+		return testingfake.PushSecretData{
+			SecretKey: secretKey,
+			RemoteKey: remoteKey,
+			Property:  property,
+		}
+	}
 	secret := func(value []byte) *corev1.Secret {
 		return &corev1.Secret{
 			Data: map[string][]byte{secretKey: value},
@@ -238,7 +280,8 @@ func TestPushSecret(t *testing.T) {
 
 	t.Run("to secret created by us", func(t *testing.T) {
 		ctx := context.Background()
-		c := newTestClient()
+		api := buildDB(&fakeSecretAPI{})
+		c := &client{api: api, cache: newCache()}
 		data := []byte("some secret data a11d416b-9169-4f4a-8c27-d2959b22e189")
 		secretName := "secret-update-test"
 		assert.NoError(t, c.PushSecret(ctx, secret([]byte("original data")), pushSecretData(fmt.Sprintf("name:%s", secretName))))
@@ -246,8 +289,8 @@ func TestPushSecret(t *testing.T) {
 		pushErr := c.PushSecret(ctx, secret(data), pushSecretData(fmt.Sprintf("name:%s", secretName)))
 
 		assert.NoError(t, pushErr)
-		assert.Len(t, db.secret(secretName).versions, 2)
-		assert.Equal(t, data, db.secret(secretName).versions[1].data)
+		assert.Len(t, api.secret(secretName).versions, 2)
+		assert.Equal(t, data, api.secret(secretName).versions[1].data)
 	})
 
 	t.Run("to secret partially created by us with no version", func(t *testing.T) {
@@ -317,6 +360,203 @@ func TestPushSecret(t *testing.T) {
 		assert.Equal(t, 2, len(fs.versions))
 		assert.Equal(t, "disabled", fs.versions[0].status)
 	})
+
+	t.Run("whole secret is pushed as a JSON object", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "whole-secret-test"
+		wholeSecret := &corev1.Secret{Data: map[string][]byte{
+			"username": []byte("alice"),
+			"password": []byte("s3cr3t"),
+		}}
+
+		pushErr := c.PushSecret(ctx, wholeSecret, testingfake.PushSecretData{RemoteKey: "name:" + secretName})
+
+		assert.NoError(t, pushErr)
+		assert.Len(t, db.secret(secretName).versions, 1)
+		assert.JSONEq(t, `{"username":"alice","password":"s3cr3t"}`, string(db.secret(secretName).versions[0].data))
+	})
+
+	t.Run("whole secret push does not HTML-escape values", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "whole-secret-html"
+		wholeSecret := &corev1.Secret{Data: map[string][]byte{"markup": []byte(`<a href="x">&</a>`)}}
+
+		pushErr := c.PushSecret(ctx, wholeSecret, testingfake.PushSecretData{RemoteKey: "name:" + secretName})
+
+		assert.NoError(t, pushErr)
+		assert.Equal(t, `{"markup":"<a href=\"x\">&</a>"}`, string(db.secret(secretName).versions[0].data))
+	})
+
+	t.Run("whole secret push without change does not create a version", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "whole-secret-idempotent"
+		wholeSecret := &corev1.Secret{Data: map[string][]byte{"a": []byte("1"), "b": []byte("2")}}
+
+		assert.NoError(t, c.PushSecret(ctx, wholeSecret, testingfake.PushSecretData{RemoteKey: "name:" + secretName}))
+		assert.NoError(t, c.PushSecret(ctx, wholeSecret, testingfake.PushSecretData{RemoteKey: "name:" + secretName}))
+
+		assert.Len(t, db.secret(secretName).versions, 1)
+	})
+
+	t.Run("property push to new secret creates a JSON object", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "property-new-secret"
+
+		pushErr := c.PushSecret(ctx, secret([]byte("alice")), pushSecretDataWithProperty("name:"+secretName, "username"))
+
+		assert.NoError(t, pushErr)
+		assert.Len(t, db.secret(secretName).versions, 1)
+		assert.JSONEq(t, `{"username":"alice"}`, string(db.secret(secretName).versions[0].data))
+	})
+
+	t.Run("property push merges with existing object and disables previous version", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "property-merge-secret"
+		assert.NoError(t, c.PushSecret(ctx, secret([]byte("alice")), pushSecretDataWithProperty("name:"+secretName, "username")))
+
+		pushErr := c.PushSecret(ctx, secret([]byte("s3cr3t")), pushSecretDataWithProperty("name:"+secretName, "password"))
+
+		assert.NoError(t, pushErr)
+		fs := db.secret(secretName)
+		assert.Len(t, fs.versions, 2)
+		assert.JSONEq(t, `{"username":"alice","password":"s3cr3t"}`, string(fs.versions[1].data))
+		assert.Equal(t, "disabled", fs.versions[0].status)
+	})
+
+	t.Run("property push with dotted key stays a literal top-level key", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "property-dotted-secret"
+		assert.NoError(t, c.PushSecret(ctx, secret([]byte("CERT")), pushSecretDataWithProperty("name:"+secretName, "tls.crt")))
+
+		pushErr := c.PushSecret(ctx, secret([]byte("KEY")), pushSecretDataWithProperty("name:"+secretName, "tls.key"))
+
+		assert.NoError(t, pushErr)
+		fs := db.secret(secretName)
+		assert.JSONEq(t, `{"tls.crt":"CERT","tls.key":"KEY"}`, string(fs.versions[len(fs.versions)-1].data))
+
+		got, getErr := c.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{
+			Key: "name:" + secretName, Property: "tls.crt", Version: "latest",
+		})
+		assert.NoError(t, getErr)
+		assert.Equal(t, []byte("CERT"), got)
+	})
+
+	t.Run("property push does not HTML-escape values", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "property-html"
+
+		pushErr := c.PushSecret(ctx, secret([]byte(`<a href="x">&</a>`)), pushSecretDataWithProperty("name:"+secretName, "markup"))
+
+		assert.NoError(t, pushErr)
+		assert.Equal(t, `{"markup":"<a href=\"x\">&</a>"}`, string(db.secret(secretName).versions[0].data))
+	})
+
+	t.Run("property push updates an existing nested path in place", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "property-nested-update"
+		// seed with nested JSON via a raw push — do NOT reuse the shared
+		// "json-nested" fixture, later tests read it and db is global
+		assert.NoError(t, c.PushSecret(ctx, secret([]byte(`{"root":{"intermediate":{"leaf":"9"}}}`)), pushSecretData("name:"+secretName)))
+
+		pushErr := c.PushSecret(ctx, secret([]byte("10")), pushSecretDataWithProperty("name:"+secretName, "root.intermediate.leaf"))
+
+		assert.NoError(t, pushErr)
+		fs := db.secret(secretName)
+		assert.JSONEq(t, `{"root":{"intermediate":{"leaf":"10"}}}`, string(fs.versions[len(fs.versions)-1].data))
+	})
+
+	t.Run("whole secret push with property nests the object as a JSON string", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "whole-secret-with-property"
+		wholeSecret := &corev1.Secret{Data: map[string][]byte{"user": []byte("alice")}}
+
+		pushErr := c.PushSecret(ctx, wholeSecret, testingfake.PushSecretData{RemoteKey: "name:" + secretName, Property: "bundle"})
+
+		assert.NoError(t, pushErr)
+		assert.JSONEq(t, `{"bundle":"{\"user\":\"alice\"}"}`, string(db.secret(secretName).versions[0].data))
+	})
+
+	t.Run("property push onto a raw non-object value is refused", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "property-over-raw"
+		assert.NoError(t, c.PushSecret(ctx, secret([]byte("raw bytes")), pushSecretData("name:"+secretName)))
+
+		pushErr := c.PushSecret(ctx, secret([]byte("alice")), pushSecretDataWithProperty("name:"+secretName, "username"))
+
+		assert.ErrorContains(t, pushErr, "not a JSON object")
+		fs := db.secret(secretName)
+		assert.Len(t, fs.versions, 1, "no version must be created")
+		assert.Equal(t, []byte("raw bytes"), fs.versions[0].data, "remote value must be untouched")
+	})
+
+	t.Run("property push with a binary value is refused", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "property-binary"
+
+		pushErr := c.PushSecret(ctx, secret([]byte{0xff, 0xfe, 0x00, 0x01}), pushSecretDataWithProperty("name:"+secretName, "keystore"))
+
+		assert.ErrorContains(t, pushErr, "not valid UTF-8")
+		assert.Nil(t, db.secret(secretName), "no secret must be created")
+	})
+
+	t.Run("whole secret push with a binary value is refused", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "whole-secret-binary"
+		wholeSecret := &corev1.Secret{Data: map[string][]byte{
+			"ok":       []byte("text"),
+			"keystore": {0xff, 0xfe, 0x00, 0x01},
+		}}
+
+		pushErr := c.PushSecret(ctx, wholeSecret, testingfake.PushSecretData{RemoteKey: "name:" + secretName})
+
+		assert.ErrorContains(t, pushErr, "not valid UTF-8")
+		assert.Nil(t, db.secret(secretName), "no secret must be created")
+	})
+
+	t.Run("raw push without property accepts binary values", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "raw-binary-ok"
+		binary := []byte{0xff, 0xfe, 0x00, 0x01}
+
+		pushErr := c.PushSecret(ctx, secret(binary), pushSecretData("name:"+secretName))
+
+		assert.NoError(t, pushErr)
+		assert.Equal(t, binary, db.secret(secretName).versions[0].data)
+	})
+
+	t.Run("property push without change does not create a version", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+		secretName := "property-idempotent"
+		assert.NoError(t, c.PushSecret(ctx, secret([]byte("alice")), pushSecretDataWithProperty("name:"+secretName, "username")))
+
+		pushErr := c.PushSecret(ctx, secret([]byte("alice")), pushSecretDataWithProperty("name:"+secretName, "username"))
+
+		assert.NoError(t, pushErr)
+		assert.Len(t, db.secret(secretName).versions, 1)
+	})
+
+	t.Run("missing secret key is an error", func(t *testing.T) {
+		ctx := context.Background()
+		c := newTestClient()
+
+		pushErr := c.PushSecret(ctx, secret([]byte("x")), testingfake.PushSecretData{SecretKey: "other-key", RemoteKey: "name:missing-key-test"})
+
+		assert.Error(t, pushErr)
+	})
 }
 
 func TestGetSecretMap(t *testing.T) {
@@ -363,7 +603,7 @@ func TestGetAllSecrets(t *testing.T) {
 	}{
 		"find secrets by name": {
 			ref: esv1.ExternalSecretFind{
-				Name: &esv1.FindName{RegExp: "secret-.*"},
+				Name: &esv1.FindName{RegExp: "^secret-\\d$"},
 			},
 			response: map[string][]byte{
 				db.secret("secret-1").name: db.secret("secret-1").mustGetVersion("latest_enabled").data,
@@ -403,12 +643,195 @@ func TestGetAllSecrets(t *testing.T) {
 	}
 }
 
-func TestDeleteSecret(t *testing.T) {
+func TestDeleteSecretProperty(t *testing.T) {
+	ctx := context.Background()
+	seed := func(name string, data []byte) (esv1.SecretsClient, *fakeSecretAPI, *fakeSecret) {
+		api := buildDB(&fakeSecretAPI{
+			secrets: []*fakeSecret{
+				{
+					name:     name,
+					versions: []*fakeSecretVersion{{revision: 1, data: data}},
+				},
+			},
+		})
+		fs := api.secret(name)
+		return &client{api: api, cache: newCache()}, api, fs
+	}
+
+	t.Run("removes only the property and disables the previous version", func(t *testing.T) {
+		c, _, fs := seed("delete-prop-partial", []byte(`{"username":"alice","password":"s3cr3t"}`))
+
+		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "password"})
+
+		assert.NoError(t, err)
+		assert.Len(t, fs.versions, 2)
+		assert.JSONEq(t, `{"username":"alice"}`, string(fs.versions[1].data))
+		assert.Equal(t, "disabled", fs.versions[0].status)
+	})
+
+	t.Run("removes a literal dotted key", func(t *testing.T) {
+		c, _, fs := seed("delete-prop-dotted", []byte(`{"tls.crt":"CERT","username":"alice"}`))
+
+		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "tls.crt"})
+
+		assert.NoError(t, err)
+		assert.JSONEq(t, `{"username":"alice"}`, string(fs.versions[len(fs.versions)-1].data))
+	})
+
+	t.Run("deletes the whole secret when the last property is removed", func(t *testing.T) {
+		c, api, fs := seed("delete-prop-last", []byte(`{"username":"alice"}`))
+
+		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "username"})
+
+		assert.NoError(t, err)
+		assert.Nil(t, api.secret(fs.name))
+	})
+
+	t.Run("missing property is a no-op", func(t *testing.T) {
+		c, _, fs := seed("delete-prop-missing", []byte(`{"username":"alice"}`))
+
+		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "nope"})
+
+		assert.NoError(t, err)
+		assert.Len(t, fs.versions, 1)
+	})
+
+	t.Run("raw non-object value is a no-op", func(t *testing.T) {
+		c, _, fs := seed("delete-prop-raw", []byte("raw bytes"))
+
+		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:" + fs.name, Property: "username"})
+
+		assert.NoError(t, err)
+		assert.Len(t, fs.versions, 1)
+	})
+
+	t.Run("missing secret is a no-op", func(t *testing.T) {
+		c := newTestClient()
+
+		err := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:not-a-secret", Property: "username"})
+
+		assert.NoError(t, err)
+	})
+}
+
+func TestSecretExists(t *testing.T) {
 	ctx := context.Background()
 	c := newTestClient()
 
-	secret := db.secrets[0]
-	byPath := db.secret("nested-secret")
+	testCases := map[string]struct {
+		ref    testingfake.PushSecretData
+		exists bool
+		err    bool
+	}{
+		"existing secret by name": {
+			ref:    testingfake.PushSecretData{RemoteKey: "name:secret-1"},
+			exists: true,
+		},
+		"existing secret by id": {
+			ref:    testingfake.PushSecretData{RemoteKey: "id:" + db.secret("secret-1").id},
+			exists: true,
+		},
+		"existing secret by path": {
+			ref:    testingfake.PushSecretData{RemoteKey: "path:/subpath/nested-secret"},
+			exists: true,
+		},
+		"missing secret": {
+			ref: testingfake.PushSecretData{RemoteKey: "name:not-a-secret"},
+		},
+		"secret without version": {
+			ref: testingfake.PushSecretData{RemoteKey: "name:exists-no-version"},
+		},
+		"existing property": {
+			ref:    testingfake.PushSecretData{RemoteKey: "name:json-dotted-keys", Property: "username"},
+			exists: true,
+		},
+		"existing literal dotted property": {
+			ref:    testingfake.PushSecretData{RemoteKey: "name:json-dotted-keys", Property: "tls.crt"},
+			exists: true,
+		},
+		"missing property": {
+			ref: testingfake.PushSecretData{RemoteKey: "name:json-dotted-keys", Property: "nope"},
+		},
+		"property on non-object value": {
+			ref: testingfake.PushSecretData{RemoteKey: "path:/subpath/nested-secret", Property: "username"},
+		},
+		"name ref does not match a secret under a sub-path": {
+			ref: testingfake.PushSecretData{RemoteKey: "name:nested-secret"},
+		},
+		"invalid ref": {
+			ref: testingfake.PushSecretData{RemoteKey: "no-colon"},
+			err: true,
+		},
+		"empty id is an error": {
+			ref: testingfake.PushSecretData{RemoteKey: "id:"},
+			err: true,
+		},
+	}
+
+	for tcName, tc := range testCases {
+		t.Run(tcName, func(t *testing.T) {
+			exists, err := c.SecretExists(ctx, tc.ref)
+			if tc.err {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tc.exists, exists)
+		})
+	}
+}
+
+func TestNameRefTargetsRootPath(t *testing.T) {
+	ctx := context.Background()
+	// Isolated fake: the shared db indexes fixtures by name and cannot hold
+	// two secrets with the same name under different paths.
+	api := buildDB(&fakeSecretAPI{
+		secrets: []*fakeSecret{
+			{
+				name:     "same-name",
+				path:     "/subpath",
+				versions: []*fakeSecretVersion{{revision: 1, data: []byte("under subpath")}},
+			},
+		},
+	})
+	underSubPath := api.secrets[0]
+	c := &client{api: api, cache: newCache()}
+
+	pushErr := c.PushSecret(ctx,
+		&corev1.Secret{Data: map[string][]byte{"k": []byte("at root")}},
+		testingfake.PushSecretData{SecretKey: "k", RemoteKey: "name:same-name"})
+
+	assert.NoError(t, pushErr)
+	assert.Len(t, api.secrets, 2, "a secret must be created at the root path")
+	assert.Equal(t, "/", api.secrets[1].path)
+	assert.Equal(t, []byte("at root"), api.secrets[1].versions[0].data)
+	assert.Len(t, underSubPath.versions, 1, "the sub-path secret must be untouched")
+
+	deleteErr := c.DeleteSecret(ctx, testingfake.PushSecretData{RemoteKey: "name:same-name"})
+
+	assert.NoError(t, deleteErr)
+	assert.Equal(t, []*fakeSecret{underSubPath}, api.secrets, "only the root secret must be deleted")
+}
+
+func TestDeleteSecret(t *testing.T) {
+	ctx := context.Background()
+	api := buildDB(&fakeSecretAPI{
+		secrets: []*fakeSecret{
+			{
+				name:     "secret-1",
+				versions: []*fakeSecretVersion{{revision: 1}},
+			},
+			{
+				name:     "nested-secret",
+				path:     "/subpath",
+				versions: []*fakeSecretVersion{{revision: 1}},
+			},
+		},
+	})
+	c := &client{api: api, cache: newCache()}
+
+	secret := api.secret("secret-1")
+	byPath := api.secret("nested-secret")
 
 	testCases := map[string]struct {
 		ref testingfake.PushSecretData
