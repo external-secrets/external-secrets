@@ -7044,8 +7044,8 @@ ConfigMapReference
 </td>
 <td>
 <p>credConfig holds the configmap reference containing the GCP external account credential configuration in JSON format and the key name containing the json data.
-For using Kubernetes cluster as the identity provider, use serviceAccountRef instead. Operators mounted serviceaccount token cannot be used as the token source, instead
-serviceAccountRef must be used by providing operators service account details.</p>
+credential_source.file is only supported in ClusterSecretStore because the referenced file is read from the operator pod.
+For using Kubernetes cluster as the identity provider, use serviceAccountRef instead.</p>
 </td>
 </tr>
 <tr>
