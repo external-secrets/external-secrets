@@ -54,6 +54,12 @@ type GCPWorkloadIdentity struct {
 	ClusterLocation   string                        `json:"clusterLocation"`
 	ClusterName       string                        `json:"clusterName"`
 	ClusterProjectID  string                        `json:"clusterProjectID,omitempty"`
+	// UniverseDomain is the Google Cloud universe the cluster belongs to, for example a sovereign
+	// or dedicated cloud such as "apis-example.goog". Defaults to "googleapis.com".
+	// +kubebuilder:validation:MaxLength:=238
+	// +kubebuilder:validation:Pattern:=`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$`
+	// +optional
+	UniverseDomain string `json:"universeDomain,omitempty"`
 }
 
 // GCRAccessToken generates an GCP access token

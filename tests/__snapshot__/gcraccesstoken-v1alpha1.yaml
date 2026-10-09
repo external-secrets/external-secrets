@@ -16,6 +16,7 @@ spec:
         audiences: [] # minItems 0 of type string
         name: string
         namespace: string
+      universeDomain: string
     workloadIdentityFederation:
       audience: string
       awsSecurityCredentials:
