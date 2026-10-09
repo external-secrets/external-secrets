@@ -17,6 +17,7 @@ limitations under the License.
 package gitlab
 
 import (
+	"errors"
 	"os"
 	"strings"
 
@@ -92,8 +93,11 @@ func (s *gitlabProvider) DeleteSecret(key string) {
 	Expect(err).ToNot(HaveOccurred())
 	// Open a client**
 
-	// Delete the secret
+	// Delete the secret; tolerate not-found since cleanup may double-delete.
 	_, err = client.ProjectVariables.RemoveVariable(s.projectID, strings.ReplaceAll(key, "-", "_"), &gitlab.RemoveProjectVariableOptions{})
+	if errors.Is(err, gitlab.ErrNotFound) {
+		return
+	}
 	Expect(err).ToNot(HaveOccurred())
 }
 
