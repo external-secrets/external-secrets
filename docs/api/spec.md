@@ -28498,6 +28498,19 @@ string
 <td>
 </td>
 </tr>
+<tr>
+<td>
+<code>universeDomain</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UniverseDomain is the Google Cloud universe the cluster belongs to, for example a sovereign
+or dedicated cloud such as &ldquo;apis-example.goog&rdquo;. Defaults to &ldquo;googleapis.com&rdquo;.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="generators.external-secrets.io/v1alpha1.GCRAccessToken">GCRAccessToken
