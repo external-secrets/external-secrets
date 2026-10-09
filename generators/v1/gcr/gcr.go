@@ -77,7 +77,7 @@ func (g *Generator) generate(
 	}
 	ts, err := tokenSource(ctx, esv1.GCPSMAuth{
 		SecretRef:                  (*esv1.GCPSMAuthSecretRef)(res.Spec.Auth.SecretRef),
-		WorkloadIdentity:           (*esv1.GCPWorkloadIdentity)(res.Spec.Auth.WorkloadIdentity),
+		WorkloadIdentity:           workloadIdentityFromSpec(res.Spec.Auth.WorkloadIdentity),
 		WorkloadIdentityFederation: res.Spec.Auth.WorkloadIdentityFederation,
 	}, res.Spec.ProjectID, resolvers.EmptyStoreKind, kube, namespace)
 	if err != nil {
@@ -93,6 +93,21 @@ func (g *Generator) generate(
 		"password": []byte(token.AccessToken),
 		"expiry":   []byte(exp),
 	}, nil, nil
+}
+
+// workloadIdentityFromSpec copies the generator's workload identity settings into the provider type.
+// The provider type has fields the generator API does not expose (such as universeDomain), so the two
+// struct types are not convertible any more.
+func workloadIdentityFromSpec(in *genv1alpha1.GCPWorkloadIdentity) *esv1.GCPWorkloadIdentity {
+	if in == nil {
+		return nil
+	}
+	return &esv1.GCPWorkloadIdentity{
+		ServiceAccountRef: in.ServiceAccountRef,
+		ClusterLocation:   in.ClusterLocation,
+		ClusterName:       in.ClusterName,
+		ClusterProjectID:  in.ClusterProjectID,
+	}
 }
 
 type tokenSourceFunc func(ctx context.Context, auth esv1.GCPSMAuth, projectID string, storeKind string, kube client.Client, namespace string) (oauth2.TokenSource, error)

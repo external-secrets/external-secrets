@@ -41,7 +41,11 @@ func NewTokenSource(ctx context.Context, auth esv1.GCPSMAuth, projectID, storeKi
 	if ts != nil || err != nil {
 		return ts, err
 	}
-	wi, err := newWorkloadIdentity(ctx, projectID)
+	var universeDomain string
+	if auth.WorkloadIdentity != nil {
+		universeDomain = auth.WorkloadIdentity.UniverseDomain
+	}
+	wi, err := newWorkloadIdentity(ctx, projectID, universeDomain)
 	if err != nil {
 		return nil, fmt.Errorf("unable to initialize workload identity: %w", err)
 	}
