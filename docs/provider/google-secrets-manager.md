@@ -82,6 +82,36 @@ Next, create a `SecretStore` that references the `demo-secrets-sa` Kubernetes se
 {% include 'gcpsm-wif-iam-secret-store.yaml' %}
 ```
 
+#### Other Google Cloud universes
+
+`auth.workloadIdentity` also works in a Google Cloud universe other than `googleapis.com` (for example Google Cloud Dedicated or another sovereign cloud). Set `universeDomain` to the domain of that universe. When it is set, ESO:
+
+* exchanges the Kubernetes service account token through `https://sts.<universeDomain>/v1/token` instead of the `securetoken.googleapis.com` service, which does not exist in these universes;
+* builds the cluster identity provider as `https://container.<universeDomain>/v1/projects/<project>/locations/<location>/clusters/<cluster>`;
+* targets `iamcredentials.<universeDomain>` when the Kubernetes service account is annotated with `iam.gke.io/gcp-service-account`;
+* maps a `clusterProjectID` of the form `<domain>:<project>` to the workload identity pool `<project>.<domain>.svc.id.goog`.
+
+Without `universeDomain`, nothing changes and the `googleapis.com` endpoints are used. Set `clusterProjectID`, `clusterLocation` and `clusterName` explicitly, or make sure the metadata server provides them.
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: gcp-dedicated
+spec:
+  provider:
+    gcpsm:
+      projectID: "eu0:my-project"
+      auth:
+        workloadIdentity:
+          universeDomain: apis-example.goog
+          clusterProjectID: "eu0:my-project"
+          clusterLocation: example-region1
+          clusterName: my-cluster
+          serviceAccountRef:
+            name: demo-secrets-sa
+```
+
 In the case of a `ClusterSecretStore`, you additionally have to define the service account's `namespace` under `auth.workloadIdentity.serviceAccountRef`.
 
 Finally, you can create an `ExternalSecret` for the `demo-secret` that references this `SecretStore`:
@@ -316,6 +346,8 @@ Under `auth.workloadIdentityFederation` you must set **exactly one** of `service
 
 **`audience`:** Required on the spec when `serviceAccountRef` or `awsSecurityCredentials` is set. It must be the full workload identity **provider** resource name, for example `//iam.googleapis.com/projects/PROJECT_NUMBER/locations/global/workloadIdentityPools/POOL_ID/providers/PROVIDER_ID`. When only `credConfig` is used, `audience` can be supplied in the JSON; a non-empty `audience` on the spec overrides the file value.
 
+**`universeDomain`:** Optional. Set it when the workload identity pool and service account live in a universe other than the default `googleapis.com`, for example a Google Cloud Dedicated (sovereign) cloud. The STS and IAM Credentials endpoints are then derived from it (`https://sts.<universeDomain>/v1/token`, `https://iamcredentials.<universeDomain>/...`). A non-empty value on the spec overrides `universe_domain` from the `credConfig` JSON. `token_url`, `token_info_url` and `service_account_impersonation_url` values in that JSON that point at the former universe (`sts.<former>`, `iamcredentials.<former>`) are moved to the new one; any other host is rejected (see [impersonation](#google-service-account-impersonation) for the precedence of `service_account_impersonation_url`). Service account emails in such universes may carry extra labels before `iam.gserviceaccount.com`; they are accepted. When unset, behavior is unchanged and `googleapis.com` is used.
+
 **`projectID`:** Set `spec.provider.gcpsm.projectID` to the project that contains your Secret Manager secrets whenever the controller cannot rely on GKE metadata (typical for federation off GCP nodes).
 
 #### Kubernetes subject token (`serviceAccountRef`)
@@ -351,7 +383,7 @@ Impersonation is resolved as follows (see `updateServiceAccountImpersonationURL`
 2. With **`credConfig` only** (no `serviceAccountRef`): use **`service_account_impersonation_url`** from the `external_account` JSON when present (unless step 1 already applied).
 3. With **`serviceAccountRef`**: if step 1 did not apply, use the **`iam.gke.io/gcp-service-account`** annotation on that `ServiceAccount` when present.
 
-The implementation only allows impersonation URLs that match Google’s `generateAccessToken` endpoint pattern (see validation in the provider).
+The implementation only allows impersonation URLs of the form `https://iamcredentials.<universe domain>/v1/projects/.../serviceAccounts/<email>:generateAccessToken` (see validation in the provider). The universe domain is `googleapis.com` unless `universeDomain` or the credential config says otherwise.
 
 Typical patterns:
 

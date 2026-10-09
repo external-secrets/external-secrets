@@ -7013,6 +7013,22 @@ string
 If not specified, it fetches information from the metadata server</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>universeDomain</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>UniverseDomain is the Google Cloud universe the cluster belongs to, for example the domain of a
+Google Cloud Dedicated (sovereign) cloud. The Security Token Service and container endpoints
+(sts.<universeDomain>, container.<universeDomain>) and the IAM Credentials endpoint are derived from it.
+When it is not googleapis.com, the Kubernetes token is exchanged through sts.<universeDomain> instead
+of the googleapis.com securetoken service, and a clusterProjectID of the form <domain>:<project> maps to
+the workload identity pool <project>.<domain>.svc.id.goog. Defaults to googleapis.com.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.GCPWorkloadIdentityFederation">GCPWorkloadIdentityFederation
@@ -7100,6 +7116,21 @@ string
 <p>externalTokenEndpoint is the endpoint explicitly set up to provide tokens, which will be matched against the
 credential_source.url in the provided credConfig. This field is merely to double-check the external token source
 URL is having the expected value.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>universeDomain</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>universeDomain is the Google Cloud universe the workload identity pool and the service account belong to,
+for example the domain of a Google Cloud Dedicated (sovereign) cloud. The Security Token Service and IAM
+Credentials endpoints (sts.<universeDomain>, iamcredentials.<universeDomain>) are derived from it.
+If specified, universe_domain found in the external account credential config will be overridden with the
+configured value. Defaults to googleapis.com.</p>
 </td>
 </tr>
 <tr>
@@ -28465,6 +28496,19 @@ string
 </em>
 </td>
 <td>
+</td>
+</tr>
+<tr>
+<td>
+<code>universeDomain</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>UniverseDomain is the Google Cloud universe the cluster belongs to, for example a sovereign
+or dedicated cloud such as &ldquo;apis-example.goog&rdquo;. Defaults to &ldquo;googleapis.com&rdquo;.</p>
 </td>
 </tr>
 </tbody>

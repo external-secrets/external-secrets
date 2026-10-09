@@ -23,6 +23,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
@@ -81,7 +83,75 @@ var (
 	// workloadIdentityTokenInfoURLFormat is the STS introspection service endpoint format. When the UniverseDomain is not set
 	// in the GCP credentials config, defaultUniverseDomain will be substituted.
 	workloadIdentityTokenInfoURLFormat = "https://sts.%s/v1/introspect"
+
+	// identityBindingTokenURL is the securetoken endpoint used on the default universe to trade the
+	// Kubernetes token for an identity binding token.
+	identityBindingTokenURL = "https://securetoken.googleapis.com/v1/identitybindingtoken"
+
+	// clusterIdentityProviderURLFormat is the identity provider of a GKE cluster in a workload identity pool.
+	// Arguments: universe domain, project, location, cluster name.
+	clusterIdentityProviderURLFormat = "https://container.%s/v1/projects/%s/locations/%s/clusters/%s"
 )
+
+// universeDomainRegexp is the same DNS-labels pattern the CRD enforces on universeDomain. It is checked again
+// here because the value ends up in the host of requests sent with the cluster's credentials.
+var universeDomainRegexp = regexp.MustCompile(`^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$`)
+
+// validateUniverseDomain rejects a universe domain that is not a plain DNS name, so that it cannot smuggle
+// user information, a port, a path or a different host into the URLs built from it.
+func validateUniverseDomain(universeDomain string) error {
+	if universeDomain == "" {
+		return nil
+	}
+	if len(universeDomain) > 238 || !universeDomainRegexp.MatchString(universeDomain) {
+		return fmt.Errorf("invalid universeDomain %q: must be a DNS domain name", universeDomain)
+	}
+	return nil
+}
+
+// validateIdentityBindingEndpoint checks the host the token exchange is actually sent to, as parsed from the
+// URL: on another universe it must be exactly sts.<universeDomain>.
+func validateIdentityBindingEndpoint(universeDomain string) error {
+	if isDefaultUniverse(universeDomain) {
+		return nil
+	}
+	return validateServiceHost("identity binding token endpoint", identityBindingTokenEndpoint(universeDomain), "sts", universeDomain)
+}
+
+// isDefaultUniverse reports whether the universe domain is the public googleapis.com one.
+func isDefaultUniverse(universeDomain string) bool {
+	return universeDomain == "" || universeDomain == defaultUniverseDomain
+}
+
+// identityBindingTokenEndpoint returns the endpoint that trades the Kubernetes token for an identity binding
+// token. The default universe keeps the securetoken service; other universes (Google Cloud Dedicated,
+// sovereign clouds) have no securetoken host and use the Security Token Service instead.
+func identityBindingTokenEndpoint(universeDomain string) string {
+	if isDefaultUniverse(universeDomain) {
+		return identityBindingTokenURL
+	}
+	return fmt.Sprintf(workloadIdentityTokenURLFormat, universeDomain)
+}
+
+// workloadIdentityPool returns the workload identity pool of a cluster project. The default universe keeps
+// "<project>.svc.id.goog". In other universes a project written "<domain>:<project>" belongs to the pool
+// "<project>.<domain>.svc.id.goog".
+func workloadIdentityPool(projectID, universeDomain string) string {
+	if !isDefaultUniverse(universeDomain) {
+		if domain, project, ok := strings.Cut(projectID, ":"); ok {
+			return fmt.Sprintf("%s.%s.svc.id.goog", project, domain)
+		}
+	}
+	return fmt.Sprintf("%s.svc.id.goog", projectID)
+}
+
+// clusterIdentityProvider returns the identity provider URL of a GKE cluster.
+func clusterIdentityProvider(universeDomain, projectID, location, clusterName string) string {
+	if universeDomain == "" {
+		universeDomain = defaultUniverseDomain
+	}
+	return fmt.Sprintf(clusterIdentityProviderURLFormat, universeDomain, projectID, location, clusterName)
+}
 
 // workloadIdentity holds all clients and generators needed
 // to create a gcp oauth token.
@@ -111,17 +181,26 @@ type idBindTokenGenerator interface {
 	Generate(context.Context, *http.Client, string, string, string) (*oauth2.Token, error)
 }
 
+// universeAwareIDBindTokenGenerator is implemented by token generators that can target the endpoint of
+// another Google Cloud universe. Generators that do not implement it (test fakes, for example) are used as is.
+type universeAwareIDBindTokenGenerator interface {
+	forUniverse(universeDomain string) idBindTokenGenerator
+}
+
 // interface to kubernetes serviceaccount token request API.
 type saTokenGenerator interface {
 	Generate(context.Context, []string, string, string) (*authenticationv1.TokenRequest, error)
 }
 
-func newWorkloadIdentity(ctx context.Context, projectID string) (*workloadIdentity, error) {
+func newWorkloadIdentity(ctx context.Context, projectID, universeDomain string) (*workloadIdentity, error) {
+	if err := validateUniverseDomain(universeDomain); err != nil {
+		return nil, err
+	}
 	satg, err := newSATokenGenerator()
 	if err != nil {
 		return nil, err
 	}
-	iamc, err := newIAMClient(ctx)
+	iamc, err := newIAMClient(ctx, universeDomain)
 	if err != nil {
 		return nil, err
 	}
@@ -158,12 +237,8 @@ func (w *workloadIdentity) gcpWorkloadIdentity(ctx context.Context, id *esv1.GCP
 		}
 	}
 
-	idPool := fmt.Sprintf("%s.svc.id.goog", projectID)
-	idProvider := fmt.Sprintf("https://container.googleapis.com/v1/projects/%s/locations/%s/clusters/%s",
-		projectID,
-		clusterLocation,
-		clusterName,
-	)
+	idPool := workloadIdentityPool(projectID, id.UniverseDomain)
+	idProvider := clusterIdentityProvider(id.UniverseDomain, projectID, clusterLocation, clusterName)
 	return idPool, idProvider, nil
 }
 
@@ -171,6 +246,12 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1.GCPSMAuth,
 	wi := auth.WorkloadIdentity
 	if wi == nil {
 		return nil, nil
+	}
+	if err := validateUniverseDomain(wi.UniverseDomain); err != nil {
+		return nil, err
+	}
+	if err := validateIdentityBindingEndpoint(wi.UniverseDomain); err != nil {
+		return nil, err
 	}
 	saKey := types.NamespacedName{
 		Name:      wi.ServiceAccountRef.Name,
@@ -205,7 +286,11 @@ func (w *workloadIdentity) TokenSource(ctx context.Context, auth esv1.GCPSMAuth,
 		return nil, fmt.Errorf(errFetchPodToken, err)
 	}
 
-	idBindToken, err := w.idBindTokenGenerator.Generate(ctx, http.DefaultClient, resp.Status.Token, idPool, idProvider)
+	idBindGenerator := w.idBindTokenGenerator
+	if ua, ok := idBindGenerator.(universeAwareIDBindTokenGenerator); ok {
+		idBindGenerator = ua.forUniverse(wi.UniverseDomain)
+	}
+	idBindToken, err := idBindGenerator.Generate(ctx, http.DefaultClient, resp.Status.Token, idPool, idProvider)
 	metrics.ObserveAPICall(ProviderGCPSM, CallGCPSMGenerateIDBindToken, err)
 	if err != nil {
 		return nil, fmt.Errorf(errFetchIBToken, err)
@@ -241,7 +326,7 @@ func (w *workloadIdentity) Close() error {
 	return nil
 }
 
-func newIAMClient(ctx context.Context) (IamClient, error) {
+func newIAMClient(ctx context.Context, universeDomain string) (IamClient, error) {
 	iamOpts := []option.ClientOption{
 		option.WithUserAgent("external-secrets-operator"),
 		// tell the secretmanager library to not add transport-level ADC since
@@ -251,6 +336,10 @@ func newIAMClient(ctx context.Context) (IamClient, error) {
 		// this must be set explicitly even though TLS is used
 		option.WithGRPCDialOption(grpc.WithTransportCredentials(credentials.NewTLS(nil))),
 		option.WithGRPCConnectionPool(5),
+	}
+	if !isDefaultUniverse(universeDomain) {
+		// Targets iamcredentials.<universeDomain> instead of iamcredentials.googleapis.com
+		iamOpts = append(iamOpts, option.WithUniverseDomain(universeDomain))
 	}
 	return iam.NewIamCredentialsClient(ctx, iamOpts...)
 }
@@ -302,8 +391,17 @@ type gcpIDBindTokenGenerator struct {
 
 func newIDBindTokenGenerator() idBindTokenGenerator {
 	return &gcpIDBindTokenGenerator{
-		targetURL: "https://securetoken.googleapis.com/v1/identitybindingtoken",
+		targetURL: identityBindingTokenURL,
 	}
+}
+
+// forUniverse returns a generator that sends the exchange to the endpoint of the given universe. The default
+// universe keeps this generator's own target.
+func (g *gcpIDBindTokenGenerator) forUniverse(universeDomain string) idBindTokenGenerator {
+	if isDefaultUniverse(universeDomain) {
+		return g
+	}
+	return &gcpIDBindTokenGenerator{targetURL: identityBindingTokenEndpoint(universeDomain)}
 }
 
 func (g *gcpIDBindTokenGenerator) Generate(ctx context.Context, client *http.Client, k8sToken, idPool, idProvider string) (*oauth2.Token, error) {
