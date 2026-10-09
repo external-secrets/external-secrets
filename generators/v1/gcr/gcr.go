@@ -96,8 +96,8 @@ func (g *Generator) generate(
 }
 
 // workloadIdentityFromSpec copies the generator's workload identity settings into the provider type.
-// The provider type has fields the generator API does not expose (such as universeDomain), so the two
-// struct types are not convertible any more.
+// The two struct types are not identical (the provider type may have more fields), so they are not
+// convertible with a plain Go conversion.
 func workloadIdentityFromSpec(in *genv1alpha1.GCPWorkloadIdentity) *esv1.GCPWorkloadIdentity {
 	if in == nil {
 		return nil
@@ -107,6 +107,7 @@ func workloadIdentityFromSpec(in *genv1alpha1.GCPWorkloadIdentity) *esv1.GCPWork
 		ClusterLocation:   in.ClusterLocation,
 		ClusterName:       in.ClusterName,
 		ClusterProjectID:  in.ClusterProjectID,
+		UniverseDomain:    in.UniverseDomain,
 	}
 }
 
