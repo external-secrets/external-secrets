@@ -1,0 +1,52 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: AzureAccessToken
+metadata:
+  name: my-azure-token
+spec:
+  tenantId: 11111111-2222-3333-4444-111111111111
+
+  # required; Microsoft Entra resource id the token targets (GUID or resource URI).
+  # examples:
+  #   499b84ac-1321-427f-aa17-267ca6975798  # Azure DevOps
+  #   https://management.azure.com          # Azure Resource Manager
+  #   https://storage.azure.com             # Azure Storage
+  resource: 499b84ac-1321-427f-aa17-267ca6975798
+
+  # Specify Azure cloud type, defaults to PublicCloud.
+  # This is used for authenticating with Microsoft Entra ID.
+  # available options: PublicCloud, USGovernmentCloud, ChinaCloud, GermanCloud
+  environmentType: "PublicCloud"
+
+  # choose one authentication method
+  auth:
+
+    # option 1: service principal.
+    # provide either clientSecret or clientCertificate (PEM: certificate + private key).
+    servicePrincipal:
+      secretRef:
+        clientId:
+          name: az-secret
+          key: clientid
+        # option 1a: client secret
+        clientSecret:
+          name: az-secret
+          key: clientsecret
+        # option 1b: client certificate (mutually exclusive with clientSecret)
+        # clientCertificate:
+        #   name: az-secret
+        #   key: cert.pem
+
+    # option 2: use a managed identity.
+    # managedIdentity:
+    #   identityId: 11111111-2222-3333-4444-111111111111
+    #   # identityType selects how identityId is interpreted: ClientID, ObjectID or ResourceID.
+    #   # when omitted, a value containing "/" is treated as a ResourceID and a bare GUID as a ClientID.
+    #   # set it explicitly (e.g. ObjectID) when the inference is wrong.
+    #   identityType: ClientID
+
+    # option 3: workload identity
+    # workloadIdentity:
+    #   # note: the service account must live in the same namespace as this generator.
+    #   serviceAccountRef:
+    #     name: "my-service-account"
+    #     audiences: []
