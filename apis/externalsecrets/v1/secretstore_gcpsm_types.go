@@ -64,6 +64,16 @@ type GCPWorkloadIdentity struct {
 	// If not specified, it fetches information from the metadata server
 	// +optional
 	ClusterProjectID string `json:"clusterProjectID,omitempty"`
+	// UniverseDomain is the Google Cloud universe the cluster belongs to, for example the domain of a
+	// Google Cloud Dedicated (sovereign) cloud. The Security Token Service and container endpoints
+	// (sts.<universeDomain>, container.<universeDomain>) and the IAM Credentials endpoint are derived from it.
+	// When it is not googleapis.com, the Kubernetes token is exchanged through sts.<universeDomain> instead
+	// of the googleapis.com securetoken service, and a clusterProjectID of the form <domain>:<project> maps to
+	// the workload identity pool <project>.<domain>.svc.id.goog. Defaults to googleapis.com.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxLength:=238
+	// +kubebuilder:validation:Pattern="^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$"
+	UniverseDomain string `json:"universeDomain,omitempty"`
 }
 
 // GCPSMProvider Configures a store to sync secrets using the GCP Secret Manager provider.

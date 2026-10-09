@@ -7013,6 +7013,22 @@ string
 If not specified, it fetches information from the metadata server</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>universeDomain</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>UniverseDomain is the Google Cloud universe the cluster belongs to, for example the domain of a
+Google Cloud Dedicated (sovereign) cloud. The Security Token Service and container endpoints
+(sts.<universeDomain>, container.<universeDomain>) and the IAM Credentials endpoint are derived from it.
+When it is not googleapis.com, the Kubernetes token is exchanged through sts.<universeDomain> instead
+of the googleapis.com securetoken service, and a clusterProjectID of the form <domain>:<project> maps to
+the workload identity pool <project>.<domain>.svc.id.goog. Defaults to googleapis.com.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.GCPWorkloadIdentityFederation">GCPWorkloadIdentityFederation
