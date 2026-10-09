@@ -50,11 +50,20 @@ const (
 	// same value so a shorter transport timeout cannot preempt it and abandon an
 	// in-flight create (which would orphan a deploy token GitLab already minted).
 	requestTimeout = 30 * time.Second
+
+	// minExpiresAfter is the floor for spec.expiresAfter. It mirrors the CEL rule
+	// on GitlabDeployTokenSpec.ExpiresAfter (apis/generators/v1alpha1); keep the
+	// two in sync. validateExpiry re-checks it in code so the invariant still
+	// holds on clusters where CEL admission is not enforced.
+	minExpiresAfter = 24 * time.Hour
 )
 
 // Generator implements GitLab deploy token generation.
 type Generator struct {
 	httpClient *http.Client
+	// now returns the current time and is overridable in tests so the relative
+	// expiresAfter expiry is deterministic. Defaults to time.Now.
+	now func() time.Time
 }
 
 // deployTokenState is persisted as the generator state so that Cleanup can revoke
@@ -97,6 +106,9 @@ func (g *Generator) generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	if err != nil {
 		return nil, nil, fmt.Errorf(errParseSpec, err)
 	}
+	if err := validateExpiry(&spec.Spec); err != nil {
+		return nil, nil, err
+	}
 	token, err := g.fetchAuthToken(ctx, kube, namespace, &spec.Spec)
 	if err != nil {
 		return nil, nil, err
@@ -111,6 +123,15 @@ func (g *Generator) generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	}
 	if spec.Spec.ExpiresAt != nil {
 		payload["expires_at"] = spec.Spec.ExpiresAt.UTC().Format(time.RFC3339)
+	}
+	// expiresAfter is a relative expiry resolved to an absolute expires_at at each
+	// generation. It stays in the outbound request only; nothing is written back to
+	// the GitlabDeployToken object, so a GitOps-managed spec does not drift.
+	// validateExpiry above (and CEL admission) guarantee expiresAt and expiresAfter
+	// are never both set, so this cannot clobber the expiresAt branch.
+	if spec.Spec.ExpiresAfter != nil {
+		expiry := g.clock().Add(spec.Spec.ExpiresAfter.Duration)
+		payload["expires_at"] = expiry.UTC().Format(time.RFC3339)
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {
@@ -228,6 +249,15 @@ func (g *Generator) client() *http.Client {
 	return &http.Client{Timeout: requestTimeout}
 }
 
+// clock returns the current time, using the injected now func when set so tests
+// can pin a deterministic value for the expiresAfter calculation.
+func (g *Generator) clock() time.Time {
+	if g.now != nil {
+		return g.now()
+	}
+	return time.Now()
+}
+
 func (g *Generator) fetchAuthToken(ctx context.Context, kube client.Client, namespace string, spec *genv1alpha1.GitlabDeployTokenSpec) (string, error) {
 	token, err := resolvers.SecretKeyRef(ctx, kube, resolvers.EmptyStoreKind, namespace, &spec.Auth.Token.SecretRef)
 	if err != nil {
@@ -270,6 +300,21 @@ func gitlabError(raw []byte) string {
 		}
 	}
 	return string(raw)
+}
+
+// validateExpiry enforces, in code, the same invariants the CEL rules declare on
+// GitlabDeployTokenSpec (apis/generators/v1alpha1/types_gitlab.go): expiresAt and
+// expiresAfter are mutually exclusive, and expiresAfter has a minExpiresAfter
+// floor. This is defense in depth for clusters where CEL admission is not
+// enforced; the error strings match the CEL messages.
+func validateExpiry(spec *genv1alpha1.GitlabDeployTokenSpec) error {
+	if spec.ExpiresAt != nil && spec.ExpiresAfter != nil {
+		return errors.New("expiresAt and expiresAfter are mutually exclusive")
+	}
+	if spec.ExpiresAfter != nil && spec.ExpiresAfter.Duration < minExpiresAfter {
+		return errors.New("expiresAfter must be at least 24h")
+	}
+	return nil
 }
 
 func parseSpec(data []byte) (*genv1alpha1.GitlabDeployToken, error) {
