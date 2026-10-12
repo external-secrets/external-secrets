@@ -150,6 +150,10 @@ spec:
             periodSeconds: {{ .Values.webhook.startupProbe.periodSeconds }}
             failureThreshold: {{ .Values.webhook.startupProbe.failureThreshold }}
           {{- end }}
+          {{- with .Values.webhook.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
           {{- with .Values.webhook.extraEnv }}
           env:
             {{- toYaml . | nindent 12 }}
