@@ -11,6 +11,11 @@ If you are using a different monitoring tool that also needs a `/metrics` endpoi
 
 The Operator has [the controller-runtime metrics inherited from kubebuilder](https://book.kubebuilder.io/reference/metrics-reference.html) plus some custom metrics with a resource name prefix, such as `externalsecret_`.
 
+## Build Info Metrics
+| Name                          | Type  | Description                                                                                                                                                       |
+|-------------------------------|-------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `external_secrets_build_info` | Gauge | Constant `1` labeled by `version`, `revision`, `branch`, `goversion`, `goos`, `goarch` and `tags` of the running binary. Exposed by the controller, webhook and cert controller. |
+
 ## Cluster External Secret Metrics
 | Name                                       | Type  | Description                                                |
 |--------------------------------------------|-------|------------------------------------------------------------|

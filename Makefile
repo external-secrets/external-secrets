@@ -147,11 +147,14 @@ test.crds.update: cty crds.generate.tests ## Update the snapshots used by the CR
 build: $(addprefix build-,$(ARCH)) ## Build binary
 
 PROVIDER ?= all_providers
+# Build info exposed by the external_secrets_build_info metric.
+VERSION_PKG := github.com/prometheus/common/version
+LDFLAGS ?= -X $(VERSION_PKG).Version=$(VERSION) -X $(VERSION_PKG).Revision=$(shell git rev-parse HEAD)
 .PHONY: build-%
 build-%: generate ## Build binary for the specified arch
 	@$(INFO) go build $*
 	$(BUILD_ARGS) GOOS=linux GOARCH=$* \
-		go build -tags $(PROVIDER) -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
+		go build -tags $(PROVIDER) -ldflags '$(LDFLAGS)' -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
 .PHONY: provider-replaces.check

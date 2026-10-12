@@ -196,6 +196,7 @@ func setupLogger() {
 	logger := zap.New(zap.UseFlagOptions(&opts))
 	ctrl.SetLogger(logger)
 	klog.SetLogger(logger)
+	logBuildInfo()
 }
 
 func init() {

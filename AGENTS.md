@@ -24,6 +24,7 @@ Multi-module repo: `apis/`, `runtime/`, `e2e/`, and each `providers/v1/*/` have 
 - Add a `git notes add HEAD` entry on every non-trivial commit. Record key design decisions, trade-offs, and gotchas. Queryable via `git notes show <sha>`.
 - If you discover a non-obvious pattern while implementing, add it here before the PR is merged. Keep entries general — applicable across the codebase, not specific to one provider or feature.
 - Never edit `zz_generated.*` files by hand. They are owned by controller-gen. Modify the source types and run `make generate` (included in `make reviewable`).
+- Build metadata (`version`, `revision`) is injected via `-ldflags` into `github.com/prometheus/common/version` by the `build-%` Makefile target. Release images are re-tagged (`docker.promote`), not rebuilt, so `version` is the build-time `git describe`; `revision` is the reliable identifier.
 - After everything is committed - **ALWAYS RUN `make check-diff`** - this is the first step where PRs fall apart that LLMs forget - there are a lot of generated code outside of the main `make reviewable` spec like helm chart tests, docs, etc.
 - 
 
