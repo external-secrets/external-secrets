@@ -107,11 +107,12 @@ func TestNewDVLSClient_CrossNamespaceSecurityConstraint(t *testing.T) {
 				},
 			}
 
-			credClient, vaultID, err := NewDVLSClient(context.Background(), kube, tt.storeKind, tt.namespace, provider)
+			credClient, folderCl, vaultID, err := NewDVLSClient(context.Background(), kube, tt.storeKind, tt.namespace, provider)
 
 			if tt.expectError {
 				require.Error(t, err)
 				require.Nil(t, credClient)
+				require.Nil(t, folderCl)
 				require.Empty(t, vaultID)
 				if tt.errorMsg != "" {
 					assert.Contains(t, err.Error(), tt.errorMsg)
