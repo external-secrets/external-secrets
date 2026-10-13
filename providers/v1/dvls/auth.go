@@ -30,18 +30,26 @@ import (
 
 type realVaultClient struct {
 	vaults *dvls.Vaults
+	lock   callLock
+	cached bool
 }
 
 func (r *realVaultClient) GetByName(ctx context.Context, name string) (dvls.Vault, error) {
-	return r.vaults.GetByNameWithContext(ctx, name)
+	return runRead(ctx, r.lock, r.cached, func(callCtx context.Context) (dvls.Vault, error) {
+		return r.vaults.GetByNameWithContext(callCtx, name)
+	})
 }
 
 func (r *realVaultClient) Get(ctx context.Context, id string) (dvls.Vault, error) {
-	return r.vaults.GetWithContext(ctx, id)
+	return runRead(ctx, r.lock, r.cached, func(callCtx context.Context) (dvls.Vault, error) {
+		return r.vaults.GetWithContext(callCtx, id)
+	})
 }
 
 func (r *realVaultClient) List(ctx context.Context) ([]dvls.Vault, error) {
-	return r.vaults.ListWithContext(ctx)
+	return runRead(ctx, r.lock, r.cached, func(callCtx context.Context) ([]dvls.Vault, error) {
+		return r.vaults.ListWithContext(callCtx)
+	})
 }
 
 // storeClients holds the service clients and resolved vault for a DVLS store.
@@ -50,6 +58,8 @@ type storeClients struct {
 	vaults      vaultGetter
 	vaultID     string
 	pinnedVault bool
+	// checkSession is set for a cached client: getting it from the cache sends no request to DVLS.
+	checkSession func(context.Context) error
 }
 
 // newStoreClients creates a new authenticated DVLS client and resolves the vault.
@@ -68,14 +78,17 @@ func newStoreClients(ctx context.Context, kube kclient.Client, storeKind, namesp
 		return nil, fmt.Errorf("failed to get appSecret: %w", err)
 	}
 
-	client, err := dvls.NewClient(appID, appSecret, provider.ServerURL)
+	shared, err := getClient(ctx, provider.ServerURL, appID, appSecret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create DVLS client: %w", err)
 	}
 
 	clients := &storeClients{
-		cred:   &realCredentialClient{cred: client.Entries.Credential},
-		vaults: &realVaultClient{vaults: client.Vaults},
+		cred:   &realCredentialClient{cred: shared.client.Entries.Credential, lock: shared.lock, cached: shared.cached},
+		vaults: &realVaultClient{vaults: shared.client.Vaults, lock: shared.lock, cached: shared.cached},
+	}
+	if shared.cached {
+		clients.checkSession = shared.checkSession
 	}
 
 	// When vault is empty, each secret key names its own vault (<vault>/<entry>).

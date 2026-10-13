@@ -119,8 +119,8 @@ github.com/DelineaXPM/dsv-sdk-go/v2 v2.3.1 h1:eA+wghI66spHH2my0vSusAmWSB0hh6E3WK
 github.com/DelineaXPM/dsv-sdk-go/v2 v2.3.1/go.mod h1:iMuY3QbP/f1dUHQpRaBkzAbJCi7ODoTH6zGZ0gbW1gk=
 github.com/DelineaXPM/tss-sdk-go/v3 v3.1.0 h1:Z8Npn0lGxAjYMgR5Wu/Di8OCfD2e1A1pnVUVL8TbYDU=
 github.com/DelineaXPM/tss-sdk-go/v3 v3.1.0/go.mod h1:RUucah2faoja0H6kqzuAdgm6KgwYtC2spZfWZlVCgqY=
-github.com/Devolutions/go-dvls v0.21.1 h1:6sseQKmeFIrJ9/E59A1TfGQoqfbdb8P+37UBxyNPSYA=
-github.com/Devolutions/go-dvls v0.21.1/go.mod h1:I0YI4GujLbbUojNnKLGVguiWUvnE2J9ltgwxTmtTRyo=
+github.com/Devolutions/go-dvls v0.22.1 h1:3UIOuIRod66O5va1+UU0VRyx+g8HrVoAUYUcDo6R9y8=
+github.com/Devolutions/go-dvls v0.22.1/go.mod h1:I0YI4GujLbbUojNnKLGVguiWUvnE2J9ltgwxTmtTRyo=
 github.com/HdrHistogram/hdrhistogram-go v1.1.0/go.mod h1:yDgFjdqOqDEKOvasDdhWNXYg9BVp4O+o5f6V/ehm6Oo=
 github.com/HdrHistogram/hdrhistogram-go v1.1.2 h1:5IcZpTvzydCQeHzK4Ef/D5rrSqwxob0t8PQPMybUNFM=
 github.com/HdrHistogram/hdrhistogram-go v1.1.2/go.mod h1:yDgFjdqOqDEKOvasDdhWNXYg9BVp4O+o5f6V/ehm6Oo=

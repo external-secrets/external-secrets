@@ -186,7 +186,7 @@ require (
 	github.com/DelineaXPM/delinea-common v1.0.0 // indirect
 	github.com/DelineaXPM/dsv-sdk-go/v2 v2.3.1 // indirect
 	github.com/DelineaXPM/tss-sdk-go/v3 v3.1.0 // indirect
-	github.com/Devolutions/go-dvls v0.21.1 // indirect
+	github.com/Devolutions/go-dvls v0.22.1 // indirect
 	github.com/IBM/go-sdk-core/v5 v5.25.3 // indirect
 	github.com/IBM/secrets-manager-go-sdk/v2 v2.0.24 // indirect
 	github.com/Masterminds/goutils v1.1.1 // indirect

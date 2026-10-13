@@ -157,6 +157,21 @@ The DVLS provider supports pushing secrets back to DVLS:
 
 **Note:** Push secret updates an existing entry's password field. The entry must already exist in DVLS.
 
+## Client Cache
+
+By default, the provider logs in to DVLS on every reconciliation, and each login opens a new session on the server. With many ExternalSecrets or short refresh intervals, this can create a large number of sessions.
+
+Set `--enable-dvls-client-cache` on the controller to reuse sessions. Stores that point to the same server with the same application credentials share one session, whatever their kind or namespace. A new session is opened when the credentials change, and a session is renewed automatically when it expires on the server. Operations on a shared session run one at a time, so raising `--concurrent` does not speed up stores that share a session, while stores with separate application credentials have their own session and run in parallel. Each is abandoned one minute after its turn comes, all its pages and its retry included, and the login that opens a session after 30 seconds. Store validation checks the session and gives up after one minute, wait included, so a store stops being ready when DVLS is unreachable or refuses the session. Use `--dvls-client-cache-size` to bound the number of cached sessions (default: `1024`).
+
+The application credentials are only sent when a session is opened or renewed. Between two logins, whether a disabled application or a changed secret takes effect on the controller depends on how DVLS handles the sessions that are already open.
+
+With the Helm chart:
+
+```yaml
+extraArgs:
+  enable-dvls-client-cache: true
+```
+
 ## Limitations
 
 - **GetAllSecrets**: The `find` operation for discovering secrets is not currently supported
