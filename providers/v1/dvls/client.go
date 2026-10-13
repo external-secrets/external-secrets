@@ -86,23 +86,36 @@ type vaultGetter interface {
 }
 
 type realCredentialClient struct {
-	cred *dvls.EntryCredentialService
+	cred   *dvls.EntryCredentialService
+	lock   callLock
+	cached bool
 }
 
 func (r *realCredentialClient) GetByID(ctx context.Context, vaultID, entryID string) (dvls.Entry, error) {
-	return r.cred.GetByIdWithContext(ctx, vaultID, entryID)
+	return runRead(ctx, r.lock, r.cached, func(callCtx context.Context) (dvls.Entry, error) {
+		return r.cred.GetByIdWithContext(callCtx, vaultID, entryID)
+	})
 }
 
 func (r *realCredentialClient) GetEntries(ctx context.Context, vaultID string, opts dvls.GetEntriesOptions) ([]dvls.Entry, error) {
-	return r.cred.GetEntriesWithContext(ctx, vaultID, opts)
+	return runRead(ctx, r.lock, r.cached, func(callCtx context.Context) ([]dvls.Entry, error) {
+		return r.cred.GetEntriesWithContext(callCtx, vaultID, opts)
+	})
 }
 
+// Update is never retried: go-dvls reads the entry back after writing it, so a retry could repeat a write that succeeded.
 func (r *realCredentialClient) Update(ctx context.Context, entry dvls.Entry) (dvls.Entry, error) {
-	return r.cred.UpdateWithContext(ctx, entry)
+	return run(ctx, r.lock, r.cached, func(callCtx context.Context) (dvls.Entry, error) {
+		return r.cred.UpdateWithContext(callCtx, entry)
+	})
 }
 
+// DeleteByID is never retried, like Update: only reads are sent again.
 func (r *realCredentialClient) DeleteByID(ctx context.Context, vaultID, entryID string) error {
-	return r.cred.DeleteByIdWithContext(ctx, vaultID, entryID)
+	_, err := run(ctx, r.lock, r.cached, func(callCtx context.Context) (struct{}, error) {
+		return struct{}{}, r.cred.DeleteByIdWithContext(callCtx, vaultID, entryID)
+	})
+	return err
 }
 
 // NewClient creates a new DVLS secrets client. When pinnedVault is true the store
