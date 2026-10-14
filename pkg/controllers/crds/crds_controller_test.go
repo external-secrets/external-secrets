@@ -27,7 +27,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	client "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -56,28 +55,22 @@ func newReconciler() Reconciler {
 
 func newService() corev1.Service {
 	return corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: "default",
-			Labels:    map[string]string{"foo": "bar"},
-		},
+		Name:      "foo",
+		Namespace: "default",
+		Labels:    map[string]string{"foo": "bar"},
 	}
 }
 func newSecret() corev1.Secret {
 	return corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: "default",
-			Labels:    map[string]string{"foo": "bar"},
-		},
+		Name:      "foo",
+		Namespace: "default",
+		Labels:    map[string]string{"foo": "bar"},
 	}
 }
 
 func newCRD() apiextensionsv1.CustomResourceDefinition {
 	return apiextensionsv1.CustomResourceDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "one",
-		},
+		Name: "one",
 		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
 			Conversion: &apiextensionsv1.CustomResourceConversion{
 				Strategy: "Webhook",
@@ -107,9 +100,7 @@ func TestUpdateCRD(t *testing.T) {
 
 	ctx := context.Background()
 	req := ctrl.Request{
-		NamespacedName: types.NamespacedName{
-			Name: "one",
-		},
+		Name: "one",
 	}
 
 	err := rec.updateCRD(ctx, req)

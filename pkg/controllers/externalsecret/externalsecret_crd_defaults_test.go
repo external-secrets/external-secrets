@@ -19,7 +19,6 @@ package externalsecret
 import (
 	"context"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -43,10 +42,8 @@ var _ = Describe("ExternalSecret CRD defaulting", func() {
 
 	It("leaves omitted strategy fields absent", func() {
 		es := &esv1.ExternalSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "no-defaults",
-				Namespace: namespace,
-			},
+			Name:      "no-defaults",
+			Namespace: namespace,
 			Spec: esv1.ExternalSecretSpec{
 				SecretStoreRef: esv1.SecretStoreRef{Name: "unused"},
 				Target: esv1.ExternalSecretTarget{

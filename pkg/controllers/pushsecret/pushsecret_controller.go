@@ -688,11 +688,9 @@ func (r *Reconciler) resolveSecretFromGenerator(ctx context.Context, namespace s
 		generatorState.EnqueueSetLatest(ctx, defaultGeneratorStateKey, namespace, genResource, gen, newState)
 	}
 	return &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "___generated-secret",
-			Namespace: namespace,
-		},
-		Data: secretMap,
+		Name:      "___generated-secret",
+		Namespace: namespace,
+		Data:      secretMap,
 	}, err
 }
 
