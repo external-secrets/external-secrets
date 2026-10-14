@@ -105,7 +105,7 @@ func (g *gitlabBase) getClient(ctx context.Context, provider *esv1.GitlabProvide
 		if err != nil {
 			return nil, fmt.Errorf("failed to read ca bundle: %w", err)
 		}
-		if ok := caCertPool.AppendCertsFromPEM(ca); !ok {
+		if !caCertPool.AppendCertsFromPEM(ca) {
 			return nil, errors.New("failed to append ca bundle")
 		}
 

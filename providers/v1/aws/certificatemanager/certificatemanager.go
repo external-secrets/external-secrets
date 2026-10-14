@@ -344,6 +344,9 @@ func (cm *CertificateManager) GetSecret(ctx context.Context, ref esv1.ExternalSe
 	}
 
 	getCertOut, err := cm.getCertificate(ctx, certARN)
+	if errors.Is(err, errCertificateNotFound) {
+		return nil, esv1.NoSecretErr
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get certificate %s: %w", certARN, err)
 	}
