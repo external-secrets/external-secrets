@@ -18,6 +18,9 @@ package secretstore
 
 import (
 	"context"
+	"fmt"
+	"regexp"
+	"sync"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -435,6 +438,88 @@ func TestShouldProcessSecret(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestMatchNamespaceRegex(t *testing.T) {
+	namespaceRegexCache.Clear()
+	t.Cleanup(namespaceRegexCache.Clear)
+
+	patterns := []string{`test-*`, `^test-a$`, `^prod-[a-z]+$`, `nope`, `(`, `[a-`, `a{2,1}`, ``}
+	namespaces := []string{"test-a", "test-b", "prod-x", "other", ""}
+
+	// The first pass compiles, the second pass is served from the cache.
+	// compiled holds the regexp each valid pattern had after its first call, so a later
+	// call that recompiles instead of hitting the cache is caught by pointer equality.
+	compiled := map[string]*regexp.Regexp{}
+	for pass := range 2 {
+		for _, pattern := range patterns {
+			for _, ns := range namespaces {
+				want, wantErr := regexp.MatchString(pattern, ns)
+				got, err := matchNamespaceRegex(pattern, ns)
+				assert.Equal(t, want, got, "pass %d pattern %q namespace %q", pass, pattern, ns)
+				cached, found := namespaceRegexCache.Get(pattern)
+				if wantErr != nil {
+					assert.EqualError(t, err, wantErr.Error(), "pass %d pattern %q", pass, pattern)
+					assert.False(t, found, "invalid pattern %q must not be cached", pattern)
+					continue
+				}
+				assert.NoError(t, err, "pass %d pattern %q", pass, pattern)
+				require.True(t, found, "pass %d pattern %q must be cached after a call", pass, pattern)
+				re, ok := cached.(*regexp.Regexp)
+				require.True(t, ok, "pattern %q: cache holds %T", pattern, cached)
+				if first, seen := compiled[pattern]; seen {
+					assert.Same(t, first, re, "pass %d pattern %q namespace %q: cached regexp was replaced", pass, pattern, ns)
+				}
+				compiled[pattern] = re
+			}
+		}
+	}
+}
+
+func TestShouldProcessSecretInvalidRegex(t *testing.T) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(esv1.AddToScheme(scheme))
+
+	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-a"}}
+	store := &esv1.ClusterSecretStore{
+		TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+		Spec: esv1.SecretStoreSpec{
+			Conditions: []esv1.ClusterSecretStoreCondition{{NamespaceRegexes: []string{`nope`, `(`}}},
+		},
+	}
+	mgr := &Manager{
+		log:    logr.Discard(),
+		client: fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(namespace).Build(),
+	}
+
+	_, matchErr := regexp.MatchString(`(`, namespace.Name)
+	want := fmt.Sprintf("failed to compile regex %v: %v", `(`, matchErr)
+	for range 2 {
+		got, err := mgr.shouldProcessSecret(store, namespace.Name)
+		require.EqualError(t, err, want)
+		assert.False(t, got)
+	}
+}
+
+func TestNamespaceRegexCacheIsBounded(t *testing.T) {
+	namespaceRegexCache.Clear()
+	t.Cleanup(namespaceRegexCache.Clear)
+
+	var wg sync.WaitGroup
+	for range 4 {
+		wg.Go(func() {
+			for i := range 2 * namespaceRegexCacheSize {
+				pattern := fmt.Sprintf("^ns-%d$", i)
+				got, err := matchNamespaceRegex(pattern, fmt.Sprintf("ns-%d", i))
+				assert.NoError(t, err)
+				assert.True(t, got)
+			}
+		})
+	}
+	wg.Wait()
+
+	assert.Equal(t, namespaceRegexCacheSize, namespaceRegexCache.Len())
 }
 
 type WrapProvider struct {
