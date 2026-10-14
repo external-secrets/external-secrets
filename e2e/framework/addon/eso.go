@@ -31,7 +31,6 @@ type ESO struct {
 
 const (
 	installCRDsVar = "installCRDs"
-	esoImage       = "ghcr.io/external-secrets/external-secrets"
 )
 
 func NewESO(mutators ...MutationFunc) *ESO {
@@ -50,24 +49,12 @@ func NewESO(mutators ...MutationFunc) *ESO {
 					Value: os.Getenv("VERSION"),
 				},
 				{
-					Key:   "webhook.image.repository",
-					Value: esoImage,
-				},
-				{
 					Key:   "certController.image.tag",
 					Value: os.Getenv("VERSION"),
 				},
 				{
-					Key:   "certController.image.repository",
-					Value: esoImage,
-				},
-				{
 					Key:   "image.tag",
 					Value: os.Getenv("VERSION"),
-				},
-				{
-					Key:   "image.repository",
-					Value: esoImage,
 				},
 				{
 					Key:   "extraArgs.loglevel",

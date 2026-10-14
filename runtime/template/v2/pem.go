@@ -21,7 +21,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"errors"
-	"fmt"
 	"strings"
 )
 
@@ -124,12 +123,12 @@ func certSANs(input string) ([]string, error) {
 	input = trimJunk(input)
 	block, _ := pem.Decode([]byte(input))
 	if block == nil {
-		return nil, fmt.Errorf("failed to decode PEM block")
+		return nil, errors.New("failed to decode PEM block")
 	}
 
 	cert, err := x509.ParseCertificate(block.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse certificate: %w", err)
+		return nil, errors.New("failed to parse certificate")
 	}
 
 	sans := make([]string, 0, len(cert.DNSNames)+len(cert.IPAddresses)+len(cert.EmailAddresses)+len(cert.URIs))

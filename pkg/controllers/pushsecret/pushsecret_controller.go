@@ -217,7 +217,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	case esapi.PushSecretDeletionPolicyDelete:
 		// finalizer logic. Only added if we should delete the secrets
 		if ps.ObjectMeta.DeletionTimestamp.IsZero() {
-			if added := controllerutil.AddFinalizer(&ps, pushSecretFinalizer); added {
+			if controllerutil.AddFinalizer(&ps, pushSecretFinalizer) {
 				if err := r.Client.Update(ctx, &ps, &client.UpdateOptions{}); err != nil {
 					return ctrl.Result{}, fmt.Errorf(errCloudNotUpdateFinalizer, err)
 				}
