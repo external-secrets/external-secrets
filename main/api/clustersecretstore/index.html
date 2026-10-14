@@ -5256,8 +5256,8 @@ Admission webhook warning cannot be disabled.</p>
 
 <span class="w">    </span><span class="c1"># Namespace regexes are useful for policy management or when external tools auto-generate namespaces with prefixes/suffixes</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">namespaceRegexes</span><span class="p">:</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;namespace-a-.*&quot;</span><span class="w"> </span><span class="c1"># All namespaces prefixed by namespace-a- will work</span>
-<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;namespace-b-.*&quot;</span><span class="w"> </span><span class="c1"># All namespaces prefixed by namespace-b- will work</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;^namespace-a-.*$&quot;</span><span class="w"> </span><span class="c1"># All namespaces prefixed by namespace-a- will work</span>
+<span class="w">        </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="s">&quot;^namespace-b-.*$&quot;</span><span class="w"> </span><span class="c1"># All namespaces prefixed by namespace-b- will work</span>
 
 <span class="w">    </span><span class="c1"># conditions needs only one of the conditions to meet for the CSS to be usable in the namespace.</span>
 
