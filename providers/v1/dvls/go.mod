@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/dvls
 
-go 1.26.9
+go 1.27.2
 
 require (
 	github.com/Devolutions/go-dvls v0.21.1
