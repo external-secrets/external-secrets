@@ -482,14 +482,41 @@ func TestMatchNamespaceRegex(t *testing.T) {
 	}
 }
 
+func TestShouldProcessSecretUsesRegexCache(t *testing.T) {
+	resetNamespaceRegexCache(t)
+
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(esv1.AddToScheme(scheme))
+
+	pattern := `^test-a$`
+	namespace := &corev1.Namespace{Name: "test-a"}
+	store := &esv1.ClusterSecretStore{
+		Kind: esv1.ClusterSecretStoreKind,
+		Spec: esv1.SecretStoreSpec{
+			Conditions: []esv1.ClusterSecretStoreCondition{{NamespaceRegexes: []string{pattern}}},
+		},
+	}
+	mgr := &Manager{
+		log:    logr.Discard(),
+		client: fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(namespace).Build(),
+	}
+
+	require.False(t, namespaceRegexCache.Contains(cache.Key{Name: pattern}))
+	got, err := mgr.shouldProcessSecret(store, namespace.Name)
+	require.NoError(t, err)
+	assert.True(t, got)
+	assert.True(t, namespaceRegexCache.Contains(cache.Key{Name: pattern}), "shouldProcessSecret must compile namespaceRegexes through the cache")
+}
+
 func TestShouldProcessSecretInvalidRegex(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(esv1.AddToScheme(scheme))
 
-	namespace := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: "test-a"}}
+	namespace := &corev1.Namespace{Name: "test-a"}
 	store := &esv1.ClusterSecretStore{
-		TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+		Kind: esv1.ClusterSecretStoreKind,
 		Spec: esv1.SecretStoreSpec{
 			Conditions: []esv1.ClusterSecretStoreCondition{{NamespaceRegexes: []string{`nope`, `(`}}},
 		},
@@ -512,6 +539,7 @@ func TestNamespaceRegexCacheEvictsOldestPattern(t *testing.T) {
 	resetNamespaceRegexCache(t)
 
 	first := cache.Key{Name: "^ns-0$"}
+	second := cache.Key{Name: "^ns-1$"}
 	var last cache.Key
 	for i := range namespaceRegexCacheSize + 1 {
 		last = cache.Key{Name: fmt.Sprintf("^ns-%d$", i)}
@@ -521,6 +549,7 @@ func TestNamespaceRegexCacheEvictsOldestPattern(t *testing.T) {
 	}
 
 	assert.False(t, namespaceRegexCache.Contains(first), "oldest pattern must be evicted once the bound is exceeded")
+	assert.True(t, namespaceRegexCache.Contains(second), "only the oldest pattern must be evicted")
 	assert.True(t, namespaceRegexCache.Contains(last), "latest pattern must be cached")
 }
 
