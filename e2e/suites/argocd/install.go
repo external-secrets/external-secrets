@@ -46,6 +46,12 @@ func installArgo() {
 				Key:   "controller.args.appResyncPeriod",
 				Value: "15",
 			},
+			{
+				// The chart default, ECR Public, rate-limits anonymous pulls
+				// from CI runners; same image, served by Google's mirror.
+				Key:   "redis.image.repository",
+				Value: "mirror.gcr.io/library/redis",
+			},
 		},
 		Args: []string{"--create-namespace"},
 	})
