@@ -545,24 +545,21 @@ func updateExternalSecretGeneratorRef(rootDir string, cfg Config) error {
 
 	content := string(data)
 
-	// Check if already exists as a complete enum entry (not a substring).
-	if contentHasExactEnumValue(content, cfg.GeneratorName) {
-		fmt.Printf("⚠ Generator %s already exists in v1 GeneratorRef enum\n", cfg.GeneratorName)
-		return nil
-	}
-
 	lines := strings.Split(content, "\n")
 	newLines := make([]string, 0, len(lines))
 	updated := false
+	alreadyPresent := false
 
 	for _, line := range lines {
-		// Look for the GeneratorRef Kind enum validation line
-		// Pattern: // +kubebuilder:validation:Enum=ACRAccessToken;ClusterGenerator;...
+		// Scope to GeneratorRef.Kind only (ACRAccessToken + ClusterGenerator markers).
+		// Do not use content-wide enum checks: names like Merge already appear in
+		// CreationPolicy/DeletionPolicy enums in the same file.
 		if !updated && strings.Contains(line, "+kubebuilder:validation:Enum=") &&
 			strings.Contains(line, "ACRAccessToken") &&
 			strings.Contains(line, "ClusterGenerator") {
 			line = strings.TrimRight(line, "\n")
 			if enumAnnotationHasValue(line, cfg.GeneratorName) {
+				alreadyPresent = true
 				updated = true
 			} else {
 				line = line + ";" + cfg.GeneratorName
@@ -576,6 +573,11 @@ func updateExternalSecretGeneratorRef(rootDir string, cfg Config) error {
 	if !updated {
 		fmt.Printf("⚠ Warning: Could not find GeneratorRef Kind enum in v1. Please manually add '%s' to the enum.\n",
 			cfg.GeneratorName)
+		return nil
+	}
+
+	if alreadyPresent {
+		fmt.Printf("⚠ Generator %s already exists in v1 GeneratorRef enum\n", cfg.GeneratorName)
 		return nil
 	}
 

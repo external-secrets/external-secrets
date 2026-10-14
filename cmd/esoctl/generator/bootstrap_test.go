@@ -325,3 +325,61 @@ func init() {
 		t.Fatalf("kind const duplicated:\n%s", text)
 	}
 }
+
+func TestUpdateExternalSecretGeneratorRefIgnoresUnrelatedEnums(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	dir := filepath.Join(root, "apis", "externalsecrets", "v1")
+	if err := os.MkdirAll(dir, 0o750); err != nil {
+		t.Fatal(err)
+	}
+	// Merge already exists on CreationPolicy; GeneratorRef.Kind must still get it.
+	src := `package v1
+
+// +kubebuilder:validation:Enum=Owner;Orphan;Merge;None
+type ExternalSecretCreationPolicy string
+
+// +kubebuilder:validation:Enum=Delete;Merge;Retain
+type ExternalSecretDeletionPolicy string
+
+type GeneratorRef struct {
+	// +kubebuilder:validation:Enum=ACRAccessToken;ClusterGenerator;Fake;MFA
+	Kind string ` + "`json:\"kind\"`" + `
+}
+`
+	path := filepath.Join(dir, "externalsecret_types.go")
+	if err := os.WriteFile(path, []byte(src), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg := Config{GeneratorName: "Merge", PackageName: "merge"}
+	if err := updateExternalSecretGeneratorRef(root, cfg); err != nil {
+		t.Fatalf("updateExternalSecretGeneratorRef: %v", err)
+	}
+	out, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	text := string(out)
+	var generatorRefEnum string
+	for line := range strings.SplitSeq(text, "\n") {
+		if strings.Contains(line, "+kubebuilder:validation:Enum=") &&
+			strings.Contains(line, "ACRAccessToken") &&
+			strings.Contains(line, "ClusterGenerator") {
+			generatorRefEnum = line
+			break
+		}
+	}
+	if generatorRefEnum == "" {
+		t.Fatalf("GeneratorRef enum line missing:\n%s", text)
+	}
+	if !enumAnnotationHasValue(generatorRefEnum, "Merge") {
+		t.Fatalf("Merge not appended to GeneratorRef.Kind enum:\n%s", text)
+	}
+	// Unrelated enums must stay unchanged (single Merge entry each).
+	if strings.Count(text, "Owner;Orphan;Merge;None") != 1 {
+		t.Fatalf("CreationPolicy enum mutated:\n%s", text)
+	}
+	if strings.Count(text, "Delete;Merge;Retain") != 1 {
+		t.Fatalf("DeletionPolicy enum mutated:\n%s", text)
+	}
+}
