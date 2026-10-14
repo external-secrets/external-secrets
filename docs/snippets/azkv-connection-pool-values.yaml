@@ -1,0 +1,2 @@
+extraArgs:
+  azure-kv-max-idle-connections-per-host: "20"
