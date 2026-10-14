@@ -29,12 +29,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/lru"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	ctrlutil "github.com/external-secrets/external-secrets/pkg/controllers/util"
+	"github.com/external-secrets/external-secrets/runtime/cache"
 )
 
 const (
@@ -50,7 +50,7 @@ const namespaceRegexCacheSize = 256
 
 // namespaceRegexCache holds compiled ClusterSecretStore namespaceRegexes by pattern,
 // so reconciles do not recompile every pattern on every call.
-var namespaceRegexCache = lru.New(namespaceRegexCacheSize)
+var namespaceRegexCache = cache.Must[*regexp.Regexp](namespaceRegexCacheSize, nil)
 
 // ErrProviderResolution marks a failure to resolve the provider named in the
 // store spec. It never reaches provider code, so the wrapped message is safe to
@@ -296,14 +296,15 @@ func (m *Manager) shouldProcessSecret(store esv1.GenericStore, ns string) (bool,
 // matchNamespaceRegex is regexp.MatchString with the compiled pattern cached.
 // An invalid pattern returns the same error as regexp.MatchString and is not cached.
 func matchNamespaceRegex(pattern, ns string) (bool, error) {
-	if cached, ok := namespaceRegexCache.Get(pattern); ok {
-		return cached.(*regexp.Regexp).MatchString(ns), nil
+	key := cache.Key{Name: pattern}
+	if re, ok := namespaceRegexCache.Get("", key); ok {
+		return re.MatchString(ns), nil
 	}
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return false, err
 	}
-	namespaceRegexCache.Add(pattern, re)
+	namespaceRegexCache.Add("", key, re)
 	return re.MatchString(ns), nil
 }
 

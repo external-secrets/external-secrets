@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/cache"
 )
 
 func TestManagerGet(t *testing.T) {
@@ -440,9 +441,16 @@ func TestShouldProcessSecret(t *testing.T) {
 	}
 }
 
+// resetNamespaceRegexCache swaps in an empty cache for the test, so results do not depend on run order.
+func resetNamespaceRegexCache(t *testing.T) {
+	t.Helper()
+	orig := namespaceRegexCache
+	namespaceRegexCache = cache.Must[*regexp.Regexp](namespaceRegexCacheSize, nil)
+	t.Cleanup(func() { namespaceRegexCache = orig })
+}
+
 func TestMatchNamespaceRegex(t *testing.T) {
-	namespaceRegexCache.Clear()
-	t.Cleanup(namespaceRegexCache.Clear)
+	resetNamespaceRegexCache(t)
 
 	patterns := []string{`test-*`, `^test-a$`, `^prod-[a-z]+$`, `nope`, `(`, `[a-`, `a{2,1}`, ``}
 	namespaces := []string{"test-a", "test-b", "prod-x", "other", ""}
@@ -457,7 +465,7 @@ func TestMatchNamespaceRegex(t *testing.T) {
 				want, wantErr := regexp.MatchString(pattern, ns)
 				got, err := matchNamespaceRegex(pattern, ns)
 				assert.Equal(t, want, got, "pass %d pattern %q namespace %q", pass, pattern, ns)
-				cached, found := namespaceRegexCache.Get(pattern)
+				re, found := namespaceRegexCache.Get("", cache.Key{Name: pattern})
 				if wantErr != nil {
 					assert.EqualError(t, err, wantErr.Error(), "pass %d pattern %q", pass, pattern)
 					assert.False(t, found, "invalid pattern %q must not be cached", pattern)
@@ -465,8 +473,6 @@ func TestMatchNamespaceRegex(t *testing.T) {
 				}
 				assert.NoError(t, err, "pass %d pattern %q", pass, pattern)
 				require.True(t, found, "pass %d pattern %q must be cached after a call", pass, pattern)
-				re, ok := cached.(*regexp.Regexp)
-				require.True(t, ok, "pattern %q: cache holds %T", pattern, cached)
 				if first, seen := compiled[pattern]; seen {
 					assert.Same(t, first, re, "pass %d pattern %q namespace %q: cached regexp was replaced", pass, pattern, ns)
 				}
@@ -502,9 +508,24 @@ func TestShouldProcessSecretInvalidRegex(t *testing.T) {
 	}
 }
 
-func TestNamespaceRegexCacheIsBounded(t *testing.T) {
-	namespaceRegexCache.Clear()
-	t.Cleanup(namespaceRegexCache.Clear)
+func TestNamespaceRegexCacheEvictsOldestPattern(t *testing.T) {
+	resetNamespaceRegexCache(t)
+
+	first := cache.Key{Name: "^ns-0$"}
+	var last cache.Key
+	for i := range namespaceRegexCacheSize + 1 {
+		last = cache.Key{Name: fmt.Sprintf("^ns-%d$", i)}
+		got, err := matchNamespaceRegex(last.Name, fmt.Sprintf("ns-%d", i))
+		require.NoError(t, err)
+		assert.True(t, got)
+	}
+
+	assert.False(t, namespaceRegexCache.Contains(first), "oldest pattern must be evicted once the bound is exceeded")
+	assert.True(t, namespaceRegexCache.Contains(last), "latest pattern must be cached")
+}
+
+func TestMatchNamespaceRegexConcurrent(t *testing.T) {
+	resetNamespaceRegexCache(t)
 
 	var wg sync.WaitGroup
 	for range 4 {
@@ -518,8 +539,6 @@ func TestNamespaceRegexCacheIsBounded(t *testing.T) {
 		})
 	}
 	wg.Wait()
-
-	assert.Equal(t, namespaceRegexCacheSize, namespaceRegexCache.Len())
 }
 
 type WrapProvider struct {
