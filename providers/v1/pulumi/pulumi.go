@@ -117,22 +117,27 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	}
 	value := secret.Data[secretKey]
 
-	updatePayload := &esc.EnvironmentDefinition{
-		Values: &esc.EnvironmentDefinitionValues{
-			AdditionalProperties: map[string]any{
-				data.GetRemoteKey(): string(value),
-			},
-		},
-	}
-	_, oldValues, err := c.escClient.OpenAndReadEnvironment(authCtx, c.organization, c.project, c.environment)
+	// Merge into the raw environment definition rather than the opened
+	// (resolved) environment, so imports, pulumiConfig, environmentVariables,
+	// files and fn:: expressions are written back untouched.
+	definition, _, err := c.escClient.GetEnvironment(authCtx, c.organization, c.project, c.environment)
 	if err != nil {
 		return fmt.Errorf(errReadEnvironment, err)
 	}
-	updatePayload.Values.AdditionalProperties = createSubmaps(updatePayload.Values.AdditionalProperties)
-	if err := mergo.Merge(&updatePayload.Values.AdditionalProperties, oldValues); err != nil {
+	if definition == nil {
+		definition = &esc.EnvironmentDefinition{}
+	}
+	if definition.Values == nil {
+		definition.Values = &esc.EnvironmentDefinitionValues{}
+	}
+	values := createSubmaps(map[string]any{
+		data.GetRemoteKey(): string(value),
+	})
+	if err := mergo.Merge(&values, definition.Values.AdditionalProperties); err != nil {
 		return fmt.Errorf(errPushSecrets, err)
 	}
-	_, err = c.escClient.UpdateEnvironment(authCtx, c.organization, c.project, c.environment, updatePayload)
+	definition.Values.AdditionalProperties = values
+	_, err = c.escClient.UpdateEnvironment(authCtx, c.organization, c.project, c.environment, definition)
 	if err != nil {
 		return fmt.Errorf(errPushSecrets, err)
 	}
