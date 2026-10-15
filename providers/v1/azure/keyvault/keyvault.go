@@ -264,21 +264,21 @@ func initializeNewAzureSDK(ctx context.Context, az *Azure) error {
 
 	// Create Azure SDK clients and store them directly
 	az.secretsClient, err = azsecrets.NewClient(*az.provider.VaultURL, credential, &azsecrets.ClientOptions{
-		ClientOptions: azcore.ClientOptions{Cloud: cloudConfig},
+		Cloud: cloudConfig,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create secrets client: %w", err)
 	}
 
 	az.keysClient, err = azkeys.NewClient(*az.provider.VaultURL, credential, &azkeys.ClientOptions{
-		ClientOptions: azcore.ClientOptions{Cloud: cloudConfig},
+		Cloud: cloudConfig,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create keys client: %w", err)
 	}
 
 	az.certsClient, err = azcertificates.NewClient(*az.provider.VaultURL, credential, &azcertificates.ClientOptions{
-		ClientOptions: azcore.ClientOptions{Cloud: cloudConfig},
+		Cloud: cloudConfig,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create certificates client: %w", err)

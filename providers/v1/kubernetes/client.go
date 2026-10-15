@@ -141,10 +141,8 @@ func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1.Pu
 
 	secretClient := c.secretsClientFor(targetNamespace)
 	remoteSecret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: targetNamespace,
-			Name:      data.GetRemoteKey(),
-		},
+		Namespace: targetNamespace,
+		Name:      data.GetRemoteKey(),
 	}
 
 	return c.createOrUpdate(ctx, secretClient, remoteSecret, func() error {
