@@ -37,6 +37,125 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
+func TestValidateManifestSecretCandidate(t *testing.T) {
+	secretTarget := &esv1.ExternalSecret{Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+		Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "Secret"},
+	}}}
+
+	configMapTarget := &esv1.ExternalSecret{Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+		Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+	}}}
+
+	tests := []struct {
+		name            string
+		es              *esv1.ExternalSecret
+		object          map[string]any
+		wantErr         error
+		wantErrContains string
+	}{
+		{
+			name: "rejects created service account token Secret",
+			es:   secretTarget,
+			object: map[string]any{
+				"apiVersion": "v1",
+				"kind":       "Secret",
+				"type":       string(v1.SecretTypeServiceAccountToken),
+				"metadata": map[string]any{"annotations": map[string]any{
+					v1.ServiceAccountNameKey: "service-account",
+				}},
+			},
+			wantErr: errServiceAccountTokenSecret,
+		},
+		{
+			name: "rejects updated bootstrap token Secret",
+			es:   secretTarget,
+			object: map[string]any{
+				"apiVersion": "v1",
+				"kind":       "Secret",
+				"type":       string(v1.SecretTypeBootstrapToken),
+			},
+			wantErr: errBootstrapTokenSecret,
+		},
+		{
+			name: "allows matching non-Secret manifest",
+			es:   configMapTarget,
+			object: map[string]any{
+				"apiVersion": "v1",
+				"kind":       "ConfigMap",
+			},
+		},
+		{
+			name: "rejects ConfigMap rendered as Secret",
+			es:   configMapTarget,
+			object: map[string]any{
+				"apiVersion": "v1",
+				"kind":       "Secret",
+			},
+			wantErrContains: `rendered target GVK "/v1, Kind=Secret" differs from declared target GVK "/v1, Kind=ConfigMap"`,
+		},
+		{
+			name: "rejects changed API version",
+			es: &esv1.ExternalSecret{Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+				Manifest: &esv1.ManifestReference{APIVersion: "example.io/v1", Kind: "Target"},
+			}}},
+			object: map[string]any{
+				"apiVersion": "other.io/v1",
+				"kind":       "Target",
+			},
+			wantErrContains: `rendered target GVK "other.io/v1, Kind=Target" differs from declared target GVK "example.io/v1, Kind=Target"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			obj := &unstructured.Unstructured{Object: tt.object}
+			err := validateManifestSecretCandidate(tt.es, obj)
+			switch {
+			case tt.wantErr != nil:
+				require.ErrorIs(t, err, tt.wantErr)
+			case tt.wantErrContains != "":
+				require.EqualError(t, err, tt.wantErrContains)
+			default:
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestApplyTemplateToManifestRejectsRetainedSecretType(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{
+		Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
+		Scheme: scheme.Scheme,
+	}
+	es := &esv1.ExternalSecret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-es",
+			Namespace: "default",
+			Annotations: map[string]string{
+				v1.ServiceAccountNameKey: "service-account",
+			},
+		},
+		Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+			Name:     "test-secret",
+			Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "Secret"},
+		}},
+	}
+	existing := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "v1",
+		"kind":       "Secret",
+		"metadata": map[string]any{
+			"name":      "test-secret",
+			"namespace": "default",
+		},
+		"type": string(v1.SecretTypeServiceAccountToken),
+		"data": map[string]any{},
+	}}
+
+	_, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
+	require.ErrorIs(t, err, errServiceAccountTokenSecret)
+}
+
 func TestIsGenericTarget(t *testing.T) {
 	tests := []struct {
 		name     string

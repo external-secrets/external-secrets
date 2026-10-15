@@ -10,3 +10,14 @@ can be found in our Github: {{ .Chart.Home }}
 {{- if and .Values.serviceMonitor.enabled (eq $shouldRenderStr "false") -}}
 WARNING: ServiceMonitors were not deployed due to missing CRD monitoring.coreos.com/v1/ServiceMonitor
 {{- end -}}
+
+{{- if and .Values.createOperator (gt (int .Values.replicaCount) 1) (not .Values.leaderElect) }}
+
+WARNING: replicaCount is {{ .Values.replicaCount }} but leaderElect is false. All replicas will reconcile
+concurrently. Set leaderElect=true when running more than one replica.
+{{- end }}
+{{- if and .Values.certController.create (not .Values.webhook.certManager.enabled) (gt (int .Values.certController.replicaCount) 1) (not .Values.leaderElect) }}
+
+WARNING: certController.replicaCount is {{ .Values.certController.replicaCount }} but leaderElect is false. All
+cert-controller replicas will reconcile concurrently. Set leaderElect=true when running more than one replica.
+{{- end }}
