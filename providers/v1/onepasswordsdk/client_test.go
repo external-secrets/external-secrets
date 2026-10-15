@@ -29,7 +29,6 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	v1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -358,10 +357,8 @@ func TestPushSecret(t *testing.T) {
 				Data: map[string][]byte{
 					"foo": []byte("bar"),
 				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "secret",
-					Namespace: "default",
-				},
+				Name:      "secret",
+				Namespace: "default",
 			},
 			ref: v1alpha1.PushSecretData{
 				Match: v1alpha1.PushSecretMatch{
@@ -396,10 +393,8 @@ func TestPushSecret(t *testing.T) {
 				Data: map[string][]byte{
 					"foo": []byte("bar"),
 				},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "secret",
-					Namespace: "default",
-				},
+				Name:      "secret",
+				Namespace: "default",
 			},
 			ref: v1alpha1.PushSecretData{
 				Match: v1alpha1.PushSecretMatch{
@@ -2416,7 +2411,7 @@ func TestProviderValidateStore(t *testing.T) {
 
 	mkStore := func(p *v1.OnePasswordSDKProvider) *v1.SecretStore {
 		return &v1.SecretStore{
-			TypeMeta: metav1.TypeMeta{Kind: "SecretStore"},
+			Kind: "SecretStore",
 			Spec: v1.SecretStoreSpec{
 				Provider: &v1.SecretStoreProvider{OnePasswordSDK: p},
 			},

@@ -193,10 +193,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			//       https://github.com/external-secrets/external-secrets/pull/612
 			conditionSynced := NewExternalSecretCondition(esv1.ExternalSecretDeleted, v1.ConditionFalse, esv1.ConditionReasonSecretDeleted, "Secret was deleted")
 			SetExternalSecretCondition(&esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      req.Name,
-					Namespace: req.Namespace,
-				},
+				Name:      req.Name,
+				Namespace: req.Namespace,
 			}, *conditionSynced)
 
 			return ctrl.Result{}, nil
@@ -941,13 +939,11 @@ func (r *Reconciler) createSecret(ctx context.Context, mutationFunc func(secret 
 
 	// define and mutate the new secret
 	newSecret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        secretName,
-			Namespace:   es.Namespace,
-			Labels:      map[string]string{},
-			Annotations: map[string]string{},
-		},
-		Data: make(map[string][]byte),
+		Name:        secretName,
+		Namespace:   es.Namespace,
+		Labels:      map[string]string{},
+		Annotations: map[string]string{},
+		Data:        make(map[string][]byte),
 	}
 	if err := mutationFunc(newSecret); err != nil {
 		return err
@@ -1524,10 +1520,8 @@ func (r *Reconciler) findObjectsForSecret(ctx context.Context, secret client.Obj
 	requests := make([]reconcile.Request, len(externalSecretsList.Items))
 	for i := range externalSecretsList.Items {
 		requests[i] = reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      externalSecretsList.Items[i].GetName(),
-				Namespace: externalSecretsList.Items[i].GetNamespace(),
-			},
+			Name:      externalSecretsList.Items[i].GetName(),
+			Namespace: externalSecretsList.Items[i].GetNamespace(),
 		}
 	}
 	return requests

@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/hack/tools/gen-crd-api-reference-docs
 
-go 1.26.4
+go 1.27.2
 
 require (
 	github.com/ahmetb/gen-crd-api-reference-docs v0.3.0 // indirect

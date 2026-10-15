@@ -27,7 +27,6 @@ import (
 	"github.com/1Password/connect-sdk-go/onepassword"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -499,9 +498,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: nil provider",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: nil,
 				},
@@ -511,9 +508,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: nil OnePassword provider spec",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: nil,
@@ -525,9 +520,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "valid secretStore",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -552,9 +545,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: illegal namespace on SecretStore",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -581,9 +572,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: more than one vault with the same number",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -609,9 +598,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "valid: clusterSecretStore",
 			clusterStore: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "ClusterSecretStore",
-				},
+				Kind: "ClusterSecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -637,9 +624,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: clusterSecretStore without namespace",
 			clusterStore: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "ClusterSecretStore",
-				},
+				Kind: "ClusterSecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -665,9 +650,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: missing connectTokenSecretRef.name",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -692,9 +675,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: missing connectTokenSecretRef.key",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -719,9 +700,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: at least one vault",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -744,9 +723,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: url",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{

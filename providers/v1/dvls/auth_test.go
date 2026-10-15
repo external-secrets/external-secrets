@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -74,10 +73,8 @@ func TestNewDVLSClient_CrossNamespaceSecurityConstraint(t *testing.T) {
 			}
 
 			secret := &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName,
-					Namespace: targetNS,
-				},
+				Name:      secretName,
+				Namespace: targetNS,
 				Data: map[string][]byte{
 					appIDKey:     []byte(testAppID),
 					appSecretKey: []byte(testAppSecret),
