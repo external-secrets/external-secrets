@@ -144,15 +144,13 @@ func (vms *VaultManagementService) PushSecret(ctx context.Context, secret *corev
 	switch action {
 	case SecretNotFound:
 		_, err = vms.VaultClient.CreateSecret(ctx, vault.CreateSecretRequest{
-			CreateSecretDetails: vault.CreateSecretDetails{
-				CompartmentId: &vms.compartment,
-				KeyId:         &vms.encryptionKey,
-				SecretContent: vault.Base64SecretContentDetails{
-					Content: &encodedValue,
-				},
-				SecretName: &secretName,
-				VaultId:    &vms.vault,
+			CompartmentId: &vms.compartment,
+			KeyId:         &vms.encryptionKey,
+			SecretContent: vault.Base64SecretContentDetails{
+				Content: &encodedValue,
 			},
+			SecretName: &secretName,
+			VaultId:    &vms.vault,
 		})
 		return sanitizeOCISDKErr(err)
 	case SecretExists:
@@ -165,10 +163,8 @@ func (vms *VaultManagementService) PushSecret(ctx context.Context, secret *corev
 		}
 		_, err = vms.VaultClient.UpdateSecret(ctx, vault.UpdateSecretRequest{
 			SecretId: sec.SecretId,
-			UpdateSecretDetails: vault.UpdateSecretDetails{
-				SecretContent: vault.Base64SecretContentDetails{
-					Content: &encodedValue,
-				},
+			SecretContent: vault.Base64SecretContentDetails{
+				Content: &encodedValue,
 			},
 		})
 		return sanitizeOCISDKErr(err)

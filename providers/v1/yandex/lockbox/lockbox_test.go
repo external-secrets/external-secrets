@@ -28,7 +28,6 @@ import (
 	"github.com/yandex-cloud/go-genproto/yandex/cloud/lockbox/v1"
 	"github.com/yandex-cloud/go-sdk/iamkey"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -54,9 +53,7 @@ func TestNewClient(t *testing.T) {
 	const authorizedKeySecretKey = "authorizedKeySecretKey"
 
 	store := &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
+		Namespace: namespace,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				YandexLockbox: &esv1.YandexLockboxProvider{
@@ -918,7 +915,7 @@ func TestGetSecretWithInvalidFetchingPolicy(t *testing.T) {
 	)
 	tassert.Nil(t, err)
 	store := &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{Namespace: namespace},
+		Namespace: namespace,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				YandexLockbox: &esv1.YandexLockboxProvider{
@@ -964,9 +961,7 @@ func newLockboxProvider(clock clock.Clock, fakeLockboxServer *client.FakeLockbox
 
 func newYandexLockboxSecretStore(apiEndpoint, namespace, authorizedKeySecretName, authorizedKeySecretKey string) esv1.GenericStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
+		Namespace: namespace,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				YandexLockbox: &esv1.YandexLockboxProvider{
@@ -985,9 +980,7 @@ func newYandexLockboxSecretStore(apiEndpoint, namespace, authorizedKeySecretName
 
 func newYandexLockboxSecretStoreWithFetchByName(apiEndpoint, namespace, authorizedKeySecretName, authorizedKeySecretKey, folderID string) esv1.GenericStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
+		Namespace: namespace,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				YandexLockbox: &esv1.YandexLockboxProvider{
@@ -1011,9 +1004,7 @@ func newYandexLockboxSecretStoreWithFetchByName(apiEndpoint, namespace, authoriz
 
 func newYandexLockboxSecretStoreWithFetchByID(apiEndpoint, namespace, authorizedKeySecretName, authorizedKeySecretKey string) esv1.GenericStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
+		Namespace: namespace,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				YandexLockbox: &esv1.YandexLockboxProvider{
@@ -1041,11 +1032,9 @@ func toJSON(t *testing.T, v any) []byte {
 
 func createK8sSecret(ctx context.Context, t *testing.T, k8sClient k8sclient.Client, namespace, secretName, secretKey string, secretValue []byte) error {
 	err := k8sClient.Create(ctx, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      secretName,
-		},
-		Data: map[string][]byte{secretKey: secretValue},
+		Namespace: namespace,
+		Name:      secretName,
+		Data:      map[string][]byte{secretKey: secretValue},
 	})
 	tassert.Nil(t, err)
 	return nil

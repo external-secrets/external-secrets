@@ -385,10 +385,8 @@ func (r *Reconciler) createOrUpdateExternalSecret(
 
 	// Create or update the ExternalSecret
 	externalSecret := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace.Name,
-			Name:      esName,
-		},
+		Namespace: namespace.Name,
+		Name:      esName,
 	}
 
 	mutateFunc := func() error {
@@ -579,10 +577,8 @@ func (r *Reconciler) queueRequestsForItem(clusterExternalSecrets *esv1.ClusterEx
 
 			if labelSelector.Matches(labels.Set(namespace.GetLabels())) {
 				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      clusterExternalSecret.GetName(),
-						Namespace: clusterExternalSecret.GetNamespace(),
-					},
+					Name:      clusterExternalSecret.GetName(),
+					Namespace: clusterExternalSecret.GetNamespace(),
 				})
 				selected = true
 				break
@@ -597,10 +593,8 @@ func (r *Reconciler) queueRequestsForItem(clusterExternalSecrets *esv1.ClusterEx
 
 		if slices.Contains(clusterExternalSecret.Spec.Namespaces, namespace.GetName()) {
 			requests = append(requests, reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      clusterExternalSecret.GetName(),
-					Namespace: clusterExternalSecret.GetNamespace(),
-				},
+				Name:      clusterExternalSecret.GetName(),
+				Namespace: clusterExternalSecret.GetNamespace(),
 			})
 		}
 	}

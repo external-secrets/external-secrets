@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -42,10 +41,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 
 	t.Run("case 1: should return no error when valid", func(t *testing.T) {
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dvls-store",
-				Namespace: testNamespace,
-			},
+			Name:      "dvls-store",
+			Namespace: testNamespace,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
@@ -73,10 +70,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 
 	t.Run("case 1b: cluster store requires namespace", func(t *testing.T) {
 		store := &esv1.ClusterSecretStore{
-			TypeMeta: metav1.TypeMeta{Kind: "ClusterSecretStore"},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "dvls-cluster-store",
-			},
+			Kind: "ClusterSecretStore",
+			Name: "dvls-cluster-store",
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
@@ -107,10 +102,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 	t.Run("case 1c: cluster store succeeds with namespace", func(t *testing.T) {
 		otherNamespace := otherNS
 		store := &esv1.ClusterSecretStore{
-			TypeMeta: metav1.TypeMeta{Kind: "ClusterSecretStore"},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "dvls-cluster-store",
-			},
+			Kind: "ClusterSecretStore",
+			Name: "dvls-cluster-store",
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
@@ -154,10 +147,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 
 	t.Run("case 2b: http URL without insecure flag should fail", func(t *testing.T) {
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dvls-store",
-				Namespace: testNamespace,
-			},
+			Name:      "dvls-store",
+			Namespace: testNamespace,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
@@ -186,10 +177,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 
 	t.Run("case 2c: http URL with insecure flag should pass", func(t *testing.T) {
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dvls-store",
-				Namespace: testNamespace,
-			},
+			Name:      "dvls-store",
+			Namespace: testNamespace,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
@@ -218,10 +207,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 
 	t.Run("case 3: should return error when serverUrl is empty", func(t *testing.T) {
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dvls-store",
-				Namespace: testNamespace,
-			},
+			Name:      "dvls-store",
+			Namespace: testNamespace,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
@@ -249,10 +236,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 
 	t.Run("case 3a: should accept empty vault (uses default)", func(t *testing.T) {
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dvls-store",
-				Namespace: testNamespace,
-			},
+			Name:      "dvls-store",
+			Namespace: testNamespace,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
@@ -280,10 +265,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 
 	t.Run("case 3b: should return error when vault is whitespace-only", func(t *testing.T) {
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dvls-store",
-				Namespace: testNamespace,
-			},
+			Name:      "dvls-store",
+			Namespace: testNamespace,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
@@ -312,10 +295,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 
 	t.Run("case 3c: should return error when vault has leading/trailing whitespace", func(t *testing.T) {
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dvls-store",
-				Namespace: testNamespace,
-			},
+			Name:      "dvls-store",
+			Namespace: testNamespace,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
@@ -344,10 +325,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 
 	t.Run("case 3d: should return error when appId key is missing", func(t *testing.T) {
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dvls-store",
-				Namespace: testNamespace,
-			},
+			Name:      "dvls-store",
+			Namespace: testNamespace,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
@@ -376,10 +355,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 
 	t.Run("case 3e: should return error when appSecret name is missing", func(t *testing.T) {
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dvls-store",
-				Namespace: testNamespace,
-			},
+			Name:      "dvls-store",
+			Namespace: testNamespace,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
@@ -409,10 +386,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 	t.Run("case 4: should return error when AppID secret reference is invalid", func(t *testing.T) {
 		otherNamespace := otherNS
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dvls-store",
-				Namespace: testNamespace,
-			},
+			Name:      "dvls-store",
+			Namespace: testNamespace,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
@@ -443,10 +418,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 	t.Run("case 5: should return error when AppSecret secret reference is invalid", func(t *testing.T) {
 		otherNamespace := otherNS
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "dvls-store",
-				Namespace: testNamespace,
-			},
+			Name:      "dvls-store",
+			Namespace: testNamespace,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					DVLS: &esv1.DVLSProvider{
