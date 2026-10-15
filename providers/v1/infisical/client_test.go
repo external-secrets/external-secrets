@@ -252,12 +252,38 @@ func TestGetAllSecretsResults(t *testing.T) {
 		assert.Error(t, err)
 	})
 
-	t.Run("finding by tags is still unsupported", func(t *testing.T) {
-		stub := &listStub{}
-		p := stub.provider(t, scope, `{"secrets":[],"imports":[]}`, http.StatusOK)
+	t.Run("tags and metadata in find.tags must all match", func(t *testing.T) {
+		body := `{"secrets":[
+			{"secretKey":"MATCH","secretValue":"m","tags":[{"slug":"hipaa"},{"slug":"prod"}],"secretMetadata":[{"key":"team","value":"core"}]},
+			{"secretKey":"MISSING_TAG","secretValue":"t","tags":[{"slug":"hipaa"}],"secretMetadata":[{"key":"team","value":"core"}]},
+			{"secretKey":"WRONG_METADATA","secretValue":"w","tags":[{"slug":"hipaa"},{"slug":"prod"}],"secretMetadata":[{"key":"team","value":"edge"}]},
+			{"secretKey":"UNTAGGED","secretValue":"u"}
+		],"imports":[]}`
 
-		_, err := p.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{Tags: map[string]string{"env": "dev"}})
-		assert.ErrorIs(t, err, errTagsNotImplemented)
-		assert.Zero(t, stub.calls)
+		stub := &listStub{}
+		p := stub.provider(t, scope, body, http.StatusOK)
+
+		got, err := p.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{
+			Tags: map[string]string{findTagsKey: "hipaa, prod", "team": "core"},
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{"MATCH": []byte("m")}, got)
+	})
+
+	t.Run("tags combine with the name filter", func(t *testing.T) {
+		body := `{"secrets":[
+			{"secretKey":"DB_HOST","secretValue":"db","tags":[{"slug":"hipaa"}]},
+			{"secretKey":"API_KEY","secretValue":"key","tags":[{"slug":"hipaa"}]}
+		],"imports":[]}`
+
+		stub := &listStub{}
+		p := stub.provider(t, scope, body, http.StatusOK)
+
+		got, err := p.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{
+			Name: &esv1.FindName{RegExp: "^DB_"},
+			Tags: map[string]string{findTagsKey: "hipaa"},
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{"DB_HOST": []byte("db")}, got)
 	})
 }
