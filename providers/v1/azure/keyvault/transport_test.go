@@ -32,7 +32,6 @@ import (
 	"github.com/Azure/go-autorest/autorest"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -122,13 +121,14 @@ func TestLegacyKeyVaultConnectionReuse(t *testing.T) {
 
 func TestInitializeLegacyClientSharesSender(t *testing.T) {
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "credentials", Namespace: "test"},
-		Data:       map[string][]byte{"client-id": []byte("client"), "client-secret": []byte("secret")},
+		Name:      "credentials",
+		Namespace: "test",
+		Data:      map[string][]byte{"client-id": []byte("client"), "client-secret": []byte("secret")},
 	}
 	kube := fake.NewClientBuilder().WithObjects(secret).Build()
 	var previous *keyvault.BaseClient
 	for _, name := range []string{"first", "second"} {
-		store := &esv1.SecretStore{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "test"}}
+		store := &esv1.SecretStore{Name: name, Namespace: "test"}
 		az := &Azure{
 			store:     store,
 			namespace: "test",
