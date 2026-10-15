@@ -652,6 +652,12 @@ func (r *Reconciler) resolveSecrets(ctx context.Context, ps *esapi.PushSecret) (
 		if err != nil {
 			return nil, err
 		}
+		// An empty selector resolves to labels.Everything(). CEL rejects that at
+		// admission, but objects written before that rule still reach here, so
+		// fail closed rather than pushing every Secret in the namespace.
+		if labelSelector.Empty() {
+			return nil, errors.New("secret selector is empty, which would select every Secret in the namespace")
+		}
 
 		var secretList v1.SecretList
 		err = r.List(ctx, &secretList, &client.ListOptions{LabelSelector: labelSelector, Namespace: ps.Namespace})
