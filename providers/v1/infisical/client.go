@@ -18,6 +18,7 @@ limitations under the License.
 package infisical
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -160,7 +161,14 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 			return nil, err
 		}
 	}
-	tagSlugs, metadata := parseFindTags(ref.Tags)
+	tagSlugs, metadata, err := parseFindTags(ref.Tags)
+	if err != nil {
+		return nil, err
+	}
+	// A recursive list keeps one secret per key unless told otherwise. Copies
+	// of a key in different folders can carry different tags and metadata, so a
+	// filtered search must see every copy before it selects one.
+	filtered := len(tagSlugs) > 0 || len(metadata) > 0
 
 	// A find path says where to look, not how far: whether subfolders are read
 	// stays with the store's recursive setting. An empty one is not a path, and
@@ -177,6 +185,7 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 		Recursive:              p.apiScope.Recursive,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 		IncludeImports:         true,
+		SkipUniqueValidation:   filtered,
 	})
 	metrics.ObserveAPICall(constants.ProviderName, getSecretsV3, err)
 	if err != nil {
@@ -184,6 +193,7 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 	}
 
 	selected := make(map[string][]byte, len(secrets))
+	selectedPaths := make(map[string]string, len(secrets))
 	for _, secret := range secrets {
 		if matcher != nil && !matcher.MatchName(secret.SecretKey) {
 			continue
@@ -191,14 +201,22 @@ func (p *Provider) GetAllSecrets(_ context.Context, ref esv1.ExternalSecretFind)
 		if !hasTags(secret, tagSlugs) || !hasMetadata(secret, metadata) {
 			continue
 		}
-		selected[secret.SecretKey] = []byte(secret.SecretValue)
+		// The list order of copies is not stable, so picking one would be
+		// arbitrary. Copies with the same value are not ambiguous.
+		value := []byte(secret.SecretValue)
+		if prev, ok := selected[secret.SecretKey]; ok && !bytes.Equal(prev, value) {
+			return nil, fmt.Errorf("secret %s matches in folders %s and %s with different values", secret.SecretKey, selectedPaths[secret.SecretKey], secret.SecretPath)
+		}
+		selected[secret.SecretKey] = value
+		selectedPaths[secret.SecretKey] = secret.SecretPath
 	}
 	return selected, nil
 }
 
 // parseFindTags splits find.tags into the tag slugs listed under findTagsKey
-// and the remaining entries, which match secret metadata.
-func parseFindTags(tags map[string]string) ([]string, map[string]string) {
+// and the remaining entries, which match secret metadata. A findTagsKey value
+// with no slugs is an error, so it cannot silently turn off tag filtering.
+func parseFindTags(tags map[string]string) ([]string, map[string]string, error) {
 	var slugs []string
 	metadata := make(map[string]string, len(tags))
 	for k, v := range tags {
@@ -211,8 +229,11 @@ func parseFindTags(tags map[string]string) ([]string, map[string]string) {
 				slugs = append(slugs, slug)
 			}
 		}
+		if len(slugs) == 0 {
+			return nil, nil, fmt.Errorf("find.tags %s lists no tag slugs", findTagsKey)
+		}
 	}
-	return slugs, metadata
+	return slugs, metadata, nil
 }
 
 func hasTags(secret models.Secret, slugs []string) bool {

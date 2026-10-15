@@ -286,4 +286,81 @@ func TestGetAllSecretsResults(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, map[string][]byte{"DB_HOST": []byte("db")}, got)
 	})
+
+	t.Run("a tag value with no slugs fails before anything is listed", func(t *testing.T) {
+		stub := &listStub{}
+		p := stub.provider(t, scope, `{"secrets":[],"imports":[]}`, http.StatusOK)
+
+		_, err := p.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{
+			Tags: map[string]string{findTagsKey: " , "},
+		})
+		assert.Error(t, err)
+		assert.Equal(t, 0, stub.calls)
+	})
+}
+
+func TestGetAllSecretsRecursiveDuplicates(t *testing.T) {
+	scope := &ClientScope{EnvironmentSlug: "dev", ProjectSlug: "proj", SecretPath: "/", Recursive: true}
+
+	t.Run("a filter sees every copy of a key, not only the one the sdk keeps", func(t *testing.T) {
+		// The sdk keeps the last copy of a key, which here is the untagged one.
+		body := `{"secrets":[
+			{"secretKey":"KEY","secretValue":"tagged","secretPath":"/a","tags":[{"slug":"hipaa"}]},
+			{"secretKey":"KEY","secretValue":"untagged","secretPath":"/b"}
+		],"imports":[]}`
+
+		stub := &listStub{}
+		p := stub.provider(t, scope, body, http.StatusOK)
+
+		got, err := p.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{
+			Tags: map[string]string{findTagsKey: "hipaa"},
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{"KEY": []byte("tagged")}, got)
+	})
+
+	t.Run("matching copies with different values are an error", func(t *testing.T) {
+		body := `{"secrets":[
+			{"secretKey":"KEY","secretValue":"one","secretPath":"/a","tags":[{"slug":"hipaa"}]},
+			{"secretKey":"KEY","secretValue":"two","secretPath":"/b","tags":[{"slug":"hipaa"}]}
+		],"imports":[]}`
+
+		stub := &listStub{}
+		p := stub.provider(t, scope, body, http.StatusOK)
+
+		_, err := p.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{
+			Tags: map[string]string{findTagsKey: "hipaa"},
+		})
+		assert.Error(t, err)
+	})
+
+	t.Run("matching copies with the same value are not an error", func(t *testing.T) {
+		body := `{"secrets":[
+			{"secretKey":"KEY","secretValue":"same","secretPath":"/a","tags":[{"slug":"hipaa"}]},
+			{"secretKey":"KEY","secretValue":"same","secretPath":"/b","tags":[{"slug":"hipaa"}]}
+		],"imports":[]}`
+
+		stub := &listStub{}
+		p := stub.provider(t, scope, body, http.StatusOK)
+
+		got, err := p.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{
+			Tags: map[string]string{findTagsKey: "hipaa"},
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{"KEY": []byte("same")}, got)
+	})
+
+	t.Run("without a filter the sdk still keeps one copy per key", func(t *testing.T) {
+		body := `{"secrets":[
+			{"secretKey":"KEY","secretValue":"one","secretPath":"/a"},
+			{"secretKey":"KEY","secretValue":"two","secretPath":"/b"}
+		],"imports":[]}`
+
+		stub := &listStub{}
+		p := stub.provider(t, scope, body, http.StatusOK)
+
+		got, err := p.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{})
+		assert.NoError(t, err)
+		assert.Equal(t, map[string][]byte{"KEY": []byte("two")}, got)
+	})
 }

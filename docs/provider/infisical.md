@@ -681,7 +681,7 @@ The following restrictions apply:
 
 - `find.name.regexp` matches against the secret name. It filters what came back and does not change what was asked for.
 - `find.path` is the folder the search starts from. The value must be an absolute path starting with `/` (e.g. `/my-app`). It is sent to Infisical as the path of the list request. Whether sub-folders are read is the store's `recursive` setting, which a find path says nothing about. For that `find` entry it takes precedence over `secretsScope.secretsPath`, and it may point outside it, as an absolute `remoteRef.key` already can. A path naming a folder that does not exist fails the sync rather than returning nothing.
-- `find.tags` filters by Infisical tags and secret metadata. The reserved key `infisical.com/tags` takes a comma-separated list of tag slugs. Every other key matches a metadata entry with the same key and value. A secret is returned only if it has all of the listed tags and metadata.
+- `find.tags` filters by Infisical tags and secret metadata. The reserved key `infisical.com/tags` takes a comma-separated list of tag slugs. Every other key matches a metadata entry with the same key and value. A secret is returned only if it has all of the listed tags and metadata. An `infisical.com/tags` value that lists no slugs is an error. With a `recursive` store, the filter checks every copy of a key in every sub-folder. If copies in different folders match with different values, the sync fails; narrow the search with `find.path` or `find.name`.
 
 ---
 
