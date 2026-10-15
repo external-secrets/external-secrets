@@ -9,3 +9,5 @@ spec:
   serviceAccountRef:
     name: "default"
     namespace: "default"
+    audiences:
+      - <your-quay-federation-audience>
