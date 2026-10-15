@@ -29,7 +29,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -494,10 +493,10 @@ func TestKubernetesAuthWithServiceAccountRef(t *testing.T) {
 			},
 		}
 		if kind == esv1.ClusterSecretStoreKind {
-			return &esv1.ClusterSecretStore{TypeMeta: metav1.TypeMeta{Kind: kind}, Spec: spec}
+			return &esv1.ClusterSecretStore{Kind: kind, Spec: spec}
 		}
 		spec.Provider.Infisical.Auth.KubernetesAuthCredentials.IdentityID.Namespace = nil
-		return &esv1.SecretStore{TypeMeta: metav1.TypeMeta{Kind: kind}, ObjectMeta: metav1.ObjectMeta{Namespace: "es-namespace"}, Spec: spec}
+		return &esv1.SecretStore{Kind: kind, Namespace: "es-namespace", Spec: spec}
 	}
 
 	testCases := []struct {
@@ -528,8 +527,8 @@ func TestKubernetesAuthWithServiceAccountRef(t *testing.T) {
 			defer srv.Close()
 
 			kube := fake.NewClientBuilder().WithObjects(
-				&corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: "app", Namespace: tc.namespace}},
-				&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: tc.namespace}, Data: map[string][]byte{"identityId": []byte(identityID)}},
+				&corev1.ServiceAccount{Name: "app", Namespace: tc.namespace},
+				&corev1.Secret{Name: "creds", Namespace: tc.namespace, Data: map[string][]byte{"identityId": []byte(identityID)}},
 			).Build()
 			sdkClient := infisicalSdk.NewInfisicalClient(context.Background(), infisicalSdk.Config{SiteUrl: srv.URL, AutoTokenRefresh: new(false)})
 
@@ -544,7 +543,7 @@ func TestKubernetesAuthWithServiceAccountRef(t *testing.T) {
 	t.Run("a missing service account fails the login", func(t *testing.T) {
 		store := newStore(esv1.SecretStoreKind, &esv1meta.ServiceAccountSelector{Name: "missing"})
 		kube := fake.NewClientBuilder().WithObjects(
-			&corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "creds", Namespace: "es-namespace"}, Data: map[string][]byte{"identityId": []byte(identityID)}},
+			&corev1.Secret{Name: "creds", Namespace: "es-namespace", Data: map[string][]byte{"identityId": []byte(identityID)}},
 		).Build()
 		sdkClient := infisicalSdk.NewInfisicalClient(context.Background(), infisicalSdk.Config{SiteUrl: "http://127.0.0.1:0", AutoTokenRefresh: new(false)})
 

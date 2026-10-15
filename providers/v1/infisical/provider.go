@@ -26,7 +26,6 @@ import (
 	infisicalSdk "github.com/infisical/go-sdk"
 	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -402,7 +401,7 @@ func createServiceAccountToken(ctx context.Context, store esv1.GenericStore, kub
 		namespace = *saRef.Namespace
 	}
 
-	sa := &corev1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: saRef.Name, Namespace: namespace}}
+	sa := &corev1.ServiceAccount{Name: saRef.Name, Namespace: namespace}
 	tokenRequest := &authv1.TokenRequest{
 		Spec: authv1.TokenRequestSpec{
 			Audiences:         saRef.Audiences,
