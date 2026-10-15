@@ -5800,7 +5800,7 @@ This creates a secret with individual keys for <code>username</code> and <code>p
 <p>The server configuration consists of:
 - <code>apiUrl</code>: The base URL of your BeyondTrust Workload Credentials API
 - <code>siteId</code>: Your BeyondTrust site identifier (UUID format)</p>
-<p>The provider automatically constructs the full API endpoint as: <code>{apiUrl}/{siteId}/secrets</code></p>
+<p>The provider automatically constructs the full API endpoint as: <code>{apiUrl}/{siteId}/wlc</code></p>
 <h2 id="certificate-trust">Certificate Trust</h2>
 <p>BeyondTrust Workload Credentials typically uses certificates signed by public CAs, requiring no additional configuration.</p>
 <p>If using self-signed certificates, configure trust using either <code>caBundle</code> or <code>caProvider</code>:</p>
