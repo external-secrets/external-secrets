@@ -239,7 +239,7 @@ func TestGetSecretMap(t *testing.T) {
 
 func makeSecretStore(projectSlug, environment, secretsPath string, fn ...storeModifier) *esv1.SecretStore {
 	store := &esv1.SecretStore{
-		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+		Kind: esv1.SecretStoreKind,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Infisical: &esv1.InfisicalProvider{
@@ -299,7 +299,7 @@ type clusterStoreModifier func(*esv1.ClusterSecretStore) *esv1.ClusterSecretStor
 
 func makeClusterSecretStore(projectSlug, environment, secretsPath string, fn ...clusterStoreModifier) *esv1.ClusterSecretStore {
 	store := &esv1.ClusterSecretStore{
-		TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+		Kind: esv1.ClusterSecretStoreKind,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Infisical: &esv1.InfisicalProvider{

@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -36,10 +35,8 @@ func TestNewClient(t *testing.T) {
 		ctx := context.Background()
 		p := &Provider{}
 		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "secret-name",
-				Namespace: "test",
-			},
+			Name:      "secret-name",
+			Namespace: "test",
 			Data: map[string][]byte{
 				"apiKey": []byte("apiKey"),
 			},

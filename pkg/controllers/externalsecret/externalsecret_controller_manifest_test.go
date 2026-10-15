@@ -129,12 +129,10 @@ func TestApplyTemplateToManifestRejectsRetainedSecretType(t *testing.T) {
 		Scheme: scheme.Scheme,
 	}
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-es",
-			Namespace: "default",
-			Annotations: map[string]string{
-				v1.ServiceAccountNameKey: "service-account",
-			},
+		Name:      "test-es",
+		Namespace: "default",
+		Annotations: map[string]string{
+			v1.ServiceAccountNameKey: "service-account",
 		},
 		Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
 			Name:     "test-secret",
@@ -366,9 +364,7 @@ func TestGetTargetName(t *testing.T) {
 		{
 			name: "Use target name when specified",
 			es: &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "my-external-secret",
-				},
+				Name: "my-external-secret",
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
 						Name: "custom-target-name",
@@ -380,9 +376,7 @@ func TestGetTargetName(t *testing.T) {
 		{
 			name: "Use ExternalSecret name when target name not specified",
 			es: &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "my-external-secret",
-				},
+				Name: "my-external-secret",
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
 						Name: "",
@@ -467,10 +461,8 @@ func TestApplyTemplateToManifest_SimpleConfigMap(t *testing.T) {
 	}
 
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-es",
-			Namespace: "default",
-		},
+		Name:      "test-es",
+		Namespace: "default",
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
 				Name: "test-configmap",
@@ -519,10 +511,8 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 	}
 
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-es",
-			Namespace: "default",
-		},
+		Name:      "test-es",
+		Namespace: "default",
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
 				Name: "test-configmap",
@@ -574,11 +564,9 @@ func TestApplyTemplateToManifest_AppliesOwnershipWhenCreationPolicyOwner(t *test
 	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
 
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-es",
-			Namespace: "default",
-			UID:       "abc-123",
-		},
+		Name:      "test-es",
+		Namespace: "default",
+		UID:       "abc-123",
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
 				Name:           "test-configmap",
@@ -674,11 +662,9 @@ func TestApplyOwnership(t *testing.T) {
 			r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
 
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-es",
-					Namespace: "default",
-					UID:       "abc-123",
-				},
+				Name:      "test-es",
+				Namespace: "default",
+				UID:       "abc-123",
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
 						Name:           "test-configmap",
@@ -711,11 +697,9 @@ func TestApplyTemplateToManifest_NoOwnerRefWhenCreationPolicyOrphan(t *testing.T
 	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
 
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-es",
-			Namespace: "default",
-			UID:       "abc-123",
-		},
+		Name:      "test-es",
+		Namespace: "default",
+		UID:       "abc-123",
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
 				Name:           "test-configmap",
@@ -740,16 +724,14 @@ func TestApplyTemplateToManifest_PropagatesESLabelsAndAnnotations(t *testing.T) 
 	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
 
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-es",
-			Namespace: "default",
-			Labels: map[string]string{
-				"app.kubernetes.io/instance": "my-argocd-app",
-				"custom-label":               "custom-value",
-			},
-			Annotations: map[string]string{
-				"argocd.argoproj.io/tracking-id": "my-argocd-app:external-secrets.io/ExternalSecret:default/test-es",
-			},
+		Name:      "test-es",
+		Namespace: "default",
+		Labels: map[string]string{
+			"app.kubernetes.io/instance": "my-argocd-app",
+			"custom-label":               "custom-value",
+		},
+		Annotations: map[string]string{
+			"argocd.argoproj.io/tracking-id": "my-argocd-app:external-secrets.io/ExternalSecret:default/test-es",
 		},
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
@@ -780,12 +762,10 @@ func TestApplyTemplateToManifest_TemplateMetadataWinsOverESLabels(t *testing.T) 
 	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
 
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-es",
-			Namespace: "default",
-			Labels: map[string]string{
-				"app.kubernetes.io/instance": "my-argocd-app",
-			},
+		Name:      "test-es",
+		Namespace: "default",
+		Labels: map[string]string{
+			"app.kubernetes.io/instance": "my-argocd-app",
 		},
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
@@ -821,10 +801,8 @@ func TestApplyTemplateToManifest_NoESLabels(t *testing.T) {
 	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
 
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-es",
-			Namespace: "default",
-		},
+		Name:      "test-es",
+		Namespace: "default",
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
 				Name: "test-configmap",
@@ -872,10 +850,8 @@ func TestGetGenericResource(t *testing.T) {
 	}
 
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-es",
-			Namespace: "default",
-		},
+		Name:      "test-es",
+		Namespace: "default",
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
 				Name: "test-cm",
@@ -914,10 +890,8 @@ func TestGetGenericResource_NotFound(t *testing.T) {
 	}
 
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-es",
-			Namespace: "default",
-		},
+		Name:      "test-es",
+		Namespace: "default",
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
 				Name: "nonexistent-cm",
@@ -955,10 +929,8 @@ func TestApplyTemplateToManifest_LiteralWithDeployment(t *testing.T) {
 	}
 
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-es",
-			Namespace: "default",
-		},
+		Name:      "test-es",
+		Namespace: "default",
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
 				Name: "test-deployment",
@@ -1037,10 +1009,8 @@ func TestApplyTemplateToManifest_MergeBehavior(t *testing.T) {
 	}
 
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-es",
-			Namespace: "default",
-		},
+		Name:      "test-es",
+		Namespace: "default",
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
 				Name: "test-slack-config",

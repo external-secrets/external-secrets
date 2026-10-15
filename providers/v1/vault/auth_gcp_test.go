@@ -23,7 +23,6 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -264,10 +263,8 @@ func TestGCPAuthMethodSelection(t *testing.T) {
 			setupClient: func() *client {
 				// Create a secret with invalid credentials to trigger expected error
 				secret := &corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "gcp-secret",
-						Namespace: "default",
-					},
+					Name:      "gcp-secret",
+					Namespace: "default",
 					Data: map[string][]byte{
 						"credentials.json": []byte(`{"type": "service_account", "project_id": "test"}`),
 					},

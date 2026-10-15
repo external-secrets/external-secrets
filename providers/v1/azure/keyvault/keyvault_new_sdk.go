@@ -427,9 +427,7 @@ func buildCustomCloudConfiguration(config *esv1.AzureCustomCloudConfig, baseConf
 // buildManagedIdentityCredential creates a ManagedIdentityCredential.
 func buildManagedIdentityCredential(az *Azure, cloudConfig cloud.Configuration) (azcore.TokenCredential, error) {
 	opts := &azidentity.ManagedIdentityCredentialOptions{
-		ClientOptions: azcore.ClientOptions{
-			Cloud: cloudConfig,
-		},
+		Cloud: cloudConfig,
 	}
 
 	// Configure user-assigned identity if specified

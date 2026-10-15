@@ -31,13 +31,11 @@ func TestPushSecretWatchPredicate_Update(t *testing.T) {
 
 	base := func() *esapi.PushSecret {
 		return &esapi.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        "ps",
-				Namespace:   "ns",
-				Generation:  1,
-				Labels:      map[string]string{"app": "demo"},
-				Annotations: map[string]string{"owner": "guppi"},
-			},
+			Name:        "ps",
+			Namespace:   "ns",
+			Generation:  1,
+			Labels:      map[string]string{"app": "demo"},
+			Annotations: map[string]string{"owner": "guppi"},
 		}
 	}
 

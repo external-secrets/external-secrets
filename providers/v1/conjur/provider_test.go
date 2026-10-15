@@ -29,7 +29,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -158,10 +157,8 @@ func TestGetSecret(t *testing.T) {
 				store: makeJWTSecretStore(svcURL, "", jwtSecretName, jwtAuthenticator, "", "myconjuraccount"),
 				kube: clientfake.NewClientBuilder().
 					WithObjects(&corev1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      jwtSecretName,
-							Namespace: "default",
-						},
+						Name:      jwtSecretName,
+						Namespace: "default",
 						Data: map[string][]byte{
 							"token": []byte(createFakeJwtToken(true)),
 						},
@@ -237,10 +234,8 @@ func TestGetSecret(t *testing.T) {
 				store: makeCertSecretStore(svcURL, certServiceID, "", "myconjuraccount"),
 				kube: clientfake.NewClientBuilder().
 					WithObjects(&corev1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      certClientKeyName,
-							Namespace: "default",
-						},
+						Name:      certClientKeyName,
+						Namespace: "default",
 						Data: map[string][]byte{
 							"tls.key": []byte("-----BEGIN RSA PRIVATE KEY-----\nfakekey\n-----END RSA PRIVATE KEY-----"),
 						},
@@ -259,10 +254,8 @@ func TestGetSecret(t *testing.T) {
 				store: makeCertSecretStore(svcURL, certServiceID, "", "myconjuraccount"),
 				kube: clientfake.NewClientBuilder().
 					WithObjects(&corev1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      certClientCertName,
-							Namespace: "default",
-						},
+						Name:      certClientCertName,
+						Namespace: "default",
 						Data: map[string][]byte{
 							"tls.crt": []byte("-----BEGIN CERTIFICATE-----\nfakecert\n-----END CERTIFICATE-----"),
 						},
@@ -294,10 +287,8 @@ func TestGetSecret(t *testing.T) {
 				store: makeIAMSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/123/MyRole", true),
 				kube: clientfake.NewClientBuilder().
 					WithObjects(&corev1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "aws-creds",
-							Namespace: "default",
-						},
+						Name:      "aws-creds",
+						Namespace: "default",
 						Data: map[string][]byte{
 							"access-key-id":     []byte("AKIAIOSFODNN7EXAMPLE"),
 							"secret-access-key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
@@ -330,10 +321,8 @@ func TestGetSecret(t *testing.T) {
 				store: makeIAMSecretStoreWithSessionToken(svcURL, "myconjuraccount", "prod", "data/myapp/123/MyRole"),
 				kube: clientfake.NewClientBuilder().
 					WithObjects(&corev1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "aws-creds",
-							Namespace: "default",
-						},
+						Name:      "aws-creds",
+						Namespace: "default",
 						Data: map[string][]byte{
 							"access-key-id":     []byte("AKIAIOSFODNN7EXAMPLE"),
 							"secret-access-key": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
@@ -409,10 +398,8 @@ func TestGetSecret(t *testing.T) {
 				store: makeGCPSecretStore(svcURL, "myconjuraccount", "prod", "data/myapp/myhost", true),
 				kube: clientfake.NewClientBuilder().
 					WithObjects(&corev1.Secret{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "gcp-token-secret",
-							Namespace: "default",
-						},
+						Name:      "gcp-token-secret",
+						Namespace: "default",
 						Data: map[string][]byte{
 							"token": []byte(createFakeJwtToken(true)),
 						},
@@ -1008,19 +995,15 @@ func makeCertSecretStoreWithEmptyRefNames(svcURL, certServiceID, conjurAccount s
 func makeFakeAPIKeySecrets() []kclient.Object {
 	return []kclient.Object{
 		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "user",
-				Namespace: "default",
-			},
+			Name:      "user",
+			Namespace: "default",
 			Data: map[string][]byte{
 				"conjur-hostid": []byte("myhostid"),
 			},
 		},
 		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "apikey",
-				Namespace: "default",
-			},
+			Name:      "apikey",
+			Namespace: "default",
 			Data: map[string][]byte{
 				"conjur-apikey": []byte("apikey"),
 			},
@@ -1031,19 +1014,15 @@ func makeFakeAPIKeySecrets() []kclient.Object {
 func makeFakeCertSecrets() []kclient.Object {
 	return []kclient.Object{
 		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      certClientCertName,
-				Namespace: "default",
-			},
+			Name:      certClientCertName,
+			Namespace: "default",
 			Data: map[string][]byte{
 				"tls.crt": []byte("-----BEGIN CERTIFICATE-----\nfakecert\n-----END CERTIFICATE-----"),
 			},
 		},
 		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      certClientKeyName,
-				Namespace: "default",
-			},
+			Name:      certClientKeyName,
+			Namespace: "default",
 			Data: map[string][]byte{
 				"tls.key": []byte("-----BEGIN RSA PRIVATE KEY-----\nfakekey\n-----END RSA PRIVATE KEY-----"),
 			},
@@ -1054,20 +1033,16 @@ func makeFakeCertSecrets() []kclient.Object {
 func makeFakeCASource(kind, caData string) kclient.Object {
 	if kind == "secret" {
 		return &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "conjur-cert",
-				Namespace: "default",
-			},
+			Name:      "conjur-cert",
+			Namespace: "default",
 			Data: map[string][]byte{
 				"ca": []byte(caData),
 			},
 		}
 	}
 	return &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "conjur-cert",
-			Namespace: "default",
-		},
+		Name:      "conjur-cert",
+		Namespace: "default",
 		Data: map[string]string{
 			"ca": caData,
 		},

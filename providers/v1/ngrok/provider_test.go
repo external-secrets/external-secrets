@@ -22,7 +22,6 @@ import (
 
 	"github.com/ngrok/ngrok-api-go/v9"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -37,9 +36,7 @@ import (
 
 func newTestClusterSecretStore(provider *esv1.SecretStoreProvider) esv1.GenericStore {
 	return &esv1.ClusterSecretStore{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "ClusterSecretStore",
-		},
+		Kind: "ClusterSecretStore",
 		Spec: esv1.SecretStoreSpec{
 			Provider: provider,
 		},
@@ -54,9 +51,7 @@ func newTestNgrokClusterSecretStore(ngrokProv *esv1.NgrokProvider) esv1.GenericS
 
 func newTestSecretStore(provider *esv1.SecretStoreProvider) esv1.GenericStore {
 	return &esv1.SecretStore{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "SecretStore",
-		},
+		Kind: "SecretStore",
 		Spec: esv1.SecretStoreSpec{
 			Provider: provider,
 		},
@@ -71,10 +66,8 @@ func newTestNgrokSecretStore(ngrokProv *esv1.NgrokProvider) esv1.GenericStore {
 
 func newNgrokAPICredentials(name, namespace, apiKey string) *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
+		Name:      name,
+		Namespace: namespace,
 		Data: map[string][]byte{
 			"API_KEY": []byte(apiKey),
 		},

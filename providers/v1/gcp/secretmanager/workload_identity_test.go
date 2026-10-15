@@ -89,11 +89,9 @@ func TestWorkloadIdentity(t *testing.T) {
 			withStore(defaultStore()),
 			withK8sResources([]client.Object{
 				&v1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        "example",
-						Namespace:   "default",
-						Annotations: map[string]string{},
-					},
+					Name:        "example",
+					Namespace:   "default",
+					Annotations: map[string]string{},
 				},
 			}),
 		),
@@ -105,11 +103,9 @@ func TestWorkloadIdentity(t *testing.T) {
 			),
 			withK8sResources([]client.Object{
 				&v1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        "example",
-						Namespace:   "default",
-						Annotations: map[string]string{},
-					},
+					Name:        "example",
+					Namespace:   "default",
+					Annotations: map[string]string{},
 				},
 			}),
 		),
@@ -121,11 +117,9 @@ func TestWorkloadIdentity(t *testing.T) {
 			),
 			withK8sResources([]client.Object{
 				&v1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        "does not exist",
-						Namespace:   "default",
-						Annotations: map[string]string{},
-					},
+					Name:        "does not exist",
+					Namespace:   "default",
+					Annotations: map[string]string{},
 				},
 			}),
 		),
@@ -138,12 +132,10 @@ func TestWorkloadIdentity(t *testing.T) {
 			),
 			withK8sResources([]client.Object{
 				&v1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "example",
-						Namespace: clusterSANamespace,
-						Annotations: map[string]string{
-							gcpSAAnnotation: "example",
-						},
+					Name:      "example",
+					Namespace: clusterSANamespace,
+					Annotations: map[string]string{
+						gcpSAAnnotation: "example",
 					},
 				},
 			}),
@@ -343,12 +335,10 @@ func defaultTestCase(name string) *workloadIdentityTest {
 		},
 		kubeObjects: []client.Object{
 			&v1.ServiceAccount{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "example",
-					Namespace: "default",
-					Annotations: map[string]string{
-						gcpSAAnnotation: "example",
-					},
+				Name:      "example",
+				Namespace: "default",
+				Annotations: map[string]string{
+					gcpSAAnnotation: "example",
 				},
 			},
 		},
@@ -357,32 +347,24 @@ func defaultTestCase(name string) *workloadIdentityTest {
 
 func defaultStore() *esv1.SecretStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foobar",
-			Namespace: "default",
-		},
-		Spec: defaultStoreSpec(),
+		Name:      "foobar",
+		Namespace: "default",
+		Spec:      defaultStoreSpec(),
 	}
 }
 
 func defaultExternalStore() *esv1.SecretStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foobar",
-			Namespace: "default",
-		},
-		Spec: defaultExternalStoreSpec(),
+		Name:      "foobar",
+		Namespace: "default",
+		Spec:      defaultExternalStoreSpec(),
 	}
 }
 
 func defaultClusterStore() *esv1.ClusterSecretStore {
 	return &esv1.ClusterSecretStore{
-		TypeMeta: metav1.TypeMeta{
-			Kind: esv1.ClusterSecretStoreKind,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "foobar",
-		},
+		Kind: esv1.ClusterSecretStoreKind,
+		Name: "foobar",
 		Spec: defaultStoreSpec(),
 	}
 }
