@@ -23,6 +23,8 @@ You can influence the behavior of the generator by providing the following args
 | allowRepeat      | false                              | allow repeating characters.                                                 |
 | secretKeys       | `[password]`                       | List of output keys to populate, each with its own unique password. Keys must be non-empty and unique. Defaults to a single `password` key. |
 | encoding         | raw                                | Encoding format for the generated password. Valid values: `raw`, `base64`, `base64url`, `base32`, `hex`. |
+| prefix           |                                    | Literal string prepended to each password after encoding. See [Prefix and Suffix](#prefix-and-suffix). |
+| suffix           |                                    | Literal string appended to each password after encoding. See [Prefix and Suffix](#prefix-and-suffix). |
 
 ## Example Manifest
 
@@ -87,3 +89,15 @@ Key differences between `base64` and `base64url`:
 - **base64**: `VGVzdD4+UGFzcz8/d29yZA==` uses `+`, `/`, and `=` for padding
 
 - **base64url**: `VGVzdD4-UGFzcz8_d29yZA==` uses `-` and `_` in place of `+` and `/` (URL-safe), and still uses `=` padding
+
+## Prefix and Suffix
+
+Some systems expect credentials in a fixed shape, such as Garage access keys, which are `GK` followed by 24 hex characters. `prefix` and `suffix` add literal text around each generated password:
+
+```yaml
+{% include 'generator-password-prefix.yaml' %}
+```
+
+This produces a value such as `GK7fa2c8d1e4b671aa9f3d8c22`.
+
+The prefix and suffix are added after `encoding`, so they are never encoded themselves. They are not counted in `length` and are not affected by `digits`, `symbols`, `symbolCharacters`, `noUpper` or `allowRepeat`. With `secretKeys`, every key gets the same prefix and suffix.
