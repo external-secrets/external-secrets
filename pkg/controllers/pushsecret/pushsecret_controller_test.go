@@ -2240,6 +2240,72 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
+	// if several Secrets match the selector with DeletionPolicy=Delete, none of them should be deleted from the provider
+	syncSelectorWithDeleteKeepsAll := func(tc *testCase) {
+		var deletes atomic.Int32
+		fakeProvider.WithDeleteSecretFn(func() error { deletes.Add(1); return nil })
+		tc.secret.Labels = map[string]string{"push": "true"}
+		tc.secret.Data = map[string][]byte{"secret-a": []byte("a")}
+		Expect(k8sClient.Create(context.Background(), &v1.Secret{
+			Name:      "secret-b",
+			Namespace: PushSecretNamespace,
+			Labels:    map[string]string{"push": "true"},
+			Data:      map[string][]byte{"secret-b": []byte("b")},
+		})).To(Succeed())
+		tc.pushsecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
+		tc.pushsecret.Spec.DeletionPolicy = v1alpha1.PushSecretDeletionPolicyDelete
+		tc.pushsecret.Spec.Selector.Secret = &v1alpha1.PushSecretSecret{Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"push": "true"}}}
+		tc.pushsecret.Spec.Data = nil
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{{StoreRef: &v1alpha1.PushSecretStoreRef{Name: PushSecretStore}}}
+		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
+			Eventually(func() int { return len(fakeProvider.GetPushSecretData()) }, 10*time.Second, 200*time.Millisecond).Should(Equal(2))
+			// let a few reconciles run with both Secrets in the status
+			time.Sleep(3 * time.Second)
+			Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(ps), ps)).To(Succeed())
+			Expect(ps.Status.SyncedPushSecrets[fmt.Sprintf(storePrefixTemplate, PushSecretStore)]).To(HaveLen(2))
+			Expect(deletes.Load()).To(BeZero(), "DeleteSecret was called for entries of sibling Secrets still matched by the selector")
+			return true
+		}
+	}
+
+	// if a Secret stops matching the selector with DeletionPolicy=Delete, only its entry should be deleted
+	syncSelectorWithDeleteRemovesUnmatched := func(tc *testCase) {
+		var deletes atomic.Int32
+		fakeProvider.WithDeleteSecretFn(func() error { deletes.Add(1); return nil })
+		tc.secret.Labels = map[string]string{"push": "true"}
+		tc.secret.Data = map[string][]byte{"secret-a": []byte("a")}
+		b := &v1.Secret{
+			Name:      "secret-b",
+			Namespace: PushSecretNamespace,
+			Labels:    map[string]string{"push": "true"},
+			Data:      map[string][]byte{"secret-b": []byte("b")},
+		}
+		Expect(k8sClient.Create(context.Background(), b)).To(Succeed())
+		tc.pushsecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
+		tc.pushsecret.Spec.DeletionPolicy = v1alpha1.PushSecretDeletionPolicyDelete
+		tc.pushsecret.Spec.Selector.Secret = &v1alpha1.PushSecretSecret{Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"push": "true"}}}
+		tc.pushsecret.Spec.Data = nil
+		tc.pushsecret.Spec.DataTo = []v1alpha1.PushSecretDataTo{{StoreRef: &v1alpha1.PushSecretStoreRef{Name: PushSecretStore}}}
+		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
+			Eventually(func() int { return len(fakeProvider.GetPushSecretData()) }, 10*time.Second, 200*time.Millisecond).Should(Equal(2))
+			Eventually(func() int {
+				_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(ps), ps)
+				return len(ps.Status.SyncedPushSecrets[fmt.Sprintf(storePrefixTemplate, PushSecretStore)])
+			}, 10*time.Second, 200*time.Millisecond).Should(Equal(2))
+			Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(b), b)).To(Succeed())
+			b.Labels = nil
+			Expect(k8sClient.Update(context.Background(), b)).To(Succeed())
+			Eventually(func() bool {
+				_ = k8sClient.Get(context.Background(), client.ObjectKeyFromObject(ps), ps)
+				m := ps.Status.SyncedPushSecrets[fmt.Sprintf(storePrefixTemplate, PushSecretStore)]
+				_, hasB := m["secret-b"]
+				_, hasA := m["secret-a"]
+				return !hasB && hasA && deletes.Load() >= 1
+			}, 15*time.Second, 200*time.Millisecond).Should(BeTrue())
+			return true
+		}
+	}
+
 	DescribeTable("When reconciling a PushSecret",
 		func(tweaks ...testTweaks) {
 			tc := makeDefaultTestcase()
@@ -2288,6 +2354,8 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should track deletion tasks if Delete fails", failDelete),
 		Entry("should track deleted stores if Delete fails", failDeleteStore),
 		Entry("should delete all secrets if SecretStore changes", deleteWholeStore),
+		Entry("should not delete secrets still matched by the selector if DeletionPolicy=Delete", syncSelectorWithDeleteKeepsAll),
+		Entry("should only delete the secret that stops matching the selector if DeletionPolicy=Delete", syncSelectorWithDeleteRemovesUnmatched),
 		Entry("should sync to stores matching labels", syncMatchingLabels),
 		Entry("should sync with ClusterStore", syncWithClusterStore),
 		Entry("should sync with ClusterStore matching labels", syncWithClusterStoreMatchingLabels),
