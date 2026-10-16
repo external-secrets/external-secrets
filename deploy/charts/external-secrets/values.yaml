@@ -305,6 +305,8 @@ securityContext:
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 1000
+  # The container-level runAsGroup overrides podSecurityContext.runAsGroup. Set both to the same value.
+  runAsGroup: 1000
   seccompProfile:
     type: RuntimeDefault
 
@@ -784,6 +786,8 @@ webhook:
     readOnlyRootFilesystem: true
     runAsNonRoot: true
     runAsUser: 1000
+    # The container-level runAsGroup overrides podSecurityContext.runAsGroup. Set both to the same value.
+    runAsGroup: 1000
     seccompProfile:
       type: RuntimeDefault
 
@@ -1012,6 +1016,8 @@ certController:
     readOnlyRootFilesystem: true
     runAsNonRoot: true
     runAsUser: 1000
+    # The container-level runAsGroup overrides podSecurityContext.runAsGroup. Set both to the same value.
+    runAsGroup: 1000
     seccompProfile:
       type: RuntimeDefault
 

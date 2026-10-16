@@ -78,6 +78,7 @@ tests:
               drop:
                 - ALL
             readOnlyRootFilesystem: true
+            runAsGroup: 1000
             runAsNonRoot: true
             runAsUser: 3000
             seccompProfile:
