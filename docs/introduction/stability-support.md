@@ -18,7 +18,8 @@ We do not do test coverage for any other kubernetes version than the ones runnin
 
 | ESO Version | Kubernetes Version | Release Date | End of Life    |
 |-------------|--------------------|--------------|----------------|
-| 2.12        | 1.36               | Oct 06, 2026 | Release of 2.13|
+| 2.13        | 1.36               | Oct 16, 2026 | Release of 2.14|
+| 2.12        | 1.36               | Oct 06, 2026 | Oct 16, 2026   |
 | 2.11        | 1.36               | Sep 18, 2026 | Oct 06, 2026   |
 | 2.10        | 1.36               | Aug 28, 2026 | Sep 18, 2026   |
 | 2.9         | 1.36               | Aug 07, 2026 | Aug 28, 2026   |
