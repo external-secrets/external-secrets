@@ -22,4 +22,5 @@ const (
 	CallIBMSMGetSecret           = "GetSecret"
 	CallIBMSMListSecrets         = "ListSecrets"
 	CallIBMSMGetSecretByNameType = "GetSecretByNameType"
+	CallIBMSMListSecretGroups    = "ListSecretGroups"
 )
