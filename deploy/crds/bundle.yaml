@@ -5101,6 +5101,17 @@ spec:
                                   required:
                                     - name
                                   type: object
+                                universeDomain:
+                                  description: |-
+                                    UniverseDomain is the Google Cloud universe the cluster belongs to, for example the domain of a
+                                    Google Cloud Dedicated (sovereign) cloud. The Security Token Service and container endpoints
+                                    (sts.<universeDomain>, container.<universeDomain>) and the IAM Credentials endpoint are derived from it.
+                                    When it is not googleapis.com, the Kubernetes token is exchanged through sts.<universeDomain> instead
+                                    of the googleapis.com securetoken service, and a clusterProjectID of the form <domain>:<project> maps to
+                                    the workload identity pool <project>.<domain>.svc.id.goog. Defaults to googleapis.com.
+                                  maxLength: 238
+                                  pattern: ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$
+                                  type: string
                               required:
                                 - serviceAccountRef
                               type: object
@@ -5228,6 +5239,16 @@ spec:
                                   required:
                                     - name
                                   type: object
+                                universeDomain:
+                                  description: |-
+                                    universeDomain is the Google Cloud universe the workload identity pool and the service account belong to,
+                                    for example the domain of a Google Cloud Dedicated (sovereign) cloud. The Security Token Service and IAM
+                                    Credentials endpoints (sts.<universeDomain>, iamcredentials.<universeDomain>) are derived from it.
+                                    If specified, universe_domain found in the external account credential config will be overridden with the
+                                    configured value. Defaults to googleapis.com.
+                                  maxLength: 238
+                                  pattern: ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$
+                                  type: string
                               type: object
                           type: object
                         location:
@@ -8600,6 +8621,17 @@ spec:
                                       required:
                                         - name
                                       type: object
+                                    universeDomain:
+                                      description: |-
+                                        UniverseDomain is the Google Cloud universe the cluster belongs to, for example the domain of a
+                                        Google Cloud Dedicated (sovereign) cloud. The Security Token Service and container endpoints
+                                        (sts.<universeDomain>, container.<universeDomain>) and the IAM Credentials endpoint are derived from it.
+                                        When it is not googleapis.com, the Kubernetes token is exchanged through sts.<universeDomain> instead
+                                        of the googleapis.com securetoken service, and a clusterProjectID of the form <domain>:<project> maps to
+                                        the workload identity pool <project>.<domain>.svc.id.goog. Defaults to googleapis.com.
+                                      maxLength: 238
+                                      pattern: ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$
+                                      type: string
                                   required:
                                     - serviceAccountRef
                                   type: object
@@ -18778,6 +18810,17 @@ spec:
                                   required:
                                     - name
                                   type: object
+                                universeDomain:
+                                  description: |-
+                                    UniverseDomain is the Google Cloud universe the cluster belongs to, for example the domain of a
+                                    Google Cloud Dedicated (sovereign) cloud. The Security Token Service and container endpoints
+                                    (sts.<universeDomain>, container.<universeDomain>) and the IAM Credentials endpoint are derived from it.
+                                    When it is not googleapis.com, the Kubernetes token is exchanged through sts.<universeDomain> instead
+                                    of the googleapis.com securetoken service, and a clusterProjectID of the form <domain>:<project> maps to
+                                    the workload identity pool <project>.<domain>.svc.id.goog. Defaults to googleapis.com.
+                                  maxLength: 238
+                                  pattern: ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$
+                                  type: string
                               required:
                                 - serviceAccountRef
                               type: object
@@ -18905,6 +18948,16 @@ spec:
                                   required:
                                     - name
                                   type: object
+                                universeDomain:
+                                  description: |-
+                                    universeDomain is the Google Cloud universe the workload identity pool and the service account belong to,
+                                    for example the domain of a Google Cloud Dedicated (sovereign) cloud. The Security Token Service and IAM
+                                    Credentials endpoints (sts.<universeDomain>, iamcredentials.<universeDomain>) are derived from it.
+                                    If specified, universe_domain found in the external account credential config will be overridden with the
+                                    configured value. Defaults to googleapis.com.
+                                  maxLength: 238
+                                  pattern: ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$
+                                  type: string
                               type: object
                           type: object
                         location:
@@ -22277,6 +22330,17 @@ spec:
                                       required:
                                         - name
                                       type: object
+                                    universeDomain:
+                                      description: |-
+                                        UniverseDomain is the Google Cloud universe the cluster belongs to, for example the domain of a
+                                        Google Cloud Dedicated (sovereign) cloud. The Security Token Service and container endpoints
+                                        (sts.<universeDomain>, container.<universeDomain>) and the IAM Credentials endpoint are derived from it.
+                                        When it is not googleapis.com, the Kubernetes token is exchanged through sts.<universeDomain> instead
+                                        of the googleapis.com securetoken service, and a clusterProjectID of the form <domain>:<project> maps to
+                                        the workload identity pool <project>.<domain>.svc.id.goog. Defaults to googleapis.com.
+                                      maxLength: 238
+                                      pattern: ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$
+                                      type: string
                                   required:
                                     - serviceAccountRef
                                   type: object
@@ -28777,6 +28841,13 @@ spec:
                                   required:
                                     - name
                                   type: object
+                                universeDomain:
+                                  description: |-
+                                    UniverseDomain is the Google Cloud universe the cluster belongs to, for example a sovereign
+                                    or dedicated cloud such as "apis-example.goog". Defaults to "googleapis.com".
+                                  maxLength: 238
+                                  pattern: ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$
+                                  type: string
                               required:
                                 - clusterLocation
                                 - clusterName
@@ -28906,6 +28977,16 @@ spec:
                                   required:
                                     - name
                                   type: object
+                                universeDomain:
+                                  description: |-
+                                    universeDomain is the Google Cloud universe the workload identity pool and the service account belong to,
+                                    for example the domain of a Google Cloud Dedicated (sovereign) cloud. The Security Token Service and IAM
+                                    Credentials endpoints (sts.<universeDomain>, iamcredentials.<universeDomain>) are derived from it.
+                                    If specified, universe_domain found in the external account credential config will be overridden with the
+                                    configured value. Defaults to googleapis.com.
+                                  maxLength: 238
+                                  pattern: ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$
+                                  type: string
                               type: object
                           type: object
                         projectID:
@@ -29824,6 +29905,17 @@ spec:
                                           required:
                                             - name
                                           type: object
+                                        universeDomain:
+                                          description: |-
+                                            UniverseDomain is the Google Cloud universe the cluster belongs to, for example the domain of a
+                                            Google Cloud Dedicated (sovereign) cloud. The Security Token Service and container endpoints
+                                            (sts.<universeDomain>, container.<universeDomain>) and the IAM Credentials endpoint are derived from it.
+                                            When it is not googleapis.com, the Kubernetes token is exchanged through sts.<universeDomain> instead
+                                            of the googleapis.com securetoken service, and a clusterProjectID of the form <domain>:<project> maps to
+                                            the workload identity pool <project>.<domain>.svc.id.goog. Defaults to googleapis.com.
+                                          maxLength: 238
+                                          pattern: ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$
+                                          type: string
                                       required:
                                         - serviceAccountRef
                                       type: object
@@ -31063,6 +31155,13 @@ spec:
                           required:
                             - name
                           type: object
+                        universeDomain:
+                          description: |-
+                            UniverseDomain is the Google Cloud universe the cluster belongs to, for example a sovereign
+                            or dedicated cloud such as "apis-example.goog". Defaults to "googleapis.com".
+                          maxLength: 238
+                          pattern: ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$
+                          type: string
                       required:
                         - clusterLocation
                         - clusterName
@@ -31192,6 +31291,16 @@ spec:
                           required:
                             - name
                           type: object
+                        universeDomain:
+                          description: |-
+                            universeDomain is the Google Cloud universe the workload identity pool and the service account belong to,
+                            for example the domain of a Google Cloud Dedicated (sovereign) cloud. The Security Token Service and IAM
+                            Credentials endpoints (sts.<universeDomain>, iamcredentials.<universeDomain>) are derived from it.
+                            If specified, universe_domain found in the external account credential config will be overridden with the
+                            configured value. Defaults to googleapis.com.
+                          maxLength: 238
+                          pattern: ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$
+                          type: string
                       type: object
                   type: object
                 projectID:
@@ -32705,6 +32814,17 @@ spec:
                                   required:
                                     - name
                                   type: object
+                                universeDomain:
+                                  description: |-
+                                    UniverseDomain is the Google Cloud universe the cluster belongs to, for example the domain of a
+                                    Google Cloud Dedicated (sovereign) cloud. The Security Token Service and container endpoints
+                                    (sts.<universeDomain>, container.<universeDomain>) and the IAM Credentials endpoint are derived from it.
+                                    When it is not googleapis.com, the Kubernetes token is exchanged through sts.<universeDomain> instead
+                                    of the googleapis.com securetoken service, and a clusterProjectID of the form <domain>:<project> maps to
+                                    the workload identity pool <project>.<domain>.svc.id.goog. Defaults to googleapis.com.
+                                  maxLength: 238
+                                  pattern: ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$
+                                  type: string
                               required:
                                 - serviceAccountRef
                               type: object
