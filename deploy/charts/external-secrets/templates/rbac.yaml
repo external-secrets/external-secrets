@@ -220,13 +220,13 @@ rules:
   {{- if .Values.metrics.listen.auth.enabled }}
   - apiGroups:
     - "authentication.k8s.io"
-    resources: 
+    resources:
     - "tokenreviews"
     verbs:
     - "create"
   - apiGroups:
     - "authorization.k8s.io"
-    resources: 
+    resources:
     - "subjectaccessreviews"
     verbs:
     - "create"
