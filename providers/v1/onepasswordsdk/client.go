@@ -45,11 +45,11 @@ const (
 	envAllCachePrefix = "env-all:"
 	defaultFieldLabel = "password"
 
-	errMsgUpdateItem       = "failed to update item: %w"
-	errMsgCreateItem       = "failed to create item: %w"
+	errMsgUpdateItem       = "failed to update item"
+	errMsgCreateItem       = "failed to create item"
 	errMsgParsePushMeta    = "failed to parse push secret metadata: %w"
-	errMsgExpectedOneField = "found more than 1 fields with title '%s' in '%s', got %d"
-	errMsgExpectedOneFile  = "found more than 1 files with title '%s' in '%s', got %d"
+	errMsgExpectedOneField = "found more than 1 fields with title '%s', got %d"
+	errMsgExpectedOneFile  = "found more than 1 files with title '%s', got %d"
 )
 
 // ErrKeyNotFound is returned when a key is not found in the 1Password Vaults.
@@ -239,7 +239,7 @@ func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRem
 	_, err = p.client.Items().Put(ctx, providerItem)
 	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsPut, err)
 	if err != nil {
-		return fmt.Errorf(errMsgUpdateItem, err)
+		return errors.New(errMsgUpdateItem)
 	}
 
 	return nil
@@ -427,7 +427,7 @@ func (p *SecretsClient) getFields(item onepassword.Item, property string) (map[s
 		}
 		// Throw error if there are multiple fields with the same label.
 		if length := countFieldsWithLabel(field.Title, item.Fields); length != 1 {
-			return nil, fmt.Errorf(errMsgExpectedOneField, field.Title, item.Title, length)
+			return nil, fmt.Errorf(errMsgExpectedOneField, field.Title, length)
 		}
 
 		// caution: do not use client.GetValue here because it has undesirable behavior on keys with a dot in them
@@ -451,7 +451,7 @@ func (p *SecretsClient) getAllFields(item onepassword.Item, ref esv1.ExternalSec
 	for _, field := range item.Fields {
 		// Throw error if there are multiple fields in this item with the same label.
 		if length := countFieldsWithLabel(field.Title, item.Fields); length != 1 {
-			return fmt.Errorf(errMsgExpectedOneField, field.Title, item.Title, length)
+			return fmt.Errorf(errMsgExpectedOneField, field.Title, length)
 		}
 
 		// If ref.Name is set, only add fields that match the regex pattern.
@@ -498,7 +498,7 @@ func (p *SecretsClient) getFiles(ctx context.Context, item onepassword.Item, pro
 
 		// Throw error if there are multiple files with the same label.
 		if length := countFilesWithLabel(file.Attributes.Name, item.Files); length != 1 {
-			return nil, fmt.Errorf(errMsgExpectedOneFile, file.Attributes.Name, item.Title, length)
+			return nil, fmt.Errorf(errMsgExpectedOneFile, file.Attributes.Name, length)
 		}
 
 		contents, err := p.fetchFile(ctx, item.ID, file.FieldID, file.Attributes)
@@ -613,7 +613,7 @@ func (p *SecretsClient) createItem(ctx context.Context, val []byte, ref esv1.Pus
 	})
 	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsCreate, err)
 	if err != nil {
-		return fmt.Errorf(errMsgCreateItem, err)
+		return errors.New(errMsgCreateItem)
 	}
 
 	p.invalidateItem(createdItem)
@@ -750,7 +750,7 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 	_, err = p.client.Items().Put(ctx, providerItem)
 	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsPut, err)
 	if err != nil {
-		return fmt.Errorf(errMsgUpdateItem, err)
+		return errors.New(errMsgUpdateItem)
 	}
 
 	p.invalidateItem(providerItem)
@@ -773,7 +773,7 @@ func (p *SecretsClient) createAllKeysItem(ctx context.Context, secret *corev1.Se
 	})
 	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsCreate, err)
 	if err != nil {
-		return fmt.Errorf(errMsgCreateItem, err)
+		return errors.New(errMsgCreateItem)
 	}
 	p.invalidateItem(createdItem)
 	return nil
@@ -827,7 +827,7 @@ func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, 
 	_, err = p.client.Items().Put(ctx, providerItem)
 	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsPut, err)
 	if err != nil {
-		return fmt.Errorf(errMsgUpdateItem, err)
+		return errors.New(errMsgUpdateItem)
 	}
 	p.invalidateItem(providerItem)
 	return nil
