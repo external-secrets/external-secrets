@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -79,6 +80,10 @@ func validateExternalSecret(es *ExternalSecret) (admission.Warnings, error) {
 		}
 
 		if err := validateSourceRef(ref); err != nil {
+			errs = errors.Join(errs, err)
+		}
+
+		if err := validateSelectRegexp(ref); err != nil {
 			errs = errors.Join(errs, err)
 		}
 	}
@@ -208,6 +213,18 @@ func ValidateSecretTemplateFromTargets(tpl *ExternalSecretTemplate) error {
 			tf.Target, TemplateTargetData, TemplateTargetAnnotations, TemplateTargetLabels))
 	}
 
+	return errs
+}
+
+func validateSelectRegexp(ref ExternalSecretDataFromRemoteRef) error {
+	var errs error
+	for i, sel := range ref.Select {
+		if sel.Regexp != nil {
+			if _, err := regexp.Compile(*sel.Regexp); err != nil {
+				errs = errors.Join(errs, fmt.Errorf("dataFrom.select[%d] has invalid regexp %q: %w", i, *sel.Regexp, err))
+			}
+		}
+	}
 	return errs
 }
 

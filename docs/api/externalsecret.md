@@ -207,6 +207,7 @@ Individual features are described in the [Guides section](../guides/introduction
 * [Using Generators](../guides/generator.md)
 * [Secret Ownership and Deletion](../guides/ownership-deletion-policy.md)
 * [Key Rewriting](../guides/datafrom-rewrite.md)
+* [Filtering Keys with Select](../guides/datafrom-select.md)
 * [Decoding Strategy](../guides/decoding-strategy.md)
 
 ## Example
