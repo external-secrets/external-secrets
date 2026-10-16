@@ -142,6 +142,9 @@ spec:
           {{- if .Values.genericTargets.enabled }}
           - --unsafe-allow-generic-targets=true
           {{- end }}
+          {{- if .Values.security.unsafeAllowSecretStoreHostAccess }}
+          - --unsafe-allow-secretstore-host-access=true
+          {{- end }}
           {{- range $key, $value := .Values.extraArgs }}
             {{- if $value }}
           - --{{ $key }}={{ $value }}

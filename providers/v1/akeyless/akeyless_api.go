@@ -22,9 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"strings"
 
 	aws_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/aws"
@@ -48,9 +46,6 @@ var (
 	ErrTokenNotExists = errors.New("token does not exist")
 )
 
-// DefServiceAccountFile is the default path to the Kubernetes service account token.
-const DefServiceAccountFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-
 // Tokener is the interface for types that can have tokens set on them.
 type Tokener interface {
 	SetToken(v string)
@@ -71,7 +66,7 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 		}
 		jwtString, err := a.getK8SServiceAccountJWT(ctx, auth.KubernetesAuth)
 		if err != nil {
-			return "", fmt.Errorf("failed to read JWT with Kubernetes Auth from %v. error: %w", DefServiceAccountFile, err)
+			return "", fmt.Errorf("failed to get JWT with Kubernetes Auth: %w", err)
 		}
 		jwtStringBase64 := base64.StdEncoding.EncodeToString([]byte(jwtString))
 		K8SAuthConfigName := accTypeParam
@@ -401,7 +396,7 @@ func (a *akeylessBase) DeleteSecret(ctx context.Context, remoteKey string) error
 
 func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *esv1.AkeylessKubernetesAuth) (string, error) {
 	if kubernetesAuth == nil {
-		return readK8SServiceAccountJWT()
+		return "", errors.New(errKubernetesNoTokenSource)
 	}
 
 	switch {
@@ -429,7 +424,7 @@ func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAu
 		return jwt, nil
 	}
 
-	return "", fmt.Errorf("can't determine k8s service account jwt")
+	return "", errors.New(errKubernetesNoTokenSource)
 }
 
 func (a *akeylessBase) getJWTFromServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) (string, error) {
@@ -485,23 +480,4 @@ func (a *akeylessBase) getJWTfromServiceAccountToken(ctx context.Context, servic
 		return "", fmt.Errorf(errGetKubeSATokenRequest, serviceAccountRef.Name, err)
 	}
 	return tokenResponse.Status.Token, nil
-}
-
-// readK8SServiceAccountJWT reads the JWT data for the Agent to submit to Akeyless Gateway.
-func readK8SServiceAccountJWT() (string, error) {
-	data, err := os.Open(DefServiceAccountFile)
-	if err != nil {
-		return "", err
-	}
-	defer func() {
-		_ = data.Close()
-	}()
-
-	contentBytes, err := io.ReadAll(data)
-	if err != nil {
-		return "", err
-	}
-
-	jwt := strings.TrimSpace(string(contentBytes))
-	return jwt, nil
 }

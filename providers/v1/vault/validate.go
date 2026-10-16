@@ -107,6 +107,9 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 			}
 		}
 		if vaultProvider.Auth.Kubernetes != nil {
+			if vaultProvider.Auth.Kubernetes.ServiceAccountRef == nil && vaultProvider.Auth.Kubernetes.SecretRef == nil {
+				return nil, errors.New(errKubernetesNoTokenSource)
+			}
 			if vaultProvider.Auth.Kubernetes.ServiceAccountRef != nil {
 				if err := esutils.ValidateReferentServiceAccountSelector(store, *vaultProvider.Auth.Kubernetes.ServiceAccountRef); err != nil {
 					return nil, fmt.Errorf(errInvalidKubeSA, err)
