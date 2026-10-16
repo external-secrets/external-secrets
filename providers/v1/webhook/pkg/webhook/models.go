@@ -1,5 +1,6 @@
 /*
 Copyright © The ESO Authors
+Copyright © 2026 Apple Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -68,6 +69,29 @@ type Spec struct {
 	// The provider for the CA bundle to use to validate webhook server certificate.
 	// +optional
 	CAProvider *esv1.CAProvider `json:"caProvider,omitempty"`
+
+	// The configuration used for client side related TLS communication, when the Webhook server
+	// requires mutual authentication. Only used if the Server URL is using HTTPS protocol.
+	// This parameter is ignored for plain HTTP protocol connection.
+	// Requires CABundle or CAProvider to also be configured.
+	// It's worth noting this configuration is different from the "TLS certificates auth method",
+	// which is available under the `auth.cert` section.
+	// +optional
+	ClientTLS *ClientTLS `json:"clientTLS,omitempty"`
+}
+
+// ClientTLS is the configuration used for client side related TLS communication,
+// when the remote Webhook server requires mutual authentication.
+type ClientTLS struct {
+	// CertSecretRef is a certificate added to the transport layer
+	// when communicating with the remote Webhook server.
+	// If no key for the Secret is specified, external-secret will default to 'tls.crt'.
+	CertSecretRef *esmeta.SecretKeySelector `json:"certSecretRef,omitempty"`
+
+	// KeySecretRef to a key in a Secret resource containing client private key
+	// added to the transport layer when communicating with the remote Webhook server.
+	// If no key for the Secret is specified, external-secret will default to 'tls.key'.
+	KeySecretRef *esmeta.SecretKeySelector `json:"keySecretRef,omitempty"`
 }
 
 // AuthorizationProtocol contains the protocol-specific configuration
