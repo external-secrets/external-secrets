@@ -94,11 +94,13 @@ API key authentication can be configured in a namespaced `SecretStore`:
 {% include 'ibm-secret-store.yaml' %}
 ```
 
-Container authentication reads the token from the External Secrets Operator pod and is therefore only supported in a cluster-admin-controlled `ClusterSecretStore`:
+Container authentication reads the token from the External Secrets Operator pod and is therefore supported in a cluster-admin-controlled `ClusterSecretStore` by default:
 
 ```yaml
 {% include 'ibm-cluster-secret-store.yaml' %}
 ```
+
+A deployment administrator can permit container authentication in a namespaced `SecretStore` with `security.unsafeAllowSecretStoreHostAccess`, but this lets store authors select files mounted in the ESO pod and can expose controller credentials.
 
 **NOTE:** In case of a `ClusterSecretStore`, be sure to provide `namespace` in `secretApiKeySecretRef` with the namespace where the secret resides.
 

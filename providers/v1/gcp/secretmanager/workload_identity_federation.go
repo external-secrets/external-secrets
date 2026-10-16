@@ -33,6 +33,7 @@ import (
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/feature"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -260,7 +261,11 @@ func (w *workloadIdentityFederation) generateExternalAccountConfig(ctx context.C
 		return nil, err
 	}
 	w.updateExternalAccountConfigWithDefaultValues(config)
-	if err := validateExternalAccountConfig(config, w.config, w.isClusterKind); err != nil {
+	storeKind := esv1.SecretStoreKind
+	if w.isClusterKind {
+		storeKind = esv1.ClusterSecretStoreKind
+	}
+	if err := validateExternalAccountConfig(config, w.config, feature.HostAccessAllowed(storeKind)); err != nil {
 		return nil, err
 	}
 

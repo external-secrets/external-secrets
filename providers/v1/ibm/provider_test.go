@@ -35,6 +35,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/providers/v1/ibm/fake"
+	"github.com/external-secrets/external-secrets/runtime/feature"
 )
 
 const (
@@ -209,6 +210,15 @@ func TestValidateStore(t *testing.T) {
 	if err == nil || err.Error() != errContainerAuthClusterStore {
 		t.Errorf("expected runtime check to return %q, got %v", errContainerAuthClusterStore, err)
 	}
+
+	feature.SetUnsafeAllowSecretStoreHostAccess(true)
+	t.Cleanup(func() { feature.SetUnsafeAllowSecretStoreHostAccess(false) })
+	store.Spec.Provider.IBM.Auth.ContainerAuth.TokenLocation = "/a/path/to/nowhere/that/should/exist"
+	_, err = p.ValidateStore(store)
+	if !ErrorContains(err, "cannot read container auth token") {
+		t.Errorf("expected unsafe flag to permit namespaced container auth, got %v", err)
+	}
+	feature.SetUnsafeAllowSecretStoreHostAccess(false)
 
 	// ClusterSecretStore remains able to use a cluster-admin-mounted token.
 	store.Spec.Provider.IBM.Auth.ContainerAuth.TokenLocation = "/a/path/to/nowhere/that/should/exist"

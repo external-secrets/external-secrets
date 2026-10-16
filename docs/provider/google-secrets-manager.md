@@ -368,7 +368,7 @@ Security and validation notes enforced by the provider:
 - After merge, **`token_url`** must look like `https://sts.<universe>/v1/token` and **`token_info_url`** like `https://sts.<universe>/v1/introspect` (defaults are filled for `googleapis.com` when omitted).
 - If `credential_source` uses a **non-AWS** HTTP **`url`**, set **`externalTokenEndpoint`** on the spec to the **same** URL; the provider verifies they match.
 - If `credential_source` uses the **AWS** metadata layout (`environment_id` starting with `aws`), URLs must match the expected IMDS patterns (metadata host or `169.254.169.254`, etc.).
-- **`credential_source.file`** is only supported by `ClusterSecretStore`, whose configuration is controlled by a cluster administrator. It is rejected for namespaced `SecretStore` and generator resources because the path is read from the ESO controller container. Use **`serviceAccountRef`** to obtain a Kubernetes service account token.
+- **`credential_source.file`** is supported by `ClusterSecretStore`, whose configuration is controlled by a cluster administrator. It is rejected for namespaced `SecretStore` by default because the path is read from the ESO controller container. A deployment administrator can enable it with `security.unsafeAllowSecretStoreHostAccess`, but **`serviceAccountRef`** is the safer way to obtain a Kubernetes service account token. It remains rejected for generator resources.
 
 #### AWS subject token (`awsSecurityCredentials`)
 

@@ -32,6 +32,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/feature"
 )
 
 type workloadIdentityFederationTest struct {
@@ -42,6 +43,7 @@ type workloadIdentityFederationTest struct {
 	expectError            string
 	expectTokenSource      bool
 	isNamespaced           bool
+	allowUnsafeHostAccess  bool
 	assertImpersonation    bool
 	expectImpersonationURL string
 }
@@ -323,10 +325,8 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: createInvalidK8sExternalAccountConfigWithUnallowedTokenFilePath(testAudience),
 					},
@@ -334,6 +334,28 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			isNamespaced: true,
 			expectError:  "invalid external_account config\ncredential_source.file is only supported for ClusterSecretStore; use serviceAccountRef for Kubernetes service account tokens",
+		},
+		{
+			name: "successful namespaced file credential source when explicitly enabled",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
+					Key:       testConfigMapKey,
+				},
+			},
+			kubeObjects: []client.Object{
+				&corev1.ConfigMap{
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
+					Data: map[string]string{
+						testConfigMapKey: createInvalidK8sExternalAccountConfigWithUnallowedTokenFilePath(testAudience),
+					},
+				},
+			},
+			isNamespaced:          true,
+			allowUnsafeHostAccess: true,
+			expectTokenSource:     true,
 		},
 		{
 			name: "successful AWS federation with security credentials",
@@ -690,6 +712,8 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			feature.SetUnsafeAllowSecretStoreHostAccess(tc.allowUnsafeHostAccess)
+			t.Cleanup(func() { feature.SetUnsafeAllowSecretStoreHostAccess(false) })
 			fakeClient := clientfake.NewClientBuilder().WithObjects(tc.kubeObjects...).Build()
 
 			fakeSATG := &fakeSATokenGen{
