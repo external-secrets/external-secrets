@@ -45,8 +45,8 @@ const (
 	envAllCachePrefix = "env-all:"
 	defaultFieldLabel = "password"
 
-	errMsgUpdateItem       = "failed to update item: %w"
-	errMsgCreateItem       = "failed to create item: %w"
+	errMsgUpdateItem       = "failed to update item"
+	errMsgCreateItem       = "failed to create item"
 	errMsgParsePushMeta    = "failed to parse push secret metadata: %w"
 	errMsgExpectedOneField = "found more than 1 fields with title '%s' in '%s', got %d"
 	errMsgExpectedOneFile  = "found more than 1 files with title '%s' in '%s', got %d"
@@ -239,7 +239,7 @@ func (p *SecretsClient) DeleteSecret(ctx context.Context, ref esv1.PushSecretRem
 	_, err = p.client.Items().Put(ctx, providerItem)
 	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsPut, err)
 	if err != nil {
-		return fmt.Errorf(errMsgUpdateItem, err)
+		return errors.New(errMsgUpdateItem)
 	}
 
 	return nil
@@ -613,7 +613,7 @@ func (p *SecretsClient) createItem(ctx context.Context, val []byte, ref esv1.Pus
 	})
 	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsCreate, err)
 	if err != nil {
-		return fmt.Errorf(errMsgCreateItem, err)
+		return errors.New(errMsgCreateItem)
 	}
 
 	p.invalidateItem(createdItem)
@@ -750,7 +750,7 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 	_, err = p.client.Items().Put(ctx, providerItem)
 	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsPut, err)
 	if err != nil {
-		return fmt.Errorf(errMsgUpdateItem, err)
+		return errors.New(errMsgUpdateItem)
 	}
 
 	p.invalidateItem(providerItem)
@@ -773,7 +773,7 @@ func (p *SecretsClient) createAllKeysItem(ctx context.Context, secret *corev1.Se
 	})
 	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsCreate, err)
 	if err != nil {
-		return fmt.Errorf(errMsgCreateItem, err)
+		return errors.New(errMsgCreateItem)
 	}
 	p.invalidateItem(createdItem)
 	return nil
@@ -827,7 +827,7 @@ func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, 
 	_, err = p.client.Items().Put(ctx, providerItem)
 	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsPut, err)
 	if err != nil {
-		return fmt.Errorf(errMsgUpdateItem, err)
+		return errors.New(errMsgUpdateItem)
 	}
 	p.invalidateItem(providerItem)
 	return nil
