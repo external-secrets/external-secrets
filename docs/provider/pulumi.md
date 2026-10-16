@@ -182,7 +182,22 @@ spec:
 
 This will then push the secret to the Pulumi service. If the secret already exists, it will be updated.
 
-Only the pushed key is written. The rest of the environment definition (`imports`, `pulumiConfig`, `environmentVariables`, `files` and any `fn::` expressions) is left unchanged. The pushed value is stored as a plain literal; it is not wrapped in `fn::secret`.
+Only the pushed key is written. The rest of the environment definition (`imports`, `pulumiConfig`, `environmentVariables`, `files` and any `fn::` expressions) is left unchanged.
+
+The pushed value is wrapped in `fn::secret` by default, so ESC stores it encrypted. To store it as a plain literal instead, set `secret: false` in the PushSecret metadata:
+
+```yaml
+  data:
+  - match:
+      secretKey: <KEY_IN_KUBE_SECRET>
+      remoteRef:
+        remoteKey: <PULUMI_PATH_SYNTAX>
+    metadata:
+      apiVersion: kubernetes.external-secrets.io/v1alpha1
+      kind: PushSecretMetadata
+      spec:
+        secret: false
+```
 
 ## Limitations
 
