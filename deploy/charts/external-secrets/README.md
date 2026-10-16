@@ -115,7 +115,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.strategy | object | `{}` | Set deployment strategy |
 | certController.tls | object | `{"ciphers":"","curvePreferences":[],"minVersion":""}` | CertController-specific TLS security profile overrides. When set, these override the global tls.* values for the cert-controller deployment. |
 | certController.tls.ciphers | string | `""` | Comma-separated list of TLS cipher suites. If empty, the global tls.ciphers is used. +docs:property |
-| certController.tls.curvePreferences | list | `[]` | Ordered list of TLS key exchange curves. If empty, the global tls.curvePreferences is used. +docs:property |
+| certController.tls.curvePreferences | list | `[]` | Comma-separated list of TLS key exchange curves allowed. Use names like X25519, CurveP256, CurveP384, CurveP521, or a decimal CurveID. If empty, the global tls.curvePreferences is used. +docs:property |
 | certController.tls.minVersion | string | `""` | Minimum TLS version supported (e.g. "1.2" or "1.3"). If empty, the global tls.minVersion is used. +docs:property |
 | certController.tolerations | list | `[]` |  |
 | certController.topologySpreadConstraints | list | `[]` |  |
@@ -272,7 +272,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | systemAuthDelegator | bool | `false` | If true the system:auth-delegator ClusterRole will be added to RBAC |
 | tls | object | `{"ciphers":"","curvePreferences":[],"minVersion":""}` | TLS security profile settings applied to all controller, webhook, and certController deployments. These can be overridden per-component via webhook.tls and certController.tls. |
 | tls.ciphers | string | `""` | Comma-separated list of TLS cipher suites (TLS_CIPHER_SUITE names). Does not apply to TLS 1.3. If empty, Go defaults apply. +docs:property |
-| tls.curvePreferences | list | `[]` | Ordered list of TLS key exchange curves (e.g. X25519, CurveP256, or decimal CurveID). If empty, Go defaults apply. +docs:property |
+| tls.curvePreferences | list | `[]` | Comma-separated list of TLS key exchange curves allowed. Use names like X25519, CurveP256, CurveP384, CurveP521, or a decimal CurveID. If empty, Go defaults apply. +docs:property |
 | tls.minVersion | string | `""` | Minimum TLS version supported (e.g. "1.2" or "1.3"). If empty, the Go CLI default applies. +docs:property |
 | tolerations | list | `[]` |  |
 | topologySpreadConstraints | list | `[]` |  |
@@ -377,7 +377,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.strategy | object | `{}` | Set deployment strategy |
 | webhook.tls | object | `{"ciphers":"","curvePreferences":[],"minVersion":""}` | Webhook-specific TLS security profile overrides. When set, these override the global tls.* values for the webhook deployment. |
 | webhook.tls.ciphers | string | `""` | Comma-separated list of TLS cipher suites. If empty, the global tls.ciphers is used. +docs:property |
-| webhook.tls.curvePreferences | list | `[]` | Ordered list of TLS key exchange curves. If empty, the global tls.curvePreferences is used. +docs:property |
+| webhook.tls.curvePreferences | list | `[]` | Comma-separated list of TLS key exchange curves allowed. Use names like X25519, CurveP256, CurveP384, CurveP521, or a decimal CurveID. If empty, the global tls.curvePreferences is used. +docs:property |
 | webhook.tls.minVersion | string | `""` | Minimum TLS version supported (e.g. "1.2" or "1.3"). If empty, the global tls.minVersion is used. +docs:property |
 | webhook.tolerations | list | `[]` |  |
 | webhook.topologySpreadConstraints | list | `[]` |  |
