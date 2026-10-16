@@ -24,6 +24,8 @@ import (
 	"fmt"
 
 	infisicalSdk "github.com/infisical/go-sdk"
+	authv1 "k8s.io/api/authentication/v1"
+	corev1 "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -49,7 +51,10 @@ const (
 	revokeAccessToken                            = "RevokeAccessToken"
 )
 
-const errSecretDataFormat = "failed to get secret data identityId %w"
+const (
+	errSecretDataFormat                        = "failed to get secret data identityId %w"
+	serviceAccountTokenExpirationSeconds int64 = 600
+)
 
 // Provider implements the Infisical external secrets provider.
 type Provider struct {
@@ -364,16 +369,24 @@ func performKubernetesAuthLogin(
 		return "", fmt.Errorf(errSecretDataFormat, err)
 	}
 
-	serviceAccountTokenPath := ""
-	if kubernetesAuthCredentials.ServiceAccountTokenPath.Name != "" {
-		serviceAccountTokenPath, err = GetStoreSecretData(ctx, store, kube, namespace, kubernetesAuthCredentials.ServiceAccountTokenPath)
-
+	auth := sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug)
+	if saRef := kubernetesAuthCredentials.ServiceAccountRef; saRef != nil {
+		var token string
+		token, err = createServiceAccountToken(ctx, store, kube, namespace, saRef)
 		if err != nil {
-			return "", fmt.Errorf("failed to get secret data serviceAccountTokenPath %w", err)
+			return "", err
 		}
+		_, err = auth.KubernetesRawServiceAccountTokenLogin(identityID, token)
+	} else {
+		serviceAccountTokenPath := ""
+		if kubernetesAuthCredentials.ServiceAccountTokenPath.Name != "" {
+			serviceAccountTokenPath, err = GetStoreSecretData(ctx, store, kube, namespace, kubernetesAuthCredentials.ServiceAccountTokenPath)
+			if err != nil {
+				return "", fmt.Errorf("failed to get secret data serviceAccountTokenPath %w", err)
+			}
+		}
+		_, err = auth.KubernetesAuthLogin(identityID, serviceAccountTokenPath)
 	}
-
-	_, err = sdkClient.Auth().WithOrganizationSlug(infisicalSpec.SecretsScope.OrganizationSlug).KubernetesAuthLogin(identityID, serviceAccountTokenPath)
 	metrics.ObserveAPICall(constants.ProviderName, machineIdentityLoginViaKubernetesAuth, err)
 
 	if err != nil {
@@ -381,6 +394,24 @@ func performKubernetesAuthLogin(
 	}
 
 	return identityID, nil
+}
+
+func createServiceAccountToken(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string, saRef *esmeta.ServiceAccountSelector) (string, error) {
+	if store.GetKind() == esv1.ClusterSecretStoreKind && saRef.Namespace != nil {
+		namespace = *saRef.Namespace
+	}
+
+	sa := &corev1.ServiceAccount{Name: saRef.Name, Namespace: namespace}
+	tokenRequest := &authv1.TokenRequest{
+		Spec: authv1.TokenRequestSpec{
+			Audiences:         saRef.Audiences,
+			ExpirationSeconds: new(serviceAccountTokenExpirationSeconds),
+		},
+	}
+	if err := kube.SubResource("token").Create(ctx, sa, tokenRequest); err != nil {
+		return "", fmt.Errorf("failed to create token for service account %q: %w", saRef.Name, err)
+	}
+	return tokenRequest.Status.Token, nil
 }
 
 // performAwsAuthLogin logs in via AWS IAM Auth and returns the machine
@@ -604,6 +635,10 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, err
 	}
 
+	if err := validateKubernetesAuth(store, infisicalStoreSpec); err != nil {
+		return nil, err
+	}
+
 	return nil, nil
 }
 
@@ -645,6 +680,14 @@ func validateUniversalAuth(store esv1.GenericStore, spec *esv1.InfisicalProvider
 		return errors.New("universalAuthCredentials.clientId and universalAuthCredentials.clientSecret cannot be empty")
 	}
 	return nil
+}
+
+func validateKubernetesAuth(store esv1.GenericStore, spec *esv1.InfisicalProvider) error {
+	k8sAuth := spec.Auth.KubernetesAuthCredentials
+	if k8sAuth == nil || k8sAuth.ServiceAccountRef == nil {
+		return nil
+	}
+	return esutils.ValidateServiceAccountSelector(store, *k8sAuth.ServiceAccountRef)
 }
 
 // NewProvider creates a new Provider instance.
