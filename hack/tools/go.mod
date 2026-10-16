@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/hack/tools
 
-go 1.26.4
+go 1.27.1
 
 require (
 	4d63.com/gocheckcompilerdirectives v1.3.0 // indirect

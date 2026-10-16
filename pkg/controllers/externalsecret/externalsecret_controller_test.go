@@ -127,13 +127,11 @@ var _ = Describe("Kind=secret existence logic", func() {
 		{
 			Name: "A nil annotation should not be valid",
 			Input: &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					UID: "xxx",
-					Labels: map[string]string{
-						esv1.LabelManaged: esv1.LabelManagedValue,
-					},
-					Annotations: map[string]string{},
+				UID: "xxx",
+				Labels: map[string]string{
+					esv1.LabelManaged: esv1.LabelManagedValue,
 				},
+				Annotations: map[string]string{},
 			},
 			ExternalSecret: makeExternalSecret(esv1.CreatePolicyOwner),
 			ExpectedOutput: false,
@@ -141,14 +139,12 @@ var _ = Describe("Kind=secret existence logic", func() {
 		{
 			Name: "An invalid annotation hash should not be valid",
 			Input: &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					UID: "xxx",
-					Labels: map[string]string{
-						esv1.LabelManaged: esv1.LabelManagedValue,
-					},
-					Annotations: map[string]string{
-						esv1.AnnotationDataHash: "xxxxxx",
-					},
+				UID: "xxx",
+				Labels: map[string]string{
+					esv1.LabelManaged: esv1.LabelManagedValue,
+				},
+				Annotations: map[string]string{
+					esv1.AnnotationDataHash: "xxxxxx",
 				},
 			},
 			ExternalSecret: makeExternalSecret(esv1.CreatePolicyOwner),
@@ -157,14 +153,12 @@ var _ = Describe("Kind=secret existence logic", func() {
 		{
 			Name: "A valid secret should return true",
 			Input: &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					UID: "xxx",
-					Labels: map[string]string{
-						esv1.LabelManaged: esv1.LabelManagedValue,
-					},
-					Annotations: map[string]string{
-						esv1.AnnotationDataHash: esutils.ObjectHash(validData),
-					},
+				UID: "xxx",
+				Labels: map[string]string{
+					esv1.LabelManaged: esv1.LabelManagedValue,
+				},
+				Annotations: map[string]string{
+					esv1.AnnotationDataHash: esutils.ObjectHash(validData),
 				},
 				Data: validData,
 			},
@@ -174,14 +168,12 @@ var _ = Describe("Kind=secret existence logic", func() {
 		{
 			Name: "Ignore Annotations if creation policy is Orphan",
 			Input: &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					UID: "xxx",
-					Labels: map[string]string{
-						esv1.LabelManaged: esv1.LabelManagedValue,
-					},
-					Annotations: map[string]string{
-						esv1.AnnotationDataHash: "xxxxxx",
-					},
+				UID: "xxx",
+				Labels: map[string]string{
+					esv1.LabelManaged: esv1.LabelManagedValue,
+				},
+				Annotations: map[string]string{
+					esv1.AnnotationDataHash: "xxxxxx",
 				},
 			},
 			ExternalSecret: makeExternalSecret(esv1.CreatePolicyOrphan),
@@ -202,14 +194,12 @@ var _ = Describe("Kind=secret existence logic", func() {
 		{
 			Name: "A valid secret with creation policy CreateOrMerge should return true",
 			Input: &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					UID: "xxx",
-					Labels: map[string]string{
-						esv1.LabelManaged: esv1.LabelManagedValue,
-					},
-					Annotations: map[string]string{
-						esv1.AnnotationDataHash: esutils.ObjectHash(validData),
-					},
+				UID: "xxx",
+				Labels: map[string]string{
+					esv1.LabelManaged: esv1.LabelManagedValue,
+				},
+				Annotations: map[string]string{
+					esv1.AnnotationDataHash: esutils.ObjectHash(validData),
 				},
 				Data: validData,
 			},
@@ -283,9 +273,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			}
 
 			Expect(k8sClient.Delete(context.Background(), &v1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: ExternalSecretNamespace,
-				},
+				Name: ExternalSecretNamespace,
 			})).To(Succeed())
 		},
 	)
@@ -314,10 +302,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				// noop by default
 			},
 			secretStore: &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ExternalSecretStore,
-					Namespace: ExternalSecretNamespace,
-				},
+				Name:      ExternalSecretStore,
+				Namespace: ExternalSecretNamespace,
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						AWS: &esv1.AWSProvider{
@@ -327,10 +313,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 				},
 			},
 			externalSecret: &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ExternalSecretName,
-					Namespace: ExternalSecretNamespace,
-				},
+				Name:      ExternalSecretName,
+				Namespace: ExternalSecretNamespace,
 				Spec: esv1.ExternalSecretSpec{
 					SecretStoreRef: esv1.SecretStoreRef{
 						Name: ExternalSecretStore,
@@ -421,15 +405,13 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		// Create a secret owned by another entity to test if the pre-existing metadata is preserved
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ExternalSecretTargetSecretName,
-				Namespace: ExternalSecretNamespace,
-				Labels: map[string]string{
-					existingLabelKey: existingLabelValue,
-				},
-				Annotations: map[string]string{
-					"existing-annotation-key": "existing-annotation-value",
-				},
+			Name:      ExternalSecretTargetSecretName,
+			Namespace: ExternalSecretNamespace,
+			Labels: map[string]string{
+				existingLabelKey: existingLabelValue,
+			},
+			Annotations: map[string]string{
+				"existing-annotation-key": "existing-annotation-value",
 			},
 		}, client.FieldOwner(FakeManager))).To(Succeed())
 
@@ -451,15 +433,13 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		fakeProvider.WithGetSecret([]byte(secretVal), nil)
 		// Create a secret owned by the operator to test if the outdated pre-existing metadata is removed
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ExternalSecretTargetSecretName,
-				Namespace: ExternalSecretNamespace,
-				Labels: map[string]string{
-					existingLabelKey: existingLabelValue,
-				},
-				Annotations: map[string]string{
-					"existing-annotation-key": "existing-annotation-value",
-				},
+			Name:      ExternalSecretTargetSecretName,
+			Namespace: ExternalSecretNamespace,
+			Labels: map[string]string{
+				existingLabelKey: existingLabelValue,
+			},
+			Annotations: map[string]string{
+				"existing-annotation-key": "existing-annotation-value",
 			},
 		}, client.FieldOwner(ExternalSecretFQDN))).To(Succeed())
 
@@ -501,15 +481,13 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 
 		// create secret beforehand
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ExternalSecretTargetSecretName,
-				Namespace: ExternalSecretNamespace,
-				Labels: map[string]string{
-					existingLabelKey: existingLabelValue,
-				},
-				Annotations: map[string]string{
-					"existing-annotation-key": "existing-annotation-value",
-				},
+			Name:      ExternalSecretTargetSecretName,
+			Namespace: ExternalSecretNamespace,
+			Labels: map[string]string{
+				existingLabelKey: existingLabelValue,
+			},
+			Annotations: map[string]string{
+				"existing-annotation-key": "existing-annotation-value",
 			},
 			Data: map[string][]byte{
 				existingKey: []byte(existingVal),
@@ -558,10 +536,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Hour}
 
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ExternalSecretTargetSecretName,
-				Namespace: ExternalSecretNamespace,
-			},
+			Name:      ExternalSecretTargetSecretName,
+			Namespace: ExternalSecretNamespace,
 			Data: map[string][]byte{
 				existingKey: []byte(existingVal),
 			},
@@ -571,10 +547,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		tc.checkSecret = func(_ *esv1.ExternalSecret, secret *v1.Secret) {
 			// Overwrite the secret value to check if the change kicks reconciliation and overwrites it again
 			Expect(k8sClient.Update(context.Background(), &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ExternalSecretTargetSecretName,
-					Namespace: ExternalSecretNamespace,
-				},
+				Name:      ExternalSecretTargetSecretName,
+				Namespace: ExternalSecretNamespace,
 				Data: map[string][]byte{
 					existingKey: []byte("differentValue"),
 				},
@@ -591,10 +565,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 
 		// create secret beforehand
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ExternalSecretTargetSecretName,
-				Namespace: ExternalSecretNamespace,
-			},
+			Name:      ExternalSecretTargetSecretName,
+			Namespace: ExternalSecretNamespace,
 			Data: map[string][]byte{
 				existingKey: []byte(existingVal),
 			},
@@ -667,10 +639,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 
 		// create secret beforehand
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ExternalSecretTargetSecretName,
-				Namespace: ExternalSecretNamespace,
-			},
+			Name:      ExternalSecretTargetSecretName,
+			Namespace: ExternalSecretNamespace,
 			Data: map[string][]byte{
 				existingKey: []byte(existingVal),
 			},
@@ -698,10 +668,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		const secretVal = "someValue"
 
 		Expect(k8sClient.Create(context.Background(), &genv1alpha1.Fake{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "mytestfake",
-				Namespace: ExternalSecretNamespace,
-			},
+			Name:      "mytestfake",
+			Namespace: ExternalSecretNamespace,
 			Spec: genv1alpha1.FakeSpec{
 				Data: map[string]string{
 					secretKey: secretVal,
@@ -733,9 +701,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		const secretKey = "somekey2"
 		const secretVal = "someValue2"
 		Expect(k8sClient.Create(context.Background(), &genv1alpha1.ClusterGenerator{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: "mytestfake",
-			},
+			Name: "mytestfake",
 			Spec: genv1alpha1.ClusterGeneratorSpec{
 				Kind: "Fake",
 				Generator: genv1alpha1.GeneratorSpec{
@@ -804,10 +770,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		const secretVal = "someValue"
 
 		fakeGenerator := &genv1alpha1.Fake{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "mytestfake2",
-				Namespace: ExternalSecretNamespace,
-			},
+			Name:      "mytestfake2",
+			Namespace: ExternalSecretNamespace,
 			Spec: genv1alpha1.FakeSpec{
 				Data: map[string]string{
 					secretKey: secretVal,
@@ -828,10 +792,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 
 	syncWithMultipleSecretStores := func(tc *testCase) {
 		Expect(k8sClient.Create(context.Background(), &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "foo",
-				Namespace: ExternalSecretNamespace,
-			},
+			Name:      "foo",
+			Namespace: ExternalSecretNamespace,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					Fake: &esv1.FakeProvider{
@@ -848,10 +810,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		})).To(Succeed())
 
 		Expect(k8sClient.Create(context.Background(), &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "baz",
-				Namespace: ExternalSecretNamespace,
-			},
+			Name:      "baz",
+			Namespace: ExternalSecretNamespace,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					Fake: &esv1.FakeProvider{
@@ -986,19 +946,15 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		const tplFromVal = "tpl-from-value: {{ .targetProperty | toString }} // {{ .bar | toString }}"
 		const tplFromSecVal = "tpl-from-sec-value: {{ .targetProperty | toString }} // {{ .bar | toString }}"
 		Expect(k8sClient.Create(context.Background(), &v1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      tplFromCMName,
-				Namespace: ExternalSecretNamespace,
-			},
+			Name:      tplFromCMName,
+			Namespace: ExternalSecretNamespace,
 			Data: map[string]string{
 				tplFromKey: tplFromVal,
 			},
 		})).To(Succeed())
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      tplFromSecretName,
-				Namespace: ExternalSecretNamespace,
-			},
+			Name:      tplFromSecretName,
+			Namespace: ExternalSecretNamespace,
 			Data: map[string][]byte{
 				tplFromSecKey: []byte(tplFromSecVal),
 			},
@@ -1066,19 +1022,15 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		const tplFromVal = "{{ .targetKey }}-cm: {{ .targetValue }}"
 		const tplFromSecVal = "{{ .targetKey }}-sec: {{ .targetValue }}"
 		Expect(k8sClient.Create(context.Background(), &v1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      tplFromCMName,
-				Namespace: ExternalSecretNamespace,
-			},
+			Name:      tplFromCMName,
+			Namespace: ExternalSecretNamespace,
 			Data: map[string]string{
 				tplFromKey: tplFromVal,
 			},
 		})).To(Succeed())
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      tplFromSecretName,
-				Namespace: ExternalSecretNamespace,
-			},
+			Name:      tplFromSecretName,
+			Namespace: ExternalSecretNamespace,
 			Data: map[string][]byte{
 				tplFromSecKey: []byte(tplFromSecVal),
 			},
@@ -1560,10 +1512,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 
 		// create secret beforehand
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ExternalSecretTargetSecretName,
-				Namespace: ExternalSecretNamespace,
-			},
+			Name:      ExternalSecretTargetSecretName,
+			Namespace: ExternalSecretNamespace,
 			Data: map[string][]byte{
 				existingKey: []byte(existingVal),
 			},
@@ -2047,10 +1997,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 
 		// create secret beforehand
 		Expect(k8sClient.Create(context.Background(), &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      ExternalSecretTargetSecretName,
-				Namespace: ExternalSecretNamespace,
-			},
+			Name:      ExternalSecretTargetSecretName,
+			Namespace: ExternalSecretNamespace,
 			Data: map[string][]byte{
 				existingKey: []byte(existingVal),
 			},
@@ -2236,9 +2184,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	}
 	useClusterSecretStore := func(tc *testCase) {
 		tc.secretStore = &esv1.ClusterSecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: ExternalSecretStore,
-			},
+			Name: ExternalSecretStore,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					AWS: &esv1.AWSProvider{
@@ -2580,6 +2526,61 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		),
 	)
 
+	It("prevents CreateOrMerge from retargeting a service account token Secret", func() {
+		ctx := context.Background()
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+
+		tc := makeDefaultTestcase()
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1.CreatePolicyCreateOrMerge
+		tc.externalSecret.Annotations = map[string]string{
+			v1.ServiceAccountNameKey: "higher-priv-workload",
+		}
+
+		secretKey := types.NamespacedName{
+			Name:      ExternalSecretTargetSecretName,
+			Namespace: ExternalSecretNamespace,
+		}
+		existingSecret := &v1.Secret{
+			Name:      secretKey.Name,
+			Namespace: secretKey.Namespace,
+			Annotations: map[string]string{
+				v1.ServiceAccountNameKey: "current-workload",
+			},
+			Type: v1.SecretTypeServiceAccountToken,
+			Data: map[string][]byte{
+				targetProp: []byte(secretVal),
+			},
+		}
+
+		By("creating a service account token Secret for the current workload")
+		Expect(k8sClient.Create(ctx, tc.secretStore)).To(Succeed())
+		Expect(k8sClient.Create(ctx, existingSecret)).To(Succeed())
+
+		// This is an integration check for the controller's final candidate guard.
+		// The candidate keeps the existing type, so without the guard Kubernetes
+		// would accept the update and replace the service account annotation.
+		By("attempting to retarget the Secret to a higher-privileged workload")
+		Expect(k8sClient.Create(ctx, tc.externalSecret)).To(Succeed())
+
+		esKey := types.NamespacedName{Name: ExternalSecretName, Namespace: ExternalSecretNamespace}
+		reconciledES := &esv1.ExternalSecret{}
+		Eventually(func() bool {
+			if err := k8sClient.Get(ctx, esKey, reconciledES); err != nil {
+				return false
+			}
+			condition := esv1.GetExternalSecretCondition(reconciledES.Status, esv1.ExternalSecretReady)
+			return condition != nil &&
+				condition.Status == v1.ConditionFalse &&
+				condition.Reason == esv1.ConditionReasonSecretSyncedError
+		}, timeout, interval).Should(BeTrue())
+
+		By("preserving the current workload annotation")
+		persistedSecret := &v1.Secret{}
+		Expect(k8sClient.Get(ctx, secretKey, persistedSecret)).To(Succeed())
+		Expect(persistedSecret.Type).To(Equal(v1.SecretTypeServiceAccountToken))
+		Expect(persistedSecret.Annotations).To(HaveKeyWithValue(v1.ServiceAccountNameKey, "current-workload"))
+	})
+
 	// Regression coverage for issue #6640: refreshPolicy CreatedOnce tracks its
 	// "once" on the ExternalSecret's own status, not on whether the target Secret
 	// already exists. Recreating the ExternalSecret object therefore re-syncs and
@@ -2858,8 +2859,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 
 			// a Secret created by another party, with a key ESO does not manage
 			Expect(k8sClient.Create(ctx, &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: ExternalSecretTargetSecretName, Namespace: ExternalSecretNamespace},
-				Data:       map[string][]byte{foreignKey: []byte(foreignVal)},
+				Name: ExternalSecretTargetSecretName, Namespace: ExternalSecretNamespace,
+				Data: map[string][]byte{foreignKey: []byte(foreignVal)},
 			})).To(Succeed())
 
 			tc := makeDefaultTestcase()
@@ -2981,11 +2982,9 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 		})
 		It("should refresh when labels change", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-					Labels: map[string]string{
-						"foo": "bar",
-					},
+				Generation: 1,
+				Labels: map[string]string{
+					"foo": "bar",
 				},
 				Spec: esv1.ExternalSecretSpec{
 					RefreshInterval: &metav1.Duration{Duration: time.Minute},
@@ -3005,11 +3004,9 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 
 		It("should refresh when annotations change", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-					Annotations: map[string]string{
-						"foo": "bar",
-					},
+				Generation: 1,
+				Annotations: map[string]string{
+					"foo": "bar",
 				},
 				Spec: esv1.ExternalSecretSpec{
 					RefreshInterval: &metav1.Duration{Duration: time.Minute},
@@ -3029,9 +3026,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 
 		It("should refresh when generation has changed", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-				},
+				Generation: 1,
 				Spec: esv1.ExternalSecretSpec{
 					RefreshInterval: &metav1.Duration{Duration: time.Minute},
 				},
@@ -3049,9 +3044,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 
 		It("should skip refresh when refreshInterval is 0", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-				},
+				Generation: 1,
 				Spec: esv1.ExternalSecretSpec{
 					RefreshInterval: &metav1.Duration{Duration: 0},
 				},
@@ -3064,9 +3057,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 
 		It("should refresh when refresh interval has passed", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-				},
+				Generation: 1,
 				Spec: esv1.ExternalSecretSpec{
 					RefreshInterval: &metav1.Duration{Duration: time.Second},
 				},
@@ -3081,9 +3072,7 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 
 		It("should refresh when no refresh time was set", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-				},
+				Generation: 1,
 				Spec: esv1.ExternalSecretSpec{
 					RefreshInterval: &metav1.Duration{Duration: time.Second},
 				},
@@ -3163,11 +3152,9 @@ var _ = Describe("ExternalSecret refresh logic", func() {
 var _ = Describe("ExternalSecret update predicate", func() {
 	It("should ignore status-only updates", func() {
 		oldES := &esv1.ExternalSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:       "foo",
-				Namespace:  "default",
-				Generation: 1,
-			},
+			Name:       "foo",
+			Namespace:  "default",
+			Generation: 1,
 			Status: esv1.ExternalSecretStatus{
 				RefreshTime: metav1.Now(),
 			},
@@ -3180,11 +3167,9 @@ var _ = Describe("ExternalSecret update predicate", func() {
 
 	It("should enqueue when generation changes", func() {
 		oldES := &esv1.ExternalSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:       "foo",
-				Namespace:  "default",
-				Generation: 1,
-			},
+			Name:       "foo",
+			Namespace:  "default",
+			Generation: 1,
 		}
 		newES := oldES.DeepCopy()
 		newES.Generation = 2
@@ -3194,13 +3179,11 @@ var _ = Describe("ExternalSecret update predicate", func() {
 
 	It("should enqueue when labels change", func() {
 		oldES := &esv1.ExternalSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:       "foo",
-				Namespace:  "default",
-				Generation: 1,
-				Labels: map[string]string{
-					"app": "a",
-				},
+			Name:       "foo",
+			Namespace:  "default",
+			Generation: 1,
+			Labels: map[string]string{
+				"app": "a",
 			},
 		}
 		newES := oldES.DeepCopy()
@@ -3211,13 +3194,11 @@ var _ = Describe("ExternalSecret update predicate", func() {
 
 	It("should enqueue when annotations change", func() {
 		oldES := &esv1.ExternalSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:       "foo",
-				Namespace:  "default",
-				Generation: 1,
-				Annotations: map[string]string{
-					"note": "a",
-				},
+			Name:       "foo",
+			Namespace:  "default",
+			Generation: 1,
+			Annotations: map[string]string{
+				"note": "a",
 			},
 		}
 		newES := oldES.DeepCopy()
@@ -3228,11 +3209,9 @@ var _ = Describe("ExternalSecret update predicate", func() {
 
 	It("should enqueue when deletion timestamp changes", func() {
 		oldES := &esv1.ExternalSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:       "foo",
-				Namespace:  "default",
-				Generation: 1,
-			},
+			Name:       "foo",
+			Namespace:  "default",
+			Generation: 1,
 		}
 		newES := oldES.DeepCopy()
 		now := metav1.Now()
@@ -3243,12 +3222,10 @@ var _ = Describe("ExternalSecret update predicate", func() {
 
 	It("should enqueue when finalizers change", func() {
 		oldES := &esv1.ExternalSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:       "foo",
-				Namespace:  "default",
-				Generation: 1,
-				Finalizers: []string{"external-secrets.io/finalizer"},
-			},
+			Name:       "foo",
+			Namespace:  "default",
+			Generation: 1,
+			Finalizers: []string{"external-secrets.io/finalizer"},
 		}
 		newES := oldES.DeepCopy()
 		newES.Finalizers = nil
@@ -3325,11 +3302,9 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 
 		It("should refresh when resource version changes", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-					Annotations: map[string]string{
-						"foo": "bar",
-					},
+				Generation: 1,
+				Annotations: map[string]string{
+					"foo": "bar",
 				},
 				Spec: esv1.ExternalSecretSpec{
 					RefreshPolicy: esv1.RefreshPolicyOnChange,
@@ -3345,9 +3320,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 
 		It("should not refresh when resource version matches", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-				},
+				Generation: 1,
 				Spec: esv1.ExternalSecretSpec{
 					RefreshPolicy: esv1.RefreshPolicyOnChange,
 				},
@@ -3362,11 +3335,9 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 
 		It("should refresh when annotations change", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-					Annotations: map[string]string{
-						"foo": "bar",
-					},
+				Generation: 1,
+				Annotations: map[string]string{
+					"foo": "bar",
 				},
 				Spec: esv1.ExternalSecretSpec{
 					RefreshPolicy: esv1.RefreshPolicyOnChange,
@@ -3385,9 +3356,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 
 		It("should refresh when spec changes", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-				},
+				Generation: 1,
 				Spec: esv1.ExternalSecretSpec{
 					RefreshPolicy: esv1.RefreshPolicyOnChange,
 					Data: []esv1.ExternalSecretData{
@@ -3426,9 +3395,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 	Context("Default refresh policy (Periodic)", func() {
 		It("should behave like Periodic when RefreshPolicy is not set", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-				},
+				Generation: 1,
 				Spec: esv1.ExternalSecretSpec{
 					// No RefreshPolicy set, should default to Periodic behavior
 					RefreshInterval: &metav1.Duration{Duration: time.Minute},
@@ -3449,9 +3416,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 	Context("RefreshPolicy=Periodic", func() {
 		It("should not refresh when refreshInterval is 0 and already synced", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-				},
+				Generation: 1,
 				Spec: esv1.ExternalSecretSpec{
 					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
 					RefreshInterval: &metav1.Duration{Duration: 0},
@@ -3467,9 +3432,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 
 		It("should refresh when resource version changes", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 2,
-				},
+				Generation: 2,
 				Spec: esv1.ExternalSecretSpec{
 					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
 					RefreshInterval: &metav1.Duration{Duration: time.Minute},
@@ -3484,9 +3447,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 
 		It("should refresh when refresh interval has passed", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-				},
+				Generation: 1,
 				Spec: esv1.ExternalSecretSpec{
 					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
 					RefreshInterval: &metav1.Duration{Duration: time.Second},
@@ -3502,9 +3463,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 
 		It("should refresh when no refresh time was set", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-				},
+				Generation: 1,
 				Spec: esv1.ExternalSecretSpec{
 					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
 					RefreshInterval: &metav1.Duration{Duration: time.Second},
@@ -3518,9 +3477,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 
 		It("should refresh when refresh time is in the future", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-				},
+				Generation: 1,
 				Spec: esv1.ExternalSecretSpec{
 					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
 					RefreshInterval: &metav1.Duration{Duration: time.Second},
@@ -3536,9 +3493,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 
 		It("should refresh when refreshInterval not 0 and spec changes", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-				},
+				Generation: 1,
 				Spec: esv1.ExternalSecretSpec{
 					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
 					RefreshInterval: &metav1.Duration{Duration: 10 * time.Second},
@@ -3573,9 +3528,7 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 
 		It("should not refresh when refreshInterval is 0 even if spec changes", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-				},
+				Generation: 1,
 				Spec: esv1.ExternalSecretSpec{
 					RefreshPolicy:   esv1.RefreshPolicyPeriodic,
 					RefreshInterval: &metav1.Duration{Duration: 0},
@@ -3612,14 +3565,12 @@ var _ = Describe("ExternalSecret refresh policy", func() {
 
 		It("should not refresh when refreshInterval is 0 even if labels or annotations change", func() {
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Generation: 1,
-					Labels: map[string]string{
-						"original-label": "value",
-					},
-					Annotations: map[string]string{
-						"original-annotation": "value",
-					},
+				Generation: 1,
+				Labels: map[string]string{
+					"original-label": "value",
+				},
+				Annotations: map[string]string{
+					"original-annotation": "value",
 				},
 				Spec: esv1.ExternalSecretSpec{
 					RefreshPolicy:   esv1.RefreshPolicyPeriodic,

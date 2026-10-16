@@ -21,17 +21,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestAzureClientID(t *testing.T) {
 	t.Parallel()
 
 	sa := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{
-				annotationClientID: "from-annotation",
-			},
+		Annotations: map[string]string{
+			annotationClientID: "from-annotation",
 		},
 	}
 
@@ -111,10 +108,8 @@ func TestAzureTenantID(t *testing.T) {
 	t.Setenv("AZURE_TENANT_ID", "from-env")
 
 	sa := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Annotations: map[string]string{
-				annotationTenantID: "from-annotation",
-			},
+		Annotations: map[string]string{
+			annotationTenantID: "from-annotation",
 		},
 	}
 

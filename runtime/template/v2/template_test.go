@@ -29,7 +29,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -726,7 +725,7 @@ func TestExecute(t *testing.T) {
 			sec := &corev1.Secret{
 				Data:       make(map[string][]byte),
 				StringData: make(map[string]string),
-				ObjectMeta: v1.ObjectMeta{Labels: make(map[string]string), Annotations: make(map[string]string)},
+				Labels:     make(map[string]string), Annotations: make(map[string]string),
 			}
 			oldLeftDelim := leftDelim
 			oldRightDelim := rightDelim
@@ -923,7 +922,7 @@ func TestScopeKeysAndValues(t *testing.T) {
 			sec := &corev1.Secret{
 				Data:       make(map[string][]byte),
 				StringData: make(map[string]string),
-				ObjectMeta: v1.ObjectMeta{Labels: make(map[string]string), Annotations: make(map[string]string)},
+				Labels:     make(map[string]string), Annotations: make(map[string]string),
 			}
 			err := Execute(row.tpl, row.data, esapi.TemplateScopeKeysAndValues, row.target, sec, esapi.ExternalSecretDecodeNone)
 			if !ErrorContains(err, row.expErr) {
@@ -1032,13 +1031,11 @@ func TestComplexYAMLFieldsWithSpec(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			obj := &corev1.Secret{
-				ObjectMeta: v1.ObjectMeta{
-					Name:        "test-secret",
-					Namespace:   "default",
-					Labels:      make(map[string]string),
-					Annotations: make(map[string]string),
-				},
-				Data: make(map[string][]byte),
+				Name:        "test-secret",
+				Namespace:   "default",
+				Labels:      make(map[string]string),
+				Annotations: make(map[string]string),
+				Data:        make(map[string][]byte),
 			}
 
 			err := Execute(tt.tpl, tt.data, tt.scope, tt.target, obj, esapi.ExternalSecretDecodeNone)
@@ -1269,10 +1266,8 @@ func TestPkcs12certPass(t *testing.T) {
 
 func TestConfigMapDataNotBase64Encoded(t *testing.T) {
 	configMap := &corev1.ConfigMap{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "test-cm",
-			Namespace: "default",
-		},
+		Name:      "test-cm",
+		Namespace: "default",
 	}
 
 	data := map[string][]byte{
