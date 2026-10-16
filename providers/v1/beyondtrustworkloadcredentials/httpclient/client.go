@@ -98,8 +98,7 @@ func NewClientWithCustomCA(serverURL, token string, caBundlePEM []byte) (*Client
 		// Clone the default transport to preserve default settings like ProxyFromEnvironment
 		transport := http.DefaultTransport.(*http.Transport).Clone()
 		transport.TLSClientConfig = &tls.Config{
-			RootCAs:    roots,
-			MinVersion: tls.VersionTLS12,
+			RootCAs: roots,
 		}
 		httpClient.Transport = transport
 	}
