@@ -1,0 +1,9 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: my-secret-store
+spec:
+  provider:
+    oracle:
+      # May be UserPrincipal, InstancePrincipal, or Workload
+      principalType: <Principal Type>

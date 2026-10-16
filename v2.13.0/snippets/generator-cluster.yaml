@@ -1,0 +1,24 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ClusterGenerator
+metadata:
+  name: cluster-gen
+spec:
+  kind: Password
+  generator:
+#    Further specs are available:
+#    acrAccessTokenSpec:
+#    ecrRAuthorizationTokenSpec:
+#    fakeSpec:
+#    gcrAccessTokenSpec:
+#    githubAccessTokenSpec:
+#    stsSessionTokenSpec:
+#    uuidSpec:
+#    vaultDynamicSecretSpec:
+#    webhookSpec:
+    passwordSpec:
+      length: 42
+      digits: 5
+      symbols: 5
+      symbolCharacters: "-_$@"
+      noUpper: false
+      allowRepeat: true
