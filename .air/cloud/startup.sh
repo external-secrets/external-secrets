@@ -71,6 +71,33 @@ install_terraform() {
 }
 
 # ---------------------------------------------------------------------------
+# Docker: buildx plugin (hack/api-docs uses `docker buildx build`) and proxy
+# settings so containers/builds can reach the network through the egress proxy.
+# ---------------------------------------------------------------------------
+configure_docker() {
+  local plugins="$HOME/.docker/cli-plugins"
+  mkdir -p "$plugins"
+  if docker buildx version >/dev/null 2>&1; then
+    log "docker buildx already installed"
+  else
+    local version
+    version="$(curl -fsSL -o /dev/null -w '%{url_effective}' https://github.com/docker/buildx/releases/latest | sed 's@.*/@@')"
+    log "installing docker buildx ${version}"
+    curl -fsSL -o "$plugins/docker-buildx" "https://github.com/docker/buildx/releases/download/${version}/buildx-${version}.linux-amd64"
+    chmod +x "$plugins/docker-buildx"
+  fi
+
+  if [ -n "${HTTPS_PROXY:-}${HTTP_PROXY:-}" ]; then
+    log "configuring docker client proxy settings"
+    local cfg="$HOME/.docker/config.json"
+    [ -s "$cfg" ] || echo '{}' > "$cfg"
+    jq --arg h "${HTTP_PROXY:-${HTTPS_PROXY:-}}" --arg s "${HTTPS_PROXY:-${HTTP_PROXY:-}}" --arg n "${NO_PROXY:-}" \
+      '.proxies.default = {httpProxy: $h, httpsProxy: $s, noProxy: $n}' "$cfg" > "$cfg.tmp"
+    mv "$cfg.tmp" "$cfg"
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # Login-shell environment: put ~/.local/bin and the Go toolchain on PATH and
 # expose KUBEBUILDER_ASSETS for running envtest suites directly.
 # ---------------------------------------------------------------------------
@@ -105,6 +132,7 @@ healthcheck() {
   helm version --short
   terraform version | head -1
   docker info --format 'docker server {{.ServerVersion}}'
+  docker buildx version
   ./bin/controller-gen --version
   ./bin/golangci-lint version
   ./bin/external-secrets --help >/dev/null
@@ -141,6 +169,7 @@ export PATH="$LOCAL_TOOLS:$PATH"
 install_system_packages
 install_helm
 install_terraform
+configure_docker
 
 log "go toolchain: $(go version)"
 export PATH="$PATH:$(go env GOPATH)/bin"
@@ -149,7 +178,7 @@ log "building repo-local tools (controller-gen, setup-envtest, golangci-lint, ct
 make controller-gen envtest golangci-lint cty
 
 log "downloading envtest binaries for Kubernetes ${KUBERNETES_VERSION}"
-KUBEBUILDER_ASSETS="$(./bin/setup-envtest use "$KUBERNETES_VERSION" -p path --bin-dir ./bin)"
+KUBEBUILDER_ASSETS="$(./bin/setup-envtest use "$KUBERNETES_VERSION" -p path --bin-dir "$REPO_DIR/bin")"
 export KUBEBUILDER_ASSETS
 log "KUBEBUILDER_ASSETS=$KUBEBUILDER_ASSETS"
 
