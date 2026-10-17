@@ -171,7 +171,9 @@ spec:
       encoding: "raw"
       length: 24
       noUpper: false
+      prefix: string
       secretKeys: [string] # minItems 1 of type string
+      suffix: string
       symbolCharacters: string
       symbols: 1
     quayAccessTokenSpec:

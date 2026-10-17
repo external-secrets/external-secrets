@@ -24,7 +24,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -38,7 +37,7 @@ const secretValue = "8019210420527506405"
 func markAsFailedFixture() (*Reconciler, *esv1.ExternalSecret, prometheus.Counter) {
 	r := &Reconciler{recorder: record.NewFakeRecorder(10)}
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{Name: "es", Namespace: "default"},
+		Name: "es", Namespace: "default",
 	}
 	return r, es, prometheus.NewCounter(prometheus.CounterOpts{Name: "test_sync_errors"})
 }
