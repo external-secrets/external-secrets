@@ -474,8 +474,11 @@ func (r *Reconciler) DeleteAllSecretsFromStore(ctx context.Context, client esv1.
 }
 
 // DeleteSecretFromStore removes a specific secret from a given secret store.
+// Pass the full PushSecretData (not just Match.RemoteRef) so providers that
+// route by metadata (e.g. kubernetes remoteNamespace) can delete the same
+// location they pushed to.
 func (r *Reconciler) DeleteSecretFromStore(ctx context.Context, client esv1.SecretsClient, data esapi.PushSecretData) error {
-	return client.DeleteSecret(ctx, data.Match.RemoteRef)
+	return client.DeleteSecret(ctx, data)
 }
 
 // PushSecretToProviders pushes the secret data to the specified secret stores.
@@ -590,7 +593,9 @@ func (r *Reconciler) pushSecretEntry(
 	}
 
 	if params.updatePolicy == esapi.PushSecretUpdatePolicyIfNotExists {
-		exists, err := secretClient.SecretExists(ctx, params.data.Match.RemoteRef)
+		// Pass full PushSecretData so metadata-aware providers (e.g. kubernetes
+		// remoteNamespace) check the same remote location as PushSecret.
+		exists, err := secretClient.SecretExists(ctx, params.data)
 		if err != nil {
 			return fmt.Errorf("could not verify if secret exists in store: %w", err)
 		}
