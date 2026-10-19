@@ -149,15 +149,12 @@ type SecretsResponse struct {
 // NewOnboardbaseClient creates a new client for interacting with Onboardbase API.
 // It requires an API key and passcode for authentication.
 func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*OnboardbaseClient, error) {
-	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
 	httpTransport, err := esutils.CloneDefaultHTTPTransport()
 	if err != nil {
 		return nil, err
 	}
 	httpTransport.DisableKeepAlives = true
-	httpTransport.TLSClientConfig = tlsConfig
+	httpTransport.TLSClientConfig = &tls.Config{}
 	client := &OnboardbaseClient{
 		OnboardbaseAPIKey:   onboardbaseAPIKey,
 		OnboardbasePassCode: onboardbasePasscode,

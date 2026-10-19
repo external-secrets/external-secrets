@@ -114,8 +114,7 @@ func (g *gitlabBase) getClient(ctx context.Context, provider *esv1.GitlabProvide
 			return nil, err
 		}
 		transport.TLSClientConfig = &tls.Config{
-			RootCAs:    caCertPool,
-			MinVersion: tls.VersionTLS12,
+			RootCAs: caCertPool,
 		}
 
 		httpClient := &http.Client{Transport: transport}

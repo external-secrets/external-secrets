@@ -585,8 +585,7 @@ func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1
 		return nil, err
 	}
 	transport.TLSClientConfig = &tls.Config{
-		RootCAs:    caCertPool,
-		MinVersion: tls.VersionTLS12,
+		RootCAs: caCertPool,
 	}
 	client.Transport = transport
 	return client, nil
