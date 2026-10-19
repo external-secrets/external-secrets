@@ -327,7 +327,8 @@ func (provider *ProviderOnePassword) createItem(val []byte, ref esv1.PushSecretD
 // If the label does not exist, a new field is created. If the label exists but
 // the value is different, the value is updated. If the label exists and the
 // value is the same, nothing is done.
-func updateFieldValue(fields []*onepassword.ItemField, label, newVal string) ([]*onepassword.ItemField, error) {
+// The returned bool reports whether the fields were modified.
+func updateFieldValue(fields []*onepassword.ItemField, label, newVal string) ([]*onepassword.ItemField, bool, error) {
 	// This will always iterate over all items.
 	// This is done to ensure that two fields with the same label
 	// exist resulting in undefined behavior.
@@ -338,21 +339,22 @@ func updateFieldValue(fields []*onepassword.ItemField, label, newVal string) ([]
 	for i, item := range fields {
 		if item.Label == label {
 			if found {
-				return nil, ErrExpectedOneField
+				return nil, false, ErrExpectedOneField
 			}
 			found = true
 			index = i
 		}
 	}
 	if !found {
-		return append(fields, generateNewItemField(label, newVal)), nil
+		return append(fields, generateNewItemField(label, newVal)), true, nil
 	}
 
 	if fields[index].Value != newVal {
 		fields[index].Value = newVal
+		return fields, true, nil
 	}
 
-	return fields, nil
+	return fields, false, nil
 }
 
 // generateNewItemField generates a new item field with the given label and value.
@@ -397,13 +399,23 @@ func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *cor
 	if err != nil {
 		return fmt.Errorf("failed to parse push secret metadata: %w", err)
 	}
+
+	tagsChanged := false
 	if metadata != nil && metadata.Spec.Tags != nil {
+		tagsChanged = !slices.Equal(providerItem.Tags, metadata.Spec.Tags)
 		providerItem.Tags = metadata.Spec.Tags
 	}
 
-	providerItem.Fields, err = updateFieldValue(providerItem.Fields, label, string(val))
+	var fieldChanged bool
+	providerItem.Fields, fieldChanged, err = updateFieldValue(providerItem.Fields, label, string(val))
 	if err != nil {
 		return fmt.Errorf(errUpdateItem, err)
+	}
+
+	// Nothing to write: skip UpdateItem so we don't create a new item version
+	// on every sync, and so the next data entry for this item can't race a write.
+	if !fieldChanged && !tagsChanged {
+		return nil
 	}
 
 	if _, err = provider.client.UpdateItem(providerItem, providerItem.Vault.ID); err != nil {

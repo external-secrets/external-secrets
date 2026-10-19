@@ -2238,7 +2238,7 @@ func TestUpdateFields(t *testing.T) {
 
 	// run the tests
 	for _, tc := range testCases {
-		actualOutput, err := updateFieldValue(tc.inputFields, tc.fieldName, tc.newVal)
+		actualOutput, _, err := updateFieldValue(tc.inputFields, tc.fieldName, tc.newVal)
 		if len(actualOutput) != len(tc.expectedFields) {
 			t.Errorf("%s: length fields did not match: -expected, +got:\n-%#v\n+%#v\n", tc.setupNote, tc.expectedFields, actualOutput)
 			return
@@ -2512,6 +2512,56 @@ func TestProviderOnePasswordPushSecret(t *testing.T) {
 				t.Errorf(errDoesNotMatchMsgF, tc.setupNote, tc.expectedErr, err)
 			}
 		})
+	}
+}
+func TestProviderOnePasswordPushSecretSkipsUnchangedUpdate(t *testing.T) {
+	vaultName := "vault1"
+
+	mockClient := fake.NewMockClient()
+	mockClient.MockVaults = map[string][]onepassword.Vault{
+		vaultName: {{ID: vaultName}},
+	}
+	mockClient.MockItems = map[string][]onepassword.Item{
+		vaultName: {{
+			ID:    key1,
+			Title: key1,
+			Vault: onepassword.ItemVault{ID: vaultName},
+		}},
+	}
+	mockClient.MockItemFields = map[string]map[string][]*onepassword.ItemField{
+		vaultName: {
+			key1: {
+				{Label: "tls.crt", Value: "cert", Type: onepassword.FieldTypeConcealed},
+				{Label: "tls.key", Value: "key", Type: onepassword.FieldTypeConcealed},
+			},
+		},
+	}
+
+	updateCalls := 0
+	mockClient.UpdateItemValidateFunc = func(item *onepassword.Item, _ string) (*onepassword.Item, error) {
+		updateCalls++
+		return item, nil
+	}
+
+	provider := &ProviderOnePassword{
+		client: mockClient,
+		vaults: map[string]int{vaultName: 1},
+	}
+	secret := &corev1.Secret{Data: map[string][]byte{
+		"tls.crt": []byte("cert"),
+		"tls.key": []byte("key"),
+	}}
+
+	// same values as already stored: a periodic Replace sync
+	for _, prop := range []string{"tls.crt", "tls.key"} {
+		ref := fakeRef{key: key1, prop: prop, secretKey: prop}
+		if err := provider.PushSecret(context.Background(), secret, ref); err != nil {
+			t.Fatalf("unexpected error pushing %s: %v", prop, err)
+		}
+	}
+
+	if updateCalls != 0 {
+		t.Errorf("expected no UpdateItem calls for unchanged values, got %d", updateCalls)
 	}
 }
 
