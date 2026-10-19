@@ -1,4 +1,4 @@
-FROM golang:1.27.1
+FROM golang:1.27.2
 WORKDIR /
 COPY ./bin/external-secrets /external-secrets
 COPY ./bin/dlv /dlv
