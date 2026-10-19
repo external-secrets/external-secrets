@@ -47,6 +47,9 @@ Build tags live in `pkg/register/<name>.go`.
 
 ### Runtime helpers (use these, do not roll your own)
 
+- `runtime/esutils.CloneDefaultHTTPTransport()` when building an outbound `http.Client` with custom TLS.
+  Do not construct `&http.Transport{}` — a zero-value transport skips `ProxyFromEnvironment`. Enforced by
+  `hack/check-bare-http-transport.sh` (wired into `make lint`).
 - `runtime/esutils/resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, ref)` for credential resolution. It enforces
   `ClusterSecretStore` vs `SecretStore` namespace scoping. Pass `store.GetKind()` and the ES namespace.
 - `runtime/esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{...})` for CA bundles.
