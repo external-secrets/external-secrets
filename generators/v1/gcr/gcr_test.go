@@ -25,7 +25,6 @@ import (
 	"golang.org/x/oauth2"
 	v1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -59,10 +58,8 @@ func TestGenerate(t *testing.T) {
 			args: args{
 				namespace: "foobar",
 				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "example",
-						Namespace: "foobar",
-					},
+					Name:      "example",
+					Namespace: "foobar",
 					Data: map[string][]byte{
 						"foo": []byte("bar"),
 					},

@@ -139,14 +139,11 @@ func parsePath(fullPath string) (*string, string) {
 	var folderPath *string
 	var secretName string
 
-	lastSlash := strings.LastIndex(fullPath, "/")
-	if lastSlash >= 0 {
-		folder := fullPath[:lastSlash]
-		folderPath = &folder
-		secretName = fullPath[lastSlash+1:]
-	} else {
-		secretName = fullPath
+	folder, secretName, found := strings.CutLast(fullPath, "/")
+	if !found {
+		return nil, fullPath
 	}
+	folderPath = &folder
 	return folderPath, secretName
 }
 

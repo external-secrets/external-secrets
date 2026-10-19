@@ -289,7 +289,7 @@ created at the provider.
 
 !!! info inline end
 
-    Note: we removed `env` and `expandenv` from sprig functions for security reasons.
+    Note: we removed `env`, `expandenv`, `getHostByName`, and `fail` from sprig functions for security reasons. Templates should use supported helpers and report failures through reconciliation diagnostics.
 
 We provide a couple of convenience functions that help you transform your secrets. This is useful when dealing with PKCS#12 archives or JSON Web Keys (JWK).
 

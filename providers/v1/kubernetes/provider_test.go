@@ -22,7 +22,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	clientgofake "k8s.io/client-go/kubernetes/fake"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -96,9 +95,7 @@ func TestNewClient(t *testing.T) {
 			fields: fields{},
 			args: args{
 				store: &esv1.ClusterSecretStore{
-					TypeMeta: metav1.TypeMeta{
-						Kind: esv1.ClusterSecretStoreKind,
-					},
+					Kind: esv1.ClusterSecretStoreKind,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{},
 					},
@@ -112,9 +109,7 @@ func TestNewClient(t *testing.T) {
 			fields: fields{},
 			args: args{
 				store: &esv1.ClusterSecretStore{
-					TypeMeta: metav1.TypeMeta{
-						Kind: esv1.ClusterSecretStoreKind,
-					},
+					Kind: esv1.ClusterSecretStoreKind,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							Kubernetes: &esv1.KubernetesProvider{
@@ -129,10 +124,8 @@ func TestNewClient(t *testing.T) {
 				},
 				namespace: "",
 				kube: fclient.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo",
-						Namespace: "default",
-					},
+					Name:      "foo",
+					Namespace: "default",
 					Data: map[string][]byte{
 						"config": []byte(testKubeConfig),
 					},
@@ -146,9 +139,7 @@ func TestNewClient(t *testing.T) {
 			fields: fields{},
 			args: args{
 				store: &esv1.ClusterSecretStore{
-					TypeMeta: metav1.TypeMeta{
-						Kind: esv1.ClusterSecretStoreKind,
-					},
+					Kind: esv1.ClusterSecretStoreKind,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							Kubernetes: &esv1.KubernetesProvider{
@@ -179,9 +170,7 @@ func TestNewClient(t *testing.T) {
 			fields: fields{},
 			args: args{
 				store: &esv1.ClusterSecretStore{
-					TypeMeta: metav1.TypeMeta{
-						Kind: esv1.ClusterSecretStoreKind,
-					},
+					Kind: esv1.ClusterSecretStoreKind,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							Kubernetes: &esv1.KubernetesProvider{
@@ -214,9 +203,7 @@ func TestNewClient(t *testing.T) {
 			fields: fields{},
 			args: args{
 				store: &esv1.ClusterSecretStore{
-					TypeMeta: metav1.TypeMeta{
-						Kind: esv1.ClusterSecretStoreKind,
-					},
+					Kind: esv1.ClusterSecretStoreKind,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							Kubernetes: &esv1.KubernetesProvider{
@@ -241,10 +228,8 @@ func TestNewClient(t *testing.T) {
 				namespace: "foobarothernamespace",
 				clientset: clientgofake.NewSimpleClientset(),
 				kube: fclient.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foo",
-						Namespace: "default",
-					},
+					Name:      "foo",
+					Namespace: "default",
 					Data: map[string][]byte{
 						"token": []byte("1234"),
 					},

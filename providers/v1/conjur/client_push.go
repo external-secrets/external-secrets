@@ -107,15 +107,13 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, ref esv1
 	fqSecretName := ref.GetRemoteKey()
 	// if property is empty, we should create multiple variables for each key of the secret
 	property := ref.GetProperty()
-	i := strings.LastIndex(fqSecretName, "/")
-	if i == -1 {
+	parentPolicy, policyName, found := strings.CutLast(fqSecretName, "/")
+	if !found {
 		return fmt.Errorf("expected RemoteKey (%q) to contain a '/'", fqSecretName)
 	}
 	if property != "" {
 		vars = []string{property}
 	}
-	parentPolicy := fqSecretName[0:i]
-	policyName := fqSecretName[i+1:]
 	// Before we apply policy, we should check any existing secrets to make sure that if they exist, they have the "managed-by" annotation
 	// If they don't, we should leave them alone.
 	// Also, any value that hasn't changed should be removed to avoid spurious updates

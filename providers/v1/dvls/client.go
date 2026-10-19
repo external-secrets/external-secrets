@@ -369,8 +369,8 @@ func resolveVaultRef(ctx context.Context, vaultRef string, vc vaultGetter) (stri
 func parseEntryRef(ref string) (name, path string) {
 	// Normalize forward slashes to backslashes.
 	normalized := strings.ReplaceAll(ref, "/", `\`)
-	if idx := strings.LastIndex(normalized, `\`); idx >= 0 {
-		return normalized[idx+1:], normalized[:idx]
+	if path, name, found := strings.CutLast(normalized, `\`); found {
+		return name, path
 	}
 	return ref, ""
 }
