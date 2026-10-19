@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: clusterexternalsecrets.external-secrets.io
@@ -1636,7 +1636,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: clusterpushsecrets.external-secrets.io
@@ -2328,7 +2328,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: clustersecretstores.external-secrets.io
@@ -4664,7 +4664,7 @@ spec:
                         - message: one of auth or authRef is required
                           rule: has(self.auth) || has(self.authRef)
                         - message: at most one of the fields in [auth authRef] may be set
-                          rule: '[has(self.auth),has(self.authRef)].filter(x,x==true).size() <= 1'
+                          rule: (has(self.auth)?1:0)+(has(self.authRef)?1:0) <= 1
                     delinea:
                       description: |-
                         Delinea DevOps Secrets Vault
@@ -6988,7 +6988,7 @@ spec:
                       type: object
                       x-kubernetes-validations:
                         - message: at most one of the fields in [vault environment] may be set
-                          rule: '[has(self.vault),has(self.environment)].filter(x,x==true).size() <= 1'
+                          rule: (has(self.vault)?1:0)+(has(self.environment)?1:0) <= 1
                     openBao:
                       description: OpenBao configures this store to sync secrets using the OpenBao provider.
                       properties:
@@ -7080,7 +7080,7 @@ spec:
                               type: object
                               x-kubernetes-validations:
                                 - message: exactly one of the fields in [roleId roleRef] must be set
-                                  rule: '[has(self.roleId),has(self.roleRef)].filter(x,x==true).size() == 1'
+                                  rule: (has(self.roleId)?1:0)+(has(self.roleRef)?1:0) == 1
                             kubernetes:
                               description: |-
                                 Kubernetes authenticates with OpenBao by passing a ServiceAccount
@@ -7167,7 +7167,7 @@ spec:
                               type: object
                               x-kubernetes-validations:
                                 - message: exactly one of the fields in [serviceAccountRef secretRef] must be set
-                                  rule: '[has(self.serviceAccountRef),has(self.secretRef)].filter(x,x==true).size() == 1'
+                                  rule: (has(self.serviceAccountRef)?1:0)+(has(self.secretRef)?1:0) == 1
                             namespace:
                               description: |-
                                 Name of the [OpenBao Namespace] to authenticate to. This can be different
@@ -7258,7 +7258,7 @@ spec:
                           type: object
                           x-kubernetes-validations:
                             - message: exactly one of the fields in [appRole tokenSecretRef userPass kubernetes] must be set
-                              rule: '[has(self.appRole),has(self.tokenSecretRef),has(self.userPass),has(self.kubernetes)].filter(x,x==true).size() == 1'
+                              rule: (has(self.appRole)?1:0)+(has(self.tokenSecretRef)?1:0)+(has(self.userPass)?1:0)+(has(self.kubernetes)?1:0) == 1
                         caBundle:
                           description: |-
                             PEM encoded CA bundle used to validate the OpenBao server certificate. If
@@ -7334,7 +7334,7 @@ spec:
                       type: object
                       x-kubernetes-validations:
                         - message: at most one of the fields in [caBundle caProvider] may be set
-                          rule: '[has(self.caBundle),has(self.caProvider)].filter(x,x==true).size() <= 1'
+                          rule: (has(self.caBundle)?1:0)+(has(self.caProvider)?1:0) <= 1
                     oracle:
                       description: Oracle configures this store to sync secrets using Oracle Vault provider
                       properties:
@@ -13950,7 +13950,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: externalsecrets.external-secrets.io
@@ -15353,7 +15353,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: pushsecrets.external-secrets.io
@@ -16005,7 +16005,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: secretstores.external-secrets.io
@@ -18341,7 +18341,7 @@ spec:
                         - message: one of auth or authRef is required
                           rule: has(self.auth) || has(self.authRef)
                         - message: at most one of the fields in [auth authRef] may be set
-                          rule: '[has(self.auth),has(self.authRef)].filter(x,x==true).size() <= 1'
+                          rule: (has(self.auth)?1:0)+(has(self.authRef)?1:0) <= 1
                     delinea:
                       description: |-
                         Delinea DevOps Secrets Vault
@@ -20665,7 +20665,7 @@ spec:
                       type: object
                       x-kubernetes-validations:
                         - message: at most one of the fields in [vault environment] may be set
-                          rule: '[has(self.vault),has(self.environment)].filter(x,x==true).size() <= 1'
+                          rule: (has(self.vault)?1:0)+(has(self.environment)?1:0) <= 1
                     openBao:
                       description: OpenBao configures this store to sync secrets using the OpenBao provider.
                       properties:
@@ -20757,7 +20757,7 @@ spec:
                               type: object
                               x-kubernetes-validations:
                                 - message: exactly one of the fields in [roleId roleRef] must be set
-                                  rule: '[has(self.roleId),has(self.roleRef)].filter(x,x==true).size() == 1'
+                                  rule: (has(self.roleId)?1:0)+(has(self.roleRef)?1:0) == 1
                             kubernetes:
                               description: |-
                                 Kubernetes authenticates with OpenBao by passing a ServiceAccount
@@ -20844,7 +20844,7 @@ spec:
                               type: object
                               x-kubernetes-validations:
                                 - message: exactly one of the fields in [serviceAccountRef secretRef] must be set
-                                  rule: '[has(self.serviceAccountRef),has(self.secretRef)].filter(x,x==true).size() == 1'
+                                  rule: (has(self.serviceAccountRef)?1:0)+(has(self.secretRef)?1:0) == 1
                             namespace:
                               description: |-
                                 Name of the [OpenBao Namespace] to authenticate to. This can be different
@@ -20935,7 +20935,7 @@ spec:
                           type: object
                           x-kubernetes-validations:
                             - message: exactly one of the fields in [appRole tokenSecretRef userPass kubernetes] must be set
-                              rule: '[has(self.appRole),has(self.tokenSecretRef),has(self.userPass),has(self.kubernetes)].filter(x,x==true).size() == 1'
+                              rule: (has(self.appRole)?1:0)+(has(self.tokenSecretRef)?1:0)+(has(self.userPass)?1:0)+(has(self.kubernetes)?1:0) == 1
                         caBundle:
                           description: |-
                             PEM encoded CA bundle used to validate the OpenBao server certificate. If
@@ -21011,7 +21011,7 @@ spec:
                       type: object
                       x-kubernetes-validations:
                         - message: at most one of the fields in [caBundle caProvider] may be set
-                          rule: '[has(self.caBundle),has(self.caProvider)].filter(x,x==true).size() <= 1'
+                          rule: (has(self.caBundle)?1:0)+(has(self.caProvider)?1:0) <= 1
                     oracle:
                       description: Oracle configures this store to sync secrets using Oracle Vault provider
                       properties:
@@ -27627,7 +27627,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: acraccesstokens.generators.external-secrets.io
@@ -27836,7 +27836,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: beyondtrustworkloadcredentialsdynamicsecrets.generators.external-secrets.io
@@ -28049,7 +28049,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: cloudsmithaccesstokens.generators.external-secrets.io
@@ -28142,7 +28142,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: clustergenerators.generators.external-secrets.io
@@ -30689,7 +30689,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: ecrauthorizationtokens.generators.external-secrets.io
@@ -30884,7 +30884,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: fakes.generators.external-secrets.io
@@ -30950,7 +30950,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: gcraccesstokens.generators.external-secrets.io
@@ -31211,7 +31211,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: generatorstates.generators.external-secrets.io
@@ -31319,7 +31319,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: githubaccesstokens.generators.external-secrets.io
@@ -31434,7 +31434,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: gitlabdeploytokens.generators.external-secrets.io
@@ -31583,7 +31583,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: grafanas.generators.external-secrets.io
@@ -31723,7 +31723,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: mfas.generators.external-secrets.io
@@ -31816,7 +31816,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: passwords.generators.external-secrets.io
@@ -31939,7 +31939,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: quayaccesstokens.generators.external-secrets.io
@@ -32028,7 +32028,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: sshkeys.generators.external-secrets.io
@@ -32100,7 +32100,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: stssessiontokens.generators.external-secrets.io
@@ -32306,7 +32306,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: uuids.generators.external-secrets.io
@@ -32357,7 +32357,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: vaultdynamicsecrets.generators.external-secrets.io
@@ -33374,7 +33374,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.19.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   labels:
     external-secrets.io/component: controller
   name: webhooks.generators.external-secrets.io
