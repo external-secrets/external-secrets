@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/vault
 
-go 1.27.2
+go 1.27.0
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.43.3

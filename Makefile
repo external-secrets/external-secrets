@@ -158,7 +158,11 @@ build-%: generate ## Build binary for the specified arch
 provider-replaces.check: ## Ensure cross-provider dependencies use local replacements
 	@./hack/check-provider-replaces.sh
 
-lint: golangci-lint provider-replaces.check ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
+.PHONY: go-directive.check
+go-directive.check: ## Ensure go directives stay at a .0 patch so consumers are not forced to bump
+	@./hack/check-go-directive.sh
+
+lint: golangci-lint provider-replaces.check go-directive.check ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
 	@if [ -n "$(LINT_TARGET)" ]; then \
 		$(INFO) Running golangci-lint on $(LINT_TARGET); \
 		(cd $(LINT_TARGET) && $(GOLANGCI_LINT) run ./...) || exit 1; \
