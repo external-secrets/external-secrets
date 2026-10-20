@@ -76,7 +76,7 @@ If you're planning to use `PushSecret`, ensure you also have the following permi
 }
 ```
 
-**Note:** The resource policy permissions (`GetResourcePolicy`, `PutResourcePolicy`, `DeleteResourcePolicy`) are always required when using `PushSecret`. ESO treats the PushSecret as the owner of the secret's resource policy and manages it on every reconciliation, even when `resourcePolicy` is not set in metadata.
+**Note:** Grant permissions for the resource-policy calls your metadata can trigger. ESO calls `DeleteResourcePolicy` when `resourcePolicy` is omitted or resolves to an empty value. For a non-empty policy, ESO calls `GetResourcePolicy` and may call `PutResourcePolicy` if the desired policy differs from the current policy.
 **Note:** The replication permissions (`ReplicateSecretToRegions`, `RemoveRegionsFromReplication`) are only required if you're using the `replicationLocations` metadata option to manage secret replication across multiple regions.
 
 Here's a more restrictive version of the IAM policy:
