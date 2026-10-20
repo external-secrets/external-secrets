@@ -28,7 +28,6 @@ import (
 	"github.com/akeylesslabs/akeyless-go/v4"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -274,12 +273,8 @@ func TestValidateStore(t *testing.T) {
 	t.Run("secret auth with serviceAccountRef in different namespace", func(t *testing.T) {
 		ns := "other-ns"
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "app-test",
-			},
-			TypeMeta: metav1.TypeMeta{
-				Kind: esv1.SecretStoreKind,
-			},
+			Namespace: "app-test",
+			Kind:      esv1.SecretStoreKind,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					Akeyless: &esv1.AkeylessProvider{
@@ -312,9 +307,7 @@ func TestValidateStore(t *testing.T) {
 	t.Run("cluster secret auth with serviceAccountRef namespace", func(t *testing.T) {
 		ns := "app-test"
 		store := &esv1.ClusterSecretStore{
-			TypeMeta: metav1.TypeMeta{
-				Kind: esv1.ClusterSecretStoreKind,
-			},
+			Kind: esv1.ClusterSecretStoreKind,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					Akeyless: &esv1.AkeylessProvider{

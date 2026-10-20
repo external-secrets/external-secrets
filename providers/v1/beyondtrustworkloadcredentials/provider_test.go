@@ -660,3 +660,63 @@ func TestGetSecretMap(t *testing.T) {
 		})
 	}
 }
+
+func TestSiteServerURL(t *testing.T) {
+	const siteID = "d6878b18-039a-4011-a1e4-a4523dbd4837"
+
+	tests := []struct {
+		name    string
+		baseURL string
+		want    string
+	}{
+		{
+			name:    "addresses the Workload Credentials path under the site",
+			baseURL: "https://api.beyondtrust.io/site",
+			want:    "https://api.beyondtrust.io/site/" + siteID + "/wlc",
+		},
+		{
+			name:    "drops a trailing slash on the base URL",
+			baseURL: "https://api.beyondtrust.io/site/",
+			want:    "https://api.beyondtrust.io/site/" + siteID + "/wlc",
+		},
+		{
+			name:    "drops repeated trailing slashes on the base URL",
+			baseURL: "https://api.beyondtrust.io/site//",
+			want:    "https://api.beyondtrust.io/site/" + siteID + "/wlc",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if diff := cmp.Diff(tt.want, siteServerURL(tt.baseURL, siteID)); diff != "" {
+				t.Errorf("siteServerURL() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestValidateAPIURL(t *testing.T) {
+	tests := []struct {
+		name    string
+		apiURL  string
+		wantErr bool
+	}{
+		{name: "https base URL", apiURL: "https://api.beyondtrust.io/site"},
+		{name: "https base URL with a trailing slash", apiURL: "https://api.beyondtrust.io/site/"},
+		{name: "http is rejected", apiURL: "http://api.beyondtrust.io/site", wantErr: true},
+		{name: "missing host is rejected", apiURL: "https:///site", wantErr: true},
+		{name: "query string is rejected", apiURL: "https://api.beyondtrust.io/site?region=us", wantErr: true},
+		{name: "bare query delimiter is rejected", apiURL: "https://api.beyondtrust.io/site?", wantErr: true},
+		{name: "fragment is rejected", apiURL: "https://api.beyondtrust.io/site#top", wantErr: true},
+		{name: "bare fragment delimiter is rejected", apiURL: "https://api.beyondtrust.io/site#", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateAPIURL(tt.apiURL)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("validateAPIURL(%q) error = %v, wantErr %v", tt.apiURL, err, tt.wantErr)
+			}
+		})
+	}
+}
