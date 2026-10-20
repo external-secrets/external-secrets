@@ -1653,6 +1653,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#storing-app-id-and-installation-id-in-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing App ID and Installation ID in Secrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#notes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5207,6 +5218,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#storing-app-id-and-installation-id-in-secrets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storing App ID and Installation ID in Secrets
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#notes" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5343,6 +5365,27 @@
 <span class="w">        </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;{{</span><span class="nv"> </span><span class="s">.token</span><span class="nv"> </span><span class="s">}}&quot;</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-auth-template</span>
 </code></pre></div>
+<h3 id="storing-app-id-and-installation-id-in-secrets">Storing App ID and Installation ID in Secrets</h3>
+<p>Instead of embedding <code>appID</code> and <code>installID</code> as plain strings, you can reference them from a Kubernetes Secret using <code>appIDRef</code> and <code>installIDRef</code>. This is useful when your organization requires all configuration to come from Secrets.</p>
+<p>The referenced Secrets must reside in the same namespace as the <code>ExternalSecret</code> that references the generator. Any <code>namespace</code> field set on <code>appIDRef</code> or <code>installIDRef</code> is ignored.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">GithubAccessToken</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-auth-token</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">appIDRef</span><span class="p">:</span><span class="w"> </span><span class="c1"># (1) reference to a secret containing the GitHub App ID</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-configuration-secret</span>
+<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">githubAppID</span>
+<span class="w">  </span><span class="nt">installIDRef</span><span class="p">:</span><span class="w"> </span><span class="c1"># (2) reference to a secret containing the GitHub App installation ID</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-configuration-secret</span>
+<span class="w">    </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">githubAppInstallID</span>
+<span class="w">  </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">privateKey</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">github-configuration-secret</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">githubAppPrivateKey</span>
+</code></pre></div>
+<p>Exactly one of <code>appID</code>/<code>appIDRef</code> and exactly one of <code>installID</code>/<code>installIDRef</code> must be set; providing both or neither is rejected by the CRD validation.</p>
 <h3 id="notes">Notes</h3>
 <ul>
 <li>Ensure that all sensitive data such as private keys and IDs are securely handled and stored.</li>
