@@ -159,11 +159,13 @@ spec:
 				namespace: "foo",
 				kube: clientfake.NewClientBuilder().WithObjects(
 					&v1.Secret{
-						ObjectMeta: metav1.ObjectMeta{Name: "testName", Namespace: "foo"},
-						Data:       map[string][]byte{"privateKey": pem},
+						Name:      "testName",
+						Namespace: "foo",
+						Data:      map[string][]byte{"privateKey": pem},
 					},
 					&v1.Secret{
-						ObjectMeta: metav1.ObjectMeta{Name: "configSecret", Namespace: "foo"},
+						Name:      "configSecret",
+						Namespace: "foo",
 						Data: map[string][]byte{
 							"appID":     []byte("0000000"),
 							"installID": []byte("00000000"),
@@ -205,8 +207,9 @@ spec:
 				ctx:       context.TODO(),
 				namespace: "foo",
 				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{Name: "testName", Namespace: "foo"},
-					Data:       map[string][]byte{"privateKey": pem},
+					Name:      "testName",
+					Namespace: "foo",
+					Data:      map[string][]byte{"privateKey": pem},
 				}).Build(),
 				jsonSpec: &apiextensions.JSON{
 					Raw: fmt.Appendf(nil, `apiVersion: generators.external-secrets.io/v1alpha1
@@ -236,8 +239,9 @@ spec:
 				ctx:       context.TODO(),
 				namespace: "foo",
 				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{Name: "testName", Namespace: "foo"},
-					Data:       map[string][]byte{"privateKey": pem},
+					Name:      "testName",
+					Namespace: "foo",
+					Data:      map[string][]byte{"privateKey": pem},
 				}).Build(),
 				jsonSpec: &apiextensions.JSON{
 					Raw: fmt.Appendf(nil, `apiVersion: generators.external-secrets.io/v1alpha1
@@ -322,8 +326,9 @@ func TestIdentitySourceResolve(t *testing.T) {
 	bothSetErr := errors.New("both set")
 
 	secretWithNewline := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "configSecret", Namespace: "foo"},
-		Data:       map[string][]byte{"value": []byte("123\n"), "blank": []byte(" \n")},
+		Name:      "configSecret",
+		Namespace: "foo",
+		Data:      map[string][]byte{"value": []byte("123\n"), "blank": []byte(" \n")},
 	}
 
 	tests := []struct {
@@ -411,7 +416,8 @@ func TestIdentitySourceResolve(t *testing.T) {
 
 func TestResolveAppIdentity(t *testing.T) {
 	configSecret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "configSecret", Namespace: "foo"},
+		Name:      "configSecret",
+		Namespace: "foo",
 		Data: map[string][]byte{
 			"appID":     []byte("111\n"),
 			"installID": []byte("222\n"),
