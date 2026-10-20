@@ -39,7 +39,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -75,10 +74,8 @@ func TestGetClientWithCABundle(t *testing.T) {
 
 	// Create a fake Kubernetes client with the required secret
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "gitlab-secret",
-			Namespace: "default",
-		},
+		Name:      "gitlab-secret",
+		Namespace: "default",
 		Data: map[string][]byte{
 			"token": []byte("test-token"),
 		},
@@ -118,10 +115,8 @@ func TestGetClientWithInvalidCABundle(t *testing.T) {
 		},
 	}
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "gitlab-secret",
-			Namespace: "default",
-		},
+		Name:      "gitlab-secret",
+		Namespace: "default",
 		Data: map[string][]byte{
 			"token": []byte("test-token"),
 		},
@@ -172,10 +167,8 @@ func TestGetClientWithCAProviderSecret(t *testing.T) {
 
 	// Create a fake Kubernetes client with the required secrets
 	accessTokenSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "gitlab-secret",
-			Namespace: "default",
-		},
+		Name:      "gitlab-secret",
+		Namespace: "default",
 		Data: map[string][]byte{
 			"token": []byte("test-token"),
 		},
@@ -234,10 +227,8 @@ func TestGetClientWithCAProviderConfigMap(t *testing.T) {
 
 	// Create a fake Kubernetes client with the required secrets
 	accessTokenSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "gitlab-secret",
-			Namespace: "default",
-		},
+		Name:      "gitlab-secret",
+		Namespace: "default",
 		Data: map[string][]byte{
 			"token": []byte("test-token"),
 		},
@@ -268,20 +259,16 @@ func makeFakeCASource(t *testing.T, kind, name, namespace string, certData []byt
 	switch kind {
 	case "Secret":
 		return &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: namespace,
-			},
+			Name:      name,
+			Namespace: namespace,
 			Data: map[string][]byte{
 				"tls.crt": certData,
 			},
 		}
 	case "ConfigMap":
 		return &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: namespace,
-			},
+			Name:      name,
+			Namespace: namespace,
 			Data: map[string]string{
 				"ca.crt": string(certData),
 			},

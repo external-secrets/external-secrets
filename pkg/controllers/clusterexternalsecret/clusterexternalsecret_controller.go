@@ -337,9 +337,22 @@ func (r *Reconciler) removeNamespaceFinalizer(ctx context.Context, log logr.Logg
 	return r.updateNamespaceRemoveFinalizer(ctx, log, namespace.Name, finalizer)
 }
 
+const (
+	cesFinalizerDomain     = "externalsecrets.external-secrets.io"
+	cesFinalizerPrefix     = "ces-"
+	maxFinalizerNamePart   = 63
+	finalizerHashSuffixLen = 8
+)
+
 // buildCESFinalizer creates the finalizer name for a CES.
 func (r *Reconciler) buildCESFinalizer(cesName string) string {
-	return "externalsecrets.external-secrets.io/ces-" + cesName
+	namePart := cesFinalizerPrefix + cesName
+	if len(namePart) > maxFinalizerNamePart {
+		hashSuffix := esutils.ObjectHash(cesName)[:finalizerHashSuffixLen]
+		maxNameLen := maxFinalizerNamePart - len(cesFinalizerPrefix) - len(hashSuffix) - 1
+		namePart = cesFinalizerPrefix + cesName[:maxNameLen] + "_" + hashSuffix
+	}
+	return cesFinalizerDomain + "/" + namePart
 }
 
 // updateNamespaceRemoveFinalizer removes a finalizer from a namespace with conflict handling.
@@ -385,10 +398,8 @@ func (r *Reconciler) createOrUpdateExternalSecret(
 
 	// Create or update the ExternalSecret
 	externalSecret := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace.Name,
-			Name:      esName,
-		},
+		Namespace: namespace.Name,
+		Name:      esName,
 	}
 
 	mutateFunc := func() error {
@@ -579,10 +590,8 @@ func (r *Reconciler) queueRequestsForItem(clusterExternalSecrets *esv1.ClusterEx
 
 			if labelSelector.Matches(labels.Set(namespace.GetLabels())) {
 				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      clusterExternalSecret.GetName(),
-						Namespace: clusterExternalSecret.GetNamespace(),
-					},
+					Name:      clusterExternalSecret.GetName(),
+					Namespace: clusterExternalSecret.GetNamespace(),
 				})
 				selected = true
 				break
@@ -597,10 +606,8 @@ func (r *Reconciler) queueRequestsForItem(clusterExternalSecrets *esv1.ClusterEx
 
 		if slices.Contains(clusterExternalSecret.Spec.Namespaces, namespace.GetName()) {
 			requests = append(requests, reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      clusterExternalSecret.GetName(),
-					Namespace: clusterExternalSecret.GetNamespace(),
-				},
+				Name:      clusterExternalSecret.GetName(),
+				Namespace: clusterExternalSecret.GetNamespace(),
 			})
 		}
 	}

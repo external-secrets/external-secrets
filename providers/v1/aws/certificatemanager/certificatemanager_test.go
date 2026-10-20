@@ -42,7 +42,6 @@ import (
 	"github.com/youmark/pkcs8"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	fakeacm "github.com/external-secrets/external-secrets/providers/v1/aws/certificatemanager/fake"
@@ -155,7 +154,7 @@ func (r remoteRef) GetProperty() string  { return r.property }
 
 func tlsSecret(tlsCrt, tlsKey []byte) *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "my-tls", Namespace: "default"},
+		Name: "my-tls", Namespace: "default",
 		Data: map[string][]byte{
 			"tls.crt": tlsCrt,
 			"tls.key": tlsKey,
@@ -427,7 +426,7 @@ func TestPushSecret_MissingCertKey(t *testing.T) {
 
 	psd := &pushSecretData{remoteKey: testRemoteKey}
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "bad-secret", Namespace: "default"},
+		Name: "bad-secret", Namespace: "default",
 		Data: map[string][]byte{
 			"tls.key": []byte("KEY"),
 		},

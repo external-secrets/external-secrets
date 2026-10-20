@@ -32,7 +32,6 @@ import (
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -120,10 +119,8 @@ func TestGenerate(t *testing.T) {
 				ctx:       context.TODO(),
 				namespace: "foo",
 				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "testName",
-						Namespace: "foo",
-					},
+					Name:      "testName",
+					Namespace: "foo",
 					Data: map[string][]byte{
 						"privateKey": pem,
 					},
@@ -270,10 +267,8 @@ spec:
 				ctx:       context.TODO(),
 				namespace: "foo",
 				kube: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "testName",
-						Namespace: "foo",
-					},
+					Name:      "testName",
+					Namespace: "foo",
 					Data: map[string][]byte{
 						"privateKey": pem,
 					},

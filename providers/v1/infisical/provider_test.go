@@ -27,7 +27,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1meta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -236,7 +235,7 @@ func TestGetSecretMap(t *testing.T) {
 
 func makeSecretStore(projectSlug, environment, secretsPath string, fn ...storeModifier) *esv1.SecretStore {
 	store := &esv1.SecretStore{
-		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+		Kind: esv1.SecretStoreKind,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Infisical: &esv1.InfisicalProvider{
@@ -296,7 +295,7 @@ type clusterStoreModifier func(*esv1.ClusterSecretStore) *esv1.ClusterSecretStor
 
 func makeClusterSecretStore(projectSlug, environment, secretsPath string, fn ...clusterStoreModifier) *esv1.ClusterSecretStore {
 	store := &esv1.ClusterSecretStore{
-		TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+		Kind: esv1.ClusterSecretStoreKind,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Infisical: &esv1.InfisicalProvider{

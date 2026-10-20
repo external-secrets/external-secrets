@@ -291,7 +291,7 @@ func TestNewClient_ValidationErrors(t *testing.T) {
 			name: "missing api domain",
 			storeSpec: func() *esv1.SecretStore {
 				return &esv1.SecretStore{
-					ObjectMeta: metav1.ObjectMeta{Namespace: namespace},
+					Namespace: namespace,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							NebiusMysterybox: &esv1.NebiusMysteryboxProvider{},
@@ -305,7 +305,7 @@ func TestNewClient_ValidationErrors(t *testing.T) {
 			name: "missing auth options",
 			storeSpec: func() *esv1.SecretStore {
 				return &esv1.SecretStore{
-					ObjectMeta: metav1.ObjectMeta{Namespace: namespace},
+					Namespace: namespace,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							NebiusMysterybox: &esv1.NebiusMysteryboxProvider{APIDomain: apiDomain},
@@ -319,7 +319,7 @@ func TestNewClient_ValidationErrors(t *testing.T) {
 			name: "specified token secret does not exist in kubernetes secrets",
 			storeSpec: func() *esv1.SecretStore {
 				return &esv1.SecretStore{
-					ObjectMeta: metav1.ObjectMeta{Namespace: namespace},
+					Namespace: namespace,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							NebiusMysterybox: &esv1.NebiusMysteryboxProvider{
@@ -342,7 +342,7 @@ func TestNewClient_ValidationErrors(t *testing.T) {
 			name: "specified service account creds secret does not exist in kubernetes secrets",
 			storeSpec: func() *esv1.SecretStore {
 				return &esv1.SecretStore{
-					ObjectMeta: metav1.ObjectMeta{Namespace: namespace},
+					Namespace: namespace,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							NebiusMysterybox: &esv1.NebiusMysteryboxProvider{
@@ -365,7 +365,7 @@ func TestNewClient_ValidationErrors(t *testing.T) {
 			name: "specified token secret's key does not exist in the secret",
 			storeSpec: func() *esv1.SecretStore {
 				return &esv1.SecretStore{
-					ObjectMeta: metav1.ObjectMeta{Namespace: namespace},
+					Namespace: namespace,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							NebiusMysterybox: &esv1.NebiusMysteryboxProvider{
@@ -932,9 +932,7 @@ func TestNewClient_Concurrent_SameConfig_SingleClient_DifferentTokens(t *testing
 
 func newNebiusMysteryboxSecretStoreWithAuthTokenKey(apiDomain, namespace, tokenSecretName, tokenSecretKey string) esv1.GenericStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
+		Namespace: namespace,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				NebiusMysterybox: &esv1.NebiusMysteryboxProvider{
@@ -953,9 +951,7 @@ func newNebiusMysteryboxSecretStoreWithAuthTokenKey(apiDomain, namespace, tokenS
 
 func newNebiusMysteryboxSecretStoreWithServiceAccountAndPrivateKeyCreds(apiDomain, namespace, keySecretName, keySecretKey string) esv1.GenericStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
+		Namespace: namespace,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				NebiusMysterybox: &esv1.NebiusMysteryboxProvider{
@@ -973,10 +969,8 @@ func newNebiusMysteryboxSecretStoreWithServiceAccountAndPrivateKeyCreds(apiDomai
 }
 func newNebiusMysteryboxSecretStoreWithK8sServiceAccountCreds(apiDomain, namespace, serviceAccountName, iamServiceAccount string) esv1.GenericStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			UID:       types.UID(uuid.New().String()),
-		},
+		Namespace: namespace,
+		UID:       types.UID(uuid.New().String()),
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				NebiusMysterybox: &esv1.NebiusMysteryboxProvider{
@@ -998,20 +992,16 @@ func newNebiusMysteryboxSecretStoreWithK8sServiceAccountCreds(apiDomain, namespa
 
 func createK8sSecret(ctx context.Context, t *testing.T, k8sClient k8sclient.Client, namespace, secretName, secretKey string, secretValue []byte) {
 	err := k8sClient.Create(ctx, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      secretName,
-		},
-		Data: map[string][]byte{secretKey: secretValue},
+		Namespace: namespace,
+		Name:      secretName,
+		Data:      map[string][]byte{secretKey: secretValue},
 	})
 	tassert.NoError(t, err)
 }
 func createK8sServiceAccount(ctx context.Context, t *testing.T, k8sClient k8sclient.Client, namespace, serviceAccountName string) {
 	err := k8sClient.Create(ctx, &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      serviceAccountName,
-		},
+		Namespace: namespace,
+		Name:      serviceAccountName,
 	})
 	tassert.NoError(t, err)
 }

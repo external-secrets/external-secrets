@@ -35,7 +35,6 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -372,7 +371,7 @@ func TestCaching(t *testing.T) {
 			t.Errorf("[%d] unexpected secret: expected %s, got %s", k, v.expectedSecret, string(out))
 		}
 		if v.expectedCounter != nil && v.fakeClient.ExecutionCounter != *v.expectedCounter {
-			t.Errorf("[%d] unexpected counter value: expected %d, got %d", k, v.expectedCounter, v.fakeClient.ExecutionCounter)
+			t.Errorf("[%d] unexpected counter value: expected %d, got %d", k, *v.expectedCounter, v.fakeClient.ExecutionCounter)
 		}
 	}
 }
@@ -425,7 +424,7 @@ func TestGetSecretMap(t *testing.T) {
 			t.Errorf("[%d] unexpected secret data: expected %#v, got %#v", k, v.expectedData, out)
 		}
 		if v.expectedCounter != nil && v.fakeClient.ExecutionCounter != *v.expectedCounter {
-			t.Errorf("[%d] unexpected counter value: expected %d, got %d", k, v.expectedCounter, v.fakeClient.ExecutionCounter)
+			t.Errorf("[%d] unexpected counter value: expected %d, got %d", k, *v.expectedCounter, v.fakeClient.ExecutionCounter)
 		}
 	}
 }
@@ -1114,9 +1113,7 @@ func TestSetSecret(t *testing.T) {
 					},
 				},
 				kubeclient: clientfake.NewFakeClient(&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "resource-policy",
-					},
+					Name: "resource-policy",
 					Data: map[string]string{
 						"policy.json": `{"Version":"2012-10-17","Statement":[{"Sid":"DenyAll","Effect":"Deny","Principal":"*","Action":"secretsmanager:GetSecretValue","Resource":"*"}]}`,
 					},
@@ -1162,9 +1159,7 @@ func TestSetSecret(t *testing.T) {
 					},
 				},
 				kubeclient: clientfake.NewFakeClient(&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "resource-policy",
-					},
+					Name: "resource-policy",
 					// Create a policy that does not match object order of the
 					// existing one
 					Data: map[string]string{
@@ -1238,9 +1233,7 @@ func TestSetSecret(t *testing.T) {
 					},
 				},
 				kubeclient: clientfake.NewFakeClient(&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "resource-policy",
-					},
+					Name: "resource-policy",
 					// Create a policy that does not match object order of the
 					// existing one
 					Data: map[string]string{
@@ -1597,9 +1590,7 @@ func TestPushSecretResourcePolicyUpdatedWhenValueUnchanged(t *testing.T) {
 	}
 
 	kubeclient := clientfake.NewFakeClient(&corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "resource-policy",
-		},
+		Name: "resource-policy",
 		Data: map[string]string{
 			"policy.json": newPolicy,
 		},
@@ -1683,9 +1674,7 @@ func TestPushSecretEmptyExistingResourcePolicy(t *testing.T) {
 	}
 
 	kubeclient := clientfake.NewFakeClient(&corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "resource-policy",
-		},
+		Name: "resource-policy",
 		Data: map[string]string{
 			"policy.json": newPolicy,
 		},
@@ -2052,10 +2041,8 @@ func TestDeleteSecret(t *testing.T) {
 }
 func makeValidSecretStore() *esv1.SecretStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "aws-secret-store",
-			Namespace: "default",
-		},
+		Name:      "aws-secret-store",
+		Namespace: "default",
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				AWS: &esv1.AWSProvider{
