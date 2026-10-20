@@ -942,6 +942,7 @@ func randomNamespaceName() string {
 
 func TestBuildCESFinalizer(t *testing.T) {
 	r := &Reconciler{}
+
 	tests := []struct {
 		name    string
 		cesName string
@@ -957,38 +958,55 @@ func TestBuildCESFinalizer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			finalizer := r.buildCESFinalizer(tt.cesName)
-			parts := strings.SplitN(finalizer, "/", 2)
-			if len(parts) != 2 {
-				t.Fatalf("finalizer %q missing '/' separator", finalizer)
-			}
-			if parts[0] != cesFinalizerDomain {
-				t.Errorf("domain = %q, want %q", parts[0], cesFinalizerDomain)
-			}
-			if errs := validation.IsQualifiedName(finalizer); len(errs) > 0 {
-				t.Errorf("finalizer %q is not a valid qualified name: %v", finalizer, errs)
-			}
+
+			assertValidCESFinalizer(t, finalizer)
 			if tt.fits {
-				// Names that fit must be byte-identical to the pre-fix output.
-				want := cesFinalizerDomain + "/ces-" + tt.cesName
-				if finalizer != want {
-					t.Errorf("finalizer = %q, want unchanged %q", finalizer, want)
-				}
+				assertUnchangedCESFinalizer(t, finalizer, tt.cesName)
 			} else {
-				// Truncated names must use the full 63 bytes and contain the "_" separator.
-				if len(parts[1]) != maxFinalizerNamePart {
-					t.Errorf("truncated name part is %d bytes, want %d", len(parts[1]), maxFinalizerNamePart)
-				}
-				if !strings.Contains(parts[1], "_") {
-					t.Errorf("truncated finalizer %q should contain %q", finalizer, "_")
-				}
+				assertTruncatedCESFinalizer(t, finalizer)
 			}
 
 			// Determinism: calling it again must give the exact same string.
-			again := r.buildCESFinalizer(tt.cesName)
-			if again != finalizer {
+			if again := r.buildCESFinalizer(tt.cesName); again != finalizer {
 				t.Errorf("buildCESFinalizer not deterministic: %q vs %q", finalizer, again)
 			}
 		})
+	}
+}
+
+// assertValidCESFinalizer checks the domain and what the API server enforces on finalizers.
+func assertValidCESFinalizer(t *testing.T, finalizer string) {
+	t.Helper()
+	domain, _, found := strings.Cut(finalizer, "/")
+	if !found {
+		t.Fatalf("finalizer %q missing '/' separator", finalizer)
+	}
+	if domain != cesFinalizerDomain {
+		t.Errorf("domain = %q, want %q", domain, cesFinalizerDomain)
+	}
+	if errs := validation.IsQualifiedName(finalizer); len(errs) > 0 {
+		t.Errorf("finalizer %q is not a valid qualified name: %v", finalizer, errs)
+	}
+}
+
+// assertUnchangedCESFinalizer checks that names which fit are byte-identical to the pre-fix output.
+func assertUnchangedCESFinalizer(t *testing.T, finalizer, cesName string) {
+	t.Helper()
+	want := cesFinalizerDomain + "/ces-" + cesName
+	if finalizer != want {
+		t.Errorf("finalizer = %q, want unchanged %q", finalizer, want)
+	}
+}
+
+// assertTruncatedCESFinalizer checks that truncated names use the full 63 bytes and the "_" separator.
+func assertTruncatedCESFinalizer(t *testing.T, finalizer string) {
+	t.Helper()
+	_, namePart, _ := strings.Cut(finalizer, "/")
+	if len(namePart) != maxFinalizerNamePart {
+		t.Errorf("truncated name part is %d bytes, want %d", len(namePart), maxFinalizerNamePart)
+	}
+	if !strings.Contains(namePart, "_") {
+		t.Errorf("truncated finalizer %q should contain %q", finalizer, "_")
 	}
 }
 
