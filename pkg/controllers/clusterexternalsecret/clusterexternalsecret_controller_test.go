@@ -21,11 +21,14 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"strings"
+	"testing"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/apimachinery/pkg/util/validation"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -853,4 +856,133 @@ func randString(n int) string {
 
 func randomNamespaceName() string {
 	return fmt.Sprintf("testns-%s", randString(10))
+}
+
+func TestBuildCESFinalizer(t *testing.T) {
+	r := &Reconciler{}
+
+	tests := []struct {
+		name    string
+		cesName string
+		fits    bool // "ces-"+name <= 63 bytes, so the finalizer must be left unchanged
+	}{
+		{name: "short name, well under limit", cesName: "my-secret", fits: true},
+		{name: "exactly 59 chars (boundary, still fits)", cesName: strings.Repeat("a", 59), fits: true},
+		{name: "60 chars (one over, must truncate)", cesName: strings.Repeat("b", 60)},
+		{name: "61 chars, from the actual issue repro", cesName: "registry-pull-credentials-for-shared-artifact-proxy-cache-tok"},
+		{name: "max allowed k8s name, 253 chars", cesName: strings.Repeat("c", 253)},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			finalizer := r.buildCESFinalizer(tt.cesName)
+
+			assertValidCESFinalizer(t, finalizer)
+			if tt.fits {
+				assertUnchangedCESFinalizer(t, finalizer, tt.cesName)
+			} else {
+				assertTruncatedCESFinalizer(t, finalizer)
+			}
+
+			// Determinism: calling it again must give the exact same string.
+			if again := r.buildCESFinalizer(tt.cesName); again != finalizer {
+				t.Errorf("buildCESFinalizer not deterministic: %q vs %q", finalizer, again)
+			}
+		})
+	}
+}
+
+// assertValidCESFinalizer checks the domain and what the API server enforces on finalizers.
+func assertValidCESFinalizer(t *testing.T, finalizer string) {
+	t.Helper()
+	domain, _, found := strings.Cut(finalizer, "/")
+	if !found {
+		t.Fatalf("finalizer %q missing '/' separator", finalizer)
+	}
+	if domain != cesFinalizerDomain {
+		t.Errorf("domain = %q, want %q", domain, cesFinalizerDomain)
+	}
+	if errs := validation.IsQualifiedName(finalizer); len(errs) > 0 {
+		t.Errorf("finalizer %q is not a valid qualified name: %v", finalizer, errs)
+	}
+}
+
+// assertUnchangedCESFinalizer checks that names which fit are byte-identical to the pre-fix output.
+func assertUnchangedCESFinalizer(t *testing.T, finalizer, cesName string) {
+	t.Helper()
+	want := cesFinalizerDomain + "/ces-" + cesName
+	if finalizer != want {
+		t.Errorf("finalizer = %q, want unchanged %q", finalizer, want)
+	}
+}
+
+// assertTruncatedCESFinalizer checks that truncated names use the full 63 bytes and the "_" separator.
+func assertTruncatedCESFinalizer(t *testing.T, finalizer string) {
+	t.Helper()
+	_, namePart, _ := strings.Cut(finalizer, "/")
+	if len(namePart) != maxFinalizerNamePart {
+		t.Errorf("truncated name part is %d bytes, want %d", len(namePart), maxFinalizerNamePart)
+	}
+	if !strings.Contains(namePart, "_") {
+		t.Errorf("truncated finalizer %q should contain %q", finalizer, "_")
+	}
+}
+
+// TestBuildCESFinalizer_BackwardCompatible locks in that short names produce
+// the exact same finalizer string the old, pre-fix implementation did.
+// If this ever fails, existing clusters would get new finalizer names on
+// upgrade and orphan the old ones.
+func TestBuildCESFinalizer_BackwardCompatible(t *testing.T) {
+	r := &Reconciler{}
+	cesName := "my-short-ces-name"
+
+	got := r.buildCESFinalizer(cesName)
+	want := "externalsecrets.external-secrets.io/ces-" + cesName
+
+	if got != want {
+		t.Errorf("buildCESFinalizer(%q) = %q, want %q (pre-fix output)", cesName, got, want)
+	}
+}
+
+// TestBuildCESFinalizer_NoCollision guards against two different long names
+// that share the same 50-char truncated prefix producing the same finalizer.
+func TestBuildCESFinalizer_NoCollision(t *testing.T) {
+	r := &Reconciler{}
+
+	base := strings.Repeat("x", 50) // shared 50-char prefix
+	nameA := base + "-suffix-one-that-is-long-enough"
+	nameB := base + "-suffix-two-that-is-long-enough"
+
+	finalizerA := r.buildCESFinalizer(nameA)
+	finalizerB := r.buildCESFinalizer(nameB)
+
+	if finalizerA == finalizerB {
+		t.Errorf("two different CES names produced the same finalizer: %q", finalizerA)
+	}
+}
+
+// TestBuildCESFinalizer_NoCollisionWithShortName guards against a truncated long
+// name producing the same finalizer as a real, shorter CES name. With a "-"
+// separator, long[:50] + "-" + hash is a valid 59-char name that fits unchanged
+// and so would collide with the truncated form of the long name.
+func TestBuildCESFinalizer_NoCollisionWithShortName(t *testing.T) {
+	r := &Reconciler{}
+
+	long := "registry-pull-credentials-for-shared-artifact-proxy-cache-tok" // 61 chars, truncated
+
+	// Take the 8-char hash suffix that buildCESFinalizer appended for the long name.
+	longFinalizer := r.buildCESFinalizer(long)
+	hash := longFinalizer[len(longFinalizer)-finalizerHashSuffixLen:]
+
+	// Build the short name an attacker (or an unlucky user) could pick: 50-char
+	// prefix + "-" + hash = 59 chars, valid as a k8s name, and not truncated.
+	short := long[:50] + "-" + hash
+	if len(short) != 59 {
+		t.Fatalf("test setup wrong: short name is %d chars, want 59", len(short))
+	}
+
+	shortFinalizer := r.buildCESFinalizer(short)
+	if shortFinalizer == longFinalizer {
+		t.Errorf("long and short CES names share finalizer %q", longFinalizer)
+	}
 }
