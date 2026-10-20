@@ -350,7 +350,7 @@ func (r *Reconciler) buildCESFinalizer(cesName string) string {
 	if len(namePart) > maxFinalizerNamePart {
 		hashSuffix := esutils.ObjectHash(cesName)[:finalizerHashSuffixLen]
 		maxNameLen := maxFinalizerNamePart - len(cesFinalizerPrefix) - len(hashSuffix) - 1
-		namePart = cesFinalizerPrefix + cesName[:maxNameLen] + "-" + hashSuffix
+		namePart = cesFinalizerPrefix + cesName[:maxNameLen] + "_" + hashSuffix
 	}
 	return cesFinalizerDomain + "/" + namePart
 }
