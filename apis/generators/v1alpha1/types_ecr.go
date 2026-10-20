@@ -68,9 +68,24 @@ type AWSAuthSecretRef struct {
 	SessionToken *esmeta.SecretKeySelector `json:"sessionTokenSecretRef,omitempty"`
 }
 
-// AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.
+// AWSJWTAuth provides configuration to authenticate against AWS using service account tokens
+// or a JWT stored in a Kubernetes Secret.
+// Only one of serviceAccountRef or secretRef can be specified.
 type AWSJWTAuth struct {
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+
+	// SecretRef references a key in a Secret that holds a JWT, e.g. one issued
+	// by an OIDC identity provider other than the cluster's service account issuer.
+	// The token is exchanged for AWS credentials using sts:AssumeRoleWithWebIdentity.
+	// Requires roleArn to be set.
+	// +optional
+	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+
+	// RoleArn is the ARN of the IAM role to assume with the JWT referenced by secretRef.
+	// Required when secretRef is set. Not supported with serviceAccountRef,
+	// which takes the role from the eks.amazonaws.com/role-arn annotation.
+	// +optional
+	RoleArn string `json:"roleArn,omitempty"`
 }
 
 // ECRAuthorizationToken uses the GetAuthorizationToken API to retrieve an authorization token.

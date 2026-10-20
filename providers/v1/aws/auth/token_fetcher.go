@@ -18,11 +18,17 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"strings"
 
 	authv1 "k8s.io/api/authentication/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	corev1 "k8s.io/client-go/kubernetes/typed/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
 // mostly taken from:
@@ -51,4 +57,28 @@ func (p authTokenFetcher) GetIdentityToken() ([]byte, error) {
 		return nil, fmt.Errorf("error creating service account token: %w", err)
 	}
 	return []byte(tokRsp.Status.Token), nil
+}
+
+// secretTokenFetcher reads a JWT from a key in a Kubernetes Secret.
+// The Secret is read on every call so that tokens rotated by an external
+// identity provider are picked up when the AWS credentials are refreshed.
+type secretTokenFetcher struct {
+	kube      client.Client
+	storeKind string
+	namespace string
+	ref       esmeta.SecretKeySelector
+}
+
+// GetIdentityToken satisfies the stscreds.IdentityTokenRetriever interface.
+func (p secretTokenFetcher) GetIdentityToken() ([]byte, error) {
+	log.V(1).Info("fetching token from secret", "ns", p.namespace, "secret", p.ref.Name, "key", p.ref.Key)
+	token, err := resolvers.SecretKeyRef(context.Background(), p.kube, p.storeKind, p.namespace, &p.ref)
+	if err != nil {
+		return nil, fmt.Errorf(errFetchJWTSecret, err)
+	}
+	token = strings.TrimSpace(token)
+	if token == "" {
+		return nil, fmt.Errorf(errFetchJWTSecret, errors.New("token is empty"))
+	}
+	return []byte(token), nil
 }

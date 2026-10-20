@@ -101,6 +101,34 @@ spec:
 
 **NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` for `serviceAccountRef` with the namespace where the service account resides.
 
+### JWT from a Secret (custom OIDC identity provider)
+
+If your workloads get short-lived JWTs from an OIDC identity provider other than the cluster's service account issuer, for example to keep the identity independent of the cluster it runs on, ESO can read the token from a `Kind=Secret` and exchange it for AWS credentials with `sts:AssumeRoleWithWebIdentity`.
+
+The identity provider must be registered as an [IAM OIDC identity provider](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_providers_create_oidc.html), and `jwt.roleArn` must reference a role that trusts it. Whatever issues the token is responsible for keeping the Secret up to date. ESO reads the Secret again each time it refreshes the AWS credentials.
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: secretstore-sample
+spec:
+  provider:
+    aws:
+      service: SecretsManager
+      region: eu-central-1
+      auth:
+        jwt:
+          secretRef:
+            name: my-oidc-token
+            key: token
+          roleArn: arn:aws:iam::123456789012:role/team-a
+```
+
+`jwt.roleArn` is required with `secretRef`. You can still set `role`, `additionalRoles`, `externalID` and session tags: they are assumed on top of the web identity credentials, as described in [Assuming Roles](#assuming-roles).
+
+**NOTE:** In case of a `ClusterSecretStore`, provide `namespace` in `secretRef` with the namespace where the Secret resides. Without it, the namespace of the `ExternalSecret` is used.
+
 ## Assuming Roles
 
 The optional `role` field makes ESO call `sts:AssumeRole` before accessing secrets, the recommended way to scope access per store. Two related fields refine role assumption:
