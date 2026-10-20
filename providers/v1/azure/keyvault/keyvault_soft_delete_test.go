@@ -37,7 +37,7 @@ type fakeNewSDKSecretRecoveryClient struct {
 }
 
 func (c *fakeNewSDKSecretRecoveryClient) GetDeletedSecret(_ context.Context, name string, _ *azsecrets.GetDeletedSecretOptions) (azsecrets.GetDeletedSecretResponse, error) {
-	return azsecrets.GetDeletedSecretResponse{DeletedSecret: azsecrets.DeletedSecret{Tags: c.tags}}, c.getErr
+	return azsecrets.GetDeletedSecretResponse{Tags: c.tags}, c.getErr
 }
 
 func (c *fakeNewSDKSecretRecoveryClient) RecoverDeletedSecret(_ context.Context, name string, _ *azsecrets.RecoverDeletedSecretOptions) (azsecrets.RecoverDeletedSecretResponse, error) {

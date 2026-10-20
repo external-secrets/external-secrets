@@ -101,7 +101,7 @@ func (c *softDeletedSecretClient) SetSecret(_ context.Context, _, _ string, _ ke
 			StatusCode: 409,
 			Method:     "PUT",
 			Original: &azure.RequestError{
-				DetailedError: autorest.DetailedError{StatusCode: 409},
+				StatusCode: 409,
 				ServiceError: &azure.ServiceError{
 					Code:       "Conflict",
 					InnerError: map[string]any{"code": softDeletedSecretErrorCode},
@@ -174,8 +174,8 @@ func TestLegacyDoesNotRecoverUnrelatedConflict(t *testing.T) {
 	err := autorest.DetailedError{
 		StatusCode: 409,
 		Original: &azure.RequestError{
-			DetailedError: autorest.DetailedError{StatusCode: 409},
-			ServiceError:  &azure.ServiceError{Code: "Conflict"},
+			StatusCode:   409,
+			ServiceError: &azure.ServiceError{Code: "Conflict"},
 		},
 	}
 	recoverer := &legacyDeletedSecretRecoverer{}
