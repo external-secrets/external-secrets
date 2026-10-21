@@ -1,6 +1,8 @@
 module github.com/external-secrets/external-secrets
 
-go 1.27.2
+go 1.27.0
+
+toolchain go1.27.2
 
 replace (
 	github.com/external-secrets/external-secrets/apis => ./apis

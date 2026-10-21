@@ -1,6 +1,6 @@
 module github.com/external-secrets/external-secrets/providers/v1/oracle
 
-go 1.27.2
+go 1.27.0
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
