@@ -138,7 +138,7 @@ jobs:
   publish-artifacts:
     needs: detect-noop
     if: needs.detect-noop.outputs.noop != 'true'
-    uses: ./.github/workflows/publish.yml
+    uses: $/.github/workflows/publish.yml
     permissions:
       contents: read  #actions/checkout
       packages: write #for publishing artifacts

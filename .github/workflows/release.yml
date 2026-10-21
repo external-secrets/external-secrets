@@ -150,7 +150,7 @@ jobs:
 
       - name: Sign promoted image
         id: sign
-        uses: ./.github/actions/sign
+        uses: $/.github/actions/sign
         with:
           image-name: ${{ env.IMAGE_NAME }}
           image-tag: ${{ env.RELEASE_TAG }}
