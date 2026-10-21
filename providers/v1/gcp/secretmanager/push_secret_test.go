@@ -17,6 +17,7 @@ limitations under the License.
 package secretmanager
 
 import (
+	"encoding/json"
 	"testing"
 
 	secretmanagerpb "cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
@@ -24,6 +25,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 
+	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	testingfake "github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
 
@@ -175,14 +177,23 @@ func TestBuildReplication(t *testing.T) {
 	}
 
 	tests := []struct {
-		name string
-		spec PushSecretMetadataSpec
-		want *secretmanagerpb.Replication
+		name          string
+		spec          PushSecretMetadataSpec
+		regionalStore bool
+		want          *secretmanagerpb.Replication
+		expectedErr   string
 	}{
 		{
 			name: "no replication configured",
 			spec: PushSecretMetadataSpec{},
 			want: nil,
+		},
+		{
+			name: "no replication configured for a regional store",
+			spec: PushSecretMetadataSpec{},
+			// Regional secrets cannot carry replication at all.
+			regionalStore: true,
+			want:          nil,
 		},
 		{
 			name: "single location via deprecated field",
@@ -191,26 +202,28 @@ func TestBuildReplication(t *testing.T) {
 		},
 		{
 			name: "single location via new field",
-			spec: PushSecretMetadataSpec{ReplicationLocations: []string{"us-east1"}},
+			spec: PushSecretMetadataSpec{ReplicationLocations: []PushSecretReplica{{Location: "us-east1"}}},
 			want: userManaged(replica("us-east1", "")),
 		},
 		{
 			name: "multiple locations",
-			spec: PushSecretMetadataSpec{ReplicationLocations: []string{"us-east1", "europe-west1", "asia-southeast1"}},
+			spec: PushSecretMetadataSpec{ReplicationLocations: []PushSecretReplica{
+				{Location: "us-east1"}, {Location: "europe-west1"}, {Location: "asia-southeast1"},
+			}},
 			want: userManaged(replica("us-east1", ""), replica("europe-west1", ""), replica("asia-southeast1", "")),
 		},
 		{
 			name: "new field takes precedence over deprecated when both set",
 			spec: PushSecretMetadataSpec{
 				ReplicationLocation:  "us-east1",
-				ReplicationLocations: []string{"europe-west1", "asia-southeast1"},
+				ReplicationLocations: []PushSecretReplica{{Location: "europe-west1"}, {Location: "asia-southeast1"}},
 			},
 			want: userManaged(replica("europe-west1", ""), replica("asia-southeast1", "")),
 		},
 		{
 			name: "multiple locations with CMEK applied to all",
 			spec: PushSecretMetadataSpec{
-				ReplicationLocations: []string{"us-east1", "europe-west1"},
+				ReplicationLocations: []PushSecretReplica{{Location: "us-east1"}, {Location: "europe-west1"}},
 				CMEKKeyName:          cmek,
 			},
 			want: userManaged(replica("us-east1", cmek), replica("europe-west1", cmek)),
@@ -220,12 +233,200 @@ func TestBuildReplication(t *testing.T) {
 			spec: PushSecretMetadataSpec{CMEKKeyName: cmek},
 			want: automatic(cmek),
 		},
+		{
+			name:        "regional CMEK without locations rejected on the automatic path",
+			spec:        PushSecretMetadataSpec{CMEKKeyName: "projects/p/locations/us-east1/keyRings/r/cryptoKeys/k"},
+			expectedErr: "must come from the \"global\" location",
+		},
+		{
+			name: "regional CMEK without locations accepted for a regional store",
+			spec: PushSecretMetadataSpec{CMEKKeyName: "projects/p/locations/us-east1/keyRings/r/cryptoKeys/k"},
+			// Documented regional-secrets pattern: the key is applied through
+			// the regional endpoint, so no replication is emitted and no
+			// global-location validation applies.
+			regionalStore: true,
+			want:          nil,
+		},
+		{
+			name: "per-replica CMEK keys",
+			spec: PushSecretMetadataSpec{
+				ReplicationLocations: []PushSecretReplica{
+					{Location: "us-east4", CMEKKeyName: "projects/p/locations/us-east4/keyRings/r/cryptoKeys/k1"},
+					{Location: "us-west3", CMEKKeyName: "projects/p/locations/us-west3/keyRings/r/cryptoKeys/k2"},
+				},
+			},
+			want: userManaged(replica("us-east4", "projects/p/locations/us-east4/keyRings/r/cryptoKeys/k1"), replica("us-west3", "projects/p/locations/us-west3/keyRings/r/cryptoKeys/k2")),
+		},
+		{
+			name: "per-replica keys override the top-level CMEK",
+			spec: PushSecretMetadataSpec{
+				ReplicationLocations: []PushSecretReplica{
+					{Location: "us-east1", CMEKKeyName: "projects/p/locations/us-east1/keyRings/r/cryptoKeys/own"},
+				},
+				CMEKKeyName: "projects/p/locations/global/keyRings/r/cryptoKeys/top",
+			},
+			want: userManaged(replica("us-east1", "projects/p/locations/us-east1/keyRings/r/cryptoKeys/own")),
+		},
+		{
+			name: "mixed entries with and without per-replica CMEK",
+			spec: PushSecretMetadataSpec{
+				ReplicationLocations: []PushSecretReplica{
+					{Location: "us-east1", CMEKKeyName: "projects/p/locations/us-east1/keyRings/r/cryptoKeys/k"},
+					{Location: "europe-west1"},
+				},
+				CMEKKeyName: cmek,
+			},
+			want: userManaged(replica("us-east1", "projects/p/locations/us-east1/keyRings/r/cryptoKeys/k"), replica("europe-west1", cmek)),
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := buildReplication(tt.spec)
-			assert.True(t, proto.Equal(tt.want, got), "want %v, got %v", tt.want, got)
+			got, err := buildReplication(tt.spec, tt.regionalStore)
+			if tt.expectedErr != "" {
+				assert.ErrorContains(t, err, tt.expectedErr)
+			} else {
+				assert.NoError(t, err)
+				assert.True(t, proto.Equal(tt.want, got), "want %v, got %v", tt.want, got)
+			}
+		})
+	}
+}
+
+func TestReplicationLocationsUnmarshal(t *testing.T) {
+	tests := []struct {
+		name        string
+		raw         string
+		want        []PushSecretReplica
+		expectedErr string
+	}{
+		{
+			name: "plain location strings",
+			raw:  `["us-east1", "europe-west1"]`,
+			want: []PushSecretReplica{{Location: "us-east1"}, {Location: "europe-west1"}},
+		},
+		{
+			name: "objects with per-replica CMEK",
+			raw:  `[{"location":"us-east4","cmekKeyName":"projects/p/locations/us-east4/keyRings/r/cryptoKeys/k1"}]`,
+			want: []PushSecretReplica{{Location: "us-east4", CMEKKeyName: "projects/p/locations/us-east4/keyRings/r/cryptoKeys/k1"}},
+		},
+		{
+			name: "mixed strings and objects",
+			raw:  `["us-east1", {"location":"us-west3"}]`,
+			want: []PushSecretReplica{{Location: "us-east1"}, {Location: "us-west3"}},
+		},
+		{
+			name:        "unknown fields rejected",
+			raw:         `[{"location":"us-east1","bogus":"x"}]`,
+			expectedErr: "unknown field",
+		},
+		{
+			name:        "object without location rejected",
+			raw:         `[{"cmekKeyName":"projects/p/locations/us-east1/keyRings/r/cryptoKeys/k"}]`,
+			expectedErr: "requires a \"location\" field",
+		},
+		{
+			name:        "non-string non-object rejected",
+			raw:         `[42]`,
+			expectedErr: "must be a location string or an object",
+		},
+		{
+			name:        "empty string entry rejected",
+			raw:         `[""]`,
+			expectedErr: "must not be empty",
+		},
+		{
+			name:        "null entry rejected",
+			raw:         `[null]`,
+			expectedErr: "must not be empty",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var got []PushSecretReplica
+			err := json.Unmarshal([]byte(tt.raw), &got)
+			if tt.expectedErr != "" {
+				assert.ErrorContains(t, err, tt.expectedErr)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tt.want, got)
+			}
+		})
+	}
+}
+
+func TestParseMetadataWithStructuredReplicationLocations(t *testing.T) {
+	// Exercises the full metadata parse path (YAML -> JSON -> PushSecretReplica
+	// unmarshalling) with both string and object entries.
+	raw := []byte(`{
+		"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+		"kind": "PushSecretMetadata",
+		"spec": {
+			"cmekKeyName": "projects/p/locations/global/keyRings/r/cryptoKeys/top",
+			"replicationLocations": [
+				"us-east1",
+				{"location": "us-east4", "cmekKeyName": "projects/p/locations/us-east4/keyRings/r/cryptoKeys/k1"}
+			]
+		}
+	}`)
+	meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](&apiextensionsv1.JSON{Raw: raw})
+	assert.NoError(t, err)
+	replication, err := buildReplication(meta.Spec, false)
+	assert.NoError(t, err)
+	replicas := replication.GetUserManaged().GetReplicas()
+	want := []PushSecretReplica{
+		{Location: "us-east1", CMEKKeyName: "projects/p/locations/global/keyRings/r/cryptoKeys/top"},
+		{Location: "us-east4", CMEKKeyName: "projects/p/locations/us-east4/keyRings/r/cryptoKeys/k1"},
+	}
+	assert.Len(t, replicas, len(want))
+	for i := range want {
+		assert.True(t, proto.Equal(&secretmanagerpb.Replication_UserManaged_Replica{
+			Location: want[i].Location,
+			CustomerManagedEncryption: func() *secretmanagerpb.CustomerManagedEncryption {
+				if want[i].CMEKKeyName == "" {
+					return nil
+				}
+				return &secretmanagerpb.CustomerManagedEncryption{KmsKeyName: want[i].CMEKKeyName}
+			}(),
+		}, replicas[i]), "replica %d mismatch", i)
+	}
+}
+
+func TestValidateGlobalCMEKKeyName(t *testing.T) {
+	tests := []struct {
+		name        string
+		key         string
+		expectedErr bool
+	}{
+		{
+			name: "global keyring location accepted",
+			key:  "projects/p/locations/global/keyRings/r/cryptoKeys/k",
+		},
+		{
+			name: "no location segment accepted",
+			key:  "projects/p/keyRings/r/cryptoKeys/k",
+		},
+		{
+			name:        "regional keyring location rejected",
+			key:         "projects/p/locations/us-east1/keyRings/r/cryptoKeys/k",
+			expectedErr: true,
+		},
+		{
+			name:        "multi-region keyring location rejected",
+			key:         "projects/p/locations/europe/keyRings/r/cryptoKeys/k",
+			expectedErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateGlobalCMEKKeyName(tt.key)
+			if tt.expectedErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }
