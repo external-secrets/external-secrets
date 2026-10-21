@@ -82,3 +82,38 @@ func TestSecretTypeIgnoreCacheDoesNotReadCache(t *testing.T) {
 	_, err := base.secretType(t.Context(), "/prod/db")
 	require.ErrorIs(t, err, ErrTokenNotExists)
 }
+
+func TestItemTypeCachePurgesExpiredUnreadNamesOnSet(t *testing.T) {
+	now := time.Unix(1_700_000_000, 0)
+	c := newItemTypeCache()
+	c.now = func() time.Time { return now }
+	c.set("/old", "STATIC_SECRET")
+
+	c.now = func() time.Time { return now.Add(itemTypeCacheTTL + time.Second) }
+	c.set("/new", "STATIC_SECRET")
+
+	c.mu.Lock()
+	_, stillCached := c.entries["/old"]
+	c.mu.Unlock()
+	require.False(t, stillCached)
+	got, ok := c.get("/new")
+	require.True(t, ok)
+	require.Equal(t, "STATIC_SECRET", got)
+}
+
+func TestItemTypeCacheEnforcesMaxEntries(t *testing.T) {
+	c := newItemTypeCache()
+	c.max = 2
+	now := time.Unix(1_700_000_000, 0)
+	c.now = func() time.Time { return now }
+
+	c.set("/a", "STATIC_SECRET")
+	c.now = func() time.Time { return now.Add(time.Second) }
+	c.set("/b", "STATIC_SECRET")
+	c.now = func() time.Time { return now.Add(2 * time.Second) }
+	c.set("/c", "STATIC_SECRET")
+
+	require.LessOrEqual(t, len(c.entries), 2)
+	_, ok := c.get("/c")
+	require.True(t, ok)
+}
