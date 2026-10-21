@@ -407,6 +407,139 @@ func TestValidateStore(t *testing.T) {
 			},
 		},
 		{
+			name:    "valid jwt auth: secret ref with roleArn",
+			wantErr: false,
+			args: args{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							AWS: &esv1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1.AWSServiceSecretsManager,
+								Auth: esv1.AWSAuth{
+									JWTAuth: &esv1.AWSJWTAuth{
+										SecretRef: &esmeta.SecretKeySelector{Name: "jwt", Key: "token"},
+										RoleArn:   "arn:aws:iam::123456789012:role/oidc",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "referentAuth jwt: secret ref without namespace",
+			wantErr: false,
+			args: args{
+				store: &esv1.ClusterSecretStore{
+					Kind: esv1.ClusterSecretStoreKind,
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							AWS: &esv1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1.AWSServiceSecretsManager,
+								Auth: esv1.AWSAuth{
+									JWTAuth: &esv1.AWSJWTAuth{
+										SecretRef: &esmeta.SecretKeySelector{Name: "jwt", Key: "token"},
+										RoleArn:   "arn:aws:iam::123456789012:role/oidc",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid jwt auth: secret ref without roleArn",
+			wantErr: true,
+			args: args{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							AWS: &esv1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1.AWSServiceSecretsManager,
+								Auth: esv1.AWSAuth{
+									JWTAuth: &esv1.AWSJWTAuth{
+										SecretRef: &esmeta.SecretKeySelector{Name: "jwt", Key: "token"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid jwt auth: not allowed secret ref namespace",
+			wantErr: true,
+			args: args{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							AWS: &esv1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1.AWSServiceSecretsManager,
+								Auth: esv1.AWSAuth{
+									JWTAuth: &esv1.AWSJWTAuth{
+										SecretRef: &esmeta.SecretKeySelector{Name: "jwt", Key: "token", Namespace: new("unacceptable")},
+										RoleArn:   "arn:aws:iam::123456789012:role/oidc",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid jwt auth: both service account ref and secret ref",
+			wantErr: true,
+			args: args{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							AWS: &esv1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1.AWSServiceSecretsManager,
+								Auth: esv1.AWSAuth{
+									JWTAuth: &esv1.AWSJWTAuth{
+										ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "foobar"},
+										SecretRef:         &esmeta.SecretKeySelector{Name: "jwt", Key: "token"},
+										RoleArn:           "arn:aws:iam::123456789012:role/oidc",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:    "invalid jwt auth: roleArn with service account ref",
+			wantErr: true,
+			args: args{
+				store: &esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							AWS: &esv1.AWSProvider{
+								Region:  validRegion,
+								Service: esv1.AWSServiceSecretsManager,
+								Auth: esv1.AWSAuth{
+									JWTAuth: &esv1.AWSJWTAuth{
+										ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "foobar"},
+										RoleArn:           "arn:aws:iam::123456789012:role/oidc",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			name:    "invalid SecretsManager config: conflicting settings",
 			wantErr: true,
 			args: args{
