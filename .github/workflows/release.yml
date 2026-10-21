@@ -62,17 +62,12 @@ jobs:
         run: git checkout "$RESOLVED_SHA"
 
       - name: Create Release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
-        with:
-          tag_name: ${{ github.event.inputs.version }}
-          target_commitish: ${{ github.event.inputs.source_ref }}
-          generate_release_notes: true
-          body: |
-            Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}`
-            Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi`
-            Image: `${{ env.IMAGE_NAME }}:${{ github.event.inputs.version }}-ubi-boringssl`
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+          SOURCE_REF: ${{ github.event.inputs.source_ref }}
+        run: |
+          gh release create "$RELEASE_VERSION" --target "$SOURCE_REF" --generate-notes --notes "$(printf 'Image: `%s:%s`\nImage: `%s:%s-ubi`\nImage: `%s:%s-ubi-boringssl`' "$IMAGE_NAME" "$RELEASE_VERSION" "$IMAGE_NAME" "$RELEASE_VERSION" "$IMAGE_NAME" "$RELEASE_VERSION")"
 
       - name: Configure Git
         env:
@@ -156,12 +151,11 @@ jobs:
           image-tag: ${{ env.RELEASE_TAG }}
 
       - name: Update Release
-        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
-        with:
-          tag_name: ${{ github.event.inputs.version }}
-          files: |
-            provenance.${{ env.RELEASE_TAG }}.intoto.jsonl
-            sbom.${{ env.RELEASE_TAG }}.spdx.json
-            bin/deploy/manifests/external-secrets.yaml
         env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          gh release upload "$RELEASE_VERSION" \
+            "provenance.${RELEASE_TAG}.intoto.jsonl" \
+            "sbom.${RELEASE_TAG}.spdx.json" \
+            bin/deploy/manifests/external-secrets.yaml --clobber
