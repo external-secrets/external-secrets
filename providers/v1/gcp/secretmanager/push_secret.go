@@ -154,6 +154,9 @@ func buildReplication(spec PushSecretMetadataSpec, regionalStore bool) (*secretm
 			Location: r.Location,
 		}
 		if r.CMEKKeyName != "" {
+			if err := validateReplicaCMEKKeyName(r.Location, r.CMEKKeyName); err != nil {
+				return nil, err
+			}
 			replica.CustomerManagedEncryption = &secretmanagerpb.CustomerManagedEncryption{
 				KmsKeyName: r.CMEKKeyName,
 			}
@@ -167,6 +170,24 @@ func buildReplication(spec PushSecretMetadataSpec, regionalStore bool) (*secretm
 			},
 		},
 	}, nil
+}
+
+// validateReplicaCMEKKeyName reports an error when the given KMS key resource
+// name is pinned to a location other than the replica's. Each user-managed
+// replica must use a CMEK key from the replica's own location. Keys without a
+// location segment are left to the Secret Manager API to reject.
+func validateReplicaCMEKKeyName(location, key string) error {
+	const marker = "/locations/"
+	_, rest, found := strings.Cut(key, marker)
+	if !found {
+		return nil
+	}
+	keyLocation, _, _ := strings.Cut(rest, "/")
+	if keyLocation != location {
+		return fmt.Errorf("each user-managed replica must use a CMEK key from its own location: "+
+			"replica %q got key in location %q", location, keyLocation)
+	}
+	return nil
 }
 
 // validateGlobalCMEKKeyName reports an error when the given KMS key resource

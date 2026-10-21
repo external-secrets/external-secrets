@@ -86,3 +86,4 @@ tests/crds/*.yml
 .env.test.local
 .env.production.local
 .envrc
+.pr-body-7166.md
