@@ -562,7 +562,7 @@ Note: Plain location strings remain accepted as entries (e.g. `replicationLocati
 ## Regional Secrets
 GCP Secret Manager Regional Secrets are available to be used with both ExternalSecrets and PushSecrets.
 
-In order to achieve so, add a `location` to your SecretStore definition:
+In order to achieve so, add a `location` to your SecretStore definition. When set, the provider routes all Secret Manager requests to the regional endpoint at that location (`secretmanager.<location>.rep.googleapis.com`) instead of the global endpoint, so both reads and writes operate against regional secrets:
 
 ```yaml
 apiVersion: external-secrets.io/v1
