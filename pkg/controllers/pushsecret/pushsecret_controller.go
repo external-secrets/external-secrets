@@ -450,9 +450,11 @@ func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.Pu
 		for oldEntry, oldRef := range oldData {
 			_, ok := newData[oldEntry]
 			if !ok {
-				err = r.DeleteSecretFromStore(ctx, client, oldRef)
-				if err != nil {
-					return out, err
+				if !isRemoteKeyStillPushed(oldRef, newData) {
+					err = r.DeleteSecretFromStore(ctx, client, oldRef)
+					if err != nil {
+						return out, err
+					}
 				}
 				delete(out[storeName], oldEntry)
 			}
@@ -828,6 +830,19 @@ func statusRef(ref esv1.PushSecretData) string {
 		return ref.GetRemoteKey() + "/" + ref.GetProperty()
 	}
 	return ref.GetRemoteKey()
+}
+
+// isRemoteKeyStillPushed checks if a removed entry's remote key is still pushed as a whole secret or by properties replacing a whole secret.
+func isRemoteKeyStillPushed(oldRef esapi.PushSecretData, newData map[string]esapi.PushSecretData) bool {
+	for _, newRef := range newData {
+		if newRef.GetRemoteKey() != oldRef.GetRemoteKey() {
+			continue
+		}
+		if newRef.GetProperty() == "" || oldRef.GetProperty() == "" {
+			return true
+		}
+	}
+	return false
 }
 
 // removeUnmanagedStores filters the already-resolved stores by controller class.
