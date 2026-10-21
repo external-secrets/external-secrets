@@ -19,12 +19,13 @@ package client
 import (
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
 func TestNewOnboardbaseClientUsesAPIHost(t *testing.T) {
 	var gotPath string
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotPath = r.URL.Path
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte(`{}`))
@@ -35,6 +36,8 @@ func TestNewOnboardbaseClientUsesAPIHost(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewOnboardbaseClient: %v", err)
 	}
+	// trust the test server certificate
+	c.httpClient = server.Client()
 	if err := c.Authenticate(); err != nil {
 		t.Fatalf("Authenticate: %v", err)
 	}
@@ -50,5 +53,15 @@ func TestNewOnboardbaseClientDefaultsToPublicAPI(t *testing.T) {
 	}
 	if got, want := c.BaseURL().String(), "https://public.onboardbase.com/api/v1"; got != want {
 		t.Errorf("BaseURL() = %q, want %q", got, want)
+	}
+}
+
+func TestNewOnboardbaseClientRejectsCleartextAPIHost(t *testing.T) {
+	_, err := NewOnboardbaseClient("key", "passcode", "http://onboardbase.internal.example.com/api/v1/")
+	if err == nil {
+		t.Fatal("NewOnboardbaseClient accepted an http apiHost, want an error")
+	}
+	if !strings.Contains(err.Error(), "apiHost must use https") {
+		t.Errorf("error = %q, want it to mention that apiHost must use https", err)
 	}
 }

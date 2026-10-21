@@ -148,8 +148,8 @@ type SecretsResponse struct {
 const DefaultAPIHost = "https://public.onboardbase.com/api/v1/"
 
 // NewOnboardbaseClient creates a new client for interacting with Onboardbase API.
-// It requires an API key and passcode for authentication. apiHost is the API base URL,
-// DefaultAPIHost is used when it is empty.
+// It requires an API key and passcode for authentication. apiHost is the API base URL and
+// must use https, DefaultAPIHost is used when it is empty.
 func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode, apiHost string) (*OnboardbaseClient, error) {
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
@@ -174,6 +174,10 @@ func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode, apiHost string
 	}
 	if err := client.SetBaseURL(apiHost); err != nil {
 		return nil, &APIError{Err: err, Message: "setting base URL failed"}
+	}
+	// the API key is sent in a header, so never send it over cleartext
+	if client.baseURL.Scheme != "https" {
+		return nil, &APIError{Message: fmt.Sprintf("apiHost must use https, got %q", apiHost)}
 	}
 
 	return client, nil
