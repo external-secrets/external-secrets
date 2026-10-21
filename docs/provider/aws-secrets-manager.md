@@ -1,3 +1,4 @@
+
 ![aws sm](../pictures/eso-az-kv-aws-sm.png)
 
 ## Secrets Manager
