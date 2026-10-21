@@ -352,6 +352,15 @@ func applyAtPath(obj client.Object, target string, tokens []pathToken, leaf func
 		return fmt.Errorf(errConvertingToObject, err)
 	}
 
+	// The unstructured roundtrip can leave either metadata map nil. Keep both
+	// writable for callers that add managed labels and annotations afterward.
+	if obj.GetLabels() == nil {
+		obj.SetLabels(make(map[string]string))
+	}
+	if obj.GetAnnotations() == nil {
+		obj.SetAnnotations(make(map[string]string))
+	}
+
 	return nil
 }
 
