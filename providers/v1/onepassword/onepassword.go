@@ -357,6 +357,20 @@ func updateFieldValue(fields []*onepassword.ItemField, label, newVal string) ([]
 	return fields, false, nil
 }
 
+// tagsEqual reports whether two tag lists contain the same tags, ignoring order.
+func tagsEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	sortedA := slices.Clone(a)
+	sortedB := slices.Clone(b)
+	slices.Sort(sortedA)
+	slices.Sort(sortedB)
+
+	return slices.Equal(sortedA, sortedB)
+}
+
 // generateNewItemField generates a new item field with the given label and value.
 func generateNewItemField(label, newVal string) *onepassword.ItemField {
 	field := &onepassword.ItemField{
@@ -402,7 +416,7 @@ func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *cor
 
 	tagsChanged := false
 	if metadata != nil && metadata.Spec.Tags != nil {
-		tagsChanged = !slices.Equal(providerItem.Tags, metadata.Spec.Tags)
+		tagsChanged = !tagsEqual(providerItem.Tags, metadata.Spec.Tags)
 		providerItem.Tags = metadata.Spec.Tags
 	}
 

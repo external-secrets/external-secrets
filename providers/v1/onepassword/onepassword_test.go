@@ -2564,6 +2564,77 @@ func TestProviderOnePasswordPushSecretSkipsUnchangedUpdate(t *testing.T) {
 		t.Errorf("expected no UpdateItem calls for unchanged values, got %d", updateCalls)
 	}
 }
+func TestProviderOnePasswordPushSecretTagChanges(t *testing.T) {
+	vaultName := "vault1"
+
+	tests := []struct {
+		name         string
+		existingTags []string
+		specTags     []string
+		wantUpdates  int
+	}{
+		{name: "same tags same order", existingTags: []string{"tag1", "tag2"}, specTags: []string{"tag1", "tag2"}, wantUpdates: 0},
+		{name: "same tags different order", existingTags: []string{"tag2", "tag1"}, specTags: []string{"tag1", "tag2"}, wantUpdates: 0},
+		{name: "only tags differ", existingTags: []string{"tag1"}, specTags: []string{"tag1", "tag2"}, wantUpdates: 1},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockClient := fake.NewMockClient()
+			mockClient.MockVaults = map[string][]onepassword.Vault{
+				vaultName: {{ID: vaultName}},
+			}
+			mockClient.MockItems = map[string][]onepassword.Item{
+				vaultName: {{
+					ID:    key1,
+					Title: key1,
+					Vault: onepassword.ItemVault{ID: vaultName},
+					Tags:  tc.existingTags,
+				}},
+			}
+			mockClient.MockItemFields = map[string]map[string][]*onepassword.ItemField{
+				vaultName: {
+					key1: {{Label: "tls.crt", Value: "cert", Type: onepassword.FieldTypeConcealed}},
+				},
+			}
+
+			updateCalls := 0
+			mockClient.UpdateItemValidateFunc = func(item *onepassword.Item, _ string) (*onepassword.Item, error) {
+				updateCalls++
+				return item, nil
+			}
+
+			md := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+				APIVersion: metadata.APIVersion,
+				Kind:       metadata.Kind,
+				Spec:       PushSecretMetadataSpec{Tags: tc.specTags},
+			}
+			mdRaw, err := json.Marshal(md)
+			if err != nil {
+				t.Fatalf("marshal metadata: %v", err)
+			}
+
+			provider := &ProviderOnePassword{
+				client: mockClient,
+				vaults: map[string]int{vaultName: 1},
+			}
+			secret := &corev1.Secret{Data: map[string][]byte{"tls.crt": []byte("cert")}}
+			ref := fakeRef{
+				key:       key1,
+				prop:      "tls.crt",
+				secretKey: "tls.crt",
+				metadata:  &apiextensionsv1.JSON{Raw: mdRaw},
+			}
+
+			if err := provider.PushSecret(context.Background(), secret, ref); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if updateCalls != tc.wantUpdates {
+				t.Errorf("expected %d UpdateItem calls, got %d", tc.wantUpdates, updateCalls)
+			}
+		})
+	}
+}
 
 // mockClient implements connect.Client interface for testing.
 type mockClient struct {
