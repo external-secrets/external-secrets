@@ -36,7 +36,7 @@ jobs:
   # this rebuilds the image and creates a new tag with a timestamp suffix
   # e.g. v0.6.1-1669145271 and v0.6.1-ubi-1669145271
   publish-artifacts:
-    uses: ./.github/workflows/publish.yml
+    uses: $/.github/workflows/publish.yml
     needs: checkout
     permissions:
       contents: read
