@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -107,12 +108,7 @@ func normalizeAkeylessAPIURL(raw string) string {
 	}
 
 	host := mapAkeylessVaultHostToAPI(u.Hostname())
-	port := u.Port()
-	if port != "" {
-		u.Host = host + ":" + port
-	} else {
-		u.Host = host
-	}
+	u.Host = formatURLHost(host, u.Port())
 
 	if isAkeylessSaaSAPIHost(host) {
 		u.Path = ""
@@ -149,6 +145,17 @@ func isAkeylessSaaSAPIHost(host string) bool {
 	default:
 		return false
 	}
+}
+
+// formatURLHost restores IPv6 brackets that url.Hostname() strips.
+func formatURLHost(host, port string) string {
+	if port != "" {
+		return net.JoinHostPort(host, port)
+	}
+	if strings.Contains(host, ":") {
+		return "[" + host + "]"
+	}
+	return host
 }
 
 func getV2Url(path string) string {

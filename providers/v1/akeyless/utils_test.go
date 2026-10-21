@@ -135,6 +135,21 @@ func TestResolveAkeylessAPIURL(t *testing.T) {
 			configured: "https://api.akeyless.example.com/v2",
 			want:       "https://api.akeyless.example.com/v2",
 		},
+		{
+			name:       "api-akeyless customer host keeps path",
+			configured: "https://api-akeyless.example.com:8080/v2",
+			want:       "https://api-akeyless.example.com:8080/v2",
+		},
+		{
+			name:       "ipv6 gateway without port keeps brackets",
+			configured: "https://[2001:db8::1]/v2",
+			want:       "https://[2001:db8::1]/v2",
+		},
+		{
+			name:       "ipv6 gateway with port",
+			configured: "https://[2001:db8::1]:8080",
+			want:       "https://[2001:db8::1]:8080/v2",
+		},
 	}
 
 	for _, tt := range tests {
