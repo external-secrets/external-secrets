@@ -234,7 +234,7 @@ func TestBuildReplication(t *testing.T) {
 				ReplicationLocations: []PushSecretReplica{{Location: "europe-west1"}},
 				CMEKKeyName:          "projects/p/locations/us-east1/keyRings/r/cryptoKeys/k",
 			},
-			expectedErr: "must use a CMEK key from its own location",
+			expectedErr: "must come from the \"europe-west1\" location",
 		},
 		{
 			name: "global top-level CMEK cannot be inherited by user-managed replicas",
@@ -242,7 +242,7 @@ func TestBuildReplication(t *testing.T) {
 				ReplicationLocations: []PushSecretReplica{{Location: "us-east1"}, {Location: "europe-west1"}},
 				CMEKKeyName:          cmek,
 			},
-			expectedErr: "must use a CMEK key from its own location",
+			expectedErr: "must come from the \"us-east1\" location",
 		},
 		{
 			name: "CMEK without locations falls back to automatic replication carrying CMEK",
@@ -252,7 +252,7 @@ func TestBuildReplication(t *testing.T) {
 		{
 			name:        "regional CMEK without locations rejected on the automatic path",
 			spec:        PushSecretMetadataSpec{CMEKKeyName: "projects/p/locations/us-east1/keyRings/r/cryptoKeys/k"},
-			expectedErr: "must come from the \"global\" location",
+			expectedErr: "cannot be used: the CMEK key must come from the \"global\" location",
 		},
 		{
 			name: "regional CMEK without locations accepted for a regional store",
@@ -418,45 +418,7 @@ func TestParseMetadataWithStructuredReplicationLocations(t *testing.T) {
 	}
 }
 
-func TestValidateGlobalCMEKKeyName(t *testing.T) {
-	tests := []struct {
-		name        string
-		key         string
-		expectedErr bool
-	}{
-		{
-			name: "global keyring location accepted",
-			key:  "projects/p/locations/global/keyRings/r/cryptoKeys/k",
-		},
-		{
-			name: "no location segment accepted",
-			key:  "projects/p/keyRings/r/cryptoKeys/k",
-		},
-		{
-			name:        "regional keyring location rejected",
-			key:         "projects/p/locations/us-east1/keyRings/r/cryptoKeys/k",
-			expectedErr: true,
-		},
-		{
-			name:        "multi-region keyring location rejected",
-			key:         "projects/p/locations/europe/keyRings/r/cryptoKeys/k",
-			expectedErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateGlobalCMEKKeyName(tt.key)
-			if tt.expectedErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestValidateReplicaCMEKKeyName(t *testing.T) {
+func TestValidateCMEKKeyLocation(t *testing.T) {
 	tests := []struct {
 		name        string
 		location    string
@@ -464,7 +426,12 @@ func TestValidateReplicaCMEKKeyName(t *testing.T) {
 		expectedErr bool
 	}{
 		{
-			name:     "matching location accepted",
+			name:     "global location expected and matched",
+			location: "global",
+			key:      "projects/p/locations/global/keyRings/r/cryptoKeys/k",
+		},
+		{
+			name:     "matching regional location accepted",
 			location: "us-east1",
 			key:      "projects/p/locations/us-east1/keyRings/r/cryptoKeys/k",
 		},
@@ -472,6 +439,18 @@ func TestValidateReplicaCMEKKeyName(t *testing.T) {
 			name:     "no location segment left to the API",
 			location: "us-east1",
 			key:      "projects/p/keyRings/r/cryptoKeys/k",
+		},
+		{
+			name:        "regional keyring location rejected for global",
+			location:    "global",
+			key:         "projects/p/locations/us-east1/keyRings/r/cryptoKeys/k",
+			expectedErr: true,
+		},
+		{
+			name:        "multi-region keyring location rejected for a regional replica",
+			location:    "us-east1",
+			key:         "projects/p/locations/europe/keyRings/r/cryptoKeys/k",
+			expectedErr: true,
 		},
 		{
 			name:        "different region rejected",
@@ -485,17 +464,11 @@ func TestValidateReplicaCMEKKeyName(t *testing.T) {
 			key:         "projects/p/locations/global/keyRings/r/cryptoKeys/k",
 			expectedErr: true,
 		},
-		{
-			name:        "multi-region key rejected for a regional replica",
-			location:    "us-east1",
-			key:         "projects/p/locations/europe/keyRings/r/cryptoKeys/k",
-			expectedErr: true,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateReplicaCMEKKeyName(tt.location, tt.key)
+			err := validateCMEKKeyLocation(tt.location, tt.key)
 			if tt.expectedErr {
 				assert.Error(t, err)
 			} else {

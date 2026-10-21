@@ -134,8 +134,9 @@ func buildReplication(spec PushSecretMetadataSpec, regionalStore bool) (*secretm
 			// applied through the regional endpoint instead.
 			return nil, nil
 		}
-		if err := validateGlobalCMEKKeyName(spec.CMEKKeyName); err != nil {
-			return nil, err
+		if err := validateCMEKKeyLocation("global", spec.CMEKKeyName); err != nil {
+			return nil, fmt.Errorf("a CMEK key used without replicationLocations cannot be used: %w: "+
+				"use replicationLocations entries with per-replica keys for regional CMEK", err)
 		}
 		return &secretmanagerpb.Replication{
 			Replication: &secretmanagerpb.Replication_Automatic_{
@@ -160,7 +161,7 @@ func buildReplication(spec PushSecretMetadataSpec, regionalStore bool) (*secretm
 			Location: r.Location,
 		}
 		if r.CMEKKeyName != "" {
-			if err := validateReplicaCMEKKeyName(r.Location, r.CMEKKeyName); err != nil {
+			if err := validateCMEKKeyLocation(r.Location, r.CMEKKeyName); err != nil {
 				return nil, err
 			}
 			replica.CustomerManagedEncryption = &secretmanagerpb.CustomerManagedEncryption{
@@ -178,48 +179,23 @@ func buildReplication(spec PushSecretMetadataSpec, regionalStore bool) (*secretm
 	}, nil
 }
 
-// cmekKeyLocation returns the location segment of a KMS key resource name
-// (e.g. "global" or "us-east1"). Keys without a location segment are left to
-// the Secret Manager API to reject.
-func cmekKeyLocation(key string) (string, bool) {
+// validateCMEKKeyLocation reports an error when the given KMS key resource
+// name is pinned to a location other than the expected one. Automatic
+// replication only accepts CMEK keys from the "global" multi-region, while
+// each user-managed replica must use a CMEK key from the replica's own
+// location. Keys without a location segment are left to the Secret Manager
+// API to reject.
+func validateCMEKKeyLocation(expectedLocation, key string) error {
 	const marker = "/locations/"
 	_, rest, found := strings.Cut(key, marker)
 	if !found {
-		return "", false
+		return nil
 	}
 	location, _, _ := strings.Cut(rest, "/")
-	return location, true
-}
-
-// validateReplicaCMEKKeyName reports an error when the given KMS key resource
-// name is pinned to a location other than the replica's. Each user-managed
-// replica must use a CMEK key from the replica's own location.
-func validateReplicaCMEKKeyName(location, key string) error {
-	keyLocation, found := cmekKeyLocation(key)
-	if !found {
+	if location == expectedLocation {
 		return nil
 	}
-	if keyLocation != location {
-		return fmt.Errorf("each user-managed replica must use a CMEK key from its own location: "+
-			"replica %q got key in location %q", location, keyLocation)
-	}
-	return nil
-}
-
-// validateGlobalCMEKKeyName reports an error when the given KMS key resource
-// name is pinned to a non-global location. Automatic replication only accepts
-// CMEK keys from the "global" multi-region; regional keys require
-// user-managed replication with a matching replica.
-func validateGlobalCMEKKeyName(key string) error {
-	location, found := cmekKeyLocation(key)
-	if !found {
-		return nil
-	}
-	if location != "global" {
-		return fmt.Errorf("a CMEK key used without replicationLocations must come from the \"global\" location, "+
-			"got key in location %q: use replicationLocations entries with per-replica keys for regional CMEK", location)
-	}
-	return nil
+	return fmt.Errorf("the CMEK key must come from the %q location, got key in location %q", expectedLocation, location)
 }
 
 func newPushSecretBuilder(payload []byte, data esv1.PushSecretData) (pushSecretBuilder, error) {
