@@ -168,7 +168,7 @@ jobs:
           persist-credentials: false
       - name: Sign image
         if: env.IS_FORK != ''
-        uses: ./.github/actions/sign
+        uses: $/.github/actions/sign
         with:
           image-name: ${{ inputs.image-name }}
           image-tag: ${{ needs.build-publish.outputs.image-tag }}
