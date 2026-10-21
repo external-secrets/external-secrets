@@ -227,10 +227,11 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	if err != nil {
 		return nil, err
 	}
-	akeylessGwAPIURL := defaultAPIUrl
-	if spec != nil && spec.AkeylessGWApiURL != nil && *spec.AkeylessGWApiURL != "" {
-		akeylessGwAPIURL = getV2Url(*spec.AkeylessGWApiURL)
+	configuredURL := ""
+	if spec != nil && spec.AkeylessGWApiURL != nil {
+		configuredURL = *spec.AkeylessGWApiURL
 	}
+	akeylessGwAPIURL := resolveAkeylessAPIURL(configuredURL)
 
 	if spec.Auth == nil {
 		return nil, errors.New("missing Auth in store config")
