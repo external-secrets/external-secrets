@@ -69,7 +69,7 @@ const (
 	errGetSecretStore          = "could not get SecretStore %q, %w"
 	errGetClusterSecretStore   = "could not get ClusterSecretStore %q, %w"
 	errSetSecretFailed         = "could not write remote ref %v to target secretstore %v: %v"
-	errFailedSetSecret         = "set secret failed: %v"
+	errFailedSetSecret         = "set secret failed"
 	errConvert                 = "could not apply conversion strategy to keys: %v"
 	pushSecretFinalizer        = "pushsecret.externalsecrets.io/finalizer"
 	errCloudNotUpdateFinalizer = "could not update finalizers: %w"
@@ -227,8 +227,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			// trigger a cleanup with no Synced Map
 			badState, err := r.DeleteSecretFromProviders(ctx, &ps, esapi.SyncedPushSecretsMap{}, mgr)
 			if err != nil {
-				msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
-				r.markAsFailed(msg, &ps, badState)
+				r.markAsFailed("failed to delete secrets from provider", err, &ps, badState)
 				return ctrl.Result{}, err
 			}
 			controllerutil.RemoveFinalizer(&ps, pushSecretFinalizer)
@@ -259,7 +258,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if err := validateDataToStoreRefs(ps.Spec.DataTo, ps.Spec.SecretStoreRefs); err != nil {
-		r.markAsFailed(err.Error(), &ps, nil)
+		r.markAsFailed("", ctrlutil.Safe(err), &ps, nil)
 		return ctrl.Result{}, err
 	}
 
@@ -271,12 +270,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			len(ps.Status.SyncedPushSecrets) > 0 {
 			return ctrl.Result{}, r.handleSourceSecretDeleted(ctx, &ps, mgr)
 		}
-		r.markAsFailed(errFailedGetSecret, &ps, nil)
+		r.markAsFailed(errFailedGetSecret, err, &ps, nil)
 		return ctrl.Result{}, err
 	}
 	secretStores, err := r.GetSecretStores(ctx, ps)
 	if err != nil {
-		r.markAsFailed(err.Error(), &ps, nil)
+		r.markAsFailed("", ctrlutil.Safe(err), &ps, nil)
 
 		return ctrl.Result{}, err
 	}
@@ -294,7 +293,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	secretStores, err = removeUnmanagedStores(ctx, req.Namespace, r, activeSecretStores)
 	if err != nil {
-		r.markAsFailed(err.Error(), &ps, nil)
+		r.markAsFailed("could not resolve managed secret stores", ctrlutil.Safe(err), &ps, nil)
 		return ctrl.Result{}, err
 	}
 	// if no stores are managed by this controller
@@ -303,7 +302,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if err := validateDataToMatchesResolvedStores(ps.Spec.DataTo, secretStores); err != nil {
-		r.markAsFailed(err.Error(), &ps, nil)
+		r.markAsFailed("", ctrlutil.Safe(err), &ps, nil)
 		return ctrl.Result{}, err
 	}
 
@@ -321,8 +320,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 
 			totalSecrets := mergeSecretState(syncedSecrets, ps.Status.SyncedPushSecrets)
-			msg := fmt.Sprintf(errFailedSetSecret, err)
-			r.markAsFailed(msg, &ps, totalSecrets)
+			r.markAsFailed(errFailedSetSecret, err, &ps, totalSecrets)
 
 			return ctrl.Result{}, err
 		}
@@ -330,8 +328,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		case esapi.PushSecretDeletionPolicyDelete:
 			badSyncState, err := r.DeleteSecretFromProviders(ctx, &ps, syncedSecrets, mgr)
 			if err != nil {
-				msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
-				r.markAsFailed(msg, &ps, badSyncState)
+				r.markAsFailed("failed to delete secrets from provider", err, &ps, badSyncState)
 				return ctrl.Result{}, err
 			}
 		case esapi.PushSecretDeletionPolicyNone:
@@ -353,8 +350,7 @@ func (r *Reconciler) handleSourceSecretDeleted(ctx context.Context, ps *esapi.Pu
 
 	badState, err := r.DeleteSecretFromProviders(ctx, ps, esapi.SyncedPushSecretsMap{}, mgr)
 	if err != nil {
-		msg := fmt.Sprintf("failed to cleanup provider secrets: %v", err)
-		r.markAsFailed(msg, ps, badState)
+		r.markAsFailed("failed to cleanup provider secrets", err, ps, badState)
 		return err
 	}
 
@@ -376,7 +372,14 @@ func shouldRefresh(ps esapi.PushSecret) bool {
 	return ps.Status.RefreshTime.Add(ps.Spec.RefreshInterval.Duration).Before(time.Now())
 }
 
-func (r *Reconciler) markAsFailed(msg string, ps *esapi.PushSecret, syncState esapi.SyncedPushSecretsMap) {
+func (r *Reconciler) markAsFailed(msg string, err error, ps *esapi.PushSecret, syncState esapi.SyncedPushSecretsMap) {
+	if detail := ctrlutil.SafeMessage(err); detail != "" {
+		if msg == "" {
+			msg = detail
+		} else {
+			msg = fmt.Sprintf("%s: %s", msg, detail)
+		}
+	}
 	cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
 	SetPushSecretCondition(ps, *cond)
 	if syncState != nil {
@@ -586,7 +589,7 @@ func (r *Reconciler) pushSecretEntry(
 
 	key := params.data.GetSecretKey()
 	if !secretKeyExists(key, secretData) {
-		return fmt.Errorf("secret key %v does not exist", key)
+		return ctrlutil.Safe(fmt.Errorf("secret key %v does not exist", key))
 	}
 
 	if params.updatePolicy == esapi.PushSecretUpdatePolicyIfNotExists {

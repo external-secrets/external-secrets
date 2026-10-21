@@ -72,7 +72,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	secretExists := err == nil
 	// If the secret exists, we should check if it is managed by external-secrets
 	if secretExists {
-		metadata, err := c.readSecretMetadata(ctx, data.GetRemoteKey())
+		metadata, err := c.readSecretMetadata(ctx, data.GetRemoteKey(), true)
 		if err != nil {
 			return err
 		}
@@ -174,7 +174,7 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	if err != nil {
 		return err
 	}
-	metadata, err := c.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
+	metadata, err := c.readSecretMetadata(ctx, remoteRef.GetRemoteKey(), true)
 	if err != nil {
 		return err
 	}
