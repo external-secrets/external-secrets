@@ -527,7 +527,7 @@ spec:
           cmekKeyName: "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"
 ```
 
-Note: When using CMEK, you must specify a location in the SecretStore as customer-managed encryption keys are region-specific.
+Note: For a regional SecretStore, you must specify a `location` that matches the CMEK key location. Automatic replication instead uses a `global` CMEK key without a SecretStore `location`, and user-managed replication can carry per-replica keys through `replicationLocations` (see below).
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -538,7 +538,7 @@ spec:
   provider:
     gcpsm:
       projectID: my-project
-      location: us-east1  # Required when using CMEK
+      location: us-east1  # Required for a regional SecretStore
 ```
 
 #### CMEK with a regional SecretStore
