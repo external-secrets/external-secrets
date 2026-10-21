@@ -798,12 +798,12 @@ func (r *Reconciler) markAsDone(externalSecret *esv1.ExternalSecret, start time.
 }
 
 func (r *Reconciler) markAsFailed(msg string, err error, externalSecret *esv1.ExternalSecret, counter prometheus.Counter, reason string) {
-	r.recorder.Event(externalSecret, v1.EventTypeWarning, esv1.ReasonUpdateFailed, err.Error())
 	// only errors explicitly marked safe are detailed here; provider errors keep
 	// the generic message because they may carry secret payloads.
 	if detail := ctrlutil.SafeMessage(err); detail != "" {
 		msg = fmt.Sprintf("%s: %s", msg, detail)
 	}
+	r.recorder.Event(externalSecret, v1.EventTypeWarning, esv1.ReasonUpdateFailed, msg)
 	conditionSynced := NewExternalSecretCondition(esv1.ExternalSecretReady, v1.ConditionFalse, reason, msg)
 	SetExternalSecretCondition(externalSecret, *conditionSynced)
 	counter.Inc()
