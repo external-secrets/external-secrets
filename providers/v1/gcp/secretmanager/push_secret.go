@@ -178,17 +178,27 @@ func buildReplication(spec PushSecretMetadataSpec, regionalStore bool) (*secretm
 	}, nil
 }
 
-// validateReplicaCMEKKeyName reports an error when the given KMS key resource
-// name is pinned to a location other than the replica's. Each user-managed
-// replica must use a CMEK key from the replica's own location. Keys without a
-// location segment are left to the Secret Manager API to reject.
-func validateReplicaCMEKKeyName(location, key string) error {
+// cmekKeyLocation returns the location segment of a KMS key resource name
+// (e.g. "global" or "us-east1"). Keys without a location segment are left to
+// the Secret Manager API to reject.
+func cmekKeyLocation(key string) (string, bool) {
 	const marker = "/locations/"
 	_, rest, found := strings.Cut(key, marker)
 	if !found {
+		return "", false
+	}
+	location, _, _ := strings.Cut(rest, "/")
+	return location, true
+}
+
+// validateReplicaCMEKKeyName reports an error when the given KMS key resource
+// name is pinned to a location other than the replica's. Each user-managed
+// replica must use a CMEK key from the replica's own location.
+func validateReplicaCMEKKeyName(location, key string) error {
+	keyLocation, found := cmekKeyLocation(key)
+	if !found {
 		return nil
 	}
-	keyLocation, _, _ := strings.Cut(rest, "/")
 	if keyLocation != location {
 		return fmt.Errorf("each user-managed replica must use a CMEK key from its own location: "+
 			"replica %q got key in location %q", location, keyLocation)
@@ -201,12 +211,10 @@ func validateReplicaCMEKKeyName(location, key string) error {
 // CMEK keys from the "global" multi-region; regional keys require
 // user-managed replication with a matching replica.
 func validateGlobalCMEKKeyName(key string) error {
-	const marker = "/locations/"
-	_, rest, found := strings.Cut(key, marker)
+	location, found := cmekKeyLocation(key)
 	if !found {
 		return nil
 	}
-	location, _, _ := strings.Cut(rest, "/")
 	if location != "global" {
 		return fmt.Errorf("a CMEK key used without replicationLocations must come from the \"global\" location, "+
 			"got key in location %q: use replicationLocations entries with per-replica keys for regional CMEK", location)
