@@ -61,13 +61,27 @@ jobs:
           RESOLVED_SHA: ${{ steps.resolve_ref.outputs.sha }}
         run: git checkout "$RESOLVED_SHA"
 
+      - name: Build release manifests
+        env:
+          RELEASE_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          # temporarily patch the version so we generate manifests with the new version
+          yq e -i ".version = \"$RELEASE_VERSION\"" ./deploy/charts/external-secrets/Chart.yaml
+          yq e -i ".appVersion = \"$RELEASE_VERSION\"" ./deploy/charts/external-secrets/Chart.yaml
+          make manifests
+
       - name: Create Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RELEASE_VERSION: ${{ github.event.inputs.version }}
           SOURCE_REF: ${{ github.event.inputs.source_ref }}
         run: |
-          gh release create "$RELEASE_VERSION" --target "$SOURCE_REF" --generate-notes --notes "$(printf 'Image: `%s:%s`\nImage: `%s:%s-ubi`\nImage: `%s:%s-ubi-boringssl`' "$IMAGE_NAME" "$RELEASE_VERSION" "$IMAGE_NAME" "$RELEASE_VERSION" "$IMAGE_NAME" "$RELEASE_VERSION")"
+          if gh release view "$RELEASE_VERSION" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_VERSION" bin/deploy/manifests/external-secrets.yaml --clobber
+          else
+            gh release create "$RELEASE_VERSION" bin/deploy/manifests/external-secrets.yaml --target "$SOURCE_REF" --generate-notes --notes "$(printf 'Image: `%s:%s`\nImage: `%s:%s-ubi`\nImage: `%s:%s-ubi-boringssl`' "$IMAGE_NAME" "$RELEASE_VERSION" "$IMAGE_NAME" "$RELEASE_VERSION" "$IMAGE_NAME" "$RELEASE_VERSION")"
+          fi
+          git restore deploy/charts/external-secrets/Chart.yaml
 
       - name: Configure Git
         env:
@@ -134,15 +148,6 @@ jobs:
       - name: Promote Container Image
         run: make docker.promote
 
-      - name: Build release manifests
-        env:
-          RELEASE_VERSION: ${{ github.event.inputs.version }}
-        run: |
-          # temporarily patch the version so we generate manifests with the new version
-          yq e -i ".version = \"$RELEASE_VERSION\"" ./deploy/charts/external-secrets/Chart.yaml
-          yq e -i ".appVersion = \"$RELEASE_VERSION\"" ./deploy/charts/external-secrets/Chart.yaml
-          make manifests
-
       - name: Sign promoted image
         id: sign
         uses: $/.github/actions/sign
@@ -157,5 +162,4 @@ jobs:
         run: |
           gh release upload "$RELEASE_VERSION" \
             "provenance.${RELEASE_TAG}.intoto.jsonl" \
-            "sbom.${RELEASE_TAG}.spdx.json" \
-            bin/deploy/manifests/external-secrets.yaml --clobber
+            "sbom.${RELEASE_TAG}.spdx.json" --clobber
