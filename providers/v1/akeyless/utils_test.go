@@ -125,6 +125,16 @@ func TestResolveAkeylessAPIURL(t *testing.T) {
 			configured: "https://api.akeyless.io/",
 			want:       "https://api.akeyless.io",
 		},
+		{
+			name:       "customer vault gateway host is not rewritten",
+			configured: "https://vault.mycorp.com:8080",
+			want:       "https://vault.mycorp.com:8080/v2",
+		},
+		{
+			name:       "api host with akeyless in name but not saas suffix keeps path",
+			configured: "https://api.akeyless.example.com/v2",
+			want:       "https://api.akeyless.example.com/v2",
+		},
 	}
 
 	for _, tt := range tests {
@@ -150,4 +160,15 @@ func TestIsAkeylessSaaSAPIHost(t *testing.T) {
 	require.True(t, isAkeylessSaaSAPIHost("api-akeyless.staging.secondfront.com"))
 	require.False(t, isAkeylessSaaSAPIHost("vault.eu.akeyless.io"))
 	require.False(t, isAkeylessSaaSAPIHost("gw.example.com"))
+	require.False(t, isAkeylessSaaSAPIHost("api.akeyless.example.com"))
+	require.False(t, isAkeylessSaaSAPIHost("vault.mycorp.com"))
+}
+
+func TestMapAkeylessVaultHostToAPI(t *testing.T) {
+	t.Parallel()
+	require.Equal(t, "api.eu.akeyless.io", mapAkeylessVaultHostToAPI("vault.eu.akeyless.io"))
+	require.Equal(t, "api.akeyless.io", mapAkeylessVaultHostToAPI("vault.akeyless.io"))
+	require.Equal(t, "api-akeyless.staging.secondfront.com", mapAkeylessVaultHostToAPI("vault-akeyless.staging.secondfront.com"))
+	require.Equal(t, "vault.mycorp.com", mapAkeylessVaultHostToAPI("vault.mycorp.com"))
+	require.Equal(t, "api.eu.akeyless.io", mapAkeylessVaultHostToAPI("api.eu.akeyless.io"))
 }
