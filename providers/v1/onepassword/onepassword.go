@@ -413,11 +413,12 @@ func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *cor
 	if err != nil {
 		return fmt.Errorf("failed to parse push secret metadata: %w", err)
 	}
-
+	var wantTags []string
 	tagsChanged := false
 	if metadata != nil && metadata.Spec.Tags != nil {
 		tagsChanged = !tagsEqual(providerItem.Tags, metadata.Spec.Tags)
 		providerItem.Tags = metadata.Spec.Tags
+		wantTags = metadata.Spec.Tags
 	}
 
 	var fieldChanged bool
@@ -436,7 +437,7 @@ func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *cor
 		return fmt.Errorf(errUpdateItem, err)
 	}
 
-	if err := provider.waitForFunc(ctx, provider.waitForLabelToBeUpdated(title, label, val)); err != nil {
+	if err := provider.waitForFunc(ctx, provider.waitForLabelToBeUpdated(title, label, val, wantTags)); err != nil {
 		return fmt.Errorf("failed waiting for label update: %w", err)
 	}
 
@@ -800,11 +801,16 @@ func (provider *ProviderOnePassword) waitForItemToExist(title string) func() err
 	}
 }
 
-func (provider *ProviderOnePassword) waitForLabelToBeUpdated(title, label string, val []byte) func() error {
+func (provider *ProviderOnePassword) waitForLabelToBeUpdated(title, label string, val []byte, tags []string) func() error {
 	return func() error {
 		item, err := provider.findItem(title)
 		if err != nil {
 			return err
+		}
+
+		// when tags were requested, wait until Connect reports them too
+		if tags != nil && !tagsEqual(item.Tags, tags) {
+			return fmt.Errorf("tags on item %s not yet updated", title)
 		}
 
 		for _, field := range item.Fields {

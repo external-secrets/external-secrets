@@ -2514,6 +2514,7 @@ func TestProviderOnePasswordPushSecret(t *testing.T) {
 		})
 	}
 }
+
 func TestProviderOnePasswordPushSecretSkipsUnchangedUpdate(t *testing.T) {
 	vaultName := "vault1"
 
@@ -2564,6 +2565,7 @@ func TestProviderOnePasswordPushSecretSkipsUnchangedUpdate(t *testing.T) {
 		t.Errorf("expected no UpdateItem calls for unchanged values, got %d", updateCalls)
 	}
 }
+
 func TestProviderOnePasswordPushSecretTagChanges(t *testing.T) {
 	vaultName := "vault1"
 
@@ -2601,6 +2603,7 @@ func TestProviderOnePasswordPushSecretTagChanges(t *testing.T) {
 			updateCalls := 0
 			mockClient.UpdateItemValidateFunc = func(item *onepassword.Item, _ string) (*onepassword.Item, error) {
 				updateCalls++
+				mockClient.MockItems[vaultName][0].Tags = item.Tags
 				return item, nil
 			}
 
