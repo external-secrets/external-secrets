@@ -264,6 +264,16 @@ func TestBuildReplication(t *testing.T) {
 			want:          nil,
 		},
 		{
+			name: "replication metadata is not validated for a regional store",
+			spec: PushSecretMetadataSpec{
+				ReplicationLocations: []PushSecretReplica{{Location: "europe-west1", CMEKKeyName: "projects/p/locations/us-east1/keyRings/r/cryptoKeys/k"}},
+			},
+			// The regional path never emits replication, so its metadata is
+			// not validated either.
+			regionalStore: true,
+			want:          nil,
+		},
+		{
 			name: "per-replica CMEK keys",
 			spec: PushSecretMetadataSpec{
 				ReplicationLocations: []PushSecretReplica{

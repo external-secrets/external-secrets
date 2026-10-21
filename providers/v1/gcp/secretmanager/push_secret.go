@@ -148,6 +148,12 @@ func buildReplication(spec PushSecretMetadataSpec, regionalStore bool) (*secretm
 		}, nil
 	}
 
+	if regionalStore {
+		// Regional secrets cannot carry replication at all; the replication
+		// metadata is not used and its validity is not enforced.
+		return nil, nil
+	}
+
 	replicas := make([]*secretmanagerpb.Replication_UserManaged_Replica, 0, len(spec.ReplicationLocations))
 	for _, r := range spec.ReplicationLocations {
 		replica := &secretmanagerpb.Replication_UserManaged_Replica{
