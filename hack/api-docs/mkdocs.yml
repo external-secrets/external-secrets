@@ -168,6 +168,7 @@ nav:
       - ngrok: provider/ngrok.md
       - Devolutions Server: provider/devolutions-server.md
       - Nebius MysteryBox: provider/nebius-mysterybox.md
+      - SAP Credential Store: provider/sap-credential-store.md
   - Examples:
       - FluxCD: examples/gitops-using-fluxcd.md
       - Anchore Engine: examples/anchore-engine-credentials.md
