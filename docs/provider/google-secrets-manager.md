@@ -541,6 +541,24 @@ spec:
       location: us-east1  # Required when using CMEK
 ```
 
+#### CMEK with a regional SecretStore
+
+When the SecretStore sets a `location`, secrets are regional and no replication is configured on the secret itself; the `cmekKeyName` above is applied through the regional endpoint. Use a key from the same location as the SecretStore.
+
+#### CMEK with automatic replication
+
+When the SecretStore has no `location` and no `replicationLocations` are set, the `cmekKeyName` is applied to a secret with automatic replication. In that case the key must be a symmetric key from the `global` multi-region — regional keys are rejected. If you need regional or EKM-backed keys, use user-managed replication with per-replica keys as described below.
+
+#### Per-replica CMEK keys
+
+A regional CMEK key can only be used by replicas in the same location, so a single key cannot cover secrets replicated to multiple regions with high availability in mind (Secret Manager does not support multi-regional locations such as "us", "eu", "ca"). For such cases, each `replicationLocations` entry may carry its own key:
+
+```yaml
+{% include 'gcpsm-push-secret-cmek-replicas.yaml' %}
+```
+
+Note: Plain location strings remain accepted as entries (e.g. `replicationLocations: ["us-east1"]`). Entries without a `cmekKeyName` fall back to the top-level `cmekKeyName` (when set), and otherwise use Google-managed encryption. That fallback only produces a valid request when the inherited key lives in the replica's own location — with multiple locations, give each entry its own regional key.
+
 ## Regional Secrets
 GCP Secret Manager Regional Secrets are available to be used with both ExternalSecrets and PushSecrets.
 
