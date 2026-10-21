@@ -50,6 +50,9 @@ const (
 	// Matches the Akeyless CLI / Gateway env used to select a non-global tenant
 	// (for example https://vault.eu.akeyless.io).
 	akeylessURLEnv = "AKEYLESS_URL"
+
+	akeylessSaaSDomain    = ".akeyless.io"
+	akeylessFedRampDomain = ".secondfront.com"
 )
 
 // Overridable for tests.
@@ -103,14 +106,8 @@ func normalizeAkeylessAPIURL(raw string) string {
 		return raw
 	}
 
-	host := u.Hostname()
+	host := mapAkeylessVaultHostToAPI(u.Hostname())
 	port := u.Port()
-	switch {
-	case strings.HasPrefix(host, "vault-akeyless."):
-		host = "api-akeyless." + strings.TrimPrefix(host, "vault-akeyless.")
-	case strings.HasPrefix(host, "vault."):
-		host = "api." + strings.TrimPrefix(host, "vault.")
-	}
 	if port != "" {
 		u.Host = host + ":" + port
 	} else {
@@ -127,12 +124,31 @@ func normalizeAkeylessAPIURL(raw string) string {
 	return getV2Url(u.String())
 }
 
+// mapAkeylessVaultHostToAPI rewrites only known Akeyless SaaS UAM hosts
+// (*.akeyless.io and FedRAMP *.secondfront.com). Customer gateways such as
+// vault.mycorp.com are left unchanged.
+func mapAkeylessVaultHostToAPI(host string) string {
+	h := strings.ToLower(host)
+	switch {
+	case strings.HasSuffix(h, akeylessSaaSDomain) && strings.HasPrefix(h, "vault."):
+		return "api." + strings.TrimPrefix(h, "vault.")
+	case strings.HasSuffix(h, akeylessFedRampDomain) && strings.HasPrefix(h, "vault-akeyless."):
+		return "api-akeyless." + strings.TrimPrefix(h, "vault-akeyless.")
+	default:
+		return host
+	}
+}
+
 func isAkeylessSaaSAPIHost(host string) bool {
 	h := strings.ToLower(host)
-	if strings.HasPrefix(h, "api-akeyless.") {
+	switch {
+	case strings.HasSuffix(h, akeylessSaaSDomain) && strings.HasPrefix(h, "api."):
 		return true
+	case strings.HasSuffix(h, akeylessFedRampDomain) && strings.HasPrefix(h, "api-akeyless."):
+		return true
+	default:
+		return false
 	}
-	return strings.HasPrefix(h, "api.") && strings.Contains(h, "akeyless.")
 }
 
 func getV2Url(path string) string {
