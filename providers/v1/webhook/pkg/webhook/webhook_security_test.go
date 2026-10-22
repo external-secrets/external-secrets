@@ -19,11 +19,10 @@ package webhook
 import (
 	"context"
 	"encoding/pem"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 )
 
@@ -80,23 +79,54 @@ func TestExecuteRequestRejectsUnsupportedScheme(t *testing.T) {
 
 func TestGetHTTPClientLimitsAndValidatesRedirects(t *testing.T) {
 	t.Run("redirect limit", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			redirects, _ := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/"))
-			http.Redirect(w, r, fmt.Sprintf("/%d", redirects+1), http.StatusFound)
-		}))
-		defer server.Close()
+		tests := []struct {
+			name      string
+			redirects int32
+			wantErr   bool
+		}{
+			{
+				name:      "allows exactly ten redirects",
+				redirects: maxRedirects,
+			},
+			{
+				name:      "rejects the eleventh redirect",
+				redirects: maxRedirects + 1,
+				wantErr:   true,
+			},
+		}
 
-		webhook := &Webhook{}
-		client, err := webhook.GetHTTPClient(context.Background(), &Spec{})
-		if err != nil {
-			t.Fatalf("GetHTTPClient() error = %v", err)
-		}
-		response, err := client.Get(server.URL + "/0")
-		if response != nil {
-			_ = response.Body.Close()
-		}
-		if err == nil || !strings.Contains(err.Error(), "stopped after 10 redirects") {
-			t.Fatalf("client.Get() error = %v, want redirect limit error", err)
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				var requests atomic.Int32
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+					if requests.Add(1) <= tt.redirects {
+						w.Header().Set("Location", "/next")
+						w.WriteHeader(http.StatusFound)
+						return
+					}
+					w.WriteHeader(http.StatusOK)
+				}))
+				defer server.Close()
+
+				webhook := &Webhook{}
+				client, err := webhook.GetHTTPClient(context.Background(), &Spec{})
+				if err != nil {
+					t.Fatalf("GetHTTPClient() error = %v", err)
+				}
+				response, err := client.Get(server.URL)
+				if response != nil {
+					_ = response.Body.Close()
+				}
+				if tt.wantErr {
+					if err == nil || !strings.Contains(err.Error(), "stopped after 10 redirects") {
+						t.Fatalf("client.Get() error = %v, want redirect limit error", err)
+					}
+					return
+				}
+				if err != nil {
+					t.Fatalf("client.Get() error = %v", err)
+				}
+			})
 		}
 	})
 

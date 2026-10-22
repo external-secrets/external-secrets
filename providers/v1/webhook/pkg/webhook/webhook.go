@@ -393,7 +393,7 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 			if err := validateHTTPURL(req.URL); err != nil {
 				return err
 			}
-			if len(via) >= maxRedirects {
+			if len(via) > maxRedirects {
 				return fmt.Errorf("stopped after %d redirects", maxRedirects)
 			}
 			return nil
