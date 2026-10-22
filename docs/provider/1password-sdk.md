@@ -57,6 +57,8 @@ For a one-time password use the following key format: `<item>/[section/]one-time
 {% include '1passwordsdk-external-secret.yaml' %}
 ```
 
+When using `dataFrom.extract` or `dataFrom.find`, 1Password items can include extra fields you do not want in the Kubernetes Secret. Filter them with [`dataFrom.select`](../guides/datafrom-select.md).
+
 ### PushSecret
 
 Pushing a secret is also supported. For example a push operation with the following secret:
