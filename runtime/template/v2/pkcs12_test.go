@@ -26,7 +26,6 @@ import (
 	gopkcs12 "software.sslmate.com/src/go-pkcs12"
 )
 
-
 func TestPemToPkcs12(t *testing.T) {
 	// Mock the random generator, to guarantee to always generate the same output
 	gopkcs12.Modern = gopkcs12.Modern.WithRand(MockRandomReader{})
