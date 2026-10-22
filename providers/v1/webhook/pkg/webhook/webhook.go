@@ -41,6 +41,11 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/template/v2"
 )
 
+const (
+	maxResponseBodySize = 10 << 20 // 10 MiB
+	maxRedirects        = 10
+)
+
 // Webhook implements functionality to interact with webhook endpoints
 // to retrieve and push secrets.
 type Webhook struct {
@@ -281,6 +286,9 @@ func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byt
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+	if err := validateHTTPURL(req.URL); err != nil {
+		return nil, err
+	}
 
 	if provider.Headers != nil {
 		req, err = w.ReqAddHeaders(req, provider, rawData)
@@ -317,7 +325,23 @@ func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byt
 	}
 
 	// return response body
-	return io.ReadAll(resp.Body)
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodySize+1))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	if len(body) > maxResponseBodySize {
+		return nil, fmt.Errorf("response body exceeds %d bytes", maxResponseBodySize)
+	}
+	return body, nil
+}
+
+func validateHTTPURL(target *url.URL) error {
+	switch target.Scheme {
+	case "http", "https":
+		return nil
+	default:
+		return fmt.Errorf("unsupported webhook URL scheme %q: only http and https are allowed", target.Scheme)
+	}
 }
 
 // ReqAddHeaders adds headers to an HTTP request based on provider configuration.
@@ -364,12 +388,25 @@ func (w *Webhook) ReqAddAuth(ctx context.Context, r *http.Request, provider *Spe
 
 // GetHTTPClient returns an HTTP client configured according to the provider specification.
 func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Client, error) {
-	c := &http.Client{}
+	c := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if err := validateHTTPURL(req.URL); err != nil {
+				return err
+			}
+			if len(via) >= maxRedirects {
+				return fmt.Errorf("stopped after %d redirects", maxRedirects)
+			}
+			return nil
+		},
+	}
 
 	// add timeout to client if it is there
 	if provider.Timeout != nil {
 		c.Timeout = provider.Timeout.Duration
 	}
+
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	customTransport := false
 
 	// add CA to client if it is there
 	if len(provider.CABundle) > 0 || provider.CAProvider != nil {
@@ -384,20 +421,22 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 			Renegotiation: tls.RenegotiateOnceAsClient,
 		}
 
-		c.Transport = &http.Transport{TLSClientConfig: tlsConf}
+		transport.TLSClientConfig = tlsConf
+		customTransport = true
 	}
 	// add authentication method if it s there
 	if provider.Auth != nil {
 		if provider.Auth.NTLM != nil {
-			c.Transport =
-				&ntlmssp.Negotiator{
-					RoundTripper: &http.Transport{
-						TLSNextProto: map[string]func(authority string, c *tls.Conn) http.RoundTripper{}, // Needed to disable HTTP/2
-
-					},
-				}
+			// NTLM requires HTTP/1.1. Reuse the configured transport so custom
+			// CA roots are not discarded when NTLM and TLS are used together.
+			transport.TLSNextProto = map[string]func(authority string, c *tls.Conn) http.RoundTripper{}
+			c.Transport = &ntlmssp.Negotiator{RoundTripper: transport}
+			customTransport = false
 		}
 		// add additional auth methods here
+	}
+	if customTransport {
+		c.Transport = transport
 	}
 
 	// return client with all add-ons
