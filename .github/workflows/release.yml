@@ -101,6 +101,7 @@ jobs:
 
   promote:
     name: Promote Container Image
+    needs: release
     runs-on: ubuntu-latest
     strategy:
       matrix:
