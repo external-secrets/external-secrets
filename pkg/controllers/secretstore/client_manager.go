@@ -304,7 +304,8 @@ func matchNamespaceRegex(pattern, ns string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	namespaceRegexCache.Add("", key, re)
+	// Another goroutine may have cached the same pattern meanwhile: keep its entry.
+	namespaceRegexCache.ContainsOrAdd("", key, re)
 	return re.MatchString(ns), nil
 }
 

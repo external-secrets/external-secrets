@@ -32,7 +32,9 @@ import (
 
 // BenchmarkShouldProcessSecret measures the namespaceRegexes path of a
 // ClusterSecretStore condition. The namespace only matches the last regex,
-// so every regex of the condition is evaluated on each iteration.
+// so every regex of the condition is evaluated on each iteration. Without
+// regexes nothing is evaluated and the namespace does not match.
+// The regex cache holds namespaceRegexCacheSize entries, so 300 regexes do not fit.
 func BenchmarkShouldProcessSecret(b *testing.B) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
@@ -40,21 +42,14 @@ func BenchmarkShouldProcessSecret(b *testing.B) {
 
 	const ns = "team-payments-prod"
 	namespace := &corev1.Namespace{Name: ns}
-	patterns := []string{
-		`^kube-.*$`,
-		`^platform-(dev|staging|prod)$`,
-		`^team-[a-z]+-(dev|staging)$`,
-		`^shared-[a-z0-9]+$`,
-		`^team-[a-z]+-prod$`,
-	}
 
-	for _, n := range []int{1, 5} {
+	for _, n := range []int{0, 1, 100, 300} {
 		b.Run(fmt.Sprintf("regexes=%d", n), func(b *testing.B) {
 			store := &esv1.ClusterSecretStore{
 				Kind: esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{
 					Conditions: []esv1.ClusterSecretStoreCondition{
-						{NamespaceRegexes: patterns[len(patterns)-n:]},
+						{NamespaceRegexes: benchNamespaceRegexes(n)},
 					},
 				},
 			}
@@ -66,10 +61,23 @@ func BenchmarkShouldProcessSecret(b *testing.B) {
 			b.ReportAllocs()
 			for b.Loop() {
 				ok, err := mgr.shouldProcessSecret(store, ns)
-				if err != nil || !ok {
-					b.Fatalf("shouldProcessSecret() = %v, %v; want true, nil", ok, err)
+				if err != nil || ok != (n > 0) {
+					b.Fatalf("shouldProcessSecret() = %v, %v; want %v, nil", ok, err, n > 0)
 				}
 			}
 		})
 	}
+}
+
+// benchNamespaceRegexes returns n distinct regexes, of which only the last
+// one matches the namespace "team-payments-prod".
+func benchNamespaceRegexes(n int) []string {
+	if n == 0 {
+		return nil
+	}
+	regexes := make([]string, 0, n)
+	for i := range n - 1 {
+		regexes = append(regexes, fmt.Sprintf(`^team-%03d-[a-z]+-(dev|staging)$`, i))
+	}
+	return append(regexes, `^team-[a-z]+-prod$`)
 }
