@@ -538,10 +538,14 @@ func TestShouldProcessSecretInvalidRegex(t *testing.T) {
 func TestNamespaceRegexCacheEvictsOldestPattern(t *testing.T) {
 	resetNamespaceRegexCache(t)
 
+	require.NoError(t, SetNamespaceRegexCacheSize(2))
+	require.EqualError(t, SetNamespaceRegexCacheSize(0), "invalid --namespace-regex-cache-size 0: unable to create lru: must provide a positive size")
+	require.EqualError(t, SetNamespaceRegexCacheSize(-1), "invalid --namespace-regex-cache-size -1: unable to create lru: must provide a positive size")
+
 	first := cache.Key{Name: "^ns-0$"}
 	second := cache.Key{Name: "^ns-1$"}
 	var last cache.Key
-	for i := range namespaceRegexCacheSize + 1 {
+	for i := range 3 {
 		last = cache.Key{Name: fmt.Sprintf("^ns-%d$", i)}
 		got, err := matchNamespaceRegex(last.Name, fmt.Sprintf("ns-%d", i))
 		require.NoError(t, err)

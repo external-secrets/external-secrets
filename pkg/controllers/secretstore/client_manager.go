@@ -44,13 +44,23 @@ const (
 	errClusterStoreMismatch  = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
 )
 
-// namespaceRegexCacheSize bounds namespaceRegexCache. Patterns come from user specs,
+// namespaceRegexCacheSize is the default bound. Patterns come from user specs,
 // so the cache is limited by entry count and evicts the least recently used one.
 const namespaceRegexCacheSize = 256
 
 // namespaceRegexCache holds compiled ClusterSecretStore namespaceRegexes by pattern,
 // so reconciles do not recompile every pattern on every call.
 var namespaceRegexCache = cache.Must[*regexp.Regexp](namespaceRegexCacheSize, nil)
+
+// SetNamespaceRegexCacheSize configures the cache before any controllers start.
+func SetNamespaceRegexCacheSize(size int) error {
+	c, err := cache.New[*regexp.Regexp](size, nil)
+	if err != nil {
+		return fmt.Errorf("invalid --namespace-regex-cache-size %d: %w", size, err)
+	}
+	namespaceRegexCache = c
+	return nil
+}
 
 // ErrProviderResolution marks a failure to resolve the provider named in the
 // store spec. It never reaches provider code, so the wrapped message is safe to
