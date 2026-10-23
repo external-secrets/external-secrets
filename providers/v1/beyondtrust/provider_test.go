@@ -1051,6 +1051,76 @@ func TestPushSecret_OwnerFieldsArePropagated(t *testing.T) {
 	}
 }
 
+func TestValidate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		serverHandler http.HandlerFunc
+		wantErr       bool
+		wantResult    esv1.ValidationResult
+	}{
+		{
+			name: "ready after sign-in and sign-out",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case authConnectTokenPath:
+					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				case authSignAppInPath:
+					_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				case "/Auth/Signout":
+					w.WriteHeader(http.StatusOK)
+				default:
+					http.Error(w, "not found", http.StatusNotFound)
+				}
+			},
+			wantErr:    false,
+			wantResult: esv1.ValidationResultReady,
+		},
+		{
+			name: "error when sign-in fails",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case authConnectTokenPath:
+					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				case authSignAppInPath:
+					http.Error(w, "unauthorized", http.StatusUnauthorized)
+				default:
+					http.Error(w, "not found", http.StatusNotFound)
+				}
+			},
+			wantErr:    true,
+			wantResult: esv1.ValidationResultError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			server := httptest.NewServer(tt.serverHandler)
+			t.Cleanup(server.Close)
+
+			p := newAuthenticatedProvider(t, server.URL, "3.1")
+			result, err := p.Validate()
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equal(t, tt.wantResult, result)
+		})
+	}
+}
+
 func TestValidateStore(t *testing.T) {
 	p := &Provider{}
 	validRef := &esv1.BeyondTrustProviderSecretRef{Value: "x"}

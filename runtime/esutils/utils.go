@@ -28,8 +28,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"net"
-	"net/url"
 	"reflect"
 	"regexp"
 	"slices"
@@ -37,7 +35,6 @@ import (
 	"strconv"
 	"strings"
 	template "text/template"
-	"time"
 	"unicode"
 
 	"github.com/go-logr/logr"
@@ -492,32 +489,6 @@ func ValidateReferentServiceAccountSelector(store esv1.GenericStore, ref esmeta.
 	if !clusterScope && ref.Namespace != nil && *ref.Namespace != store.GetNamespace() {
 		return errNamespaceNotAllowed
 	}
-	return nil
-}
-
-// NetworkValidate checks if a network endpoint is reachable within the given timeout.
-func NetworkValidate(endpoint string, timeout time.Duration) error {
-	hostname, err := url.Parse(endpoint)
-
-	if err != nil {
-		return fmt.Errorf("could not parse url: %w", err)
-	}
-
-	host := hostname.Hostname()
-	port := hostname.Port()
-
-	if port == "" {
-		port = "443"
-	}
-
-	url := fmt.Sprintf("%v:%v", host, port)
-	conn, err := net.DialTimeout("tcp", url, timeout)
-	if err != nil {
-		return fmt.Errorf("error accessing external store: %w", err)
-	}
-	defer func() {
-		_ = conn.Close()
-	}()
 	return nil
 }
 
