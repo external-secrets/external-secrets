@@ -18,12 +18,9 @@ package controller
 
 import (
 	"context"
-	"crypto/tls"
-	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
@@ -32,8 +29,6 @@ import (
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
-	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -99,37 +94,14 @@ var webhookCmd = &cobra.Command{
 			}
 		}(c, dnsName, certCheckInterval)
 
+		// The webhook listener always serves TLS and cannot be run in insecure HTTP mode.
 		webhookTLSOpts, err := buildTLSConfigFuncs(tlsCiphers, tlsMinVersion, tlsCurvePreferences, enableHTTP2)
 		if err != nil {
 			setupLog.Error(err, "unable to configure TLS for webhook server")
 			os.Exit(1)
 		}
 
-		metricsServerOpts := server.Options{
-			BindAddress: metricsAddr,
-		}
-
-		if metricsSecure {
-			metricsServerOpts.SecureServing = true
-			metricsServerOpts.CertDir = metricsCertDir
-			metricsServerOpts.CertName = metricsCertName
-			metricsServerOpts.KeyName = metricsKeyName
-		}
-
-		if metricsAuth {
-			metricsServerOpts.FilterProvider = filters.WithAuthenticationAndAuthorization
-		}
-		if metricsAuth && !metricsSecure {
-			setupLog.Error(nil, "--metrics-auth requires --metrics-secure; bearer tokens over plaintext HTTP is not allowed")
-			os.Exit(1)
-		}
-
-		metricsTLSOpts, err := buildTLSConfigFuncs(tlsCiphers, tlsMinVersion, tlsCurvePreferences, enableHTTP2)
-		if err != nil {
-			setupLog.Error(err, "unable to configure TLS for webhook metrics server")
-			os.Exit(1)
-		}
-		metricsServerOpts.TLSOpts = metricsTLSOpts
+		metricsServerOpts := setupMetricServerOptions()
 
 		mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 			Scheme:                 scheme,
@@ -178,24 +150,6 @@ var webhookCmd = &cobra.Command{
 	},
 }
 
-// tlsVersion converts from human-readable TLS version (for example "1.1")
-// to the values accepted by tls.Config (for example 0x301).
-// Returns an error for unrecognized version strings.
-func tlsVersion(version string) (uint16, error) {
-	switch version {
-	case "1.0":
-		return tls.VersionTLS10, nil
-	case "1.1":
-		return tls.VersionTLS11, nil
-	case "1.2":
-		return tls.VersionTLS12, nil
-	case "1.3":
-		return tls.VersionTLS13, nil
-	default:
-		return 0, fmt.Errorf("unsupported TLS minimum version %q; valid values are 1.0, 1.1, 1.2, 1.3", version)
-	}
-}
-
 // waitForCerts waits until the certificates become ready.
 // If they don't become ready within a given time duration
 // this function returns an error.
@@ -217,26 +171,6 @@ func waitForCerts(c crds.CertInfo, timeout time.Duration) error {
 			return ctx.Err()
 		}
 	}
-}
-
-func getTLSCipherSuitesIDs(cipherListString string) ([]uint16, error) {
-	if cipherListString == "" {
-		return nil, nil
-	}
-	cipherList := strings.Split(cipherListString, ",")
-	cipherIDs := map[string]uint16{}
-	for _, cs := range tls.CipherSuites() {
-		cipherIDs[cs.Name] = cs.ID
-	}
-	ret := make([]uint16, 0, len(cipherList))
-	for _, c := range cipherList {
-		id, ok := cipherIDs[c]
-		if !ok {
-			return ret, fmt.Errorf("cipher %s was not found", c)
-		}
-		ret = append(ret, id)
-	}
-	return ret, nil
 }
 
 func init() {
@@ -264,8 +198,8 @@ func init() {
 	webhookCmd.Flags().StringVar(&tlsMinVersion, "tls-min-version", "", "minimum version of TLS supported. "+
 		"If not specified, Go's default minimum version is used. Valid values: 1.0, 1.1, 1.2, 1.3")
 	webhookCmd.Flags().StringSliceVar(&tlsCurvePreferences, "tls-curve-preferences", nil,
-		"ordered list of TLS key exchange curves for the webhook and metrics servers "+
-			"(for example X25519,CurveP256, or decimal tls.CurveID values supported by this Go toolchain). "+
+		"comma separated list of TLS key exchange curves allowed for the webhook and metrics servers. "+
+			"Use names like X25519, CurveP256, CurveP384, CurveP521, or a decimal CurveID. "+
 			"If omitted, Go defaults are used.")
 	webhookCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics and webhook server")
