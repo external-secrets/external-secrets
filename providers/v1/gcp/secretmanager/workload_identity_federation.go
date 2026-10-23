@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"reflect"
 	"regexp"
 	"strings"
@@ -105,15 +106,18 @@ type serviceAccountImpersonationInfo struct {
 }
 
 var (
-	gcpSTSTokenURLRegex                 = regexp.MustCompile(`^https://sts\.[^/\s]+/v1/token$`)
-	gcpSTSTokenInfoURLRegex             = regexp.MustCompile(`^https://sts\.[^/\s]+/v1/introspect$`)
-	awsSTSTokenURLRegex                 = regexp.MustCompile(`^http://(metadata\.google\.internal|169\.254\.169\.254|\[fd00:ec2::254\])/latest/meta-data/iam/security-credentials$`)
-	awsRegionURLRegex                   = regexp.MustCompile(`^http://(metadata\.google\.internal|169\.254\.169\.254|\[fd00:ec2::254\])/latest/meta-data/placement/availability-zone$`)
-	awsSessionTokenURLRegex             = regexp.MustCompile(`^http://(metadata\.google\.internal|169\.254\.169\.254|\[fd00:ec2::254\])/latest/api/token$`)
+	gcpSTSTokenURLRegex     = regexp.MustCompile(`^https://sts\.[^/\s]+/v1/token$`)
+	gcpSTSTokenInfoURLRegex = regexp.MustCompile(`^https://sts\.[^/\s]+/v1/introspect$`)
+	awsSTSTokenURLRegex     = regexp.MustCompile(`^http://(metadata\.google\.internal|169\.254\.169\.254|\[fd00:ec2::254\])/latest/meta-data/iam/security-credentials$`)
+	awsRegionURLRegex       = regexp.MustCompile(`^http://(metadata\.google\.internal|169\.254\.169\.254|\[fd00:ec2::254\])/latest/meta-data/placement/availability-zone$`)
+	awsSessionTokenURLRegex = regexp.MustCompile(`^http://(metadata\.google\.internal|169\.254\.169\.254|\[fd00:ec2::254\])/latest/api/token$`)
+	// The host is validated like the STS endpoints above: any iamcredentials.<universe domain> host is
+	// accepted so that non-default universes (Google Cloud Dedicated, sovereign clouds) work. Service
+	// account emails may carry extra labels before iam.gserviceaccount.com in such universes.
 	serviceAccountImpersonationURLRegex = regexp.MustCompile(
-		`^https://iamcredentials\.(?:[a-z0-9-]+\.)*googleapis\.com` +
+		`^https://iamcredentials\.[^/\s]+` +
 			`/v1/projects/[^/]+/serviceAccounts/` +
-			`[a-z0-9-]+@[a-z0-9-]+\.iam\.gserviceaccount\.com:generateAccessToken$`,
+			`[a-z0-9-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.iam\.gserviceaccount\.com:generateAccessToken$`,
 	)
 )
 
@@ -131,7 +135,20 @@ const (
 	awsSessionTokenKeyName    = "aws_session_token"
 
 	workloadIdentityFederationServiceAccountImpersonationURLFormat = "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/%s:generateAccessToken"
+
+	// workloadIdentityFederationUniverseImpersonationURLFormat is the impersonation endpoint format for
+	// a universe other than the default googleapis.com. Arguments: universe domain, service account email.
+	workloadIdentityFederationUniverseImpersonationURLFormat = "https://iamcredentials.%s/v1/projects/-/serviceAccounts/%s:generateAccessToken"
 )
+
+// serviceAccountImpersonationURL returns the generateAccessToken URL of the given service account
+// in the given universe. An empty universe domain means the default googleapis.com.
+func serviceAccountImpersonationURL(universeDomain, serviceAccountEmail string) string {
+	if universeDomain == "" || universeDomain == defaultUniverseDomain {
+		return fmt.Sprintf(workloadIdentityFederationServiceAccountImpersonationURLFormat, serviceAccountEmail)
+	}
+	return fmt.Sprintf(workloadIdentityFederationUniverseImpersonationURLFormat, universeDomain, serviceAccountEmail)
+}
 
 func newWorkloadIdentityFederation(kube kclient.Client, wif *esv1.GCPWorkloadIdentityFederation, isClusterKind bool, namespace string) (*workloadIdentityFederation, error) {
 	satg, err := newSATokenGenerator()
@@ -184,7 +201,7 @@ func (w *workloadIdentityFederation) TokenSource(ctx context.Context) (oauth2.To
 // ServiceAccount is loaded and the gcp-service-account annotation is applied when present.
 func (w *workloadIdentityFederation) updateServiceAccountImpersonationURL(ctx context.Context, cfg *externalaccount.Config) error {
 	if w.config.GCPServiceAccountEmail != "" {
-		cfg.ServiceAccountImpersonationURL = fmt.Sprintf(workloadIdentityFederationServiceAccountImpersonationURLFormat, w.config.GCPServiceAccountEmail)
+		cfg.ServiceAccountImpersonationURL = serviceAccountImpersonationURL(cfg.UniverseDomain, w.config.GCPServiceAccountEmail)
 		return nil
 	}
 
@@ -206,7 +223,7 @@ func (w *workloadIdentityFederation) updateServiceAccountImpersonationURL(ctx co
 
 	gcpSA := sa.Annotations[gcpSAAnnotation]
 	if gcpSA != "" {
-		cfg.ServiceAccountImpersonationURL = fmt.Sprintf(workloadIdentityFederationServiceAccountImpersonationURLFormat, gcpSA)
+		cfg.ServiceAccountImpersonationURL = serviceAccountImpersonationURL(cfg.UniverseDomain, gcpSA)
 	}
 	return nil
 }
@@ -251,6 +268,22 @@ func (w *workloadIdentityFederation) generateExternalAccountConfig(ctx context.C
 
 	if err := w.updateExternalAccountConfigWithCredFileValues(config, credFile); err != nil {
 		return nil, err
+	}
+	// The universe domain set on the spec takes precedence over the one in credConfig. It must be
+	// known before the impersonation URL is built below.
+	if w.config.UniverseDomain != "" {
+		// Endpoints the credential file derived from its own (former) universe follow the override,
+		// any other host is left untouched and rejected by the validation below.
+		former := config.UniverseDomain
+		if former == "" {
+			former = defaultUniverseDomain
+		}
+		if former != w.config.UniverseDomain {
+			config.TokenURL = rebaseUniverseURL(config.TokenURL, "sts", former, w.config.UniverseDomain)
+			config.TokenInfoURL = rebaseUniverseURL(config.TokenInfoURL, "sts", former, w.config.UniverseDomain)
+			config.ServiceAccountImpersonationURL = rebaseUniverseURL(config.ServiceAccountImpersonationURL, "iamcredentials", former, w.config.UniverseDomain)
+		}
+		config.UniverseDomain = w.config.UniverseDomain
 	}
 	w.updateExternalAccountConfigWithSubjectTokenSupplier(config)
 	if err := w.updateExternalAccountConfigWithAWSCredentialsSupplier(ctx, config); err != nil {
@@ -397,18 +430,63 @@ func validateExternalAccountConfig(config *externalaccount.Config, wif *esv1.GCP
 	if config.ServiceAccountImpersonationURL != "" &&
 		!serviceAccountImpersonationURLRegex.MatchString(config.ServiceAccountImpersonationURL) {
 		errs = append(errs, fmt.Errorf("service_account_impersonation_url \"%s\" must match \"%s\"", config.ServiceAccountImpersonationURL, serviceAccountImpersonationURLRegex.String()))
+	} else if config.ServiceAccountImpersonationURL != "" {
+		if err := validateServiceHost("service_account_impersonation_url", config.ServiceAccountImpersonationURL, "iamcredentials", config.UniverseDomain); err != nil {
+			errs = append(errs, err)
+		}
 	}
 	if !gcpSTSTokenURLRegex.MatchString(config.TokenURL) {
 		errs = append(errs, fmt.Errorf("token_url \"%s\" must match \"%s\"", config.TokenURL, gcpSTSTokenURLRegex.String()))
+	} else if err := validateServiceHost("token_url", config.TokenURL, "sts", config.UniverseDomain); err != nil {
+		errs = append(errs, err)
 	}
 	if !gcpSTSTokenInfoURLRegex.MatchString(config.TokenInfoURL) {
 		errs = append(errs, fmt.Errorf("token_info_url \"%s\" must match \"%s\"", config.TokenInfoURL, gcpSTSTokenInfoURLRegex.String()))
+	} else if err := validateServiceHost("token_info_url", config.TokenInfoURL, "sts", config.UniverseDomain); err != nil {
+		errs = append(errs, err)
 	}
 	if config.CredentialSource != nil {
 		errs = append(errs, validateCredConfigCredentialSource(config.CredentialSource, wif)...)
 	}
 	if len(errs) > 1 {
 		return errors.Join(errs...)
+	}
+
+	return nil
+}
+
+// rebaseUniverseURL moves a URL of the form https://<service>.<from>/... to https://<service>.<to>/...
+// and returns any other URL unchanged.
+func rebaseUniverseURL(rawURL, service, from, to string) string {
+	rest, ok := strings.CutPrefix(rawURL, "https://"+service+"."+from+"/")
+	if !ok {
+		return rawURL
+	}
+
+	return "https://" + service + "." + to + "/" + rest
+}
+
+// validateServiceHost checks the host a request is actually sent to, as parsed from the URL, so that tricks
+// such as userinfo ("https://sts.googleapis.com@evil.example/...") cannot get past the regular expressions.
+// On the default universe the host must be a <service> host under googleapis.com (regional endpoints
+// included); on any other universe it must be exactly <service>.<universeDomain>.
+func validateServiceHost(field, rawURL, service, universeDomain string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return fmt.Errorf("%s \"%s\" is not a valid URL: %w", field, rawURL, err)
+	}
+	if u.User != nil {
+		return fmt.Errorf("%s \"%s\" must not contain user information", field, rawURL)
+	}
+	host := strings.ToLower(u.Hostname())
+	if universeDomain == "" || universeDomain == defaultUniverseDomain {
+		if strings.HasPrefix(host, service+".") && strings.HasSuffix(host, "."+defaultUniverseDomain) {
+			return nil
+		}
+		return fmt.Errorf("%s \"%s\" host must be an %s host of %s", field, rawURL, service, defaultUniverseDomain)
+	}
+	if host != service+"."+strings.ToLower(universeDomain) {
+		return fmt.Errorf("%s \"%s\" host must be %s.%s", field, rawURL, service, universeDomain)
 	}
 
 	return nil

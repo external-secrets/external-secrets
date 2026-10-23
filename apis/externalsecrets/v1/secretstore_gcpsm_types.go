@@ -118,6 +118,16 @@ type GCPWorkloadIdentityFederation struct {
 	// +kubebuilder:validation:Optional
 	ExternalTokenEndpoint string `json:"externalTokenEndpoint,omitempty"`
 
+	// universeDomain is the Google Cloud universe the workload identity pool and the service account belong to,
+	// for example the domain of a Google Cloud Dedicated (sovereign) cloud. The Security Token Service and IAM
+	// Credentials endpoints (sts.<universeDomain>, iamcredentials.<universeDomain>) are derived from it.
+	// If specified, universe_domain found in the external account credential config will be overridden with the
+	// configured value. Defaults to googleapis.com.
+	// +kubebuilder:validation:Optional
+	// +kubebuilder:validation:MaxLength:=238
+	// +kubebuilder:validation:Pattern="^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)*$"
+	UniverseDomain string `json:"universeDomain,omitempty"`
+
 	// GCPServiceAccountEmail is the email of the Google Cloud service account to impersonate
 	// after Workload Identity Federation. Use this to grant access through the service account's
 	// IAM bindings (for example roles/secretmanager.secretAccessor). When set, it overrides
