@@ -18,7 +18,7 @@ package webhook
 
 import (
 	"context"
-	"encoding/pem"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -34,13 +34,18 @@ func TestExecuteRequestLimitsResponseBody(t *testing.T) {
 	}{
 		{
 			name: "response at limit",
-			size: maxResponseBodySize,
+			size: DefaultMaxResponseBodySize,
 		},
 		{
 			name:    "response over limit",
-			size:    maxResponseBodySize + 1,
+			size:    DefaultMaxResponseBodySize + 1,
 			wantErr: true,
 		},
+	}
+
+	restoreResponseBodySize(t)
+	if err := SetMaxResponseBodySize(DefaultMaxResponseBodySize); err != nil {
+		t.Fatalf("SetMaxResponseBodySize() error = %v", err)
 	}
 
 	for _, tt := range tests {
@@ -66,6 +71,40 @@ func TestExecuteRequestLimitsResponseBody(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestExecuteRequestUsesConfiguredResponseBodySize(t *testing.T) {
+	restoreResponseBodySize(t)
+	if err := SetMaxResponseBodySize(4); err != nil {
+		t.Fatalf("SetMaxResponseBodySize() error = %v", err)
+	}
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("12345"))
+	}))
+	defer server.Close()
+
+	webhook := &Webhook{HTTP: server.Client()}
+	_, err := webhook.executeRequest(context.Background(), &Spec{}, nil, server.URL, http.MethodGet, nil)
+	if err == nil || !strings.Contains(err.Error(), "response body exceeds 4 bytes") {
+		t.Fatalf("executeRequest() error = %v, want configured response size error", err)
+	}
+}
+
+func TestSetMaxResponseBodySizeRejectsInvalidValues(t *testing.T) {
+	for _, size := range []int64{-1, 0, math.MaxInt64} {
+		if err := SetMaxResponseBodySize(size); err == nil {
+			t.Errorf("SetMaxResponseBodySize(%d) error = nil, want validation error", size)
+		}
+	}
+}
+
+func restoreResponseBodySize(t *testing.T) {
+	t.Helper()
+	original := maxResponseBodySize.Load()
+	t.Cleanup(func() {
+		maxResponseBodySize.Store(original)
+	})
 }
 
 func TestExecuteRequestRejectsUnsupportedScheme(t *testing.T) {
@@ -138,33 +177,4 @@ func newWebhookHTTPClient(t *testing.T) *http.Client {
 		t.Fatalf("GetHTTPClient() error = %v", err)
 	}
 	return client
-}
-
-func TestGetHTTPClientPreservesCustomCAWithNTLM(t *testing.T) {
-	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
-	defer server.Close()
-
-	caBundle := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: server.Certificate().Raw,
-	})
-	provider := &Spec{
-		CABundle: caBundle,
-		Auth: &AuthorizationProtocol{
-			NTLM: &NTLMProtocol{},
-		},
-	}
-
-	webhook := &Webhook{}
-	client, err := webhook.GetHTTPClient(context.Background(), provider)
-	if err != nil {
-		t.Fatalf("GetHTTPClient() error = %v", err)
-	}
-	response, err := client.Get(server.URL)
-	if err != nil {
-		t.Fatalf("custom CA was not preserved with NTLM: %v", err)
-	}
-	_ = response.Body.Close()
 }

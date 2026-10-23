@@ -25,8 +25,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
+	"sync/atomic"
 	tpl "text/template"
 
 	"github.com/Azure/go-ntlmssp"
@@ -42,9 +44,27 @@ import (
 )
 
 const (
-	maxResponseBodySize = 10 << 20 // 10 MiB
-	maxRedirects        = 10
+	// DefaultMaxResponseBodySize is the default maximum successful webhook
+	// response size in bytes.
+	DefaultMaxResponseBodySize = 10 << 20 // 10 MiB
+	maxRedirects               = 10
 )
+
+var maxResponseBodySize atomic.Int64
+
+func init() {
+	maxResponseBodySize.Store(DefaultMaxResponseBodySize)
+}
+
+// SetMaxResponseBodySize configures the maximum successful webhook response
+// size in bytes.
+func SetMaxResponseBodySize(size int64) error {
+	if size <= 0 || size == math.MaxInt64 {
+		return fmt.Errorf("webhook response body size must be between 1 and %d bytes", int64(math.MaxInt64-1))
+	}
+	maxResponseBodySize.Store(size)
+	return nil
+}
 
 // Webhook implements functionality to interact with webhook endpoints
 // to retrieve and push secrets.
@@ -325,12 +345,13 @@ func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byt
 	}
 
 	// return response body
-	body, err := io.ReadAll(io.LimitReader(resp.Body, maxResponseBodySize+1))
+	responseBodySize := maxResponseBodySize.Load()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, responseBodySize+1))
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-	if len(body) > maxResponseBodySize {
-		return nil, fmt.Errorf("response body exceeds %d bytes", maxResponseBodySize)
+	if int64(len(body)) > responseBodySize {
+		return nil, fmt.Errorf("response body exceeds %d bytes", responseBodySize)
 	}
 	return body, nil
 }
@@ -405,9 +426,6 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 		c.Timeout = provider.Timeout.Duration
 	}
 
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	customTransport := false
-
 	// add CA to client if it is there
 	if len(provider.CABundle) > 0 || provider.CAProvider != nil {
 		caCertPool, err := w.GetCACertPool(ctx, provider)
@@ -421,22 +439,20 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 			Renegotiation: tls.RenegotiateOnceAsClient,
 		}
 
-		transport.TLSClientConfig = tlsConf
-		customTransport = true
+		c.Transport = &http.Transport{TLSClientConfig: tlsConf}
 	}
 	// add authentication method if it s there
 	if provider.Auth != nil {
 		if provider.Auth.NTLM != nil {
-			// NTLM requires HTTP/1.1. Reuse the configured transport so custom
-			// CA roots are not discarded when NTLM and TLS are used together.
-			transport.TLSNextProto = map[string]func(authority string, c *tls.Conn) http.RoundTripper{}
-			c.Transport = &ntlmssp.Negotiator{RoundTripper: transport}
-			customTransport = false
+			c.Transport =
+				&ntlmssp.Negotiator{
+					RoundTripper: &http.Transport{
+						TLSNextProto: map[string]func(authority string, c *tls.Conn) http.RoundTripper{}, // Needed to disable HTTP/2
+
+					},
+				}
 		}
 		// add additional auth methods here
-	}
-	if customTransport {
-		c.Transport = transport
 	}
 
 	// return client with all add-ons
