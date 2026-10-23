@@ -34,6 +34,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	ctrlutil "github.com/external-secrets/external-secrets/pkg/controllers/util"
+	"github.com/external-secrets/external-secrets/runtime/cache"
 )
 
 const (
@@ -42,6 +43,24 @@ const (
 	errSecretStoreNotReady   = "%s %q is not ready"
 	errClusterStoreMismatch  = "using cluster store %q is not allowed from namespace %q: denied by spec.condition"
 )
+
+// namespaceRegexCacheSize is the default bound. Patterns come from user specs,
+// so the cache is limited by entry count and evicts the least recently used one.
+const namespaceRegexCacheSize = 256
+
+// namespaceRegexCache holds compiled ClusterSecretStore namespaceRegexes by pattern,
+// so reconciles do not recompile every pattern on every call.
+var namespaceRegexCache = cache.Must[*regexp.Regexp](namespaceRegexCacheSize, nil)
+
+// SetNamespaceRegexCacheSize configures the cache before any controllers start.
+func SetNamespaceRegexCacheSize(size int) error {
+	c, err := cache.New[*regexp.Regexp](size, nil)
+	if err != nil {
+		return fmt.Errorf("invalid --namespace-regex-cache-size %d: %w", size, err)
+	}
+	namespaceRegexCache = c
+	return nil
+}
 
 // ErrProviderResolution marks a failure to resolve the provider named in the
 // store spec. It never reaches provider code, so the wrapped message is safe to
@@ -269,7 +288,7 @@ func (m *Manager) shouldProcessSecret(store esv1.GenericStore, ns string) (bool,
 		}
 
 		for _, reg := range condition.NamespaceRegexes {
-			match, err := regexp.MatchString(reg, ns)
+			match, err := matchNamespaceRegex(reg, ns)
 			if err != nil {
 				// Should not happen since store validation already verified the regexes.
 				return false, fmt.Errorf("failed to compile regex %v: %w", reg, err)
@@ -282,6 +301,22 @@ func (m *Manager) shouldProcessSecret(store esv1.GenericStore, ns string) (bool,
 	}
 
 	return false, nil
+}
+
+// matchNamespaceRegex is regexp.MatchString with the compiled pattern cached.
+// An invalid pattern returns the same error as regexp.MatchString and is not cached.
+func matchNamespaceRegex(pattern, ns string) (bool, error) {
+	key := cache.Key{Name: pattern}
+	if re, ok := namespaceRegexCache.Get("", key); ok {
+		return re.MatchString(ns), nil
+	}
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return false, err
+	}
+	// Another goroutine may have cached the same pattern meanwhile: keep its entry.
+	namespaceRegexCache.ContainsOrAdd("", key, re)
+	return re.MatchString(ns), nil
 }
 
 // assertStoreIsUsable assert that the store is ready to use.

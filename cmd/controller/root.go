@@ -92,6 +92,7 @@ var (
 	loglevel                              string
 	zapTimeEncoding                       string
 	namespace                             string
+	namespaceRegexCacheSize               int
 	enableClusterStoreReconciler          bool
 	enableSecretStoreReconciler           bool
 	enableClusterExternalSecretReconciler bool
@@ -135,6 +136,11 @@ var rootCmd = &cobra.Command{
 	Long:  `For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, _ []string) {
 		setupLogger()
+
+		if err := secretstore.SetNamespaceRegexCacheSize(namespaceRegexCacheSize); err != nil {
+			setupLog.Error(err, "unable to configure namespace regex cache")
+			os.Exit(1)
+		}
 
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
 		esmetrics.SetUpMetrics()
@@ -366,6 +372,7 @@ func init() {
 	rootCmd.Flags().DurationVar(&leaderElectionRetryPeriod, "leader-election-retry-period", 2*time.Second,
 		"The duration the clients should wait between attempting acquisition and renewal of a leadership.")
 	rootCmd.Flags().IntVar(&concurrent, "concurrent", 1, "The number of concurrent reconciles.")
+	rootCmd.Flags().IntVar(&namespaceRegexCacheSize, "namespace-regex-cache-size", 256, "Maximum number of compiled ClusterSecretStore namespaceRegexes kept in memory.")
 	rootCmd.Flags().Float32Var(&clientQPS, "client-qps", 50, "QPS configuration to be passed to rest.Client")
 	rootCmd.Flags().IntVar(&clientBurst, "client-burst", 100, "Maximum Burst allowed to be passed to rest.Client")
 	rootCmd.Flags().StringVar(&liveAddr, "live-addr", ":8082", "The address the live endpoint binds to.")
