@@ -1,0 +1,9 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: my-secret-store
+spec:
+  provider:
+    oracle:
+      vault: # The vault OCID
+      principalType: InstancePrincipal

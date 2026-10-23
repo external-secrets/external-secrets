@@ -1,0 +1,15 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Grafana
+metadata:
+  name: grafana-token
+spec:
+  url: https://grafana.example.com
+  auth:
+    basic:
+      username: admin
+      password:
+        name: grafana-basic-auth
+        key: password
+  serviceAccount:
+    name: my-service-account
+    role: Editor

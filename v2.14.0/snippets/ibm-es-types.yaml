@@ -1,0 +1,47 @@
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: ibm-sample
+spec:
+  # [...]
+  data:
+  - secretKey: test
+    remoteRef:
+      # defaults to type=arbitrary
+      key: xxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+  - secretKey: usr_pass
+    remoteRef:
+      key: username_password/yyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
+      property: username
+  - secretKey: iam_cred
+    remoteRef:
+      key: iam_credentials/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+  - secretKey: srv_cred
+    remoteRef:
+      key: service_credentials/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+  - secretKey: cstm_cred
+    remoteRef:
+      key: custom_credentials/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+  - secretKey: imp_cert
+    remoteRef:
+      key: imported_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: certificate
+  - secretKey: pub_cert
+    remoteRef:
+      key: public_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: certificate
+  - secretKey: prvt_cert
+    remoteRef:
+      key: private_cert/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: certificate
+  - secretKey: kv_without_key
+    remoteRef:
+      key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+  - secretKey: kv_key
+    remoteRef:
+      key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: 'keyid'
+  - secretKey: kv_key_with_path
+    remoteRef:
+      key: kv/zzzzzzz-zzzz-zzzz-zzzz-zzzzzzzzzzzz
+      property: 'key.path'

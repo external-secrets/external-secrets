@@ -1,0 +1,7 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: SSHKey
+metadata:
+  name: example-ssh-key
+spec:
+  keyType: "ed25519"
+  comment: "user@example.com"
