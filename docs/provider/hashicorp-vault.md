@@ -44,7 +44,11 @@ data:
 Then create a simple k/v pair at path `secret/foo`:
 
 ```
+# Creates the secret data
 vault kv put secret/foo my-value=s3cr3t
+
+# Creates custom metadata used by the metadataPolicy: Fetch example below
+vault kv metadata put -custom-metadata='dev=development' secret/foo
 ```
 
 Can check kv version using following and check for `Options` column, it should indicate [version:2]:

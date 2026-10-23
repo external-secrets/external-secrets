@@ -27,8 +27,6 @@ import (
 	"github.com/Azure/go-autorest/autorest/adal"
 	tassert "github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	pointer "k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -70,9 +68,7 @@ func TestNewClientManagedIdentityNoNeedForCredentials(t *testing.T) {
 	identityID := "1234"
 	authType := esv1.AzureManagedIdentity
 	store := esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
+		Namespace: namespace,
 		Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{AzureKV: &esv1.AzureKVProvider{
 			AuthType:   &authType,
 			IdentityID: &identityID,
@@ -170,11 +166,9 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 			provider: defaultProvider,
 			k8sObjects: []client.Object{
 				&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        saName,
-						Namespace:   namespace,
-						Annotations: map[string]string{},
-					},
+					Name:        saName,
+					Namespace:   namespace,
+					Annotations: map[string]string{},
 				},
 			},
 			expErr: "missing clientID: either serviceAccountRef or service account annotation 'azure.workload.identity/client-id' is missing",
@@ -184,31 +178,27 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 			provider: &esv1.AzureKVProvider{
 				VaultURL: &vaultURL,
 				AuthType: &authType,
-				TenantID: pointer.To(tenantID),
+				TenantID: new(tenantID),
 				ServiceAccountRef: &v1.ServiceAccountSelector{
 					Name: saName,
 				},
 				AuthSecretRef: &esv1.AzureKVAuth{
-					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: clientID},
-					TenantID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: tenantID},
+					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: new(namespace), Key: clientID},
+					TenantID: &v1.SecretKeySelector{Name: secretName, Namespace: new(namespace), Key: tenantID},
 				},
 			},
 			k8sObjects: []client.Object{
 				&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      saName,
-						Namespace: namespace,
-						Annotations: map[string]string{
-							AnnotationClientID: clientID,
-							AnnotationTenantID: tenantID,
-						},
+					Name:      saName,
+					Namespace: namespace,
+					Annotations: map[string]string{
+						AnnotationClientID: clientID,
+						AnnotationTenantID: tenantID,
 					},
 				},
 				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      secretName,
-						Namespace: namespace,
-					},
+					Name:      secretName,
+					Namespace: namespace,
 					Data: map[string][]byte{
 						clientID: []byte("clientid"),
 						tenantID: []byte("tenantid"),
@@ -222,20 +212,18 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 			provider: &esv1.AzureKVProvider{
 				VaultURL: &vaultURL,
 				AuthType: &authType,
-				TenantID: pointer.To(tenantID),
+				TenantID: new(tenantID),
 				ServiceAccountRef: &v1.ServiceAccountSelector{
 					Name: saName,
 				},
 			},
 			k8sObjects: []client.Object{
 				&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      saName,
-						Namespace: namespace,
-						Annotations: map[string]string{
-							AnnotationClientID: clientID,
-							AnnotationTenantID: tenantID,
-						},
+					Name:      saName,
+					Namespace: namespace,
+					Annotations: map[string]string{
+						AnnotationClientID: clientID,
+						AnnotationTenantID: tenantID,
 					},
 				},
 			},
@@ -246,13 +234,11 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 			provider: defaultProvider,
 			k8sObjects: []client.Object{
 				&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      saName,
-						Namespace: namespace,
-						Annotations: map[string]string{
-							AnnotationClientID: clientID,
-							AnnotationTenantID: tenantID,
-						},
+					Name:      saName,
+					Namespace: namespace,
+					Annotations: map[string]string{
+						AnnotationClientID: clientID,
+						AnnotationTenantID: tenantID,
 					},
 				},
 			},
@@ -266,23 +252,19 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 					Name: saName,
 				},
 				AuthSecretRef: &esv1.AzureKVAuth{
-					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: clientID},
-					TenantID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: tenantID},
+					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: new(namespace), Key: clientID},
+					TenantID: &v1.SecretKeySelector{Name: secretName, Namespace: new(namespace), Key: tenantID},
 				},
 			},
 			k8sObjects: []client.Object{
 				&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        saName,
-						Namespace:   namespace,
-						Annotations: map[string]string{},
-					},
+					Name:        saName,
+					Namespace:   namespace,
+					Annotations: map[string]string{},
 				},
 				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      secretName,
-						Namespace: namespace,
-					},
+					Name:      secretName,
+					Namespace: namespace,
 					Data: map[string][]byte{
 						clientID: []byte("clientid"),
 						tenantID: []byte("tenantid"),
@@ -295,27 +277,23 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 			provider: &esv1.AzureKVProvider{
 				VaultURL: &vaultURL,
 				AuthType: &authType,
-				TenantID: pointer.To(tenantID),
+				TenantID: new(tenantID),
 				ServiceAccountRef: &v1.ServiceAccountSelector{
 					Name: saName,
 				},
 				AuthSecretRef: &esv1.AzureKVAuth{
-					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: pointer.To(namespace), Key: clientID},
+					ClientID: &v1.SecretKeySelector{Name: secretName, Namespace: new(namespace), Key: clientID},
 				},
 			},
 			k8sObjects: []client.Object{
 				&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:        saName,
-						Namespace:   namespace,
-						Annotations: map[string]string{},
-					},
+					Name:        saName,
+					Namespace:   namespace,
+					Annotations: map[string]string{},
 				},
 				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      secretName,
-						Namespace: namespace,
-					},
+					Name:      secretName,
+					Namespace: namespace,
 					Data: map[string][]byte{
 						clientID: []byte("clientid"),
 					},
@@ -361,9 +339,7 @@ func TestGetAuthorizorForWorkloadIdentity(t *testing.T) {
 
 func TestAuth(t *testing.T) {
 	defaultStore := esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "default",
-		},
+		Namespace: "default",
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{},
 		},
@@ -417,9 +393,7 @@ func TestAuth(t *testing.T) {
 			name:   "cluster secret store",
 			expErr: "cannot get Kubernetes secret \"password\" from namespace \"foo\": secrets \"password\" not found",
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.ClusterSecretStoreKind,
-				},
+				Kind: esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{}},
 			},
 			provider: &esv1.AzureKVProvider{
@@ -435,19 +409,15 @@ func TestAuth(t *testing.T) {
 		{
 			name: "correct cluster secret store with ClientSecret",
 			objects: []client.Object{&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "password",
-					Namespace: "foo",
-				},
+				Name:      "password",
+				Namespace: "foo",
 				Data: map[string][]byte{
 					"id":     []byte("foo"),
 					"secret": []byte("bar"),
 				},
 			}},
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.ClusterSecretStoreKind,
-				},
+				Kind: esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{}},
 			},
 			provider: &esv1.AzureKVProvider{
@@ -464,10 +434,8 @@ func TestAuth(t *testing.T) {
 			name:   "bad config: both clientSecret and clientCredentials are configured",
 			expErr: "both clientSecret and clientCredentials set",
 			objects: []client.Object{&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "password",
-					Namespace: "foo",
-				},
+				Name:      "password",
+				Namespace: "foo",
 				Data: map[string][]byte{
 					"id":          []byte("foo"),
 					"certificate": []byte("bar"),
@@ -475,9 +443,7 @@ func TestAuth(t *testing.T) {
 				},
 			}},
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.ClusterSecretStoreKind,
-				},
+				Kind: esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{}},
 			},
 			provider: &esv1.AzureKVProvider{
@@ -495,19 +461,15 @@ func TestAuth(t *testing.T) {
 			name:   "bad config: no valid client certificate in pem file",
 			expErr: "failed to get oauth token from certificate auth: failed to decode certificate: no certificate found in PEM file",
 			objects: []client.Object{&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "password",
-					Namespace: "foo",
-				},
+				Name:      "password",
+				Namespace: "foo",
 				Data: map[string][]byte{
 					"id":          []byte("foo"),
 					"certificate": []byte("bar"),
 				},
 			}},
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.ClusterSecretStoreKind,
-				},
+				Kind: esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{}},
 			},
 			provider: &esv1.AzureKVProvider{
@@ -523,19 +485,15 @@ func TestAuth(t *testing.T) {
 		{
 			name: "correct configuration with certificate authentication",
 			objects: []client.Object{&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "password",
-					Namespace: "foo",
-				},
+				Name:      "password",
+				Namespace: "foo",
 				Data: map[string][]byte{
 					"id":          []byte("foo"),
 					"certificate": []byte(mockCertificate),
 				},
 			}},
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.ClusterSecretStoreKind,
-				},
+				Kind: esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{}},
 			},
 			provider: &esv1.AzureKVProvider{

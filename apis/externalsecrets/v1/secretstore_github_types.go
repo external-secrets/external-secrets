@@ -20,7 +20,19 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
+// GithubSecretType specifies the GitHub secret service to use.
+// +kubebuilder:validation:Enum=Actions;Dependabot
+type GithubSecretType string
+
+const (
+	// GithubSecretTypeActions selects GitHub Actions secrets.
+	GithubSecretTypeActions GithubSecretType = "Actions"
+	// GithubSecretTypeDependabot selects GitHub Dependabot secrets.
+	GithubSecretTypeDependabot GithubSecretType = "Dependabot"
+)
+
 // GithubProvider provides access and authentication to a GitHub instance .
+// +kubebuilder:validation:XValidation:rule="self.secretType != 'Dependabot' || !has(self.environment) || size(self.environment) == 0",message="Dependabot secrets do not support environments"
 type GithubProvider struct {
 	// URL configures the Github instance URL. Defaults to https://github.com/.
 	//+kubebuilder:default="https://github.com/"
@@ -30,6 +42,11 @@ type GithubProvider struct {
 	UploadURL string `json:"uploadURL,omitempty"`
 	// auth configures how secret-manager authenticates with a Github instance.
 	Auth GithubAppAuth `json:"auth"`
+	// secretType specifies which GitHub secret service to use.
+	// Defaults to Actions for backwards compatibility.
+	// +optional
+	// +kubebuilder:default=Actions
+	SecretType GithubSecretType `json:"secretType,omitempty"`
 
 	// appID specifies the Github APP that will be used to authenticate the client
 	AppID int64 `json:"appID"`

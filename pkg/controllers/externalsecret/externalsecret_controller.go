@@ -193,10 +193,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			//       https://github.com/external-secrets/external-secrets/pull/612
 			conditionSynced := NewExternalSecretCondition(esv1.ExternalSecretDeleted, v1.ConditionFalse, esv1.ConditionReasonSecretDeleted, "Secret was deleted")
 			SetExternalSecretCondition(&esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      req.Name,
-					Namespace: req.Namespace,
-				},
+				Name:      req.Name,
+				Namespace: req.Namespace,
 			}, *conditionSynced)
 
 			return ctrl.Result{}, nil
@@ -230,7 +228,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		// Remove finalizer if it exists
 		// Use Patch instead of Update to avoid claiming ownership of spec fields like refreshInterval
 		patch := client.MergeFrom(externalSecret.DeepCopy())
-		if updated := controllerutil.RemoveFinalizer(externalSecret, ExternalSecretFinalizer); updated {
+		if controllerutil.RemoveFinalizer(externalSecret, ExternalSecretFinalizer) {
 			if err := r.Patch(ctx, externalSecret, patch); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -241,7 +239,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	// Add finalizer if it doesn't exist
 	// Use Patch instead of Update to avoid claiming ownership of spec fields like refreshInterval
 	patch := client.MergeFrom(externalSecret.DeepCopy())
-	if updated := controllerutil.AddFinalizer(externalSecret, ExternalSecretFinalizer); updated {
+	if controllerutil.AddFinalizer(externalSecret, ExternalSecretFinalizer) {
 		if err := r.Patch(ctx, externalSecret, patch); err != nil {
 			return ctrl.Result{}, err
 		}
@@ -506,7 +504,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		secret.Labels[esv1.LabelManaged] = esv1.LabelManagedValue
 		secret.Annotations[esv1.AnnotationDataHash] = esutils.ObjectHash(secret.Data)
 
-		return nil
+		return validateSecretCandidate(secret)
 	}
 
 	switch externalSecret.Spec.Target.CreationPolicy {
@@ -800,12 +798,12 @@ func (r *Reconciler) markAsDone(externalSecret *esv1.ExternalSecret, start time.
 }
 
 func (r *Reconciler) markAsFailed(msg string, err error, externalSecret *esv1.ExternalSecret, counter prometheus.Counter, reason string) {
-	r.recorder.Event(externalSecret, v1.EventTypeWarning, esv1.ReasonUpdateFailed, err.Error())
 	// only errors explicitly marked safe are detailed here; provider errors keep
 	// the generic message because they may carry secret payloads.
 	if detail := ctrlutil.SafeMessage(err); detail != "" {
 		msg = fmt.Sprintf("%s: %s", msg, detail)
 	}
+	r.recorder.Event(externalSecret, v1.EventTypeWarning, esv1.ReasonUpdateFailed, msg)
 	conditionSynced := NewExternalSecretCondition(esv1.ExternalSecretReady, v1.ConditionFalse, reason, msg)
 	SetExternalSecretCondition(externalSecret, *conditionSynced)
 	counter.Inc()
@@ -941,13 +939,11 @@ func (r *Reconciler) createSecret(ctx context.Context, mutationFunc func(secret 
 
 	// define and mutate the new secret
 	newSecret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        secretName,
-			Namespace:   es.Namespace,
-			Labels:      map[string]string{},
-			Annotations: map[string]string{},
-		},
-		Data: make(map[string][]byte),
+		Name:        secretName,
+		Namespace:   es.Namespace,
+		Labels:      map[string]string{},
+		Annotations: map[string]string{},
+		Data:        make(map[string][]byte),
 	}
 	if err := mutationFunc(newSecret); err != nil {
 		return err
@@ -1524,10 +1520,8 @@ func (r *Reconciler) findObjectsForSecret(ctx context.Context, secret client.Obj
 	requests := make([]reconcile.Request, len(externalSecretsList.Items))
 	for i := range externalSecretsList.Items {
 		requests[i] = reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      externalSecretsList.Items[i].GetName(),
-				Namespace: externalSecretsList.Items[i].GetNamespace(),
-			},
+			Name:      externalSecretsList.Items[i].GetName(),
+			Namespace: externalSecretsList.Items[i].GetNamespace(),
 		}
 	}
 	return requests

@@ -92,7 +92,8 @@ update-deps: ## Update dependencies across all modules (root, apis, runtime, e2e
 
 .PHONY: license.check
 license.check:
-	$(DOCKER) run --rm -u $(shell id -u) -v $(shell pwd):/github/workspace apache/skywalking-eyes:0.6.0 header check
+	# Pinned release: apache/skywalking-eyes:0.9.0 (SkyWalking Eyes; tracking 0.x)
+	$(DOCKER) run --rm -u $(shell id -u) -v $(shell pwd):/github/workspace docker.io/apache/skywalking-eyes@sha256:cd89ccbbcba2e87d3fb0e34b156b1da208d6c5ac1ada4e2d335e920022c765b8 header check
 
 # ====================================================================================
 # Golang
@@ -103,7 +104,9 @@ go-work:
 	@rm -rf go.work go.work.sum
 	@go work init
 	@go work use -r .
-	@go work edit -dropuse ./e2e -dropuse ./hack/tools -dropuse ./hack/tools/gen-crd-api-reference-docs -dropuse ./hack/tools/golangci-lint
+	@# Keep kube-openapi's schema converter on SMD v6 until apimachinery migrates to v7.
+	@go work edit -replace=k8s.io/kube-openapi=k8s.io/kube-openapi@v0.0.0-20260721132016-d427ff9ee9ad
+	@go work edit -dropuse ./e2e -dropuse ./hack/tools -dropuse ./hack/tools/gen-crd-api-reference-docs
 	@go work sync
 	@$(OK) created go workspace
 
@@ -154,7 +157,15 @@ build-%: generate ## Build binary for the specified arch
 		go build -tags $(PROVIDER) -o '$(OUTPUT_DIR)/external-secrets-linux-$*' main.go
 	@$(OK) go build $*
 
-lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
+.PHONY: provider-replaces.check
+provider-replaces.check: ## Ensure cross-provider dependencies use local replacements
+	@./hack/check-provider-replaces.sh
+
+.PHONY: go-directive.check
+go-directive.check: ## Ensure go directives stay at a .0 patch so consumers are not forced to bump
+	@./hack/check-go-directive.sh
+
+lint: golangci-lint provider-replaces.check go-directive.check ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
 	@if [ -n "$(LINT_TARGET)" ]; then \
 		$(INFO) Running golangci-lint on $(LINT_TARGET); \
 		(cd $(LINT_TARGET) && $(GOLANGCI_LINT) run ./...) || exit 1; \
@@ -171,7 +182,7 @@ lint: golangci-lint ## Run golangci-lint (set LINT_TARGET to run on specific mod
 			module="$$0"; \
 			name=$$(echo "$$module" | sed "s/[\/\.]/_/g"); \
 			echo "Linting $$module"; \
-			if (cd "$$module" && $$GOLANGCI run ./... 2>&1); then \
+			if (cd "$$module" && $$GOLANGCI run ./...) 2>&1; then \
 				echo "✓ $$module" > "$$TMPDIR/$$name.success"; \
 			else \
 				echo "✗ $$module" > "$$TMPDIR/$$name.failed"; \
@@ -224,8 +235,9 @@ tilt-up: tilt manifests ## Generates the local manifests that tilt will use to d
 # Helm Chart
 
 helm.docs: ## Generate helm docs
+	# Pinned release: jnorwood/helm-docs:v1.14.2 (helm-docs; tracking 1.x)
 	@cd $(HELM_DIR); \
-	$(DOCKER) run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) docker.io/jnorwood/helm-docs:v1.14.2
+	$(DOCKER) run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) docker.io/jnorwood/helm-docs@sha256:7e562b49ab6b1dbc50c3da8f2dd6ffa8a5c6bba327b1c6335cc15ce29267979c
 
 HELM_VERSION ?= $(shell helm show chart $(HELM_DIR) | grep '^version:' | sed 's/version: //g')
 
@@ -439,6 +451,7 @@ LINT_TARGET ?= ""
 KUBERNETES_VERSION := 1.33.x
 TILT_VERSION := 0.33.21
 CTY_VERSION := 1.1.3
+GOLANGCI_LINT_VERSION := 2.15.0
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
@@ -458,9 +471,13 @@ $(GEN_CRD_API_REFERENCE_DOCS): Makefile hack/tools/gen-crd-api-reference-docs/go
 	GOWORK=off go -C hack/tools/gen-crd-api-reference-docs build -mod=readonly -o $(abspath $@) github.com/ahmetb/gen-crd-api-reference-docs
 
 .PHONY: golangci-lint
-golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
-$(GOLANGCI_LINT): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
-	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/golangci/golangci-lint/v2/cmd/golangci-lint
+golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint from its upstream release.
+$(GOLANGCI_LINT): Makefile | $(LOCALBIN)
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+		archive=golangci-lint-$(GOLANGCI_LINT_VERSION)-$$(go env GOHOSTOS)-$$(go env GOHOSTARCH); \
+		curl -fsSL "https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_LINT_VERSION)/$$archive.tar.gz" -o "$$tmp/lint.tar.gz" && \
+		tar -xzf "$$tmp/lint.tar.gz" -C "$$tmp" "$$archive/golangci-lint" && \
+		install "$$tmp/$$archive/golangci-lint" "$@"
 
 .PHONY: dlv
 dlv: $(DLV) ## Build Delve locally for the Tilt debug image.

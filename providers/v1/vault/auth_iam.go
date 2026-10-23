@@ -33,7 +33,6 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	vaultiamauth "github.com/external-secrets/external-secrets/providers/v1/vault/iamauth"
 	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -152,7 +151,7 @@ func (c *client) requestTokenWithIamAuth(
 	}
 
 	_, err = c.auth.Login(ctx, awsAuthClient)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	metrics.ObserveAPICall(ProviderHCVault, CallHCVaultLogin, err)
 	if err != nil {
 		return err
 	}
@@ -196,12 +195,12 @@ func (c *client) getControllerPodCredentials(ctx context.Context, region string,
 
 func (c *client) getCredsFromIRSAToken(ctx context.Context, tokenFile, region string, k kclient.Client, jwtProvider vaultutil.JwtProviderFactory) (aws.CredentialsProvider, error) {
 	// IRSA enabled service account, let's check that the jwt token filemount and file exists
-	if _, err := os.Stat(filepath.Clean(tokenFile)); err != nil {
+	if _, err := os.Stat(filepath.Clean(tokenFile)); err != nil { //nolint:gosec // IRSA token path is supplied by the pod's AWS_WEB_IDENTITY_TOKEN_FILE environment variable.
 		return nil, fmt.Errorf(errIrsaTokenFileNotFoundOnPod, tokenFile, err)
 	}
 
 	// everything looks good so far, let's fetch the jwt token from AWS_WEB_IDENTITY_TOKEN_FILE
-	jwtByte, err := os.ReadFile(filepath.Clean(tokenFile))
+	jwtByte, err := os.ReadFile(filepath.Clean(tokenFile)) //nolint:gosec // IRSA must read the token file specified by the pod environment.
 	if err != nil {
 		return nil, fmt.Errorf(errIrsaTokenFileNotReadable, tokenFile, err)
 	}

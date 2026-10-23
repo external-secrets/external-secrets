@@ -26,7 +26,6 @@ import (
 	"golang.org/x/oauth2/google/externalaccount"
 	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -223,10 +222,8 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: createValidK8sExternalAccountConfig(testAudience),
 					},
@@ -245,10 +242,8 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: createValidK8sExternalAccountConfigOmittedSTSEndpoints(testAudience),
 					},
@@ -267,10 +262,8 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						"incorrect": createValidK8sExternalAccountConfig(testAudience),
 					},
@@ -289,10 +282,8 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: createValidK8sExternalAccountConfig(testAudience),
 					},
@@ -311,10 +302,8 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: createInvalidK8sExternalAccountConfigWithUnallowedTokenURL(testAudience),
 					},
@@ -333,19 +322,15 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: createValidAWSExternalAccountConfig(testAudience),
 					},
 				},
 				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "aws-creds",
-						Namespace: testNamespace,
-					},
+					Name:      "aws-creds",
+					Namespace: testNamespace,
 					Data: map[string][]byte{
 						awsAccessKeyIDKeyName:     []byte(testAwsAccessKey),
 						awsSecretAccessKeyKeyName: []byte(testAwsSecretKey),
@@ -378,10 +363,8 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: createInvalidTypeExternalAccountConfig(),
 					},
@@ -400,10 +383,8 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: "invalid-json",
 					},
@@ -423,19 +404,15 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: createInvalidK8sExternalAccountConfigWithUnallowedTokenFilePath(testAudience),
 					},
 				},
 				&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testServiceAccount,
-						Namespace: testNamespace,
-					},
+					Name:      testServiceAccount,
+					Namespace: testNamespace,
 				},
 			},
 			genSAToken: func(c context.Context, s1 []string, s2, s3 string) (*authv1.TokenRequest, error) {
@@ -471,12 +448,10 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testServiceAccount,
-						Namespace: testNamespace,
-						Annotations: map[string]string{
-							gcpSAAnnotation: testGCPServiceAccountEmail,
-						},
+					Name:      testServiceAccount,
+					Namespace: testNamespace,
+					Annotations: map[string]string{
+						gcpSAAnnotation: testGCPServiceAccountEmail,
 					},
 				},
 			},
@@ -503,10 +478,8 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testServiceAccount,
-						Namespace: testNamespace,
-					},
+					Name:      testServiceAccount,
+					Namespace: testNamespace,
 				},
 			},
 			genSAToken:             defaultSATokenGenerator,
@@ -527,10 +500,8 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: createK8sExternalAccountConfigWithImpersonation(testAudience, testFromCredImpersonationURL),
 					},
@@ -553,12 +524,10 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testServiceAccount,
-						Namespace: testNamespace,
-						Annotations: map[string]string{
-							gcpSAAnnotation: testGCPServiceAccountEmail,
-						},
+					Name:      testServiceAccount,
+					Namespace: testNamespace,
+					Annotations: map[string]string{
+						gcpSAAnnotation: testGCPServiceAccountEmail,
 					},
 				},
 			},
@@ -581,19 +550,15 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: createValidAWSExternalAccountConfig(testAudience),
 					},
 				},
 				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "aws-creds",
-						Namespace: testNamespace,
-					},
+					Name:      "aws-creds",
+					Namespace: testNamespace,
 					Data: map[string][]byte{
 						awsAccessKeyIDKeyName:     []byte(testAwsAccessKey),
 						awsSecretAccessKeyKeyName: []byte(testAwsSecretKey),
@@ -615,10 +580,8 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: createValidAWSExternalAccountConfig(testAudience),
 					},
@@ -640,19 +603,15 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: createValidAWSExternalAccountConfig(testAudience),
 					},
 				},
 				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "aws-creds",
-						Namespace: testNamespace,
-					},
+					Name:      "aws-creds",
+					Namespace: testNamespace,
 					Data: map[string][]byte{
 						awsSecretAccessKeyKeyName: []byte(testAwsSecretKey),
 					},
@@ -685,19 +644,15 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: createValidAWSExternalAccountConfig(testAudience),
 					},
 				},
 				&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "aws-creds",
-						Namespace: testNamespace,
-					},
+					Name:      "aws-creds",
+					Namespace: testNamespace,
 					Data: map[string][]byte{
 						awsAccessKeyIDKeyName:     []byte(testAwsAccessKey),
 						awsSecretAccessKeyKeyName: []byte(testAwsSecretKey),
@@ -1066,10 +1021,8 @@ func TestReadCredConfig(t *testing.T) {
 			},
 			kubeObjects: []client.Object{
 				&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      testConfigMapName,
-						Namespace: testNamespace,
-					},
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
 					Data: map[string]string{
 						testConfigMapKey: "",
 					},
@@ -1113,10 +1066,8 @@ func TestUpdateServiceAccountImpersonationURL(t *testing.T) {
 	credImpersonationURL := testFromCredImpersonationURL
 
 	baseSA := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testServiceAccount,
-			Namespace: testNamespace,
-		},
+		Name:      testServiceAccount,
+		Namespace: testNamespace,
 	}
 	saWithGcpAnnotation := baseSA.DeepCopy()
 	saWithGcpAnnotation.Annotations = map[string]string{
@@ -1201,10 +1152,8 @@ func TestGenerateExternalAccountConfig(t *testing.T) {
 
 	kubeObjects := []client.Object{
 		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "aws-creds",
-				Namespace: testNamespace,
-			},
+			Name:      "aws-creds",
+			Namespace: testNamespace,
 			Data: map[string][]byte{
 				awsAccessKeyIDKeyName:     []byte(testAwsAccessKey),
 				awsSecretAccessKeyKeyName: []byte(testAwsSecretKey),
