@@ -28,7 +28,6 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -43,10 +42,8 @@ const (
 
 func newKube() client.Client {
 	return clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testSecret,
-			Namespace: testNamespace,
-		},
+		Name:      testSecret,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			testKey: []byte("glpat-secret-access-token"),
 		},
@@ -186,8 +183,8 @@ func TestGenerate(t *testing.T) {
 
 	t.Run("error when token missing in secret", func(t *testing.T) {
 		kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: testSecret, Namespace: testNamespace},
-			Data:       map[string][]byte{},
+			Name: testSecret, Namespace: testNamespace,
+			Data: map[string][]byte{},
 		}).Build()
 		g := &Generator{}
 		_, _, err := g.generate(context.Background(), specJSON(t, "https://gitlab.com", "1", ""), kube, testNamespace)

@@ -64,6 +64,9 @@ func validateExternalSecret(es *ExternalSecret) (admission.Warnings, error) {
 	if err := validatePrivilegedTemplate(es); err != nil {
 		errs = errors.Join(errs, err)
 	}
+	if err := validateSecretTemplateFromTargets(es.Spec.Target.Template); err != nil {
+		errs = errors.Join(errs, err)
+	}
 
 	for _, ref := range es.Spec.DataFrom {
 		if err := validateExtractFindGenerator(ref); err != nil {
@@ -144,6 +147,29 @@ func validatePrivilegedTemplate(es *ExternalSecret) error {
 		return fmt.Errorf("template.type=%q is not allowed", corev1.SecretTypeBootstrapToken)
 	}
 	return nil
+}
+
+func validateSecretTemplateFromTargets(tpl *ExternalSecretTemplate) error {
+	if tpl == nil {
+		return nil
+	}
+
+	var errs error
+	for _, tf := range tpl.TemplateFrom {
+		switch {
+		case tf.Target == "",
+			strings.EqualFold(string(tf.Target), string(TemplateTargetData)),
+			strings.EqualFold(string(tf.Target), string(TemplateTargetAnnotations)),
+			strings.EqualFold(string(tf.Target), string(TemplateTargetLabels)):
+			continue
+		}
+
+		errs = errors.Join(errs, fmt.Errorf(
+			"templateFrom target=%q is not allowed when targeting a Secret, must be one of %q, %q or %q",
+			tf.Target, TemplateTargetData, TemplateTargetAnnotations, TemplateTargetLabels))
+	}
+
+	return errs
 }
 
 func validateDuplicateKeys(es *ExternalSecret, errs error) error {

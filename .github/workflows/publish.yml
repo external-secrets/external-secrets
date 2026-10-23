@@ -53,7 +53,7 @@ jobs:
     outputs:
       image-tag: ${{ steps.container_info.outputs.image-tag }}
     steps:
-      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
 
@@ -64,7 +64,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup QEMU
-        uses: docker/setup-qemu-action@1f40c72289eff860ee54a304f1438e3cff362e0a # v4.3.0
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
         with:
           platforms: all
 
@@ -142,7 +142,7 @@ jobs:
           go clean -cache
           go clean -modcache
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # master
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: ${{ inputs.image-name }}:${{ steps.container_info.outputs.image-tag }}
           format: 'table'
@@ -159,7 +159,7 @@ jobs:
       id-token: write #for keyless sign
       packages: write #to update packages with added SBOMs.
     steps:
-      - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
         with:
           egress-policy: audit
       - name: Checkout
@@ -168,7 +168,7 @@ jobs:
           persist-credentials: false
       - name: Sign image
         if: env.IS_FORK != ''
-        uses: ./.github/actions/sign
+        uses: $/.github/actions/sign
         with:
           image-name: ${{ inputs.image-name }}
           image-tag: ${{ needs.build-publish.outputs.image-tag }}

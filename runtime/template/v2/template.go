@@ -76,11 +76,9 @@ func FuncMap() tpl.FuncMap {
 }
 
 const (
-	errParse                = "unable to parse template at key %s: %s"
-	errExecute              = "unable to execute template at key %s: %s"
-	errDecodePKCS12WithPass = "unable to decode pkcs12 with password: %s"
-	errDecodeCertWithPass   = "unable to decode pkcs12 certificate with password: %s"
-	errParsePrivKey         = "unable to parse private key type"
+	errParse        = "unable to parse template at key %s: %s"
+	errExecute      = "unable to execute template at key %s: %s"
+	errParsePrivKey = "unable to parse private key type"
 
 	pemTypeCertificate = "CERTIFICATE"
 	pemTypeKey         = "PRIVATE KEY"
@@ -374,6 +372,15 @@ func applyAtPath(obj client.Object, target string, tokens []pathToken, leaf func
 
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(updatedMap, obj); err != nil {
 		return fmt.Errorf(errConvertingToObject, err)
+	}
+
+	// The unstructured roundtrip can leave either metadata map nil. Keep both
+	// writable for callers that add managed labels and annotations afterward.
+	if obj.GetLabels() == nil {
+		obj.SetLabels(make(map[string]string))
+	}
+	if obj.GetAnnotations() == nil {
+		obj.SetAnnotations(make(map[string]string))
 	}
 
 	return nil

@@ -30,7 +30,6 @@ import (
 	sm "github.com/IBM/secrets-manager-go-sdk/v2/secretsmanagerv2"
 	"github.com/go-openapi/strfmt"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -1422,10 +1421,8 @@ func TestValidRetryInput(t *testing.T) {
 	expected := fmt.Sprintf("cannot setup new ibm client: time: invalid duration %q", invalid)
 	ctx := context.TODO()
 	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "fake-secret",
-			Namespace: "default",
-		},
+		Name:      "fake-secret",
+		Namespace: "default",
 		Data: map[string][]byte{
 			"fake-key": []byte("ImAFakeApiKey"),
 		},

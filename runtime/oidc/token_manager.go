@@ -158,9 +158,7 @@ func (m *BaseTokenManager) CreateServiceAccountToken(ctx context.Context) (strin
 	}
 
 	tokenRequest := &authv1.TokenRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: tokenNamespace,
-		},
+		Namespace: tokenNamespace,
 		Spec: authv1.TokenRequestSpec{
 			Audiences:         audiences,
 			ExpirationSeconds: &expirationSeconds,
