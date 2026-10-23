@@ -1,4 +1,5 @@
-FROM golang:1.27.1
+# Pinned release: golang:1.27.3 (Go; tracking 1.x)
+FROM golang@sha256:f20d83a83e18dbd2a4714b8ffd4b30b287b6243962dd75608e86abcc63ba4efc
 WORKDIR /
 COPY ./bin/external-secrets /external-secrets
 COPY ./bin/dlv /dlv
