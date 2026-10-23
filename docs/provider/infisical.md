@@ -119,6 +119,9 @@ stringData:
 
 ### SecretStore Configuration
 
+!!! danger
+    This authentication method reads a token file from the ESO controller container. It is supported by `ClusterSecretStore` by default and rejected for namespaced `SecretStore`. A deployment administrator can permit the namespaced configuration below with `security.unsafeAllowSecretStoreHostAccess`, but doing so can expose ESO's service-account token and other mounted credentials.
+
 ```yaml
 apiVersion: external-secrets.io/v1
 kind: SecretStore
@@ -338,6 +341,9 @@ stringData:
 ```
 
 ### SecretStore Configuration
+
+!!! danger
+    This authentication method reads the selected service-account key file from the ESO controller container. It is supported by `ClusterSecretStore` by default and rejected for namespaced `SecretStore`. A deployment administrator can permit the namespaced configuration below with `security.unsafeAllowSecretStoreHostAccess`, but Secret-based credential values are preferred over controller-local paths.
 
 ```yaml
 apiVersion: external-secrets.io/v1

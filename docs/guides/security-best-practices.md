@@ -104,6 +104,21 @@ Here are some examples of how you can harden the Helm chart:
 
 * **Use it as a Dependency**: Instead of deploying the chart directly, you can use it as a dependency in your own Helm chart. This allows you to extend its functionality and layer on your own security controls, such as `NetworkPolicies`, custom `RBAC` roles, and other security mechanisms that are specific to your environment.
 
+### 7. Restrict Controller-Local File Access
+
+A `ClusterSecretStore` is treated as cluster-administrator controlled and may use supported authentication methods that read files mounted in the ESO container. A namespaced `SecretStore` cannot select controller-local files by default. Prefer inline kubeconfig data, Kubernetes Secret selectors, or `serviceAccountRef` over file paths.
+
+For compatibility, a deployment administrator can opt in with:
+
+```yaml
+security:
+  unsafeAllowSecretStoreHostAccess: true
+```
+
+This sets `--unsafe-allow-secretstore-host-access=true` on both the controller and webhook. Enabling it lets namespaced `SecretStore` authors use supported provider fields to read files mounted in the controller container, potentially including ESO's service-account token and other credentials. Restrictive NetworkPolicies reduce exfiltration opportunities but do not make local file access safe.
+
+Kubeconfig `exec` and `auth-provider` authentication remain prohibited because they can execute commands or consume ambient controller credentials.
+
 ## Pod Security
 
 The Pods of the External Secrets Operator have been configured to meet the [Pod Security Standards](https://kubernetes.io/docs/concepts/security/pod-security-standards/), specifically the restricted profile. This configuration ensures a strong security posture by implementing recommended best practices for hardening Pods, including those outlined in the [NSA Kubernetes Hardening Guide](https://media.defense.gov/2022/Aug/29/2003066362/-1/-1/0/CTR_KUBERNETES_HARDENING_GUIDANCE_1.2_20220829.PDF).

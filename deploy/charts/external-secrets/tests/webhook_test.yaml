@@ -598,3 +598,12 @@ tests:
             initialDelaySeconds: 5
             periodSeconds: 15
             failureThreshold: 40
+  - it: should pass unsafe host access to the webhook when enabled
+    set:
+      security.unsafeAllowSecretStoreHostAccess: true
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--unsafe-allow-secretstore-host-access=true"

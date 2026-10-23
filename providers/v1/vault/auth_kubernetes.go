@@ -18,8 +18,8 @@ package vault
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"os"
 
 	authkubernetes "github.com/hashicorp/vault/api/auth/kubernetes"
 	corev1 "k8s.io/api/core/v1"
@@ -32,12 +32,11 @@ import (
 )
 
 const (
-	serviceAccTokenPath       = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-	errServiceAccount         = "cannot read Kubernetes service account token from file system: %w"
-	errGetKubeSA              = "cannot get Kubernetes service account %q: %w"
-	errGetKubeSASecrets       = "cannot find secrets bound to service account: %q"
-	errGetKubeSANoToken       = "cannot find token in secrets bound to service account: %q"
-	errServiceAccountNotFound = "serviceaccounts %q not found"
+	errKubernetesNoTokenSource = "neither `serviceAccountRef` nor `secretRef` was supplied as token source for Kubernetes authentication"
+	errGetKubeSA               = "cannot get Kubernetes service account %q: %w"
+	errGetKubeSASecrets        = "cannot find secrets bound to service account: %q"
+	errGetKubeSANoToken        = "cannot find token in secrets bound to service account: %q"
+	errServiceAccountNotFound  = "serviceaccounts %q not found"
 )
 
 func setKubernetesAuthToken(ctx context.Context, v *client) (bool, error) {
@@ -106,17 +105,7 @@ func getJwtString(ctx context.Context, v *client, kubernetesAuth *esv1.VaultKube
 		return jwt, nil
 	}
 
-	// Kubernetes authentication is specified, but without a referenced
-	// Kubernetes secret. We check if the file path for in-cluster service account
-	// exists and attempt to use the token for Vault Kubernetes auth.
-	if _, err := os.Stat(serviceAccTokenPath); err != nil {
-		return "", fmt.Errorf(errServiceAccount, err)
-	}
-	jwtByte, err := os.ReadFile(serviceAccTokenPath)
-	if err != nil {
-		return "", fmt.Errorf(errServiceAccount, err)
-	}
-	return string(jwtByte), nil
+	return "", errors.New(errKubernetesNoTokenSource)
 }
 
 func (c *client) secretKeyRefForServiceAccount(ctx context.Context, serviceAccountRef *esmeta.ServiceAccountSelector) (string, error) {
