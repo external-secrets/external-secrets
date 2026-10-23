@@ -8294,6 +8294,21 @@ External Secrets meta/v1.SecretKeySelector
 <em>(Optional)</em>
 </td>
 </tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef authenticates as this ServiceAccount, using a token from the TokenRequest API.
+Takes precedence over serviceAccountTokenPath.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.KubernetesProvider">KubernetesProvider

@@ -25,8 +25,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	infisicalSdk "github.com/infisical/go-sdk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1meta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -469,4 +472,88 @@ func TestValidateStoreCAProvider(t *testing.T) {
 			tc.assertError(t, err)
 		})
 	}
+}
+
+func TestKubernetesAuthWithServiceAccountRef(t *testing.T) {
+	const identityID = "identity-id"
+	saNamespace := "sa-namespace"
+
+	newStore := func(kind string, saRef *esv1meta.ServiceAccountSelector) esv1.GenericStore {
+		spec := esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Infisical: &esv1.InfisicalProvider{
+					Auth: esv1.InfisicalAuth{
+						KubernetesAuthCredentials: &esv1.KubernetesAuthCredentials{
+							IdentityID:        esv1meta.SecretKeySelector{Name: "creds", Key: "identityId", Namespace: &saNamespace},
+							ServiceAccountRef: saRef,
+						},
+					},
+					SecretsScope: esv1.MachineIdentityScopeInWorkspace{ProjectSlug: "proj", EnvironmentSlug: "dev"},
+				},
+			},
+		}
+		if kind == esv1.ClusterSecretStoreKind {
+			return &esv1.ClusterSecretStore{Kind: kind, Spec: spec}
+		}
+		spec.Provider.Infisical.Auth.KubernetesAuthCredentials.IdentityID.Namespace = nil
+		return &esv1.SecretStore{Kind: kind, Namespace: "es-namespace", Spec: spec}
+	}
+
+	testCases := []struct {
+		name      string
+		store     esv1.GenericStore
+		namespace string
+	}{
+		{
+			name:      "SecretStore uses the ExternalSecret namespace",
+			store:     newStore(esv1.SecretStoreKind, &esv1meta.ServiceAccountSelector{Name: "app", Namespace: &saNamespace}),
+			namespace: "es-namespace",
+		},
+		{
+			name:      "ClusterSecretStore uses the serviceAccountRef namespace",
+			store:     newStore(esv1.ClusterSecretStoreKind, &esv1meta.ServiceAccountSelector{Name: "app", Namespace: &saNamespace}),
+			namespace: saNamespace,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			var login map[string]string
+			srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				require.NoError(t, json.NewDecoder(r.Body).Decode(&login))
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"accessToken":"access-token","expiresIn":3600}`))
+			}))
+			defer srv.Close()
+
+			kube := fake.NewClientBuilder().WithObjects(
+				&corev1.ServiceAccount{Name: "app", Namespace: tc.namespace},
+				&corev1.Secret{Name: "creds", Namespace: tc.namespace, Data: map[string][]byte{"identityId": []byte(identityID)}},
+			).Build()
+			sdkClient := infisicalSdk.NewInfisicalClient(context.Background(), infisicalSdk.Config{SiteUrl: srv.URL, AutoTokenRefresh: new(false)})
+
+			id, err := performKubernetesAuthLogin(context.Background(), tc.store, tc.store.GetSpec().Provider.Infisical, sdkClient, kube, "es-namespace")
+			require.NoError(t, err)
+			assert.Equal(t, identityID, id)
+			assert.Equal(t, identityID, login["identityId"])
+			assert.Equal(t, "fake-token", login["jwt"])
+		})
+	}
+
+	t.Run("a missing service account fails the login", func(t *testing.T) {
+		store := newStore(esv1.SecretStoreKind, &esv1meta.ServiceAccountSelector{Name: "missing"})
+		kube := fake.NewClientBuilder().WithObjects(
+			&corev1.Secret{Name: "creds", Namespace: "es-namespace", Data: map[string][]byte{"identityId": []byte(identityID)}},
+		).Build()
+		sdkClient := infisicalSdk.NewInfisicalClient(context.Background(), infisicalSdk.Config{SiteUrl: "http://127.0.0.1:0", AutoTokenRefresh: new(false)})
+
+		_, err := performKubernetesAuthLogin(context.Background(), store, store.GetSpec().Provider.Infisical, sdkClient, kube, "es-namespace")
+		assert.ErrorContains(t, err, `failed to create token for service account "missing"`)
+	})
+
+	t.Run("ClusterSecretStore requires a serviceAccountRef namespace", func(t *testing.T) {
+		store := newStore(esv1.ClusterSecretStoreKind, &esv1meta.ServiceAccountSelector{Name: "app"})
+		_, err := (&Provider{}).ValidateStore(store)
+		assert.Error(t, err)
+	})
 }

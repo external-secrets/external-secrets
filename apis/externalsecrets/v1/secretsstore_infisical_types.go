@@ -92,6 +92,10 @@ type KubernetesAuthCredentials struct {
 	IdentityID esmeta.SecretKeySelector `json:"identityId"`
 	// +optional
 	ServiceAccountTokenPath esmeta.SecretKeySelector `json:"serviceAccountTokenPath"`
+	// ServiceAccountRef authenticates as this ServiceAccount, using a token from the TokenRequest API.
+	// Takes precedence over serviceAccountTokenPath.
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 }
 
 // AwsAuthCredentials represents the credentials for AWS authentication.
