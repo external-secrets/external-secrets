@@ -22,6 +22,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	ntlmssp "github.com/Azure/go-ntlmssp"
 )
 
 func TestGetHTTPClientPreservesCustomCAWithNTLM(t *testing.T) {
@@ -45,6 +47,9 @@ func TestGetHTTPClientPreservesCustomCAWithNTLM(t *testing.T) {
 	client, err := webhook.GetHTTPClient(context.Background(), provider)
 	if err != nil {
 		t.Fatalf("GetHTTPClient() error = %v", err)
+	}
+	if _, ok := client.Transport.(*ntlmssp.Negotiator); !ok {
+		t.Fatalf("NTLM negotiator not configured: got %T", client.Transport)
 	}
 	response, err := client.Get(server.URL)
 	if err != nil {
