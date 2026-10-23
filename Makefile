@@ -92,7 +92,8 @@ update-deps: ## Update dependencies across all modules (root, apis, runtime, e2e
 
 .PHONY: license.check
 license.check:
-	$(DOCKER) run --rm -u $(shell id -u) -v $(shell pwd):/github/workspace docker.io/apache/skywalking-eyes:0.9.0@sha256:b503ab18f5b29d7e04abe05668faf42f1023f9347b095d97592a5208102588ef header check
+	# Pinned release: apache/skywalking-eyes:0.9.0 (SkyWalking Eyes; tracking 0.x)
+	$(DOCKER) run --rm -u $(shell id -u) -v $(shell pwd):/github/workspace docker.io/apache/skywalking-eyes@sha256:cd89ccbbcba2e87d3fb0e34b156b1da208d6c5ac1ada4e2d335e920022c765b8 header check
 
 # ====================================================================================
 # Golang
@@ -234,8 +235,9 @@ tilt-up: tilt manifests ## Generates the local manifests that tilt will use to d
 # Helm Chart
 
 helm.docs: ## Generate helm docs
+	# Pinned release: jnorwood/helm-docs:v1.14.2 (helm-docs; tracking 1.x)
 	@cd $(HELM_DIR); \
-	$(DOCKER) run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) docker.io/jnorwood/helm-docs:v1.14.2
+	$(DOCKER) run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) docker.io/jnorwood/helm-docs@sha256:7e562b49ab6b1dbc50c3da8f2dd6ffa8a5c6bba327b1c6335cc15ce29267979c
 
 HELM_VERSION ?= $(shell helm show chart $(HELM_DIR) | grep '^version:' | sed 's/version: //g')
 
