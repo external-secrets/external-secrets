@@ -264,21 +264,21 @@ func initializeNewAzureSDK(ctx context.Context, az *Azure) error {
 
 	// Create Azure SDK clients and store them directly
 	az.secretsClient, err = azsecrets.NewClient(*az.provider.VaultURL, credential, &azsecrets.ClientOptions{
-		ClientOptions: azcore.ClientOptions{Cloud: cloudConfig},
+		Cloud: cloudConfig,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create secrets client: %w", err)
 	}
 
 	az.keysClient, err = azkeys.NewClient(*az.provider.VaultURL, credential, &azkeys.ClientOptions{
-		ClientOptions: azcore.ClientOptions{Cloud: cloudConfig},
+		Cloud: cloudConfig,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create keys client: %w", err)
 	}
 
 	az.certsClient, err = azcertificates.NewClient(*az.provider.VaultURL, credential, &azcertificates.ClientOptions{
-		ClientOptions: azcore.ClientOptions{Cloud: cloudConfig},
+		Cloud: cloudConfig,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create certificates client: %w", err)
@@ -1098,7 +1098,8 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 		if clientID == "" || tenantID == "" || tokenFilePath == "" {
 			return nil, errors.New(errMissingWorkloadEnvVars)
 		}
-		token, err := os.ReadFile(filepath.Clean(tokenFilePath))
+		// The webhook-provided path is the intended token file; its location is configurable.
+		token, err := os.ReadFile(filepath.Clean(tokenFilePath)) //nolint:gosec // G703: AZURE_FEDERATED_TOKEN_FILE is a trusted pod environment setting
 		if err != nil {
 			return nil, fmt.Errorf(errReadTokenFile, tokenFilePath, err)
 		}
