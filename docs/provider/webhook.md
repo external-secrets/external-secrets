@@ -159,8 +159,8 @@ data:
   password: dGVzdA== # "test"
 ```
 
-
-
+Custom certificate authorities configured with `caBundle` or `caProvider` are used with
+NTLM authentication as well.
 
 !!! note
       If a webhook endpoint for a given `ExternalSecret` returns a 404 status code, the secret is considered to have been deleted.  This will trigger the `deletionPolicy` set on the `ExternalSecret`.
