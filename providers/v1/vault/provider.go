@@ -45,11 +45,12 @@ var (
 )
 
 const (
-	errVaultStore    = "received invalid Vault SecretStore resource: %w"
-	errVaultClient   = "cannot setup new vault client: %w"
-	errVaultCert     = "cannot set Vault CA certificate: %w"
-	errClientTLSAuth = "error from Client TLS Auth: %q"
-	errCANamespace   = "missing namespace on caProvider secret"
+	errVaultStore     = "received invalid Vault SecretStore resource: %w"
+	errVaultClient    = "cannot setup new vault client: %w"
+	errVaultCert      = "cannot set Vault CA certificate: %w"
+	errClientTLSAuth  = "error from Client TLS Auth: %q"
+	errCANamespace    = "missing namespace on caProvider secret"
+	errVaultCacheRace = "vault client cache race: winner unavailable after ContainsOrAdd; retry"
 )
 
 const (
@@ -264,7 +265,18 @@ func getVaultClient(p *Provider, store esv1.GenericStore, cfg *vault.Config, nam
 	}
 
 	if useCache {
-		clientCache.ContainsOrAdd(store.GetObjectMeta().ResourceVersion, key, client)
+		if clientCache.ContainsOrAdd(store.GetObjectMeta().ResourceVersion, key, client) {
+			// A concurrent constructor won the race and cached its own client.
+			// ContainsOrAdd passes the rejected value to the cache's cleanup
+			// function (which revokes our token), so hand back the cached
+			// winner rather than the client we just built.
+			if cached, ok := clientCache.Get(store.GetObjectMeta().ResourceVersion, key); ok {
+				return cached, nil
+			}
+			// Winner was removed between ContainsOrAdd and Get. Our client was
+			// already cleaned up (revoked); never return it.
+			return nil, errors.New(errVaultCacheRace)
+		}
 	}
 	return client, nil
 }
