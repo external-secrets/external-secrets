@@ -25,8 +25,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/url"
+	"sync/atomic"
 	tpl "text/template"
 
 	"github.com/Azure/go-ntlmssp"
@@ -40,6 +42,29 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 	"github.com/external-secrets/external-secrets/runtime/template/v2"
 )
+
+const (
+	// DefaultMaxResponseBodySize is the default maximum successful webhook
+	// response size in bytes.
+	DefaultMaxResponseBodySize = 10 << 20 // 10 MiB
+	maxRedirects               = 10
+)
+
+var maxResponseBodySize atomic.Int64
+
+func init() {
+	maxResponseBodySize.Store(DefaultMaxResponseBodySize)
+}
+
+// SetMaxResponseBodySize configures the maximum successful webhook response
+// size in bytes.
+func SetMaxResponseBodySize(size int64) error {
+	if size <= 0 || size == math.MaxInt64 {
+		return fmt.Errorf("webhook response body size must be between 1 and %d bytes", int64(math.MaxInt64-1))
+	}
+	maxResponseBodySize.Store(size)
+	return nil
+}
 
 // Webhook implements functionality to interact with webhook endpoints
 // to retrieve and push secrets.
@@ -281,6 +306,9 @@ func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byt
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+	if err := validateHTTPURL(req.URL); err != nil {
+		return nil, err
+	}
 
 	if provider.Headers != nil {
 		req, err = w.ReqAddHeaders(req, provider, rawData)
@@ -317,7 +345,24 @@ func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byt
 	}
 
 	// return response body
-	return io.ReadAll(resp.Body)
+	responseBodySize := maxResponseBodySize.Load()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, responseBodySize+1))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	if int64(len(body)) > responseBodySize {
+		return nil, fmt.Errorf("response body exceeds %d bytes", responseBodySize)
+	}
+	return body, nil
+}
+
+func validateHTTPURL(target *url.URL) error {
+	switch target.Scheme {
+	case "http", "https":
+		return nil
+	default:
+		return fmt.Errorf("unsupported webhook URL scheme %q: only http and https are allowed", target.Scheme)
+	}
 }
 
 // ReqAddHeaders adds headers to an HTTP request based on provider configuration.
@@ -364,7 +409,17 @@ func (w *Webhook) ReqAddAuth(ctx context.Context, r *http.Request, provider *Spe
 
 // GetHTTPClient returns an HTTP client configured according to the provider specification.
 func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Client, error) {
-	c := &http.Client{}
+	c := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if err := validateHTTPURL(req.URL); err != nil {
+				return err
+			}
+			if len(via) > maxRedirects {
+				return fmt.Errorf("stopped after %d redirects", maxRedirects)
+			}
+			return nil
+		},
+	}
 
 	// add timeout to client if it is there
 	if provider.Timeout != nil {

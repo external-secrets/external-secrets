@@ -159,8 +159,16 @@ data:
   password: dGVzdA== # "test"
 ```
 
+### HTTP behavior and limits
 
+Webhook URLs and redirect targets must use HTTP or HTTPS. The client follows at most 10
+redirects.
 
+Successful response bodies are limited to 10 MiB. A larger response fails reconciliation
+with an error instead of being loaded into controller memory. This limit applies to
+responses used by both `ExternalSecret` and `PushSecret`. Configure the limit in bytes with
+the controller's `--webhook-response-body-size` flag. Helm installations can pass the flag
+through `extraArgs.webhook-response-body-size`.
 
 !!! note
       If a webhook endpoint for a given `ExternalSecret` returns a 404 status code, the secret is considered to have been deleted.  This will trigger the `deletionPolicy` set on the `ExternalSecret`.
