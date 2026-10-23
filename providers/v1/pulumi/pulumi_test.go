@@ -29,6 +29,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"sigs.k8s.io/yaml"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -458,8 +459,10 @@ func TestPushSecret(t *testing.T) {
 				},
 			},
 			"app": map[string]any{
-				"token": "new-token",
-				"url":   "https://app.example.com",
+				"token": map[string]any{
+					"fn::secret": "new-token",
+				},
+				"url": "https://app.example.com",
 			},
 		},
 	}
@@ -494,11 +497,111 @@ func TestPushSecretEmptyEnvironment(t *testing.T) {
 	want := map[string]any{
 		"values": map[string]any{
 			"app": map[string]any{
-				"token": "new-token",
+				"token": map[string]any{
+					"fn::secret": "new-token",
+				},
 			},
 		},
 	}
 	assert.Equal(t, want, patched)
+}
+
+func TestPushSecretFnSecret(t *testing.T) {
+	// GetEnvironment returns a stored fn::secret as {"ciphertext": ...}, while
+	// a push writes it as a plaintext string, so the same key can hold a
+	// string on one side of the merge and a map on the other.
+	ciphertext := map[string]any{"fn::secret": map[string]any{"ciphertext": "ZXNjeAAAAAE="}}
+	plainOptOut := &apiextensionsv1.JSON{Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"secret":false}}`)}
+	secretOptIn := &apiextensionsv1.JSON{Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"secret":true}}`)}
+
+	tests := map[string]struct {
+		stored   any
+		metadata *apiextensionsv1.JSON
+		want     any
+	}{
+		"default wraps over plain literal": {
+			stored: "old-token",
+			want:   map[string]any{"fn::secret": "new-token"},
+		},
+		"default wraps over stored ciphertext": {
+			stored: ciphertext,
+			want:   map[string]any{"fn::secret": "new-token"},
+		},
+		"explicit secret true wraps": {
+			stored:   "old-token",
+			metadata: secretOptIn,
+			want:     map[string]any{"fn::secret": "new-token"},
+		},
+		"opt-out writes plain over stored ciphertext": {
+			stored:   ciphertext,
+			metadata: plainOptOut,
+			want:     "new-token",
+		},
+		"opt-out writes plain over plain literal": {
+			stored:   "old-token",
+			metadata: plainOptOut,
+			want:     "new-token",
+		},
+		"default replaces a nested map": {
+			stored: map[string]any{"user": "admin", "pass": "hunter2"},
+			want:   map[string]any{"fn::secret": "new-token"},
+		},
+	}
+
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			definition := map[string]any{
+				"values": map[string]any{
+					"app": map[string]any{
+						"token": tc.stored,
+						"url":   "https://app.example.com",
+					},
+				},
+			}
+			var patched map[string]any
+			client := newTestClient(t, "", "/environments/foo/default/bar", func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Add(contentType, contentTypeValue)
+				switch r.Method {
+				case http.MethodGet:
+					require.NoError(t, json.NewEncoder(w).Encode(definition))
+				case http.MethodPatch:
+					body, err := io.ReadAll(r.Body)
+					require.NoError(t, err)
+					require.NoError(t, yaml.Unmarshal(body, &patched))
+					_, _ = w.Write([]byte(`{}`))
+				default:
+					w.WriteHeader(http.StatusMethodNotAllowed)
+				}
+			})
+
+			err := client.PushSecret(context.TODO(), &corev1.Secret{
+				Data: map[string][]byte{"token": []byte("new-token")},
+			}, testingfake.PushSecretData{SecretKey: "token", RemoteKey: "app.token", Metadata: tc.metadata})
+			require.NoError(t, err)
+
+			want := map[string]any{
+				"values": map[string]any{
+					"app": map[string]any{
+						"token": tc.want,
+						"url":   "https://app.example.com",
+					},
+				},
+			}
+			assert.Equal(t, want, patched)
+		})
+	}
+}
+
+func TestPushSecretInvalidMetadata(t *testing.T) {
+	client := newTestClient(t, "", "/environments/foo/default/bar", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	})
+	err := client.PushSecret(context.TODO(), &corev1.Secret{
+		Data: map[string][]byte{"token": []byte("new-token")},
+	}, testingfake.PushSecretData{SecretKey: "token", RemoteKey: "app.token", Metadata: &apiextensionsv1.JSON{
+		Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"unknown":true}}`),
+	}})
+	assert.ErrorContains(t, err, "failed to parse metadata")
 }
 
 func TestCreateSubmaps(t *testing.T) {
