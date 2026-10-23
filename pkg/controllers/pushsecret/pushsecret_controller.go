@@ -426,7 +426,9 @@ func mergeSecretState(newMap, old esapi.SyncedPushSecretsMap) esapi.SyncedPushSe
 
 // DeleteSecretFromProviders removes secrets from providers that are no longer needed.
 // It compares the existing synced secrets in the PushSecret status with the new desired state,
-// and deletes any secrets that are no longer present in the new state.
+// and deletes any secrets that are no longer present in the new state. A removed entry is not
+// deleted when the new state still pushes its remote key as a whole secret, or by properties
+// that replace a whole secret, since that would delete what the new state has just written.
 func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.PushSecret, newMap esapi.SyncedPushSecretsMap, mgr *secretstore.Manager) (esapi.SyncedPushSecretsMap, error) {
 	out := mergeSecretState(newMap, ps.Status.SyncedPushSecrets)
 	for storeName, oldData := range ps.Status.SyncedPushSecrets {
