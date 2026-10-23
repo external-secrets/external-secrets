@@ -79,7 +79,6 @@ var (
 
 // Provider is a Password Safe secrets provider implementing NewClient and ValidateStore for the esv1.Provider interface.
 type Provider struct {
-	apiURL        string
 	retrievaltype string
 	decrypt       bool
 	authenticate  auth.AuthenticationObj
@@ -121,16 +120,17 @@ func (*Provider) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemote
 	return make(map[string][]byte), errors.New(errNotImplemented)
 }
 
-// Validate implements v1beta1.SecretsClient.
+// Validate implements esv1.SecretsClient.
+// NewClient builds the auth object from store config. The credential checks
+// will be performed here, and the session is closed afterward.
 func (p *Provider) Validate() (esv1.ValidationResult, error) {
-	timeout := 15 * time.Second
-	clientURL := p.apiURL
-
-	if err := esutils.NetworkValidate(clientURL, timeout); err != nil {
-		ESOLogger.Error(err, "Network Validate", "clientURL:", clientURL)
-		return esv1.ValidationResultError, err
+	_, err := p.authenticate.GetPasswordSafeAuthentication()
+	if err != nil {
+		return esv1.ValidationResultError, fmt.Errorf("error getting authentication: %w", err)
 	}
-
+	if err := p.authenticate.SignOut(); err != nil {
+		return esv1.ValidationResultError, fmt.Errorf("error signing out after validation: %w", err)
+	}
 	return esv1.ValidationResultReady, nil
 }
 
@@ -217,7 +217,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	return &Provider{
-		apiURL:        config.Server.APIURL,
 		retrievaltype: config.Server.RetrievalType,
 		authenticate:  *authenticate,
 		log:           *logger,
