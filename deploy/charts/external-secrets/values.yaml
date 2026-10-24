@@ -415,8 +415,8 @@ grafanaDashboard:
   extraLabels: {}
 
 livenessProbe:
-  # -- Enabled determines if the liveness probe should be used or not. By default it's disabled.
-  enabled: false
+  # -- Enabled determines if the liveness probe should be used or not. Enabled by default.
+  enabled: true
   # -- The body of the liveness probe settings.
   spec:
     # -- Bind address for the health server used by both liveness and readiness probes (--live-addr flag).
@@ -442,8 +442,8 @@ livenessProbe:
       path: /healthz
 
 readinessProbe:
-  # -- Determines whether the readiness probe is enabled. Disabled by default. Enabling this will auto-start the health server (--live-addr) even if livenessProbe is disabled. Health server address/port are configured via livenessProbe.spec.address and livenessProbe.spec.port.
-  enabled: false
+  # -- Determines whether the readiness probe is enabled. Enabled by default. Enabling this will auto-start the health server (--live-addr) even if livenessProbe is disabled. Health server address/port are configured via livenessProbe.spec.address and livenessProbe.spec.port.
+  enabled: true
   # -- The body of the readiness probe settings (standard Kubernetes probe spec).
   spec:
     # -- Specify the maximum amount of time to wait for a probe to respond before considering it fails.
@@ -710,7 +710,7 @@ webhook:
 
 
   livenessProbe:
-    enabled: false
+    enabled: true
     # -- Set this value to 'live' (for named port) or an integer for liveness probes.
     # @schema type: [string, integer]
     port: 8081
@@ -941,7 +941,7 @@ certController:
       annotations: {}
 
   livenessProbe:
-    enabled: false
+    enabled: true
     # -- Set this value to 'live' (for named port) or an integer for liveness probes.
     # @schema type: [string, integer]
     port: 8081
