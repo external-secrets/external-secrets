@@ -23,7 +23,9 @@ import (
 	"fmt"
 	"maps"
 	"regexp"
+	"slices"
 	"strings"
+	"unicode/utf8"
 
 	ksm "github.com/keeper-security/secrets-manager-go/core"
 	corev1 "k8s.io/api/core/v1"
@@ -50,19 +52,17 @@ const (
 	errInvalidRegex                             = "find.name.regex. Invalid Regular expresion %s. %w"
 	errInvalidRemoteRefKey                      = "match.remoteRef.remoteKey. Invalid format. Format should match secretName/key got %s"
 	errInvalidSecretType                        = "ESO can only push/delete records of type %s. Secret %s is type %s"
-	errFieldNotFound                            = "secret %s does not contain any custom field with label %s"
 	errKeeperSecurityMissingFolderIDForCreate   = "folderID must be set on the SecretStore to create a new Keeper Security record"
+	errKeeperSecurityUnexpectedFieldState       = "keepersecurity: unexpected field state (property=%t, secretKey=%t)"
+	errKeeperSecurityWholeRecordKeyHasSlash     = "match.remoteRef.remoteKey. Whole-record push does not support '/' in the remote key, got %s"
+	errKeeperSecurityNonUTF8Value               = "secret key %q is not valid UTF-8 and cannot be stored in a Keeper property"
 
 	externalSecretType = "externalSecrets"
 	secretType         = "secret"
 	// LoginType represents the login field type.
 	LoginType = "login"
-	// LoginTypeExpr is the regex expression for matching login/username fields.
-	LoginTypeExpr = "login|username"
 	// PasswordType represents the password field type.
 	PasswordType = "password"
-	// URLTypeExpr is the regex expression for matching URL/baseurl fields.
-	URLTypeExpr = "url|baseurl"
 	// URLType represents the URL field type.
 	URLType = "url"
 )
@@ -219,20 +219,12 @@ func (c *Client) Close(_ context.Context) error {
 
 // PushSecret creates or updates a secret in Keeper Security.
 func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
-	if data.GetSecretKey() == "" {
-		return errors.New("pushing the whole secret is not yet implemented")
-	}
-
-	// Close implements cleanup operations for the Keeper Security client
-	value := secret.Data[data.GetSecretKey()]
-	parts, err := c.buildSecretNameAndKey(data)
+	keeperRecordData, err := c.buildRecord(secret, data)
 	if err != nil {
 		return err
-		// PushSecret creates or updates a secret in Keeper Security.
-		// Currently only supports pushing individual secret values, not entire secrets.
 	}
 
-	record, err := c.findSecretByName(parts[0])
+	record, err := c.findSecretByName(keeperRecordData.Title)
 	if err != nil {
 		return err
 	}
@@ -241,28 +233,170 @@ func (c *Client) PushSecret(_ context.Context, secret *corev1.Secret, data esv1.
 		if record.Type() != externalSecretType {
 			return fmt.Errorf(errInvalidSecretType, externalSecretType, record.Title(), record.Type())
 		}
-		return c.updateSecret(record, parts[1], value)
+		return c.updateSecret(record, keeperRecordData, isWholeSecretData(data))
 	}
 
-	_, err = c.createSecret(parts[0], parts[1], value)
+	_, err = c.createSecret(keeperRecordData)
 	return err
+}
+
+func isWholeSecretData(data esv1.PushSecretData) bool {
+	return data.GetProperty() == "" && data.GetSecretKey() == ""
+}
+
+// buildRecord builds the Keeper record as outlined by the rules in
+// https://external-secrets.io/latest/guides/pushsecrets/
+func (c *Client) buildRecord(secret *corev1.Secret, data esv1.PushSecretData) (*Secret, error) {
+	hasProperty := data.GetProperty() != ""
+	hasSecretKey := data.GetSecretKey() != ""
+
+	switch {
+	case !hasProperty && !hasSecretKey:
+		return buildWholeRecord(secret, data)
+	case hasProperty && !hasSecretKey:
+		return buildPropertyRecord(secret, data)
+	case hasProperty && hasSecretKey:
+		return buildPropertyFromSecretKeyRecord(secret, data)
+	case !hasProperty && hasSecretKey:
+		return c.buildLegacyRecord(secret, data)
+	}
+
+	return nil, fmt.Errorf(errKeeperSecurityUnexpectedFieldState, hasProperty, hasSecretKey)
+}
+
+func buildWholeRecord(secret *corev1.Secret, data esv1.PushSecretData) (*Secret, error) {
+	remoteKey := data.GetRemoteKey()
+	if strings.Contains(remoteKey, "/") {
+		return nil, fmt.Errorf(errKeeperSecurityWholeRecordKeyHasSlash, remoteKey)
+	}
+	return buildSecret(remoteKey, secret.Data), nil
+}
+
+func buildPropertyRecord(secret *corev1.Secret, data esv1.PushSecretData) (*Secret, error) {
+	// json.Marshal base64-encodes []byte values, so convert to strings first to
+	// keep the stored property readable by ExternalSecrets.
+	stringData := make(map[string]string, len(secret.Data))
+	for key, value := range secret.Data {
+		// string(value) would silently corrupt non-UTF-8 bytes (json.Marshal
+		// replaces them with U+FFFD), so reject them instead.
+		if !utf8.Valid(value) {
+			return nil, fmt.Errorf(errKeeperSecurityNonUTF8Value, key)
+		}
+		stringData[key] = string(value)
+	}
+	secretContent, err := json.Marshal(stringData)
+	if err != nil {
+		return nil, err
+	}
+
+	return buildSecret(data.GetRemoteKey(), map[string][]byte{data.GetProperty(): secretContent}), nil
+}
+
+func buildPropertyFromSecretKeyRecord(secret *corev1.Secret, data esv1.PushSecretData) (*Secret, error) {
+	secretValue, ok := secret.Data[data.GetSecretKey()]
+	if !ok {
+		return nil, fmt.Errorf(errKeeperSecurityNoFields, data.GetSecretKey())
+	}
+
+	return buildSecret(data.GetRemoteKey(), map[string][]byte{data.GetProperty(): secretValue}), nil
+}
+
+func (c *Client) buildLegacyRecord(secret *corev1.Secret, data esv1.PushSecretData) (*Secret, error) {
+	parts, err := buildSecretNameAndKey(data)
+	if err != nil {
+		return nil, err
+	}
+
+	value := secret.Data[data.GetSecretKey()]
+	fieldType, isStandard := keeperFieldType(parts[1])
+	if !isStandard {
+		return buildSecret(parts[0], map[string][]byte{parts[1]: value}), nil
+	}
+
+	// Legacy record/key references historically map standard keys to Keeper's
+	// default fields. Keep them unlabelled so existing consumers see the same
+	// Login, Password, and URL fields.
+	return &Secret{
+		Type:  externalSecretType,
+		Title: parts[0],
+		Fields: []Field{{
+			Type:  fieldType,
+			Value: []any{string(value)},
+		}},
+		Custom: []CustomField{},
+	}, nil
+}
+
+func buildSecret(title string, data map[string][]byte) *Secret {
+	recordData := Secret{Type: externalSecretType, Title: title, Fields: []Field{}, Custom: []CustomField{}}
+	// Iterate in sorted order so whole-record replacement keeps a stable field order.
+	for _, key := range slices.Sorted(maps.Keys(data)) {
+		value := data[key]
+		fieldType, isStandard := keeperFieldType(key)
+		if isStandard {
+			recordData.Fields = append(recordData.Fields, Field{Type: fieldType, Label: key, Value: []any{string(value)}})
+		} else {
+			recordData.Custom = append(recordData.Custom, CustomField{Type: secretType, Label: key, Value: []any{string(value)}})
+		}
+	}
+
+	return &recordData
+}
+
+func keeperFieldType(key string) (string, bool) {
+	switch strings.ToLower(key) {
+	case "login", "username":
+		return LoginType, true
+	case PasswordType:
+		return PasswordType, true
+	case "url", "baseurl":
+		return URLType, true
+	default:
+		return secretType, false
+	}
 }
 
 // DeleteSecret removes a secret from Keeper Security.
 func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1.PushSecretRemoteRef) error {
-	parts, err := c.buildSecretNameAndKey(remoteRef)
-	if err != nil {
-		return err
+	target := resolvePushTarget(remoteRef)
+	if target.fieldKey == "" {
+		return c.deleteWholeSecret(target.secretName)
 	}
-	secret, err := c.findSecretByName(parts[0])
+	return c.deleteSecretField(target.secretName, target.fieldKey)
+}
+
+type keeperPushTarget struct {
+	secretName string
+	fieldKey   string
+}
+
+func resolvePushTarget(remoteRef esv1.PushSecretRemoteRef) keeperPushTarget {
+	if property := remoteRef.GetProperty(); property != "" {
+		return keeperPushTarget{secretName: remoteRef.GetRemoteKey(), fieldKey: property}
+	}
+	parts, err := buildSecretNameAndKey(remoteRef)
 	if err != nil {
-		return err
-	} else if secret == nil {
-		// DeleteSecret removes a secret from Keeper Security.
-		// Returns nil if the secret doesn't exist (already deleted).
-		return nil // not found == already deleted (success)
+		return keeperPushTarget{secretName: remoteRef.GetRemoteKey()}
 	}
 
+	return keeperPushTarget{secretName: parts[0], fieldKey: legacyFieldKey(parts[1])}
+}
+
+func legacyFieldKey(key string) string {
+	if fieldType, isStandard := keeperFieldType(key); isStandard {
+		return fieldType
+	}
+	return key
+}
+
+func (c *Client) deleteWholeSecret(secretName string) error {
+	secret, err := c.findSecretByName(secretName)
+	if err != nil {
+		return err
+	}
+	if secret == nil {
+		return nil
+	}
 	if secret.Type() != externalSecretType {
 		return fmt.Errorf(errInvalidSecretType, externalSecretType, secret.Title(), secret.Type())
 	}
@@ -271,51 +405,115 @@ func (c *Client) DeleteSecret(_ context.Context, remoteRef esv1.PushSecretRemote
 	return err
 }
 
-// SecretExists checks if a secret exists in Keeper Security.
-func (c *Client) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New("not implemented")
+func (c *Client) deleteSecretField(secretName, fieldKey string) error {
+	secret, err := c.findSecretByName(secretName)
+	if err != nil {
+		return err
+	}
+	if secret == nil {
+		return nil
+	}
+	if secret.Type() != externalSecretType {
+		return fmt.Errorf(errInvalidSecretType, externalSecretType, secret.Title(), secret.Type())
+	}
+	if !removeKeeperRecordField(secret, fieldKey) {
+		return nil
+	}
+	if keeperRecordIsEmpty(secret) {
+		_, err = c.ksmClient.DeleteSecrets([]string{secret.Uid})
+		metrics.ObserveAPICall(ProviderKeeperSecurity, CallKeeperSecurityDeleteSecrets, err)
+		return err
+	}
+
+	syncRecordRawJSON(secret)
+	err = c.ksmClient.Save(secret)
+	metrics.ObserveAPICall(ProviderKeeperSecurity, CallKeeperSecuritySave, err)
+	return err
 }
 
-func (c *Client) buildSecretNameAndKey(remoteRef esv1.PushSecretRemoteRef) ([]string, error) {
+func removeKeeperRecordField(record *ksm.Record, key string) bool {
+	fieldType, isStandard := keeperFieldType(key)
+	section := "custom"
+	if isStandard {
+		section = "fields"
+	}
+	fields, ok := record.RecordDict[section].([]any)
+	if !ok {
+		return false
+	}
+
+	updatedFields := make([]any, 0, len(fields))
+	removed := false
+	for _, field := range fields {
+		fieldMap, ok := field.(map[string]any)
+		if !removed && ok && (isStandard && fieldMap["type"] == fieldType && matchesStandardField(fieldMap, key, fieldType) || !isStandard && fieldMap["label"] == key) {
+			removed = true
+			continue
+		}
+		updatedFields = append(updatedFields, field)
+	}
+	if removed {
+		record.RecordDict[section] = updatedFields
+	}
+
+	return removed
+}
+
+func keeperRecordIsEmpty(record *ksm.Record) bool {
+	for _, section := range []string{"fields", "custom"} {
+		if fields, ok := record.RecordDict[section].([]any); ok && len(fields) > 0 {
+			return false
+		}
+	}
+	return true
+}
+
+// SecretExists checks if a secret exists in Keeper Security.
+func (c *Client) SecretExists(_ context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
+	target := resolvePushTarget(ref)
+	record, err := c.findSecretByName(target.secretName)
+	if err != nil || record == nil {
+		return record != nil, err
+	}
+	if target.fieldKey == "" {
+		return true, nil
+	}
+
+	return keeperRecordHasField(record, target.fieldKey), nil
+}
+
+func keeperRecordHasField(record *ksm.Record, key string) bool {
+	fieldType, isStandard := keeperFieldType(key)
+	if !isStandard {
+		return len(record.GetCustomFieldsByLabel(key)) > 0
+	}
+	for _, field := range record.GetFieldsByType(fieldType) {
+		if matchesStandardField(field, key, fieldType) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func buildSecretNameAndKey(remoteRef esv1.PushSecretRemoteRef) ([]string, error) {
 	parts := strings.Split(remoteRef.GetRemoteKey(), "/")
 	if len(parts) != 2 {
 		return nil, fmt.Errorf(errInvalidRemoteRefKey, remoteRef.GetRemoteKey())
 	}
-	// SecretExists checks if a secret exists in Keeper Security.
-	// This method is not implemented yet.
-
 	return parts, nil
 }
 
-func (c *Client) createSecret(name, key string, value []byte) (string, error) {
-	normalizedKey := strings.ToLower(key)
-	externalSecretRecord := ksm.NewRecordCreate(externalSecretType, name)
-	login := regexp.MustCompile(LoginTypeExpr)
-	pass := regexp.MustCompile(PasswordType)
-	url := regexp.MustCompile(URLTypeExpr)
-
-	switch {
-	case login.MatchString(normalizedKey):
-		externalSecretRecord.Fields = append(externalSecretRecord.Fields,
-			ksm.NewLogin(string(value)),
-		)
-	case pass.MatchString(normalizedKey):
-		externalSecretRecord.Fields = append(externalSecretRecord.Fields,
-			ksm.NewPassword(string(value)),
-		)
-	case url.MatchString(normalizedKey):
-		externalSecretRecord.Fields = append(externalSecretRecord.Fields,
-			ksm.NewUrl(string(value)),
-		)
-	default:
-		field := ksm.KeeperRecordField{Type: secretType, Label: key}
-		externalSecretRecord.Custom = append(externalSecretRecord.Custom,
-			ksm.Secret{KeeperRecordField: field, Value: []string{string(value)}},
-		)
-	}
-
+func (c *Client) createSecret(secret *Secret) (string, error) {
+	externalSecretRecord := ksm.NewRecordCreate(externalSecretType, secret.Title)
 	if c.folderID == "" {
 		return "", errors.New(errKeeperSecurityMissingFolderIDForCreate)
+	}
+	for _, field := range secret.Fields {
+		externalSecretRecord.Fields = append(externalSecretRecord.Fields, field)
+	}
+	for _, field := range secret.Custom {
+		externalSecretRecord.Custom = append(externalSecretRecord.Custom, field)
 	}
 
 	uid, err := c.ksmClient.CreateSecretWithRecordData("", c.folderID, externalSecretRecord)
@@ -323,35 +521,139 @@ func (c *Client) createSecret(name, key string, value []byte) (string, error) {
 	return uid, err
 }
 
-func (c *Client) updateSecret(secret *ksm.Record, key string, value []byte) error {
-	normalizedKey := strings.ToLower(key)
-	login := regexp.MustCompile(LoginTypeExpr)
-	pass := regexp.MustCompile(PasswordType)
-	url := regexp.MustCompile(URLTypeExpr)
-	custom := false
-
-	switch {
-	case login.MatchString(normalizedKey):
-		secret.SetFieldValueSingle(LoginType, string(value))
-	case pass.MatchString(normalizedKey):
-		secret.SetPassword(string(value))
-	case url.MatchString(normalizedKey):
-		secret.SetFieldValueSingle(URLType, string(value))
-	default:
-		custom = true
+func (c *Client) updateSecret(currentRecord *ksm.Record, recordData *Secret, replaceFields bool) error {
+	if replaceFields {
+		if err := replaceKeeperRecordFields(currentRecord, recordData); err != nil {
+			return err
+		}
+	} else if err := mergeKeeperRecordFields(currentRecord, recordData); err != nil {
+		return err
 	}
-	if custom {
-		field := secret.GetCustomFieldValueByLabel(key)
-		if field != "" {
-			secret.SetCustomFieldValueSingle(key, string(value))
-		} else {
-			return fmt.Errorf(errFieldNotFound, secret.Title(), key)
+
+	err := c.ksmClient.Save(currentRecord)
+	metrics.ObserveAPICall(ProviderKeeperSecurity, CallKeeperSecuritySave, err)
+	return err
+}
+
+func replaceKeeperRecordFields(currentRecord *ksm.Record, recordData *Secret) error {
+	desiredJSON, err := json.Marshal(recordData)
+	if err != nil {
+		return err
+	}
+	var desiredRecord map[string]any
+	if err := json.Unmarshal(desiredJSON, &desiredRecord); err != nil {
+		return err
+	}
+	currentRecord.RecordDict["fields"] = desiredRecord["fields"]
+	currentRecord.RecordDict["custom"] = desiredRecord["custom"]
+	syncRecordRawJSON(currentRecord)
+	return nil
+}
+
+func syncRecordRawJSON(record *ksm.Record) {
+	record.RawJson = ksm.DictToJson(record.RecordDict)
+}
+
+func mergeKeeperRecordFields(currentRecord *ksm.Record, recordData *Secret) error {
+	for _, field := range recordData.Fields {
+		if err := mergeStandardField(currentRecord, field); err != nil {
+			return err
 		}
 	}
 
-	err := c.ksmClient.Save(secret)
-	metrics.ObserveAPICall(ProviderKeeperSecurity, CallKeeperSecuritySave, err)
-	return err
+	for _, field := range recordData.Custom {
+		if err := mergeCustomField(currentRecord, field); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func mergeStandardField(currentRecord *ksm.Record, field Field) error {
+	key := field.Label
+	if key == "" {
+		key = field.Type
+	}
+	if len(currentRecord.GetFieldsByLabel(field.Label)) > 0 {
+		return currentRecord.SetStandardFieldValue(key, field.Value)
+	}
+	if (field.Label == "" || field.Label == field.Type) && hasUnlabelledStandardField(currentRecord, field.Type) {
+		return currentRecord.SetStandardFieldValue(field.Type, field.Value)
+	}
+	return insertStandardField(currentRecord, field)
+}
+
+func mergeCustomField(currentRecord *ksm.Record, field CustomField) error {
+	if len(currentRecord.GetCustomFieldsByLabel(field.Label)) > 0 {
+		return currentRecord.SetCustomFieldValue(field.Label, field.Value)
+	}
+	values, err := customFieldStringValues(field)
+	if err != nil {
+		return err
+	}
+	return currentRecord.AddCustomField(ksm.Secret{KeeperRecordField: ksm.KeeperRecordField{Type: secretType, Label: field.Label}, Value: values})
+}
+
+func customFieldStringValues(field CustomField) ([]string, error) {
+	values := make([]string, len(field.Value))
+	for index, value := range field.Value {
+		stringValue, ok := value.(string)
+		if !ok {
+			return nil, fmt.Errorf("custom field %q requires string values", field.Label)
+		}
+		values[index] = stringValue
+	}
+	return values, nil
+}
+
+func insertStandardField(record *ksm.Record, field Field) error {
+	value := ""
+	if len(field.Value) > 0 {
+		var ok bool
+		value, ok = field.Value[0].(string)
+		if !ok {
+			return fmt.Errorf("standard field %q requires string values", field.Type)
+		}
+	}
+	var keeperField any
+	switch field.Type {
+	case LoginType:
+		keeperField = ksm.NewLogin(value)
+		keeperField.(*ksm.Login).Label = field.Label
+	case PasswordType:
+		keeperField = ksm.NewPassword(value)
+		keeperField.(*ksm.Password).Label = field.Label
+	case URLType:
+		keeperField = ksm.NewUrl(value)
+		keeperField.(*ksm.Url).Label = field.Label
+	default:
+		return fmt.Errorf("unsupported standard field type %q", field.Type)
+	}
+	if err := record.InsertField("fields", keeperField); err != nil {
+		return err
+	}
+	key := field.Label
+	if key == "" {
+		key = field.Type
+	}
+	return record.SetStandardFieldValue(key, field.Value)
+}
+
+func hasUnlabelledStandardField(record *ksm.Record, fieldType string) bool {
+	for _, field := range record.GetFieldsByType(fieldType) {
+		if matchesStandardField(field, fieldType, fieldType) {
+			return true
+		}
+	}
+	return false
+}
+
+func matchesStandardField(field map[string]any, key, fieldType string) bool {
+	if label, ok := field["label"].(string); ok && label != "" {
+		return label == key
+	}
+	return key == fieldType
 }
 
 func (c *Client) getValidKeeperSecret(secret *ksm.Record) (*Secret, error) {
