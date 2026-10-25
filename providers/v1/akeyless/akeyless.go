@@ -148,6 +148,10 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 			return nil, errors.New(errInvalidAkeylessURL)
 		}
 	}
+	if akeylessSpec.Auth.KubernetesAuth != nil && akeylessSpec.Auth.JWTAuth != nil {
+		return nil, errors.New(errMultipleAkeylessAuthMethods)
+	}
+
 	if akeylessSpec.Auth.KubernetesAuth != nil {
 		if akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef != nil {
 			if err := esutils.ValidateReferentServiceAccountSelector(store, *akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef); err != nil {
@@ -192,8 +196,8 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 				return nil, fmt.Errorf("invalid Auth.JWTAuth.ServiceAccountRef: %w", err)
 			}
 		}
-		if jwtAuth.ExpirationSeconds != nil && *jwtAuth.ExpirationSeconds <= 0 {
-			return nil, errors.New("Auth.JWTAuth.ExpirationSeconds must be greater than 0")
+		if jwtAuth.ExpirationSeconds != nil && *jwtAuth.ExpirationSeconds < defaultJWTTokenTTL {
+			return nil, fmt.Errorf("Auth.JWTAuth.ExpirationSeconds must be at least %d", defaultJWTTokenTTL)
 		}
 		return nil, nil
 	}
