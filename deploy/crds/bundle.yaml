@@ -2468,6 +2468,83 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            jwtAuth:
+                              description: |-
+                                JWTAuth authenticates with an Akeyless OAuth2.0/JWT auth method by
+                                submitting access-type=jwt and a bearer JWT. Prefer this over stuffing
+                                the JWT into SecretRef.accessTypeParam when using projected tokens.
+                              properties:
+                                accessID:
+                                  description: the Akeyless OAuth2.0/JWT auth-method access-id
+                                  type: string
+                                expirationSeconds:
+                                  description: |-
+                                    Optional expiration time in seconds for TokenRequest tokens.
+                                    Defaults to 600 (10 minutes).
+                                  format: int64
+                                  type: integer
+                                secretRef:
+                                  description: |-
+                                    Optional SecretRef that refers to a key in a Secret resource containing
+                                    the JWT used to authenticate with Akeyless.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: |-
+                                    Optional ServiceAccountRef requests a token via the TokenRequest API.
+                                    Set audiences to match the Akeyless OAuth2 auth-method audience (and
+                                    cluster OIDC expectations). Mutually exclusive with SecretRef.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                              type: object
                             kubernetesAuth:
                               description: |-
                                 Kubernetes authenticates with Akeyless by passing the ServiceAccount
@@ -16145,6 +16222,83 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            jwtAuth:
+                              description: |-
+                                JWTAuth authenticates with an Akeyless OAuth2.0/JWT auth method by
+                                submitting access-type=jwt and a bearer JWT. Prefer this over stuffing
+                                the JWT into SecretRef.accessTypeParam when using projected tokens.
+                              properties:
+                                accessID:
+                                  description: the Akeyless OAuth2.0/JWT auth-method access-id
+                                  type: string
+                                expirationSeconds:
+                                  description: |-
+                                    Optional expiration time in seconds for TokenRequest tokens.
+                                    Defaults to 600 (10 minutes).
+                                  format: int64
+                                  type: integer
+                                secretRef:
+                                  description: |-
+                                    Optional SecretRef that refers to a key in a Secret resource containing
+                                    the JWT used to authenticate with Akeyless.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: |-
+                                    Optional ServiceAccountRef requests a token via the TokenRequest API.
+                                    Set audiences to match the Akeyless OAuth2 auth-method audience (and
+                                    cluster OIDC expectations). Mutually exclusive with SecretRef.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                              type: object
                             kubernetesAuth:
                               description: |-
                                 Kubernetes authenticates with Akeyless by passing the ServiceAccount
