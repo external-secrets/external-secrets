@@ -171,6 +171,33 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		return nil, nil
 	}
 
+	if akeylessSpec.Auth.JWTAuth != nil {
+		jwtAuth := akeylessSpec.Auth.JWTAuth
+		if jwtAuth.AccessID == "" {
+			return nil, errors.New(errMissingJWTAccessID)
+		}
+		hasSecret := jwtAuth.SecretRef != nil
+		hasSA := jwtAuth.ServiceAccountRef != nil
+		switch {
+		case hasSecret && hasSA:
+			return nil, errors.New(errJWTAuthBothTokenSources)
+		case !hasSecret && !hasSA:
+			return nil, errors.New(errJWTAuthTokenSource)
+		case hasSecret:
+			if err := esutils.ValidateSecretSelector(store, *jwtAuth.SecretRef); err != nil {
+				return nil, fmt.Errorf("invalid Auth.JWTAuth.SecretRef: %w", err)
+			}
+		case hasSA:
+			if err := esutils.ValidateReferentServiceAccountSelector(store, *jwtAuth.ServiceAccountRef); err != nil {
+				return nil, fmt.Errorf("invalid Auth.JWTAuth.ServiceAccountRef: %w", err)
+			}
+		}
+		if jwtAuth.ExpirationSeconds != nil && *jwtAuth.ExpirationSeconds <= 0 {
+			return nil, errors.New("Auth.JWTAuth.ExpirationSeconds must be greater than 0")
+		}
+		return nil, nil
+	}
+
 	accessID := akeylessSpec.Auth.SecretRef.AccessID
 	err := esutils.ValidateSecretSelector(store, accessID)
 	if err != nil {
