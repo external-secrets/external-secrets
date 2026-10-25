@@ -32,10 +32,11 @@ const (
 	errMissingSAK                 = "missing SecretAccessKey"
 	errMissingAKID                = "missing AccessKeyID"
 	errMissingAccessTypeParam     = "missing AccessTypeParam for Akeyless access key auth"
-	errMissingJWT                 = "missing JWT for Akeyless jwt/oauth2 auth"
-	errMissingJWTAccessID         = "missing AccessID for Akeyless jwtAuth"
-	errJWTAuthTokenSource         = "jwtAuth requires exactly one of secretRef or serviceAccountRef"
-	errJWTAuthBothTokenSources    = "jwtAuth: secretRef and serviceAccountRef are mutually exclusive"
+	errMissingJWT                  = "missing JWT for Akeyless jwt/oauth2 auth"
+	errMissingJWTAccessID          = "missing AccessID for Akeyless jwtAuth"
+	errJWTAuthTokenSource          = "jwtAuth requires exactly one of secretRef or serviceAccountRef"
+	errJWTAuthBothTokenSources     = "jwtAuth: secretRef and serviceAccountRef are mutually exclusive"
+	errMultipleAkeylessAuthMethods = "only one of kubernetesAuth or jwtAuth may be set"
 
 	akeylessJWTAccessType = "jwt"
 	defaultJWTTokenTTL    = int64(600)
