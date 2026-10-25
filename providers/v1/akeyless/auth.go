@@ -36,6 +36,8 @@ const (
 	errMissingJWTAccessID          = "missing AccessID for Akeyless jwtAuth"
 	errJWTAuthTokenSource          = "jwtAuth requires exactly one of secretRef or serviceAccountRef"
 	errJWTAuthBothTokenSources     = "jwtAuth: secretRef and serviceAccountRef are mutually exclusive"
+	errJWTAuthMissingSecretName    = "jwtAuth.secretRef.name must be set"
+	errJWTAuthMissingSAName        = "jwtAuth.serviceAccountRef.name must be set"
 	errMultipleAkeylessAuthMethods = "only one of kubernetesAuth or jwtAuth may be set"
 
 	akeylessJWTAccessType = "jwt"
