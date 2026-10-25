@@ -2476,12 +2476,14 @@ spec:
                               properties:
                                 accessID:
                                   description: the Akeyless OAuth2.0/JWT auth-method access-id
+                                  minLength: 1
                                   type: string
                                 expirationSeconds:
                                   description: |-
                                     Optional expiration time in seconds for TokenRequest tokens.
-                                    Defaults to 600 (10 minutes).
+                                    Defaults to 600 (10 minutes). Kubernetes rejects TokenRequest values below 600.
                                   format: int64
+                                  minimum: 600
                                   type: integer
                                 secretRef:
                                   description: |-
@@ -2545,6 +2547,9 @@ spec:
                               required:
                                 - accessID
                               type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of secretRef or serviceAccountRef must be set
+                                  rule: has(self.secretRef) != has(self.serviceAccountRef)
                             kubernetesAuth:
                               description: |-
                                 Kubernetes authenticates with Akeyless by passing the ServiceAccount
@@ -16230,12 +16235,14 @@ spec:
                               properties:
                                 accessID:
                                   description: the Akeyless OAuth2.0/JWT auth-method access-id
+                                  minLength: 1
                                   type: string
                                 expirationSeconds:
                                   description: |-
                                     Optional expiration time in seconds for TokenRequest tokens.
-                                    Defaults to 600 (10 minutes).
+                                    Defaults to 600 (10 minutes). Kubernetes rejects TokenRequest values below 600.
                                   format: int64
+                                  minimum: 600
                                   type: integer
                                 secretRef:
                                   description: |-
@@ -16299,6 +16306,9 @@ spec:
                               required:
                                 - accessID
                               type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of secretRef or serviceAccountRef must be set
+                                  rule: has(self.secretRef) != has(self.serviceAccountRef)
                             kubernetesAuth:
                               description: |-
                                 Kubernetes authenticates with Akeyless by passing the ServiceAccount

@@ -87,8 +87,10 @@ type AkeylessAuthSecretRef struct {
 // ServiceAccount for TokenRequest-issued tokens (for example Kubernetes OIDC
 // federation against Akeyless). Requires create on serviceaccounts/token when
 // using ServiceAccountRef (Helm: rbac.serviceAccountTokenCreate, default true).
+// +kubebuilder:validation:XValidation:rule="has(self.secretRef) != has(self.serviceAccountRef)",message="exactly one of secretRef or serviceAccountRef must be set"
 type AkeylessJWTAuth struct {
 	// the Akeyless OAuth2.0/JWT auth-method access-id
+	// +kubebuilder:validation:MinLength=1
 	AccessID string `json:"accessID"`
 
 	// Optional SecretRef that refers to a key in a Secret resource containing
@@ -103,8 +105,9 @@ type AkeylessJWTAuth struct {
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 
 	// Optional expiration time in seconds for TokenRequest tokens.
-	// Defaults to 600 (10 minutes).
+	// Defaults to 600 (10 minutes). Kubernetes rejects TokenRequest values below 600.
 	// +optional
+	// +kubebuilder:validation:Minimum=600
 	ExpirationSeconds *int64 `json:"expirationSeconds,omitempty"`
 }
 

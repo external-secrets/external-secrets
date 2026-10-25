@@ -496,6 +496,62 @@ func TestValidateStore(t *testing.T) {
 		_, err := provider.ValidateStore(store)
 		require.ErrorContains(t, err, errJWTAuthBothTokenSources)
 	})
+
+	t.Run("kubernetes and jwt auth both set", func(t *testing.T) {
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							KubernetesAuth: &esv1.AkeylessKubernetesAuth{
+								AccessID:    "p-k8s",
+								K8sConfName: "default",
+								ServiceAccountRef: &esmeta.ServiceAccountSelector{
+									Name: "akeyless-k8s-sa",
+								},
+							},
+							JWTAuth: &esv1.AkeylessJWTAuth{
+								AccessID: "p-jwt",
+								SecretRef: &esmeta.SecretKeySelector{
+									Name: "akeyless-jwt",
+									Key:  "token",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.ErrorContains(t, err, errMultipleAkeylessAuthMethods)
+	})
+
+	t.Run("jwt auth expirationSeconds below TokenRequest minimum", func(t *testing.T) {
+		exp := int64(60)
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							JWTAuth: &esv1.AkeylessJWTAuth{
+								AccessID: "p-jwt",
+								ServiceAccountRef: &esmeta.ServiceAccountSelector{
+									Name: "akeyless-jwt-sa",
+								},
+								ExpirationSeconds: &exp,
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.ErrorContains(t, err, "ExpirationSeconds")
+	})
 }
 
 func TestGetSecretMap(t *testing.T) {
