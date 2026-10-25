@@ -401,6 +401,101 @@ func TestValidateStore(t *testing.T) {
 		_, err := provider.ValidateStore(store)
 		require.Error(t, err)
 	})
+
+	t.Run("jwt auth with secretRef", func(t *testing.T) {
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							JWTAuth: &esv1.AkeylessJWTAuth{
+								AccessID: "p-jwt",
+								SecretRef: &esmeta.SecretKeySelector{
+									Name: "akeyless-jwt",
+									Key:  "token",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.NoError(t, err)
+	})
+
+	t.Run("jwt auth with serviceAccountRef", func(t *testing.T) {
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							JWTAuth: &esv1.AkeylessJWTAuth{
+								AccessID: "p-jwt",
+								ServiceAccountRef: &esmeta.ServiceAccountSelector{
+									Name:      "akeyless-jwt-sa",
+									Audiences: []string{"https://vault.akeyless.io"},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.NoError(t, err)
+	})
+
+	t.Run("jwt auth missing token source", func(t *testing.T) {
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							JWTAuth: &esv1.AkeylessJWTAuth{
+								AccessID: "p-jwt",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.ErrorContains(t, err, errJWTAuthTokenSource)
+	})
+
+	t.Run("jwt auth both token sources", func(t *testing.T) {
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							JWTAuth: &esv1.AkeylessJWTAuth{
+								AccessID: "p-jwt",
+								SecretRef: &esmeta.SecretKeySelector{
+									Name: "akeyless-jwt",
+									Key:  "token",
+								},
+								ServiceAccountRef: &esmeta.ServiceAccountSelector{
+									Name: "akeyless-jwt-sa",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.ErrorContains(t, err, errJWTAuthBothTokenSources)
+	})
 }
 
 func TestGetSecretMap(t *testing.T) {
