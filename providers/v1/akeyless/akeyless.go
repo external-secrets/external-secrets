@@ -188,10 +188,16 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 		case !hasSecret && !hasSA:
 			return nil, errors.New(errJWTAuthTokenSource)
 		case hasSecret:
+			if jwtAuth.SecretRef.Name == "" {
+				return nil, errors.New(errJWTAuthMissingSecretName)
+			}
 			if err := esutils.ValidateSecretSelector(store, *jwtAuth.SecretRef); err != nil {
 				return nil, fmt.Errorf("invalid Auth.JWTAuth.SecretRef: %w", err)
 			}
 		case hasSA:
+			if jwtAuth.ServiceAccountRef.Name == "" {
+				return nil, errors.New(errJWTAuthMissingSAName)
+			}
 			if err := esutils.ValidateReferentServiceAccountSelector(store, *jwtAuth.ServiceAccountRef); err != nil {
 				return nil, fmt.Errorf("invalid Auth.JWTAuth.ServiceAccountRef: %w", err)
 			}

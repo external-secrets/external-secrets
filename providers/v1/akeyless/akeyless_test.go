@@ -552,6 +552,27 @@ func TestValidateStore(t *testing.T) {
 		_, err := provider.ValidateStore(store)
 		require.ErrorContains(t, err, "ExpirationSeconds")
 	})
+
+	t.Run("jwt auth secretRef missing name", func(t *testing.T) {
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							JWTAuth: &esv1.AkeylessJWTAuth{
+								AccessID:  "p-jwt",
+								SecretRef: &esmeta.SecretKeySelector{},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.ErrorContains(t, err, errJWTAuthMissingSecretName)
+	})
 }
 
 func TestGetSecretMap(t *testing.T) {

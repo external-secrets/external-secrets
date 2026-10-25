@@ -87,7 +87,7 @@ type AkeylessAuthSecretRef struct {
 // ServiceAccount for TokenRequest-issued tokens (for example Kubernetes OIDC
 // federation against Akeyless). Requires create on serviceaccounts/token when
 // using ServiceAccountRef (Helm: rbac.serviceAccountTokenCreate, default true).
-// +kubebuilder:validation:XValidation:rule="has(self.secretRef) != has(self.serviceAccountRef)",message="exactly one of secretRef or serviceAccountRef must be set"
+// +kubebuilder:validation:XValidation:rule="has(self.secretRef) != has(self.serviceAccountRef) && (!has(self.secretRef) || (has(self.secretRef.name) && size(self.secretRef.name) > 0)) && (!has(self.serviceAccountRef) || (has(self.serviceAccountRef.name) && size(self.serviceAccountRef.name) > 0))",message="exactly one of secretRef or serviceAccountRef must be set, and the selected source must include a nonempty name"
 type AkeylessJWTAuth struct {
 	// the Akeyless OAuth2.0/JWT auth-method access-id
 	// +kubebuilder:validation:MinLength=1
