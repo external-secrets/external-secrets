@@ -54,6 +54,14 @@ const (
 	errNoSuchKeyFmt         = "no such key in secret: %q"
 	errInvalidRetrievalPath = "invalid retrieval path. Provide one path, separator and name"
 	errNotImplemented       = "not implemented"
+	errMissingKeyPrefix     = "retrievalType ALL requires remoteRef.key to start with %q or %q: %q"
+	errKeyPrefixMismatch    = "remoteRef.key prefix %q does not match store retrievalType %s; use retrievalType ALL to mix both: %q"
+	errInvalidRetrievalType = "invalid retrievalType %q: must be one of MANAGED_ACCOUNT, SECRET, ALL"
+
+	retrievalTypeManagedAccount = "MANAGED_ACCOUNT"
+	retrievalTypeAll            = "ALL"
+	managedKeyPrefix            = "managed:"
+	secretKeyPrefix             = "secret:"
 
 	usernameFieldName    = "username"
 	folderNameFieldName  = "folder_name"
@@ -156,6 +164,11 @@ func (p *Provider) SecretExists(_ context.Context, pushSecretRef esv1.PushSecret
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	config := store.GetSpec().Provider.Beyondtrust
 	logger := logging.NewLogrLogger(&ESOLogger)
+
+	// ValidateStore also checks this, but stores admitted before it, or without the webhook, reach NewClient directly.
+	if err := validateRetrievalType(config.Server.RetrievalType); err != nil {
+		return nil, err
+	}
 
 	storeKind := store.GetKind()
 	clientID, clientSecret, apiKey, err := loadCredentialsFromConfig(ctx, config, kube, namespace, storeKind)
@@ -343,9 +356,12 @@ func (p *Provider) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (
 // GetSecret reads the secret from the Password Safe server and returns it. The controller uses the value here to
 // create the Kubernetes secret.
 func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	managedAccountType := !strings.EqualFold(p.retrievaltype, secretTypeSecret)
+	managedAccountType, key, err := resolveRetrievalKey(p.retrievaltype, ref.Key)
+	if err != nil {
+		return nil, err
+	}
 
-	retrievalPaths := utils.ValidatePaths([]string{ref.Key}, managedAccountType, p.separator, &p.log)
+	retrievalPaths := utils.ValidatePaths([]string{key}, managedAccountType, p.separator, &p.log)
 
 	if len(retrievalPaths) != 1 {
 		return nil, errors.New(errInvalidRetrievalPath)
@@ -353,7 +369,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 
 	retrievalPath := retrievalPaths[0]
 
-	_, err := p.authenticate.GetPasswordSafeAuthentication()
+	_, err = p.authenticate.GetPasswordSafeAuthentication()
 	if err != nil {
 		return nil, fmt.Errorf("error getting authentication: %w", err)
 	}
@@ -374,12 +390,70 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 	}
 	returnSecret, err := fetch()
 	if err != nil {
+		// Wrap NoSecretErr so the reconciler can apply deletionPolicy.
+		if isNotFound(err) {
+			err = fmt.Errorf("%w: %w", esv1.NoSecretErr, err)
+		} else {
+			err = fmt.Errorf("error getting secret/managed account: %w", err)
+		}
 		if serr := p.authenticate.SignOut(); serr != nil {
 			return nil, errors.Join(err, serr)
 		}
-		return nil, fmt.Errorf("error getting secret/managed account: %w", err)
+		return nil, err
 	}
 	return []byte(returnSecret), nil
+}
+
+// resolveRetrievalKey reports whether key is a managed account lookup and returns the path to retrieve.
+// ALL requires a managed:/secret: prefix. MANAGED_ACCOUNT and SECRET accept their own prefix and reject the other one.
+func resolveRetrievalKey(retrievalType, key string) (bool, string, error) {
+	prefix, path := splitKeyPrefix(key)
+	switch strings.ToUpper(retrievalType) {
+	case retrievalTypeAll:
+		if prefix == "" {
+			return false, "", fmt.Errorf(errMissingKeyPrefix, managedKeyPrefix, secretKeyPrefix, key)
+		}
+		return prefix == managedKeyPrefix, path, nil
+	case retrievalTypeManagedAccount:
+		if prefix == secretKeyPrefix {
+			return false, "", fmt.Errorf(errKeyPrefixMismatch, prefix, retrievalTypeManagedAccount, key)
+		}
+		return true, path, nil
+	case secretTypeSecret:
+		if prefix == managedKeyPrefix {
+			return false, "", fmt.Errorf(errKeyPrefixMismatch, prefix, secretTypeSecret, key)
+		}
+		return false, path, nil
+	default:
+		return false, "", fmt.Errorf(errInvalidRetrievalType, retrievalType)
+	}
+}
+
+// splitKeyPrefix returns the managed:/secret: prefix of key, if any, and the key without it.
+func splitKeyPrefix(key string) (string, string) {
+	for _, prefix := range []string{managedKeyPrefix, secretKeyPrefix} {
+		if path, ok := strings.CutPrefix(key, prefix); ok {
+			return prefix, path
+		}
+	}
+	return "", key
+}
+
+// validateRetrievalType rejects an empty or unknown retrievalType.
+func validateRetrievalType(retrievalType string) error {
+	switch strings.ToUpper(retrievalType) {
+	case retrievalTypeManagedAccount, secretTypeSecret, retrievalTypeAll:
+		return nil
+	default:
+		return fmt.Errorf(errInvalidRetrievalType, retrievalType)
+	}
+}
+
+// isNotFound reports whether err is a Password Safe "not found" response.
+// The SDK does not expose typed errors, so this matches its error messages.
+func isNotFound(err error) bool {
+	msg := err.Error()
+	return strings.Contains(msg, "status code: 404") || strings.Contains(msg, "Secret was not found")
 }
 
 // ValidateStore validates the store configuration to prevent unexpected errors.
@@ -410,6 +484,10 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	apiURL, err := url.Parse(provider.Server.APIURL)
 	if err != nil || apiURL.Host == "" {
 		return nil, errors.New(errInvalidHostURL)
+	}
+
+	if err := validateRetrievalType(provider.Server.RetrievalType); err != nil {
+		return nil, err
 	}
 
 	if provider.Auth == nil {

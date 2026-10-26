@@ -76,7 +76,7 @@ spec:
     beyondtrust:
       server:
         apiUrl: https://example.com/BeyondTrust/api/public/v3/
-        retrievalType: MANAGED_ACCOUNT  # or SECRET
+        retrievalType: MANAGED_ACCOUNT  # required: MANAGED_ACCOUNT, SECRET, or ALL (see below)
         separator: "/" # folder separator used to split remoteRef.key paths; defaults to "/"
         decrypt: true # SECRET retrievalType only: when false the password field is omitted; defaults to true
         verifyCA: true
@@ -118,6 +118,48 @@ kubectl apply -f external-secret.yml
 
 ```yaml
 {% include 'beyondtrust-external-secret.yaml' %}
+```
+
+## Using managed accounts and secrets from one store
+
+Set `retrievalType: ALL` on the store to resolve both Password Safe managed accounts and Secrets Safe secrets through a single `SecretStore`. Each `remoteRef.key` then chooses its retrieval type with a prefix:
+
+- `managed:<system>/<account>` retrieves a managed account.
+- `secret:<folder path>/<title>` retrieves a Secrets Safe secret.
+
+`retrievalType` is required and controls how each key is read:
+
+| Store `retrievalType` | How each `remoteRef.key` is read |
+|---|---|
+| `ALL` | Must start with `managed:` or `secret:`. A key without a prefix fails. |
+| `MANAGED_ACCOUNT` | Always a managed account. A `managed:` prefix is removed; a `secret:` prefix fails. |
+| `SECRET` | Always a Secrets Safe secret. A `secret:` prefix is removed; a `managed:` prefix fails. |
+| Empty or any other value | The store is rejected. |
+
+An `ALL` store that retrieves managed accounts needs the client `certificate` and `certificateKey`, the same as a `MANAGED_ACCOUNT` store.
+
+```yaml
+{% include 'beyondtrust-external-secret-mixed.yaml' %}
+```
+
+On ESO versions without `retrievalType: ALL`, create one store per retrieval type and select a store for each entry with `data[].sourceRef.storeRef`:
+
+```yaml
+data:
+  - secretKey: db-password
+    sourceRef:
+      storeRef:
+        kind: SecretStore
+        name: secretstore-beyondtrust-managed # retrievalType: MANAGED_ACCOUNT
+    remoteRef:
+      key: system01/managed_account01
+  - secretKey: api-key
+    sourceRef:
+      storeRef:
+        kind: SecretStore
+        name: secretstore-beyondtrust-secrets # retrievalType: SECRET
+    remoteRef:
+      key: app/folder/api-key
 ```
 
 ## Get the K8s secret

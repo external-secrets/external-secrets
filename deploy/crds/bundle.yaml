@@ -3518,7 +3518,9 @@ spec:
                               description: 'When true, the response includes the decrypted password. When false, the password field is omitted. This option only applies to the SECRET retrieval type. Default: true.'
                               type: boolean
                             retrievalType:
-                              description: The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
+                              description: |-
+                                The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
+                                ALL = each remoteRef.key selects its type with a "managed:" or "secret:" prefix. Required; any other value is rejected.
                               type: string
                             separator:
                               description: A character that separates the folder names.
@@ -17195,7 +17197,9 @@ spec:
                               description: 'When true, the response includes the decrypted password. When false, the password field is omitted. This option only applies to the SECRET retrieval type. Default: true.'
                               type: boolean
                             retrievalType:
-                              description: The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
+                              description: |-
+                                The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
+                                ALL = each remoteRef.key selects its type with a "managed:" or "secret:" prefix. Required; any other value is rejected.
                               type: string
                             separator:
                               description: A character that separates the folder names.
