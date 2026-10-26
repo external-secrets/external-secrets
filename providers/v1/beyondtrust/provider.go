@@ -384,14 +384,33 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 		secretObj, _ := secrets.NewSecretObj(p.authenticate, &p.log, maxFileSecretSizeBytes, p.decrypt)
 		return secretObj.GetSecret(retrievalPath, p.separator)
 	}
-	fetch := unmanagedFetch
+	// The lookups repeat only the first request of each fetch: finding the account or the secret.
+	managedLookup := func() error {
+		names := strings.Split(retrievalPath, p.separator)
+		query := url.Values{}
+		query.Add("systemName", names[0])
+		query.Add("accountName", names[1])
+		lookupURL := p.authenticate.ApiUrl.JoinPath("ManagedAccounts").String() + "?" + query.Encode()
+		manageAccountObj, _ := managedaccount.NewManagedAccountObj(p.authenticate, &p.log)
+		_, err := manageAccountObj.ManagedAccountGet(names[0], names[1], lookupURL)
+		return err
+	}
+	unmanagedLookup := func() error {
+		secretObj, _ := secrets.NewSecretObj(p.authenticate, &p.log, maxFileSecretSizeBytes, p.decrypt)
+		secretPath, secretTitle := secretObj.SplitGetSecretPathAndSecretTitle(retrievalPath, p.separator)
+		_, err := secretObj.GetGeneralSecret(secretPath, secretTitle, p.separator)
+		return err
+	}
+	fetch, lookup := unmanagedFetch, unmanagedLookup
 	if managedAccountType {
-		fetch = managedFetch
+		fetch, lookup = managedFetch, managedLookup
 	}
 	returnSecret, err := fetch()
 	if err != nil {
-		// Wrap NoSecretErr so the reconciler can apply deletionPolicy.
-		if isNotFound(err) {
+		// Wrap NoSecretErr so the reconciler can apply deletionPolicy. A fetch makes several requests and the
+		// SDK errors don't say which one failed, so only a failed lookup counts: a 404 from a later step, such
+		// as the managed account check-in or a file download, is not a missing secret.
+		if lerr := lookup(); lerr != nil && isNotFound(lerr) {
 			err = fmt.Errorf("%w: %w", esv1.NoSecretErr, err)
 		} else {
 			err = fmt.Errorf("error getting secret/managed account: %w", err)
@@ -449,7 +468,7 @@ func validateRetrievalType(retrievalType string) error {
 	}
 }
 
-// isNotFound reports whether err is a Password Safe "not found" response.
+// isNotFound reports whether a lookup error is a Password Safe "not found" response.
 // The SDK does not expose typed errors, so this matches its error messages.
 func isNotFound(err error) bool {
 	msg := err.Error()
