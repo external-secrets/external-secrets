@@ -136,6 +136,8 @@ Set `retrievalType: ALL` on the store to resolve both Password Safe managed acco
 | `SECRET` | Always a Secrets Safe secret. A `secret:` prefix is removed; a `managed:` prefix fails. |
 | Empty or any other value | The store is rejected. |
 
+> NOTE: Upgrading: earlier versions treated an empty or unrecognized `retrievalType` as `MANAGED_ACCOUNT`. After upgrading, such stores are rejected with `invalid retrievalType`, and their ExternalSecrets stop syncing. Before upgrading, set `retrievalType: MANAGED_ACCOUNT` on every BeyondTrust `SecretStore` and `ClusterSecretStore` that does not set it.
+
 An `ALL` store that retrieves managed accounts needs the client `certificate` and `certificateKey`, the same as a `MANAGED_ACCOUNT` store.
 
 ```yaml
