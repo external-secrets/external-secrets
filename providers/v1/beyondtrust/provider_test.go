@@ -1269,10 +1269,18 @@ func TestResolveRetrievalKey(t *testing.T) {
 	}
 }
 
+// getSecretMock selects which request of the mocked retrieval flows fails.
+type getSecretMock struct {
+	missingManaged bool // the managed account lookup returns 404
+	missingSecret  bool // the Secrets Safe search returns no secret
+	failedCheckIn  bool // the managed account check-in returns 404
+	fileSecret     bool // the secret is a FILE whose download returns 404
+}
+
 // newGetSecretMockServer serves both the managed account and the Secrets Safe
-// retrieval flows. missingManaged and missingSecret make the respective lookup
-// return the "not found" response Password Safe sends.
-func newGetSecretMockServer(t *testing.T, missingManaged, missingSecret bool) *httptest.Server {
+// retrieval flows, failing the requests that mock selects with the responses
+// Password Safe sends.
+func newGetSecretMockServer(t *testing.T, mock getSecretMock) *httptest.Server {
 	t.Helper()
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -1283,7 +1291,7 @@ func newGetSecretMockServer(t *testing.T, missingManaged, missingSecret bool) *h
 		case "/Auth/Signout":
 			writeBody(t, w, ``)
 		case "/ManagedAccounts":
-			if missingManaged {
+			if mock.missingManaged {
 				http.Error(w, "managed account not found", http.StatusNotFound)
 				return
 			}
@@ -1293,13 +1301,21 @@ func newGetSecretMockServer(t *testing.T, missingManaged, missingSecret bool) *h
 		case "/Credentials/124":
 			writeBody(t, w, `"managed_password"`)
 		case "/Requests/124/checkin":
-			writeBody(t, w, ``)
-		case secretsSafeSecretsPath:
-			if missingSecret {
-				writeBody(t, w, `[]`)
+			if mock.failedCheckIn {
+				http.Error(w, "request not found", http.StatusNotFound)
 				return
 			}
-			writeBody(t, w, `[{"SecretType": "CREDENTIAL", "Password": "secret_password","Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "api-key"}]`)
+			writeBody(t, w, ``)
+		case secretsSafeSecretsPath:
+			switch {
+			case mock.missingSecret:
+				writeBody(t, w, `[]`)
+			case mock.fileSecret:
+				// No handler serves the file download, so it returns 404.
+				writeBody(t, w, `[{"SecretType": "FILE", "Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "api-key"}]`)
+			default:
+				writeBody(t, w, `[{"SecretType": "CREDENTIAL", "Password": "secret_password","Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "api-key"}]`)
+			}
 		default:
 			http.Error(w, "not found", http.StatusNotFound)
 		}
@@ -1308,14 +1324,14 @@ func newGetSecretMockServer(t *testing.T, missingManaged, missingSecret bool) *h
 
 func TestGetSecret(t *testing.T) {
 	tests := []struct {
-		name           string
-		retrievalType  string
-		key            string
-		missingManaged bool
-		missingSecret  bool
-		want           string
-		wantErr        error
-		wantErrMsg     string
+		name          string
+		retrievalType string
+		key           string
+		mock          getSecretMock
+		want          string
+		wantErr       error
+		wantErrMsg    string
+		wantFound     bool // the error must not be NoSecretErr
 	}{
 		{name: "ALL retrieves a managed account", retrievalType: retrievalTypeAll, key: "managed:system01/account01", want: "managed_password"},
 		{name: "ALL retrieves a Secrets Safe secret", retrievalType: retrievalTypeAll, key: "secret:app/folder/api-key", want: "secret_password"},
@@ -1326,13 +1342,15 @@ func TestGetSecret(t *testing.T) {
 		{name: "MANAGED_ACCOUNT accepts the managed prefix", retrievalType: retrievalTypeManagedAccount, key: "managed:system01/account01", want: "managed_password"},
 		{name: "SECRET accepts the secret prefix", retrievalType: secretTypeSecret, key: "secret:app/folder/api-key", want: "secret_password"},
 		{name: "MANAGED_ACCOUNT rejects the secret prefix", retrievalType: retrievalTypeManagedAccount, key: "secret:app/folder/api-key", wantErrMsg: "does not match store retrievalType"},
-		{name: "missing managed account returns NoSecretErr", retrievalType: retrievalTypeAll, key: "managed:system01/account01", missingManaged: true, wantErr: esv1.NoSecretErr},
-		{name: "missing secret returns NoSecretErr", retrievalType: retrievalTypeAll, key: "secret:app/folder/api-key", missingSecret: true, wantErr: esv1.NoSecretErr},
+		{name: "missing managed account returns NoSecretErr", retrievalType: retrievalTypeAll, key: "managed:system01/account01", mock: getSecretMock{missingManaged: true}, wantErr: esv1.NoSecretErr},
+		{name: "missing secret returns NoSecretErr", retrievalType: retrievalTypeAll, key: "secret:app/folder/api-key", mock: getSecretMock{missingSecret: true}, wantErr: esv1.NoSecretErr},
+		{name: "failed managed account check-in is not NoSecretErr", retrievalType: retrievalTypeAll, key: "managed:system01/account01", mock: getSecretMock{failedCheckIn: true}, wantFound: true},
+		{name: "failed file download is not NoSecretErr", retrievalType: retrievalTypeAll, key: "secret:app/folder/api-key", mock: getSecretMock{fileSecret: true}, wantFound: true},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			fakeServer := newGetSecretMockServer(t, tt.missingManaged, tt.missingSecret)
+			fakeServer := newGetSecretMockServer(t, tt.mock)
 			defer fakeServer.Close()
 
 			p := newAuthenticatedProvider(t, fakeServer.URL, "3.1")
@@ -1347,6 +1365,9 @@ func TestGetSecret(t *testing.T) {
 				require.ErrorIs(t, err, tt.wantErr)
 			case tt.wantErrMsg != "":
 				require.ErrorContains(t, err, tt.wantErrMsg)
+			case tt.wantFound:
+				require.Error(t, err)
+				require.NotErrorIs(t, err, esv1.NoSecretErr)
 			default:
 				require.NoError(t, err)
 				assert.Equal(t, tt.want, string(got))
