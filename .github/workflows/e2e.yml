@@ -29,7 +29,7 @@ jobs:
       id-token: write # for oidc auth with aws/gcp/azure
       contents: read  # for checkout
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.actor !='dependabot[bot]'
-    uses: ./.github/workflows/e2e-reusable.yml
+    uses: $/.github/workflows/e2e-reusable.yml
     secrets:
       GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
       GCP_FED_REGION: ${{ secrets.GCP_FED_REGION }}
@@ -86,7 +86,7 @@ jobs:
       pull-requests: write # to explain a rejected /ok-to-test on the PR
       contents: read
     steps:
-    - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+    - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
       with:
         egress-policy: audit
 
@@ -140,7 +140,7 @@ jobs:
       contents: read  # for checkout
     needs: guard-fork
     if: github.event_name == 'repository_dispatch'
-    uses: ./.github/workflows/e2e-reusable.yml
+    uses: $/.github/workflows/e2e-reusable.yml
     secrets:
       GCP_SERVICE_ACCOUNT_KEY: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
       GCP_FED_REGION: ${{ secrets.GCP_FED_REGION }}
@@ -194,7 +194,7 @@ jobs:
       pull-requests: write # to publish the status as comments
       contents: read
     steps:
-    - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+    - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
       with:
         egress-policy: audit
 
@@ -240,7 +240,7 @@ jobs:
     permissions:
       contents: read
     steps:
-    - uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+    - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
       with:
         egress-policy: audit
 

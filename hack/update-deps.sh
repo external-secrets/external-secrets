@@ -4,6 +4,7 @@ set -euo pipefail
 # update-deps.sh: Update Go module dependencies across all modules in the repository
 #
 # This script updates dependencies for all Go modules in the external-secrets multi-module repository:
+# - Go toolchain directive in the root go.mod (latest patch of the same minor)
 # - Root module
 # - APIs module
 # - Runtime module
@@ -75,13 +76,51 @@ update_module() {
     cd "$REPO_ROOT"
 }
 
+# Bump the root go.mod toolchain directive to the newest patch of its minor.
+# Dependabot does not update toolchain directives, and moving to a new minor
+# is left to a human because it usually comes with raising the go directive.
+update_toolchain() {
+    info "Updating Go toolchain..."
+
+    cd "$REPO_ROOT"
+
+    local current minor latest
+    current=$(go mod edit -json | jq -r '.Toolchain // empty')
+    if [[ -z "$current" ]]; then
+        warn "No toolchain directive in go.mod (skipping...)"
+        return 1
+    fi
+    minor=$(cut -d. -f1-2 <<< "$current")
+
+    # include=all keeps the minor listed after it drops out of the supported releases
+    if ! latest=$(curl --proto '=https' -fsSL 'https://go.dev/dl/?mode=json&include=all' \
+        | jq -r --arg prefix "$minor." \
+            '[.[] | select(.stable) | .version | select(startswith($prefix))]
+             | max_by(ltrimstr($prefix) | tonumber) // empty'); then
+        warn "Failed to fetch Go releases (continuing...)"
+        return 1
+    fi
+    if [[ -z "$latest" ]]; then
+        warn "No stable $minor release found (continuing...)"
+        return 1
+    fi
+
+    go mod edit -toolchain="$latest"
+    success "Go toolchain is $latest"
+}
+
 main() {
     info "Starting dependency update for all modules..."
     echo ""
-    
+
     # Track failures
     failed_modules=()
-    
+
+    if ! update_toolchain; then
+        failed_modules+=("toolchain")
+    fi
+    echo ""
+
     # 1. Update root module
     if ! update_module "." "root"; then
         failed_modules+=("root")
@@ -106,13 +145,13 @@ main() {
     fi
     echo ""
     
-    # 5. Update build tools module
-    if ! update_module "hack/tools" "build tools" tool; then
+    # 5. Update build tools modules outside the workspace (see make go-work).
+    if ! GOWORK=off update_module "hack/tools" "build tools" tool; then
         failed_modules+=("build tools")
     fi
     echo ""
 
-    if ! update_module "hack/tools/gen-crd-api-reference-docs" "gen-crd-api-reference-docs" tool; then
+    if ! GOWORK=off update_module "hack/tools/gen-crd-api-reference-docs" "gen-crd-api-reference-docs" tool; then
         failed_modules+=("gen-crd-api-reference-docs")
     fi
     echo ""

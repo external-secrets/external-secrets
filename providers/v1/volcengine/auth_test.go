@@ -22,7 +22,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -67,10 +66,8 @@ func TestNewSession_should_return_session_with_default_credentials_when_secretre
 
 func TestNewSession_should_return_session_with_static_credentials_when_secretref_is_provided(t *testing.T) {
 	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: testNamespace,
-		},
+		Name:      secretName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			accessKeyIDKey:     []byte(testAccessKeyID),
 			secretAccessKeyKey: []byte(testSecretAccessKey),
@@ -129,10 +126,8 @@ func TestNewSession_should_return_error_when_accesskeyid_secret_is_not_found(t *
 
 func TestNewSession_should_return_error_when_secretaccesskey_secret_is_not_found(t *testing.T) {
 	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: testNamespace,
-		},
+		Name:      secretName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			accessKeyIDKey: []byte(testAccessKeyID),
 		},
@@ -164,11 +159,9 @@ func TestNewSession_should_return_error_when_secretaccesskey_secret_is_not_found
 
 func TestNewSession_should_return_error_when_accesskeyid_key_is_not_found_in_secret(t *testing.T) {
 	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: testNamespace,
-		},
-		Data: map[string][]byte{},
+		Name:      secretName,
+		Namespace: testNamespace,
+		Data:      map[string][]byte{},
 	}
 	store := &esv1.VolcengineProvider{
 		Region: testRegion,
@@ -193,10 +186,8 @@ func TestNewSession_should_return_error_when_accesskeyid_key_is_not_found_in_sec
 
 func TestNewSession_should_return_session_with_token_credentials_when_secretref_is_provided(t *testing.T) {
 	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: testNamespace,
-		},
+		Name:      secretName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			accessKeyIDKey:     []byte(testAccessKeyID),
 			secretAccessKeyKey: []byte(testSecretAccessKey),
@@ -241,10 +232,8 @@ func TestNewSession_should_return_session_with_token_credentials_when_secretref_
 
 func TestNewSession_should_return_error_when_secretaccesskey_key_is_not_found_in_secret(t *testing.T) {
 	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: testNamespace,
-		},
+		Name:      secretName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			accessKeyIDKey: []byte(testAccessKeyID),
 		},
@@ -303,10 +292,8 @@ func TestNewSession_should_return_error_when_region_is_empty(t *testing.T) {
 func TestNewSession_ClusterSecretStore_should_resolve_secret_from_ref_namespace(t *testing.T) {
 	const credentialsNamespace = "credentials-ns"
 	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: credentialsNamespace,
-		},
+		Name:      secretName,
+		Namespace: credentialsNamespace,
 		Data: map[string][]byte{
 			accessKeyIDKey:     []byte(testAccessKeyID),
 			secretAccessKeyKey: []byte(testSecretAccessKey),
@@ -348,10 +335,8 @@ func TestNewSession_ClusterSecretStore_should_resolve_secret_from_ref_namespace(
 func TestNewSession_SecretStore_should_ignore_ref_namespace(t *testing.T) {
 	const otherNamespace = "other-ns"
 	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: otherNamespace,
-		},
+		Name:      secretName,
+		Namespace: otherNamespace,
 		Data: map[string][]byte{
 			accessKeyIDKey:     []byte(testAccessKeyID),
 			secretAccessKeyKey: []byte(testSecretAccessKey),

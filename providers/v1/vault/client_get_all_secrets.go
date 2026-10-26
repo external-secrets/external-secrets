@@ -56,7 +56,7 @@ func (c *client) findSecretsFromTags(ctx context.Context, candidates []string, t
 	secrets := make(map[string][]byte)
 	for _, name := range candidates {
 		match := true
-		metadata, err := c.readSecretMetadata(ctx, name)
+		metadata, err := c.readSecretMetadata(ctx, name, false)
 		if err != nil {
 			return nil, err
 		}

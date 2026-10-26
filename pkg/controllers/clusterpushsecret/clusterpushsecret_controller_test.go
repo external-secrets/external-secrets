@@ -78,9 +78,7 @@ type clusterPushSecretTestCase struct {
 var _ = Describe("ClusterPushSecret controller", func() {
 	defaultClusterPushSecret := func() *v1alpha1.ClusterPushSecret {
 		return &v1alpha1.ClusterPushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: fmt.Sprintf("test-pes-%s", randString(10)),
-			},
+			Name: fmt.Sprintf("test-pes-%s", randString(10)),
 			Spec: v1alpha1.ClusterPushSecretSpec{
 				PushSecretSpec: v1alpha1.PushSecretSpec{
 					RefreshInterval: &metav1.Duration{Duration: time.Hour},
@@ -110,10 +108,8 @@ var _ = Describe("ClusterPushSecret controller", func() {
 		result := make([]v1.Secret, 0, len(namespaces))
 		for _, s := range namespaces {
 			result = append(result, v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      secretName,
-					Namespace: s.Name,
-				},
+				Name:      secretName,
+				Namespace: s.Name,
 				Data: map[string][]byte{
 					defaultKey: []byte(defaultVal),
 				},
@@ -203,7 +199,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 
 		Entry("Should use cluster push secret name if push secret name isn't defined", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
-				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+				{Name: randomNamespaceName()},
 			},
 			clusterPushSecret: func(namespaces []v1.Namespace) v1alpha1.ClusterPushSecret {
 				pes := defaultClusterPushSecret()
@@ -217,9 +213,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			sourceSecret: defaultSourceSecret,
 			expectedClusterPushSecret: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) v1alpha1.ClusterPushSecret {
 				return v1alpha1.ClusterPushSecret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: created.Name,
-					},
+					Name: created.Name,
 					Spec: created.Spec,
 					Status: v1alpha1.ClusterPushSecretStatus{
 						PushSecretName:        created.Name,
@@ -236,18 +230,16 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			expectedPushSecrets: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) []v1alpha1.PushSecret {
 				return []v1alpha1.PushSecret{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: namespaces[0].Name,
-							Name:      created.Name,
-						},
-						Spec: created.Spec.PushSecretSpec,
+						Namespace: namespaces[0].Name,
+						Name:      created.Name,
+						Spec:      created.Spec.PushSecretSpec,
 					},
 				}
 			},
 		}),
 		Entry("Should set push secret name and metadata if the fields are set", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
-				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+				{Name: randomNamespaceName()},
 			},
 			clusterPushSecret: func(namespaces []v1.Namespace) v1alpha1.ClusterPushSecret {
 				pes := defaultClusterPushSecret()
@@ -266,9 +258,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			sourceSecret: defaultSourceSecret,
 			expectedClusterPushSecret: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) v1alpha1.ClusterPushSecret {
 				return v1alpha1.ClusterPushSecret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: created.Name,
-					},
+					Name: created.Name,
 					Spec: created.Spec,
 					Status: v1alpha1.ClusterPushSecretStatus{
 						PushSecretName:        testPushSecret,
@@ -285,20 +275,18 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			expectedPushSecrets: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) []v1alpha1.PushSecret {
 				return []v1alpha1.PushSecret{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace:   namespaces[0].Name,
-							Name:        testPushSecret,
-							Labels:      map[string]string{"test-label-key1": "test-label-value1", "test-label-key2": "test-label-value2"},
-							Annotations: map[string]string{"test-annotation-key1": "test-annotation-value1", "test-annotation-key2": "test-annotation-value2"},
-						},
-						Spec: created.Spec.PushSecretSpec,
+						Namespace:   namespaces[0].Name,
+						Name:        testPushSecret,
+						Labels:      map[string]string{"test-label-key1": "test-label-value1", "test-label-key2": "test-label-value2"},
+						Annotations: map[string]string{"test-annotation-key1": "test-annotation-value1", "test-annotation-key2": "test-annotation-value2"},
+						Spec:        created.Spec.PushSecretSpec,
 					},
 				}
 			},
 		}),
 		Entry("Should delete old push secrets if name has changed", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
-				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+				{Name: randomNamespaceName()},
 			},
 			clusterPushSecret: func(namespaces []v1.Namespace) v1alpha1.ClusterPushSecret {
 				pes := defaultClusterPushSecret()
@@ -328,9 +316,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				updatedSpec.PushSecretName = newPushSecret
 
 				return v1alpha1.ClusterPushSecret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: created.Name,
-					},
+					Name: created.Name,
 					Spec: *updatedSpec,
 					Status: v1alpha1.ClusterPushSecretStatus{
 						PushSecretName:        newPushSecret,
@@ -347,18 +333,16 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			expectedPushSecrets: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) []v1alpha1.PushSecret {
 				return []v1alpha1.PushSecret{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: namespaces[0].Name,
-							Name:      newPushSecret,
-						},
-						Spec: created.Spec.PushSecretSpec,
+						Namespace: namespaces[0].Name,
+						Name:      newPushSecret,
+						Spec:      created.Spec.PushSecretSpec,
 					},
 				}
 			},
 		}),
 		Entry("Should update push secret if the fields change", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
-				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+				{Name: randomNamespaceName()},
 			},
 			clusterPushSecret: func(namespaces []v1.Namespace) v1alpha1.ClusterPushSecret {
 				pes := defaultClusterPushSecret()
@@ -408,9 +392,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				}
 
 				return v1alpha1.ClusterPushSecret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: created.Name,
-					},
+					Name: created.Name,
 					Spec: *updatedSpec,
 					Status: v1alpha1.ClusterPushSecretStatus{
 						PushSecretName:        created.Name,
@@ -435,20 +417,18 @@ var _ = Describe("ClusterPushSecret controller", func() {
 
 				return []v1alpha1.PushSecret{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace:   namespaces[0].Name,
-							Name:        created.Name,
-							Labels:      map[string]string{testLabelKey: testLabelValue},
-							Annotations: map[string]string{testAnnotationKey: testAnnotationValue},
-						},
-						Spec: *updatedSpec,
+						Namespace:   namespaces[0].Name,
+						Name:        created.Name,
+						Labels:      map[string]string{testLabelKey: testLabelValue},
+						Annotations: map[string]string{testAnnotationKey: testAnnotationValue},
+						Spec:        *updatedSpec,
 					},
 				}
 			},
 		}),
 		Entry("Should not overwrite existing push secrets and error out if one is present", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
-				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+				{Name: randomNamespaceName()},
 			},
 			clusterPushSecret: func(namespaces []v1.Namespace) v1alpha1.ClusterPushSecret {
 				pes := defaultClusterPushSecret()
@@ -459,10 +439,8 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				}
 
 				es := &v1alpha1.PushSecret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      pes.Name,
-						Namespace: namespaces[0].Name,
-					},
+					Name:      pes.Name,
+					Namespace: namespaces[0].Name,
 					Spec: v1alpha1.PushSecretSpec{
 						RefreshInterval: &metav1.Duration{Duration: time.Hour},
 						SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
@@ -484,9 +462,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			sourceSecret: defaultSourceSecret,
 			expectedClusterPushSecret: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) v1alpha1.ClusterPushSecret {
 				return v1alpha1.ClusterPushSecret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: created.Name,
-					},
+					Name: created.Name,
 					Spec: created.Spec,
 					Status: v1alpha1.ClusterPushSecretStatus{
 						PushSecretName: created.Name,
@@ -509,10 +485,8 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			expectedPushSecrets: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) []v1alpha1.PushSecret {
 				return []v1alpha1.PushSecret{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: namespaces[0].Name,
-							Name:      created.Name,
-						},
+						Namespace: namespaces[0].Name,
+						Name:      created.Name,
 						Spec: v1alpha1.PushSecretSpec{
 							RefreshInterval: &metav1.Duration{Duration: time.Hour},
 							SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
@@ -535,7 +509,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 		}),
 		Entry("Should crate an push secret if one with the same name has been deleted", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
-				{ObjectMeta: metav1.ObjectMeta{Name: randomNamespaceName()}},
+				{Name: randomNamespaceName()},
 			},
 			clusterPushSecret: func(namespaces []v1.Namespace) v1alpha1.ClusterPushSecret {
 				pes := defaultClusterPushSecret()
@@ -546,10 +520,8 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				}
 
 				es := &v1alpha1.PushSecret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      pes.Name,
-						Namespace: namespaces[0].Name,
-					},
+					Name:      pes.Name,
+					Namespace: namespaces[0].Name,
 					Spec: v1alpha1.PushSecretSpec{
 						RefreshInterval: &metav1.Duration{Duration: time.Hour},
 						SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
@@ -577,18 +549,14 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
 
 				es := &v1alpha1.PushSecret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      pes.Name,
-						Namespace: namespaces[0].Name,
-					},
+					Name:      pes.Name,
+					Namespace: namespaces[0].Name,
 				}
 				Expect(k8sClient.Delete(ctx, es)).ShouldNot(HaveOccurred())
 			},
 			expectedClusterPushSecret: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) v1alpha1.ClusterPushSecret {
 				return v1alpha1.ClusterPushSecret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: created.Name,
-					},
+					Name: created.Name,
 					Spec: created.Spec,
 					Status: v1alpha1.ClusterPushSecretStatus{
 						PushSecretName:        created.Name,
@@ -605,11 +573,9 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			expectedPushSecrets: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) []v1alpha1.PushSecret {
 				return []v1alpha1.PushSecret{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: namespaces[0].Name,
-							Name:      created.Name,
-						},
-						Spec: created.Spec.PushSecretSpec,
+						Namespace: namespaces[0].Name,
+						Name:      created.Name,
+						Spec:      created.Spec.PushSecretSpec,
 					},
 				}
 			},
@@ -617,16 +583,12 @@ var _ = Describe("ClusterPushSecret controller", func() {
 		Entry("Should delete push secrets when namespaces no longer match", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   randomNamespaceName(),
-						Labels: map[string]string{noneMatchingAnnotationKey: noneMatchingAnnotationVal},
-					},
+					Name:   randomNamespaceName(),
+					Labels: map[string]string{noneMatchingAnnotationKey: noneMatchingAnnotationVal},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   randomNamespaceName(),
-						Labels: map[string]string{noneMatchingAnnotationKey: noneMatchingAnnotationVal},
-					},
+					Name:   randomNamespaceName(),
+					Labels: map[string]string{noneMatchingAnnotationKey: noneMatchingAnnotationVal},
 				},
 			},
 			sourceSecret: defaultSourceSecret,
@@ -654,9 +616,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			},
 			expectedClusterPushSecret: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) v1alpha1.ClusterPushSecret {
 				return v1alpha1.ClusterPushSecret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: created.Name,
-					},
+					Name: created.Name,
 					Spec: created.Spec,
 					Status: v1alpha1.ClusterPushSecretStatus{
 						PushSecretName:        created.Name,
@@ -673,11 +633,9 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			expectedPushSecrets: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) []v1alpha1.PushSecret {
 				return []v1alpha1.PushSecret{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: namespaces[1].Name,
-							Name:      created.Name,
-						},
-						Spec: created.Spec.PushSecretSpec,
+						Namespace: namespaces[1].Name,
+						Name:      created.Name,
+						Spec:      created.Spec.PushSecretSpec,
 					},
 				}
 			},
@@ -685,22 +643,16 @@ var _ = Describe("ClusterPushSecret controller", func() {
 		Entry("Should sync with match expression", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   randomNamespaceName(),
-						Labels: map[string]string{"prefix": "foo"},
-					},
+					Name:   randomNamespaceName(),
+					Labels: map[string]string{"prefix": "foo"},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   randomNamespaceName(),
-						Labels: map[string]string{"prefix": "bar"},
-					},
+					Name:   randomNamespaceName(),
+					Labels: map[string]string{"prefix": "bar"},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:   randomNamespaceName(),
-						Labels: map[string]string{"prefix": "baz"},
-					},
+					Name:   randomNamespaceName(),
+					Labels: map[string]string{"prefix": "baz"},
 				},
 			},
 			sourceSecret: defaultSourceSecret,
@@ -724,9 +676,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 				provisionedNamespaces := []string{namespaces[0].Name, namespaces[1].Name}
 				sort.Strings(provisionedNamespaces)
 				return v1alpha1.ClusterPushSecret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: created.Name,
-					},
+					Name: created.Name,
 					Spec: created.Spec,
 					Status: v1alpha1.ClusterPushSecretStatus{
 						PushSecretName:        created.Name,
@@ -743,18 +693,14 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			expectedPushSecrets: func(namespaces []v1.Namespace, created v1alpha1.ClusterPushSecret) []v1alpha1.PushSecret {
 				return []v1alpha1.PushSecret{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: namespaces[0].Name,
-							Name:      created.Name,
-						},
-						Spec: created.Spec.PushSecretSpec,
+						Namespace: namespaces[0].Name,
+						Name:      created.Name,
+						Spec:      created.Spec.PushSecretSpec,
 					},
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: namespaces[1].Name,
-							Name:      created.Name,
-						},
-						Spec: created.Spec.PushSecretSpec,
+						Namespace: namespaces[1].Name,
+						Name:      created.Name,
+						Spec:      created.Spec.PushSecretSpec,
 					},
 				}
 			},
@@ -762,9 +708,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 		Entry("Should be ready if no namespace matches", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: randomNamespaceName(),
-					},
+					Name: randomNamespaceName(),
 				},
 			},
 			clusterPushSecret: func(_ []v1.Namespace) v1alpha1.ClusterPushSecret {
@@ -779,9 +723,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			sourceSecret: defaultSourceSecret,
 			expectedClusterPushSecret: func(_ []v1.Namespace, created v1alpha1.ClusterPushSecret) v1alpha1.ClusterPushSecret {
 				return v1alpha1.ClusterPushSecret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: created.Name,
-					},
+					Name: created.Name,
 					Spec: created.Spec,
 					Status: v1alpha1.ClusterPushSecretStatus{
 						PushSecretName: created.Name,
@@ -801,27 +743,21 @@ var _ = Describe("ClusterPushSecret controller", func() {
 		Entry("Should be ready if namespace is selected via the namespace selectors", clusterPushSecretTestCase{
 			namespaces: []v1.Namespace{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "namespace1",
-						Labels: map[string]string{
-							"key": "value1",
-						},
+					Name: "namespace1",
+					Labels: map[string]string{
+						"key": "value1",
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "namespace2",
-						Labels: map[string]string{
-							"key": "value2",
-						},
+					Name: "namespace2",
+					Labels: map[string]string{
+						"key": "value2",
 					},
 				},
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "namespace3",
-						Labels: map[string]string{
-							"key": "value3",
-						},
+					Name: "namespace3",
+					Labels: map[string]string{
+						"key": "value3",
 					},
 				},
 			},
@@ -840,9 +776,7 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			sourceSecret: defaultSourceSecret,
 			expectedClusterPushSecret: func(_ []v1.Namespace, created v1alpha1.ClusterPushSecret) v1alpha1.ClusterPushSecret {
 				return v1alpha1.ClusterPushSecret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: created.Name,
-					},
+					Name: created.Name,
 					Spec: created.Spec,
 					Status: v1alpha1.ClusterPushSecretStatus{
 						PushSecretName: created.Name,
@@ -862,18 +796,14 @@ var _ = Describe("ClusterPushSecret controller", func() {
 			expectedPushSecrets: func(_ []v1.Namespace, created v1alpha1.ClusterPushSecret) []v1alpha1.PushSecret {
 				return []v1alpha1.PushSecret{
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "namespace1",
-							Name:      created.Name,
-						},
-						Spec: created.Spec.PushSecretSpec,
+						Namespace: "namespace1",
+						Name:      created.Name,
+						Spec:      created.Spec.PushSecretSpec,
 					},
 					{
-						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "namespace2",
-							Name:      created.Name,
-						},
-						Spec: created.Spec.PushSecretSpec,
+						Namespace: "namespace2",
+						Name:      created.Name,
+						Spec:      created.Spec.PushSecretSpec,
 					},
 				}
 			},
