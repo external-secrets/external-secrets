@@ -592,7 +592,7 @@ func mergeCustomField(currentRecord *ksm.Record, field CustomField) error {
 	if err != nil {
 		return err
 	}
-	return currentRecord.AddCustomField(ksm.Secret{KeeperRecordField: ksm.KeeperRecordField{Type: secretType, Label: field.Label}, Value: values})
+	return currentRecord.AddCustomField(ksm.Secret{Type: secretType, Label: field.Label, Value: values})
 }
 
 func customFieldStringValues(field CustomField) ([]string, error) {
