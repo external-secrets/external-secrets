@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	previderclient "github.com/previder/vault-cli/pkg"
+	previdermodel "github.com/previder/vault-cli/pkg/model"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -33,12 +34,6 @@ import (
 )
 
 const (
-	// tokenTypeReadWrite is the only token type that may enumerate the vault.
-	// ReadOnly tokens can decrypt a secret whose id or name is already known,
-	// and the admin types manage tokens rather than secrets. Replace with the
-	// constant from vault-cli once a release exports it.
-	tokenTypeReadWrite = "ReadWrite"
-
 	errNotImplemented    = "not implemented"
 	errTagsNotSupported  = "previder vault does not support tags, use name.regexp instead"
 	errPathNotSupported  = "previder vault has no secret hierarchy, path is not supported"
@@ -156,7 +151,7 @@ func (s *SecretManager) GetSecretMap(ctx context.Context, ref esv1.ExternalSecre
 // GetAllSecrets retrieves all secrets from Previder Vault whose description
 // matches the given find criteria.
 func (s *SecretManager) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	if s.TokenType != tokenTypeReadWrite {
+	if s.TokenType != previdermodel.TokenTypeReadWrite {
 		return nil, errors.New(errNotReadWriteToken)
 	}
 	if ref.Tags != nil {

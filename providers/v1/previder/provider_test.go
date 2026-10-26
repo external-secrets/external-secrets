@@ -20,6 +20,8 @@ import (
 	"reflect"
 	"testing"
 
+	previdermodel "github.com/previder/vault-cli/pkg/model"
+
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
@@ -78,13 +80,13 @@ func TestSecretManagerGetAllSecrets(t *testing.T) {
 		{
 			name:      "a ReadOnly token cannot enumerate",
 			ref:       esv1.ExternalSecretFind{},
-			tokenType: "ReadOnly",
+			tokenType: previdermodel.TokenTypeReadOnly,
 			wantErr:   true,
 		},
 		{
 			name:      "an EnvironmentAdmin token cannot enumerate",
 			ref:       esv1.ExternalSecretFind{},
-			tokenType: "EnvironmentAdmin",
+			tokenType: previdermodel.TokenTypeEnvironmentAdmin,
 			wantErr:   true,
 		},
 		{
@@ -101,7 +103,7 @@ func TestSecretManagerGetAllSecrets(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			tokenType := tc.tokenType
 			if tokenType == "" {
-				tokenType = "ReadWrite"
+				tokenType = previdermodel.TokenTypeReadWrite
 			}
 			previderProvider := &SecretManager{VaultClient: &PreviderVaultFakeClient{}, TokenType: tokenType}
 			got, err := previderProvider.GetAllSecrets(context.Background(), tc.ref)
