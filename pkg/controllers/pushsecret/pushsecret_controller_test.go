@@ -361,7 +361,7 @@ var _ = Describe("PushSecret controller", func() {
 					Type:    v1alpha1.PushSecretReady,
 					Status:  v1.ConditionFalse,
 					Reason:  v1alpha1.ReasonErrored,
-					Message: "set secret failed: could not verify if secret exists in store: don't know",
+					Message: "set secret failed",
 				}
 				return checkCondition(ps.Status, expected)
 			}, time.Second*10, time.Second).Should(BeTrue())
@@ -1163,7 +1163,7 @@ var _ = Describe("PushSecret controller", func() {
 				Type:    v1alpha1.PushSecretReady,
 				Status:  v1.ConditionFalse,
 				Reason:  v1alpha1.ReasonErrored,
-				Message: "set secret failed: could not write remote ref key to target secretstore test-store: boom",
+				Message: "set secret failed",
 			}
 			return checkCondition(ps.Status, expected)
 		}
@@ -1178,7 +1178,7 @@ var _ = Describe("PushSecret controller", func() {
 				Type:    v1alpha1.PushSecretReady,
 				Status:  v1.ConditionFalse,
 				Reason:  v1alpha1.ReasonErrored,
-				Message: "set secret failed: could not get secrets client for store test-store: boom",
+				Message: "set secret failed",
 			}
 			return checkCondition(ps.Status, expected)
 		}

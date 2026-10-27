@@ -1099,7 +1099,8 @@ func (a *Azure) authorizerForWorkloadIdentity(ctx context.Context, tokenProvider
 		if clientID == "" || tenantID == "" || tokenFilePath == "" {
 			return nil, errors.New(errMissingWorkloadEnvVars)
 		}
-		token, err := os.ReadFile(filepath.Clean(tokenFilePath))
+		// The webhook-provided path is the intended token file; its location is configurable.
+		token, err := os.ReadFile(filepath.Clean(tokenFilePath)) //nolint:gosec // G703: AZURE_FEDERATED_TOKEN_FILE is a trusted pod environment setting
 		if err != nil {
 			return nil, fmt.Errorf(errReadTokenFile, tokenFilePath, err)
 		}
