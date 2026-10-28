@@ -1,8 +1,8 @@
 # [Sponsored by](https://opencollective.com/external-secrets-org)
 
-[![Roche](./pictures/Roche_logo_blue_200px.png)](https://www.roche.com/)
-[![cs-logo](./pictures/cs_logo.png)](https://container-solutions.com)
-[![Form3](./pictures/form3_logo.png)](https://www.form3.tech/)
+<a href="https://www.roche.com/"><img src="./pictures/Roche_logo_blue_200px.png" alt="Roche" height="100"></a>
+<a href="https://container-solutions.com"><img src="./pictures/cs_logo.png" alt="cs-logo" height="100"></a>
+<a href="https://www.form3.tech/"><img src="./pictures/form3_logo.png" alt="Form3" height="100"></a>
 
 # Introduction
 
