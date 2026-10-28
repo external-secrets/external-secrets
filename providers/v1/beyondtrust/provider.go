@@ -107,8 +107,10 @@ func (*Provider) Capabilities() esv1.SecretStoreCapabilities {
 }
 
 // Close implements v1beta1.SecretsClient.
-func (*Provider) Close(_ context.Context) error {
-	return nil
+// Signs out of the Password Safe session and closes idle HTTP connections
+// so each reconcile does not leave ESTABLISHED sockets behind.
+func (p *Provider) Close(_ context.Context) error {
+	return p.authenticate.SignOut()
 }
 
 // DeleteSecret implements v1beta1.SecretsClient.
@@ -374,9 +376,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 	}
 	returnSecret, err := fetch()
 	if err != nil {
-		if serr := p.authenticate.SignOut(); serr != nil {
-			return nil, errors.Join(err, serr)
-		}
+		// Session cleanup happens in Close(), which the client manager always calls.
 		return nil, fmt.Errorf("error getting secret/managed account: %w", err)
 	}
 	return []byte(returnSecret), nil
