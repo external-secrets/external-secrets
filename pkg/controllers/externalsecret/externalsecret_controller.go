@@ -1102,14 +1102,15 @@ func findAllReferencedSources(es *esv1.ExternalSecret) ([]esv1.SecretStoreRef, [
 	}
 
 	for _, ref := range es.Spec.Data {
-		if ref.SourceRef != nil {
-			if ref.SourceRef.SecretStoreRef.Name != "" {
-				storeList = append(storeList, ref.SourceRef.SecretStoreRef)
-			}
-			// Technically there is generatorRef here in StoreSourceRef in v1, though it is deprecated
-			if ref.SourceRef.GeneratorRef != nil {
-				generatorList = append(generatorList, *ref.SourceRef.GeneratorRef)
-			}
+		if ref.SourceRef == nil {
+			continue
+		}
+		if ref.SourceRef.SecretStoreRef.Name != "" {
+			storeList = append(storeList, ref.SourceRef.SecretStoreRef)
+		}
+		// Technically there is generatorRef here in StoreSourceRef in v1, though it is deprecated
+		if ref.SourceRef.GeneratorRef != nil {
+			generatorList = append(generatorList, *ref.SourceRef.GeneratorRef)
 		}
 	}
 
