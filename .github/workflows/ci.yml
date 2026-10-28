@@ -77,11 +77,10 @@ jobs:
       - name: Download Go modules
         run: go mod download
 
-      # The Helm 4 plugin installer requires verification that these Git-sourced plugins do not support.
-      - name: Set up Helm 3
-        uses: azure/setup-helm@2f5e7bc67f1f9972ab16657bb795f36d8f04de0e # v5.1.0
-        with:
-          version: v3.22.1
+      - name: Set up Helm
+        run: |
+          make helm
+          echo "$PWD/bin" >> "$GITHUB_PATH"
 
       - name: Configure Git
         run: |

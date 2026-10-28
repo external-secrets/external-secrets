@@ -13,7 +13,7 @@ RUN apk add -U --no-cache \
     openssl
 
 ENV KUBECTL_VERSION="v1.34.1"
-ENV HELM_VERSION="v3.19.0"
+ENV HELM_VERSION="v4.3.2"
 RUN curl -LO https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl && \
     chmod +x kubectl && \
     install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl && \
