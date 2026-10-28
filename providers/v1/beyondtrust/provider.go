@@ -409,8 +409,10 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 	if err != nil {
 		// Wrap NoSecretErr so the reconciler can apply deletionPolicy. A fetch makes several requests and the
 		// SDK errors don't say which one failed, so only a failed lookup counts: a 404 from a later step, such
-		// as the managed account check-in or a file download, is not a missing secret.
-		if lerr := lookup(); lerr != nil && isNotFound(lerr) {
+		// as the managed account check-in or a file download, is not a missing secret. The lookup runs only
+		// after a not-found: the SDK has already retried technical errors such as a 5xx for up to
+		// retryMaxElapsedTimeMinutes, and a lookup would retry them again.
+		if isNotFound(err) && isNotFound(lookup()) {
 			err = fmt.Errorf("%w: %w", esv1.NoSecretErr, err)
 		} else {
 			err = fmt.Errorf("error getting secret/managed account: %w", err)
@@ -468,9 +470,12 @@ func validateRetrievalType(retrievalType string) error {
 	}
 }
 
-// isNotFound reports whether a lookup error is a Password Safe "not found" response.
+// isNotFound reports whether err is a Password Safe "not found" response. It is false for a nil error.
 // The SDK does not expose typed errors, so this matches its error messages.
 func isNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
 	msg := err.Error()
 	return strings.Contains(msg, "status code: 404") || strings.Contains(msg, "Secret was not found")
 }

@@ -23,6 +23,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1275,6 +1276,9 @@ type getSecretMock struct {
 	missingSecret  bool // the Secrets Safe search returns no secret
 	failedCheckIn  bool // the managed account check-in returns 404
 	fileSecret     bool // the secret is a FILE whose download returns 404
+	noSchedule     bool // the release request is refused with 400
+
+	managedAccountCalls *atomic.Int32 // counts managed account lookups, when set
 }
 
 // newGetSecretMockServer serves both the managed account and the Secrets Safe
@@ -1291,12 +1295,19 @@ func newGetSecretMockServer(t *testing.T, mock getSecretMock) *httptest.Server {
 		case "/Auth/Signout":
 			writeBody(t, w, ``)
 		case "/ManagedAccounts":
+			if mock.managedAccountCalls != nil {
+				mock.managedAccountCalls.Add(1)
+			}
 			if mock.missingManaged {
 				http.Error(w, "managed account not found", http.StatusNotFound)
 				return
 			}
 			writeBody(t, w, `{"SystemId":1,"AccountId":10}`)
 		case "/Requests":
+			if mock.noSchedule {
+				http.Error(w, `"Could not find a schedule to use with this release request."`, http.StatusBadRequest)
+				return
+			}
 			writeBody(t, w, `124`)
 		case "/Credentials/124":
 			writeBody(t, w, `"managed_password"`)
@@ -1372,6 +1383,38 @@ func TestGetSecret(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, tt.want, string(got))
 			}
+		})
+	}
+}
+
+// A fetch that fails with anything but not-found must not repeat the lookup: the SDK has already
+// retried technical errors, and the lookup would retry them again.
+func TestGetSecretLookupOnlyAfterNotFound(t *testing.T) {
+	tests := []struct {
+		name      string
+		mock      getSecretMock
+		wantCalls int32
+	}{
+		{name: "refused release request skips the lookup", mock: getSecretMock{noSchedule: true}, wantCalls: 1},
+		{name: "failed check-in repeats the lookup", mock: getSecretMock{failedCheckIn: true}, wantCalls: 2},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var calls atomic.Int32
+			tt.mock.managedAccountCalls = &calls
+			fakeServer := newGetSecretMockServer(t, tt.mock)
+			defer fakeServer.Close()
+
+			p := newAuthenticatedProvider(t, fakeServer.URL, "3.1")
+			p.retrievaltype = retrievalTypeAll
+			p.separator = "/"
+			p.log = *logging.NewLogrLogger(&ESOLogger)
+
+			_, err := p.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "managed:system01/account01"})
+			require.Error(t, err)
+			require.NotErrorIs(t, err, esv1.NoSecretErr)
+			assert.Equal(t, tt.wantCalls, calls.Load())
 		})
 	}
 }
