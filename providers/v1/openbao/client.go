@@ -102,6 +102,12 @@ func (c *client) setup(ctx context.Context, kube k8sClient.Client, namespace str
 		client.SetNamespace(*c.store.Namespace)
 	}
 
+	if c.store.Headers != nil {
+		for k, v := range c.store.Headers {
+			client.AddHeader(k, v)
+		}
+	}
+
 	c.client = client
 
 	return c.setupAuth(ctx, kube, namespace, provider)
