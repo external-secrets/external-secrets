@@ -76,6 +76,10 @@ type OpenBaoProvider struct {
 	// +kubebuilder:validation:Enum="v1";"v2"
 	// +kubebuilder:default:="v2"
 	Version OpenBaoKVStoreVersion `json:"version"`
+
+	// Headers to be added to OpenBao request
+	// +optional
+	Headers map[string]string `json:"headers,omitempty"`
 }
 
 // OpenBaoAuth is the configuration used to authenticate with an OpenBao server.
