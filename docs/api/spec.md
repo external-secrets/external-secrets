@@ -9900,6 +9900,18 @@ OpenBaoKVStoreVersion
 &ldquo;v2&rdquo;. Version defaults to &ldquo;v2&rdquo;.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>headers</code></br>
+<em>
+map[string]string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Headers to be added to OpenBao request</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.OpenBaoUserPassAuth">OpenBaoUserPassAuth
