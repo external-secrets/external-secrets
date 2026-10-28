@@ -5965,7 +5965,11 @@
 </code></pre></div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
-<p>In order to create a PushSecret targeting Secrets, the <a href="https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-secrets-officer">Key Vault Secrets Officer</a> role, alternatively Access Policy permissions <code>Set</code> and <code>Delete</code> for Secrets must be granted to the identity configured on the SecretStore.</p>
+<p>In order to create a PushSecret targeting Secrets, the <a href="https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-secrets-officer">Key Vault Secrets Officer</a> role must be granted to the identity configured on the SecretStore. When using Access Policies instead of Azure RBAC, grant the <code>Set</code> and <code>Delete</code> Secret permissions. Also grant <code>Get</code> and <code>Recover</code> if External Secrets Operator must recover a soft-deleted secret with the same name.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>When a PushSecret write conflicts with a soft-deleted secret, External Secrets Operator recovers it only if the deleted secret has the <code>managed-by: external-secrets</code> tag. The recovered value can be visible temporarily. The controller reports a reconciliation error and writes the desired value on a subsequent reconciliation after Azure makes the secret available. Secrets without the ownership tag are not recovered. Normal secret writes are not affected.</p>
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
