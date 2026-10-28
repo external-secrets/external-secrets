@@ -138,6 +138,8 @@ Set `retrievalType: ALL` on the store to resolve both Password Safe managed acco
 
 > NOTE: Upgrading: earlier versions treated an empty or unrecognized `retrievalType` as `MANAGED_ACCOUNT`. After upgrading, such stores are rejected with `invalid retrievalType`, and their ExternalSecrets stop syncing. Before upgrading, set `retrievalType: MANAGED_ACCOUNT` on every BeyondTrust `SecretStore` and `ClusterSecretStore` that does not set it.
 
+> NOTE: A missing secret or managed account is reported as not found, so `deletionPolicy: Delete` and `Merge` apply. Password Safe only returns the secrets and managed accounts the API user can access, so losing access to one looks the same as deleting it. Under `Delete`, a permission change in BeyondTrust can therefore remove keys from the Kubernetes Secret, or the whole Secret, with only a Normal event. Use the default `deletionPolicy: Retain` if that is not acceptable.
+
 An `ALL` store that retrieves managed accounts needs the client `certificate` and `certificateKey`, the same as a `MANAGED_ACCOUNT` store.
 
 ```yaml
