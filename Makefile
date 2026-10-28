@@ -213,10 +213,10 @@ generate: controller-gen ## Generate code and crds
 run: generate ## Run app locally (without a k8s cluster)
 	go run -tags $(PROVIDER) ./main.go
 
-manifests: helm.generate ## Generate manifests from helm chart
+manifests: helm helm.generate ## Generate manifests from helm chart
 	mkdir -p $(OUTPUT_DIR)/deploy/manifests
-	helm dependency build $(HELM_DIR)
-	helm template external-secrets $(HELM_DIR) -f deploy/manifests/helm-values.yaml > $(OUTPUT_DIR)/deploy/manifests/external-secrets.yaml
+	$(HELM) dependency build $(HELM_DIR)
+	$(HELM) template external-secrets $(HELM_DIR) -f deploy/manifests/helm-values.yaml > $(OUTPUT_DIR)/deploy/manifests/external-secrets.yaml
 
 crds.install: generate ## Install CRDs into a cluster. This is for convenience
 	kubectl apply -f $(BUNDLE_DIR) --server-side
@@ -239,49 +239,46 @@ helm.docs: ## Generate helm docs
 	@cd $(HELM_DIR); \
 	$(DOCKER) run --rm -v $(shell pwd)/$(HELM_DIR):/helm-docs -u $(shell id -u) docker.io/jnorwood/helm-docs@sha256:7e562b49ab6b1dbc50c3da8f2dd6ffa8a5c6bba327b1c6335cc15ce29267979c
 
-HELM_VERSION ?= $(shell helm show chart $(HELM_DIR) | grep '^version:' | sed 's/version: //g')
+HELM_VERSION ?= $(shell $(HELM) show chart $(HELM_DIR) | grep '^version:' | sed 's/version: //g')
 
-helm.build: helm.generate ## Build helm chart
+helm.build: helm helm.generate ## Build helm chart
 	@$(INFO) helm package
-	@helm package $(HELM_DIR) --dependency-update --destination $(OUTPUT_DIR)/chart
+	@$(HELM) package $(HELM_DIR) --dependency-update --destination $(OUTPUT_DIR)/chart
 	@mv $(OUTPUT_DIR)/chart/external-secrets-$(HELM_VERSION).tgz $(OUTPUT_DIR)/chart/external-secrets.tgz
 	@$(OK) helm package
 
-# install_helm_plugin is for installing the provided plugin, if it doesn't exist
-# $1 - plugin name
-# $2 - plugin version
-# $3 - plugin url
-define install_helm_plugin
-@v=$$(helm plugin list | awk '$$1=="$(1)"{print $$2}'); \
-if [ -z "$$v" ]; then \
-	$(INFO) "Installing $(1) v$(2)"; \
-	helm plugin install --version $(2) $(3); \
-	$(OK) "Installed $(1) v$(2)"; \
-elif [ "$$v" != "$(2)" ]; then \
-	$(INFO) "Found $(1) $$v. Reinstalling v$(2)"; \
-	helm plugin remove $(1); \
-	helm plugin install --version $(2) $(3); \
-	$(OK) "Reinstalled $(1) v$(2)"; \
-else \
-	$(OK) "$(1) already at v$(2)"; \
-fi
-endef
+# The schema plugin has no .prov file, so Helm 4 cannot verify its Git source.
+HELM_SCHEMA_VER := 2.2.1
+HELM_SCHEMA_URL := https://github.com/losisin/helm-values-schema-json.git
+helm.schema.plugin: helm
+	@v=$$($(HELM) plugin list | awk '$$1=="schema"{print $$2}'); \
+	if [ "$$v" = "$(HELM_SCHEMA_VER)" ]; then $(OK) "schema already at v$(HELM_SCHEMA_VER)"; exit 0; fi; \
+	if [ -n "$$v" ]; then $(HELM) plugin remove schema; fi; \
+	$(INFO) "Installing schema v$(HELM_SCHEMA_VER)"; \
+	$(HELM) plugin install --verify=false --version $(HELM_SCHEMA_VER) $(HELM_SCHEMA_URL)
 
-HELM_SCHEMA_NAME := schema
-HELM_SCHEMA_VER  := 2.2.1
-HELM_SCHEMA_URL  := https://github.com/losisin/helm-values-schema-json.git
-helm.schema.plugin:
-	$(call install_helm_plugin,$(HELM_SCHEMA_NAME),$(HELM_SCHEMA_VER), $(HELM_SCHEMA_URL))
-
-HELM_UNITTEST_PLUGIN_NAME := unittest
-HELM_UNITTEST_PLUGIN_VER := 1.0.0
-HELM_UNITTEST_PLUGIN_URL := https://github.com/helm-unittest/helm-unittest.git
-helm.unittest.plugin:
-	$(call install_helm_plugin,$(HELM_UNITTEST_PLUGIN_NAME),$(HELM_UNITTEST_PLUGIN_VER), $(HELM_UNITTEST_PLUGIN_URL))
+HELM_UNITTEST_PLUGIN_VER := 1.2.1
+HELM_UNITTEST_SIGNED_URL := https://github.com/helm-unittest/helm-unittest/releases/download/v$(HELM_UNITTEST_PLUGIN_VER)/unittest-$(HELM_UNITTEST_PLUGIN_VER).tgz
+# Pin the release signing key, not just the URL from which it is fetched.
+HELM_UNITTEST_KEY_FINGERPRINT := 853008CD0B0A5A2DA04FF8A5616AD47F65B54AC7
+helm.unittest.plugin: helm
+	@v=$$($(HELM) plugin list | awk '$$1=="unittest"{print $$2}'); \
+	keyring=$$(mktemp); trap 'rm -f "$$keyring"' EXIT; \
+	curl -fsSL https://raw.githubusercontent.com/helm-unittest/helm-unittest/v$(HELM_UNITTEST_PLUGIN_VER)/public-key.asc | gpg --dearmor > "$$keyring"; \
+	fingerprints=$$(gpg --show-keys --with-colons "$$keyring" | awk -F: '$$1=="fpr"{print $$10}'); \
+	test "$$fingerprints" = "$(HELM_UNITTEST_KEY_FINGERPRINT)"; \
+	data_home=$$($(HELM) env | awk -F= '$$1=="HELM_DATA_HOME"{gsub(/"/, "", $$2); print $$2}'); \
+	if [ "$$v" = "$(HELM_UNITTEST_PLUGIN_VER)" ] && \
+		$(HELM) plugin verify "$$data_home/plugins/unittest-$(HELM_UNITTEST_PLUGIN_VER).tgz" --keyring "$$keyring" >/dev/null 2>&1; then \
+		$(OK) "unittest already verified at v$(HELM_UNITTEST_PLUGIN_VER)"; exit 0; \
+	fi; \
+	if [ -n "$$v" ]; then $(HELM) plugin remove unittest; fi; \
+	$(INFO) "Installing verified unittest v$(HELM_UNITTEST_PLUGIN_VER)"; \
+	$(HELM) plugin install --verify=true --keyring "$$keyring" $(HELM_UNITTEST_SIGNED_URL)
 
 helm.schema.update: helm.schema.plugin
 	@$(INFO) Generating values.schema.json
-	@helm schema -f $(HELM_DIR)/values.yaml -o $(HELM_DIR)/values.schema.json
+	@$(HELM) schema -f $(HELM_DIR)/values.yaml -o $(HELM_DIR)/values.schema.json
 	@$(OK) Generated values.schema.json
 
 helm.generate:
@@ -289,10 +286,10 @@ helm.generate:
 	@$(OK) Finished generating helm chart files
 
 helm.test: helm.unittest.plugin helm.generate
-	@helm unittest deploy/charts/external-secrets/
+	@$(HELM) unittest deploy/charts/external-secrets/
 
 helm.test.update: helm.unittest.plugin helm.generate
-	@helm unittest -u deploy/charts/external-secrets/
+	@$(HELM) unittest -u deploy/charts/external-secrets/
 
 helm.update.appversion:
 	@chartversion=$$(yq .version ./deploy/charts/external-secrets/Chart.yaml) ; \
@@ -438,6 +435,7 @@ $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 
 ## Tool Binaries
+HELM ?= $(LOCALBIN)/helm
 TILT ?= $(LOCALBIN)/tilt
 CTY ?= $(LOCALBIN)/cty
 ENVTEST ?= $(LOCALBIN)/setup-envtest
@@ -449,9 +447,34 @@ GEN_CRD_API_REFERENCE_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
 LINT_TARGET ?= ""
 ## Tool Versions
 KUBERNETES_VERSION := 1.33.x
+HELM_CLI_VERSION := v4.3.1
 TILT_VERSION := 0.33.21
 CTY_VERSION := 1.1.3
 GOLANGCI_LINT_VERSION := 2.15.0
+
+# SHA-256 digests of the official archives at get.helm.sh.
+HELM_CLI_SHA256_linux_amd64 := 0403a88ae20913d11b10a2467b50087721fea7581736da6b9d3992f5357fe54b
+HELM_CLI_SHA256_linux_arm64 := 8cf8f66ecbc252ac8f7f06cca68aba88508ddfde3a6a34feb1678ad1694b4f88
+HELM_CLI_SHA256_linux_ppc64le := 11bbb554976ce22aeb21b308bb5683f98941db81725d2b280d8b943b6ada8036
+HELM_CLI_SHA256_linux_s390x := dfb031400c1215c0bd673d5e25bcd300a5af903fbfed10b5cb8b3ffc03bcecb6
+HELM_CLI_SHA256_darwin_amd64 := 34bec4eba761ba5c16d1965ee6b8f5b0abe5993974a802274e2a4f0418893d89
+HELM_CLI_SHA256_darwin_arm64 := 6b4e61c8cd27d99e5a801e63ff25dd5c70b36875c2cd659d3e9ce6b76fc23198
+HELM_CLI_PLATFORM := $(shell go env GOHOSTOS)_$(shell go env GOHOSTARCH)
+HELM_CLI_SHA256 := $(HELM_CLI_SHA256_$(HELM_CLI_PLATFORM))
+
+.PHONY: helm
+helm: $(HELM) ## Install and verify the pinned Helm CLI locally.
+	@test "$$($(HELM) version --short | cut -d+ -f1)" = "$(HELM_CLI_VERSION)"
+$(HELM): Makefile | $(LOCALBIN)
+	@test -n "$(HELM_CLI_SHA256)" || { echo "Unsupported Helm platform: $(HELM_CLI_PLATFORM)" >&2; exit 1; }
+	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
+		platform=$$(go env GOHOSTOS)-$$(go env GOHOSTARCH); \
+		archive=helm-$(HELM_CLI_VERSION)-$$platform.tar.gz; \
+		curl -fsSL "https://get.helm.sh/$$archive" -o "$$tmp/$$archive"; \
+		checksum=$$(openssl dgst -sha256 "$$tmp/$$archive" | awk '{print $$NF}'); \
+		test "$$checksum" = "$(HELM_CLI_SHA256)" || { echo "Helm archive checksum mismatch: $$archive" >&2; exit 1; }; \
+		tar -xzf "$$tmp/$$archive" -C "$$tmp" "$$platform/helm"; \
+		install "$$tmp/$$platform/helm" "$@"
 
 .PHONY: envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
