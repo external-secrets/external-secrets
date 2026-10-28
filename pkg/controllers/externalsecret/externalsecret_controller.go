@@ -1148,20 +1148,21 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 
 	for _, ref := range storeList {
 		var store esv1.GenericStore
+		lookupNamespace := namespace
 
 		switch ref.Kind {
 		case esv1.SecretStoreKind, "":
 			store = &esv1.SecretStore{}
 		case esv1.ClusterSecretStoreKind:
 			store = &esv1.ClusterSecretStore{}
-			namespace = ""
+			lookupNamespace = ""
 		default:
 			return false, fmt.Errorf("unsupported secret store kind: %s", ref.Kind)
 		}
 
 		err := r.Get(ctx, types.NamespacedName{
 			Name:      ref.Name,
-			Namespace: namespace,
+			Namespace: lookupNamespace,
 		}, store)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
