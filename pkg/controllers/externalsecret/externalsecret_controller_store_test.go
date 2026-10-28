@@ -41,7 +41,7 @@ func TestShouldSkipUnmanagedStoreAfterClusterStore(t *testing.T) {
 	foreignStore.SetName(foreignRef.Name)
 	foreignStore.SetNamespace(namespace)
 	kube := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(clusterStore, foreignStore).Build()
-	r := &Reconciler{Client: kube, ControllerClass: "my-eso"}
+	r := &Reconciler{Client: kube, ControllerClass: "my-eso", ClusterSecretStoreEnabled: true}
 
 	tests := []struct {
 		name     string

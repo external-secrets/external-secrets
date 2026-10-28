@@ -1934,12 +1934,12 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 	ignoreClusterSecretStoreWhenDisabled := func(tc *testCase) {
 		tc.externalSecret.Spec.SecretStoreRef.Kind = esv1.ClusterSecretStoreKind
 
-		Expect(shouldSkipClusterSecretStore(
-			&Reconciler{
-				ClusterSecretStoreEnabled: false,
-			},
-			tc.externalSecret,
-		)).To(BeTrue())
+		skip, err := shouldSkipUnmanagedStore(
+			context.Background(), tc.externalSecret.Namespace,
+			&Reconciler{ClusterSecretStoreEnabled: false}, tc.externalSecret,
+		)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(skip).To(BeTrue())
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
 			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
