@@ -131,6 +131,9 @@ const (
 
 	// cacheSyncRetryDelay is used when partial and full secret caches are temporarily out of sync.
 	cacheSyncRetryDelay = 200 * time.Millisecond
+
+	// fallbackUnmanagedRetryInterval is used if the reconciler has no requeue interval configured.
+	fallbackUnmanagedRetryInterval = time.Hour
 )
 
 // these errors are explicitly defined so we can detect them with `errors.Is()`.
@@ -247,8 +250,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		return ctrl.Result{}, err
 	}
 	if skip {
-		log.V(1).Info("skipping ExternalSecret, uses unmanaged (Cluster)SecretStore")
-		return ctrl.Result{}, nil
+		log.V(1).Info("skipping ExternalSecret, uses unmanaged SecretStore")
+		// Generator and store changes are not watched in this reconcile loop.
+		// Retry even when the ExternalSecret has a zero refresh interval,
+		// so class changes are noticed.
+		interval := r.RequeueInterval
+		if interval <= 0 {
+			interval = fallbackUnmanagedRetryInterval
+		}
+		return ctrl.Result{RequeueAfter: interval}, nil
 	}
 
 	// Add finalizer if it doesn't exist
