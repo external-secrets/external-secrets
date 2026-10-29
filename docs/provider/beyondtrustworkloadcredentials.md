@@ -8,7 +8,7 @@ For complete BeyondTrust Workload Credentials API documentation, see: [https://d
 
 ## Example
 
-First, create a SecretStore with a BeyondTrust Workload Credentials backend. You'll need an API token and the server configuration:
+First, create a SecretStore with a BeyondTrust Workload Credentials backend. You'll need an API token (or [OIDC authentication](#oidc-workload-identity)) and the server configuration:
 
 ```yaml
 {% include 'beyondtrustworkloadcredentials-secret-store.yaml' %}
@@ -262,7 +262,11 @@ Valid values:
 
 ## Authentication
 
-BeyondTrust Workload Credentials uses API key authentication. The API key is stored in a Kubernetes Secret and referenced in the SecretStore:
+The provider supports two authentication methods. Set exactly one of `auth.apikey` or `auth.oidc`.
+
+### API key
+
+The API key is stored in a Kubernetes Secret and referenced in the SecretStore:
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -291,6 +295,33 @@ auth:
       name: api-token
       key: token
 ```
+
+### OIDC (Workload Identity)
+
+With OIDC authentication no long-lived credential is stored in the cluster. On every reconcile, the operator requests a short-lived token (10 minutes) for a Kubernetes ServiceAccount through the [TokenRequest API](https://kubernetes.io/docs/reference/kubernetes-api/authentication-resources/token-request-v1/). It sends that token to BeyondTrust Workload Credentials as a Bearer token, with the service name in the `X-BT-Service-Name` header.
+
+To set it up:
+
+1. Find your cluster's OIDC issuer URL. BeyondTrust must be able to reach the issuer's discovery document and JWKS:
+   ```bash
+   kubectl get --raw /.well-known/openid-configuration | jq -r .issuer
+   ```
+2. In [BeyondTrust Pathfinder Platform](https://app.beyondtrust.io), create an OIDC issuer registration for that issuer URL and choose a service name. Service names may contain letters, digits, hyphens and underscores only. The confirmation page shows the site ID.
+3. Create the ServiceAccount that the operator requests tokens for:
+   ```bash
+   kubectl create serviceaccount eso-wlc -n external-secrets
+   ```
+4. Reference the service name and ServiceAccount in the SecretStore:
+
+```yaml
+{% include 'beyondtrustworkloadcredentials-oidc-secret-store.yaml' %}
+```
+
+Notes:
+
+- The token audience defaults to the `siteId`, which is what BeyondTrust Workload Credentials expects. Set `serviceAccountRef.audiences` only if your issuer registration requires a different audience.
+- The operator needs permission to create `serviceaccounts/token`. The Helm chart grants it when `rbac.serviceAccountTokenCreate` is `true` (the default).
+- For a `SecretStore`, the ServiceAccount must be in the store's namespace. For a `ClusterSecretStore`, `serviceAccountRef.namespace` is required and names the namespace the ServiceAccount lives in.
 
 ## Server Configuration
 

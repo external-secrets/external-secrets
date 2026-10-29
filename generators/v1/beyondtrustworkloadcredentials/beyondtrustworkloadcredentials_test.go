@@ -19,6 +19,7 @@ package beyondtrustworkloadcredentialsdynamic
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -34,7 +35,7 @@ import (
 type args struct {
 	jsonSpec     *apiextensions.JSON
 	kube         kclient.Client
-	btsClientFn  func(server, token string) (btwcutil.Client, error)
+	btsClientFn  func(server, token, serviceName string) (btwcutil.Client, error)
 	generateMock func(ctx context.Context, name string, folderPath *string) (*btwcutil.GeneratedSecret, error)
 }
 
@@ -108,7 +109,7 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 			},
 			want: want{
 				err: errors.New(
-					"failed to create BeyondtrustWorkloadCredentials client: failed to load credentials: missing or invalid BeyondtrustWorkloadCredentials API Token in BeyondtrustWorkloadCredentials SecretStore",
+					"failed to create BeyondtrustWorkloadCredentials client: failed to load credentials: exactly one of apikey or oidc must be set in BeyondtrustWorkloadCredentials SecretStore auth",
 				),
 			},
 		},
@@ -141,7 +142,7 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 						"token": []byte("test-token"),
 					},
 				}).Build(),
-				btsClientFn: func(server, token string) (btwcutil.Client, error) {
+				btsClientFn: func(server, token, serviceName string) (btwcutil.Client, error) {
 					client := &fake.BeyondtrustWorkloadCredentialsClient{}
 					client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 					return client, nil
@@ -166,6 +167,40 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 				},
 			},
 		},
+		"SuccessfulGenerationWithOIDC": {
+			reason: "Successfully generate dynamic secret using a ServiceAccount token and service name.",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(validDynamicSecretSpecOIDC),
+				},
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
+					Name:      "eso-wlc",
+					Namespace: namespace,
+				}).Build(),
+				btsClientFn: func(server, token, serviceName string) (btwcutil.Client, error) {
+					if token != "fake-token" || serviceName != "eso-cluster" {
+						return nil, fmt.Errorf("unexpected credentials: token=%q serviceName=%q", token, serviceName)
+					}
+					client := &fake.BeyondtrustWorkloadCredentialsClient{}
+					client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
+					return client, nil
+				},
+				generateMock: func(ctx context.Context, name string, folderPath *string) (*btwcutil.GeneratedSecret, error) {
+					return &btwcutil.GeneratedSecret{
+						AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
+						SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+						LeaseID:         "aws/creds/example/abc123",
+					}, nil
+				},
+			},
+			want: want{
+				partialVal: map[string][]byte{
+					"accessKeyId":     []byte("AKIAIOSFODNN7EXAMPLE"),
+					"secretAccessKey": []byte("wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"),
+					"leaseId":         []byte("aws/creds/example/abc123"),
+				},
+			},
+		},
 		"SuccessfulGenerationAtRootFolder": {
 			reason: "Successfully generate dynamic secret at root folder path.",
 			args: args{
@@ -179,7 +214,7 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 						"token": []byte("test-token"),
 					},
 				}).Build(),
-				btsClientFn: func(server, token string) (btwcutil.Client, error) {
+				btsClientFn: func(server, token, serviceName string) (btwcutil.Client, error) {
 					client := &fake.BeyondtrustWorkloadCredentialsClient{}
 					client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 					return client, nil
@@ -215,7 +250,7 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 						"token": []byte("test-token"),
 					},
 				}).Build(),
-				btsClientFn: func(server, token string) (btwcutil.Client, error) {
+				btsClientFn: func(server, token, serviceName string) (btwcutil.Client, error) {
 					client := &fake.BeyondtrustWorkloadCredentialsClient{}
 					client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 					return client, nil
@@ -232,7 +267,7 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			// Create client factory function with mock setup
-			newClientFn := func(server, token string) (btwcutil.Client, error) {
+			newClientFn := func(server, token, serviceName string) (btwcutil.Client, error) {
 				client := &fake.BeyondtrustWorkloadCredentialsClient{}
 				client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 
@@ -247,8 +282,8 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 			if tc.args.btsClientFn != nil {
 				// If a custom client function is provided, wrap it to add the generate mock
 				customFn := tc.args.btsClientFn
-				newClientFn = func(server, token string) (btwcutil.Client, error) {
-					client, err := customFn(server, token)
+				newClientFn = func(server, token, serviceName string) (btwcutil.Client, error) {
+					client, err := customFn(server, token, serviceName)
 					if err != nil {
 						return nil, err
 					}
