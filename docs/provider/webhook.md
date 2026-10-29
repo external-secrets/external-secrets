@@ -174,6 +174,63 @@ The provider inserts the secret to be retrieved in the object named `remoteRef`.
 In addition, secrets can be added as named objects, for example to use in authorization headers.
 Each secret has a `name` property which determines the name of the object in the templating engine.
 
+#### Template variables depend on the operation
+
+The read and write paths do not expose the same template variables. Which variables are
+available depends on the operation being performed:
+
+| Operation | `remoteRef` variables |
+|-----------|-----------------------|
+| Read (`ExternalSecret`) | `key`, `version`, `property`, `namespace` |
+| Push (`PushSecret`) | `remoteKey`, `secretKey` (when set), and the pushed value under `remoteRef.<remoteKey>` |
+| Delete | `remoteKey` only |
+
+`spec.secrets` entries are addressed as `.<name>.<keyInSecret>` on every path.
+
+A template that names a variable the current operation does not populate does not fail:
+Go's default `missingkey` behaviour renders the literal string `<no value>`, not an empty
+string. A url of `.../{{ .remoteRef.key }}{{ .remoteRef.remoteKey }}` therefore requests
+`.../mykey<no value>` on a read and `.../<no value>mykey` on a push. One template can
+serve both directions, but it needs a fallback. Either of these resolves correctly on a
+read and a push:
+
+{% raw %}
+```gotemplate
+{{ or .remoteRef.key .remoteRef.remoteKey }}
+{{ default .remoteRef.remoteKey .remoteRef.key }}
+```
+{% endraw %}
+
+An explicit `{{ if .remoteRef.key }}...{{ else }}...{{ end }}` also works. `hasKey` does
+not: sprig expects a `map[string]interface{}` while the template data is
+`map[string]string`, so it fails with a type error.
+
+#### The `method` is shared, but its default is not
+
+`method` is shared by read and push; delete requests always use `DELETE`, regardless of
+`method`. When left empty the provider uses `GET` for a read and `POST` for a push.
+Setting `method: GET` therefore silently turns every push into a `GET`, because the
+explicit value overrides the push default.
+
+#### Remote key names when `body` is unset
+
+On a push, when `spec.body` is not set the body defaults to
+`{{ .remoteRef.<remoteKey> }}`. That makes the remote key part of a template expression,
+so it must be a valid Go template field name. `plainkey` and `key_underscore` work;
+`my-key` fails to parse with `bad character U+002D` and `path/to/key` fails with
+`bad character U+002F`. `key.with.dots` parses but renders `<no value>` and pushes that
+literal string as the value. Set `spec.body` explicitly to avoid all of this when the
+remote key is not a bare identifier.
+
+#### Unsupported features
+
+`spec.remoteRef.property` is not applied automatically to response selection. Its value
+remains available as `.remoteRef.property` in templates. `GetSecret` uses the ref only to
+render the templates and then applies `result.jsonPath`, so a `property` in an
+`ExternalSecret` is silently ignored. The equivalent is to template the jsonPath itself.
+`dataFrom.find` is not supported either, because `GetAllSecrets` returns
+`not implemented`.
+
 ### All Parameters
 
 ```yaml
@@ -186,7 +243,7 @@ spec:
     webhook:
       # Url to call.  Use templating engine to fill in the request parameters
       url: <url>
-      # http method, defaults to GET
+      # http method; defaults to GET for reads and POST for pushes. Deletes always use DELETE.
       method: <method>
       # Timeout in duration (1s, 1m, etc)
       timeout: 1s
