@@ -35,25 +35,31 @@ func TestShouldSkipUnmanagedStoreAfterClusterStore(t *testing.T) {
 	const namespace = "team-a"
 	clusterRef := esv1.SecretStoreRef{Name: "shared-cluster-store", Kind: esv1.ClusterSecretStoreKind}
 	foreignRef := esv1.SecretStoreRef{Name: "foreign-ss", Kind: esv1.SecretStoreKind}
+	localRef := esv1.SecretStoreRef{Name: "local-ss", Kind: esv1.SecretStoreKind}
 	clusterStore := &esv1.ClusterSecretStore{}
 	clusterStore.SetName(clusterRef.Name)
 	foreignStore := &esv1.SecretStore{Spec: esv1.SecretStoreSpec{Controller: "other-eso"}}
 	foreignStore.SetName(foreignRef.Name)
 	foreignStore.SetNamespace(namespace)
-	kube := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(clusterStore, foreignStore).Build()
-	r := &Reconciler{Client: kube, ControllerClass: "my-eso", ClusterSecretStoreEnabled: true}
+	localStore := &esv1.SecretStore{}
+	localStore.SetName(localRef.Name)
+	localStore.SetNamespace(namespace)
+	kube := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(clusterStore, foreignStore, localStore).Build()
 
 	tests := []struct {
-		name     string
-		top      esv1.SecretStoreRef
-		source   *esv1.SecretStoreRef
-		dataFrom bool
-		wantSkip bool
+		name            string
+		top             esv1.SecretStoreRef
+		source          *esv1.SecretStoreRef
+		dataFrom        bool
+		clusterDisabled bool
+		wantSkip        bool
 	}{
 		{name: "cluster store then foreign data source", top: clusterRef, source: &foreignRef, wantSkip: true},
 		{name: "cluster store then foreign dataFrom source", top: clusterRef, source: &foreignRef, dataFrom: true, wantSkip: true},
 		{name: "foreign store then cluster data source", top: foreignRef, source: &clusterRef, wantSkip: true},
 		{name: "cluster store only", top: clusterRef, wantSkip: false},
+		{name: "disabled cluster store in data source", top: localRef, source: &clusterRef, clusterDisabled: true, wantSkip: true},
+		{name: "disabled cluster store in dataFrom source", top: localRef, source: &clusterRef, dataFrom: true, clusterDisabled: true, wantSkip: true},
 	}
 
 	for _, tt := range tests {
@@ -71,6 +77,7 @@ func TestShouldSkipUnmanagedStoreAfterClusterStore(t *testing.T) {
 				}
 			}
 
+			r := &Reconciler{Client: kube, ControllerClass: "my-eso", ClusterSecretStoreEnabled: !tt.clusterDisabled}
 			skip, err := shouldSkipUnmanagedStore(context.Background(), namespace, r, es)
 			if err != nil {
 				t.Fatal(err)
