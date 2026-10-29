@@ -44,12 +44,12 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 
 	storeKind := store.GetObjectKind().GroupVersionKind().Kind
 
-	credClient, vaultID, err := NewDVLSClient(ctx, kube, storeKind, namespace, dvlsProvider)
+	credClient, folderCl, vaultID, err := NewDVLSClient(ctx, kube, storeKind, namespace, dvlsProvider)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create DVLS client: %w", err)
 	}
 
-	return NewClient(credClient, vaultID), nil
+	return NewClient(credClient, folderCl, vaultID), nil
 }
 
 // ValidateStore validates the SecretStore configuration.
