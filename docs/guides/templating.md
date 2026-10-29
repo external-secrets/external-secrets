@@ -4,6 +4,8 @@ With External Secrets Operator you can transform the data from the external secr
 
 Each data value is interpreted as a [Go template](https://golang.org/pkg/text/template/). Please note that referencing a non-existing key in the template will raise an error, instead of being suppressed.
 
+Rendered template values (including key rewrites) must be smaller than 1 MiB; rendering fails rather than truncating oversized values. Functions that can generate large values, such as `until`, `untilStep`, `seq`, `repeat`, `join`, `randAlpha`, `randBytes`, `indent`, and `replace`, also reject oversized arguments before allocating. Sequences are limited to endpoints within ±10,000. The complete Secret can have a lower effective size limit due to metadata and encoding overhead.
+
 !!! note
 
     Consider using camelcase when defining  **.'spec.data.secretkey'**, example: serviceAccountToken
