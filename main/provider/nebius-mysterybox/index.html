@@ -23,7 +23,7 @@
     
     
       
-        <title>Nebius MysteryBox - External Secrets Operator</title>
+        <title>Nebius SecretStash - External Secrets Operator</title>
       
     
     
@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#nebius-mysterybox" class="md-skip">
+        <a href="#nebius-secretstash-formerly-mysterybox" class="md-skip">
           Skip to content
         </a>
       
@@ -133,7 +133,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Nebius MysteryBox
+              Nebius SecretStash
             
           </span>
         </div>
@@ -4225,7 +4225,7 @@
   <span class="md-ellipsis">
     
   
-    Nebius MysteryBox
+    Nebius SecretStash
   
 
     
@@ -4243,7 +4243,7 @@
   <span class="md-ellipsis">
     
   
-    Nebius MysteryBox
+    Nebius SecretStash
   
 
     
@@ -5260,10 +5260,15 @@
   
 
 
-<h1 id="nebius-mysterybox">Nebius MysteryBox</h1>
-<p>External Secrets Operator integrates with <a href="https://docs.nebius.com/mysterybox/overview">Nebius MysteryBox</a>.</p>
+<h1 id="nebius-secretstash-formerly-mysterybox">Nebius SecretStash (formerly MysteryBox)</h1>
+<p>External Secrets Operator integrates with <a href="https://docs.nebius.com/mysterybox/overview">Nebius SecretStash</a> (formerly MysteryBox).</p>
+<div class="admonition info">
+<p class="admonition-title">Info</p>
+<p>MysteryBox is now called SecretStash.</p>
+<p>The External Secrets Operator provider identifier remains <code>nebiusmysterybox</code>. Continue using <code>spec.provider.nebiusmysterybox</code> in <code>SecretStore</code> and <code>ClusterSecretStore</code> manifests.</p>
+</div>
 <h3 id="authentication">Authentication</h3>
-<p>Nebius Mysterybox supports the following authentication methods:</p>
+<p>Nebius SecretStash supports the following authentication methods:</p>
 <ul>
 <li><code>auth.workloadIdentity</code>: request a Kubernetes service account token via the <code>TokenRequest</code> API and exchange it for a Nebius IAM token using workload federation.</li>
 <li><code>auth.serviceAccountCredsSecretRef</code>: read Nebius service account credentials JSON from a Kubernetes <code>Secret</code> and exchange it for a Nebius IAM token.</li>
@@ -5271,8 +5276,8 @@
 </ul>
 <h4 id="service-account-credentials">Service Account credentials</h4>
 <p><em>Find more about the authorization option following the <a href="https://docs.nebius.com/grpc-api/auth">official documentation</a>.</em></p>
-<p>Before you start, create a service account and grant it permission to read desired secrets in MysteryBox.
-For details on required roles and permissions, see <a href="https://docs.nebius.com/mysterybox/secrets/get">MysteryBox get method</a>.</p>
+<p>Before you start, create a service account and grant it permission to read desired secrets in SecretStash.
+For details on required roles and permissions, see <a href="https://docs.nebius.com/mysterybox/secrets/get">SecretStash get method</a>.</p>
 <p>You will need to create a Kubernetes Secret with desired auth parameters and structure.
 The Kubernetes secret must be in a Subject Credentials format:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>
@@ -5292,7 +5297,7 @@ The SecretStore example below uses this authentication method.</p>
 <p>To use Workload Identity:</p>
 <ol>
 <li>Create a Kubernetes <code>ServiceAccount</code>.</li>
-<li>Create a Nebius IAM service account and grant it permission to read the required MysteryBox secrets. See the permissions for the <a href="https://docs.nebius.com/mysterybox/secrets/get">MysteryBox get method</a>.</li>
+<li>Create a Nebius IAM service account and grant it permission to read the required SecretStash secrets. See the permissions for the <a href="https://docs.nebius.com/mysterybox/secrets/get">SecretStash get method</a>.</li>
 <li>Configure Nebius federated credentials for the Kubernetes service account:<ul>
 <li>use the Kubernetes cluster's service account issuer URL as the OIDC issuer;</li>
 <li>use <code>system:serviceaccount:&lt;namespace&gt;:&lt;service-account-name&gt;</code> as the federated subject;</li>
@@ -5312,11 +5317,11 @@ The SecretStore example below uses this authentication method.</p>
 <p>For a <code>SecretStore</code>, the Kubernetes service account must be in the same namespace as the store. For a <code>ClusterSecretStore</code>, set <code>serviceAccountRef.namespace</code> explicitly.</p>
 <h3 id="examples">Examples</h3>
 <h4 id="secretstore">SecretStore</h4>
-<p>First, create a SecretStore with a Nebius MysteryBox backend.</p>
+<p>First, create a SecretStore with a Nebius SecretStash backend.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysterybox</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstash-secretstore</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">nebiusmysterybox</span><span class="p">:</span>
@@ -5336,35 +5341,35 @@ The SecretStore example below uses this authentication method.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysterybox-external-secret</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstash-external-secret</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysterybox-secretstore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstash-secretstore</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">imported-secret-by-key</span>
 <span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
 <span class="w">  </span><span class="nt">data</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
 <span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysteryboxSecretID</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstashSecretID</span>
 </code></pre></div>
 <h4 id="getting-a-full-secret-all-keys-retrieved">Getting a full secret (all keys retrieved)</h4>
-<p>Another way is to get a full secret that will be imported. When fetching the full secret, each key–value pair from MysteryBox is mapped to a separate entry in the target Kubernetes Secret’s <code>data</code> field.</p>
+<p>Another way is to get a full secret that will be imported. When fetching the full secret, each key–value pair from SecretStash is mapped to a separate entry in the target Kubernetes Secret’s <code>data</code> field.</p>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
 <span class="nt">metadata</span><span class="p">:</span>
-<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysterybox-external-secret</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstash-external-secret</span>
 <span class="nt">spec</span><span class="p">:</span>
 <span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
-<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysterybox-secretstore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstash-secretstore</span>
 <span class="w">  </span><span class="nt">target</span><span class="p">:</span>
 <span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">imported-secret-map</span>
 <span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
 <span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
 <span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
-<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">mysteryboxSecretID</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstashSecretID</span>
 </code></pre></div>
 <p>Example of a target secret:
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
