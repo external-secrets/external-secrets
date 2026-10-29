@@ -5109,9 +5109,9 @@
 <span class="w">          </span><span class="nt">mountPath</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;kubernetes&quot;</span>
 <span class="w">          </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;demo-role&quot;</span>
 </code></pre></div></p>
-<p>Now, any <code>ExternalSecret</code> bound to this secret store will be evaluated by the operator with the controllerClass custom.</p>
+<p>Now, any <code>ExternalSecret</code> bound to this secret store will be evaluated by the operator with the controllerClass custom. If an <code>ExternalSecret</code> references multiple stores (including overrides under <code>spec.data[].sourceRef</code> or <code>spec.dataFrom[].sourceRef</code>), a controller skips it when any referenced store belongs to a different controller class.</p>
 <blockquote>
-<p>Note: Any SecretStore without <code>spec.controller</code> set will be considered as valid by any operator, regardless of their respective controllerClasses.</p>
+<p>Note: Any SecretStore without <code>spec.controller</code> set will be considered as valid by any operator, regardless of their respective controllerClasses. The same applies to ClusterSecretStores.</p>
 </blockquote>
 
 
