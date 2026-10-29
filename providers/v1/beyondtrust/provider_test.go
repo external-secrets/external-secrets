@@ -945,11 +945,26 @@ func TestClose_SignsOut(t *testing.T) {
 	defer server.Close()
 
 	p := newAuthenticatedProvider(t, server.URL, "3.1")
-	_, err := p.authenticate.GetPasswordSafeAuthentication()
+	_, err := p.getAuthentication()
 	require.NoError(t, err)
 
 	require.NoError(t, p.Close(context.Background()))
 	assert.True(t, signOutCalled)
+}
+
+func TestClose_NoAuth_SkipsSignOut(t *testing.T) {
+	signOutCalled := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/Auth/Signout" {
+			signOutCalled = true
+		}
+		http.Error(w, "not found", http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	p := newAuthenticatedProvider(t, server.URL, "3.1")
+	require.NoError(t, p.Close(context.Background()))
+	assert.False(t, signOutCalled)
 }
 
 // newAuthenticatedProvider builds a Provider authenticated against serverURL

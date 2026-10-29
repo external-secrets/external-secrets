@@ -83,8 +83,27 @@ type Provider struct {
 	retrievaltype string
 	decrypt       bool
 	authenticate  auth.AuthenticationObj
+	authenticated bool
 	log           logging.LogrLogger
 	separator     string
+}
+
+const signOutMaxElapsedTime = 30 * time.Second
+
+// getAuthentication signs into Password Safe and records success so Close
+// only attempts SignOut when a session was actually established.
+func (p *Provider) getAuthentication() (entities.SignAppinResponse, error) {
+	resp, err := p.authenticate.GetPasswordSafeAuthentication()
+	if err == nil {
+		p.authenticated = true
+	}
+	return resp, err
+}
+
+func (p *Provider) closeIdleConnections() {
+	if p.authenticate.HttpClient.HttpClient != nil {
+		p.authenticate.HttpClient.HttpClient.CloseIdleConnections()
+	}
 }
 
 // AuthenticatorInput is used to pass parameters to the getAuthenticator function.
@@ -107,10 +126,26 @@ func (*Provider) Capabilities() esv1.SecretStoreCapabilities {
 }
 
 // Close implements v1beta1.SecretsClient.
-// Signs out of the Password Safe session and closes idle HTTP connections
-// so each reconcile does not leave ESTABLISHED sockets behind.
+// Signs out of the Password Safe session (when authenticated) and always
+// closes idle HTTP connections so each reconcile does not leave ESTABLISHED
+// sockets behind — including when SignOut fails.
 func (p *Provider) Close(_ context.Context) error {
-	return p.authenticate.SignOut()
+	if !p.authenticated {
+		p.closeIdleConnections()
+		return nil
+	}
+
+	// Bound SignOut retries so a failing Auth/Signout cannot block the
+	// reconcile for the full provider retry window (default 15 minutes).
+	if p.authenticate.ExponentialBackOff != nil {
+		p.authenticate.ExponentialBackOff.MaxElapsedTime = signOutMaxElapsedTime
+	}
+
+	err := p.authenticate.SignOut()
+	// SDK only closes idle connections after a successful SignOut; always
+	// close them here so failed sign-out cannot leak sockets.
+	p.closeIdleConnections()
+	return err
 }
 
 // DeleteSecret implements v1beta1.SecretsClient.
@@ -355,7 +390,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 
 	retrievalPath := retrievalPaths[0]
 
-	_, err := p.authenticate.GetPasswordSafeAuthentication()
+	_, err := p.getAuthentication()
 	if err != nil {
 		return nil, fmt.Errorf("error getting authentication: %w", err)
 	}
@@ -513,7 +548,7 @@ func (p *Provider) PushSecret(_ context.Context, secret *v1.Secret, psd esv1.Pus
 		return fmt.Errorf("Error in parameters: %w", err)
 	}
 
-	signAppinResponse, err := p.authenticate.GetPasswordSafeAuthentication()
+	signAppinResponse, err := p.getAuthentication()
 	if err != nil {
 		return fmt.Errorf("Error in authentication: %w", err)
 	}
