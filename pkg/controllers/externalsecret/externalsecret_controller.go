@@ -248,13 +248,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	// if extended metrics is enabled, refine the time series vector
 	resourceLabels = ctrlmetrics.RefineLabels(resourceLabels, externalSecret.Labels)
 
-	// skip this ExternalSecret if it uses a ClusterSecretStore and the feature is disabled
-	if shouldSkipClusterSecretStore(r, externalSecret) {
-		log.V(1).Info("skipping ExternalSecret, ClusterSecretStore feature is disabled")
-		return ctrl.Result{}, nil
-	}
-
-	// skip this ExternalSecret if it uses any SecretStore not managed by this controller
+	// skip this ExternalSecret if it uses any (Cluster) SecretStore not managed by this controller
 	skip, err := shouldSkipUnmanagedStore(ctx, req.Namespace, r, externalSecret)
 	if err != nil {
 		log.Error(err, logErrorUnmanagedStore)
@@ -262,7 +256,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		return ctrl.Result{}, err
 	}
 	if skip {
-		log.V(1).Info("skipping ExternalSecret, uses unmanaged SecretStore")
+		log.V(1).Info("skipping ExternalSecret, uses unmanaged (Cluster)SecretStore")
 		return ctrl.Result{}, nil
 	}
 
@@ -1097,23 +1091,26 @@ func getManagedFieldKeys(
 	return keys, nil
 }
 
-func shouldSkipClusterSecretStore(r *Reconciler, es *esv1.ExternalSecret) bool {
-	return !r.ClusterSecretStoreEnabled && es.Spec.SecretStoreRef.Kind == esv1.ClusterSecretStoreKind
-}
-
-// shouldSkipUnmanagedStore iterates over all secretStore references in the externalSecret spec,
-// fetches the store and evaluates the controllerClass property.
-// Returns true if any storeRef points to store with a non-matching controllerClass.
-func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconciler, es *esv1.ExternalSecret) (bool, error) {
+// findAllReferencedSources iterates over all (cluster) secretStore references in the externalSecret spec,
+// fetches the relevant store references for further processing in shouldSkipUnmanagedStore.
+func findAllReferencedSources(es *esv1.ExternalSecret) ([]esv1.SecretStoreRef, []esv1.GeneratorRef) {
 	var storeList []esv1.SecretStoreRef
+	var generatorList []esv1.GeneratorRef
 
 	if es.Spec.SecretStoreRef.Name != "" {
 		storeList = append(storeList, es.Spec.SecretStoreRef)
 	}
 
 	for _, ref := range es.Spec.Data {
-		if ref.SourceRef != nil {
+		if ref.SourceRef == nil {
+			continue
+		}
+		if ref.SourceRef.SecretStoreRef.Name != "" {
 			storeList = append(storeList, ref.SourceRef.SecretStoreRef)
+		}
+		// Technically there is generatorRef here in StoreSourceRef in v1, though it is deprecated
+		if ref.SourceRef.GeneratorRef != nil {
+			generatorList = append(generatorList, *ref.SourceRef.GeneratorRef)
 		}
 	}
 
@@ -1124,44 +1121,38 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 
 		// verify that generator's controllerClass matches
 		if ref.SourceRef != nil && ref.SourceRef.GeneratorRef != nil {
-			_, obj, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, namespace, ref.SourceRef.GeneratorRef)
-			if err != nil {
-				if apierrors.IsNotFound(err) {
-					// skip non-existent generators
-					continue
-				}
-				if errors.Is(err, resolvers.ErrUnableToGetGenerator) {
-					// skip generators that we can't get (e.g. due to being invalid)
-					continue
-				}
-				return false, err
-			}
-			skipGenerator, err := shouldSkipGenerator(r, obj)
-			if err != nil {
-				return false, err
-			}
-			if skipGenerator {
-				return true, nil
-			}
+			generatorList = append(generatorList, *ref.SourceRef.GeneratorRef)
 		}
 	}
+	return storeList, generatorList
+}
+
+// shouldSkipUnmanagedStore fetches the store references and evaluates whether they should be processed
+// based on controller configuration
+// Returns true if any storeRef points to store with a non-managed store (not matching controllerClass or disabled clustercontroller).
+func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconciler, es *esv1.ExternalSecret) (bool, error) {
+	storeList, generatorList := findAllReferencedSources(es)
 
 	for _, ref := range storeList {
 		var store esv1.GenericStore
+		lookupNamespace := namespace
 
 		switch ref.Kind {
 		case esv1.SecretStoreKind, "":
 			store = &esv1.SecretStore{}
 		case esv1.ClusterSecretStoreKind:
+			if !r.ClusterSecretStoreEnabled {
+				return true, nil
+			}
 			store = &esv1.ClusterSecretStore{}
-			namespace = ""
+			lookupNamespace = ""
 		default:
 			return false, fmt.Errorf("unsupported secret store kind: %s", ref.Kind)
 		}
 
 		err := r.Get(ctx, types.NamespacedName{
 			Name:      ref.Name,
-			Namespace: namespace,
+			Namespace: lookupNamespace,
 		}, store)
 		if err != nil {
 			if apierrors.IsNotFound(err) {
@@ -1172,6 +1163,28 @@ func shouldSkipUnmanagedStore(ctx context.Context, namespace string, r *Reconcil
 		}
 		class := store.GetSpec().Controller
 		if class != "" && class != r.ControllerClass {
+			return true, nil
+		}
+	}
+
+	for _, ref := range generatorList {
+		_, obj, err := resolvers.GeneratorRef(ctx, r.Client, r.Scheme, namespace, &ref)
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				// skip non-existent generators
+				continue
+			}
+			if errors.Is(err, resolvers.ErrUnableToGetGenerator) {
+				// skip generators that we can't get (e.g. due to being invalid)
+				continue
+			}
+			return false, err
+		}
+		skipGenerator, err := shouldSkipGenerator(r, obj)
+		if err != nil {
+			return false, err
+		}
+		if skipGenerator {
 			return true, nil
 		}
 	}
