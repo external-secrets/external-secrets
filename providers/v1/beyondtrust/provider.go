@@ -141,6 +141,27 @@ func (p *Provider) Close(_ context.Context) error {
 		p.authenticate.ExponentialBackOff.MaxElapsedTime = signOutMaxElapsedTime
 	}
 
+	// Also bound the in-flight HTTP call: MaxElapsedTime only limits retry
+	// scheduling, while the client timeout may be 45s+ via clientTimeOutSeconds.
+	httpClient := p.authenticate.HttpClient.HttpClient
+	prevCtx := p.authenticate.HttpClient.Context
+	var prevTimeout time.Duration
+	signOutCtx, cancel := context.WithTimeout(context.Background(), signOutMaxElapsedTime)
+	defer cancel()
+	p.authenticate.HttpClient.Context = signOutCtx
+	if httpClient != nil {
+		prevTimeout = httpClient.Timeout
+		if prevTimeout == 0 || prevTimeout > signOutMaxElapsedTime {
+			httpClient.Timeout = signOutMaxElapsedTime
+		}
+	}
+	defer func() {
+		p.authenticate.HttpClient.Context = prevCtx
+		if httpClient != nil {
+			httpClient.Timeout = prevTimeout
+		}
+	}()
+
 	err := p.authenticate.SignOut()
 	// SDK only closes idle connections after a successful SignOut; always
 	// close them here so failed sign-out cannot leak sockets.
