@@ -236,15 +236,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		return ctrl.Result{}, nil
 	}
 
-	// Add finalizer if it doesn't exist
-	// Use Patch instead of Update to avoid claiming ownership of spec fields like refreshInterval
-	patch := client.MergeFrom(externalSecret.DeepCopy())
-	if controllerutil.AddFinalizer(externalSecret, ExternalSecretFinalizer) {
-		if err := r.Patch(ctx, externalSecret, patch); err != nil {
-			return ctrl.Result{}, err
-		}
-	}
-
 	// if extended metrics is enabled, refine the time series vector
 	resourceLabels = ctrlmetrics.RefineLabels(resourceLabels, externalSecret.Labels)
 
@@ -258,6 +249,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	if skip {
 		log.V(1).Info("skipping ExternalSecret, uses unmanaged (Cluster)SecretStore")
 		return ctrl.Result{}, nil
+	}
+
+	// Add finalizer if it doesn't exist
+	// Use Patch instead of Update to avoid claiming ownership of spec fields like refreshInterval
+	patch := client.MergeFrom(externalSecret.DeepCopy())
+	if controllerutil.AddFinalizer(externalSecret, ExternalSecretFinalizer) {
+		if err := r.Patch(ctx, externalSecret, patch); err != nil {
+			return ctrl.Result{}, err
+		}
 	}
 
 	// if this is a generic target, use a different reconciliation path

@@ -1928,6 +1928,11 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1.ExternalSecretReady, v1.ConditionFalse, 0.0)).To(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
+			Consistently(func() []string {
+				es := &esv1.ExternalSecret{}
+				Expect(k8sClient.Get(context.Background(), types.NamespacedName{Name: ExternalSecretName, Namespace: ExternalSecretNamespace}, es)).To(Succeed())
+				return es.Finalizers
+			}, time.Second, interval).ShouldNot(ContainElement(ExternalSecretFinalizer))
 		}
 	}
 
