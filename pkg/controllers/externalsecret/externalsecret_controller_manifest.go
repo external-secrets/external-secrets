@@ -18,8 +18,10 @@ package externalsecret
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
@@ -72,11 +74,10 @@ func getTargetGVK(es *esv1.ExternalSecret) schema.GroupVersionKind {
 	}
 }
 
-// validateManifestSecretCandidate ensures rendering did not change the declared GVK
-// and applies the final Secret policy to explicit core/v1 Secret targets.
-func validateManifestSecretCandidate(es *esv1.ExternalSecret, obj *unstructured.Unstructured) error {
+// validateManifestCandidate ensures rendering changed only the declared target's content, labels and annotations.
+func validateManifestCandidate(es *esv1.ExternalSecret, target *unstructured.Unstructured, originalMetadata map[string]any) error {
 	declaredGVK := getTargetGVK(es)
-	renderedGVK := obj.GroupVersionKind()
+	renderedGVK := target.GroupVersionKind()
 
 	if renderedGVK != declaredGVK {
 		return fmt.Errorf(
@@ -86,10 +87,32 @@ func validateManifestSecretCandidate(es *esv1.ExternalSecret, obj *unstructured.
 		)
 	}
 
-	if declaredGVK != v1.SchemeGroupVersion.WithKind("Secret") {
-		return nil
+	if target.GetNamespace() != es.Namespace || target.GetName() != getTargetName(es) {
+		return errors.New("rendered target namespace/name differs from declared target")
 	}
 
+	renderedMetadata := target.Object["metadata"].(map[string]any)
+	for key, value := range originalMetadata {
+		if key == "labels" || key == "annotations" {
+			continue
+		}
+		if rendered, ok := renderedMetadata[key]; !ok || !reflect.DeepEqual(value, rendered) {
+			return errors.New("rendered target changed protected metadata")
+		}
+	}
+	for key := range renderedMetadata {
+		if key == "labels" || key == "annotations" {
+			continue
+		}
+		if _, ok := originalMetadata[key]; !ok {
+			return errors.New("rendered target changed protected metadata")
+		}
+	}
+	return nil
+}
+
+// validateManifestSecretCandidate applies the final Secret policy to core/v1 Secret targets.
+func validateManifestSecretCandidate(obj *unstructured.Unstructured) error {
 	secretType, _, err := unstructured.NestedString(obj.Object, "type")
 	if err != nil {
 		return fmt.Errorf("invalid Secret type: %w", err)
@@ -228,6 +251,9 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		annotations = make(map[string]string)
 	}
 
+	// Keep the original metadata for validation; only labels and annotations are templatable.
+	existingMetadata := obj.DeepCopy().Object["metadata"].(map[string]any)
+
 	srcLabels, srcAnnotations := es.ObjectMeta.Labels, es.ObjectMeta.Annotations
 	if es.Spec.Target.Template != nil {
 		srcLabels = es.Spec.Target.Template.Metadata.Labels
@@ -236,10 +262,10 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 	maps.Copy(labels, srcLabels)
 	maps.Copy(annotations, srcAnnotations)
 
-	labels[esv1.LabelManaged] = esv1.LabelManagedValue
-
 	obj.SetLabels(labels)
 	obj.SetAnnotations(annotations)
+	labels = maps.Clone(labels)
+	annotations = maps.Clone(annotations)
 
 	var result *unstructured.Unstructured
 	var err error
@@ -252,26 +278,33 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		return nil, err
 	}
 
-	ann := result.GetAnnotations()
-	if ann == nil {
-		ann = make(map[string]string)
+	// A template may replace metadata maps; preserve existing keys unless the template overrides them.
+	maps.Copy(labels, result.GetLabels())
+	result.SetLabels(labels)
+	maps.Copy(annotations, result.GetAnnotations())
+	result.SetAnnotations(annotations)
+
+	if err := validateManifestCandidate(es, result, existingMetadata); err != nil {
+		return nil, err
+	}
+	if getTargetGVK(es) == v1.SchemeGroupVersion.WithKind("Secret") {
+		if err := validateManifestSecretCandidate(result); err != nil {
+			return nil, err
+		}
+	}
+	if err := r.applyOwnership(es, result); err != nil {
+		return nil, err
 	}
 
+	labels = result.GetLabels()
+	labels[esv1.LabelManaged] = esv1.LabelManagedValue
+	result.SetLabels(labels)
 	hash, err := genericTargetContentHash(result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash target %q content: %w", es.Spec.Target.Name, err)
 	}
-
-	ann[esv1.AnnotationDataHash] = hash
-	result.SetAnnotations(ann)
-
-	if err := r.applyOwnership(es, result); err != nil {
-		return nil, err
-	}
-	if err := validateManifestSecretCandidate(es, result); err != nil {
-		return nil, err
-	}
-
+	annotations[esv1.AnnotationDataHash] = hash
+	result.SetAnnotations(annotations)
 	return result, nil
 }
 
