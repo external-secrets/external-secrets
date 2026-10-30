@@ -21,7 +21,19 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
+
+func TestIsReferentSpecJWTSecretRef(t *testing.T) {
+	assert.True(t, IsReferentSpec(esv1.AWSAuth{
+		JWTAuth: &esv1.AWSJWTAuth{SecretRef: &esmeta.SecretKeySelector{Name: "jwt", Key: "token"}},
+	}))
+	assert.False(t, IsReferentSpec(esv1.AWSAuth{
+		JWTAuth: &esv1.AWSJWTAuth{SecretRef: &esmeta.SecretKeySelector{Name: "jwt", Key: "token", Namespace: new("ns")}},
+	}))
+}
 
 func TestParameterTagsToJSONString(t *testing.T) {
 	tests := []struct {

@@ -134,7 +134,9 @@ see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_te
 <a href="#external-secrets.io/v1.AWSAuth">AWSAuth</a>)
 </p>
 <p>
-<p>AWSJWTAuth stores reference to Authenticate against AWS using service account tokens.</p>
+<p>AWSJWTAuth stores reference to Authenticate against AWS using service account tokens
+or a JWT stored in a Kubernetes Secret.
+Only one of serviceAccountRef or secretRef can be specified.</p>
 </p>
 <table>
 <thead>
@@ -154,6 +156,38 @@ External Secrets meta/v1.ServiceAccountSelector
 </em>
 </td>
 <td>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef references a key in a Secret that holds a JWT, e.g. one issued
+by an OIDC identity provider other than the cluster&rsquo;s service account issuer.
+The token is read from the Secret every time credentials are refreshed and
+exchanged for AWS credentials using sts:AssumeRoleWithWebIdentity.
+Requires roleArn to be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleArn</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RoleArn is the ARN of the IAM role to assume with the JWT referenced by secretRef.
+Required when secretRef is set. Not supported with serviceAccountRef,
+which takes the role from the eks.amazonaws.com/role-arn annotation.</p>
 </td>
 </tr>
 </tbody>
@@ -27359,7 +27393,9 @@ see: <a href="https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_te
 <a href="#generators.external-secrets.io/v1alpha1.AWSAuth">AWSAuth</a>)
 </p>
 <p>
-<p>AWSJWTAuth provides configuration to authenticate against AWS using service account tokens.</p>
+<p>AWSJWTAuth provides configuration to authenticate against AWS using service account tokens
+or a JWT stored in a Kubernetes Secret.
+Only one of serviceAccountRef or secretRef can be specified.</p>
 </p>
 <table>
 <thead>
@@ -27379,6 +27415,37 @@ External Secrets meta/v1.ServiceAccountSelector
 </em>
 </td>
 <td>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef references a key in a Secret that holds a JWT, e.g. one issued
+by an OIDC identity provider other than the cluster&rsquo;s service account issuer.
+The token is exchanged for AWS credentials using sts:AssumeRoleWithWebIdentity.
+Requires roleArn to be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>roleArn</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>RoleArn is the ARN of the IAM role to assume with the JWT referenced by secretRef.
+Required when secretRef is set. Not supported with serviceAccountRef,
+which takes the role from the eks.amazonaws.com/role-arn annotation.</p>
 </td>
 </tr>
 </tbody>
