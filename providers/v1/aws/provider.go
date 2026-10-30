@@ -118,6 +118,9 @@ func validateJWTAuth(store esv1.GenericStore, jwtAuth *esv1.AWSJWTAuth) error {
 	if jwtAuth.ServiceAccountRef != nil && jwtAuth.SecretRef != nil {
 		return errors.New(errJWTAuthMultipleSources)
 	}
+	if jwtAuth.ServiceAccountRef == nil && jwtAuth.SecretRef == nil {
+		return errors.New("invalid Auth.JWT: one of serviceAccountRef or secretRef must be specified")
+	}
 	if jwtAuth.ServiceAccountRef != nil {
 		if jwtAuth.RoleArn != "" {
 			return errors.New(errJWTAuthRoleArnWithSA)
