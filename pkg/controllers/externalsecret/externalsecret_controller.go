@@ -250,7 +250,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		return ctrl.Result{}, err
 	}
 	if skip {
-		log.V(1).Info("skipping ExternalSecret, uses unmanaged SecretStore")
+		log.V(1).Info("skipping ExternalSecret, uses unmanaged (Cluster)SecretStore")
 		// Generator and store changes are not watched in this reconcile loop.
 		// Retry even when the ExternalSecret has a zero refresh interval,
 		// so class changes are noticed.
