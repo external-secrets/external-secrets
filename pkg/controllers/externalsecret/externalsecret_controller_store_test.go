@@ -19,8 +19,12 @@ package externalsecret
 import (
 	"context"
 	"testing"
+	"time"
 
+	"github.com/go-logr/logr"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -84,6 +88,49 @@ func TestShouldSkipUnmanagedStoreAfterClusterStore(t *testing.T) {
 			}
 			if skip != tt.wantSkip {
 				t.Errorf("shouldSkipUnmanagedStore() = %t, want %t", skip, tt.wantSkip)
+			}
+		})
+	}
+}
+
+func TestUnmanagedStoreRequeuesWithZeroRefreshInterval(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := esv1.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+
+	const namespace = "team-a"
+	store := &esv1.SecretStore{
+		Name:      "foreign-ss",
+		Namespace: namespace,
+		Spec:      esv1.SecretStoreSpec{Controller: "other-eso"},
+	}
+	es := &esv1.ExternalSecret{
+		Name:      "example",
+		Namespace: namespace,
+		Spec: esv1.ExternalSecretSpec{
+			SecretStoreRef:  esv1.SecretStoreRef{Name: store.Name, Kind: esv1.SecretStoreKind},
+			RefreshInterval: &metav1.Duration{Duration: 0},
+		},
+	}
+	kube := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(store, es).Build()
+
+	for _, tt := range []struct {
+		name            string
+		requeueInterval time.Duration
+		want            time.Duration
+	}{
+		{name: "configured interval", requeueInterval: time.Minute, want: time.Minute},
+		{name: "zero interval falls back to an hour", want: time.Hour},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Reconciler{Client: kube, Log: logr.Discard(), ControllerClass: "my-eso", RequeueInterval: tt.requeueInterval}
+			result, err := r.Reconcile(context.Background(), ctrl.Request{Name: es.Name, Namespace: namespace})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if result != (ctrl.Result{RequeueAfter: tt.want}) {
+				t.Errorf("Reconcile() = %+v, want RequeueAfter %v", result, tt.want)
 			}
 		})
 	}
