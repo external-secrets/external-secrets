@@ -18,5 +18,5 @@ Now, any `ExternalSecret` bound to this secret store will be evaluated by the op
 
 > Note: Any SecretStore without `spec.controller` set will be considered as valid by any operator, regardless of their respective controllerClasses. The same applies to ClusterSecretStores.
 
-Skipped `ExternalSecrets` (not belonging to this controllerClass) are retried after the controller's requeue "fallbackUnmanagedRetryInterval" interval (one hour), even if their ExternalSecret refresh interval is zero.
+Skipped `ExternalSecrets` (not belonging to this controllerClass) are retried after the controller's requeue interval (or one hour if it is not configured), even if their ExternalSecret refresh interval is zero.
 This is done to make it possible to pick up changes from a referenced store or generator's class.
