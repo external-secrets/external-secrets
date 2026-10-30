@@ -36,7 +36,9 @@ kubectl patch pushsecret <name> -n <namespace> --subresource=status --type=json 
 
 These entries actively prevent reconciliation of the PushSecret if ClusterSecretStore is disabled.
 
-If a `PushSecret` with `deletionPolicy: Delete` is already stuck deleting, an administrator must clean up the remote secrets manually (or temporarily re-enable cluster-store processing to let the operator clean them up). After confirming cleanup, inspect the finalizers and remove **only** the PushSecret finalizer to allow Kubernetes deletion:
+If a `PushSecret` is already stuck deleting (regardless of the Deletion Policy), an administrator must clean up the remote secrets manually (or temporarily re-enable cluster-store processing to let the operator clean them up).
+
+After confirming cleanup, inspect the finalizers and remove **only** the PushSecret finalizer to allow Kubernetes deletion:
 
 ```bash
 kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.metadata.finalizers}'
