@@ -23,3 +23,22 @@ helm install external-secrets external-secrets/external-secrets --set crds.creat
 --set processClusterStore=false \
 --set processClusterPushSecret=false
 ```
+
+When `processClusterStore=false` (or `--enable-cluster-store-reconciler=false`), a `PushSecret` referencing a `ClusterSecretStore` is skipped entirely, even if it also references namespaced `SecretStore`s. This includes `spec.dataTo[].storeRef`, references selected by labels, and cluster stores previously recorded in `status.syncedPushSecrets`. The operator will not push to or delete from those stores; remote secrets already pushed remain in the provider.
+
+Before disabling cluster stores, migrate or remove affected `PushSecret`s and clean up their remote secrets while access is still available. To resume a `PushSecret` after disabling cluster stores, remove its cluster-store refs from `spec.secretStoreRefs` and `spec.dataTo[].storeRef` and, **after manually cleaning up any remote secrets**, remove the corresponding `ClusterSecretStore/<name>` entries from `status.syncedPushSecrets`. Otherwise the saved entries will keep the entire PushSecret skipped. For example, to remove the status entry for `ClusterSecretStore/shared`:
+
+```bash
+kubectl patch pushsecret <name> -n <namespace> --subresource=status --type=json \
+  -p='[{"op":"remove","path":"/status/syncedPushSecrets/ClusterSecretStore~1shared"}]'
+```
+
+If a `PushSecret` with `deletionPolicy: Delete` is already stuck deleting, an administrator must clean up the remote secrets manually (or temporarily re-enable cluster-store processing to let the operator clean them up). After confirming cleanup, inspect the finalizers and remove **only** the PushSecret finalizer to allow Kubernetes deletion:
+
+```bash
+kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.metadata.finalizers}'
+kubectl patch pushsecret <name> -n <namespace> --type=json \
+  -p='[{"op":"remove","path":"/metadata/finalizers/0"}]'
+```
+
+The patch is appropriate only if `pushsecret.externalsecrets.io/finalizer` is the sole finalizer. If there are others, remove that finalizer by its actual array index instead; do not remove other controllers' finalizers.

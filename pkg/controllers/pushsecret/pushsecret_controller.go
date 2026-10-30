@@ -81,12 +81,13 @@ const (
 // specified secret stores according to the defined policies and templates.
 type Reconciler struct {
 	client.Client
-	Log             logr.Logger
-	Scheme          *runtime.Scheme
-	recorder        record.EventRecorder
-	RestConfig      *rest.Config
-	RequeueInterval time.Duration
-	ControllerClass string
+	Log                       logr.Logger
+	Scheme                    *runtime.Scheme
+	recorder                  record.EventRecorder
+	RestConfig                *rest.Config
+	RequeueInterval           time.Duration
+	ControllerClass           string
+	ClusterSecretStoreEnabled bool
 }
 
 // storeInfo holds the identifying attributes of a secret store for per-store processing.
@@ -199,6 +200,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		log.Error(err, msg)
 
 		return ctrl.Result{}, fmt.Errorf("get resource: %w", err)
+	}
+
+	if r.shouldSkipClusterSecretStore(&ps) {
+		log.V(1).Info("skipping PushSecret, ClusterSecretStore feature is disabled")
+		return ctrl.Result{}, nil
 	}
 
 	refreshInt := r.RequeueInterval
@@ -337,6 +343,29 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	r.markAsDone(&ps, allSyncedSecrets, start)
 
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
+}
+
+func (r *Reconciler) shouldSkipClusterSecretStore(ps *esapi.PushSecret) bool {
+	if r.ClusterSecretStoreEnabled {
+		return false
+	}
+	for _, ref := range ps.Spec.SecretStoreRefs {
+		if ref.Kind == esv1.ClusterSecretStoreKind {
+			return true
+		}
+	}
+	for _, dataTo := range ps.Spec.DataTo {
+		if dataTo.StoreRef != nil && dataTo.StoreRef.Kind == esv1.ClusterSecretStoreKind {
+			return true
+		}
+	}
+	// Cleanup also uses stores saved in status, even after they are removed from spec.
+	for store := range ps.Status.SyncedPushSecrets {
+		if strings.HasPrefix(store, esv1.ClusterSecretStoreKind+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 // handleSourceSecretDeleted cleans up provider secrets when source Secret is unavailable.
