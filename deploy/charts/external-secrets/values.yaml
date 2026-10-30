@@ -487,6 +487,7 @@ podDisruptionBudget:
   minAvailable: 1    # @schema type:[integer, string]
   nameOverride: ""
   # maxUnavailable: "50%"
+  # unhealthyPodEvictionPolicy: AlwaysAllow
 
 # -- Run the controller on the host network
 hostNetwork: false
@@ -680,6 +681,7 @@ webhook:
     minAvailable: 1    # @schema type:[integer, string]
     nameOverride: ""
     # maxUnavailable: "50%"
+    # unhealthyPodEvictionPolicy: AlwaysAllow
 
   metrics:
 
@@ -912,6 +914,7 @@ certController:
     minAvailable: 1    # @schema type:[integer, string]
     nameOverride: ""
     # maxUnavailable: "50%"
+    # unhealthyPodEvictionPolicy: AlwaysAllow
 
   metrics:
 
