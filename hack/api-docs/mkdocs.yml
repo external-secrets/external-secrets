@@ -167,7 +167,7 @@ nav:
       - Volcengine: provider/volcengine.md
       - ngrok: provider/ngrok.md
       - Devolutions Server: provider/devolutions-server.md
-      - Nebius MysteryBox: provider/nebius-mysterybox.md
+      - Nebius SecretStash: provider/nebius-mysterybox.md
       - SAP Credential Store: provider/sap-credential-store.md
   - Examples:
       - FluxCD: examples/gitops-using-fluxcd.md

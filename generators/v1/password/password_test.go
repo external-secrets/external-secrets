@@ -61,9 +61,9 @@ func TestGenerate(t *testing.T) {
 				jsonSpec: &apiextensions.JSON{
 					Raw: []byte(`{}`),
 				},
-				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				passGen: func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
 				) (string, error) {
-					assert.Equal(t, defaultLength, len)
+					assert.Equal(t, defaultLength, length)
 					assert.Equal(t, defaultSymbolChars, symbolCharacters)
 					assert.Equal(t, 6, symbols)
 					assert.Equal(t, 6, digits)
@@ -83,9 +83,9 @@ func TestGenerate(t *testing.T) {
 				jsonSpec: &apiextensions.JSON{
 					Raw: []byte(`{"spec":{"length":48,"digits":2, "symbols":2, "symbolCharacters":"-_.", "noUpper": true, "allowRepeat": true}}`),
 				},
-				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				passGen: func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
 				) (string, error) {
-					assert.Equal(t, 48, len)
+					assert.Equal(t, 48, length)
 					assert.Equal(t, "-_.", symbolCharacters)
 					assert.Equal(t, 2, symbols)
 					assert.Equal(t, 2, digits)
@@ -105,7 +105,7 @@ func TestGenerate(t *testing.T) {
 				jsonSpec: &apiextensions.JSON{
 					Raw: []byte(`{}`),
 				},
-				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				passGen: func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
 				) (string, error) {
 					return "", errors.New("boom")
 				},
@@ -118,7 +118,7 @@ func TestGenerate(t *testing.T) {
 				jsonSpec: &apiextensions.JSON{
 					Raw: []byte(`{"spec":{"encoding":"hex"}}`),
 				},
-				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				passGen: func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
 				) (string, error) {
 					return "test_hex", nil
 				},
@@ -134,7 +134,7 @@ func TestGenerate(t *testing.T) {
 				jsonSpec: &apiextensions.JSON{
 					Raw: []byte(`{"spec":{"encoding":"raw"}}`),
 				},
-				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				passGen: func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
 				) (string, error) {
 					return "test_raw", nil
 				},
@@ -150,7 +150,7 @@ func TestGenerate(t *testing.T) {
 				jsonSpec: &apiextensions.JSON{
 					Raw: []byte(`{"spec":{"encoding":"base64"}}`),
 				},
-				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				passGen: func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
 				) (string, error) {
 					return "test_base64", nil
 				},
@@ -168,7 +168,7 @@ func TestGenerate(t *testing.T) {
 				jsonSpec: &apiextensions.JSON{
 					Raw: []byte(`{"spec":{"encoding":"base64url"}}`),
 				},
-				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				passGen: func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
 				) (string, error) {
 					return "Test>>Pass??word", nil
 				},
@@ -184,7 +184,7 @@ func TestGenerate(t *testing.T) {
 				jsonSpec: &apiextensions.JSON{
 					Raw: []byte(`{"spec":{"secretKeys":["custom"]}}`),
 				},
-				passGen: func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				passGen: func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
 				) (string, error) {
 					return "custom-pwd", nil
 				},
@@ -203,7 +203,7 @@ func TestGenerate(t *testing.T) {
 				passGen: func() func(int, int, string, int, bool, bool) (string, error) {
 					passwords := []string{"first-pass", "second-pass"}
 					idx := 0
-					return func(len int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool) (string, error) {
+					return func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool) (string, error) {
 						p := passwords[idx]
 						idx++
 						return p, nil
@@ -213,6 +213,109 @@ func TestGenerate(t *testing.T) {
 			want: map[string][]byte{
 				"first":  []byte(`first-pass`),
 				"second": []byte(`second-pass`),
+			},
+			wantErr: false,
+		},
+		{
+			name: "prefix is prepended to the password",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec":{"prefix":"GK"}}`),
+				},
+				passGen: func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				) (string, error) {
+					assert.Equal(t, defaultLength, length)
+					return "foobar", nil
+				},
+			},
+			want: map[string][]byte{
+				"password": []byte(`GKfoobar`),
+			},
+			wantErr: false,
+		},
+		{
+			name: "suffix is appended to the password",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec":{"suffix":"-v1"}}`),
+				},
+				passGen: func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				) (string, error) {
+					return "foobar", nil
+				},
+			},
+			want: map[string][]byte{
+				"password": []byte(`foobar-v1`),
+			},
+			wantErr: false,
+		},
+		{
+			name: "prefix and suffix are not affected by noUpper",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec":{"prefix":"PRE-","suffix":"-SUF","noUpper":true}}`),
+				},
+				passGen: func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				) (string, error) {
+					return "foobar", nil
+				},
+			},
+			want: map[string][]byte{
+				"password": []byte(`PRE-foobar-SUF`),
+			},
+			wantErr: false,
+		},
+		{
+			name: "prefix and suffix are applied after hex encoding",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec":{"encoding":"hex","prefix":"GK","suffix":"!"}}`),
+				},
+				passGen: func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				) (string, error) {
+					return "test_hex", nil
+				},
+			},
+			want: map[string][]byte{
+				"password": []byte("GK" + hex.EncodeToString([]byte("test_hex")) + "!"),
+			},
+			wantErr: false,
+		},
+		{
+			name: "prefix is applied after base64 encoding",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec":{"encoding":"base64","prefix":"GK"}}`),
+				},
+				passGen: func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool,
+				) (string, error) {
+					return "test_base64", nil
+				},
+			},
+			want: map[string][]byte{
+				"password": []byte("GK" + base64.StdEncoding.EncodeToString([]byte("test_base64"))),
+			},
+			wantErr: false,
+		},
+		{
+			name: "prefix and suffix are applied to every secretKey",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec":{"secretKeys":["first","second"],"prefix":"app-","suffix":"-v1"}}`),
+				},
+				passGen: func() func(int, int, string, int, bool, bool) (string, error) {
+					passwords := []string{"first-pass", "second-pass"}
+					idx := 0
+					return func(length int, symbols int, symbolCharacters string, digits int, noUpper bool, allowRepeat bool) (string, error) {
+						p := passwords[idx]
+						idx++
+						return p, nil
+					}
+				}(),
+			},
+			want: map[string][]byte{
+				"first":  []byte(`app-first-pass-v1`),
+				"second": []byte(`app-second-pass-v1`),
 			},
 			wantErr: false,
 		},

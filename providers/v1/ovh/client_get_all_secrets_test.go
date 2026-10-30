@@ -57,7 +57,7 @@ func TestGetAllSecrets(t *testing.T) {
 			},
 		},
 		"Invalid Regex": {
-			errshould: fmt.Sprintf("failed to retrieve multiple secrets: could not parse regex: error parsing regexp: missing closing ): `%s`", invalidRegexp),
+			errshould: fmt.Sprintf("failed to retrieve multiple secrets: could not parse regex: error parsing regexp: missing closing ): %#q", invalidRegexp),
 			refFind: esv1.ExternalSecretFind{
 				Name: &esv1.FindName{
 					RegExp: invalidRegexp,

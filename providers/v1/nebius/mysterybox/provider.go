@@ -39,7 +39,6 @@ import (
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/auth"
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/iam"
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk/mysterybox"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/feature"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
@@ -301,7 +300,7 @@ func (p *Provider) initTokenGetter() error {
 	c := clock.RealClock{}
 	tokenExchangerLogger := ctrl.Log.WithName("provider").WithName("nebius").WithName("iam").WithName("grpctokenexchanger")
 	tokenExchangeObserveFunction := func(err error) {
-		metrics.ObserveAPICall(constants.ProviderNebiusMysterybox, constants.CallNebiusMysteryboxAuth, err)
+		metrics.ObserveAPICall(ProviderNebiusMysterybox, CallNebiusMysteryboxAuth, err)
 	}
 	var tokenGetter TokenGetter
 	tokenGetter, err = NewCachedTokenGetter(

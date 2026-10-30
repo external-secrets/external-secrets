@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
@@ -81,7 +80,7 @@ func (c *client) requestTokenWithJwtAuth(ctx context.Context, jwtAuth *esv1.Vaul
 	}
 	url := strings.Join([]string{"auth", jwtAuth.Path, "login"}, "/")
 	vaultResult, err := c.logical.WriteWithContext(ctx, url, parameters)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultWriteSecretData, err)
+	metrics.ObserveAPICall(ProviderHCVault, CallHCVaultWriteSecretData, err)
 	if err != nil {
 		return err
 	}

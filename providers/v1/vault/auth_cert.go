@@ -26,7 +26,6 @@ import (
 	vault "github.com/hashicorp/vault/api"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
@@ -87,7 +86,7 @@ func (c *client) requestTokenWithCertAuth(ctx context.Context, certAuth *esv1.Va
 
 	url := strings.Join([]string{"auth", path, "login"}, "/")
 	vaultResult, err := c.logical.WriteWithContext(ctx, url, loginData)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLogin, err)
+	metrics.ObserveAPICall(ProviderHCVault, CallHCVaultLogin, err)
 	if err != nil {
 		return fmt.Errorf(errVaultRequest, err)
 	}

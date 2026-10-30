@@ -18,6 +18,7 @@ Multi-module repo: `apis/`, `runtime/`, `e2e/`, and each `providers/v1/*/` have 
 
 - `make reviewable` is the gate for PRs. Run it, not individual checks.
 - Helm chart is the source of truth for deploy manifests. `make manifests` generates static YAML from it.
+- For SHA-only image pins in `.updatecli.d/docker.yaml`, resolve the digest from `{{ source "<image>_version" }}` so the human-readable full-tag comment and the digest refer to the same release. Update both targets when adding an image.
 - Provider docs `{% include %}` reusable YAML snippets from `docs/snippets/` (`macros` plugin). AWS authentication is documented once on the standalone `docs/provider/aws-access.md` page; the per-service pages (`aws-secrets-manager.md`, `aws-parameter-store.md`) link to it rather than transcluding it.
 - CRD tests use snapshot testing. Run `make test.crds.update` to update snapshots after CRD changes.
 - `make update-deps` updates dependencies across all modules at once.
@@ -25,6 +26,7 @@ Multi-module repo: `apis/`, `runtime/`, `e2e/`, and each `providers/v1/*/` have 
 - If you discover a non-obvious pattern while implementing, add it here before the PR is merged. Keep entries general — applicable across the codebase, not specific to one provider or feature.
 - Never edit `zz_generated.*` files by hand. They are owned by controller-gen. Modify the source types and run `make generate` (included in `make reviewable`).
 - After everything is committed - **ALWAYS RUN `make check-diff`** - this is the first step where PRs fall apart that LLMs forget - there are a lot of generated code outside of the main `make reviewable` spec like helm chart tests, docs, etc.
+- The `go` directive in every `go.mod` is the minimum Go version consumers must use, so keep it at a `.0` patch (`go 1.27.0`). To build with a newer Go release (e.g. for a CVE fix), bump `toolchain` in the root `go.mod` only; `actions/setup-go` reads it, and importers ignore it. `make update-deps` bumps it to the latest patch of the same minor; Dependabot cannot. `make lint` enforces this via `hack/check-go-directive.sh`.
 - 
 
 ## Adding a Provider
@@ -50,7 +52,7 @@ Build tags live in `pkg/register/<name>.go`.
 - `runtime/esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{...})` for CA bundles.
 - `runtime/esutils.ValidateSecretSelector` / `ValidateReferentSecretSelector` / `ValidateServiceAccountSelector` for spec validation.
 - `runtime/esutils/metadata` for parsing `PushSecretMetadata` into a typed spec.
-- `runtime/constants` for metric label values.
+- `runtime/metrics.ObserveAPICall` for provider API metrics. Keep provider and call label constants in the provider package.
 
 ### `SecretsClient` contract
 

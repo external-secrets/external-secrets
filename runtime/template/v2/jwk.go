@@ -19,6 +19,7 @@ package template
 
 import (
 	"crypto/x509"
+	"errors"
 
 	"github.com/lestrrat-go/jwx/v2/jwk"
 )
@@ -26,16 +27,16 @@ import (
 func jwkPublicKeyPem(jwkjson string) (string, error) {
 	k, err := jwk.ParseKey([]byte(jwkjson))
 	if err != nil {
-		return "", err
+		return "", errors.New("invalid JWK")
 	}
 	var rawkey any
 	err = k.Raw(&rawkey)
 	if err != nil {
-		return "", err
+		return "", errors.New("invalid JWK key")
 	}
 	mpk, err := x509.MarshalPKIXPublicKey(rawkey)
 	if err != nil {
-		return "", err
+		return "", errors.New("invalid public key")
 	}
 	return pemEncode(mpk, "PUBLIC KEY")
 }
@@ -43,17 +44,17 @@ func jwkPublicKeyPem(jwkjson string) (string, error) {
 func jwkPrivateKeyPem(jwkjson string) (string, error) {
 	k, err := jwk.ParseKey([]byte(jwkjson))
 	if err != nil {
-		return "", err
+		return "", errors.New("invalid JWK")
 	}
 	var mpk []byte
 	var pk any
 	err = k.Raw(&pk)
 	if err != nil {
-		return "", err
+		return "", errors.New("invalid JWK key")
 	}
 	mpk, err = x509.MarshalPKCS8PrivateKey(pk)
 	if err != nil {
-		return "", err
+		return "", errors.New("invalid private key")
 	}
 	return pemEncode(mpk, "PRIVATE KEY")
 }
