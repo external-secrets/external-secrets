@@ -72,6 +72,7 @@ should configure custom lease name when leaderElectionID is set:
           - fakes
           - gcraccesstokens
           - githubaccesstokens
+          - gitlabdeploytokens
           - quayaccesstokens
           - passwords
           - sshkeys
@@ -81,6 +82,7 @@ should configure custom lease name when leaderElectionID is set:
           - webhooks
           - grafanas
           - mfas
+          - beyondtrustworkloadcredentialsdynamicsecrets
         verbs:
           - get
           - list
@@ -181,12 +183,14 @@ should configure custom lease name when leaderElectionID is set:
           - generators.external-secrets.io
         resources:
           - acraccesstokens
+          - beyondtrustworkloadcredentialsdynamicsecrets
           - cloudsmithaccesstokens
           - clustergenerators
           - ecrauthorizationtokens
           - fakes
           - gcraccesstokens
           - githubaccesstokens
+          - gitlabdeploytokens
           - quayaccesstokens
           - passwords
           - sshkeys
@@ -238,6 +242,7 @@ should configure custom lease name when leaderElectionID is set:
           - fakes
           - gcraccesstokens
           - githubaccesstokens
+          - gitlabdeploytokens
           - quayaccesstokens
           - passwords
           - sshkeys
@@ -246,6 +251,7 @@ should configure custom lease name when leaderElectionID is set:
           - grafanas
           - generatorstates
           - mfas
+          - beyondtrustworkloadcredentialsdynamicsecrets
           - uuids
         verbs:
           - create
