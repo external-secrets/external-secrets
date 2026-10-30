@@ -87,14 +87,24 @@ To use the container-based authentication, it is necessary to map the API server
 ```
 
 ### Update secret store
-Be sure the `ibm` provider is listed in the `Kind=SecretStore`
+
+API key authentication can be configured in a namespaced `SecretStore`:
 
 ```yaml
 {% include 'ibm-secret-store.yaml' %}
 ```
-**NOTE:** In case of a `ClusterSecretStore`, Be sure to provide `namespace` in `secretApiKeySecretRef` with the namespace where the secret resides.
 
-**NOTE:** Only `secretApiKeySecretRef` or `containerAuth` should be specified, depending on authentication method being used.
+Container authentication reads the token from the External Secrets Operator pod and is therefore supported in a cluster-admin-controlled `ClusterSecretStore` by default:
+
+```yaml
+{% include 'ibm-cluster-secret-store.yaml' %}
+```
+
+A deployment administrator can permit container authentication in a namespaced `SecretStore` with `security.unsafeAllowSecretStoreHostAccess`, but this lets store authors select files mounted in the ESO pod and can expose controller credentials.
+
+**NOTE:** In case of a `ClusterSecretStore`, be sure to provide `namespace` in `secretApiKeySecretRef` with the namespace where the secret resides.
+
+**NOTE:** Only `secretApiKeySecretRef` or `containerAuth` should be specified, depending on the authentication method being used.
 
 To find your `serviceURL`, under your Secrets Manager resource, go to "Endpoints" on the left.
 

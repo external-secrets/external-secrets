@@ -112,6 +112,7 @@ var (
 	tlsCurvePreferences                   []string
 	enableHTTP2                           bool
 	allowGenericTargets                   bool
+	unsafeAllowSecretStoreHostAccess      bool
 )
 
 const (
@@ -133,6 +134,12 @@ var rootCmd = &cobra.Command{
 	Use:   "external-secrets",
 	Short: "operator that reconciles ExternalSecrets and SecretStores",
 	Long:  `For more information visit https://external-secrets.io`,
+	PersistentPreRun: func(_ *cobra.Command, _ []string) {
+		feature.SetUnsafeAllowSecretStoreHostAccess(unsafeAllowSecretStoreHostAccess)
+		if unsafeAllowSecretStoreHostAccess {
+			setupLog.Info("WARNING: namespaced SecretStores may access files in the controller container")
+		}
+	},
 	Run: func(cmd *cobra.Command, _ []string) {
 		setupLogger()
 
@@ -347,6 +354,12 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().BoolVar(
+		&unsafeAllowSecretStoreHostAccess,
+		"unsafe-allow-secretstore-host-access",
+		false,
+		"Allow namespaced SecretStores to read files in the controller container. WARNING: this can expose the controller's service-account token and other mounted credentials.",
+	)
 	rootCmd.Flags().StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	rootCmd.Flags().BoolVar(&metricsAuth, "metrics-auth", false, "Enable Kubernetes RBAC-based authentication and authorization for the metrics endpoint.")
 	rootCmd.Flags().BoolVar(&metricsSecure, "metrics-secure", false, "Enable HTTPS for the metrics endpoint.")

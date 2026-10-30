@@ -48,11 +48,12 @@ type IBMAuthSecretRef struct {
 }
 
 // IBMAuthContainerAuth defines container-based authentication with IAM Trusted Profile.
+// This authentication method is only supported for ClusterSecretStore because it reads a token from the operator pod.
 type IBMAuthContainerAuth struct {
 	// the IBM Trusted Profile
 	Profile string `json:"profile"`
 
-	// Location the token is mounted on the pod
+	// Location where the token is mounted in the operator pod.
 	TokenLocation string `json:"tokenLocation,omitempty"`
 
 	IAMEndpoint string `json:"iamEndpoint,omitempty"`

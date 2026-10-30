@@ -31,6 +31,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1meta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/infisical/api"
+	"github.com/external-secrets/external-secrets/runtime/feature"
 )
 
 type storeModifier func(*esv1.SecretStore) *esv1.SecretStore
@@ -396,6 +397,36 @@ func TestValidateStore(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := p.ValidateStore(tc.store)
 			tc.assertError(t, err)
+		})
+	}
+}
+
+func TestValidateStoreHostAccessAuth(t *testing.T) {
+	t.Cleanup(func() { feature.SetUnsafeAllowSecretStoreHostAccess(false) })
+
+	for _, tt := range []struct {
+		name string
+		auth esv1.InfisicalAuth
+	}{
+		{name: "Kubernetes auth", auth: esv1.InfisicalAuth{KubernetesAuthCredentials: &esv1.KubernetesAuthCredentials{}}},
+		{name: "GCP IAM auth", auth: esv1.InfisicalAuth{GcpIamAuthCredentials: &esv1.GcpIamAuthCredentials{}}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			store := makeSecretStore(apiScope.ProjectSlug, apiScope.EnvironmentSlug, apiScope.SecretPath)
+			store.Spec.Provider.Infisical.Auth = tt.auth
+			provider := Provider{}
+
+			_, err := provider.ValidateStore(store)
+			require.ErrorContains(t, err, "only supported for ClusterSecretStore")
+
+			feature.SetUnsafeAllowSecretStoreHostAccess(true)
+			_, err = provider.ValidateStore(store)
+			require.NoError(t, err)
+			feature.SetUnsafeAllowSecretStoreHostAccess(false)
+
+			clusterStore := &esv1.ClusterSecretStore{Kind: esv1.ClusterSecretStoreKind, Spec: store.Spec}
+			_, err = provider.ValidateStore(clusterStore)
+			require.NoError(t, err)
 		})
 	}
 }

@@ -244,6 +244,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | schedulerName | string | `""` | Pod scheduler name. |
 | scopedNamespace | string | `""` | If set external secrets are only reconciled in the provided namespace |
 | scopedRBAC | bool | `false` | If true, create scoped RBAC roles and implicitly disable cluster-scoped controllers. Scoped to scopedNamespace if set, otherwise to .Release.Namespace. |
+| security.unsafeAllowSecretStoreHostAccess | bool | `false` | Allow namespaced SecretStores to select files in the controller container. This can expose the controller service-account token and other mounted credentials. |
 | securityContext.allowPrivilegeEscalation | bool | `false` |  |
 | securityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | securityContext.enabled | bool | `true` |  |
