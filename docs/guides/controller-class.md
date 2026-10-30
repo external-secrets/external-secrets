@@ -14,6 +14,6 @@ helm install custom-external-secrets external-secrets/external-secrets --set con
 {% include 'controller-class-store.yaml' %}
 ```
 
-Now, any `ExternalSecret` bound to this secret store will be evaluated by the operator with the controllerClass custom.
+Now, any `ExternalSecret` bound to this secret store will be evaluated by the operator with the controllerClass custom. If an `ExternalSecret` references multiple stores (including overrides under `spec.data[].sourceRef` or `spec.dataFrom[].sourceRef`), a controller skips it when any referenced store belongs to a different controller class.
 
-> Note: Any SecretStore without `spec.controller` set will be considered as valid by any operator, regardless of their respective controllerClasses.
+> Note: Any SecretStore without `spec.controller` set will be considered as valid by any operator, regardless of their respective controllerClasses. The same applies to ClusterSecretStores.
