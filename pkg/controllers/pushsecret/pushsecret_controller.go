@@ -320,18 +320,24 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 			return ctrl.Result{}, err
 		}
-		switch ps.Spec.DeletionPolicy {
-		case esapi.PushSecretDeletionPolicyDelete:
-			badSyncState, err := r.DeleteSecretFromProviders(ctx, &ps, syncedSecrets, mgr)
-			if err != nil {
-				r.markAsFailed("failed to delete secrets from provider", err, &ps, badSyncState)
-				return ctrl.Result{}, err
-			}
-		case esapi.PushSecretDeletionPolicyNone:
-		default:
-		}
-
 		allSyncedSecrets = mergeSecretState(allSyncedSecrets, syncedSecrets)
+	}
+
+	// Delete only after every matched Secret is pushed, comparing against all of
+	// their entries so one Secret does not remove another's. With no match, keep
+	// the previous behavior and delete nothing.
+	switch ps.Spec.DeletionPolicy {
+	case esapi.PushSecretDeletionPolicyDelete:
+		if len(secrets) == 0 {
+			break
+		}
+		badSyncState, err := r.DeleteSecretFromProviders(ctx, &ps, allSyncedSecrets, mgr)
+		if err != nil {
+			r.markAsFailed("failed to delete secrets from provider", err, &ps, badSyncState)
+			return ctrl.Result{}, err
+		}
+	case esapi.PushSecretDeletionPolicyNone:
+	default:
 	}
 
 	r.markAsDone(&ps, allSyncedSecrets, start)
