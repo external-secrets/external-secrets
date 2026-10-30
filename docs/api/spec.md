@@ -1710,7 +1710,8 @@ string
 </em>
 </td>
 <td>
-<p>The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.</p>
+<p>The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
+ALL = each remoteRef.key selects its type with a &ldquo;managed:&rdquo; or &ldquo;secret:&rdquo; prefix. Required; any other value is rejected.</p>
 </td>
 </tr>
 <tr>
