@@ -371,6 +371,9 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 		c.Timeout = provider.Timeout.Duration
 	}
 
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	customTransport := false
+
 	// add CA to client if it is there
 	if len(provider.CABundle) > 0 || provider.CAProvider != nil {
 		caCertPool, err := w.GetCACertPool(ctx, provider)
@@ -384,20 +387,22 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 			Renegotiation: tls.RenegotiateOnceAsClient,
 		}
 
-		c.Transport = &http.Transport{TLSClientConfig: tlsConf}
+		transport.TLSClientConfig = tlsConf
+		customTransport = true
 	}
 	// add authentication method if it s there
 	if provider.Auth != nil {
 		if provider.Auth.NTLM != nil {
-			c.Transport =
-				&ntlmssp.Negotiator{
-					RoundTripper: &http.Transport{
-						TLSNextProto: map[string]func(authority string, c *tls.Conn) http.RoundTripper{}, // Needed to disable HTTP/2
-
-					},
-				}
+			// NTLM requires HTTP/1.1. Reuse the configured transport so custom
+			// CA roots are not discarded when NTLM and TLS are used together.
+			transport.TLSNextProto = map[string]func(authority string, c *tls.Conn) http.RoundTripper{}
+			c.Transport = &ntlmssp.Negotiator{RoundTripper: transport}
+			customTransport = false
 		}
 		// add additional auth methods here
+	}
+	if customTransport {
+		c.Transport = transport
 	}
 
 	// return client with all add-ons
