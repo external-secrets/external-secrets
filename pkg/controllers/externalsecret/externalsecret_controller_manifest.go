@@ -198,12 +198,11 @@ func (r *Reconciler) deleteGenericResource(ctx context.Context, log logr.Logger,
 }
 
 // applyTemplateToManifest renders templates for generic resources and returns an unstructured object.
-// If existingObj is provided, templates will be applied to it (for merge behavior).
-// Otherwise, a new object is created.
+// Existing metadata is retained for updates; Merge and CreateOrMerge also retain existing content.
 func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte, existingObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	var obj *unstructured.Unstructured
-	if existingObj != nil {
-		// use the existing object for merge behavior if it exists
+	if existingObj != nil && (es.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
+		es.Spec.Target.CreationPolicy == esv1.CreatePolicyCreateOrMerge) {
 		obj = existingObj.DeepCopy()
 	} else {
 		gvk := getTargetGVK(es)
@@ -216,6 +215,15 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 			obj.Object["data"] = map[string]any{}
 		default:
 			obj.Object["spec"] = map[string]any{}
+		}
+		if existingObj != nil {
+			obj.Object["metadata"] = existingObj.DeepCopy().Object["metadata"]
+			// Secret type is immutable; retain it so the final Secret policy checks the existing type.
+			if gvk == v1.SchemeGroupVersion.WithKind("Secret") {
+				if secretType, ok := existingObj.Object["type"]; ok {
+					obj.Object["type"] = secretType
+				}
+			}
 		}
 	}
 

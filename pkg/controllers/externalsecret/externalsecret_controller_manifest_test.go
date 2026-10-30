@@ -122,6 +122,82 @@ func TestValidateManifestSecretCandidate(t *testing.T) {
 	}
 }
 
+func TestApplyTemplateToManifestExistingTargetPolicies(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme}
+
+	for _, tt := range []struct {
+		policy esv1.ExternalSecretCreationPolicy
+		merge  bool
+	}{
+		{esv1.CreatePolicyOwner, false},
+		{esv1.CreatePolicyOrphan, false},
+		{esv1.CreatePolicyMerge, true},
+		{esv1.CreatePolicyCreateOrMerge, true},
+	} {
+		t.Run(string(tt.policy), func(t *testing.T) {
+			es := &esv1.ExternalSecret{Name: "es", Namespace: "ns", UID: "es-uid",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "target", CreationPolicy: tt.policy,
+					Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+					Template: &esv1.ExternalSecretTemplate{EngineVersion: esv1.TemplateEngineV2,
+						Data: map[string]string{"new": "{{ .key }}"}},
+				}}}
+			existing := &unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": "v1", "kind": "ConfigMap",
+				"metadata": map[string]any{
+					"name": "target", "namespace": "ns", "uid": "target-uid", "resourceVersion": "1",
+					"finalizers":  []any{"other.io/keep"},
+					"labels":      map[string]any{"other-controller": "keep"},
+					"annotations": map[string]any{"other-controller": "keep"},
+				},
+				"data": map[string]any{"old": "old-value"},
+			}}
+
+			result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("new-value")}, existing)
+			require.NoError(t, err)
+			assert.Equal(t, "target-uid", string(result.GetUID()))
+			assert.Equal(t, "1", result.GetResourceVersion())
+			assert.Equal(t, []string{"other.io/keep"}, result.GetFinalizers())
+			assert.Equal(t, "keep", result.GetLabels()["other-controller"])
+			assert.Equal(t, "keep", result.GetAnnotations()["other-controller"])
+			assert.Contains(t, result.Object["data"], "new")
+			if tt.merge {
+				assert.Contains(t, result.Object["data"], "old")
+			} else {
+				assert.NotContains(t, result.Object["data"], "old")
+			}
+			assert.Equal(t, "old-value", existing.Object["data"].(map[string]any)["old"])
+		})
+	}
+}
+
+func TestApplyTemplateToManifestRejectsExistingOtherOwner(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme}
+
+	for _, policy := range []esv1.ExternalSecretCreationPolicy{esv1.CreatePolicyOwner, esv1.CreatePolicyOrphan} {
+		t.Run(string(policy), func(t *testing.T) {
+			es := &esv1.ExternalSecret{Name: "es", Namespace: "ns", UID: "es-uid",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "target", CreationPolicy: policy,
+					Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+				}}}
+			existing := &unstructured.Unstructured{}
+			existing.SetGroupVersionKind(v1.SchemeGroupVersion.WithKind("ConfigMap"))
+			existing.SetName("target")
+			existing.SetNamespace("ns")
+			existing.SetOwnerReferences([]metav1.OwnerReference{{
+				APIVersion: esv1.SchemeGroupVersion.String(), Kind: esv1.ExtSecretKind,
+				Name: "other-es", UID: "other-uid", Controller: new(true),
+			}})
+
+			_, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
+			require.ErrorIs(t, err, ErrSecretIsOwned)
+		})
+	}
+}
+
 func TestApplyTemplateToManifestRejectsRetainedSecretType(t *testing.T) {
 	_ = esv1.AddToScheme(scheme.Scheme)
 	r := &Reconciler{
@@ -1013,7 +1089,7 @@ func TestApplyTemplateToManifest_MergeBehavior(t *testing.T) {
 		Namespace: "default",
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
-				Name: "test-slack-config",
+				Name: "test-slack-config", CreationPolicy: esv1.CreatePolicyMerge,
 				Manifest: &esv1.ManifestReference{
 					APIVersion: "notification.toolkit.fluxcd.io/v1beta1",
 					Kind:       "Provider",
