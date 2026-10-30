@@ -527,7 +527,7 @@ spec:
           cmekKeyName: "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"
 ```
 
-Note: When using CMEK, you must specify a location in the SecretStore as customer-managed encryption keys are region-specific.
+Note: For a regional SecretStore, you must specify a `location` that matches the CMEK key location. Automatic replication instead uses a `global` CMEK key without a SecretStore `location`, and user-managed replication can carry per-replica keys through `replicationLocations` (see below).
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -538,13 +538,31 @@ spec:
   provider:
     gcpsm:
       projectID: my-project
-      location: us-east1  # Required when using CMEK
+      location: us-east1  # Required for a regional SecretStore
 ```
+
+#### CMEK with a regional SecretStore
+
+When the SecretStore sets a `location`, secrets are regional and no replication is configured on the secret itself; the `cmekKeyName` above is applied through the regional endpoint. Use a key from the same location as the SecretStore.
+
+#### CMEK with automatic replication
+
+When the SecretStore has no `location` and no `replicationLocations` are set, the `cmekKeyName` is applied to a secret with automatic replication. In that case the key must be a symmetric key from the `global` multi-region — regional keys are rejected. If you need regional or EKM-backed keys, use user-managed replication with per-replica keys as described below.
+
+#### Per-replica CMEK keys
+
+A CMEK key can only be used by replicas in the same location, so a single key cannot cover secrets replicated to multiple locations (Secret Manager user-managed replication uses specific locations, not multi-regional locations such as "us", "eu", "ca"). For such cases, each `replicationLocations` entry may carry its own key:
+
+```yaml
+{% include 'gcpsm-push-secret-cmek-replicas.yaml' %}
+```
+
+Note: Plain location strings remain accepted as entries (e.g. `replicationLocations: ["us-east1"]`). Entries without a `cmekKeyName` fall back to the top-level `cmekKeyName` (when set), and otherwise use Google-managed encryption. Each user-managed replica must use a CMEK key from the replica's own location — a mismatch is rejected when the secret is created, so provide a matching-location key for each distinct replica location.
 
 ## Regional Secrets
 GCP Secret Manager Regional Secrets are available to be used with both ExternalSecrets and PushSecrets.
 
-In order to achieve so, add a `location` to your SecretStore definition:
+In order to achieve so, add a `location` to your SecretStore definition. When set, the provider routes all Secret Manager requests to the regional endpoint at that location (`secretmanager.<location>.rep.googleapis.com`) instead of the global endpoint, so both reads and writes operate against regional secrets:
 
 ```yaml
 apiVersion: external-secrets.io/v1

@@ -200,7 +200,11 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, pushSecr
 				return fmt.Errorf("failed to parse PushSecret metadata: %w", err)
 			}
 			if meta != nil {
-				if r := buildReplication(meta.Spec); r != nil {
+				r, err := buildReplication(meta.Spec, c.store.Location != "")
+				if err != nil {
+					return err
+				}
+				if r != nil {
 					replication = r
 				}
 			}
