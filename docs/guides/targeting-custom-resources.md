@@ -110,8 +110,9 @@ You can add labels and annotations to your target resources using the template m
 ```yaml
 {% include 'manifest-labeled-configmap.yaml' %}
 ```
+The operator automatically adds the `reconcile.external-secrets.io/managed: "true"` label to track which resources it manages.
 
-The operator automatically adds the `externalsecrets.external-secrets.io/managed: "true"` label to track which resources it manages.
+Templates may set ordinary labels and annotations, but cannot modify other metadata (such as owner references, finalizers, UIDs, or resource versions). When updating an existing target, ESO retains its metadata across all creation policies; only `Merge` and `CreateOrMerge` also retain its content while rendering. ESO controls its `reconcile.external-secrets.io/managed` and `reconcile.external-secrets.io/created-by` labels and its `reconcile.external-secrets.io/data-hash` annotation; template values for these keys are overwritten. Other labels and annotations may affect downstream controllers, so restrict who can create ExternalSecrets when enabling generic targets.
 
 ## RBAC Requirements
 
