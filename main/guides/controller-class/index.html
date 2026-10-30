@@ -5113,6 +5113,8 @@
 <blockquote>
 <p>Note: Any SecretStore without <code>spec.controller</code> set will be considered as valid by any operator, regardless of their respective controllerClasses. The same applies to ClusterSecretStores.</p>
 </blockquote>
+<p>Skipped <code>ExternalSecrets</code> (not belonging to this controllerClass) are retried after the controller's requeue interval (or one hour if it is not configured), even if their ExternalSecret refresh interval is zero.
+This is done to make it possible to pick up changes from a referenced store or generator's class.</p>
 
 
 
