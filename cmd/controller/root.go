@@ -54,7 +54,6 @@ import (
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/cssmetrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/secretstore/ssmetrics"
-	webhookprovider "github.com/external-secrets/external-secrets/providers/v1/webhook/pkg/webhook"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/feature"
 
@@ -113,7 +112,6 @@ var (
 	tlsCurvePreferences                   []string
 	enableHTTP2                           bool
 	allowGenericTargets                   bool
-	webhookResponseBodySize               int64
 )
 
 const (
@@ -137,11 +135,6 @@ var rootCmd = &cobra.Command{
 	Long:  `For more information visit https://external-secrets.io`,
 	Run: func(cmd *cobra.Command, _ []string) {
 		setupLogger()
-
-		if err := webhookprovider.SetMaxResponseBodySize(webhookResponseBodySize); err != nil {
-			setupLog.Error(err, "unable to configure webhook response body size")
-			os.Exit(1)
-		}
 
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
 		esmetrics.SetUpMetrics()
@@ -409,12 +402,6 @@ func init() {
 			"If omitted, Go defaults are used.")
 	rootCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics server")
-	rootCmd.Flags().Int64Var(
-		&webhookResponseBodySize,
-		"webhook-response-body-size",
-		webhookprovider.DefaultMaxResponseBodySize,
-		"Maximum successful webhook provider response body size in bytes.",
-	)
 	rootCmd.Flags().
 		BoolVar(&allowGenericTargets, "unsafe-allow-generic-targets", false, "Enable support for creating generic resources (ConfigMaps, Custom Resources). WARNING: Using generic resources, please sure all policies are correctly configured.")
 	fs := feature.Features()
