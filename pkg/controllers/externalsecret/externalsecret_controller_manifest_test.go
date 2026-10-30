@@ -38,24 +38,13 @@ import (
 )
 
 func TestValidateManifestSecretCandidate(t *testing.T) {
-	secretTarget := &esv1.ExternalSecret{Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
-		Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "Secret"},
-	}}}
-
-	configMapTarget := &esv1.ExternalSecret{Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
-		Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
-	}}}
-
 	tests := []struct {
-		name            string
-		es              *esv1.ExternalSecret
-		object          map[string]any
-		wantErr         error
-		wantErrContains string
+		name    string
+		object  map[string]any
+		wantErr error
 	}{
 		{
 			name: "rejects created service account token Secret",
-			es:   secretTarget,
 			object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "Secret",
@@ -68,7 +57,6 @@ func TestValidateManifestSecretCandidate(t *testing.T) {
 		},
 		{
 			name: "rejects updated bootstrap token Secret",
-			es:   secretTarget,
 			object: map[string]any{
 				"apiVersion": "v1",
 				"kind":       "Secret",
@@ -77,46 +65,148 @@ func TestValidateManifestSecretCandidate(t *testing.T) {
 			wantErr: errBootstrapTokenSecret,
 		},
 		{
-			name: "allows matching non-Secret manifest",
-			es:   configMapTarget,
+			name: "rejects invalid Secret type",
 			object: map[string]any{
-				"apiVersion": "v1",
-				"kind":       "ConfigMap",
+				"type": 42,
 			},
-		},
-		{
-			name: "rejects ConfigMap rendered as Secret",
-			es:   configMapTarget,
-			object: map[string]any{
-				"apiVersion": "v1",
-				"kind":       "Secret",
-			},
-			wantErrContains: `rendered target GVK "/v1, Kind=Secret" differs from declared target GVK "/v1, Kind=ConfigMap"`,
-		},
-		{
-			name: "rejects changed API version",
-			es: &esv1.ExternalSecret{Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
-				Manifest: &esv1.ManifestReference{APIVersion: "example.io/v1", Kind: "Target"},
-			}}},
-			object: map[string]any{
-				"apiVersion": "other.io/v1",
-				"kind":       "Target",
-			},
-			wantErrContains: `rendered target GVK "other.io/v1, Kind=Target" differs from declared target GVK "example.io/v1, Kind=Target"`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			obj := &unstructured.Unstructured{Object: tt.object}
-			err := validateManifestSecretCandidate(tt.es, obj)
-			switch {
-			case tt.wantErr != nil:
+			err := validateManifestSecretCandidate(obj)
+			if tt.wantErr != nil {
 				require.ErrorIs(t, err, tt.wantErr)
-			case tt.wantErrContains != "":
-				require.EqualError(t, err, tt.wantErrContains)
-			default:
-				require.NoError(t, err)
+			} else {
+				require.ErrorContains(t, err, "invalid Secret type")
+			}
+		})
+	}
+}
+
+func TestApplyTemplateToManifestKeepsTargetIdentity(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme}
+
+	tests := []struct {
+		name, target, literal string
+		existing              bool
+		wantErr               string
+	}{
+		{"namespace via literal", "metadata.namespace", "victim", false, "rendered target namespace/name differs from declared target"},
+		{"namespace on existing object", "metadata.namespace", "victim", true, "rendered target namespace/name differs from declared target"},
+		{"namespace via metadata map", "metadata", "namespace: victim", true, "rendered target namespace/name differs from declared target"},
+		{"name via literal", "metadata.name", "pwned-by-attacker", false, "rendered target namespace/name differs from declared target"},
+		{"malformed metadata", "metadata", "null", false, "rendered target namespace/name differs from declared target"},
+		{"same identity via metadata map", "metadata", "namespace: attacker\nname: harmless-local-name", false, ""},
+		{"metadata labels remain templatable", "metadata.labels", "app: test", false, ""},
+		{"kind via literal", "kind", "Secret", false, `rendered target GVK "/v1, Kind=Secret" differs from declared target GVK "/v1, Kind=ConfigMap"`},
+		{"API version via literal", "apiVersion", "other.io/v1", false, `rendered target GVK "other.io/v1, Kind=ConfigMap" differs from declared target GVK "/v1, Kind=ConfigMap"`},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			es := &esv1.ExternalSecret{
+				Name: "evil-es", Namespace: "attacker",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "harmless-local-name", CreationPolicy: esv1.CreatePolicyOrphan,
+					Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+					Template: &esv1.ExternalSecretTemplate{EngineVersion: esv1.TemplateEngineV2,
+						TemplateFrom: []esv1.TemplateFrom{{Target: tt.target, Literal: &tt.literal}}},
+				}},
+			}
+			var existing *unstructured.Unstructured
+			if tt.existing {
+				existing = &unstructured.Unstructured{Object: map[string]any{
+					"apiVersion": "v1", "kind": "ConfigMap",
+					"metadata": map[string]any{"name": "harmless-local-name", "namespace": "attacker"},
+					"data":     map[string]any{"key": "old"},
+				}}
+			}
+
+			result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
+			if tt.wantErr != "" {
+				require.EqualError(t, err, tt.wantErr)
+				assert.Nil(t, result)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, "attacker", result.GetNamespace())
+			assert.Equal(t, "harmless-local-name", result.GetName())
+		})
+	}
+}
+
+func TestApplyTemplateToManifestProtectsMetadata(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme}
+
+	tests := []struct {
+		name, target, literal string
+		existing              bool
+		wantErr               bool
+	}{
+		{"owner references", "metadata.ownerReferences", "- apiVersion: v1\n  kind: ConfigMap\n  name: victim\n  uid: victim-uid", false, true},
+		{"finalizers", "metadata.finalizers", "- attacker.io/hold", false, true},
+		{"uid", "metadata.uid", "victim-uid", true, true},
+		{"resource version", "metadata.resourceVersion", "1234", true, true},
+		{"replace retained metadata", "metadata", "name: target\nnamespace: ns", true, true},
+		{"ordinary annotations", "metadata.annotations", "app.example.com/key: value", true, false},
+		{"replaced labels map", "metadata.labels", "null", true, false},
+		{"replaced annotations map", "metadata.annotations", "null", true, false},
+		{"controller labels and annotation", "metadata", `name: target
+namespace: ns
+labels:
+  reconcile.external-secrets.io/managed: 'false'
+  reconcile.external-secrets.io/created-by: spoofed
+  app: test
+annotations:
+  reconcile.external-secrets.io/data-hash: spoofed
+  app.example.com/key: value`, false, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			es := &esv1.ExternalSecret{
+				Name: "es", Namespace: "ns",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "target", CreationPolicy: esv1.CreatePolicyOrphan,
+					Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+					Template: &esv1.ExternalSecretTemplate{EngineVersion: esv1.TemplateEngineV2,
+						TemplateFrom: []esv1.TemplateFrom{{Target: tt.target, Literal: &tt.literal}}},
+				}},
+			}
+			var existing *unstructured.Unstructured
+			if tt.existing {
+				existing = &unstructured.Unstructured{Object: map[string]any{
+					"apiVersion": "v1", "kind": "ConfigMap",
+					"metadata": map[string]any{
+						"name": "target", "namespace": "ns", "uid": "original-uid", "resourceVersion": "1",
+						"labels":      map[string]any{"other-controller": "keep"},
+						"annotations": map[string]any{"other-controller": "keep", "app.example.com/key": "old"},
+					},
+					"data": map[string]any{"key": "old"},
+				}}
+			}
+			result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
+			if tt.wantErr {
+				require.EqualError(t, err, "rendered target changed protected metadata")
+				assert.Nil(t, result)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, esv1.LabelManagedValue, result.GetLabels()[esv1.LabelManaged])
+			assert.Empty(t, result.GetLabels()[esv1.LabelOwner])
+			hash, err := genericTargetContentHash(result)
+			require.NoError(t, err)
+			assert.Equal(t, hash, result.GetAnnotations()[esv1.AnnotationDataHash])
+			if tt.existing {
+				assert.Equal(t, "keep", result.GetLabels()["other-controller"])
+				assert.Equal(t, "keep", result.GetAnnotations()["other-controller"])
+			}
+			if tt.name == "ordinary annotations" || tt.name == "controller labels and annotation" {
+				assert.Equal(t, "value", result.GetAnnotations()["app.example.com/key"])
 			}
 		})
 	}

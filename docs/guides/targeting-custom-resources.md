@@ -12,7 +12,7 @@ External Secrets Operator can create and manage resources beyond Kubernetes Secr
 This feature must be explicitly enabled in your deployment using the `--unsafe-allow-generic-targets` flag.
 
 !!! note "Namespaced Resources Only"
-    With this feature you can only target namespaced resources - and resources can only be managed by an ExternalSecret in the same namespace as the resource.
+    With this feature you can only target namespaced resources - and resources can only be managed by an ExternalSecret in the same namespace as the resource. Templates cannot change the rendered resource's namespace or name; the name must match `spec.target.name` (or the ExternalSecret name when omitted).
 
 !!! note "Performance"
     Using generic targets or custom resources at the moment of this writing is ~20% slower than handling secrets due to certain missing features yet to be implemented.
@@ -111,7 +111,9 @@ You can add labels and annotations to your target resources using the template m
 {% include 'manifest-labeled-configmap.yaml' %}
 ```
 
-The operator automatically adds the `externalsecrets.external-secrets.io/managed: "true"` label to track which resources it manages.
+The operator automatically adds the `reconcile.external-secrets.io/managed: "true"` label to track which resources it manages.
+
+Templates may set ordinary labels and annotations, but cannot modify other metadata (such as owner references, finalizers, UIDs, or resource versions). ESO controls its `reconcile.external-secrets.io/managed` and `reconcile.external-secrets.io/created-by` labels and its `reconcile.external-secrets.io/data-hash` annotation; template values for these keys are overwritten. Other labels and annotations may affect downstream controllers, so restrict who can create ExternalSecrets when enabling generic targets.
 
 ## RBAC Requirements
 
