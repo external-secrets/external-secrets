@@ -83,8 +83,27 @@ type Provider struct {
 	retrievaltype string
 	decrypt       bool
 	authenticate  auth.AuthenticationObj
+	authenticated bool
 	log           logging.LogrLogger
 	separator     string
+}
+
+const signOutMaxElapsedTime = 30 * time.Second
+
+// getAuthentication signs into Password Safe and records success so Close
+// only attempts SignOut when a session was actually established.
+func (p *Provider) getAuthentication() (entities.SignAppinResponse, error) {
+	resp, err := p.authenticate.GetPasswordSafeAuthentication()
+	if err == nil {
+		p.authenticated = true
+	}
+	return resp, err
+}
+
+func (p *Provider) closeIdleConnections() {
+	if p.authenticate.HttpClient.HttpClient != nil {
+		p.authenticate.HttpClient.HttpClient.CloseIdleConnections()
+	}
 }
 
 // AuthenticatorInput is used to pass parameters to the getAuthenticator function.
@@ -107,8 +126,47 @@ func (*Provider) Capabilities() esv1.SecretStoreCapabilities {
 }
 
 // Close implements v1beta1.SecretsClient.
-func (*Provider) Close(_ context.Context) error {
-	return nil
+// Signs out of the Password Safe session (when authenticated) and always
+// closes idle HTTP connections so each reconcile does not leave ESTABLISHED
+// sockets behind — including when SignOut fails.
+func (p *Provider) Close(_ context.Context) error {
+	if !p.authenticated {
+		p.closeIdleConnections()
+		return nil
+	}
+
+	// Bound SignOut retries so a failing Auth/Signout cannot block the
+	// reconcile for the full provider retry window (default 15 minutes).
+	if p.authenticate.ExponentialBackOff != nil {
+		p.authenticate.ExponentialBackOff.MaxElapsedTime = signOutMaxElapsedTime
+	}
+
+	// Also bound the in-flight HTTP call: MaxElapsedTime only limits retry
+	// scheduling, while the client timeout may be 45s+ via clientTimeOutSeconds.
+	httpClient := p.authenticate.HttpClient.HttpClient
+	prevCtx := p.authenticate.HttpClient.Context
+	var prevTimeout time.Duration
+	signOutCtx, cancel := context.WithTimeout(context.Background(), signOutMaxElapsedTime)
+	defer cancel()
+	p.authenticate.HttpClient.Context = signOutCtx
+	if httpClient != nil {
+		prevTimeout = httpClient.Timeout
+		if prevTimeout == 0 || prevTimeout > signOutMaxElapsedTime {
+			httpClient.Timeout = signOutMaxElapsedTime
+		}
+	}
+	defer func() {
+		p.authenticate.HttpClient.Context = prevCtx
+		if httpClient != nil {
+			httpClient.Timeout = prevTimeout
+		}
+	}()
+
+	err := p.authenticate.SignOut()
+	// SDK only closes idle connections after a successful SignOut; always
+	// close them here so failed sign-out cannot leak sockets.
+	p.closeIdleConnections()
+	return err
 }
 
 // DeleteSecret implements v1beta1.SecretsClient.
@@ -353,7 +411,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 
 	retrievalPath := retrievalPaths[0]
 
-	_, err := p.authenticate.GetPasswordSafeAuthentication()
+	_, err := p.getAuthentication()
 	if err != nil {
 		return nil, fmt.Errorf("error getting authentication: %w", err)
 	}
@@ -374,9 +432,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 	}
 	returnSecret, err := fetch()
 	if err != nil {
-		if serr := p.authenticate.SignOut(); serr != nil {
-			return nil, errors.Join(err, serr)
-		}
+		// Session cleanup happens in Close(), which the client manager always calls.
 		return nil, fmt.Errorf("error getting secret/managed account: %w", err)
 	}
 	return []byte(returnSecret), nil
@@ -513,7 +569,7 @@ func (p *Provider) PushSecret(_ context.Context, secret *v1.Secret, psd esv1.Pus
 		return fmt.Errorf("Error in parameters: %w", err)
 	}
 
-	signAppinResponse, err := p.authenticate.GetPasswordSafeAuthentication()
+	signAppinResponse, err := p.getAuthentication()
 	if err != nil {
 		return fmt.Errorf("Error in authentication: %w", err)
 	}
