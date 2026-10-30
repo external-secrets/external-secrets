@@ -2784,6 +2784,13 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 			Expect(result).To(HaveLen(2))
 		})
 
+		It("should bound transform rewrites", func() {
+			rewrite, err := compileRewrite(v1alpha1.PushSecretRewrite{Transform: &esv1.ExternalSecretRewriteTransform{Template: `{{ until 35000000 | join " " }}`}})
+			Expect(err).ToNot(HaveOccurred())
+			_, err = rewrite("key")
+			Expect(err).To(MatchError(ContainSubstring("safety limit")))
+		})
+
 		It("should override dataTo with explicit for same source key", func() {
 			secret := &v1.Secret{Data: map[string][]byte{"key": []byte("v1")}}
 			dataTo := []v1alpha1.PushSecretData{

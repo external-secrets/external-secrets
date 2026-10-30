@@ -18,7 +18,6 @@ limitations under the License.
 package pushsecret
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -1190,11 +1189,11 @@ func compileRewrite(op esapi.PushSecretRewrite) (func(string) (string, error), e
 			return nil, fmt.Errorf("invalid template: %w", err)
 		}
 		return func(key string) (string, error) {
-			var buf bytes.Buffer
-			if err := tmpl.Execute(&buf, map[string]string{"value": key}); err != nil {
+			result, err := estemplate.ExecuteTemplate(tmpl, map[string]string{"value": key})
+			if err != nil {
 				return "", fmt.Errorf("template exec: %w", err)
 			}
-			return buf.String(), nil
+			return string(result), nil
 		}, nil
 	default:
 		return func(key string) (string, error) { return key, nil }, nil

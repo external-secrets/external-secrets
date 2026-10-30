@@ -23,6 +23,7 @@ import (
 	"maps"
 
 	v1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -82,6 +83,10 @@ func (r *Reconciler) ApplyTemplate(ctx context.Context, es *esv1.ExternalSecret,
 		maps.Insert(secret.Data, maps.All(dataMap))
 		return nil
 	}
+
+	log := r.Log.WithValues("ExternalSecret", client.ObjectKeyFromObject(es))
+	log.V(1).Info("template render started")
+	defer log.V(1).Info("template render finished")
 
 	// set the secret type if it is defined in the template, otherwise keep the existing type
 	if es.Spec.Target.Template.Type != "" {
