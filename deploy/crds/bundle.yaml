@@ -7302,6 +7302,11 @@ spec:
                             - name
                             - type
                           type: object
+                        headers:
+                          additionalProperties:
+                            type: string
+                          description: Headers to be added to OpenBao request
+                          type: object
                         namespace:
                           description: |-
                             Name of the [OpenBao Namespace]. Namespaces is a set of features within
@@ -20978,6 +20983,11 @@ spec:
                           required:
                             - name
                             - type
+                          type: object
+                        headers:
+                          additionalProperties:
+                            type: string
+                          description: Headers to be added to OpenBao request
                           type: object
                         namespace:
                           description: |-
