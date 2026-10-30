@@ -100,6 +100,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.securityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | certController.securityContext.enabled | bool | `true` |  |
 | certController.securityContext.readOnlyRootFilesystem | bool | `true` |  |
+| certController.securityContext.runAsGroup | int | `1000` |  |
 | certController.securityContext.runAsNonRoot | bool | `true` |  |
 | certController.securityContext.runAsUser | int | `1000` |  |
 | certController.securityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
@@ -248,6 +249,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | securityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | securityContext.enabled | bool | `true` |  |
 | securityContext.readOnlyRootFilesystem | bool | `true` |  |
+| securityContext.runAsGroup | int | `1000` |  |
 | securityContext.runAsNonRoot | bool | `true` |  |
 | securityContext.runAsUser | int | `1000` |  |
 | securityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
@@ -356,6 +358,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.securityContext.capabilities.drop[0] | string | `"ALL"` |  |
 | webhook.securityContext.enabled | bool | `true` |  |
 | webhook.securityContext.readOnlyRootFilesystem | bool | `true` |  |
+| webhook.securityContext.runAsGroup | int | `1000` |  |
 | webhook.securityContext.runAsNonRoot | bool | `true` |  |
 | webhook.securityContext.runAsUser | int | `1000` |  |
 | webhook.securityContext.seccompProfile.type | string | `"RuntimeDefault"` |  |
