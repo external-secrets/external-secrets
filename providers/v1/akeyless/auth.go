@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
@@ -31,7 +32,26 @@ const (
 	errMissingSAK                 = "missing SecretAccessKey"
 	errMissingAKID                = "missing AccessKeyID"
 	errMissingAccessTypeParam     = "missing AccessTypeParam for Akeyless access key auth"
+	errMissingJWT                  = "missing JWT for Akeyless jwt/oauth2 auth"
+	errMissingJWTAccessID          = "missing AccessID for Akeyless jwtAuth"
+	errJWTAuthTokenSource          = "jwtAuth requires exactly one of secretRef or serviceAccountRef"
+	errJWTAuthBothTokenSources     = "jwtAuth: secretRef and serviceAccountRef are mutually exclusive"
+	errJWTAuthMissingSecretName    = "jwtAuth.secretRef.name must be set"
+	errJWTAuthMissingSAName        = "jwtAuth.serviceAccountRef.name must be set"
+	errMultipleAkeylessAuthMethods = "only one of kubernetesAuth or jwtAuth may be set"
+
+	akeylessJWTAccessType = "jwt"
+	defaultJWTTokenTTL    = int64(600)
 )
+
+func isJWTAccessType(accessType string) bool {
+	switch accessType {
+	case "jwt", "oauth2":
+		return true
+	default:
+		return false
+	}
+}
 
 func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 	prov, err := GetAKeylessProvider(a.store)
@@ -42,6 +62,10 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 	if prov.Auth.KubernetesAuth != nil {
 		auth := prov.Auth.KubernetesAuth
 		return a.GetToken(ctx, auth.AccessID, "k8s", auth.K8sConfName, prov.Auth)
+	}
+
+	if prov.Auth.JWTAuth != nil {
+		return a.tokenFromJWTAuth(ctx, prov.Auth.JWTAuth)
 	}
 
 	accessID, err := resolvers.SecretKeyRef(
@@ -88,6 +112,61 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 	if (accessType == "api_key" || accessType == "access_key") && accessTypeParam == "" {
 		return "", errors.New(errMissingAccessTypeParam)
 	}
+	if isJWTAccessType(accessType) && accessTypeParam == "" {
+		return "", errors.New(errMissingJWT)
+	}
 
 	return a.GetToken(ctx, accessID, accessType, accessTypeParam, prov.Auth)
+}
+
+func (a *akeylessBase) tokenFromJWTAuth(ctx context.Context, jwtAuth *esv1.AkeylessJWTAuth) (string, error) {
+	if jwtAuth == nil {
+		return "", errors.New(errMissingJWTAccessID)
+	}
+	if jwtAuth.AccessID == "" {
+		return "", errors.New(errMissingJWTAccessID)
+	}
+	jwtToken, err := a.resolveJWTAuthToken(ctx, jwtAuth)
+	if err != nil {
+		return "", err
+	}
+	return a.GetToken(ctx, jwtAuth.AccessID, akeylessJWTAccessType, jwtToken, nil)
+}
+
+func (a *akeylessBase) resolveJWTAuthToken(ctx context.Context, jwtAuth *esv1.AkeylessJWTAuth) (string, error) {
+	hasSecret := jwtAuth.SecretRef != nil
+	hasSA := jwtAuth.ServiceAccountRef != nil
+	switch {
+	case hasSecret && hasSA:
+		return "", errors.New(errJWTAuthBothTokenSources)
+	case hasSecret:
+		tokenRef := jwtAuth.SecretRef
+		if tokenRef.Key == "" {
+			tokenRef = jwtAuth.SecretRef.DeepCopy()
+			tokenRef.Key = "token"
+		}
+		jwt, err := resolvers.SecretKeyRef(ctx, a.kube, a.storeKind, a.namespace, tokenRef)
+		if err != nil {
+			return "", fmt.Errorf("could not fetch jwtAuth secretRef: %w", err)
+		}
+		if jwt == "" {
+			return "", errors.New(errMissingJWT)
+		}
+		return jwt, nil
+	case hasSA:
+		exp := defaultJWTTokenTTL
+		if jwtAuth.ExpirationSeconds != nil && *jwtAuth.ExpirationSeconds > 0 {
+			exp = *jwtAuth.ExpirationSeconds
+		}
+		jwt, err := a.getJWTfromServiceAccountToken(ctx, *jwtAuth.ServiceAccountRef, nil, exp)
+		if err != nil {
+			return "", err
+		}
+		if jwt == "" {
+			return "", errors.New(errMissingJWT)
+		}
+		return jwt, nil
+	default:
+		return "", errors.New(errJWTAuthTokenSource)
+	}
 }

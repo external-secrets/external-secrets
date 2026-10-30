@@ -148,6 +148,10 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 			return nil, errors.New(errInvalidAkeylessURL)
 		}
 	}
+	if akeylessSpec.Auth.KubernetesAuth != nil && akeylessSpec.Auth.JWTAuth != nil {
+		return nil, errors.New(errMultipleAkeylessAuthMethods)
+	}
+
 	if akeylessSpec.Auth.KubernetesAuth != nil {
 		if akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef != nil {
 			if err := esutils.ValidateReferentServiceAccountSelector(store, *akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef); err != nil {
@@ -167,6 +171,39 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 
 		if akeylessSpec.Auth.KubernetesAuth.K8sConfName == "" {
 			return nil, errors.New("missing kubernetes config name")
+		}
+		return nil, nil
+	}
+
+	if akeylessSpec.Auth.JWTAuth != nil {
+		jwtAuth := akeylessSpec.Auth.JWTAuth
+		if jwtAuth.AccessID == "" {
+			return nil, errors.New(errMissingJWTAccessID)
+		}
+		hasSecret := jwtAuth.SecretRef != nil
+		hasSA := jwtAuth.ServiceAccountRef != nil
+		switch {
+		case hasSecret && hasSA:
+			return nil, errors.New(errJWTAuthBothTokenSources)
+		case !hasSecret && !hasSA:
+			return nil, errors.New(errJWTAuthTokenSource)
+		case hasSecret:
+			if jwtAuth.SecretRef.Name == "" {
+				return nil, errors.New(errJWTAuthMissingSecretName)
+			}
+			if err := esutils.ValidateSecretSelector(store, *jwtAuth.SecretRef); err != nil {
+				return nil, fmt.Errorf("invalid Auth.JWTAuth.SecretRef: %w", err)
+			}
+		case hasSA:
+			if jwtAuth.ServiceAccountRef.Name == "" {
+				return nil, errors.New(errJWTAuthMissingSAName)
+			}
+			if err := esutils.ValidateReferentServiceAccountSelector(store, *jwtAuth.ServiceAccountRef); err != nil {
+				return nil, fmt.Errorf("invalid Auth.JWTAuth.ServiceAccountRef: %w", err)
+			}
+		}
+		if jwtAuth.ExpirationSeconds != nil && *jwtAuth.ExpirationSeconds < defaultJWTTokenTTL {
+			return nil, fmt.Errorf("Auth.JWTAuth.ExpirationSeconds must be at least %d", defaultJWTTokenTTL)
 		}
 		return nil, nil
 	}

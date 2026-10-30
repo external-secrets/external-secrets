@@ -59,13 +59,14 @@ type Tokener interface {
 
 // GetToken retrieves an authentication token from Akeyless Gateway.
 // It supports various authentication methods including API key, access key,
-// Kubernetes service account token, and cloud provider-specific methods.
+// Kubernetes service account token, OAuth2.0/JWT, and cloud provider methods.
 func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeParam string, auth *esv1.AkeylessAuth) (string, error) {
 	authBody := akeyless.NewAuthWithDefaults()
 	authBody.AccessId = new(accessID)
-	if accType == "api_key" || accType == "access_key" {
+	switch {
+	case accType == "api_key" || accType == "access_key":
 		authBody.AccessKey = new(accTypeParam)
-	} else if accType == "k8s" {
+	case accType == "k8s":
 		if auth == nil || auth.KubernetesAuth == nil {
 			return "", errors.New("kubernetes auth configuration is required")
 		}
@@ -78,7 +79,15 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 		authBody.AccessType = new(accType)
 		authBody.K8sServiceAccountToken = new(jwtStringBase64)
 		authBody.K8sAuthConfigName = new(K8SAuthConfigName)
-	} else {
+	case isJWTAccessType(accType):
+		jwtToken := strings.TrimSpace(accTypeParam)
+		if jwtToken == "" {
+			return "", errors.New(errMissingJWT)
+		}
+		apiType := akeylessJWTAccessType
+		authBody.AccessType = &apiType
+		authBody.Jwt = &jwtToken
+	default:
 		cloudID, err := a.getCloudID(ctx, accType, accTypeParam, auth)
 		if err != nil {
 			return "", errors.New("Require Cloud ID " + err.Error())
