@@ -5,6 +5,8 @@ The update behavior of `PushSecret` is controlled by `spec.updatePolicy`. The de
 
 By default, the secret created in the secret provided will not be deleted even after deleting the `PushSecret`, unless you set `spec.deletionPolicy` to `Delete`.
 
+When a `PushSecret` changes a remote key from a whole-secret entry to `property` entries, the old entry is not deleted, since that would also delete the properties just pushed. Property pushes merge into the existing value, so keys from the old secret that no new property overwrites can stay in the provider. They are no longer tracked in `status.syncedPushSecrets`, so on providers that delete single properties, such as Vault, deleting the `PushSecret` with `spec.deletionPolicy=Delete` does not remove them either.
+
 
 ``` yaml
 {% include 'full-pushsecret.yaml' %}
