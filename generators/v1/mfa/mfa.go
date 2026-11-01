@@ -56,6 +56,9 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 	if res.Spec.TimePeriod > 0 {
 		opts = append(opts, WithTimePeriod(int64(res.Spec.TimePeriod)))
 	}
+	if res.Spec.Algorithm != "" {
+		opts = append(opts, WithAlgorithm(res.Spec.Algorithm))
+	}
 	if res.Spec.When != nil {
 		opts = append(opts, WithWhen(res.Spec.When.Time))
 	}
