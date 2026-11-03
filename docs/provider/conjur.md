@@ -358,7 +358,8 @@ Here is an example of how to push a single key of a Kubernetes secret into Secre
 {% include 'conjur-push-secret.yaml' %}
 ```
 
-Save the push secret file as `conjur-push-secret.yaml`.
+Save the push secret file as `conjur-push-secret.yaml`. The source Kubernetes secret (`app1-credentials` in this
+example) must already exist in the same namespace as the PushSecret.
 
 ### Remote key and policy
 
@@ -378,7 +379,11 @@ On each sync, ESO loads a policy into the parent policy (in `POST` mode, which o
   those variables. To give an application access to the pushed values, add its host or layer to this group.
 
 The Secrets Manager host that the `SecretStore` uses must have permission to load policy into the parent policy
-(`create`) and to set the values of the variables that it creates (`update`).
+(`create`) and to set the values of the variables that it creates (`update`). The host also needs `read` and
+`execute` on those variables, because ESO compares their current values before it writes. The policy grants these
+privileges only to `delegation/consumers`, so add the host to this group if it does not already have them. If ESO
+cannot read the value of a variable, it skips that variable without reporting an error, so the variable can keep an
+old value while the PushSecret still shows as synced.
 
 ### Secret key and property
 
