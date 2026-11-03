@@ -413,8 +413,10 @@ Before ESO writes a variable, it checks whether the variable already exists:
 
 * `updatePolicy: IfNotExists` is not supported. Use the default `Replace` policy.
 * `deletionPolicy: Delete` is not supported. ESO cannot remove variables from Secrets Manager, so deleting the
-  PushSecret, or removing an entry from `spec.data`, returns an error. Keep the default `deletionPolicy: None` and
-  remove the variables from Secrets Manager yourself.
+  PushSecret returns an error. Removing an entry from `spec.data` also returns an error, unless the same `remoteKey`
+  is still pushed as a whole secret, or `property` entries for that `remoteKey` replace a removed whole-secret entry.
+  In those cases, ESO skips the cleanup and the variables stay in Secrets Manager. Keep the default
+  `deletionPolicy: None` and remove the variables from Secrets Manager yourself.
 
 ## Create the push secret
 
