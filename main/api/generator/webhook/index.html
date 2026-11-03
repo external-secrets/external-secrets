@@ -84,7 +84,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#output-keys-and-values" class="md-skip">
+        <a href="#http-response-limit" class="md-skip">
           Skip to content
         </a>
       
@@ -1545,6 +1545,17 @@
       Table of contents
     </label>
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#http-response-limit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP Response Limit
+      
+    </span>
+  </a>
+  
+</li>
       
         <li class="md-nav__item">
   <a href="#output-keys-and-values" class="md-nav__link">
@@ -5057,6 +5068,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#http-response-limit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP Response Limit
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#output-keys-and-values" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5101,6 +5123,11 @@
   <h1>Webhook</h1>
 
 <p>The Webhook generator is very similar to SecretStore generator, and provides a way to use external systems to generate sensitive information.</p>
+<h2 id="http-response-limit">HTTP Response Limit</h2>
+<p>Successful response bodies are limited to 10 MiB. A larger response fails generation with
+an error instead of being loaded into controller memory. Configure the limit in bytes with
+the controller's <code>--webhook-provider-max-response-size</code> flag. Helm installations can pass
+the flag through <code>extraArgs.webhook-provider-max-response-size</code>.</p>
 <h2 id="output-keys-and-values">Output Keys and Values</h2>
 <p>Webhook calls are expected to produce valid JSON objects. All keys within that JSON object will be exported as keys to the kubernetes Secret.</p>
 <h2 id="example-manifest">Example Manifest</h2>

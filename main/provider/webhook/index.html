@@ -3756,6 +3756,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#http-response-limit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP response limit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#templating" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5269,6 +5280,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#http-response-limit" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP response limit
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#templating" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5555,6 +5577,13 @@ If <code>secretKey</code> is not provided, the whole secret is provided JSON enc
 <span class="w">  </span><span class="nt">username</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dGVzdA==</span><span class="w"> </span><span class="c1"># &quot;test&quot;</span>
 <span class="w">  </span><span class="nt">password</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dGVzdA==</span><span class="w"> </span><span class="c1"># &quot;test&quot;</span>
 </code></pre></div>
+<h3 id="http-response-limit">HTTP response limit</h3>
+<p>Successful response bodies are limited to 10 MiB. A larger response fails reconciliation
+with an error instead of being loaded into controller memory. This limit applies to
+responses used by <code>ExternalSecret</code>, <code>PushSecret</code>, and the Webhook generator. Configure the
+limit in bytes with the controller's <code>--webhook-provider-max-response-size</code> flag. Helm
+installations can pass the flag through
+<code>extraArgs.webhook-provider-max-response-size</code>.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>If a webhook endpoint for a given <code>ExternalSecret</code> returns a 404 status code, the secret is considered to have been deleted.  This will trigger the <code>deletionPolicy</code> set on the <code>ExternalSecret</code>.</p>
