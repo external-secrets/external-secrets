@@ -118,6 +118,8 @@ func TestGetSecret(t *testing.T) {
 		ref       esv1.ExternalSecretDataRemoteRef
 		want      []byte
 		wantErr   string
+		// wantErrIs, if set, must match the returned error with errors.Is.
+		wantErrIs error
 	}{
 		{
 			desc: "secret data with correct property",
@@ -281,7 +283,17 @@ func TestGetSecret(t *testing.T) {
 				Key:      "mysec",
 				Property: "token",
 			},
-			wantErr: `Secret "secret" not found`,
+			wantErr:   "Secret does not exist",
+			wantErrIs: esv1.NoSecretErr,
+		},
+		{
+			desc:      "secret is not found without property",
+			clientErr: apierrors.NewNotFound(schema.GroupResource{Group: "", Resource: "Secret"}, "secret"),
+			ref: esv1.ExternalSecretDataRemoteRef{
+				Key: "mysec",
+			},
+			wantErr:   "Secret does not exist",
+			wantErrIs: esv1.NoSecretErr,
 		},
 		{
 			desc: "secret data with wrong property",
@@ -330,6 +342,10 @@ func TestGetSecret(t *testing.T) {
 
 				if !strings.Contains(err.Error(), tt.wantErr) {
 					t.Fatalf("received an unexpected error: %q should have contained %q", err.Error(), tt.wantErr)
+				}
+
+				if tt.wantErrIs != nil && !errors.Is(err, tt.wantErrIs) {
+					t.Fatalf("received an unexpected error: %v should be %T", err, tt.wantErrIs)
 				}
 
 				return
