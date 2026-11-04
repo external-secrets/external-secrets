@@ -19,9 +19,13 @@ package cloudsmith
 import (
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -162,4 +166,64 @@ func TestCloudsmithGenerator_Generate(t *testing.T) {
 			t.Errorf("Expected expiration to be '1700000000', got %s", exp)
 		}
 	})
+
+	t.Run("GenerateReturnsUsernameAndPassword", func(t *testing.T) {
+		setFakeKubeconfig(t)
+
+		data, _, err := generator.Generate(context.Background(), &apiextensions.JSON{Raw: specBytes}, nil, "default")
+		if err != nil {
+			t.Fatalf("Failed to generate: %v", err)
+		}
+
+		if got := string(data["username"]); got != "token" {
+			t.Errorf("expected username 'token', got %q", got)
+		}
+		if got := string(data["password"]); got != mockJWTToken {
+			t.Errorf("expected password %q, got %q", mockJWTToken, got)
+		}
+		if got := string(data["expiry"]); got != "1700000000" {
+			t.Errorf("expected expiry '1700000000', got %q", got)
+		}
+		decoded, err := base64.StdEncoding.DecodeString(string(data["auth"]))
+		if err != nil {
+			t.Fatalf("failed to decode auth: %v", err)
+		}
+		if want := "token:" + mockJWTToken; string(decoded) != want {
+			t.Errorf("expected auth to decode to %q, got %q", want, string(decoded))
+		}
+	})
+}
+
+const fakeKubeconfigTemplate = `apiVersion: v1
+kind: Config
+clusters:
+- name: fake
+  cluster:
+    server: %s
+contexts:
+- name: fake
+  context:
+    cluster: fake
+current-context: fake
+`
+
+// setFakeKubeconfig points KUBECONFIG at an API server that issues a token for the test-sa service account.
+func setFakeKubeconfig(t *testing.T) {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost || r.URL.Path != "/api/v1/namespaces/default/serviceaccounts/test-sa/token" {
+			http.NotFound(w, r)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte(`{"apiVersion":"authentication.k8s.io/v1","kind":"TokenRequest","status":{"token":"mock-sa-token"}}`))
+	}))
+	t.Cleanup(server.Close)
+
+	kubeconfigPath := filepath.Join(t.TempDir(), "kubeconfig")
+	if err := os.WriteFile(kubeconfigPath, []byte(fmt.Sprintf(fakeKubeconfigTemplate, server.URL)), 0o600); err != nil {
+		t.Fatalf("failed to write kubeconfig: %v", err)
+	}
+	t.Setenv("KUBECONFIG", kubeconfigPath)
 }

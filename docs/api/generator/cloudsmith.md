@@ -5,6 +5,8 @@
 | Key        | Description                                                                    |
 | ---------- | ------------------------------------------------------------------------------ |
 | auth       | Base64 encoded authentication string for Docker registry access.              |
+| username   | Username for registry authentication. Always `token`.                         |
+| password   | The Cloudsmith access token, for use as the registry password.                |
 | expiry     | Time when token expires in UNIX time (seconds since January 1, 1970 UTC).    |
 
 ## Authentication
@@ -48,6 +50,16 @@ Example `ExternalSecret` that references the Cloudsmith generator:
 
 ```yaml
 {% include 'generator-cloudsmith-example.yaml' %}
+```
+
+## Using Username and Password
+
+The `username` and `password` keys let you build secrets that need separate credentials instead of a Docker `auth` string. For example, you can create an Argo CD repository secret for a Helm chart stored as an OCI artifact in Cloudsmith:
+
+The generator gets the service account token from the namespace of the `ExternalSecret`. Thus, create the generator and its service account in the same namespace as the `ExternalSecret`. In this example, the namespace is `argocd`. Configure the Cloudsmith OIDC service to trust the subject `system:serviceaccount:argocd:default`.
+
+```yaml
+{% include 'generator-cloudsmith-argocd-example.yaml' %}
 ```
 
 ## Using the Generated Docker Registry Secret
