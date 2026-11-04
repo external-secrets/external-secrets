@@ -3656,6 +3656,89 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#define-a-push-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Define a push secret
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Define a push secret">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#remote-key-and-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Remote key and policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secret-key-and-property" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secret key and property
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#existing-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Existing variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update-and-deletion-policies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update and deletion policies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#create-the-push-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Create the push secret
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#get-the-secrets-manager-variable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Get the Secrets Manager variable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#see-also" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5786,6 +5869,89 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#define-a-push-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Define a push secret
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Define a push secret">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#remote-key-and-policy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Remote key and policy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#secret-key-and-property" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Secret key and property
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#existing-variables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Existing variables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#update-and-deletion-policies" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Update and deletion policies
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#create-the-push-secret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Create the push secret
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#get-the-secrets-manager-variable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Get the Secrets Manager variable
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#see-also" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -6291,6 +6457,132 @@ kubectl<span class="w"> </span>apply<span class="w"> </span>-n<span class="w"> <
 <span class="c1"># Assuming the secret name is &quot;secret00&quot;, this will show the value</span>
 kubectl<span class="w"> </span>get<span class="w"> </span>secret<span class="w"> </span>-n<span class="w"> </span>external-secrets<span class="w"> </span>conjur<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s2">&quot;{.data.secret00}&quot;</span><span class="w">  </span><span class="p">|</span><span class="w"> </span>base64<span class="w"> </span>--decode<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">echo</span>
 </code></pre></div>
+<h2 id="define-a-push-secret">Define a push secret</h2>
+<p>The Secrets Manager provider also supports <a href="../../guides/pushsecrets/">PushSecret</a>. This means that you can
+push the values of a Kubernetes secret into Secrets Manager variables.</p>
+<p>Here is an example of how to push a single key of a Kubernetes secret into Secrets Manager:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">PushSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h0m0s</span>
+<span class="w">  </span><span class="c1"># Only the Replace update policy is supported by the Secrets Manager provider.</span>
+<span class="w">  </span><span class="nt">updatePolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Replace</span>
+<span class="w">  </span><span class="c1"># Deleting pushed variables is not supported, keep the default deletion policy.</span>
+<span class="w">  </span><span class="nt">deletionPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">None</span>
+<span class="w">  </span><span class="nt">secretStoreRefs</span><span class="p">:</span>
+<span class="w">    </span><span class="c1"># This name must match the metadata.name in the `SecretStore`</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">conjur</span>
+<span class="w">      </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">  </span><span class="nt">selector</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">secret</span><span class="p">:</span>
+<span class="w">      </span><span class="c1"># Source Kubernetes secret to be pushed</span>
+<span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app1-credentials</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">match</span><span class="p">:</span>
+<span class="w">        </span><span class="c1"># Key in the source Kubernetes secret</span>
+<span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+<span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">          </span><span class="c1"># &lt;parent policy&gt;/&lt;policy to create&gt;; must contain at least one &#39;/&#39;</span>
+<span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">data/app1/pushed</span>
+<span class="w">          </span><span class="c1"># Creates the variable data/app1/pushed/db-password</span>
+<span class="w">          </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db-password</span>
+</code></pre></div>
+<p>Save the push secret file as <code>conjur-push-secret.yaml</code>. The source Kubernetes secret (<code>app1-credentials</code> in this
+example) must already exist in the same namespace as the PushSecret.</p>
+<h3 id="remote-key-and-policy">Remote key and policy</h3>
+<p>In Secrets Manager, a variable must be declared in a policy before a value can be stored in it. For this reason,
+ESO does not write values directly to <code>remoteKey</code>. It first loads a policy that declares the variables, and then
+sets their values.</p>
+<p>The <code>remoteRef.remoteKey</code> must contain at least one <code>/</code>. ESO splits it at the last <code>/</code>:</p>
+<ul>
+<li>the part before the last <code>/</code> is the <strong>parent policy</strong>, which must already exist (for example <code>data/app1</code>)</li>
+<li>the last segment is the name of a <strong>policy</strong> that ESO creates under the parent (for example <code>pushed</code>)</li>
+</ul>
+<p>On each sync, ESO loads a policy into the parent policy (in <code>POST</code> mode, which only adds to it). The policy contains:</p>
+<ul>
+<li>one variable for each value that is pushed, annotated with <code>managed-by: external-secrets</code></li>
+<li>a <code>delegation/consumers</code> group, annotated with <code>editable: "true"</code>, which has <code>read</code> and <code>execute</code> privileges on
+  those variables. To give an application access to the pushed values, add its host or layer to this group.</li>
+</ul>
+<p>The Secrets Manager host that the <code>SecretStore</code> uses must have permission to load policy into the parent policy
+(<code>create</code>) and to set the values of the variables that it creates (<code>update</code>). The host also needs <code>read</code> and
+<code>execute</code> on those variables, because ESO compares their current values before it writes. The policy grants these
+privileges only to <code>delegation/consumers</code>, so add the host to this group if it does not already have them. If ESO
+cannot read the value of a variable, it skips that variable without reporting an error, so the variable can keep an
+old value while the PushSecret still shows as synced.</p>
+<h3 id="secret-key-and-property">Secret key and property</h3>
+<p>The name of the variable depends on whether <code>secretKey</code> and <code>remoteRef.property</code> are set:</p>
+<table>
+<thead>
+<tr>
+<th><code>secretKey</code></th>
+<th><code>property</code></th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>set</td>
+<td>not set</td>
+<td>One variable <code>&lt;remoteKey&gt;/&lt;secretKey&gt;</code> that holds the value of that key</td>
+</tr>
+<tr>
+<td>set</td>
+<td>set</td>
+<td>One variable <code>&lt;remoteKey&gt;/&lt;property&gt;</code> that holds the value of that key</td>
+</tr>
+<tr>
+<td>not set</td>
+<td>not set</td>
+<td>One variable <code>&lt;remoteKey&gt;/&lt;key&gt;</code> for each key in the source secret</td>
+</tr>
+<tr>
+<td>not set</td>
+<td>set</td>
+<td>One variable <code>&lt;remoteKey&gt;/&lt;property&gt;</code> that holds all keys of the source secret as a JSON object</td>
+</tr>
+</tbody>
+</table>
+<p>Pushing all keys into one <code>property</code> only works if every value in the source secret is valid UTF-8 text.
+Binary values cannot be written into the JSON object correctly.</p>
+<h3 id="existing-variables">Existing variables</h3>
+<p>Before ESO writes a variable, it checks whether the variable already exists:</p>
+<ul>
+<li>If the variable does not exist, ESO creates it.</li>
+<li>If the variable exists but does not have the <code>managed-by: external-secrets</code> annotation, ESO skips it and does
+  not change it. ESO does not report an error for this. Variables that other tools manage are never overwritten.</li>
+<li>If ESO cannot read the current value of the variable, it skips the variable.</li>
+<li>If the value is the same as the value in Kubernetes, ESO skips the variable, so no new version is created.</li>
+</ul>
+<h3 id="update-and-deletion-policies">Update and deletion policies</h3>
+<ul>
+<li><code>updatePolicy: IfNotExists</code> is not supported. Use the default <code>Replace</code> policy.</li>
+<li><code>deletionPolicy: Delete</code> is not supported. ESO cannot remove variables from Secrets Manager, so deleting the
+  PushSecret returns an error. Removing an entry from <code>spec.data</code> also returns an error, unless the same <code>remoteKey</code>
+  is still pushed as a whole secret, or <code>property</code> entries for that <code>remoteKey</code> replace a removed whole-secret entry.
+  In those cases, ESO skips the cleanup and the variables stay in Secrets Manager. Keep the default
+  <code>deletionPolicy: None</code> and remove the variables from Secrets Manager yourself.</li>
+</ul>
+<h2 id="create-the-push-secret">Create the push secret</h2>
+<div class="highlight"><pre><span></span><code><span class="c1"># WARNING: creates the push-secret in the &quot;external-secrets&quot; namespace, update the value as needed</span>
+<span class="c1">#</span>
+kubectl<span class="w"> </span>apply<span class="w"> </span>-n<span class="w"> </span>external-secrets<span class="w"> </span>-f<span class="w"> </span>conjur-push-secret.yaml
+
+<span class="c1"># WARNING: running the delete command will delete the push-secrets configuration</span>
+<span class="c1"># It does not delete the variables in Secrets Manager</span>
+<span class="c1">#</span>
+<span class="c1"># If there is a need to delete the push secret</span>
+<span class="c1"># kubectl delete pushsecret -n external-secrets conjur</span>
+</code></pre></div>
+<h2 id="get-the-secrets-manager-variable">Get the Secrets Manager variable</h2>
+<ul>
+<li>Check that the push secret is synced: <code>kubectl get pushsecret -n external-secrets conjur</code></li>
+<li>Log in to your Secrets Manager server and verify that the variable exists and has the
+  <code>managed-by: external-secrets</code> annotation</li>
+<li>Review the value of the variable to verify that it contains the same value as your Kubernetes secret</li>
+</ul>
 <h2 id="see-also">See also</h2>
 <ul>
 <li><a href="https://github.com/conjurdemos/Accelerator-K8s-External-Secrets">Accelerator-K8s-External-Secrets repo</a></li>
