@@ -5035,6 +5035,21 @@
 --set<span class="w"> </span><span class="nv">processClusterStore</span><span class="o">=</span><span class="nb">false</span><span class="w"> </span><span class="se">\</span>
 --set<span class="w"> </span><span class="nv">processClusterPushSecret</span><span class="o">=</span><span class="nb">false</span>
 </code></pre></div>
+<p>When <code>processClusterStore=false</code> (or <code>--enable-cluster-store-reconciler=false</code>), a <code>PushSecret</code> referencing a <code>ClusterSecretStore</code> is skipped entirely, even if it also references namespaced <code>SecretStore</code>s. This includes <code>spec.dataTo[].storeRef</code>, references selected by labels, and cluster stores previously recorded in <code>status.syncedPushSecrets</code>. The operator will not push to or delete from those stores; remote secrets already pushed remain in the provider.</p>
+<p>Before disabling cluster stores, migrate or remove affected <code>PushSecret</code>s and clean up their remote secrets while access is still available. To resume a <code>PushSecret</code> after disabling cluster stores, <strong>start by removing the status entries</strong> in <code>status.syncedPushSecrets</code>.</p>
+<p>For example, to remove the status entry for <code>ClusterSecretStore/shared</code>:
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>patch<span class="w"> </span>pushsecret<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>&lt;namespace&gt;<span class="w"> </span>--subresource<span class="o">=</span>status<span class="w"> </span>--type<span class="o">=</span>json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-p<span class="o">=</span><span class="s1">&#39;[{&quot;op&quot;:&quot;remove&quot;,&quot;path&quot;:&quot;/status/syncedPushSecrets/ClusterSecretStore~1shared&quot;}]&#39;</span>
+</code></pre></div></p>
+<p>These entries actively prevent reconciliation of the PushSecret if ClusterSecretStore is disabled.</p>
+<p>If a <code>PushSecret</code> is already stuck deleting (regardless of the Deletion Policy), an administrator must clean up the remote secrets manually (or temporarily re-enable cluster-store processing to let the operator clean them up).</p>
+<p>After confirming cleanup, inspect the finalizers and remove <strong>only</strong> the PushSecret finalizer to allow Kubernetes deletion:</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>pushsecret<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>&lt;namespace&gt;<span class="w"> </span>-o<span class="w"> </span><span class="nv">jsonpath</span><span class="o">=</span><span class="s1">&#39;{.metadata.finalizers}&#39;</span>
+kubectl<span class="w"> </span>patch<span class="w"> </span>pushsecret<span class="w"> </span>&lt;name&gt;<span class="w"> </span>-n<span class="w"> </span>&lt;namespace&gt;<span class="w"> </span>--type<span class="o">=</span>json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>-p<span class="o">=</span><span class="s1">&#39;[{&quot;op&quot;:&quot;remove&quot;,&quot;path&quot;:&quot;/metadata/finalizers/0&quot;}]&#39;</span>
+</code></pre></div>
+<p>The patch is appropriate only if <code>pushsecret.externalsecrets.io/finalizer</code> is the sole finalizer. If there are others, remove that finalizer by its actual array index instead; do not remove other controllers' finalizers.</p>
+<p>When this is done, remove outdated cluster-store refs from <code>spec.secretStoreRefs</code> and <code>spec.dataTo[].storeRef</code>.</p>
 
 
 
