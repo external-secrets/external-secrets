@@ -70,65 +70,65 @@ replace (
 
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
-	github.com/external-secrets/external-secrets/generators/v1/acr v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/beyondtrustworkloadcredentials v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/cloudsmith v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/ecr v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/fake v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/gcr v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/github v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/gitlab v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/grafana v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/mfa v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/password v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/quay v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/sshkey v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/sts v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/uuid v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/vault v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/generators/v1/webhook v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/akeyless v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/aws v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/azure v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/barbican v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/beyondtrust v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/bitwarden v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/chef v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/cloudru v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/conjur v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/crd v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/delinea v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/doppler v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/dvls v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/fake v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/fortanix v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/github v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/gitlab v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/ibm v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/infisical v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/keepersecurity v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/kubernetes v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/nebius v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/ngrok v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/onboardbase v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/onepassword v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/openbao v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/oracle v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/ovh v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/passbolt v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/passworddepot v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/previder v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/pulumi v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/scaleway v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/secretserver v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/senhasegura v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/vault v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/volcengine v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/webhook v0.0.0-20261021124231-db95fe1c087b
-	github.com/external-secrets/external-secrets/providers/v1/yandex v0.0.0-20261021124231-db95fe1c087b
+	github.com/external-secrets/external-secrets/generators/v1/acr v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/beyondtrustworkloadcredentials v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/cloudsmith v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/ecr v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/fake v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/gcr v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/github v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/gitlab v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/grafana v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/mfa v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/password v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/quay v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/sshkey v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/sts v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/uuid v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/vault v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/generators/v1/webhook v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/akeyless v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/aws v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/azure v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/barbican v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/beyondtrust v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/bitwarden v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/chef v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/cloudru v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/conjur v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/crd v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/delinea v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/doppler v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/dvls v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/fake v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/fortanix v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/github v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/gitlab v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/ibm v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/infisical v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/keepersecurity v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/kubernetes v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/nebius v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/ngrok v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/onboardbase v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/onepassword v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/onepasswordsdk v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/openbao v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/oracle v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/ovh v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/passbolt v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/passworddepot v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/previder v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/pulumi v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/scaleway v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/secretserver v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/senhasegura v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/vault v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/volcengine v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/webhook v0.0.0-20261026082701-32a68d28f0aa
+	github.com/external-secrets/external-secrets/providers/v1/yandex v0.0.0-20261026082701-32a68d28f0aa
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/go-logr/logr v1.4.4
 	github.com/google/go-cmp v0.7.0
@@ -146,7 +146,7 @@ require (
 	k8s.io/apimachinery v0.37.1
 	k8s.io/client-go v0.37.1
 	k8s.io/klog/v2 v2.140.0
-	k8s.io/utils v0.0.0-20260707023825-cf1189d6abe3
+	k8s.io/utils v0.0.0-20261023123148-ca04ba58ecab
 	sigs.k8s.io/controller-runtime v0.25.2
 	sigs.k8s.io/yaml v1.6.0
 )
@@ -157,8 +157,8 @@ require (
 	cloud.google.com/go/auth v0.24.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.3.0 // indirect
 	cloud.google.com/go/compute/metadata v0.10.0 // indirect
-	cloud.google.com/go/iam v1.14.0 // indirect
-	cloud.google.com/go/secretmanager v1.22.0 // indirect
+	cloud.google.com/go/iam v1.15.0 // indirect
+	cloud.google.com/go/secretmanager v1.23.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/1Password/connect-sdk-go v1.5.3 // indirect
 	github.com/1password/onepassword-sdk-go v0.4.1 // indirect
@@ -202,25 +202,25 @@ require (
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/aws/aws-sdk-go v1.55.8 // indirect
-	github.com/aws/aws-sdk-go-v2 v1.47.3 // indirect
-	github.com/aws/aws-sdk-go-v2/config v1.33.9 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.20.9 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.3 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.6 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.6 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.6 // indirect
-	github.com/aws/aws-sdk-go-v2/service/acm v1.50.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ecr v1.66.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.47.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.21 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.6 // indirect
-	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.41.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.50.5 // indirect
-	github.com/aws/aws-sdk-go-v2/service/signin v1.10.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssm v1.80.0 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.38.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.43.4 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.51.4 // indirect
+	github.com/aws/aws-sdk-go-v2 v1.47.4 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.33.10 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.20.10 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.20.4 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.7 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.7 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.5.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/acm v1.50.6 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ecr v1.66.6 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ecrpublic v1.47.6 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.22 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.14.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/resourcegroupstaggingapi v1.41.6 // indirect
+	github.com/aws/aws-sdk-go-v2/service/secretsmanager v1.50.6 // indirect
+	github.com/aws/aws-sdk-go-v2/service/signin v1.10.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssm v1.81.0 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.38.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.43.5 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.51.5 // indirect
 	github.com/aws/smithy-go v1.28.6 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/go-netrc v0.0.0-20140422174119-9fd32a8b3d3d // indirect
@@ -306,7 +306,7 @@ require (
 	github.com/hashicorp/go-hclog v1.6.3 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
-	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
+	github.com/hashicorp/go-rootcerts v1.1.0 // indirect
 	github.com/hashicorp/go-secure-stdlib/awsutil v0.3.0 // indirect
 	github.com/hashicorp/go-secure-stdlib/parseutil v0.2.0 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
@@ -346,9 +346,9 @@ require (
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.3-0.20250322232337-35a7c28c31ee // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
-	github.com/nebius/gosdk v0.2.82 // indirect
+	github.com/nebius/gosdk v0.2.83 // indirect
 	github.com/ngrok/ngrok-api-go/v9 v9.0.0 // indirect
-	github.com/oapi-codegen/runtime v1.7.0 // indirect
+	github.com/oapi-codegen/runtime v1.8.0 // indirect
 	github.com/oklog/ulid/v2 v2.1.2 // indirect
 	github.com/openbao/openbao/api/auth/approle/v2 v2.7.0 // indirect
 	github.com/openbao/openbao/api/auth/kubernetes/v2 v2.7.0 // indirect
@@ -363,7 +363,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/previder/vault-cli v0.1.6 // indirect
 	github.com/prometheus/common v0.72.1 // indirect
-	github.com/prometheus/procfs v0.22.0 // indirect
+	github.com/prometheus/procfs v0.23.0 // indirect
 	github.com/pulumi/esc-sdk/sdk v0.14.0 // indirect
 	github.com/rs/zerolog v1.35.1 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
@@ -388,8 +388,8 @@ require (
 	github.com/volcengine/volc-sdk-golang v1.0.258 // indirect
 	github.com/volcengine/volcengine-go-sdk v1.2.59 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	github.com/yandex-cloud/go-genproto v0.130.0 // indirect
-	github.com/yandex-cloud/go-sdk v0.40.0 // indirect
+	github.com/yandex-cloud/go-genproto v0.132.0 // indirect
+	github.com/yandex-cloud/go-sdk v0.41.0 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	github.com/zalando/go-keyring v0.2.8 // indirect
 	gitlab.com/gitlab-org/api/client-go v1.46.0 // indirect
@@ -419,7 +419,7 @@ require (
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/tools v0.52.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
-	google.golang.org/api v0.307.0 // indirect
+	google.golang.org/api v0.308.0 // indirect
 	google.golang.org/genproto v0.0.0-20261019180522-ce908d29299b // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20261019180522-ce908d29299b // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20261019180522-ce908d29299b // indirect
