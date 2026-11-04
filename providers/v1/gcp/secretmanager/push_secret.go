@@ -18,9 +18,11 @@ package secretmanager
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
+	"strings"
 
 	"cloud.google.com/go/secretmanager/apiv1/secretmanagerpb"
 	"github.com/tidwall/sjson"
@@ -53,62 +55,120 @@ type PushSecretMetadataSpec struct {
 	// ReplicationLocations takes precedence and ReplicationLocation is ignored.
 	ReplicationLocation string `json:"replicationLocation,omitempty"`
 	// ReplicationLocations defines one or more user-managed replication
-	// locations for the secret. This is useful for High Availability across
-	// regions, since Secret Manager does not support multi-regional locations
-	// (e.g. "us", "eu", "ca").
-	ReplicationLocations []string `json:"replicationLocations,omitempty"`
+	// locations for the secret. Each entry may carry its own CMEK key; see
+	// PushSecretReplica. Plain location strings are also accepted as entries.
+	ReplicationLocations []PushSecretReplica `json:"replicationLocations,omitempty"`
+}
+
+// PushSecretReplica pairs a user-managed replication location with the
+// customer-managed encryption key used for that replica. CMEKKeyName is the
+// full KMS key resource name, e.g.
+// "projects/my-project/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key";
+// leave it empty to use Google-managed encryption for that replica.
+type PushSecretReplica struct {
+	Location    string `json:"location"`
+	CMEKKeyName string `json:"cmekKeyName,omitempty"`
+}
+
+// UnmarshalJSON accepts both a plain location string and an object with
+// "location" and "cmekKeyName" fields, so existing metadata entries written
+// as strings keep parsing after per-replica CMEK support was added.
+func (r *PushSecretReplica) UnmarshalJSON(data []byte) error {
+	var location string
+	if err := json.Unmarshal(data, &location); err == nil {
+		if location == "" {
+			return errors.New("replicationLocations string entry must not be empty")
+		}
+		r.Location = location
+		return nil
+	}
+
+	// Alias to strip the UnmarshalJSON method and avoid recursion.
+	type replicaAlias PushSecretReplica
+	decoder := json.NewDecoder(bytes.NewReader(data))
+	decoder.DisallowUnknownFields()
+	var replica replicaAlias
+	if err := decoder.Decode(&replica); err != nil {
+		return fmt.Errorf("replicationLocations entry must be a location string or an object with \"location\" and optional \"cmekKeyName\": %w", err)
+	}
+	if replica.Location == "" {
+		return errors.New("replicationLocations object entry requires a \"location\" field")
+	}
+	*r = PushSecretReplica(replica)
+	return nil
 }
 
 // buildReplication converts a PushSecretMetadataSpec into the
 // secretmanagerpb.Replication to use when creating a new Secret. It returns
-// nil when the spec supplies neither replication locations nor a CMEK key, so
-// the caller keeps the default (Google-managed) automatic replication.
+// a nil replication when the spec supplies no replication configuration at
+// all, so the caller keeps the default (Google-managed) automatic replication.
 //
-// Resolution order:
-//
-//   - If ReplicationLocations (or the deprecated ReplicationLocation) are set,
-//     emit UserManaged replication with one replica per location; apply
-//     CMEKKeyName to every replica when it is set.
-//   - If only CMEKKeyName is set, emit Automatic replication carrying the
-//     customer-managed encryption key so the user's choice is not silently
-//     dropped.
-//
-// When both ReplicationLocations and ReplicationLocation are set,
-// ReplicationLocations takes precedence to avoid silently merging values;
-// ReplicationLocation is treated as deprecated.
-func buildReplication(spec PushSecretMetadataSpec) *secretmanagerpb.Replication {
-	locations := spec.ReplicationLocations
-	if len(locations) == 0 && spec.ReplicationLocation != "" {
-		locations = []string{spec.ReplicationLocation}
+// The deprecated ReplicationLocation is normalized into a single
+// ReplicationLocations entry, and entries without their own CMEKKeyName
+// inherit the top-level CMEKKeyName. A CMEKKeyName with no locations falls
+// back to Automatic replication carrying the key so the user's choice is not
+// silently dropped; callers that do not use automatic replication (regional
+// secrets) must skip the returned replication, and the global-location
+// validation only makes sense in that context.
+func buildReplication(spec PushSecretMetadataSpec, regionalStore bool) (*secretmanagerpb.Replication, error) {
+	if len(spec.ReplicationLocations) == 0 && spec.ReplicationLocation != "" {
+		spec.ReplicationLocations = []PushSecretReplica{{Location: spec.ReplicationLocation, CMEKKeyName: spec.CMEKKeyName}}
 	}
 
-	var cmek *secretmanagerpb.CustomerManagedEncryption
-	if spec.CMEKKeyName != "" {
-		cmek = &secretmanagerpb.CustomerManagedEncryption{
-			KmsKeyName: spec.CMEKKeyName,
+	// Entries without their own key inherit the top-level CMEKKeyName. Copy
+	// first so the caller's parsed spec is never mutated.
+	replicasSpec := make([]PushSecretReplica, len(spec.ReplicationLocations))
+	copy(replicasSpec, spec.ReplicationLocations)
+	for i := range replicasSpec {
+		if replicasSpec[i].CMEKKeyName == "" {
+			replicasSpec[i].CMEKKeyName = spec.CMEKKeyName
 		}
 	}
+	spec.ReplicationLocations = replicasSpec
 
-	if cmek != nil && len(locations) == 0 {
+	// Keep the previous behavior of not silently dropping a CMEK key when no
+	// locations are given.
+	if len(spec.ReplicationLocations) == 0 {
+		if spec.CMEKKeyName == "" || regionalStore {
+			// Regional secrets cannot carry replication at all; the key is
+			// applied through the regional endpoint instead.
+			return nil, nil
+		}
+		if err := validateCMEKKeyLocation("global", spec.CMEKKeyName); err != nil {
+			return nil, fmt.Errorf("a CMEK key used without replicationLocations cannot be used: %w: "+
+				"use replicationLocations entries with per-replica keys for regional CMEK", err)
+		}
 		return &secretmanagerpb.Replication{
 			Replication: &secretmanagerpb.Replication_Automatic_{
 				Automatic: &secretmanagerpb.Replication_Automatic{
-					CustomerManagedEncryption: cmek,
+					CustomerManagedEncryption: &secretmanagerpb.CustomerManagedEncryption{
+						KmsKeyName: spec.CMEKKeyName,
+					},
 				},
 			},
+		}, nil
+	}
+
+	if regionalStore {
+		// Regional secrets cannot carry replication at all; the replication
+		// metadata is not used and its validity is not enforced.
+		return nil, nil
+	}
+
+	replicas := make([]*secretmanagerpb.Replication_UserManaged_Replica, 0, len(spec.ReplicationLocations))
+	for _, r := range spec.ReplicationLocations {
+		replica := &secretmanagerpb.Replication_UserManaged_Replica{
+			Location: r.Location,
 		}
-	}
-
-	if len(locations) == 0 {
-		return nil
-	}
-
-	replicas := make([]*secretmanagerpb.Replication_UserManaged_Replica, 0, len(locations))
-	for _, loc := range locations {
-		replicas = append(replicas, &secretmanagerpb.Replication_UserManaged_Replica{
-			Location:                  loc,
-			CustomerManagedEncryption: cmek,
-		})
+		if r.CMEKKeyName != "" {
+			if err := validateCMEKKeyLocation(r.Location, r.CMEKKeyName); err != nil {
+				return nil, err
+			}
+			replica.CustomerManagedEncryption = &secretmanagerpb.CustomerManagedEncryption{
+				KmsKeyName: r.CMEKKeyName,
+			}
+		}
+		replicas = append(replicas, replica)
 	}
 	return &secretmanagerpb.Replication{
 		Replication: &secretmanagerpb.Replication_UserManaged_{
@@ -116,7 +176,26 @@ func buildReplication(spec PushSecretMetadataSpec) *secretmanagerpb.Replication 
 				Replicas: replicas,
 			},
 		},
+	}, nil
+}
+
+// validateCMEKKeyLocation reports an error when the given KMS key resource
+// name is pinned to a location other than the expected one. Automatic
+// replication only accepts CMEK keys from the "global" multi-region, while
+// each user-managed replica must use a CMEK key from the replica's own
+// location. Keys without a location segment are left to the Secret Manager
+// API to reject.
+func validateCMEKKeyLocation(expectedLocation, key string) error {
+	const marker = "/locations/"
+	_, rest, found := strings.Cut(key, marker)
+	if !found {
+		return nil
 	}
+	location, _, _ := strings.Cut(rest, "/")
+	if location == expectedLocation {
+		return nil
+	}
+	return fmt.Errorf("the CMEK key must come from the %q location, got key in location %q", expectedLocation, location)
 }
 
 func newPushSecretBuilder(payload []byte, data esv1.PushSecretData) (pushSecretBuilder, error) {
