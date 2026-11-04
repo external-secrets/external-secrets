@@ -18,9 +18,11 @@ package dvls
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/Devolutions/go-dvls"
@@ -32,15 +34,17 @@ import (
 )
 
 const (
-	testVaultUUID    = "00000000-0000-0000-0000-000000000001"
-	testEntryUUID    = "00000000-0000-0000-0000-000000000002"
-	testEntryUUID3   = "00000000-0000-0000-0000-000000000003"
-	testEntryUUID4   = "00000000-0000-0000-0000-000000000004"
-	testEntryUUID5   = "00000000-0000-0000-0000-000000000005"
-	testEntryName    = "my-entry"
-	testVaultName    = "my-vault"
-	testSecretName   = "my-secret"
-	testNonExistName = "some-name"
+	testVaultUUID               = "00000000-0000-0000-0000-000000000001"
+	testEntryUUID               = "00000000-0000-0000-0000-000000000002"
+	testEntryUUID3              = "00000000-0000-0000-0000-000000000003"
+	testEntryUUID4              = "00000000-0000-0000-0000-000000000004"
+	testEntryUUID5              = "00000000-0000-0000-0000-000000000005"
+	testEntryName               = "my-entry"
+	testVaultName               = "my-vault"
+	testSecretName              = "my-secret"
+	testNonExistName            = "some-name"
+	testCreatedUUIDPrefix       = "00000000-0000-0000-0000-0000000000"
+	testCreatedFolderUUIDPrefix = "00000000-0000-0000-0000-0000000001"
 )
 
 // --- Mock credential client ---
@@ -49,10 +53,13 @@ type mockCredentialClient struct {
 	entries       map[string]dvls.Entry
 	getErr        error
 	getEntriesErr error
+	newErr        error
 	updateErr     error
 	deleteErr     error
+	lastCreated   dvls.Entry
 	lastUpdated   dvls.Entry
 	lastDeleted   string
+	created       int
 }
 
 func newMockCredentialClient(entries map[string]dvls.Entry) *mockCredentialClient {
@@ -68,7 +75,7 @@ func (m *mockCredentialClient) GetByID(_ context.Context, _, entryID string) (dv
 	}
 
 	if entry, ok := m.entries[entryID]; ok {
-		return entry, nil
+		return roundTrip(entry), nil
 	}
 
 	return dvls.Entry{}, &dvls.RequestError{Err: fmt.Errorf("unexpected status code %d", http.StatusNotFound), Url: entryID, StatusCode: http.StatusNotFound}
@@ -93,13 +100,56 @@ func (m *mockCredentialClient) GetEntries(_ context.Context, _ string, opts dvls
 	return matches, nil
 }
 
+func (m *mockCredentialClient) New(_ context.Context, entry dvls.Entry) (string, error) {
+	if m.newErr != nil {
+		return "", m.newErr
+	}
+	if entry.Id == "" {
+		// Distinct ids, so a test that creates more than once can tell the
+		// entries apart instead of silently overwriting the first.
+		entry.Id = fmt.Sprintf("%s%02d", testCreatedUUIDPrefix, m.created)
+	}
+	m.created++
+	m.entries[entry.Id] = entry
+	m.lastCreated = entry
+	return entry.Id, nil
+}
+
 func (m *mockCredentialClient) Update(_ context.Context, entry dvls.Entry) (dvls.Entry, error) {
 	if m.updateErr != nil {
 		return entry, m.updateErr
 	}
-	m.entries[entry.Id] = entry
-	m.lastUpdated = entry
-	return entry, nil
+	// DVLS keeps a data field an update leaves out, so the sent data is decoded
+	// over what is stored rather than replacing it.
+	updated := roundTrip(entry)
+	if stored, ok := m.entries[entry.Id]; ok && stored.Data != nil {
+		merged := roundTrip(stored)
+		body, err := json.Marshal(entry.Data)
+		if err != nil {
+			return entry, err
+		}
+		if err := json.Unmarshal(body, merged.Data); err != nil {
+			return entry, err
+		}
+		updated.Data = merged.Data
+	}
+	m.entries[entry.Id] = updated
+	m.lastUpdated = updated
+	return updated, nil
+}
+
+// roundTrip copies an entry through JSON, as the server hands one back, so
+// that nothing a test inspects shares a pointer with what the client changed.
+func roundTrip(entry dvls.Entry) dvls.Entry {
+	body, err := json.Marshal(entry)
+	if err != nil {
+		panic(err)
+	}
+	var out dvls.Entry
+	if err := json.Unmarshal(body, &out); err != nil {
+		panic(err)
+	}
+	return out
 }
 
 func (m *mockCredentialClient) DeleteByID(_ context.Context, _, entryID string) error {
@@ -110,6 +160,78 @@ func (m *mockCredentialClient) DeleteByID(_ context.Context, _, entryID string) 
 	delete(m.entries, entryID)
 	m.lastDeleted = entryID
 	return nil
+}
+
+// --- Mock folder client ---
+
+// mockFolderClient mirrors go-dvls: the server's path filter also matches
+// everything nested under the path, so a caller that wants one exact folder has
+// to check the match itself.
+type mockFolderClient struct {
+	folders       []dvls.Entry
+	getEntriesErr error
+	newErr        error
+	created       []dvls.Entry
+	lookups       int
+}
+
+func newMockFolderClient(folders ...dvls.Entry) *mockFolderClient {
+	return &mockFolderClient{folders: folders}
+}
+
+func (m *mockFolderClient) GetEntries(_ context.Context, _ string, opts dvls.GetEntriesOptions) ([]dvls.Entry, error) {
+	m.lookups++
+	if m.getEntriesErr != nil {
+		return nil, m.getEntriesErr
+	}
+
+	var matches []dvls.Entry
+	for _, f := range m.folders {
+		if opts.Name != nil && f.Name != *opts.Name {
+			continue
+		}
+		if opts.Path != nil && f.Path != *opts.Path && !strings.HasPrefix(f.Path, *opts.Path+`\`) {
+			continue
+		}
+		matches = append(matches, f)
+	}
+	return matches, nil
+}
+
+func (m *mockFolderClient) New(_ context.Context, entry dvls.Entry) (string, error) {
+	if m.newErr != nil {
+		return "", m.newErr
+	}
+	entry.Id = fmt.Sprintf("%s%02d", testCreatedFolderUUIDPrefix, len(m.created))
+	// What was submitted: Path names the parent the folder goes under.
+	m.created = append(m.created, entry)
+	// What a later read returns: Path is the folder's own full path.
+	stored := entry
+	stored.Path = folderPath(entry.Name, entry.Path)
+	m.folders = append(m.folders, stored)
+	return entry.Id, nil
+}
+
+// folderPath is where a folder of this name under this parent ends up, which is
+// what the server reports as the folder's own Path.
+func folderPath(name, parent string) string {
+	if parent == "" {
+		return name
+	}
+	return parent + `\` + name
+}
+
+// folder builds a folder entry sitting directly under parent, as the server
+// hands it back: Path is the folder's own full path, not the parent's.
+func folder(name, parent string) dvls.Entry {
+	return dvls.Entry{
+		Id:      name + "@" + parent,
+		Name:    name,
+		Path:    folderPath(name, parent),
+		Type:    dvls.EntryFolderType,
+		SubType: dvls.EntryFolderSubTypeFolder,
+		Data:    &dvls.EntryFolderData{},
+	}
 }
 
 // --- Mock vault client ---
@@ -160,9 +282,17 @@ func (p pushSecretRemoteRefStub) GetProperty() string  { return p.property }
 // --- Helper to create a test client ---
 
 func newTestClient(entries map[string]dvls.Entry) (*Client, *mockCredentialClient) {
+	c, cred, _ := newTestClientWithFolders(entries)
+	return c, cred
+}
+
+// newTestClientWithFolders also hands back the folder mock, for the tests that
+// care about which folders a push creates. folders seeds the ones that already
+// exist in the vault.
+func newTestClientWithFolders(entries map[string]dvls.Entry, folders ...dvls.Entry) (*Client, *mockCredentialClient, *mockFolderClient) {
 	mockCred := newMockCredentialClient(entries)
-	c := NewClient(mockCred, testVaultUUID)
-	return c, mockCred
+	mockFolder := newMockFolderClient(folders...)
+	return NewClient(mockCred, mockFolder, testVaultUUID), mockCred, mockFolder
 }
 
 // --- Tests: parseEntryRef ---
@@ -434,7 +564,7 @@ func TestResolveRef_LegacyMode(t *testing.T) {
 
 	t.Run("legacy format when vaultID is empty", func(t *testing.T) {
 		mockCred := newMockCredentialClient(map[string]dvls.Entry{testEntryUUID: entry})
-		c := NewClient(mockCred, "")
+		c := NewClient(mockCred, newMockFolderClient(), "")
 		vaultID, entryID, err := c.resolveRef(context.Background(), testVaultUUID+"/"+testEntryUUID)
 		assert.NoError(t, err)
 		assert.Equal(t, testVaultUUID, vaultID)
@@ -476,7 +606,7 @@ func TestClient_Validate(t *testing.T) {
 	})
 
 	t.Run("initialized client", func(t *testing.T) {
-		c := NewClient(newMockCredentialClient(nil), testVaultUUID)
+		c := NewClient(newMockCredentialClient(nil), newMockFolderClient(), testVaultUUID)
 		result, err := c.Validate()
 		assert.NoError(t, err)
 		assert.Equal(t, esv1.ValidationResultReady, result)
@@ -484,7 +614,7 @@ func TestClient_Validate(t *testing.T) {
 }
 
 func TestNewClient(t *testing.T) {
-	c := NewClient(nil, "")
+	c := NewClient(nil, nil, "")
 	assert.NotNil(t, c)
 	assert.Nil(t, c.cred)
 	assert.Empty(t, c.vaultID)
@@ -812,14 +942,16 @@ func TestClient_PushSecret_UnsupportedSubtype(t *testing.T) {
 	assert.Contains(t, err.Error(), "cannot set secret for credential subtype")
 }
 
-func TestClient_PushSecret_NotFound(t *testing.T) {
+func TestClient_PushSecret_UUIDNotFound(t *testing.T) {
+	// A UUID key names one specific entry. If the vault no longer has it there
+	// is nothing to create it as, so this stays an error.
 	c, _ := newTestClient(nil)
 	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
 	data := pushSecretDataStub{remoteKey: "00000000-0000-0000-0000-000000000099", secretKey: "password"}
 
 	err := c.PushSecret(context.Background(), secret, data)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
+	assert.Contains(t, err.Error(), "no longer exists")
 }
 
 func TestClient_PushSecret_VaultNotFoundDuringNameResolution(t *testing.T) {
@@ -833,14 +965,407 @@ func TestClient_PushSecret_VaultNotFoundDuringNameResolution(t *testing.T) {
 	assert.ErrorIs(t, err, dvls.ErrVaultNotFound)
 }
 
-func TestClient_PushSecret_ByNameNotFound(t *testing.T) {
-	c, _ := newTestClient(nil)
-	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+func TestClient_PushSecret_CreatesMissingEntry(t *testing.T) {
+	c, mockCred := newTestClient(nil)
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("created-value")}}
 	data := pushSecretDataStub{remoteKey: "nonexistent-entry", secretKey: "password"}
+
+	err := c.PushSecret(context.Background(), secret, data)
+	assert.NoError(t, err)
+
+	created := mockCred.lastCreated
+	assert.Equal(t, "nonexistent-entry", created.Name)
+	assert.Equal(t, "", created.Path)
+	assert.Equal(t, testVaultUUID, created.VaultId)
+	assert.Equal(t, dvls.EntryCredentialType, created.Type)
+	assert.Equal(t, dvls.EntryCredentialSubTypeAccessCode, created.SubType)
+
+	credData, ok := created.Data.(*dvls.EntryCredentialAccessCodeData)
+	assert.True(t, ok)
+	assert.Equal(t, "created-value", credData.Password)
+}
+
+func TestClient_PushSecret_CreatesMissingEntryUnderPath(t *testing.T) {
+	c, mockCred := newTestClient(nil)
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+	data := pushSecretDataStub{remoteKey: `folder\sub\my-new-entry`, secretKey: "password"}
+
+	err := c.PushSecret(context.Background(), secret, data)
+	assert.NoError(t, err)
+	assert.Equal(t, "my-new-entry", mockCred.lastCreated.Name)
+	assert.Equal(t, `folder\sub`, mockCred.lastCreated.Path)
+}
+
+func TestClient_PushSecret_CreatesMissingEntryForwardSlashPath(t *testing.T) {
+	c, mockCred := newTestClient(nil)
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+	data := pushSecretDataStub{remoteKey: "folder/sub/my-new-entry", secretKey: "password"}
+
+	err := c.PushSecret(context.Background(), secret, data)
+	assert.NoError(t, err)
+	assert.Equal(t, "my-new-entry", mockCred.lastCreated.Name)
+	assert.Equal(t, `folder\sub`, mockCred.lastCreated.Path)
+}
+
+func TestClient_PushSecret_CreateIsReadableByGetSecret(t *testing.T) {
+	// The created subtype must be the one GetSecret reads back with no
+	// property set, or a push would produce an entry its own ExternalSecret
+	// could not consume.
+	c, _ := newTestClient(nil)
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("round-trip")}}
+	data := pushSecretDataStub{remoteKey: testNonExistName, secretKey: "password"}
+
+	assert.NoError(t, c.PushSecret(context.Background(), secret, data))
+
+	got, err := c.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: testNonExistName})
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("round-trip"), got)
+}
+
+func TestClient_PushSecret_LegacyRefIsNeverCreated(t *testing.T) {
+	// A store with no vault addresses entries as "<vault-uuid>/<entry-uuid>",
+	// which names one specific entry rather than a name and a path. There is
+	// nothing to create from it, and telling the user to set a vault would be
+	// wrong: that flips resolveRef onto the name-and-path branch and every
+	// other key on the store would resolve differently. The push has to fail
+	// exactly as it did before creation existed.
+	mockCred := newMockCredentialClient(nil)
+	mockFolder := newMockFolderClient()
+	c := NewClient(mockCred, mockFolder, "")
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+	data := pushSecretDataStub{remoteKey: testVaultUUID + "/" + testEntryUUID, secretKey: "password"}
 
 	err := c.PushSecret(context.Background(), secret, data)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "entry must exist before pushing secrets")
+	assert.Contains(t, err.Error(), testEntryUUID)
+	assert.Contains(t, err.Error(), testVaultUUID)
+	assert.NotContains(t, err.Error(), "must set a vault")
+	assert.Equal(t, 0, mockCred.created)
+	assert.Empty(t, mockFolder.created)
+}
+
+func TestClient_CreateEntry_RequiresVault(t *testing.T) {
+	// PushSecret reports the miss before it reaches createEntry on a store with
+	// no vault, so this covers the precondition where it lives.
+	mockCred := newMockCredentialClient(nil)
+	c := NewClient(mockCred, newMockFolderClient(), "")
+
+	err := c.createEntry(context.Background(), `prod\db\postgres`, "", []byte("pw"))
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "must set a vault")
+	assert.Equal(t, 0, mockCred.created)
+}
+
+func TestClient_PushSecret_CreatesEveryFolderLevel(t *testing.T) {
+	// A nested path names folders that are entries in their own right, so each
+	// level has to be created, from the root down, before the entry itself.
+	c, mockCred, mockFolder := newTestClientWithFolders(nil)
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+	data := pushSecretDataStub{remoteKey: "prod/db/postgres", secretKey: "password"}
+
+	assert.NoError(t, c.PushSecret(context.Background(), secret, data))
+
+	assert.Len(t, mockFolder.created, 2)
+	assert.Equal(t, "prod", mockFolder.created[0].Name)
+	assert.Equal(t, "", mockFolder.created[0].Path)
+	assert.Equal(t, dvls.EntryFolderType, mockFolder.created[0].Type)
+	assert.Equal(t, dvls.EntryFolderSubTypeFolder, mockFolder.created[0].SubType)
+	assert.Equal(t, "db", mockFolder.created[1].Name)
+	assert.Equal(t, "prod", mockFolder.created[1].Path)
+
+	assert.Equal(t, "postgres", mockCred.lastCreated.Name)
+	assert.Equal(t, `prod\db`, mockCred.lastCreated.Path)
+}
+
+func TestClient_PushSecret_ReusesExistingFolders(t *testing.T) {
+	c, _, mockFolder := newTestClientWithFolders(nil, folder("prod", ""), folder("db", "prod"))
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+	data := pushSecretDataStub{remoteKey: "prod/db/postgres", secretKey: "password"}
+
+	assert.NoError(t, c.PushSecret(context.Background(), secret, data))
+	assert.Empty(t, mockFolder.created)
+}
+
+func TestClient_PushSecret_CreatesOnlyTheMissingFolderLevels(t *testing.T) {
+	c, _, mockFolder := newTestClientWithFolders(nil, folder("prod", ""))
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+	data := pushSecretDataStub{remoteKey: "prod/db/postgres", secretKey: "password"}
+
+	assert.NoError(t, c.PushSecret(context.Background(), secret, data))
+	assert.Len(t, mockFolder.created, 1)
+	assert.Equal(t, "db", mockFolder.created[0].Name)
+	assert.Equal(t, "prod", mockFolder.created[0].Path)
+}
+
+func TestClient_PushSecret_FolderElsewhereDoesNotCount(t *testing.T) {
+	// The server's path filter matches sub-paths too, so a folder of the same
+	// name nested deeper, or sitting under a different parent, must not be
+	// mistaken for the one the path asks for.
+	c, _, mockFolder := newTestClientWithFolders(nil,
+		folder("prod", ""),
+		folder("db", "staging"),
+		folder("db", `prod\legacy`),
+	)
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+	data := pushSecretDataStub{remoteKey: "prod/db/postgres", secretKey: "password"}
+
+	assert.NoError(t, c.PushSecret(context.Background(), secret, data))
+	assert.Len(t, mockFolder.created, 1)
+	assert.Equal(t, "db", mockFolder.created[0].Name)
+	assert.Equal(t, "prod", mockFolder.created[0].Path)
+}
+
+func TestClient_PushSecret_CreateUnderPathIsReadableByGetSecret(t *testing.T) {
+	// The whole point of creating the folders: the entry has to be resolvable
+	// again by the same remote key on the next reconciliation, or every push
+	// would create another copy of it.
+	c, mockCred, _ := newTestClientWithFolders(nil)
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("round-trip")}}
+	data := pushSecretDataStub{remoteKey: "prod/db/postgres", secretKey: "password"}
+
+	assert.NoError(t, c.PushSecret(context.Background(), secret, data))
+
+	// A fresh client, because the name cache does not outlive a reconciliation.
+	next := NewClient(mockCred, newMockFolderClient(), testVaultUUID)
+	got, err := next.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "prod/db/postgres"})
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("round-trip"), got)
+
+	// And the second push updates that entry instead of creating a second one.
+	assert.NoError(t, next.PushSecret(context.Background(), secret, data))
+	assert.Equal(t, 1, mockCred.created)
+}
+
+func TestClient_PushSecret_CachesFolderLookups(t *testing.T) {
+	c, _, mockFolder := newTestClientWithFolders(nil)
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+
+	assert.NoError(t, c.PushSecret(context.Background(), secret, pushSecretDataStub{remoteKey: "prod/db/first", secretKey: "password"}))
+	assert.NoError(t, c.PushSecret(context.Background(), secret, pushSecretDataStub{remoteKey: "prod/db/second", secretKey: "password"}))
+
+	// One lookup per level, on the first push only.
+	assert.Equal(t, 2, mockFolder.lookups)
+	assert.Len(t, mockFolder.created, 2)
+}
+
+func TestClient_PushSecret_FolderCreateError(t *testing.T) {
+	c, mockCred, mockFolder := newTestClientWithFolders(nil)
+	mockFolder.newErr = errors.New("boom")
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+	data := pushSecretDataStub{remoteKey: "prod/db/postgres", secretKey: "password"}
+
+	err := c.PushSecret(context.Background(), secret, data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), `failed to create folder "prod"`)
+	// The entry is not created into a tree that is not there.
+	assert.Equal(t, 0, mockCred.created)
+}
+
+func TestClient_PushSecret_FolderLookupError(t *testing.T) {
+	c, mockCred, mockFolder := newTestClientWithFolders(nil)
+	mockFolder.getEntriesErr = errors.New("boom")
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+	data := pushSecretDataStub{remoteKey: "prod/db/postgres", secretKey: "password"}
+
+	err := c.PushSecret(context.Background(), secret, data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), `failed to look up folder "prod"`)
+	assert.Equal(t, 0, mockCred.created)
+}
+
+func TestClient_PushSecret_RejectsEmptyFolderSegment(t *testing.T) {
+	c, mockCred, _ := newTestClientWithFolders(nil)
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+	data := pushSecretDataStub{remoteKey: "prod//db/postgres", secretKey: "password"}
+
+	err := c.PushSecret(context.Background(), secret, data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "a path segment cannot be empty")
+	assert.Equal(t, 0, mockCred.created)
+}
+
+func TestClient_PushSecret_CreateError(t *testing.T) {
+	c, mockCred := newTestClient(nil)
+	mockCred.newErr = errors.New("boom")
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+	data := pushSecretDataStub{remoteKey: testNonExistName, secretKey: "password"}
+
+	err := c.PushSecret(context.Background(), secret, data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create entry")
+}
+
+// --- Tests: username and password ---
+
+func userPassSecret() *corev1.Secret {
+	return &corev1.Secret{Data: map[string][]byte{"username": []byte("app-user"), "password": []byte("app-pass")}}
+}
+
+func defaultEntry(username, password string) dvls.Entry {
+	return dvls.Entry{
+		Id:      testEntryUUID,
+		Name:    testEntryName,
+		Type:    dvls.EntryCredentialType,
+		SubType: dvls.EntryCredentialSubTypeDefault,
+		Data:    &dvls.EntryCredentialDefaultData{Username: username, Password: password},
+	}
+}
+
+func TestClient_PushSecret_PropertyCreatesDefaultEntry(t *testing.T) {
+	c, mockCred := newTestClient(nil)
+	data := pushSecretDataStub{remoteKey: `prod\db`, secretKey: "username", property: "username"}
+
+	assert.NoError(t, c.PushSecret(context.Background(), userPassSecret(), data))
+
+	created := mockCred.lastCreated
+	assert.Equal(t, dvls.EntryCredentialSubTypeDefault, created.SubType)
+	credData, ok := created.Data.(*dvls.EntryCredentialDefaultData)
+	assert.True(t, ok)
+	assert.Equal(t, "app-user", credData.Username)
+	assert.Equal(t, "", credData.Password)
+}
+
+func TestClient_PushSecret_UsernameAndPasswordFillOneEntry(t *testing.T) {
+	// The two items of one PushSecret reach the provider as two pushes to the
+	// same key. The first creates the entry and the second has to find it, or
+	// every field would get an entry of its own.
+	c, mockCred := newTestClient(nil)
+	for _, field := range []string{"username", "password"} {
+		data := pushSecretDataStub{remoteKey: `prod\db`, secretKey: field, property: field}
+		assert.NoError(t, c.PushSecret(context.Background(), userPassSecret(), data))
+	}
+	assert.Equal(t, 1, mockCred.created)
+
+	// Read back from a fresh client, as the ExternalSecret would.
+	fresh := NewClient(mockCred, newMockFolderClient(), testVaultUUID)
+	got, err := fresh.GetSecretMap(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: `prod\db`})
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("app-user"), got["username"])
+	assert.Equal(t, []byte("app-pass"), got["password"])
+
+	pw, err := fresh.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: `prod\db`})
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("app-pass"), pw)
+}
+
+func TestClient_PushSecret_PropertyUpdatesOnlyThatField(t *testing.T) {
+	// Before properties were honored, a push naming username overwrote the
+	// password with the username's value.
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("old-user", "kept-pass")})
+	data := pushSecretDataStub{remoteKey: testEntryName, secretKey: "username", property: "username"}
+
+	assert.NoError(t, c.PushSecret(context.Background(), userPassSecret(), data))
+
+	credData, ok := mockCred.entries[testEntryUUID].Data.(*dvls.EntryCredentialDefaultData)
+	assert.True(t, ok)
+	assert.Equal(t, "app-user", credData.Username)
+	assert.Equal(t, "kept-pass", credData.Password)
+}
+
+func TestClient_PushSecret_UsernameOnAccessCodeIsRefused(t *testing.T) {
+	c, mockCred := newTestClient(map[string]dvls.Entry{
+		testEntryUUID: {
+			Id: testEntryUUID, Name: testEntryName, Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeAccessCode,
+			Data: &dvls.EntryCredentialAccessCodeData{Password: "kept-pass"},
+		},
+	})
+	data := pushSecretDataStub{remoteKey: testEntryName, secretKey: "username", property: "username"}
+
+	err := c.PushSecret(context.Background(), userPassSecret(), data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "has no username field")
+	assert.Equal(t, "", mockCred.lastUpdated.Id)
+	credData, _ := mockCred.entries[testEntryUUID].Data.(*dvls.EntryCredentialAccessCodeData)
+	assert.Equal(t, "kept-pass", credData.Password)
+}
+
+func TestClient_PushSecret_UnknownPropertyIsRefused(t *testing.T) {
+	c, mockCred := newTestClient(nil)
+	data := pushSecretDataStub{remoteKey: `prod\db`, secretKey: "password", property: "api-key"}
+
+	err := c.PushSecret(context.Background(), userPassSecret(), data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), `property "api-key" cannot be pushed`)
+	assert.Equal(t, 0, mockCred.created)
+}
+
+func TestClient_SecretExists_PropertyChecksTheField(t *testing.T) {
+	c, _ := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("app-user", "")})
+
+	for property, want := range map[string]bool{"": true, "username": true, "password": false, "domain": false} {
+		exists, err := c.SecretExists(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: property})
+		assert.NoError(t, err)
+		assert.Equal(t, want, exists, "property %q", property)
+	}
+
+	_, err := c.SecretExists(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: "api-key"})
+	assert.Error(t, err)
+}
+
+func TestClient_SecretExists_IfNotExistsFillsEveryField(t *testing.T) {
+	// What the controller does under updatePolicy IfNotExists: check each item,
+	// then push it if missing. If the entry the first item creates counted as
+	// existing for the second, the password would never be written.
+	c, mockCred := newTestClient(nil)
+	ifNotExists := func() {
+		for _, field := range []string{"username", "password"} {
+			ref := pushSecretRemoteRefStub{remoteKey: `prod\db`, property: field}
+			exists, err := c.SecretExists(context.Background(), ref)
+			assert.NoError(t, err)
+			if !exists {
+				data := pushSecretDataStub{remoteKey: `prod\db`, secretKey: field, property: field}
+				assert.NoError(t, c.PushSecret(context.Background(), userPassSecret(), data))
+			}
+		}
+	}
+
+	ifNotExists()
+	assert.Equal(t, 1, mockCred.created)
+	credData, ok := mockCred.entries[mockCred.lastCreated.Id].Data.(*dvls.EntryCredentialDefaultData)
+	assert.True(t, ok)
+	assert.Equal(t, "app-user", credData.Username)
+	assert.Equal(t, "app-pass", credData.Password)
+
+	// A second reconcile finds both fields and writes nothing.
+	mockCred.lastUpdated = dvls.Entry{}
+	ifNotExists()
+	assert.Equal(t, 1, mockCred.created)
+	assert.Equal(t, "", mockCred.lastUpdated.Id)
+}
+
+func TestClient_DeleteSecret_PropertyClearsOnlyThatField(t *testing.T) {
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("app-user", "app-pass")})
+
+	assert.NoError(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: "username"}))
+	assert.Equal(t, "", mockCred.lastDeleted)
+	credData, _ := mockCred.entries[testEntryUUID].Data.(*dvls.EntryCredentialDefaultData)
+	assert.Equal(t, "", credData.Username)
+	assert.Equal(t, "app-pass", credData.Password)
+
+	// The password is now the last field, so deleting it deletes the entry.
+	assert.NoError(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: "password"}))
+	assert.Equal(t, testEntryUUID, mockCred.lastDeleted)
+}
+
+func TestClient_DeleteSecret_PropertyAlreadyClear(t *testing.T) {
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("", "app-pass")})
+
+	assert.NoError(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: "username"}))
+	assert.Equal(t, "", mockCred.lastDeleted)
+	assert.Equal(t, "", mockCred.lastUpdated.Id)
+}
+
+func TestClient_DeleteSecret_PasswordOfAccessCodeDeletesEntry(t *testing.T) {
+	c, mockCred := newTestClient(map[string]dvls.Entry{
+		testEntryUUID: {
+			Id: testEntryUUID, Name: testEntryName, Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeAccessCode,
+			Data: &dvls.EntryCredentialAccessCodeData{Password: "pw"},
+		},
+	})
+
+	assert.NoError(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: "password"}))
+	assert.Equal(t, testEntryUUID, mockCred.lastDeleted)
 }
 
 // --- Tests: isNotFoundError ---
