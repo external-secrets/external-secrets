@@ -60,17 +60,17 @@ var genericMap = map[string]interface{}{
 	"title":        strings.Title,
 	"untitle":      untitle,
 	"substr":       substring,
-	"repeat":       func(count int, str string) string { return strings.Repeat(str, count) },
+	"repeat":       limitedRepeat,
 	"trimall":      func(a, b string) string { return strings.Trim(b, a) },
 	"trimAll":      func(a, b string) string { return strings.Trim(b, a) },
 	"trimSuffix":   func(a, b string) string { return strings.TrimSuffix(b, a) },
 	"trimPrefix":   func(a, b string) string { return strings.TrimPrefix(b, a) },
 	"nospace":      util.DeleteWhiteSpace,
 	"initials":     initials,
-	"randAlphaNum": randAlphaNumeric,
-	"randAlpha":    randAlpha,
-	"randAscii":    randAscii,
-	"randNumeric":  randNumeric,
+	"randAlphaNum": func(n int) (string, error) { return limitedRandom(n, randAlphaNumeric) },
+	"randAlpha":    func(n int) (string, error) { return limitedRandom(n, randAlpha) },
+	"randAscii":    func(n int) (string, error) { return limitedRandom(n, randAscii) },
+	"randNumeric":  func(n int) (string, error) { return limitedRandom(n, randNumeric) },
 	"swapcase":     util.SwapCase,
 	"shuffle":      xstrings.Shuffle,
 	"snakecase":    xstrings.ToSnakeCase,
@@ -84,9 +84,9 @@ var genericMap = map[string]interface{}{
 	"quote":        quote,
 	"squote":       squote,
 	"cat":          cat,
-	"indent":       indent,
-	"nindent":      nindent,
-	"replace":      replace,
+	"indent":       func(n int, s string) (string, error) { return limitedIndent(n, s, false) },
+	"nindent":      func(n int, s string) (string, error) { return limitedIndent(n, s, true) },
+	"replace":      limitedReplace,
 	"plural":       plural,
 	"sha1sum":      sha1sum,
 	"sha256sum":    sha256sum,
@@ -98,7 +98,7 @@ var genericMap = map[string]interface{}{
 	"int64":     toInt64,
 	"int":       toInt,
 	"float64":   toFloat64,
-	"seq":       seq,
+	"seq":       limitedSeq,
 	"toDecimal": toDecimal,
 
 	"split":     split,
@@ -106,8 +106,8 @@ var genericMap = map[string]interface{}{
 	"splitn":    splitn,
 	"toStrings": strslice,
 
-	"until":     until,
-	"untilStep": untilStep,
+	"until":     limitedUntil,
+	"untilStep": limitedUntilStep,
 
 	"add1": func(i interface{}) int64 { return toInt64(i) + 1 },
 	"add": func(i ...interface{}) int64 {
@@ -153,7 +153,7 @@ var genericMap = map[string]interface{}{
 	"floor":   floor,
 	"round":   round,
 
-	"join":      join,
+	"join":      limitedJoin,
 	"sortAlpha": sortAlpha,
 
 	// Defaults
@@ -264,7 +264,7 @@ var genericMap = map[string]interface{}{
 	"genSignedCertWithKey":     generateSignedCertificateWithPEMKey,
 	"encryptAES":               encryptAES,
 	"decryptAES":               decryptAES,
-	"randBytes":                randBytes,
+	"randBytes":                limitedRandBytes,
 
 	// UUIDs:
 	"uuidv4": uuidv4,
