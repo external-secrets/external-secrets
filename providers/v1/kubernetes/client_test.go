@@ -1889,3 +1889,37 @@ func TestDeleteSecretAndExistsRemoteNamespaceRejectedForSecretStore(t *testing.T
 		t.Errorf("SecretExists should reject remoteNamespace for SecretStore, got: %v", err)
 	}
 }
+
+func TestPushDestination(t *testing.T) {
+	p := &Client{
+		storeKind: esv1.ClusterSecretStoreKind,
+		store:     &esv1.KubernetesProvider{RemoteNamespace: testStoreNamespace},
+	}
+	metadataFor := func(spec string) *apiextensionsv1.JSON {
+		return &apiextensionsv1.JSON{Raw: []byte(`{"apiVersion":"kubernetes.external-secrets.io/v1alpha1", "kind": "PushSecretMetadata", "spec": {` + spec + `}}`)}
+	}
+
+	tests := map[string]struct {
+		metadata *apiextensionsv1.JSON
+		want     string
+	}{
+		"no metadata uses the store's namespace": {want: ""},
+		"override to the store's own namespace":  {metadata: metadataFor(`"remoteNamespace": "` + testStoreNamespace + `"`), want: ""},
+		"override to another namespace":          {metadata: metadataFor(`"remoteNamespace": "` + testTargetNamespace + `"`), want: testTargetNamespace},
+		"other metadata fields don't change the result": {
+			metadata: metadataFor(`"remoteNamespace": "` + testTargetNamespace + `", "labels": {"team": "x"}`),
+			want:     testTargetNamespace,
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			got, err := p.PushDestination(testingfake.PushSecretData{RemoteKey: "mysec", Metadata: tc.metadata})
+			if err != nil {
+				t.Fatalf("PushDestination failed: %v", err)
+			}
+			if got != tc.want {
+				t.Errorf("PushDestination = %q, want %q", got, tc.want)
+			}
+		})
+	}
+}

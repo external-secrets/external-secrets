@@ -202,6 +202,19 @@ func (c *Client) pushTargetNamespace(pushMeta *metadata.PushSecretMetadata[PushS
 	return targetNamespace, nil
 }
 
+// PushDestination returns the namespace the data is pushed to when it overrides the store's
+// remoteNamespace, or "" when it is pushed to the store's remoteNamespace.
+func (c *Client) PushDestination(data esv1.PushSecretData) (string, error) {
+	targetNamespace, err := c.namespaceFromPushRef(data)
+	if err != nil {
+		return "", err
+	}
+	if targetNamespace == c.store.RemoteNamespace {
+		return "", nil
+	}
+	return targetNamespace, nil
+}
+
 func (c *Client) mergePushSecretData(remoteRef esv1.PushSecretData, pushMeta *metadata.PushSecretMetadata[PushSecretMetadataSpec], remoteSecret, localSecret *v1.Secret) error {
 	secretType := v1.SecretTypeOpaque
 	if localSecret.Type != "" {

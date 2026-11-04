@@ -522,6 +522,8 @@ spec:
 | annotations       | `map[string]string`                  | The annotations.                                                                                                                                                                                                                                                                                                                                  |
 | remoteNamespace   | string                               | The Namespace in which the remote Secret will be created in if defined. Push, delete, and exists operations all target this namespace, so the store's credentials need `get`/`update`/`delete` on Secrets in the override namespace, not only in the store's own `remoteNamespace`.                                                                                                                                   |
 
+`remoteNamespace` is only supported with a `ClusterSecretStore`. Entries are told apart by their namespace too: the same `remoteKey` can be pushed to several namespaces, and with `spec.deletionPolicy=Delete`, changing an entry's `remoteNamespace` deletes it from the namespace it was pushed to before. In `status.syncedPushSecrets`, an entry pushed to a namespace other than the store's `remoteNamespace` is listed as `<remoteKey>[/<property>]@<namespace>`.
+
 ### Implementation Considerations
 
 When using the PushSecret feature and configuring the permissions for the SecretStore, consider the following:

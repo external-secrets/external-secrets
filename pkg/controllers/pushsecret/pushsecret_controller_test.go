@@ -2883,7 +2883,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "b", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "remote-b"}}},
 			}
 
-			err := validateRemoteKeyUniqueness(entries)
+			err := validateRemoteKeyUniqueness(entries, noPushDestination)
 
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -2894,7 +2894,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "b", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "shared"}}},
 			}
 
-			err := validateRemoteKeyUniqueness(entries)
+			err := validateRemoteKeyUniqueness(entries, noPushDestination)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring(testDuplicateRemoteKeyErr))
@@ -2906,7 +2906,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "b", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "shared", Property: "field2"}}},
 			}
 
-			err := validateRemoteKeyUniqueness(entries)
+			err := validateRemoteKeyUniqueness(entries, noPushDestination)
 
 			Expect(err).ToNot(HaveOccurred())
 		})
@@ -2917,7 +2917,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "b", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "shared", Property: "field"}}},
 			}
 
-			err := validateRemoteKeyUniqueness(entries)
+			err := validateRemoteKeyUniqueness(entries, noPushDestination)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring(testDuplicateRemoteKeyErr))
@@ -2930,12 +2930,16 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 
 	DescribeTable("isRemoteKeyStillPushed",
 		func(oldRef v1alpha1.PushSecretData, newEntries []v1alpha1.PushSecretData, want bool) {
-			newData := make(map[string]v1alpha1.PushSecretData, len(newEntries))
+			newIDs := make(map[pushIdentity]bool, len(newEntries))
 			for _, entry := range newEntries {
-				newData[statusRef(entry)] = entry
+				id, err := pushIdentityOf(entry, noPushDestination)
+				Expect(err).ToNot(HaveOccurred())
+				newIDs[id] = true
 			}
+			oldID, err := pushIdentityOf(oldRef, noPushDestination)
+			Expect(err).ToNot(HaveOccurred())
 
-			Expect(isRemoteKeyStillPushed(oldRef, newData)).To(Equal(want))
+			Expect(isRemoteKeyStillPushed(oldID, newIDs)).To(Equal(want))
 		},
 		Entry("should keep a property replaced by a whole secret",
 			pushData("shared", "field1"), []v1alpha1.PushSecretData{pushData("shared", "")}, true),
@@ -2945,6 +2949,80 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 			pushData("shared", "field2"), []v1alpha1.PushSecretData{pushData("shared", "field1")}, false),
 		Entry("should delete a remote key that is no longer pushed",
 			pushData("old", ""), []v1alpha1.PushSecretData{pushData("new", "")}, false),
+	)
+
+	// pushDataTo is an entry whose metadata names its destination; testDestination reads it the way
+	// a provider implementing esv1.PushDestinationResolver would.
+	pushDataTo := func(remoteKey, property, destination string) v1alpha1.PushSecretData {
+		data := pushData(remoteKey, property)
+		if destination != "" {
+			data.Metadata = &apiextensionsv1.JSON{Raw: []byte(destination)}
+		}
+		return data
+	}
+	testDestination := func(data v1alpha1.PushSecretData) (string, error) {
+		if data.Metadata == nil {
+			return "", nil
+		}
+		return string(data.Metadata.Raw), nil
+	}
+	statusOf := func(entries ...v1alpha1.PushSecretData) map[string]v1alpha1.PushSecretData {
+		status := make(map[string]v1alpha1.PushSecretData, len(entries))
+		for _, entry := range entries {
+			id, err := pushIdentityOf(entry, testDestination)
+			Expect(err).ToNot(HaveOccurred())
+			status[id.statusKey()] = entry
+		}
+		return status
+	}
+
+	DescribeTable("pushIdentity.statusKey",
+		func(data v1alpha1.PushSecretData, want string) {
+			id, err := pushIdentityOf(data, testDestination)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(id.statusKey()).To(Equal(want))
+		},
+		Entry("should keep the existing key for the store's default destination", pushDataTo("shared", "field1", ""), "shared/field1"),
+		Entry("should add the destination when it is overridden", pushDataTo("shared", "field1", "b"), "shared/field1@b"),
+		Entry("should add the destination to a whole secret", pushDataTo("shared", "", "b"), "shared@b"),
+	)
+
+	Describe("validateRemoteKeyUniqueness with destinations", func() {
+		It("should allow the same remote key in different destinations", func() {
+			entries := []v1alpha1.PushSecretData{pushDataTo("shared", "field1", ""), pushDataTo("shared", "field1", "b")}
+			Expect(validateRemoteKeyUniqueness(entries, testDestination)).To(Succeed())
+		})
+
+		It("should reject the same remote key in the same destination", func() {
+			entries := []v1alpha1.PushSecretData{pushDataTo("shared", "field1", "b"), pushDataTo("shared", "field1", "b")}
+			Expect(validateRemoteKeyUniqueness(entries, testDestination)).To(MatchError(ContainSubstring(`in "b"`)))
+		})
+	})
+
+	DescribeTable("removedEntries",
+		func(oldStatus, newStatus map[string]v1alpha1.PushSecretData, want []removedEntry) {
+			removed, err := removedEntries(oldStatus, newStatus, testDestination)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(removed).To(ConsistOf(want))
+		},
+		Entry("should keep an entry that is still pushed to the same place",
+			statusOf(pushDataTo("shared", "field1", "b")), statusOf(pushDataTo("shared", "field1", "b")), nil),
+		Entry("should delete an entry moved to another destination",
+			statusOf(pushDataTo("shared", "field1", "")), statusOf(pushDataTo("shared", "field1", "b")),
+			[]removedEntry{{key: "shared/field1", delete: true}}),
+		Entry("should delete an entry moved back to the store's default destination",
+			statusOf(pushDataTo("shared", "field1", "b")), statusOf(pushDataTo("shared", "field1", "")),
+			[]removedEntry{{key: "shared/field1@b", delete: true}}),
+		Entry("should delete a property replaced by a whole secret in another destination",
+			statusOf(pushDataTo("shared", "field1", "")), statusOf(pushDataTo("shared", "", "b")),
+			[]removedEntry{{key: "shared/field1", delete: true}}),
+		Entry("should keep a property replaced by a whole secret in the same destination",
+			statusOf(pushDataTo("shared", "field1", "b")), statusOf(pushDataTo("shared", "", "b")),
+			[]removedEntry{{key: "shared/field1@b", delete: false}}),
+		Entry("should match a status key written before destinations were part of it, without deleting",
+			map[string]v1alpha1.PushSecretData{"shared/field1": pushDataTo("shared", "field1", "b")},
+			statusOf(pushDataTo("shared", "field1", "b")),
+			[]removedEntry{{key: "shared/field1", delete: false}}),
 	)
 
 	Describe("mergeDataEntries", func() {
@@ -2957,7 +3035,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "b", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "b"}}},
 			}
 
-			result, err := mergeDataEntries(dataTo, explicit, secret)
+			result, err := mergeDataEntries(dataTo, explicit, secret, noPushDestination)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result).To(HaveLen(2))
@@ -2972,7 +3050,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "key", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "explicit-path"}}},
 			}
 
-			result, err := mergeDataEntries(dataTo, explicit, secret)
+			result, err := mergeDataEntries(dataTo, explicit, secret, noPushDestination)
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result).To(HaveLen(1))
@@ -2988,7 +3066,7 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 				{Match: v1alpha1.PushSecretMatch{SecretKey: "b", RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "shared"}}},
 			}
 
-			_, err := mergeDataEntries(dataTo, explicit, secret)
+			_, err := mergeDataEntries(dataTo, explicit, secret, noPushDestination)
 
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring(testDuplicateRemoteKeyErr))

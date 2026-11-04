@@ -104,6 +104,21 @@ type SecretsClient interface {
 	Close(ctx context.Context) error
 }
 
+// +kubebuilder:object:root=false
+// +kubebuilder:object:generate:false
+// +k8s:deepcopy-gen:interfaces=nil
+// +k8s:deepcopy-gen=nil
+
+// PushDestinationResolver is an optional interface for a SecretsClient whose push destination
+// depends on PushSecretData metadata, e.g. the remoteNamespace override of the kubernetes provider.
+// PushSecret uses it, together with the remote key and property, to tell entries apart.
+type PushDestinationResolver interface {
+	// PushDestination returns where the data is pushed to, or "" when it is the store's default.
+	// It must only depend on the metadata fields that select the destination, so that other
+	// metadata changes don't make an entry look like it moved.
+	PushDestination(data PushSecretData) (string, error)
+}
+
 // NoSecretErr is a sentinel error for when a secret is not found.
 var NoSecretErr = NoSecretError{}
 

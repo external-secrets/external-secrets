@@ -449,16 +449,19 @@ func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.Pu
 			delete(out, storeName)
 			continue
 		}
-		for oldEntry, oldRef := range oldData {
-			_, ok := newData[oldEntry]
-			if !ok {
-				if !isRemoteKeyStillPushed(oldRef, newData) {
-					err = r.DeleteSecretFromStore(ctx, client, oldRef)
-					if err != nil {
-						return out, err
-					}
+		removed, err := removedEntries(oldData, newData, pushDestinationOf(client))
+		if err != nil {
+			return out, err
+		}
+		for _, entry := range removed {
+			if entry.delete {
+				err = r.DeleteSecretFromStore(ctx, client, oldData[entry.key])
+				if err != nil {
+					return out, err
 				}
-				delete(out[storeName], oldEntry)
+			}
+			if _, ok := newData[entry.key]; !ok {
+				delete(out[storeName], entry.key)
 			}
 		}
 	}
@@ -537,7 +540,8 @@ func (r *Reconciler) handlePushSecretDataForStore(
 		return out, fmt.Errorf("failed to expand dataTo: %w", err)
 	}
 
-	allData, err := mergeDataEntries(dataToEntries, ps.Spec.Data, storeSecret)
+	destinationOf := pushDestinationOf(secretClient)
+	allData, err := mergeDataEntries(dataToEntries, ps.Spec.Data, storeSecret, destinationOf)
 	if err != nil {
 		return out, fmt.Errorf("failed to merge data entries: %w", err)
 	}
@@ -545,6 +549,10 @@ func (r *Reconciler) handlePushSecretDataForStore(
 	originalStoreSecretData := storeSecret.Data
 
 	for _, data := range allData {
+		id, err := pushIdentityOf(data, destinationOf)
+		if err != nil {
+			return out, err
+		}
 		params := pushEntryParams{
 			data:         data,
 			updatePolicy: ps.Spec.UpdatePolicy,
@@ -555,7 +563,7 @@ func (r *Reconciler) handlePushSecretDataForStore(
 		if err := r.pushSecretEntry(ctx, secretClient, storeSecret, params); err != nil {
 			return out, err
 		}
-		out[storeKey][statusRef(data)] = data
+		out[storeKey][id.statusKey()] = data
 	}
 	return out, nil
 }
@@ -839,17 +847,112 @@ func statusRef(ref esv1.PushSecretData) string {
 	return ref.GetRemoteKey()
 }
 
-// isRemoteKeyStillPushed checks if a removed entry's remote key is still pushed as a whole secret or by properties replacing a whole secret.
-func isRemoteKeyStillPushed(oldRef esapi.PushSecretData, newData map[string]esapi.PushSecretData) bool {
-	for _, newRef := range newData {
-		if newRef.GetRemoteKey() != oldRef.GetRemoteKey() {
+// isRemoteKeyStillPushed checks if a removed entry's remote key is still pushed to the same destination as a whole secret or by properties replacing a whole secret.
+func isRemoteKeyStillPushed(oldID pushIdentity, newIDs map[pushIdentity]bool) bool {
+	for newID := range newIDs {
+		if newID.destination != oldID.destination || newID.remoteKey != oldID.remoteKey {
 			continue
 		}
-		if newRef.GetProperty() == "" || oldRef.GetProperty() == "" {
+		if newID.property == "" || oldID.property == "" {
 			return true
 		}
 	}
 	return false
+}
+
+// removedEntry is a status entry of a store that the new state no longer pushes to the same place.
+type removedEntry struct {
+	key string
+	// delete is false when the entry must not be deleted from the provider, either because it
+	// is still pushed to the same place under another status key, or because its remote key is
+	// still pushed to the same destination (see isRemoteKeyStillPushed).
+	delete bool
+}
+
+// removedEntries compares the old status entries of a store with the new ones by where they are
+// pushed to, not by status key, so that moving an entry to another destination deletes it at the
+// old one and that status keys written before destinations existed are matched.
+func removedEntries(oldData, newData map[string]esapi.PushSecretData, destinationOf pushDestinationFunc) ([]removedEntry, error) {
+	newIDs, err := pushIdentities(newData, destinationOf)
+	if err != nil {
+		return nil, err
+	}
+	var removed []removedEntry
+	for oldKey, oldRef := range oldData {
+		oldID, err := pushIdentityOf(oldRef, destinationOf)
+		if err != nil {
+			return nil, err
+		}
+		if newIDs[oldID] {
+			if _, ok := newData[oldKey]; !ok {
+				removed = append(removed, removedEntry{key: oldKey})
+			}
+			continue
+		}
+		removed = append(removed, removedEntry{key: oldKey, delete: !isRemoteKeyStillPushed(oldID, newIDs)})
+	}
+	return removed, nil
+}
+
+// pushIdentity is where an entry is pushed to in a store: its remote key and property, and the
+// provider-specific destination (e.g. the kubernetes remoteNamespace override) when it is not the
+// store's default.
+type pushIdentity struct {
+	destination string
+	remoteKey   string
+	property    string
+}
+
+// statusKey returns the key of the entry in status.syncedPushSecrets. Entries pushed to the
+// store's default destination keep the remoteKey[/property] key used before destinations existed.
+func (id pushIdentity) statusKey() string {
+	key := id.remoteKey
+	if id.property != "" {
+		key += "/" + id.property
+	}
+	if id.destination != "" {
+		key += "@" + id.destination
+	}
+	return key
+}
+
+// pushDestinationFunc returns the provider-specific destination of an entry, or "" for the store's default.
+type pushDestinationFunc func(esapi.PushSecretData) (string, error)
+
+func noPushDestination(esapi.PushSecretData) (string, error) {
+	return "", nil
+}
+
+// pushDestinationOf returns the destination resolver of a store's client. Providers that don't
+// implement esv1.PushDestinationResolver push every entry to the store's default destination.
+func pushDestinationOf(client esv1.SecretsClient) pushDestinationFunc {
+	resolver, ok := client.(esv1.PushDestinationResolver)
+	if !ok {
+		return noPushDestination
+	}
+	return func(data esapi.PushSecretData) (string, error) {
+		return resolver.PushDestination(data)
+	}
+}
+
+func pushIdentityOf(data esapi.PushSecretData, destinationOf pushDestinationFunc) (pushIdentity, error) {
+	destination, err := destinationOf(data)
+	if err != nil {
+		return pushIdentity{}, fmt.Errorf("could not resolve push destination of remote key %q: %w", data.GetRemoteKey(), err)
+	}
+	return pushIdentity{destination: destination, remoteKey: data.GetRemoteKey(), property: data.GetProperty()}, nil
+}
+
+func pushIdentities(entries map[string]esapi.PushSecretData, destinationOf pushDestinationFunc) (map[pushIdentity]bool, error) {
+	ids := make(map[pushIdentity]bool, len(entries))
+	for _, data := range entries {
+		id, err := pushIdentityOf(data, destinationOf)
+		if err != nil {
+			return nil, err
+		}
+		ids[id] = true
+	}
+	return ids, nil
 }
 
 // removeUnmanagedStores filters the already-resolved stores by controller class.
@@ -1263,23 +1366,23 @@ func resolveOriginalKey(data esapi.PushSecretData, secret *v1.Secret) string {
 }
 
 // validateRemoteKeyUniqueness ensures no two entries push to the same remote location.
-// The remote location is defined by (remoteKey, property) tuple.
-func validateRemoteKeyUniqueness(entries []esapi.PushSecretData) error {
-	type remoteLocation struct {
-		remoteKey string
-		property  string
-	}
-
-	seen := make(map[remoteLocation]string) // location -> source key (for error message)
+// The remote location is defined by the (destination, remoteKey, property) tuple.
+func validateRemoteKeyUniqueness(entries []esapi.PushSecretData, destinationOf pushDestinationFunc) error {
+	seen := make(map[pushIdentity]string) // location -> source key (for error message)
 
 	for _, data := range entries {
-		loc := remoteLocation{
-			remoteKey: data.GetRemoteKey(),
-			property:  data.GetProperty(),
+		loc, err := pushIdentityOf(data, destinationOf)
+		if err != nil {
+			return err
 		}
 		sourceKey := data.GetSecretKey()
 
 		if existingSource, exists := seen[loc]; exists {
+			if loc.destination != "" {
+				return fmt.Errorf(
+					"duplicate remote key %q with property %q in %q: source keys %q and %q both map to the same destination",
+					loc.remoteKey, loc.property, loc.destination, existingSource, sourceKey)
+			}
 			if loc.property != "" {
 				return fmt.Errorf(
 					"duplicate remote key %q with property %q: source keys %q and %q both map to the same destination",
@@ -1297,10 +1400,10 @@ func validateRemoteKeyUniqueness(entries []esapi.PushSecretData) error {
 
 // mergeDataEntries combines dataTo and explicit data entries.
 // It resolves source key conflicts (explicit wins) and validates no duplicate remote destinations.
-func mergeDataEntries(dataToEntries, explicitData []esapi.PushSecretData, secret *v1.Secret) ([]esapi.PushSecretData, error) {
+func mergeDataEntries(dataToEntries, explicitData []esapi.PushSecretData, secret *v1.Secret, destinationOf pushDestinationFunc) ([]esapi.PushSecretData, error) {
 	merged := resolveSourceKeyConflicts(dataToEntries, explicitData, secret)
 
-	if err := validateRemoteKeyUniqueness(merged); err != nil {
+	if err := validateRemoteKeyUniqueness(merged, destinationOf); err != nil {
 		return nil, err
 	}
 
