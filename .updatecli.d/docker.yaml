@@ -32,64 +32,117 @@ scms:
 
 # Resolve each upstream image once, even when several files use it. Dockerfile
 # autodiscovery skips digest-only references, so keep their moving tag policies
-# here explicitly. Go and kind use version tags only; everything else uses an
-# image-index digest without a tag (hidetag), tracking latest within its image
-# repository (e.g. UBI 9 and distroless Debian 12 stay on those distro lines).
+# here explicitly. Select full release tags within each major, resolve the
+# digest of that exact tag, then write a SHA-only pin and the release comment.
+# Distroless has no patch tags; its Debian 13 repository tracks latest builds.
 sources:
   alpine:
     kind: dockerdigest
     spec:
       image: alpine
-      tag: latest
+      tag: '{{ source "alpine_version" }}'
       hidetag: true
-  golang:
+  alpine_version:
+    kind: dockerimage
+    spec:
+      image: alpine
+      tagfilter: '^3\.[0-9]+\.[0-9]+$'
+      versionfilter:
+        kind: semver
+        pattern: '3.x'
+  golang_version:
     kind: dockerimage
     spec:
       image: golang
+      tagfilter: '^1\.[0-9]+\.[0-9]+$'
       versionfilter:
         kind: semver
         pattern: '1.x'
+  golang_bookworm_digest:
+    kind: dockerdigest
+    spec:
+      image: golang
+      tag: '{{ source "golang_version" }}-bookworm'
+      hidetag: true
+  golang_alpine_digest:
+    kind: dockerdigest
+    spec:
+      image: golang
+      tag: '{{ source "golang_version" }}-alpine'
+      hidetag: true
+  golang_debug_digest:
+    kind: dockerdigest
+    spec:
+      image: golang
+      tag: '{{ source "golang_version" }}'
+      hidetag: true
   distroless_static:
     kind: dockerdigest
     spec:
-      image: gcr.io/distroless/static
+      image: gcr.io/distroless/static-debian13
       tag: latest
       hidetag: true
   ubi9:
     kind: dockerdigest
     spec:
       image: registry.access.redhat.com/ubi9/ubi
-      tag: latest
+      tag: '{{ source "ubi9_version" }}'
       hidetag: true
+  ubi9_version:
+    kind: dockerimage
+    spec:
+      image: registry.access.redhat.com/ubi9/ubi
+      tagfilter: '^9\.[0-9]+$'
+      versionfilter:
+        kind: semver
+        pattern: '9.x'
 
   skywalking:
     kind: dockerdigest
     spec:
       image: apache/skywalking-eyes
-      tag: latest
+      tag: '{{ source "skywalking_version" }}'
       hidetag: true
+  skywalking_version:
+    kind: dockerimage
+    spec:
+      image: apache/skywalking-eyes
+      tagfilter: '^0\.[0-9]+\.[0-9]+$'
+      versionfilter:
+        kind: semver
+        pattern: '0.x'
   helm_docs:
     kind: dockerdigest
     spec:
       image: jnorwood/helm-docs
-      tag: latest
+      tag: '{{ source "helm_docs_version" }}'
       hidetag: true
+  helm_docs_version:
+    kind: dockerimage
+    spec:
+      image: jnorwood/helm-docs
+      tagfilter: '^v1\.[0-9]+\.[0-9]+$'
+      versionfilter:
+        kind: semver
+        pattern: '1.x'
   curl:
     kind: dockerdigest
     spec:
       image: curlimages/curl
-      tag: latest
+      tag: '{{ source "curl_version" }}'
       hidetag: true
-  distroless_debian12:
+  curl_version:
+    kind: dockerimage
+    spec:
+      image: curlimages/curl
+      tagfilter: '^8\.[0-9]+\.[0-9]+$'
+      versionfilter:
+        kind: semver
+        pattern: '8.x'
+  distroless_debian13:
     kind: dockerdigest
     spec:
-      image: gcr.io/distroless/static-debian12
-      tag: latest
-      hidetag: true
-  pull_request_label_checker:
-    kind: dockerdigest
-    spec:
-      image: agilepathway/pull-request-label-checker
+      image: gcr.io/distroless/static-debian13
       tag: latest
       hidetag: true
 
@@ -107,42 +160,40 @@ targets:
         - e2e/Dockerfile
         - hack/api-docs/Dockerfile
         - tilt.dockerfile
-      matchpattern: 'alpine[:@][^[:space:]]+'
+      matchpattern: 'alpine@sha256:[a-f0-9]{64}'
   golang_alpine:
     #{{- if .scm.enabled }}
     scmid: default
     #{{- end }}
     kind: file
-    sourceid: golang
+    sourceid: golang_alpine_digest
     transformers:
-      - addprefix: 'golang:'
-      - addsuffix: '-alpine'
+      - addprefix: 'golang'
     spec:
       file: Dockerfile.standalone
-      matchpattern: 'golang:v?[0-9]+\.[0-9]+\.[0-9]+-alpine(?:@sha256:[a-f0-9]{64})?'
+      matchpattern: 'golang@sha256:[a-f0-9]{64}'
   golang_bookworm:
     #{{- if .scm.enabled }}
     scmid: default
     #{{- end }}
     kind: file
-    sourceid: golang
+    sourceid: golang_bookworm_digest
     transformers:
-      - addprefix: 'golang:'
-      - addsuffix: '-bookworm'
+      - addprefix: 'golang'
     spec:
       file: e2e/Dockerfile
-      matchpattern: 'golang:v?[0-9]+\.[0-9]+\.[0-9]+-bookworm(?:@sha256:[a-f0-9]{64})?'
+      matchpattern: 'golang@sha256:[a-f0-9]{64}'
   golang:
     #{{- if .scm.enabled }}
     scmid: default
     #{{- end }}
     kind: file
-    sourceid: golang
+    sourceid: golang_debug_digest
     transformers:
-      - addprefix: 'golang:'
+      - addprefix: 'golang'
     spec:
       file: tilt.debug.dockerfile
-      matchpattern: 'golang:v?[0-9]+\.[0-9]+\.[0-9]+(?:@sha256:[a-f0-9]{64})?'
+      matchpattern: 'golang@sha256:[a-f0-9]{64}'
   distroless_static:
     #{{- if .scm.enabled }}
     scmid: default
@@ -155,7 +206,7 @@ targets:
       files:
         - Dockerfile
         - Dockerfile.standalone
-      matchpattern: 'gcr.io/distroless/static[:@][^[:space:]]+'
+      matchpattern: 'gcr\.io/distroless/static@sha256:[a-f0-9]{64}'
   ubi9:
     #{{- if .scm.enabled }}
     scmid: default
@@ -166,7 +217,7 @@ targets:
       - addprefix: 'registry.access.redhat.com/ubi9/ubi'
     spec:
       file: Dockerfile.ubi
-      matchpattern: 'registry.access.redhat.com/ubi9/ubi[:@][^[:space:]]+'
+      matchpattern: 'registry\.access\.redhat\.com/ubi9/ubi@sha256:[a-f0-9]{64}'
   skywalking:
     #{{- if .scm.enabled }}
     scmid: default
@@ -177,7 +228,7 @@ targets:
       - addprefix: 'apache/skywalking-eyes'
     spec:
       file: Makefile
-      matchpattern: 'apache/skywalking-eyes[:@][^[:space:]]+'
+      matchpattern: 'apache/skywalking-eyes@sha256:[a-f0-9]{64}'
   helm_docs:
     #{{- if .scm.enabled }}
     scmid: default
@@ -188,7 +239,7 @@ targets:
       - addprefix: 'docker.io/jnorwood/helm-docs'
     spec:
       file: Makefile
-      matchpattern: 'docker\.io/jnorwood/helm-docs[:@][^[:space:]]+'
+      matchpattern: 'docker\.io/jnorwood/helm-docs@sha256:[a-f0-9]{64}'
   curl:
     #{{- if .scm.enabled }}
     scmid: default
@@ -199,15 +250,140 @@ targets:
       - addprefix: 'curlimages/curl'
     spec:
       file: e2e/framework/addon/conjur.go
-      matchpattern: 'curlimages/curl[:@][^"[:space:]]+'
-  distroless_debian12:
+      matchpattern: 'curlimages/curl@sha256:[a-f0-9]{64}'
+  distroless_debian13:
     #{{- if .scm.enabled }}
     scmid: default
     #{{- end }}
     kind: file
-    sourceid: distroless_debian12
+    sourceid: distroless_debian13
     transformers:
-      - addprefix: 'gcr.io/distroless/static-debian12'
+      - addprefix: 'gcr.io/distroless/static-debian13'
     spec:
       file: e2e/framework/addon/conjur.go
-      matchpattern: 'gcr.io/distroless/static-debian12[:@][^"[:space:]]+'
+      matchpattern: 'gcr\.io/distroless/static-debian13@sha256:[a-f0-9]{64}'
+
+  # These targets refresh the readable release next to each SHA-only reference.
+  alpine_release:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: alpine_version
+    transformers:
+      - addprefix: '# Pinned release: alpine:'
+      - addsuffix: ' (Alpine; tracking 3.x)'
+    spec:
+      files:
+        - e2e/Dockerfile
+        - hack/api-docs/Dockerfile
+        - tilt.dockerfile
+      matchpattern: '# Pinned release: alpine:[^\r\n]+'
+  golang_bookworm_release:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: golang_version
+    transformers:
+      - addprefix: '# Pinned release: golang:'
+      - addsuffix: '-bookworm (Go; tracking 1.x on Debian Bookworm)'
+    spec:
+      file: e2e/Dockerfile
+      matchpattern: '# Pinned release: golang:[^\r\n]+'
+  golang_alpine_release:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: golang_version
+    transformers:
+      - addprefix: '# Pinned release: golang:'
+      - addsuffix: '-alpine (Go; tracking 1.x on Alpine)'
+    spec:
+      file: Dockerfile.standalone
+      matchpattern: '# Pinned release: golang:[^\r\n]+'
+  golang_debug_release:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: golang_version
+    transformers:
+      - addprefix: '# Pinned release: golang:'
+      - addsuffix: ' (Go; tracking 1.x)'
+    spec:
+      file: tilt.debug.dockerfile
+      matchpattern: '# Pinned release: golang:[^\r\n]+'
+  distroless_static_release:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: distroless_static
+    disablesourceinput: true
+    spec:
+      files:
+        - Dockerfile
+        - Dockerfile.standalone
+      matchpattern: '# Pinned release: gcr\.io/distroless/static-debian13:[^\r\n]+'
+      content: '# Pinned release: gcr.io/distroless/static-debian13:latest (Distroless static; Debian 13)'
+  distroless_debian13_release:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: distroless_debian13
+    disablesourceinput: true
+    spec:
+      file: e2e/framework/addon/conjur.go
+      matchpattern: '// Pinned release: gcr\.io/distroless/static-debian13:[^\r\n]+'
+      content: '// Pinned release: gcr.io/distroless/static-debian13:latest (Distroless static; Debian 13)'
+  ubi9_release:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: ubi9_version
+    transformers:
+      - addprefix: '# Pinned release: registry.access.redhat.com/ubi9/ubi:'
+      - addsuffix: ' (Red Hat UBI; tracking 9.x)'
+    spec:
+      file: Dockerfile.ubi
+      matchpattern: '# Pinned release: registry\.access\.redhat\.com/ubi9/ubi:[^\r\n]+'
+  skywalking_release:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: skywalking_version
+    transformers:
+      - addprefix: '# Pinned release: apache/skywalking-eyes:'
+      - addsuffix: ' (SkyWalking Eyes; tracking 0.x)'
+    spec:
+      file: Makefile
+      matchpattern: '# Pinned release: apache/skywalking-eyes:[^\r\n]+'
+  helm_docs_release:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: helm_docs_version
+    transformers:
+      - addprefix: '# Pinned release: jnorwood/helm-docs:'
+      - addsuffix: ' (helm-docs; tracking 1.x)'
+    spec:
+      file: Makefile
+      matchpattern: '# Pinned release: jnorwood/helm-docs:[^\r\n]+'
+  curl_release:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: curl_version
+    transformers:
+      - addprefix: '// Pinned release: curlimages/curl:'
+      - addsuffix: ' (curl; tracking 8.x)'
+    spec:
+      file: e2e/framework/addon/conjur.go
+      matchpattern: '// Pinned release: curlimages/curl:[^\r\n]+'
