@@ -19,6 +19,8 @@ package pushsecret
 import (
 	"testing"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 )
@@ -40,5 +42,42 @@ func TestRemoveUnmanagedStoresWithMixedKinds(t *testing.T) {
 	}
 	if _, ok := filtered[foreignRef]; ok {
 		t.Error("foreign store was not filtered")
+	}
+}
+
+func TestSkipDisabledClusterSecretStore(t *testing.T) {
+	clusterRef := esapi.PushSecretStoreRef{Name: "shared", Kind: esv1.ClusterSecretStoreKind}
+	clusterSelectorRef := esapi.PushSecretStoreRef{Kind: esv1.ClusterSecretStoreKind, LabelSelector: &metav1.LabelSelector{}}
+	localRef := esapi.PushSecretStoreRef{Name: "local", Kind: esv1.SecretStoreKind}
+	tests := []struct {
+		name    string
+		refs    []esapi.PushSecretStoreRef
+		dataTo  []esapi.PushSecretDataTo
+		synced  esapi.SyncedPushSecretsMap
+		enabled bool
+		skip    bool
+	}{
+		{name: "cluster store", refs: []esapi.PushSecretStoreRef{clusterRef}, skip: true},
+		{name: "mixed stores", refs: []esapi.PushSecretStoreRef{localRef, clusterRef}, skip: true},
+		{name: "cluster selector", refs: []esapi.PushSecretStoreRef{clusterSelectorRef}, skip: true},
+		{name: "dataTo cluster store", refs: []esapi.PushSecretStoreRef{localRef}, dataTo: []esapi.PushSecretDataTo{{StoreRef: &clusterRef}}, skip: true},
+		{name: "dataTo cluster selector",
+			refs: []esapi.PushSecretStoreRef{localRef}, dataTo: []esapi.PushSecretDataTo{{StoreRef: &clusterSelectorRef}}, skip: true},
+		{name: "dataTo without storeRef", refs: []esapi.PushSecretStoreRef{localRef}, dataTo: []esapi.PushSecretDataTo{{}}, skip: false},
+		{name: "previously synced cluster store", refs: []esapi.PushSecretStoreRef{localRef}, synced: esapi.SyncedPushSecretsMap{"ClusterSecretStore/shared": {}}, skip: true},
+		{name: "namespaced store", refs: []esapi.PushSecretStoreRef{localRef}, skip: false},
+		{name: "previously synced namespaced store", synced: esapi.SyncedPushSecretsMap{"SecretStore/local": {}}, skip: false},
+		{name: "enabled cluster store", refs: []esapi.PushSecretStoreRef{clusterRef}, enabled: true, skip: false},
+		{name: "enabled dataTo cluster store", dataTo: []esapi.PushSecretDataTo{{StoreRef: &clusterRef}}, enabled: true, skip: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ps := &esapi.PushSecret{Spec: esapi.PushSecretSpec{SecretStoreRefs: tt.refs, DataTo: tt.dataTo}, Status: esapi.PushSecretStatus{SyncedPushSecrets: tt.synced}}
+			r := &Reconciler{ClusterSecretStoreEnabled: tt.enabled}
+			if got := r.shouldSkipClusterSecretStore(ps); got != tt.skip {
+				t.Errorf("shouldSkipClusterSecretStore() = %t, want %t", got, tt.skip)
+			}
+		})
 	}
 }
