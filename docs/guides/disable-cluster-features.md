@@ -41,12 +41,14 @@ If a `PushSecret` is already stuck deleting (regardless of the Deletion Policy),
 After confirming cleanup, inspect the finalizers and remove **only** the PushSecret finalizer to allow Kubernetes deletion:
 
 ```bash
-kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.metadata.finalizers}'
+kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.metadata.finalizers}' # Show all finalizers
 kubectl patch pushsecret <name> -n <namespace> --type=json \
-  -p='[{"op":"remove","path":"/metadata/finalizers/0"}]'
+  -p='[{"op":"test","path":"/metadata/finalizers/0","value":"pushsecret.externalsecrets.io/finalizer"},{"op":"remove","path":"/metadata/finalizers/0"}]' # Remove the first finalizer if it is pushsecret. If failing, you will have to do it manually.
+kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.metadata.finalizers}' # Show remaining finalizers
 ```
 
-The patch is appropriate only if `pushsecret.externalsecrets.io/finalizer` is the sole finalizer. If there are others, remove that finalizer by its actual array index instead; do not remove other controllers' finalizers.
+If the last command commands still show a PushSecret finalizer, the remove operation has failed (PushSecret finalizer was not at index 0 and nothing was removed).
+In this case, find its index with the last `get` command and use that index in both `path` values; do not remove other controllers' finalizers.
 
 When this is done, remove outdated cluster-store refs from `spec.secretStoreRefs` and `spec.dataTo[].storeRef`.
 
