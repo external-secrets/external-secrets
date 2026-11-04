@@ -3,6 +3,7 @@
 [![Roche](./pictures/Roche_logo_blue_200px.png)](https://www.roche.com/)
 [![cs-logo](./pictures/cs_logo.png)](https://container-solutions.com)
 [![Form3](./pictures/form3_logo.png)](https://www.form3.tech/)
+[![Infisical](./pictures/infisical_logo.png)](https://infisical.com/)
 
 # Introduction
 

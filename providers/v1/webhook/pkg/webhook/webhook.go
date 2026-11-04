@@ -317,7 +317,15 @@ func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byt
 	}
 
 	// return response body
-	return io.ReadAll(resp.Body)
+	responseBodySize := maxResponseBodySize.Load()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, responseBodySize+1))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	if int64(len(body)) > responseBodySize {
+		return nil, fmt.Errorf("response body exceeds %d bytes", responseBodySize)
+	}
+	return body, nil
 }
 
 // ReqAddHeaders adds headers to an HTTP request based on provider configuration.

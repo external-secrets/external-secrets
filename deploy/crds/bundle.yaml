@@ -6550,13 +6550,13 @@ spec:
                           type: object
                       type: object
                     nebiusmysterybox:
-                      description: NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider
+                      description: NebiusMysterybox configures this store to sync secrets using the Nebius SecretStash provider
                       properties:
                         apiDomain:
-                          description: NebiusMysterybox API endpoint
+                          description: Nebius SecretStash API endpoint
                           type: string
                         auth:
-                          description: Auth defines parameters to authenticate in MysteryBox
+                          description: Auth defines parameters to authenticate in SecretStash
                           properties:
                             serviceAccountCredsSecretRef:
                               description: |-
@@ -6598,7 +6598,7 @@ spec:
                                   type: string
                               type: object
                             tokenSecretRef:
-                              description: Token authenticates with Nebius Mysterybox by presenting a token.
+                              description: Token authenticates with Nebius SecretStash by presenting a token.
                               properties:
                                 key:
                                   description: |-
@@ -6674,7 +6674,7 @@ spec:
                             - message: exactly one of serviceAccountCredsSecretRef, tokenSecretRef, or workloadIdentity must be set
                               rule: '(has(self.serviceAccountCredsSecretRef) && has(self.serviceAccountCredsSecretRef.name) && size(self.serviceAccountCredsSecretRef.name) > 0 ? 1 : 0) + (has(self.tokenSecretRef) && has(self.tokenSecretRef.name) && size(self.tokenSecretRef.name) > 0 ? 1 : 0) + (has(self.workloadIdentity) ? 1 : 0) == 1'
                         caProvider:
-                          description: The provider for the CA bundle to use to validate NebiusMysterybox server certificate.
+                          description: The provider for the CA bundle to use to validate Nebius SecretStash server certificate.
                           properties:
                             certSecretRef:
                               description: |-
@@ -20227,13 +20227,13 @@ spec:
                           type: object
                       type: object
                     nebiusmysterybox:
-                      description: NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider
+                      description: NebiusMysterybox configures this store to sync secrets using the Nebius SecretStash provider
                       properties:
                         apiDomain:
-                          description: NebiusMysterybox API endpoint
+                          description: Nebius SecretStash API endpoint
                           type: string
                         auth:
-                          description: Auth defines parameters to authenticate in MysteryBox
+                          description: Auth defines parameters to authenticate in SecretStash
                           properties:
                             serviceAccountCredsSecretRef:
                               description: |-
@@ -20275,7 +20275,7 @@ spec:
                                   type: string
                               type: object
                             tokenSecretRef:
-                              description: Token authenticates with Nebius Mysterybox by presenting a token.
+                              description: Token authenticates with Nebius SecretStash by presenting a token.
                               properties:
                                 key:
                                   description: |-
@@ -20351,7 +20351,7 @@ spec:
                             - message: exactly one of serviceAccountCredsSecretRef, tokenSecretRef, or workloadIdentity must be set
                               rule: '(has(self.serviceAccountCredsSecretRef) && has(self.serviceAccountCredsSecretRef.name) && size(self.serviceAccountCredsSecretRef.name) > 0 ? 1 : 0) + (has(self.tokenSecretRef) && has(self.tokenSecretRef.name) && size(self.tokenSecretRef.name) > 0 ? 1 : 0) + (has(self.workloadIdentity) ? 1 : 0) == 1'
                         caProvider:
-                          description: The provider for the CA bundle to use to validate NebiusMysterybox server certificate.
+                          description: The provider for the CA bundle to use to validate Nebius SecretStash server certificate.
                           properties:
                             certSecretRef:
                               description: |-

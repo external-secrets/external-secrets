@@ -1928,18 +1928,23 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1.ExternalSecretReady, v1.ConditionFalse, 0.0)).To(BeTrue())
 			Expect(externalSecretConditionShouldBe(ExternalSecretName, ExternalSecretNamespace, esv1.ExternalSecretReady, v1.ConditionTrue, 0.0)).To(BeTrue())
+			Consistently(func() []string {
+				es := &esv1.ExternalSecret{}
+				Expect(k8sClient.Get(context.Background(), types.NamespacedName{Name: ExternalSecretName, Namespace: ExternalSecretNamespace}, es)).To(Succeed())
+				return es.Finalizers
+			}, time.Second, interval).ShouldNot(ContainElement(ExternalSecretFinalizer))
 		}
 	}
 
 	ignoreClusterSecretStoreWhenDisabled := func(tc *testCase) {
 		tc.externalSecret.Spec.SecretStoreRef.Kind = esv1.ClusterSecretStoreKind
 
-		Expect(shouldSkipClusterSecretStore(
-			&Reconciler{
-				ClusterSecretStoreEnabled: false,
-			},
-			tc.externalSecret,
-		)).To(BeTrue())
+		skip, err := shouldSkipUnmanagedStore(
+			context.Background(), tc.externalSecret.Namespace,
+			&Reconciler{ClusterSecretStoreEnabled: false}, tc.externalSecret,
+		)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(skip).To(BeTrue())
 
 		tc.checkCondition = func(es *esv1.ExternalSecret) bool {
 			cond := esv1.GetExternalSecretCondition(es.Status, esv1.ExternalSecretReady)
