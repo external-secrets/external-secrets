@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
@@ -57,7 +58,7 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 		opts = append(opts, WithTimePeriod(int64(res.Spec.TimePeriod)))
 	}
 	if res.Spec.Algorithm != "" {
-		opts = append(opts, WithAlgorithm(res.Spec.Algorithm))
+		opts = append(opts, WithAlgorithm(strings.ToLower(res.Spec.Algorithm)))
 	}
 	if res.Spec.When != nil {
 		opts = append(opts, WithWhen(res.Spec.When.Time))

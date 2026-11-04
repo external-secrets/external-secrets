@@ -147,6 +147,46 @@ func TestGenerate(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "spec with upper case SHA256 algorithm should be accepted",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec": {"secret": {"name": "secret", "key": "secret"}, "length": 8, "algorithm": "SHA256", "when": "1970-01-01T00:00:59Z"}}`),
+				},
+				client: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
+					Name:      "secret",
+					Namespace: "namespace",
+					Data: map[string][]byte{
+						"secret": []byte(rfc6238SeedSHA256),
+					},
+				}).Build(),
+			},
+			want: map[string][]byte{
+				"token":    []byte(`46119246`),
+				"timeLeft": []byte(`1`),
+			},
+			wantErr: false,
+		},
+		{
+			name: "spec with upper case SHA1 algorithm should still work",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(`{"spec": {"secret": {"name": "secret", "key": "secret"}, "length": 8, "algorithm": "SHA1", "when": "1970-01-01T00:00:59Z"}}`),
+				},
+				client: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
+					Name:      "secret",
+					Namespace: "namespace",
+					Data: map[string][]byte{
+						"secret": []byte(rfc6238SeedSHA1),
+					},
+				}).Build(),
+			},
+			want: map[string][]byte{
+				"token":    []byte(`94287082`),
+				"timeLeft": []byte(`1`),
+			},
+			wantErr: false,
+		},
+		{
 			name: "spec with unknown algorithm should result in error",
 			args: args{
 				jsonSpec: &apiextensions.JSON{
