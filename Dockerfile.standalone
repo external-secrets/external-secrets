@@ -14,7 +14,7 @@ RUN go mod download
 RUN go build -o external-secrets main.go
 
 # Pinned release: gcr.io/distroless/static-debian13:latest (Distroless static; Debian 13)
-FROM gcr.io/distroless/static@sha256:15f8637509792e05b97d83451b0b6ccfa4abd548f997e406ac1e72c87fe1fa78 AS app
+FROM gcr.io/distroless/static@sha256:448810357cc8e67b7208988abdba0f5ec3d3aebee0a5b13eb624979792cffc0f AS app
 COPY --from=builder /app/external-secrets /bin/external-secrets
 
 # Run as UID for nobody
