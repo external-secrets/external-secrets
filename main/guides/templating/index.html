@@ -5429,6 +5429,7 @@
 <h1 id="advanced-templating-v2">Advanced Templating v2</h1>
 <p>With External Secrets Operator you can transform the data from the external secret provider before it is stored as <code>Kind=Secret</code>. You can do this with the <code>Spec.Target.Template</code>.</p>
 <p>Each data value is interpreted as a <a href="https://golang.org/pkg/text/template/">Go template</a>. Please note that referencing a non-existing key in the template will raise an error, instead of being suppressed.</p>
+<p>Rendered template values (including key rewrites) must be smaller than 1 MiB; rendering fails rather than truncating oversized values. Functions that can generate large values, such as <code>until</code>, <code>untilStep</code>, <code>seq</code>, <code>repeat</code>, <code>join</code>, <code>randAlpha</code>, <code>randAlphaNum</code>, <code>randBytes</code>, <code>randAscii</code>, <code>randNumeric</code>, <code>(n)indent</code>, and <code>replace</code>, also reject oversized arguments before allocating. Sequences are limited to endpoints within ±10,000. The complete Secret can have a lower effective size limit due to metadata and encoding overhead.</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <p>Consider using camelcase when defining  <strong>.'spec.data.secretkey'</strong>, example: serviceAccountToken</p>
