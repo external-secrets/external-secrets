@@ -36,6 +36,6 @@ spec:
         password: "{{ .password }}"
         project: myproject
         type: oci
-        url: oci://docker.cloudsmith.io/my-workspace/my-repo
+        url: oci://helm.oci.cloudsmith.io
 
 {% endraw %}
