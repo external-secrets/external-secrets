@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -200,103 +201,129 @@ func TestProviderDeleteSecret(t *testing.T) {
 }
 
 func TestProviderGetAllSecrets(t *testing.T) {
-	type fields struct {
-		kube      client.Client
-		namespace string
-		store     esv1.GenericStore
-		mock      func(c *FakeClient)
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
+					OrganizationID: "orgid",
+					ProjectID:      projectID,
+				},
+			},
+		},
 	}
-	type args struct {
-		ctx context.Context
-		ref esv1.ExternalSecretFind
+	listed := []SecretResponse{
+		{ID: remoteID, Key: "key1", Value: "value1"},
+		{ID: remoteIDTwo, Key: "key2", Value: "value2"},
+		{ID: remoteIDThree, Key: "notAMatch", Value: "value3"},
 	}
+	// mockListing lists all secrets and answers GetSecret, in order, for the given indexes of listed.
+	mockListing := func(fetched ...int) func(c *FakeClient) {
+		return func(c *FakeClient) {
+			data := make([]SecretIdentifierResponse, 0, len(listed))
+			for _, l := range listed {
+				data = append(data, SecretIdentifierResponse{ID: l.ID, Key: l.Key, OrganizationID: "orgid"})
+			}
+			c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{Data: data})
+			for call, i := range fetched {
+				c.GetSecretReturnsOnCallN(call, &listed[i])
+			}
+		}
+	}
+	all := map[string][]byte{
+		remoteID:      []byte("value1"),
+		remoteIDTwo:   []byte("value2"),
+		remoteIDThree: []byte("value3"),
+	}
+	path := "some/path"
+
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		want    map[string][]byte
-		wantErr bool
+		name          string
+		store         esv1.GenericStore
+		mock          func(c *FakeClient)
+		ref           esv1.ExternalSecretFind
+		want          map[string][]byte
+		wantErr       string
+		wantListCalls int
 	}{
 		{
-			name: "get all secrets",
-			fields: fields{
-				namespace: "default",
-				store: &esv1.SecretStore{
-					Spec: esv1.SecretStoreSpec{
-						Provider: &esv1.SecretStoreProvider{
-							BitwardenSecretsManager: &esv1.BitwardenSecretsManagerProvider{
-								OrganizationID: "orgid",
-								ProjectID:      projectID,
-							},
-						},
-					},
-				},
-				mock: func(c *FakeClient) {
-					c.ListSecretReturnsOnCallN(0, &SecretIdentifiersResponse{
-						Data: []SecretIdentifierResponse{
-							{
-								ID:             remoteID,
-								Key:            "key1",
-								OrganizationID: "orgid",
-							},
-							{
-								ID:             remoteIDTwo,
-								Key:            "key2",
-								OrganizationID: "orgid",
-							},
-							{
-								ID:             remoteIDThree,
-								Key:            "notAMatch",
-								OrganizationID: "orgid",
-							},
-						},
-					})
-
-					c.GetSecretReturnsOnCallN(0, &SecretResponse{
-						ID:    remoteID,
-						Key:   "key1",
-						Value: "value1",
-					})
-					c.GetSecretReturnsOnCallN(1, &SecretResponse{
-						ID:    remoteIDTwo,
-						Key:   "key2",
-						Value: "value2",
-					})
-				},
-			},
-			args: args{
-				ctx: context.TODO(),
-				ref: esv1.ExternalSecretFind{
-					Name: &esv1.FindName{
-						RegExp: "key",
-					},
-				},
-			},
-			want: map[string][]byte{
-				remoteID:    []byte("value1"),
-				remoteIDTwo: []byte("value2"),
-			},
+			name:          "name regexp returns only the matching secrets",
+			store:         store,
+			mock:          mockListing(0, 1),
+			ref:           esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: "key"}},
+			want:          map[string][]byte{remoteID: []byte("value1"), remoteIDTwo: []byte("value2")},
+			wantListCalls: 1,
+		},
+		{
+			name:          "anchored name regexp returns a single secret",
+			store:         store,
+			mock:          mockListing(0),
+			ref:           esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: "^key1$"}},
+			want:          map[string][]byte{remoteID: []byte("value1")},
+			wantListCalls: 1,
+		},
+		{
+			name:          "empty name regexp returns all secrets",
+			store:         store,
+			mock:          mockListing(0, 1, 2),
+			ref:           esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: ""}},
+			want:          all,
+			wantListCalls: 1,
+		},
+		{
+			name:          "find without name returns all secrets",
+			store:         store,
+			mock:          mockListing(0, 1, 2),
+			ref:           esv1.ExternalSecretFind{},
+			want:          all,
+			wantListCalls: 1,
+		},
+		{
+			name:    "invalid name regexp errors before listing",
+			store:   store,
+			mock:    mockListing(),
+			ref:     esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: "key("}},
+			wantErr: "could not compile find.name.regexp",
+		},
+		{
+			name:    "tags are not supported",
+			store:   store,
+			mock:    mockListing(),
+			ref:     esv1.ExternalSecretFind{Name: &esv1.FindName{RegExp: "key"}, Tags: map[string]string{"env": "prod"}},
+			wantErr: errUnsupportedFindOperator,
+		},
+		{
+			name:    "path is not supported",
+			store:   store,
+			mock:    mockListing(),
+			ref:     esv1.ExternalSecretFind{Path: &path},
+			wantErr: errUnsupportedFindOperator,
+		},
+		{
+			name:    "store without provider errors",
+			store:   &esv1.SecretStore{},
+			mock:    mockListing(),
+			ref:     esv1.ExternalSecretFind{},
+			wantErr: errNoProvider,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fakeClient := &FakeClient{}
-			tt.fields.mock(fakeClient)
+			tt.mock(fakeClient)
 
 			p := &Provider{
-				kube:               tt.fields.kube,
-				namespace:          tt.fields.namespace,
-				store:              tt.fields.store,
+				namespace:          "default",
+				store:              tt.store,
 				bitwardenSdkClient: fakeClient,
 			}
-			got, err := p.GetAllSecrets(tt.args.ctx, tt.args.ref)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("GetAllSecrets() error = %v, wantErr %v", err, tt.wantErr)
-				return
+			got, err := p.GetAllSecrets(context.TODO(), tt.ref)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+			} else {
+				require.NoError(t, err)
+				assert.Equal(t, tt.want, got)
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("GetAllSecrets() got = %v, want %v", got, tt.want)
-			}
+			assert.Equal(t, tt.wantListCalls, fakeClient.listSecretsCalledN)
 		})
 	}
 }

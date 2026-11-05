@@ -39,7 +39,6 @@ const (
 
 	errNoProvider              = "store does not have a provider"
 	errUnsupportedFindOperator = "provider does not support tags or path operators in find"
-	errNoFindOperator          = "no find operator found"
 )
 
 var (
@@ -294,47 +293,47 @@ func (p *Provider) parseYamlSecretData(data []byte) (map[string][]byte, error) {
 }
 
 // GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.
-// First load all secrets from secretStore path configuration
-// Then, gets secrets from matching the name regexp in find against the secret's key.
+// It lists every secret in the organization and keeps the ones whose key matches find.name.regexp.
+// An empty or missing regexp matches every secret. Tags and path are not supported by Bitwarden.
 func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
-	// Bitwarden does not support tags or path in their secrets.
-	// Hence we check for path or tags operator in find and return error if found.
 	if ref.Path != nil || len(ref.Tags) > 0 {
 		return nil, errors.New(errUnsupportedFindOperator)
 	}
 
-	if ref.Name != nil && ref.Name.RegExp != "" {
-		matcher, err := find.New(*ref.Name)
-		if err != nil {
-			return nil, err
-		}
-
-		spec := p.store.GetSpec()
-		if spec == nil {
-			return nil, errors.New(errNoProvider)
-		}
-
-		secrets, err := p.bitwardenSdkClient.ListSecrets(ctx, spec.Provider.BitwardenSecretsManager.OrganizationID)
-		if err != nil {
-			return nil, fmt.Errorf(errFailedToGetAllSecrets, err)
-		}
-
-		result := map[string][]byte{}
-		for _, d := range secrets.Data {
-			if matcher.MatchName(d.Key) {
-				sec, err := p.bitwardenSdkClient.GetSecret(ctx, d.ID)
-				if err != nil {
-					return nil, fmt.Errorf(errFailedToGetSecret, err)
-				}
-
-				result[d.ID] = []byte(sec.Value)
-			}
-		}
-
-		return result, nil
+	var findName esv1.FindName
+	if ref.Name != nil {
+		findName = *ref.Name
+	}
+	matcher, err := find.New(findName)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, errors.New(errNoFindOperator)
+	spec := p.store.GetSpec()
+	if spec == nil || spec.Provider == nil {
+		return nil, errors.New(errNoProvider)
+	}
+
+	secrets, err := p.bitwardenSdkClient.ListSecrets(ctx, spec.Provider.BitwardenSecretsManager.OrganizationID)
+	if err != nil {
+		return nil, fmt.Errorf(errFailedToGetAllSecrets, err)
+	}
+
+	result := map[string][]byte{}
+	for _, d := range secrets.Data {
+		if !matcher.MatchName(d.Key) {
+			continue
+		}
+
+		sec, err := p.bitwardenSdkClient.GetSecret(ctx, d.ID)
+		if err != nil {
+			return nil, fmt.Errorf(errFailedToGetSecret, err)
+		}
+
+		result[d.ID] = []byte(sec.Value)
+	}
+
+	return result, nil
 }
 
 // Validate validates the provider.
