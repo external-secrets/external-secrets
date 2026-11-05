@@ -121,7 +121,11 @@ The DVLS provider supports pushing secrets back to DVLS:
 {% include 'dvls-push-secret.yaml' %}
 ```
 
-**Note:** Push secret updates an existing entry's password field. The entry must already exist in DVLS.
+**Note:** Push writes the password field of the entry the `remoteKey` addresses. If that entry does not exist it is created, as a `Credential/AccessCode` — the subtype whose single field is read back as `password`, so a pushed value is readable by an `ExternalSecret` that sets no `property`. Creation needs the store's `vault` to be set, since an entry can only be placed by name and path; a `remoteKey` written as a UUID names one specific existing entry and is never created. A store that sets no `vault` addresses entries as `<vault-uuid>/<entry-uuid>`, which likewise names one existing entry, so a push to a missing entry keeps failing there as before.
+
+**Note:** A `remoteKey` may name folders, as in `prod/db/postgres-password`. DVLS keeps folders as entries of their own, so any level of that path the vault does not hold yet is created before the entry is, from the root down. Existing folders are reused; only the missing levels are added. A misspelled path therefore leaves the folders it named behind: `deletionPolicy` removes the entry a `PushSecret` created but never its folders, so they have to be cleaned up in DVLS by hand.
+
+**Note:** Creating an entry or a folder needs the application identity to hold **Add** permission on the target folder. Without it a push to a remote key the vault does not have fails with a permission error from the server, while pushes to entries that already exist keep working.
 
 ## Limitations
 
