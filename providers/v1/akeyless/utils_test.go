@@ -64,3 +64,126 @@ func TestIgnoreCacheEnabled(t *testing.T) {
 		})
 	}
 }
+
+func TestResolveAkeylessAPIURL(t *testing.T) {
+	prevGetenv := getenv
+	prevProbe := probeAkeylessURL
+	t.Cleanup(func() {
+		getenv = prevGetenv
+		probeAkeylessURL = prevProbe
+	})
+	probeAkeylessURL = func(string) string { return "" }
+
+	tests := []struct {
+		name       string
+		configured string
+		env        string
+		want       string
+	}{
+		{
+			name: "default global api",
+			want: defaultAPIUrl,
+		},
+		{
+			name: "AKEYLESS_URL vault eu maps to api eu",
+			env:  "https://vault.eu.akeyless.io",
+			want: "https://api.eu.akeyless.io",
+		},
+		{
+			name: "AKEYLESS_URL bare host",
+			env:  "vault.us.akeyless.io",
+			want: "https://api.us.akeyless.io",
+		},
+		{
+			name:       "store api url wins over env",
+			configured: "https://api.eu.akeyless.io",
+			env:        "https://vault.us.akeyless.io",
+			want:       "https://api.eu.akeyless.io",
+		},
+		{
+			name:       "store vault url maps to api",
+			configured: "https://vault.eu.akeyless.io",
+			want:       "https://api.eu.akeyless.io",
+		},
+		{
+			name:       "fedramp vault-akeyless host",
+			configured: "https://vault-akeyless.staging.secondfront.com",
+			want:       "https://api-akeyless.staging.secondfront.com",
+		},
+		{
+			name:       "gateway without v2 gets v2 path",
+			configured: "https://gw.example.com:8080",
+			want:       "https://gw.example.com:8080/v2",
+		},
+		{
+			name:       "gateway already v2 unchanged",
+			configured: "https://gw.example.com:8080/v2",
+			want:       "https://gw.example.com:8080/v2",
+		},
+		{
+			name:       "saas api with trailing slash trimmed",
+			configured: "https://api.akeyless.io/",
+			want:       "https://api.akeyless.io",
+		},
+		{
+			name:       "customer vault gateway host is not rewritten",
+			configured: "https://vault.mycorp.com:8080",
+			want:       "https://vault.mycorp.com:8080/v2",
+		},
+		{
+			name:       "api host with akeyless in name but not saas suffix keeps path",
+			configured: "https://api.akeyless.example.com/v2",
+			want:       "https://api.akeyless.example.com/v2",
+		},
+		{
+			name:       "api-akeyless customer host keeps path",
+			configured: "https://api-akeyless.example.com:8080/v2",
+			want:       "https://api-akeyless.example.com:8080/v2",
+		},
+		{
+			name:       "ipv6 gateway without port keeps brackets",
+			configured: "https://[2001:db8::1]/v2",
+			want:       "https://[2001:db8::1]/v2",
+		},
+		{
+			name:       "ipv6 gateway with port",
+			configured: "https://[2001:db8::1]:8080",
+			want:       "https://[2001:db8::1]:8080/v2",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			getenv = func(string) string { return tt.env }
+			require.Equal(t, tt.want, resolveAkeylessAPIURL(tt.configured))
+		})
+	}
+}
+
+func TestGetV2UrlLeavesSaaSProbeAlone(t *testing.T) {
+	prevProbe := probeAkeylessURL
+	t.Cleanup(func() { probeAkeylessURL = prevProbe })
+	probeAkeylessURL = func(string) string { return `{"error":"unknown command ''"}` }
+
+	require.Equal(t, "https://api.custom.example", getV2Url("https://api.custom.example"))
+}
+
+func TestIsAkeylessSaaSAPIHost(t *testing.T) {
+	t.Parallel()
+	require.True(t, isAkeylessSaaSAPIHost("api.akeyless.io"))
+	require.True(t, isAkeylessSaaSAPIHost("api.eu.akeyless.io"))
+	require.True(t, isAkeylessSaaSAPIHost("api-akeyless.staging.secondfront.com"))
+	require.False(t, isAkeylessSaaSAPIHost("vault.eu.akeyless.io"))
+	require.False(t, isAkeylessSaaSAPIHost("gw.example.com"))
+	require.False(t, isAkeylessSaaSAPIHost("api.akeyless.example.com"))
+	require.False(t, isAkeylessSaaSAPIHost("vault.mycorp.com"))
+}
+
+func TestMapAkeylessVaultHostToAPI(t *testing.T) {
+	t.Parallel()
+	require.Equal(t, "api.eu.akeyless.io", mapAkeylessVaultHostToAPI("vault.eu.akeyless.io"))
+	require.Equal(t, "api.akeyless.io", mapAkeylessVaultHostToAPI("vault.akeyless.io"))
+	require.Equal(t, "api-akeyless.staging.secondfront.com", mapAkeylessVaultHostToAPI("vault-akeyless.staging.secondfront.com"))
+	require.Equal(t, "vault.mycorp.com", mapAkeylessVaultHostToAPI("vault.mycorp.com"))
+	require.Equal(t, "api.eu.akeyless.io", mapAkeylessVaultHostToAPI("api.eu.akeyless.io"))
+}
