@@ -27,6 +27,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -248,8 +249,12 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		obj.SetGroupVersionKind(gvk)
 		obj.SetName(getTargetName(es))
 		obj.SetNamespace(es.Namespace)
+		// Copy the metadata subtree only. DeepCopy would also copy the content this
+		// branch is about to discard, which for a custom resource is most of the object.
 		if existingObj != nil {
-			obj.Object["metadata"] = existingObj.DeepCopy().Object["metadata"]
+			if existingMetadata, ok := existingObj.Object["metadata"].(map[string]any); ok {
+				obj.Object["metadata"] = runtime.DeepCopyJSON(existingMetadata)
+			}
 		}
 		switch gvk.Kind {
 		case "ConfigMap", "Secret":
