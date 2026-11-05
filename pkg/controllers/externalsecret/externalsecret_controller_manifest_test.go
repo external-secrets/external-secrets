@@ -19,6 +19,7 @@ package externalsecret
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
@@ -30,52 +31,29 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
+	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
-func TestValidateManifestSecretCandidate(t *testing.T) {
-	secretTarget := &esv1.ExternalSecret{Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
-		Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "Secret"},
-	}}}
-
+func TestValidateManifestCandidate(t *testing.T) {
 	configMapTarget := &esv1.ExternalSecret{Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
 		Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
 	}}}
 
 	tests := []struct {
-		name            string
-		es              *esv1.ExternalSecret
-		object          map[string]any
-		wantErr         error
-		wantErrContains string
+		name    string
+		es      *esv1.ExternalSecret
+		object  map[string]any
+		wantErr string
 	}{
-		{
-			name: "rejects created service account token Secret",
-			es:   secretTarget,
-			object: map[string]any{
-				"apiVersion": "v1",
-				"kind":       "Secret",
-				"type":       string(v1.SecretTypeServiceAccountToken),
-				"metadata": map[string]any{"annotations": map[string]any{
-					v1.ServiceAccountNameKey: "service-account",
-				}},
-			},
-			wantErr: errServiceAccountTokenSecret,
-		},
-		{
-			name: "rejects updated bootstrap token Secret",
-			es:   secretTarget,
-			object: map[string]any{
-				"apiVersion": "v1",
-				"kind":       "Secret",
-				"type":       string(v1.SecretTypeBootstrapToken),
-			},
-			wantErr: errBootstrapTokenSecret,
-		},
 		{
 			name: "allows matching non-Secret manifest",
 			es:   configMapTarget,
@@ -91,7 +69,7 @@ func TestValidateManifestSecretCandidate(t *testing.T) {
 				"apiVersion": "v1",
 				"kind":       "Secret",
 			},
-			wantErrContains: `rendered target GVK "/v1, Kind=Secret" differs from declared target GVK "/v1, Kind=ConfigMap"`,
+			wantErr: `rendered target GVK "/v1, Kind=Secret" differs from declared target GVK "/v1, Kind=ConfigMap"`,
 		},
 		{
 			name: "rejects changed API version",
@@ -102,56 +80,20 @@ func TestValidateManifestSecretCandidate(t *testing.T) {
 				"apiVersion": "other.io/v1",
 				"kind":       "Target",
 			},
-			wantErrContains: `rendered target GVK "other.io/v1, Kind=Target" differs from declared target GVK "example.io/v1, Kind=Target"`,
+			wantErr: `rendered target GVK "other.io/v1, Kind=Target" differs from declared target GVK "example.io/v1, Kind=Target"`,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			obj := &unstructured.Unstructured{Object: tt.object}
-			err := validateManifestSecretCandidate(tt.es, obj)
-			switch {
-			case tt.wantErr != nil:
-				require.ErrorIs(t, err, tt.wantErr)
-			case tt.wantErrContains != "":
-				require.EqualError(t, err, tt.wantErrContains)
-			default:
-				require.NoError(t, err)
+			err := validateManifestCandidate(tt.es, &unstructured.Unstructured{Object: tt.object})
+			if tt.wantErr != "" {
+				require.EqualError(t, err, tt.wantErr)
+				return
 			}
+			require.NoError(t, err)
 		})
 	}
-}
-
-func TestApplyTemplateToManifestRejectsRetainedSecretType(t *testing.T) {
-	_ = esv1.AddToScheme(scheme.Scheme)
-	r := &Reconciler{
-		Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
-		Scheme: scheme.Scheme,
-	}
-	es := &esv1.ExternalSecret{
-		Name:      "test-es",
-		Namespace: "default",
-		Annotations: map[string]string{
-			v1.ServiceAccountNameKey: "service-account",
-		},
-		Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
-			Name:     "test-secret",
-			Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "Secret"},
-		}},
-	}
-	existing := &unstructured.Unstructured{Object: map[string]any{
-		"apiVersion": "v1",
-		"kind":       "Secret",
-		"metadata": map[string]any{
-			"name":      "test-secret",
-			"namespace": "default",
-		},
-		"type": string(v1.SecretTypeServiceAccountToken),
-		"data": map[string]any{},
-	}}
-
-	_, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
-	require.ErrorIs(t, err, errServiceAccountTokenSecret)
 }
 
 func TestIsGenericTarget(t *testing.T) {
@@ -279,6 +221,52 @@ func TestValidateGenericTarget(t *testing.T) {
 			allowGenericTargets: true,
 			expectedError:       true,
 			errorContains:       "kind is required",
+		},
+		{
+			name: "core Secret target - flag enabled - rejected",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Manifest: &esv1.ManifestReference{
+							APIVersion: "v1",
+							Kind:       "Secret",
+						},
+					},
+				},
+			},
+			allowGenericTargets: true,
+			expectedError:       true,
+			errorContains:       "must not target the core v1 Secret kind",
+		},
+		{
+			name: "core Secret target through an explicit empty group - rejected",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Manifest: &esv1.ManifestReference{
+							APIVersion: "/v1",
+							Kind:       "Secret",
+						},
+					},
+				},
+			},
+			allowGenericTargets: true,
+			expectedError:       true,
+			errorContains:       "must not target the core v1 Secret kind",
+		},
+		{
+			name: "Secret kind in a custom group - flag enabled - valid",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Manifest: &esv1.ManifestReference{
+							APIVersion: "example.io/v1",
+							Kind:       "Secret",
+						},
+					},
+				},
+			},
+			allowGenericTargets: true,
 		},
 	}
 
@@ -1240,4 +1228,116 @@ func TestIsGenericTargetValid(t *testing.T) {
 		_, err := isGenericTargetValid(obj, makeES(esv1.CreatePolicyOwner))
 		assert.Error(t, err)
 	})
+}
+
+// noopInformerManager satisfies InformerManager for reconcile-level tests, which do not
+// exercise drift detection.
+type noopInformerManager struct{}
+
+func (noopInformerManager) EnsureInformer(context.Context, schema.GroupVersionKind, types.NamespacedName) (bool, error) {
+	return false, nil
+}
+func (noopInformerManager) ReleaseInformer(context.Context, schema.GroupVersionKind, types.NamespacedName) error {
+	return nil
+}
+func (noopInformerManager) IsManaged(schema.GroupVersionKind) bool { return false }
+func (noopInformerManager) GetInformer(schema.GroupVersionKind) (runtimecache.Informer, bool) {
+	return nil, false
+}
+func (noopInformerManager) Source() source.TypedSource[ctrl.Request] { return nil }
+func (noopInformerManager) SetQueue(workqueue.TypedRateLimitingInterface[ctrl.Request]) error {
+	return nil
+}
+
+// TestReconcileRejectsStoredSecretManifest covers an ExternalSecret that already names a core
+// Secret manifest, which the admission webhook now refuses but cannot retroactively remove.
+// The controller has to refuse it too, and must leave whatever sits at the target name alone
+// rather than adopting it through the generic write path.
+func TestReconcileRejectsStoredSecretManifest(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+
+	const (
+		namespace  = "ns"
+		esName     = "stored-es"
+		targetName = "target-secret"
+		storeName  = "test-store"
+	)
+
+	for _, tt := range []struct {
+		name         string
+		targetExists bool
+	}{
+		{"missing target is not created", false},
+		{"existing target is not mutated", true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			es := &esv1.ExternalSecret{
+				Name: esName, Namespace: namespace, UID: "es-uid",
+				Spec: esv1.ExternalSecretSpec{
+					RefreshInterval: &metav1.Duration{Duration: time.Hour},
+					SecretStoreRef:  esv1.SecretStoreRef{Name: storeName, Kind: esv1.SecretStoreKind},
+					Data: []esv1.ExternalSecretData{{
+						SecretKey: "key",
+						RemoteRef: esv1.ExternalSecretDataRemoteRef{Key: "remote-key"},
+					}},
+					Target: esv1.ExternalSecretTarget{
+						Name:           targetName,
+						CreationPolicy: esv1.CreatePolicyOwner,
+						Manifest:       &esv1.ManifestReference{APIVersion: "v1", Kind: "Secret"},
+					},
+				},
+			}
+			store := &esv1.SecretStore{
+				Name: storeName, Namespace: namespace,
+				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{
+					AWS: &esv1.AWSProvider{Service: esv1.AWSServiceSecretsManager},
+				}},
+			}
+
+			objects := []client.Object{es, store}
+			if tt.targetExists {
+				objects = append(objects, &v1.Secret{
+					Name: targetName, Namespace: namespace,
+					Data: map[string][]byte{"untouched": []byte("original")},
+				})
+			}
+
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+				WithObjects(objects...).
+				WithStatusSubresource(&esv1.ExternalSecret{}).Build()
+			r := &Reconciler{
+				Client: fakeClient, SecretClient: fakeClient, Scheme: scheme.Scheme,
+				Log: logr.Discard(), recorder: record.NewFakeRecorder(100),
+				// the unsafe flag is on, so the ban is the only thing refusing this
+				AllowGenericTargets: true,
+				informerManager:     noopInformerManager{},
+				RequeueInterval:     time.Hour,
+			}
+
+			// a configuration error is not retryable, so no error is returned for requeue
+			_, err := r.Reconcile(context.Background(), ctrl.Request{
+				Name: esName, Namespace: namespace,
+			})
+			require.NoError(t, err)
+
+			synced := &esv1.ExternalSecret{}
+			require.NoError(t, r.Get(context.Background(),
+				types.NamespacedName{Name: esName, Namespace: namespace}, synced))
+			cond := esv1.GetExternalSecretCondition(synced.Status, esv1.ExternalSecretReady)
+			require.NotNil(t, cond)
+			assert.Equal(t, v1.ConditionFalse, cond.Status)
+
+			target := &v1.Secret{}
+			getErr := r.Get(context.Background(),
+				types.NamespacedName{Name: targetName, Namespace: namespace}, target)
+			if !tt.targetExists {
+				assert.True(t, apierrors.IsNotFound(getErr), "target must not be created")
+				return
+			}
+			require.NoError(t, getErr)
+			assert.Equal(t, map[string][]byte{"untouched": []byte("original")}, target.Data)
+			assert.Empty(t, target.OwnerReferences)
+			assert.Empty(t, target.Labels[esv1.LabelManaged])
+		})
+	}
 }

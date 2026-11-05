@@ -11,6 +11,14 @@ External Secrets Operator can create and manage resources beyond Kubernetes Secr
 
 This feature must be explicitly enabled in your deployment using the `--unsafe-allow-generic-targets` flag.
 
+!!! warning "Not for Secrets"
+    `spec.target.manifest` cannot name the core `v1` `Secret` kind; both the admission webhook
+    and the controller reject it. To sync into a Secret, leave `spec.target.manifest` unset and
+    use the default Secret target, which applies the Secret-specific validations this path does
+    not. A `Secret` kind in a custom API group is a different resource and remains supported.
+    This is a breaking change: see
+    [Ownership and Deletion Policy](ownership-deletion-policy.md) for the migration.
+
 !!! note "Namespaced Resources Only"
     With this feature you can only target namespaced resources - and resources can only be managed by an ExternalSecret in the same namespace as the resource.
 

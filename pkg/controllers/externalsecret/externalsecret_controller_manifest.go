@@ -52,6 +52,13 @@ func (r *Reconciler) validateGenericTarget(log logr.Logger, es *esv1.ExternalSec
 		return fmt.Errorf("target.manifest.kind is required")
 	}
 
+	// Same check the admission webhook runs, applied before any provider retrieval,
+	// rendering or write, so objects stored before the ban and ExternalSecrets admitted
+	// without the webhook are refused here instead of reaching the generic write path.
+	if err := esv1.ValidateManifestTarget(&es.Spec); err != nil {
+		return err
+	}
+
 	log.Info("Warning: Using generic target. Make sure access policies and encryption are properly configured.",
 		"apiVersion", manifest.APIVersion,
 		"kind", manifest.Kind,
@@ -72,9 +79,8 @@ func getTargetGVK(es *esv1.ExternalSecret) schema.GroupVersionKind {
 	}
 }
 
-// validateManifestSecretCandidate ensures rendering did not change the declared GVK
-// and applies the final Secret policy to explicit core/v1 Secret targets.
-func validateManifestSecretCandidate(es *esv1.ExternalSecret, obj *unstructured.Unstructured) error {
+// validateManifestCandidate ensures rendering did not change the declared GVK.
+func validateManifestCandidate(es *esv1.ExternalSecret, obj *unstructured.Unstructured) error {
 	declaredGVK := getTargetGVK(es)
 	renderedGVK := obj.GroupVersionKind()
 
@@ -86,19 +92,7 @@ func validateManifestSecretCandidate(es *esv1.ExternalSecret, obj *unstructured.
 		)
 	}
 
-	if declaredGVK != v1.SchemeGroupVersion.WithKind("Secret") {
-		return nil
-	}
-
-	secretType, _, err := unstructured.NestedString(obj.Object, "type")
-	if err != nil {
-		return fmt.Errorf("invalid Secret type: %w", err)
-	}
-
-	secret := &v1.Secret{Type: v1.SecretType(secretType)}
-	secret.SetAnnotations(obj.GetAnnotations())
-
-	return validateSecretCandidate(secret)
+	return nil
 }
 
 // getTargetName returns the name of the target resource.
@@ -268,7 +262,7 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 	if err := r.applyOwnership(es, result); err != nil {
 		return nil, err
 	}
-	if err := validateManifestSecretCandidate(es, result); err != nil {
+	if err := validateManifestCandidate(es, result); err != nil {
 		return nil, err
 	}
 
