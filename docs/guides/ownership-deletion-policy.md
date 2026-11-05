@@ -99,10 +99,15 @@ ExternalSecrets mapping to non-existing secrets in the provider.
 `deletionPolicy=Delete` only takes effect with `creationPolicy=Owner`. Before deleting
 an existing target (Secret or manifest), ESO checks its `metadata.ownerReferences`
 for a controller reference (`controller: true`) to the current ExternalSecret,
-matching its API group, kind, name and UID. Setting `creationPolicy=Owner` alone
-does not prove ownership. A reference to an older ExternalSecret with the same name
-but a different UID does not authorize deletion. If the ownership check fails, ESO
-rejects the deletion and reports a failed sync.
+matching its API group, kind and name. Setting `creationPolicy=Owner` alone
+does not prove ownership. The UID and the API version of the reference are not
+compared, so an ExternalSecret that was deleted and recreated under the same name
+still deletes the target it owns, without having to update the owner reference
+first. A target with no controller reference, a controller reference to a different
+ExternalSecret, or a controller of another kind is never deleted. If the ownership
+check fails, ESO leaves the target alone and reports a failed sync; during
+ExternalSecret deletion it instead logs the refusal and lets finalization finish,
+so an unrelated target can never block it.
 
 ### Merge
 Merge removes keys in the secret, but not the secret itself.
