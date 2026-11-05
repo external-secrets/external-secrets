@@ -443,7 +443,7 @@ func (p *Provider) lookupHTTPClient() (*http.Client, error) {
 	if p.caCertificate != "" {
 		pool := x509.NewCertPool()
 		if pool.AppendCertsFromPEM([]byte(p.caCertificate)) {
-			transport.TLSClientConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
+			transport.TLSClientConfig = &tls.Config{RootCAs: pool}
 		}
 	}
 	return &http.Client{Timeout: projectLookupTimeout, Transport: transport}, nil

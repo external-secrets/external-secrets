@@ -257,9 +257,7 @@ func postJSONRequestInternal(ctx context.Context, url string, requestBody any, p
 	if err != nil {
 		return nil, fmt.Errorf("failed to clone default HTTP transport: %w", err)
 	}
-	transport.TLSClientConfig = &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
+	transport.TLSClientConfig = &tls.Config{}
 
 	client := &http.Client{
 		Timeout:   10 * time.Second,
