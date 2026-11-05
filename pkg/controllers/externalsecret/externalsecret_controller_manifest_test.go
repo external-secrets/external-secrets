@@ -566,7 +566,8 @@ func TestApplyTemplateToManifest_Finalizers(t *testing.T) {
 	}
 	newES := func(finalizers ...string) *esv1.ExternalSecret {
 		return &esv1.ExternalSecret{
-			ObjectMeta: metav1.ObjectMeta{Name: "test-es", Namespace: "default"},
+			Name:      "test-es",
+			Namespace: "default",
 			Spec: esv1.ExternalSecretSpec{
 				Target: esv1.ExternalSecretTarget{
 					Name:     "test-configmap",
@@ -629,6 +630,58 @@ func TestApplyTemplateToManifest_Finalizers(t *testing.T) {
 			result, err := r.applyTemplateToManifest(context.Background(), tc.es, map[string][]byte{"key": []byte("value")}, tc.existing)
 			require.NoError(t, err)
 			assert.Equal(t, tc.want, result.GetFinalizers())
+		})
+	}
+}
+
+func TestKeepTargetFinalizers(t *testing.T) {
+	es := &esv1.ExternalSecret{
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				Template: &esv1.ExternalSecretTemplate{
+					Metadata: esv1.ExternalSecretTemplateMetadata{Finalizers: []string{"example.com/cleanup"}},
+				},
+			},
+		},
+	}
+	// with the Owner and Orphan policies, the rendered object does not start from the existing target
+	rendered := func() *unstructured.Unstructured {
+		obj := &unstructured.Unstructured{}
+		obj.SetFinalizers([]string{"example.com/cleanup"})
+		return obj
+	}
+	existing := func(deleting bool, finalizers ...string) *unstructured.Unstructured {
+		obj := &unstructured.Unstructured{}
+		obj.SetFinalizers(finalizers)
+		if deleting {
+			now := metav1.Now()
+			obj.SetDeletionTimestamp(&now)
+		}
+		return obj
+	}
+
+	tests := map[string]struct {
+		existing *unstructured.Unstructured
+		want     []string
+	}{
+		"keeps the finalizers of other controllers": {
+			existing: existing(false, "other.io/keep"),
+			want:     []string{"other.io/keep", "example.com/cleanup"},
+		},
+		"does not add duplicates": {
+			existing: existing(false, "example.com/cleanup", "other.io/keep"),
+			want:     []string{"example.com/cleanup", "other.io/keep"},
+		},
+		"does not add template finalizers while the target is being deleted": {
+			existing: existing(true, "other.io/keep"),
+			want:     []string{"other.io/keep"},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			obj := rendered()
+			keepTargetFinalizers(es, obj, tc.existing)
+			assert.Equal(t, tc.want, obj.GetFinalizers())
 		})
 	}
 }

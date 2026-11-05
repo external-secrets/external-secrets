@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"slices"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
@@ -386,4 +387,21 @@ func addTemplateFinalizers(es *esv1.ExternalSecret, obj *unstructured.Unstructur
 	for _, finalizer := range es.Spec.Target.Template.Metadata.Finalizers {
 		controllerutil.AddFinalizer(obj, finalizer)
 	}
+}
+
+// keepTargetFinalizers sets the finalizers of the object that replaces an existing target on update.
+// An Update replaces metadata.finalizers, and with the Owner and Orphan policies the rendered object
+// does not start from the existing target, so its finalizers (also those of other controllers) are
+// carried over. Template finalizers are only added while the target is not being deleted, since the
+// API server rejects new finalizers on an object that is being deleted.
+func keepTargetFinalizers(es *esv1.ExternalSecret, obj, existing *unstructured.Unstructured) {
+	finalizers := slices.Clone(existing.GetFinalizers())
+	if existing.GetDeletionTimestamp().IsZero() && es.Spec.Target.Template != nil {
+		for _, finalizer := range es.Spec.Target.Template.Metadata.Finalizers {
+			if !slices.Contains(finalizers, finalizer) {
+				finalizers = append(finalizers, finalizer)
+			}
+		}
+	}
+	obj.SetFinalizers(finalizers)
 }

@@ -701,6 +701,7 @@ func (r *Reconciler) reconcileGenericTarget(
 
 		obj.SetResourceVersion(existing.GetResourceVersion())
 		obj.SetUID(existing.GetUID())
+		keepTargetFinalizers(externalSecret, obj, existing)
 
 		// update the existing resource
 		err = r.updateGenericResource(ctx, log, externalSecret, obj)
@@ -708,6 +709,7 @@ func (r *Reconciler) reconcileGenericTarget(
 		if existing != nil {
 			obj.SetResourceVersion(existing.GetResourceVersion())
 			obj.SetUID(existing.GetUID())
+			keepTargetFinalizers(externalSecret, obj, existing)
 			err = r.updateGenericResource(ctx, log, externalSecret, obj)
 		} else {
 			err = r.createGenericResource(ctx, log, externalSecret, obj)
