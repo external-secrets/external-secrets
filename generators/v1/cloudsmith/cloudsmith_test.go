@@ -168,30 +168,34 @@ func TestCloudsmithGenerator_Generate(t *testing.T) {
 	})
 
 	t.Run("GenerateReturnsUsernameAndPassword", func(t *testing.T) {
-		setFakeKubeconfig(t)
-
-		data, _, err := generator.Generate(context.Background(), &apiextensions.JSON{Raw: specBytes}, nil, "default")
-		if err != nil {
-			t.Fatalf("Failed to generate: %v", err)
-		}
-
-		if got := string(data["username"]); got != "token" {
-			t.Errorf("expected username 'token', got %q", got)
-		}
-		if got := string(data["password"]); got != mockJWTToken {
-			t.Errorf("expected password %q, got %q", mockJWTToken, got)
-		}
-		if got := string(data["expiry"]); got != "1700000000" {
-			t.Errorf("expected expiry '1700000000', got %q", got)
-		}
-		decoded, err := base64.StdEncoding.DecodeString(string(data["auth"]))
-		if err != nil {
-			t.Fatalf("failed to decode auth: %v", err)
-		}
-		if want := "token:" + mockJWTToken; string(decoded) != want {
-			t.Errorf("expected auth to decode to %q, got %q", want, string(decoded))
-		}
+		testGenerateReturnsUsernameAndPassword(t, generator, specBytes)
 	})
+}
+
+func testGenerateReturnsUsernameAndPassword(t *testing.T, generator *Generator, specBytes []byte) {
+	setFakeKubeconfig(t)
+
+	data, _, err := generator.Generate(context.Background(), &apiextensions.JSON{Raw: specBytes}, nil, "default")
+	if err != nil {
+		t.Fatalf("Failed to generate: %v", err)
+	}
+
+	if got := string(data["username"]); got != "token" {
+		t.Errorf("expected username 'token', got %q", got)
+	}
+	if got := string(data["password"]); got != mockJWTToken {
+		t.Errorf("expected password %q, got %q", mockJWTToken, got)
+	}
+	if got := string(data["expiry"]); got != "1700000000" {
+		t.Errorf("expected expiry '1700000000', got %q", got)
+	}
+	decoded, err := base64.StdEncoding.DecodeString(string(data["auth"]))
+	if err != nil {
+		t.Fatalf("failed to decode auth: %v", err)
+	}
+	if want := "token:" + mockJWTToken; string(decoded) != want {
+		t.Errorf("expected auth to decode to %q, got %q", want, string(decoded))
+	}
 }
 
 const fakeKubeconfigTemplate = `apiVersion: v1
