@@ -74,8 +74,16 @@ func getTargetGVK(es *esv1.ExternalSecret) schema.GroupVersionKind {
 	}
 }
 
-// validateManifestCandidate ensures rendering changed only the declared target's content, labels and annotations.
-func validateManifestCandidate(es *esv1.ExternalSecret, target *unstructured.Unstructured, originalMetadata map[string]any) error {
+// errProtectedMetadata covers every way rendering can change metadata outside labels and
+// annotations, including name and namespace. Naming the offending key would make the
+// message depend on Go's randomized map iteration order when a template changes several.
+var errProtectedMetadata = errors.New("rendered target changed protected metadata")
+
+// normalizeAndValidateManifestCandidate ensures rendering changed only the declared target's
+// content, labels and annotations. It also restores protected metadata that the template
+// omitted, so it mutates target. The restore has to stay between the two loops: a changed
+// value must be rejected before a missing one is filled back in.
+func normalizeAndValidateManifestCandidate(es *esv1.ExternalSecret, target *unstructured.Unstructured, originalMetadata map[string]any) error {
 	declaredGVK := getTargetGVK(es)
 	renderedGVK := target.GroupVersionKind()
 
@@ -87,26 +95,33 @@ func validateManifestCandidate(es *esv1.ExternalSecret, target *unstructured.Uns
 		)
 	}
 
-	if target.GetNamespace() != es.Namespace || target.GetName() != getTargetName(es) {
-		return errors.New("rendered target namespace/name differs from declared target")
+	renderedMetadata, ok := target.Object["metadata"].(map[string]any)
+	if !ok {
+		return errProtectedMetadata
 	}
-
-	renderedMetadata := target.Object["metadata"].(map[string]any)
+	for key, rendered := range renderedMetadata {
+		if key == "labels" || key == "annotations" {
+			continue
+		}
+		original, ok := originalMetadata[key]
+		if !ok || !reflect.DeepEqual(original, rendered) {
+			return errProtectedMetadata
+		}
+	}
+	// A whole-map template can omit server-managed metadata; restore only missing keys.
 	for key, value := range originalMetadata {
 		if key == "labels" || key == "annotations" {
 			continue
 		}
-		if rendered, ok := renderedMetadata[key]; !ok || !reflect.DeepEqual(value, rendered) {
-			return errors.New("rendered target changed protected metadata")
+		if _, ok := renderedMetadata[key]; !ok {
+			renderedMetadata[key] = value
 		}
 	}
-	for key := range renderedMetadata {
-		if key == "labels" || key == "annotations" {
-			continue
-		}
-		if _, ok := originalMetadata[key]; !ok {
-			return errors.New("rendered target changed protected metadata")
-		}
+	// Unreachable today: the loops above leave every protected key equal to the original,
+	// and the original identity is the declared one. Kept as a guard on that invariant,
+	// which is what stops a template from retargeting another namespace's object.
+	if target.GetNamespace() != es.Namespace || target.GetName() != getTargetName(es) {
+		return errors.New("rendered target namespace/name differs from declared target")
 	}
 	return nil
 }
@@ -221,12 +236,11 @@ func (r *Reconciler) deleteGenericResource(ctx context.Context, log logr.Logger,
 }
 
 // applyTemplateToManifest renders templates for generic resources and returns an unstructured object.
-// If existingObj is provided, templates will be applied to it (for merge behavior).
-// Otherwise, a new object is created.
+// Existing metadata is retained for updates; Merge policies also retain existing content.
 func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte, existingObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	var obj *unstructured.Unstructured
-	if existingObj != nil {
-		// use the existing object for merge behavior if it exists
+	if existingObj != nil && (es.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
+		es.Spec.Target.CreationPolicy == esv1.CreatePolicyCreateOrMerge) {
 		obj = existingObj.DeepCopy()
 	} else {
 		gvk := getTargetGVK(es)
@@ -234,6 +248,9 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		obj.SetGroupVersionKind(gvk)
 		obj.SetName(getTargetName(es))
 		obj.SetNamespace(es.Namespace)
+		if existingObj != nil {
+			obj.Object["metadata"] = existingObj.DeepCopy().Object["metadata"]
+		}
 		switch gvk.Kind {
 		case "ConfigMap", "Secret":
 			obj.Object["data"] = map[string]any{}
@@ -284,7 +301,7 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 	maps.Copy(annotations, result.GetAnnotations())
 	result.SetAnnotations(annotations)
 
-	if err := validateManifestCandidate(es, result, existingMetadata); err != nil {
+	if err := normalizeAndValidateManifestCandidate(es, result, existingMetadata); err != nil {
 		return nil, err
 	}
 	if getTargetGVK(es) == v1.SchemeGroupVersion.WithKind("Secret") {
