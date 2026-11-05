@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -79,7 +80,6 @@ var (
 
 // Provider is a Password Safe secrets provider implementing NewClient and ValidateStore for the esv1.Provider interface.
 type Provider struct {
-	apiURL        string
 	retrievaltype string
 	decrypt       bool
 	authenticate  auth.AuthenticationObj
@@ -121,16 +121,33 @@ func (*Provider) GetSecretMap(_ context.Context, _ esv1.ExternalSecretDataRemote
 	return make(map[string][]byte), errors.New(errNotImplemented)
 }
 
-// Validate implements v1beta1.SecretsClient.
+// Validate implements esv1.SecretsClient.
+// NewClient builds the auth object from store config. The credential checks
+// will be performed here, and the session is closed afterward.
 func (p *Provider) Validate() (esv1.ValidationResult, error) {
-	timeout := 15 * time.Second
-	clientURL := p.apiURL
+	// validationTimeout restricts authentication timeout/retry to less than the
+	// defaults (httpClient 45s and backoff 15m). Using the same timeout for both
+	// context and backoff avoids any request lingering after the deadline.
+	var validationTimeout = 15 * time.Second
 
-	if err := esutils.NetworkValidate(clientURL, timeout); err != nil {
-		ESOLogger.Error(err, "Network Validate", "clientURL:", clientURL)
-		return esv1.ValidationResultError, err
+	ctx, cancel := context.WithTimeout(context.Background(), validationTimeout)
+	defer cancel()
+
+	// create a copy of p.authenticate to customize retry timer and context.
+	authenticate := p.authenticate
+	authenticate.ExponentialBackOff = backoff.NewExponentialBackOff(
+		backoff.WithInitialInterval(time.Second),
+		backoff.WithMaxElapsedTime(validationTimeout),
+	)
+	authenticate.HttpClient.Context = ctx
+
+	_, err := authenticate.GetPasswordSafeAuthentication()
+	if err != nil {
+		return esv1.ValidationResultError, fmt.Errorf("error getting authentication: %w", err)
 	}
-
+	if err := authenticate.SignOut(); err != nil {
+		return esv1.ValidationResultError, fmt.Errorf("error signing out after validation: %w", err)
+	}
 	return esv1.ValidationResultReady, nil
 }
 
@@ -196,6 +213,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	if err != nil {
 		return nil, fmt.Errorf("error creating HTTP client: %w", err)
 	}
+	// Password Safe builds bare transport with Proxy unset. Set env proxy until the
+	// library honors ProxyFromEnvironment itself.
+	honorHTTPProxy(httpClient.HttpClient)
 
 	authenticatorInput := AuthenticatorInput{
 		Config:                     config,
@@ -217,7 +237,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	return &Provider{
-		apiURL:        config.Server.APIURL,
 		retrievaltype: config.Server.RetrievalType,
 		authenticate:  *authenticate,
 		log:           *logger,
@@ -620,4 +639,17 @@ func (p *Provider) CreateSecret(secret string, data map[string]any, signAppinRes
 	ESOLogger.Info("Secret pushed to BeyondTrust Password Safe")
 
 	return nil
+}
+
+// honorHTTPProxy sets ProxyFromEnvironment on the library transport when Proxy is
+// unset, so Password Safe requests honors proxy.
+func honorHTTPProxy(c *http.Client) {
+	if c == nil {
+		return
+	}
+	tr, ok := c.Transport.(*http.Transport)
+	if !ok || tr == nil || tr.Proxy != nil {
+		return
+	}
+	tr.Proxy = http.ProxyFromEnvironment
 }

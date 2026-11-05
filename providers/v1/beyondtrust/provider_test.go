@@ -23,6 +23,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 	"time"
 
@@ -943,6 +944,7 @@ func newAuthenticatedProvider(t *testing.T, serverURL, apiVersion string) *Provi
 
 	httpClientObj, err := utils.GetHttpClient(30, true, "", "", zapLogger)
 	require.NoError(t, err)
+	honorHTTPProxy(httpClientObj.HttpClient)
 
 	authObj, err := authentication.Authenticate(authentication.AuthenticationParametersObj{
 		HTTPClient:                 *httpClientObj,
@@ -1047,6 +1049,128 @@ func TestPushSecret_OwnerFieldsArePropagated(t *testing.T) {
 			require.NoError(t, p.PushSecret(context.Background(), secret, psd))
 			require.NotNil(t, capturedBody, "create-secret endpoint was never hit")
 			tt.assertBody(t, capturedBody)
+		})
+	}
+}
+
+func TestValidate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		serverHandler http.HandlerFunc
+		wantErr       bool
+		wantResult    esv1.ValidationResult
+	}{
+		{
+			name: "ready after sign-in and sign-out",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case authConnectTokenPath:
+					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				case authSignAppInPath:
+					_, err := w.Write([]byte(`{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				case "/Auth/Signout":
+					w.WriteHeader(http.StatusOK)
+				default:
+					http.Error(w, "not found", http.StatusNotFound)
+				}
+			},
+			wantErr:    false,
+			wantResult: esv1.ValidationResultReady,
+		},
+		{
+			name: "error when sign-in fails",
+			serverHandler: func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case authConnectTokenPath:
+					_, err := w.Write([]byte(`{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`))
+					if err != nil {
+						t.Error(err)
+					}
+				case authSignAppInPath:
+					http.Error(w, "unauthorized", http.StatusUnauthorized)
+				default:
+					http.Error(w, "not found", http.StatusNotFound)
+				}
+			},
+			wantErr:    true,
+			wantResult: esv1.ValidationResultError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			server := httptest.NewServer(tt.serverHandler)
+			t.Cleanup(server.Close)
+
+			p := newAuthenticatedProvider(t, server.URL, "3.1")
+			originalBackoff := p.authenticate.ExponentialBackOff
+			originalTimeout := p.authenticate.HttpClient.HttpClient.Timeout
+			originalCtx := p.authenticate.HttpClient.Context
+
+			result, err := p.Validate()
+			if tt.wantErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+			assert.Equal(t, tt.wantResult, result)
+			// Validate must not mutate the provider used for sync.
+			assert.Same(t, originalBackoff, p.authenticate.ExponentialBackOff)
+			assert.Equal(t, originalTimeout, p.authenticate.HttpClient.HttpClient.Timeout)
+			assert.Equal(t, originalCtx, p.authenticate.HttpClient.Context)
+		})
+	}
+}
+
+func TestHonorHTTPProxy(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		setup  func() *http.Transport
+		assert func(t *testing.T, tr *http.Transport)
+	}{
+		{
+			name: "sets ProxyFromEnvironment when unset",
+			setup: func() *http.Transport {
+				return &http.Transport{}
+			},
+			assert: func(t *testing.T, tr *http.Transport) {
+				require.NotNil(t, tr.Proxy)
+			},
+		},
+		{
+			name: "leaves existing Proxy unchanged",
+			setup: func() *http.Transport {
+				return &http.Transport{
+					Proxy: func(*http.Request) (*url.URL, error) {
+						return &url.URL{Host: "proxy.test"}, nil
+					},
+				}
+			},
+			assert: func(t *testing.T, tr *http.Transport) {
+				got, err := tr.Proxy(&http.Request{})
+				require.NoError(t, err)
+				assert.Equal(t, "proxy.test", got.Host)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			tr := tt.setup()
+			honorHTTPProxy(&http.Client{Transport: tr})
+			tt.assert(t, tr)
 		})
 	}
 }
