@@ -167,8 +167,20 @@ Modifiers that cut across every row:
 ### Target behavior on sync: Normalizations and Validations.
 
 The table above describes *when* a sync happens. This table describes *what happens* on a sync with provider data available.
-An unset `spec.target.manifest` produces a Kubernetes Secret. A manifest with `apiVersion: v1` and `kind: Secret` also produces a Secret, and behaves the same way.
-Other manifest values produce the declared resource type.
+An unset `spec.target.manifest` produces a Kubernetes Secret. Manifest values produce the declared resource type.
+
+!!! warning "Breaking change: `kind: Secret` manifests are rejected"
+    A manifest with `apiVersion: v1` (or `/v1`) and `kind: Secret` is now rejected, by the
+    admission webhook and by the controller. A Secret is the default target and that path
+    carries Secret-specific protections the generic path does not, so the same resource must
+    not be reachable both ways.
+
+    To migrate, remove `spec.target.manifest` entirely: the ExternalSecret then produces the
+    same Secret through the default path. Review your templating while you do, because the
+    Secret path restricts `templateFrom` to `Data`, `Labels` and `Annotations` and applies the
+    Secret type rules listed below; a nested `templateFrom` target that a manifest accepted is
+    not valid for a Secret. A `kind: Secret` in a custom API group is a different resource and
+    stays supported.
 
 ### Admission
 
@@ -196,7 +208,9 @@ Extra validations of Secrets compared to other resources:
 - Cannot have type `kubernetes.io/service-account-token` with `kubernetes.io/service-account.name` present;
 
 Extra validations of Manifests compared to Secret resources:
-- None
+- `spec.target.manifest` must not name the core `v1` `Secret` kind. `apiVersion: v1` and
+  `apiVersion: /v1` both resolve to the core group and are both rejected; a `Secret` kind in
+  any other API group is allowed.
 
 Extra validations based on `spec.target.creationPolicy`:
 - Owner: Rejects the write if a controller of another kind owns the target
