@@ -22,7 +22,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"maps"
+	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -88,14 +90,13 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		if data.GetProperty() == "" {
 			// Convert incoming value to map for proper JSON comparison
 			var incomingSecretMap map[string]any
-			err = json.Unmarshal(value, &incomingSecretMap)
+			incomingSecretMap, err = decodeSecretValue(value)
 			if err != nil {
-				// Do not wrap the original error with %w as json.Unmarshal errors
-				// may contain sensitive secret data in the error message
-				return errors.New("error unmarshalling incoming secret value: invalid JSON format")
+				return err
 			}
-			// Compare maps instead of raw bytes to handle JSON field ordering and formatting
-			if maps.Equal(vaultSecret, incomingSecretMap) {
+			// Compare maps instead of raw bytes to handle JSON field ordering and formatting.
+			// Values can be nested objects or arrays, which maps.Equal can't compare (it panics).
+			if reflect.DeepEqual(vaultSecret, incomingSecretMap) {
 				return nil
 			}
 		}
@@ -269,4 +270,23 @@ func getCurrentVersionFromMetadata(data map[string]any) (int, error) {
 	// This handles edge cases with legacy secrets or incomplete metadata.
 	// Vault KV v2 secrets start at version 1, so this is the safest assumption.
 	return 1, nil
+}
+
+// decodeSecretValue decodes a whole secret value the same way the Vault API client decodes
+// secrets, with numbers as json.Number, so that it can be compared with the secret read from Vault.
+func decodeSecretValue(value []byte) (map[string]any, error) {
+	// Do not wrap the original errors with %w as json decoding errors
+	// may contain sensitive secret data in the error message
+	errInvalid := errors.New("error unmarshalling incoming secret value: invalid JSON format")
+	var secretMap map[string]any
+	dec := json.NewDecoder(bytes.NewReader(value))
+	dec.UseNumber()
+	if err := dec.Decode(&secretMap); err != nil {
+		return nil, errInvalid
+	}
+	// Like json.Unmarshal, reject anything after the JSON value.
+	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
+		return nil, errInvalid
+	}
+	return secretMap, nil
 }

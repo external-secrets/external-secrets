@@ -18,6 +18,7 @@ package vault
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -452,6 +453,131 @@ func TestPushSecret(t *testing.T) {
 			},
 			want: want{
 				err: nil,
+			},
+		},
+		"SetSecretEqualsNestedPushSecretV1": {
+			reason: "vault secret with nested JSON equals secret to push, so it is not written again",
+			value:  []byte(`{"grant_type":"x","uaa":{"url":"https://uaa.example.com","clientid":"abc"}}`),
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"grant_type": "x",
+						"uaa": map[string]any{
+							"url":      "https://uaa.example.com",
+							"clientid": "abc",
+						},
+						"custom_metadata": map[string]any{
+							managedBy: managedByESO,
+						},
+					}, nil),
+					WriteWithContextFn: fake.ExpectWriteWithContextNoCall(),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretEqualsNestedPushSecretV2": {
+			reason: "vault secret with nested JSON equals secret to push, so it is not written again",
+			value:  []byte(`{"grant_type":"x","uaa":{"url":"https://uaa.example.com","clientid":"abc"}}`),
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
+							"grant_type": "x",
+							"uaa": map[string]any{
+								"url":      "https://uaa.example.com",
+								"clientid": "abc",
+							},
+						},
+						"custom_metadata": map[string]any{
+							managedBy: managedByESO,
+						},
+					}, nil),
+					WriteWithContextFn: fake.ExpectWriteWithContextNoCall(),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretChangedNestedPushSecretV2": {
+			reason: "vault secret with a different nested value is overwritten",
+			value:  []byte(`{"grant_type":"x","uaa":{"url":"https://uaa.example.com","clientid":"new"}}`),
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
+							"grant_type": "x",
+							"uaa": map[string]any{
+								"url":      "https://uaa.example.com",
+								"clientid": "abc",
+							},
+						},
+						"custom_metadata": map[string]any{
+							managedBy: managedByESO,
+						},
+					}, nil),
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{
+						"data": map[string]any{
+							"grant_type": "x",
+							"uaa": map[string]any{
+								"url":      "https://uaa.example.com",
+								"clientid": "new",
+							},
+						},
+					}),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretEqualsNestedArrayAndNumberPushSecretV2": {
+			reason: "vault secret with nested arrays and numbers equals secret to push, so it is not written again",
+			value:  []byte(`{"port":8080,"hosts":["a","b"],"pools":[{"name":"p1","size":3}]}`),
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					// The Vault API client decodes numbers as json.Number.
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
+							"port":  json.Number("8080"),
+							"hosts": []any{"a", "b"},
+							"pools": []any{map[string]any{"name": "p1", "size": json.Number("3")}},
+						},
+						"custom_metadata": map[string]any{
+							managedBy: managedByESO,
+						},
+					}, nil),
+					WriteWithContextFn: fake.ExpectWriteWithContextNoCall(),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretTrailingDataPushSecretV2": {
+			reason: "a whole secret value with data after the JSON object is rejected",
+			value:  []byte(`{"fake-key":"fake-value"} trailing`),
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(map[string]any{
+						"data": map[string]any{
+							fakeKey: fakeValue,
+						},
+						"custom_metadata": map[string]any{
+							managedBy: managedByESO,
+						},
+					}, nil),
+				},
+			},
+			want: want{
+				err: errors.New("invalid JSON format"),
 			},
 		},
 		"PushSecretPropertyKV1": {
