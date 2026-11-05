@@ -96,8 +96,13 @@ If a secret gets deleted on the provider side and is not accessible
 anymore this is not considered an error and the ExternalSecret
 does not go into SecretSyncedError status. This is also true for new
 ExternalSecrets mapping to non-existing secrets in the provider.
-`deletionPolicy=Delete` only takes effect with `creationPolicy=Owner`; the operator
-refuses to delete a Secret it does not own and reports a `SecretSyncedError` otherwise.
+`deletionPolicy=Delete` only takes effect with `creationPolicy=Owner`. Before deleting
+an existing target (Secret or manifest), ESO checks its `metadata.ownerReferences`
+for a controller reference (`controller: true`) to the current ExternalSecret,
+matching its API group, kind, name and UID. Setting `creationPolicy=Owner` alone
+does not prove ownership. A reference to an older ExternalSecret with the same name
+but a different UID does not authorize deletion. If the ownership check fails, ESO
+rejects the deletion and reports a failed sync.
 
 ### Merge
 Merge removes keys in the secret, but not the secret itself.
@@ -158,3 +163,70 @@ Modifiers that cut across every row:
   data, which is only detected on a re-sync. So under `CreatedOnce` a provider-side
   deletion is never detected, under `OnChange` only on an `ExternalSecret` change, and
   under `Periodic` at the next interval.
+
+### Target behavior on sync: Normalizations and Validations.
+
+The table above describes *when* a sync happens. This table describes *what happens* on a sync with provider data available.
+An unset `spec.target.manifest` produces a Kubernetes Secret. A manifest with `apiVersion: v1` and `kind: Secret` also produces a Secret, and behaves the same way.
+Other manifest values produce the declared resource type.
+
+### Admission
+
+All admission policies, like "When defined, `spec.target.manifest` needs both kind and apiVersion to be set" are defined in our API reference documentation.
+
+### Validations
+
+Validations are checks done before write. Any attempt to bypass the following validation rules will result in a reject of the write: a failed sync for the ExternalSecret (It is not an admission validation).
+
+Validation done on all targets (Secret, ConfigMap, or CRDs):
+- It is forbidden to overwrite any target metadata, outside the annotations, labels, and finalizers (finalizers currently only apply to Secrets).
+- Every target's `metadata.namespace` is validated for equality against the ExternalSecret's `metadata.namespace`.
+- Every target's `metadata.name` is validated for equality against the ExternalSecret `spec.target.name` (or the ExternalSecret's `metadata.name` when omitted).
+- The current ExternalSecret is matched by API group, kind and name, not UID. Non-controller owner references are preserved.
+- Every target's `apiVersion` and `kind` is validated for equality against the `spec.target.manifest.apiVersion` and `spec.target.manifest.kind` (or `v1`/`Secret` if `spec.target.manifest` is not set).
+- Every target's `metadata.ownerReferences` list item is checked for the owning controller. It is forbidden to write if the target has a controller owner reference to another ExternalSecret (No two ES owning the secret).
+
+In other words, it is forbidden to have a template trying to add or change GVK, UID, ownerReferences, name, namespace, creationTimestamp, deletionTimestamp, generation, ...
+Those are validated based on existing information. If templating results in the same value as the _current values_, no rejection happens.
+
+Extra validations of Secrets compared to other resources:
+- `templateFrom` can only target `Data`, `Labels`, or `Annotations`;
+- `templateFrom` cannot target `Annotations` on secret type `kubernetes.io/service-account-token`;
+- Cannot have the type `bootstrap.kubernetes.io/token`;
+- Cannot have type `kubernetes.io/service-account-token` with `kubernetes.io/service-account.name` present;
+
+Extra validations of Manifests compared to Secret resources:
+- None
+
+Extra validations based on `spec.target.creationPolicy`:
+- Owner: Rejects the write if a controller of another kind owns the target
+
+  notes:
+  - This does not prevent multiple ExternalSecrets from merging different fields into the same target as field ownership is separate from owner references.
+  - The current ExternalSecret is matched by API group, kind and name, not UID
+
+Data merging also depends on `spec.target.template.mergePolicy`.
+If a valid target does not need a refresh, ESO may skip rendering and the per-sync validations above entirely.
+
+### Normalizations
+
+Normalizations are not like validations. Any attempt to template/modify these will automatically be overridden by ESO.
+
+For objects to be written, ESO normalizes the following metadata in the target object:
+- `reconcile.external-secrets.io/managed` label
+- `reconcile.external-secrets.io/data-hash` annotation (computed from target content)
+These reserved keys are not user-controlled. They are ALWAYS present if ESO writes the object.
+
+Similarly, for non-Secret targets, if a map `templateFrom` targets `metadata` and omits protected fields, ESO preserves their existing values before applying the creation policy below. This includes:
+- `uid`, `resourceVersion`, `creationTimestamp` (generated by kubernetes);
+- `managedFields`;
+- `deletionTimestamp`, `deletionGracePeriodSeconds`, `generation` (maintained by kubernetes);
+- existing finalizers and owner references (including non-controller/outside ESO owner references/finalizers);
+- ...
+
+ESO adapts the following metadata in the target object based on the `spec.target.creationPolicy`:
+- When Owner: `reconcile.external-secrets.io/created-by` label is set to ESO's hash of the ExternalSecret's namespace/name
+- When Owner: the current ExternalSecret is set as the target's controller owner in `metadata.ownerReferences`
+- When Orphan/Merge/CreateOrMerge: `reconcile.external-secrets.io/created-by` label is removed
+- When Orphan/Merge/CreateOrMerge: the current ES's controller owner reference is removed IF present (other owner references untouched).
+- When None: Skipped (no write)
