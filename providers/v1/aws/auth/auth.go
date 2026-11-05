@@ -21,6 +21,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -60,6 +61,9 @@ const (
 	errFetchAKIDSecret = "could not fetch accessKeyID secret: %w"
 	errFetchSAKSecret  = "could not fetch SecretAccessKey secret: %w"
 	errFetchSTSecret   = "could not fetch SessionToken secret: %w"
+	errFetchJWTSecret  = "could not fetch JWT secret: %w"
+
+	errJWTSecretRefRequiresRoleArn = "jwt.roleArn is required when using jwt.secretRef"
 )
 
 // Opts define options for New function.
@@ -69,6 +73,9 @@ type Opts struct {
 	Namespace   string
 	AssumeRoler STSProvider
 	JWTProvider jwtProviderFactory
+	// WebIdentityProvider is used for jwt.secretRef auth.
+	// Defaults to DefaultWebIdentityProvider when nil.
+	WebIdentityProvider WebIdentityProviderFactory
 }
 
 // New creates a new aws config based on the provided store
@@ -163,6 +170,8 @@ func setAssumeRoleOptionFn(sessExtID string, sessTags []stsTypes.Tag, sessTransi
 
 func constructCredsProvider(ctx context.Context, prov *esv1.AWSProvider, isClusterKind bool, opts Opts) (aws.CredentialsProvider, error) {
 	switch {
+	case prov.Auth.JWTAuth != nil && prov.Auth.JWTAuth.SecretRef != nil:
+		return credsFromJWTSecretRef(prov.Auth, prov.Region, opts.Store.GetKind(), opts.Kube, opts.Namespace, opts.WebIdentityProvider)
 	case prov.Auth.JWTAuth != nil:
 		return credsFromServiceAccount(ctx, prov.Auth, prov.Region, isClusterKind, opts.Kube, opts.Namespace, opts.JWTProvider)
 	case prov.Auth.SecretRef != nil:
@@ -194,7 +203,12 @@ func NewGeneratorSession(
 
 	// use credentials via service account token
 	jwtAuth := auth.JWTAuth
-	if jwtAuth != nil {
+	if jwtAuth != nil && jwtAuth.SecretRef != nil {
+		credsProvider, err = credsFromJWTSecretRef(auth, region, "", kube, namespace, DefaultWebIdentityProvider)
+		if err != nil {
+			return nil, err
+		}
+	} else if jwtAuth != nil {
 		credsProvider, err = credsFromServiceAccount(ctx, auth, region, false, kube, namespace, jwtProvider)
 		if err != nil {
 			return nil, err
@@ -328,20 +342,59 @@ func DefaultJWTProvider(name, namespace, roleArn string, aud []string, region st
 		return nil, err
 	}
 
-	awscfg, err := config.LoadDefaultConfig(context.TODO(), config.WithAppID("external-secrets"),
-		config.WithRegion(region),
-		config.WithSharedConfigFiles([]string{}), // Disable shared config files:
-		config.WithSharedCredentialsFiles([]string{}))
-
-	if err != nil {
-		return nil, err
-	}
-
 	tokenFetcher := authTokenFetcher{
 		Namespace:      namespace,
 		Audiences:      aud,
 		ServiceAccount: name,
 		k8sClient:      clientset.CoreV1(),
+	}
+	return DefaultWebIdentityProvider(roleArn, region, tokenFetcher)
+}
+
+// credsFromJWTSecretRef reads a JWT from a Kubernetes Secret and exchanges it for
+// temporary credentials using sts:AssumeRoleWithWebIdentity on jwt.roleArn.
+// This allows using JWTs from identity providers other than the cluster's
+// service account issuer.
+// The namespace of the external secret is used if the ClusterSecretStore does not specify a namespace (referentAuth).
+// If the ClusterSecretStore defines a namespace it will take precedence.
+func credsFromJWTSecretRef(
+	auth esv1.AWSAuth,
+	region, storeKind string,
+	kube client.Client,
+	namespace string,
+	webIdentityProvider WebIdentityProviderFactory,
+) (aws.CredentialsProvider, error) {
+	roleArn := auth.JWTAuth.RoleArn
+	if roleArn == "" {
+		return nil, errors.New(errJWTSecretRefRequiresRoleArn)
+	}
+	if webIdentityProvider == nil {
+		webIdentityProvider = DefaultWebIdentityProvider
+	}
+	tokenFetcher := secretTokenFetcher{
+		kube:      kube,
+		storeKind: storeKind,
+		namespace: namespace,
+		ref:       *auth.JWTAuth.SecretRef,
+	}
+
+	log.V(1).Info("using jwt credentials from secret", "role", roleArn, "region", region)
+	return webIdentityProvider(roleArn, region, tokenFetcher)
+}
+
+// WebIdentityProviderFactory returns a credentials provider that exchanges the token
+// returned by tokenFetcher for credentials of roleArn.
+type WebIdentityProviderFactory func(roleArn, region string, tokenFetcher stscreds.IdentityTokenRetriever) (aws.CredentialsProvider, error)
+
+// DefaultWebIdentityProvider returns a credentials provider that calls sts:AssumeRoleWithWebIdentity
+// with the token returned by tokenFetcher.
+func DefaultWebIdentityProvider(roleArn, region string, tokenFetcher stscreds.IdentityTokenRetriever) (aws.CredentialsProvider, error) {
+	awscfg, err := config.LoadDefaultConfig(context.TODO(), config.WithAppID("external-secrets"),
+		config.WithRegion(region),
+		config.WithSharedConfigFiles([]string{}), // Disable shared config files:
+		config.WithSharedCredentialsFiles([]string{}))
+	if err != nil {
+		return nil, err
 	}
 	stsClient := sts.NewFromConfig(awscfg, func(o *sts.Options) {
 		o.EndpointResolverV2 = customEndpointResolver{}

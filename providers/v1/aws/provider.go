@@ -20,6 +20,7 @@ package aws
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -57,6 +58,10 @@ const (
 	errInitAWSProvider        = "unable to initialize aws provider: %s"
 	errInvalidSecretsManager  = "invalid SecretsManager settings: %s"
 	acmClientCacheSize        = 100
+
+	errJWTAuthMultipleSources    = "invalid Auth.JWT: only one of serviceAccountRef or secretRef can be specified"
+	errJWTAuthRoleArnWithSA      = "invalid Auth.JWT: roleArn is only supported with secretRef, serviceAccountRef reads the role from the eks.amazonaws.com/role-arn annotation"
+	errJWTAuthSecretRefNoRoleArn = "invalid Auth.JWT: roleArn is required when using secretRef"
 )
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
@@ -100,13 +105,39 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	// case: jwt credentials
-	if prov.Auth.JWTAuth != nil && prov.Auth.JWTAuth.ServiceAccountRef != nil {
-		if err := esutils.ValidateReferentServiceAccountSelector(store, *prov.Auth.JWTAuth.ServiceAccountRef); err != nil {
-			return nil, fmt.Errorf("invalid Auth.JWT.ServiceAccountRef: %w", err)
+	if prov.Auth.JWTAuth != nil {
+		if err := validateJWTAuth(store, prov.Auth.JWTAuth); err != nil {
+			return nil, err
 		}
 	}
 
 	return nil, nil
+}
+
+func validateJWTAuth(store esv1.GenericStore, jwtAuth *esv1.AWSJWTAuth) error {
+	if jwtAuth.ServiceAccountRef != nil && jwtAuth.SecretRef != nil {
+		return errors.New(errJWTAuthMultipleSources)
+	}
+	if jwtAuth.ServiceAccountRef == nil && jwtAuth.SecretRef == nil {
+		return errors.New("invalid Auth.JWT: one of serviceAccountRef or secretRef must be specified")
+	}
+	if jwtAuth.ServiceAccountRef != nil {
+		if jwtAuth.RoleArn != "" {
+			return errors.New(errJWTAuthRoleArnWithSA)
+		}
+		if err := esutils.ValidateReferentServiceAccountSelector(store, *jwtAuth.ServiceAccountRef); err != nil {
+			return fmt.Errorf("invalid Auth.JWT.ServiceAccountRef: %w", err)
+		}
+	}
+	if jwtAuth.SecretRef != nil {
+		if jwtAuth.RoleArn == "" {
+			return errors.New(errJWTAuthSecretRefNoRoleArn)
+		}
+		if err := esutils.ValidateReferentSecretSelector(store, *jwtAuth.SecretRef); err != nil {
+			return fmt.Errorf("invalid Auth.JWT.SecretRef: %w", err)
+		}
+	}
+	return nil
 }
 
 func validateRegion(prov *esv1.AWSProvider) error {

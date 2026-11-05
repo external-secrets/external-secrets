@@ -58,6 +58,9 @@ func IsReferentSpec(prov esv1.AWSAuth) bool {
 	if prov.JWTAuth != nil && prov.JWTAuth.ServiceAccountRef != nil && prov.JWTAuth.ServiceAccountRef.Namespace == nil {
 		return true
 	}
+	if prov.JWTAuth != nil && prov.JWTAuth.SecretRef != nil && prov.JWTAuth.SecretRef.Namespace == nil {
+		return true
+	}
 	if prov.SecretRef != nil &&
 		(prov.SecretRef.AccessKeyID.Namespace == nil ||
 			prov.SecretRef.SecretAccessKey.Namespace == nil ||

@@ -13,10 +13,11 @@ The authorization token is valid for 12 hours. For more information, see [regist
 
 ## Authentication
 
-You can choose from three authentication mechanisms:
+You can choose from four authentication mechanisms:
 
 * static credentials using `spec.auth.secretRef`
-* point to a IRSA Service Account with `spec.auth.jwt`
+* point to a IRSA Service Account with `spec.auth.jwt.serviceAccountRef`
+* a JWT stored in a Secret with `spec.auth.jwt.secretRef` and `spec.auth.jwt.roleArn`, see [JWT from a Secret](../../provider/aws-access.md#jwt-from-a-secret-custom-oidc-identity-provider)
 * use credentials from the [SDK default credentials chain](https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default) from the controller environment
 
 ## Example Manifest
