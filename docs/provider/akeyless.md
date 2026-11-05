@@ -31,6 +31,26 @@ Options for obtaining Kubernetes credentials include:
 
 **NOTE:** In case of a `ClusterSecretStore`, be sure to provide `namespace` for `serviceAccountRef` and `secretRef` according to the namespaces where the secrets reside.
 
+### Authentication with OAuth2.0/JWT
+
+Use an [Akeyless OAuth2.0/JWT](https://docs.akeyless.io/docs/auth-with-oauth-jwt) auth method. The provider calls Akeyless `Auth` with `access-type=jwt` and the bearer JWT.
+
+Preferred SecretStore shape is `authSecretRef.jwtAuth`:
+
+```yaml
+{% include 'akeyless-secret-store-jwt-auth.yaml' %}
+```
+
+JWT material:
+
+```yaml
+{% include 'akeyless-credentials-jwt-secret.yaml' %}
+```
+
+`jwtAuth.serviceAccountRef` uses the TokenRequest API (`create` on `serviceaccounts/token`). The Helm chart grants this when `rbac.serviceAccountTokenCreate` is `true` (the default). Set audiences to match the Akeyless OAuth2 auth-method audience / cluster OIDC configuration.
+
+Alternatively, store `accessType=jwt` (or `oauth2`) and put the JWT in `accessTypeParam` via the generic credentials Secret below.
+
 ### Authentication with Cloud-Identity or Api-Access-Key
 
 Akeyless providers require an access-id, access-type and access-type-param
@@ -46,6 +66,8 @@ The supported auth-methods and their parameters are:
 | `api_key`      | The access key                     |
 | `access_key`   | The access key (alias for api_key) |
 | `k8s`          | The k8s configuration name         |
+| `jwt`          | The bearer JWT                     |
+| `oauth2`       | The bearer JWT (alias for `jwt`)   |
 
 For `azure_ad` on AKS Workload Identity, set `authSecretRef.serviceAccountRef` to a ServiceAccount annotated with `azure.workload.identity/client-id` and `azure.workload.identity/tenant-id`. This field is only used when `accessType` is `azure_ad`; other access types ignore it.
 
