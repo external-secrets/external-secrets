@@ -72,6 +72,21 @@ areas:
       - "e2e/suites/provider/cases/crd/**"
     enabled: true
 
+  # The webhook provider talks to an HTTP backend the suite runs inside its own
+  # test process (spec.url accepts any address), so it needs no credentials and
+  # no addon. Its own leg for the same reason as crd: attribution, and so a
+  # webhook break does not also fail the fake, kubernetes and template specs.
+  - name: webhook
+    suite: provider
+    labels: "webhook && !managed"
+    providers: [webhook]
+    secret_groups: []
+    needs_secrets: false
+    paths:
+      - "providers/v1/webhook/**"
+      - "e2e/suites/provider/cases/webhook/**"
+    enabled: true
+
   # Self-hosted secret backends, installed as in-cluster addons (no cloud
   # creds). One leg per provider so a broken addon (e.g. conjur) fails only its
   # own leg, not the others, and the leg name matches what it runs.
