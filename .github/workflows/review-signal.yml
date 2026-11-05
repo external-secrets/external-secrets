@@ -1,0 +1,24 @@
+# Relay so that review activity can reach a privileged workflow.
+#
+# pull_request_review runs the workflow from the pull request's merge commit
+# with a read-only token and no secrets, so it cannot label anything itself.
+# Its only job is to complete, which fires workflow_run for Review State,
+# and that runs from the default branch with a write token.
+#
+# It therefore holds no permissions and touches nothing: a fork can change
+# this file in its own pull request, and the worst it gains is a runner.
+name: Review Signal
+
+on:
+  pull_request_review:
+    types: [submitted, dismissed, edited]
+
+permissions: {}
+
+jobs:
+  signal:
+    name: Relay review activity
+    runs-on: ubuntu-latest
+    steps:
+      - name: Note the review
+        run: echo "Review activity recorded. Review State will pick this up."

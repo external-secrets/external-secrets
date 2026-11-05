@@ -48,6 +48,13 @@ Parts of the contribution affected:
 
 Human validation performed:
 
+## Review process
+
+Review runs in two stages: automated review first, then a maintainer. If an automated reviewer
+raises findings, this pull request stays with you until they are resolved, and a comment will
+appear explaining what is outstanding. A `review/*` label tracks where it sits. See
+[how review is routed](https://external-secrets.io/latest/contributing/process/#how-review-is-routed).
+
 ## Checklist
 
 - [ ] I have read the [contribution guidelines](https://external-secrets.io/latest/contributing/process/#submitting-a-pull-request)
