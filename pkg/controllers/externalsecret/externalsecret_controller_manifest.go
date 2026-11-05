@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
@@ -252,6 +253,8 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		return nil, err
 	}
 
+	addTemplateFinalizers(es, result)
+
 	ann := result.GetAnnotations()
 	if ann == nil {
 		ann = make(map[string]string)
@@ -371,4 +374,16 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 	}
 
 	return obj, nil
+}
+
+// addTemplateFinalizers adds the finalizers from the template metadata to a manifest target,
+// the same way they are added to Secret targets: missing ones are added, existing ones (also
+// those of other controllers) are kept, and none are added once the target is being deleted.
+func addTemplateFinalizers(es *esv1.ExternalSecret, obj *unstructured.Unstructured) {
+	if es.Spec.Target.Template == nil || !obj.GetDeletionTimestamp().IsZero() {
+		return
+	}
+	for _, finalizer := range es.Spec.Target.Template.Metadata.Finalizers {
+		controllerutil.AddFinalizer(obj, finalizer)
+	}
 }
