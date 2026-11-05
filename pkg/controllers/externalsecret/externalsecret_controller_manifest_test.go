@@ -635,22 +635,8 @@ func TestApplyTemplateToManifest_Finalizers(t *testing.T) {
 }
 
 func TestKeepTargetFinalizers(t *testing.T) {
-	es := &esv1.ExternalSecret{
-		Spec: esv1.ExternalSecretSpec{
-			Target: esv1.ExternalSecretTarget{
-				Template: &esv1.ExternalSecretTemplate{
-					Metadata: esv1.ExternalSecretTemplateMetadata{Finalizers: []string{"example.com/cleanup"}},
-				},
-			},
-		},
-	}
 	// with the Owner and Orphan policies, the rendered object does not start from the existing target
-	rendered := func() *unstructured.Unstructured {
-		obj := &unstructured.Unstructured{}
-		obj.SetFinalizers([]string{"example.com/cleanup"})
-		return obj
-	}
-	existing := func(deleting bool, finalizers ...string) *unstructured.Unstructured {
+	object := func(deleting bool, finalizers ...string) *unstructured.Unstructured {
 		obj := &unstructured.Unstructured{}
 		obj.SetFinalizers(finalizers)
 		if deleting {
@@ -661,27 +647,35 @@ func TestKeepTargetFinalizers(t *testing.T) {
 	}
 
 	tests := map[string]struct {
+		rendered *unstructured.Unstructured
 		existing *unstructured.Unstructured
 		want     []string
 	}{
 		"keeps the finalizers of other controllers": {
-			existing: existing(false, "other.io/keep"),
+			rendered: object(false, "example.com/cleanup"),
+			existing: object(false, "other.io/keep"),
 			want:     []string{"other.io/keep", "example.com/cleanup"},
 		},
 		"does not add duplicates": {
-			existing: existing(false, "example.com/cleanup", "other.io/keep"),
+			rendered: object(false, "example.com/cleanup"),
+			existing: object(false, "example.com/cleanup", "other.io/keep"),
 			want:     []string{"example.com/cleanup", "other.io/keep"},
 		},
-		"does not add template finalizers while the target is being deleted": {
-			existing: existing(true, "other.io/keep"),
+		"keeps finalizers rendered by a templateFrom target": {
+			rendered: object(false, "example.com/cleanup", "example.com/from-template"),
+			existing: object(false, "other.io/keep"),
+			want:     []string{"other.io/keep", "example.com/cleanup", "example.com/from-template"},
+		},
+		"does not add rendered finalizers while the target is being deleted": {
+			rendered: object(false, "example.com/cleanup"),
+			existing: object(true, "other.io/keep"),
 			want:     []string{"other.io/keep"},
 		},
 	}
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
-			obj := rendered()
-			keepTargetFinalizers(es, obj, tc.existing)
-			assert.Equal(t, tc.want, obj.GetFinalizers())
+			keepTargetFinalizers(tc.rendered, tc.existing)
+			assert.Equal(t, tc.want, tc.rendered.GetFinalizers())
 		})
 	}
 }
