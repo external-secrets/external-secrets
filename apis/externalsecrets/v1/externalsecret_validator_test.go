@@ -17,8 +17,10 @@ limitations under the License.
 package v1
 
 import (
+	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 )
 
@@ -523,7 +525,10 @@ either data or dataFrom should be specified`,
 			},
 		},
 		{
-			name: "templateFrom nested target is rejected for a manifest naming a Secret",
+			// Previously this reported only the templateFrom error. The manifest itself is
+			// now rejected, and a manifest target is never a Secret, so the Secret-only
+			// templateFrom restriction no longer applies to it.
+			name: "manifest naming a Secret is rejected, with a nested templateFrom target",
 			obj: &ExternalSecret{
 				Spec: ExternalSecretSpec{
 					DataFrom: []ExternalSecretDataFromRemoteRef{
@@ -546,7 +551,97 @@ either data or dataFrom should be specified`,
 					},
 				},
 			},
-			expectedErr: `templateFrom target="type" is not allowed when targeting a Secret, must be one of "Data", "Annotations" or "Labels"`,
+			expectedErr: ErrManifestSecretTarget.Error(),
+		},
+		{
+			name: "manifest naming a Secret is rejected with no template at all",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Data: []ExternalSecretData{{}},
+					Target: ExternalSecretTarget{
+						Manifest: &ManifestReference{
+							APIVersion: "v1",
+							Kind:       "Secret",
+						},
+					},
+				},
+			},
+			expectedErr: ErrManifestSecretTarget.Error(),
+		},
+		{
+			name: "manifest naming a Secret is rejected with an ordinary valid Secret template",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Data: []ExternalSecretData{{}},
+					Target: ExternalSecretTarget{
+						Manifest: &ManifestReference{
+							APIVersion: "v1",
+							Kind:       "Secret",
+						},
+						Template: &ExternalSecretTemplate{
+							Type: corev1.SecretTypeOpaque,
+							TemplateFrom: []TemplateFrom{
+								{Target: TemplateTargetData},
+							},
+						},
+					},
+				},
+			},
+			expectedErr: ErrManifestSecretTarget.Error(),
+		},
+		{
+			// "/v1" parses to the same core group/version as "v1", so it must not be a
+			// way around the ban.
+			name: "manifest naming a Secret through an explicit empty group is rejected",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Data: []ExternalSecretData{{}},
+					Target: ExternalSecretTarget{
+						Manifest: &ManifestReference{
+							APIVersion: "/v1",
+							Kind:       "Secret",
+						},
+					},
+				},
+			},
+			expectedErr: ErrManifestSecretTarget.Error(),
+		},
+		{
+			name: "manifest naming a Secret kind in a custom group is allowed",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Data: []ExternalSecretData{{}},
+					Target: ExternalSecretTarget{
+						Manifest: &ManifestReference{
+							APIVersion: "example.io/v1",
+							Kind:       "Secret",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "default Secret target stays supported",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Data:   []ExternalSecretData{{}},
+					Target: ExternalSecretTarget{},
+				},
+			},
+		},
+		{
+			name: "ConfigMap manifest target stays supported",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Data: []ExternalSecretData{{}},
+					Target: ExternalSecretTarget{
+						Manifest: &ManifestReference{
+							APIVersion: "v1",
+							Kind:       "ConfigMap",
+						},
+					},
+				},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -565,6 +660,49 @@ either data or dataFrom should be specified`,
 			if tt.expectedErr != "" {
 				t.Errorf("validateExternalSecret() should have returned an error but got nil")
 			}
+		})
+	}
+}
+
+// TestValidateManifestSecretTargetOnCreateAndUpdate goes through the admission entry points
+// rather than validateExternalSecret, because both must refuse the target: rejecting only on
+// create would leave an existing ExternalSecret free to switch to a Secret manifest.
+func TestValidateManifestSecretTargetOnCreateAndUpdate(t *testing.T) {
+	validator := &ExternalSecretValidator{}
+	secretManifest := func(apiVersion, kind string) *ExternalSecret {
+		return &ExternalSecret{
+			Spec: ExternalSecretSpec{
+				Data: []ExternalSecretData{{}},
+				Target: ExternalSecretTarget{
+					Manifest: &ManifestReference{APIVersion: apiVersion, Kind: kind},
+				},
+			},
+		}
+	}
+
+	tests := []struct {
+		name       string
+		obj        *ExternalSecret
+		wantReject bool
+	}{
+		{"core Secret manifest", secretManifest("v1", "Secret"), true},
+		{"core Secret manifest with an explicit empty group", secretManifest("/v1", "Secret"), true},
+		{"custom group Secret kind", secretManifest("example.io/v1", "Secret"), false},
+		{"ConfigMap manifest", secretManifest("v1", "ConfigMap"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, createErr := validator.ValidateCreate(context.Background(), tt.obj)
+			_, updateErr := validator.ValidateUpdate(context.Background(), tt.obj, tt.obj)
+
+			if tt.wantReject {
+				require.ErrorIs(t, createErr, ErrManifestSecretTarget)
+				require.ErrorIs(t, updateErr, ErrManifestSecretTarget)
+				return
+			}
+			require.NotErrorIs(t, createErr, ErrManifestSecretTarget)
+			require.NotErrorIs(t, updateErr, ErrManifestSecretTarget)
 		})
 	}
 }

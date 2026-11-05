@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
 
@@ -62,6 +63,10 @@ func validateExternalSecret(es *ExternalSecret) (admission.Warnings, error) {
 	}
 
 	if err := validatePrivilegedTemplate(es.Spec.Target.Template); err != nil {
+		errs = errors.Join(errs, err)
+	}
+
+	if err := ValidateManifestTarget(es); err != nil {
 		errs = errors.Join(errs, err)
 	}
 
@@ -162,21 +167,42 @@ func ValidateSecretTemplate(tpl *ExternalSecretTemplate) error {
 	)
 }
 
-// isManifestSecretTarget reports whether the ExternalSecret renders into a core/v1 Secret.
-// That is the default target, and it is also reachable through an explicit manifest
-// reference naming a Secret.
-func isManifestSecretTarget(es *ExternalSecret) bool {
+// ErrManifestSecretTarget rejects a manifest target naming the core v1 Secret kind. A Secret
+// is the default target, reached by leaving spec.target.manifest unset, and that path carries
+// Secret-specific protections the generic path does not. Allowing the same resource to be
+// requested either way would mean maintaining two sets of those protections.
+var ErrManifestSecretTarget = errors.New(
+	"spec.target.manifest must not target the core v1 Secret kind: remove spec.target.manifest to sync into a Secret")
+
+// ValidateManifestTarget restricts what spec.target.manifest may declare. The admission
+// webhook reaches it through validateExternalSecret; the controller calls it so stored
+// objects and a bypassed webhook are covered too.
+func ValidateManifestTarget(es *ExternalSecret) error {
 	manifest := es.Spec.Target.Manifest
 	if manifest == nil {
-		return true
+		return nil
 	}
-	return manifest.APIVersion == "v1" && manifest.Kind == "Secret"
+
+	// Parsed the same way the controller resolves the target GVK, so "v1" and "/v1" both
+	// land on the core group and neither can slip past. A custom group's Secret kind is
+	// a different resource and stays allowed.
+	gv, err := schema.ParseGroupVersion(manifest.APIVersion)
+	if err != nil {
+		return fmt.Errorf("invalid spec.target.manifest.apiVersion %q: %w", manifest.APIVersion, err)
+	}
+	if gv.WithKind(manifest.Kind) == corev1.SchemeGroupVersion.WithKind("Secret") {
+		return ErrManifestSecretTarget
+	}
+
+	return nil
 }
 
 // validateTemplateFromTarget restricts templateFrom targets whenever the ExternalSecret
-// renders into a Secret.
+// renders into a Secret. Only the default target does: ValidateManifestTarget rejects a
+// manifest naming the core Secret kind, so any manifest target is a non-Secret resource
+// and keeps the nested paths custom resources need.
 func validateTemplateFromTarget(es *ExternalSecret) error {
-	if !isManifestSecretTarget(es) {
+	if es.Spec.Target.Manifest != nil {
 		return nil
 	}
 
