@@ -23,6 +23,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -354,6 +355,34 @@ func TestNewClient(t *testing.T) {
 			validateErrorNil:  false,
 			validateErrorText: true,
 			expectedErrorText: "error in Inputs: Error in field ApiKey : min / 128.",
+		},
+		{
+			name:      "Missing RetrievalType",
+			nameSpace: testName,
+			args: args{
+				store: esv1.SecretStore{
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Beyondtrust: &esv1.BeyondtrustProvider{
+								Server: &esv1.BeyondtrustServer{
+									APIURL: fakeAPIURL,
+								},
+
+								Auth: &esv1.BeyondtrustAuth{
+									APIKey: &esv1.BeyondTrustProviderSecretRef{
+										Value: apiKey,
+									},
+								},
+							},
+						},
+					},
+				},
+				kube:     createMockPasswordSafeClient(t),
+				provider: &Provider{},
+			},
+			validateErrorNil:  false,
+			validateErrorText: true,
+			expectedErrorText: `invalid retrievalType "": must be one of MANAGED_ACCOUNT, SECRET, ALL`,
 		},
 	}
 
@@ -1070,7 +1099,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "api key auth validates without panicking",
 			store: newStore(&esv1.BeyondtrustProvider{
-				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL, RetrievalType: retrievalTypeManagedAccount},
 				Auth:   &esv1.BeyondtrustAuth{APIKey: validRef},
 			}),
 			wantErr: false,
@@ -1078,7 +1107,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "client id and secret auth validates",
 			store: newStore(&esv1.BeyondtrustProvider{
-				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL, RetrievalType: retrievalTypeManagedAccount},
 				Auth:   &esv1.BeyondtrustAuth{ClientID: validRef, ClientSecret: validRef},
 			}),
 			wantErr: false,
@@ -1101,14 +1130,14 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "missing auth is rejected",
 			store: newStore(&esv1.BeyondtrustProvider{
-				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL, RetrievalType: retrievalTypeManagedAccount},
 			}),
 			wantErr: true,
 		},
 		{
 			name: "auth without any method is rejected",
 			store: newStore(&esv1.BeyondtrustProvider{
-				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL, RetrievalType: retrievalTypeManagedAccount},
 				Auth:   &esv1.BeyondtrustAuth{},
 			}),
 			wantErr: true,
@@ -1116,7 +1145,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "client id without client secret is rejected",
 			store: newStore(&esv1.BeyondtrustProvider{
-				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL, RetrievalType: retrievalTypeManagedAccount},
 				Auth:   &esv1.BeyondtrustAuth{ClientID: validRef},
 			}),
 			wantErr: true,
@@ -1124,7 +1153,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "auth ref without secretRef or value is rejected",
 			store: newStore(&esv1.BeyondtrustProvider{
-				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL, RetrievalType: retrievalTypeManagedAccount},
 				Auth:   &esv1.BeyondtrustAuth{APIKey: &esv1.BeyondTrustProviderSecretRef{}},
 			}),
 			wantErr: true,
@@ -1132,7 +1161,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "cross-namespace secretRef is rejected for a namespaced store",
 			store: newStore(&esv1.BeyondtrustProvider{
-				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL, RetrievalType: retrievalTypeManagedAccount},
 				Auth: &esv1.BeyondtrustAuth{APIKey: &esv1.BeyondTrustProviderSecretRef{
 					SecretRef: &esmeta.SecretKeySelector{
 						Name:      "creds",
@@ -1146,7 +1175,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "certificate without key warns but validates",
 			store: newStore(&esv1.BeyondtrustProvider{
-				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL, RetrievalType: retrievalTypeManagedAccount},
 				Auth:   &esv1.BeyondtrustAuth{APIKey: validRef, Certificate: validRef},
 			}),
 			wantErr:  false,
@@ -1155,10 +1184,34 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "complete certificate pair validates without warning",
 			store: newStore(&esv1.BeyondtrustProvider{
-				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL, RetrievalType: retrievalTypeManagedAccount},
 				Auth:   &esv1.BeyondtrustAuth{APIKey: validRef, Certificate: validRef, CertificateKey: validRef},
 			}),
 			wantErr: false,
+		},
+		{
+			name: "retrievalType ALL validates without warning",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL, RetrievalType: retrievalTypeAll},
+				Auth:   &esv1.BeyondtrustAuth{APIKey: validRef},
+			}),
+			wantErr: false,
+		},
+		{
+			name: "unknown retrievalType is rejected",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL, RetrievalType: "BOTH"},
+				Auth:   &esv1.BeyondtrustAuth{APIKey: validRef},
+			}),
+			wantErr: true,
+		},
+		{
+			name: "empty retrievalType is rejected",
+			store: newStore(&esv1.BeyondtrustProvider{
+				Server: &esv1.BeyondtrustServer{APIURL: fakeAPIURL},
+				Auth:   &esv1.BeyondtrustAuth{APIKey: validRef},
+			}),
+			wantErr: true,
 		},
 	}
 
@@ -1175,6 +1228,193 @@ func TestValidateStore(t *testing.T) {
 			} else {
 				require.Empty(t, warnings)
 			}
+		})
+	}
+}
+
+func TestResolveRetrievalKey(t *testing.T) {
+	tests := []struct {
+		name          string
+		retrievalType string
+		key           string
+		wantManaged   bool
+		wantPath      string
+		wantErr       bool
+	}{
+		{name: "ALL with managed prefix", retrievalType: retrievalTypeAll, key: "managed:system01/account01", wantManaged: true, wantPath: "system01/account01"},
+		{name: "ALL with secret prefix", retrievalType: retrievalTypeAll, key: "secret:app/folder/api-key", wantManaged: false, wantPath: "app/folder/api-key"},
+		{name: "ALL is case-insensitive", retrievalType: "all", key: "secret:app/api-key", wantManaged: false, wantPath: "app/api-key"},
+		{name: "ALL without prefix is rejected", retrievalType: retrievalTypeAll, key: "app/api-key", wantErr: true},
+		{name: "ALL with unknown prefix is rejected", retrievalType: retrievalTypeAll, key: "file:app/api-key", wantErr: true},
+		{name: "SECRET without prefix", retrievalType: secretTypeSecret, key: "app/api-key", wantManaged: false, wantPath: "app/api-key"},
+		{name: "SECRET strips its own prefix", retrievalType: secretTypeSecret, key: "secret:app/api-key", wantManaged: false, wantPath: "app/api-key"},
+		{name: "SECRET rejects the managed prefix", retrievalType: secretTypeSecret, key: "managed:system01/account01", wantErr: true},
+		{name: "MANAGED_ACCOUNT without prefix", retrievalType: retrievalTypeManagedAccount, key: "system01/account01", wantManaged: true, wantPath: "system01/account01"},
+		{name: "MANAGED_ACCOUNT strips its own prefix", retrievalType: retrievalTypeManagedAccount, key: "managed:system01/account01", wantManaged: true, wantPath: "system01/account01"},
+		{name: "MANAGED_ACCOUNT rejects the secret prefix", retrievalType: retrievalTypeManagedAccount, key: "secret:app/api-key", wantErr: true},
+		{name: "empty retrievalType is rejected", retrievalType: "", key: "system01/account01", wantErr: true},
+		{name: "unknown retrievalType is rejected", retrievalType: "BOTH", key: "system01/account01", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			managed, path, err := resolveRetrievalKey(tt.retrievalType, tt.key)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantManaged, managed)
+			assert.Equal(t, tt.wantPath, path)
+		})
+	}
+}
+
+// getSecretMock selects which request of the mocked retrieval flows fails.
+type getSecretMock struct {
+	missingManaged bool // the managed account lookup returns 404
+	missingSecret  bool // the Secrets Safe search returns no secret
+	failedCheckIn  bool // the managed account check-in returns 404
+	fileSecret     bool // the secret is a FILE whose download returns 404
+	noSchedule     bool // the release request is refused with 400
+
+	managedAccountCalls *atomic.Int32 // counts managed account lookups, when set
+}
+
+// newGetSecretMockServer serves both the managed account and the Secrets Safe
+// retrieval flows, failing the requests that mock selects with the responses
+// Password Safe sends.
+func newGetSecretMockServer(t *testing.T, mock getSecretMock) *httptest.Server {
+	t.Helper()
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case authConnectTokenPath:
+			writeBody(t, w, `{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`)
+		case authSignAppInPath:
+			writeBody(t, w, `{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`)
+		case "/Auth/Signout":
+			writeBody(t, w, ``)
+		case "/ManagedAccounts":
+			if mock.managedAccountCalls != nil {
+				mock.managedAccountCalls.Add(1)
+			}
+			if mock.missingManaged {
+				http.Error(w, "managed account not found", http.StatusNotFound)
+				return
+			}
+			writeBody(t, w, `{"SystemId":1,"AccountId":10}`)
+		case "/Requests":
+			if mock.noSchedule {
+				http.Error(w, `"Could not find a schedule to use with this release request."`, http.StatusBadRequest)
+				return
+			}
+			writeBody(t, w, `124`)
+		case "/Credentials/124":
+			writeBody(t, w, `"managed_password"`)
+		case "/Requests/124/checkin":
+			if mock.failedCheckIn {
+				http.Error(w, "request not found", http.StatusNotFound)
+				return
+			}
+			writeBody(t, w, ``)
+		case secretsSafeSecretsPath:
+			switch {
+			case mock.missingSecret:
+				writeBody(t, w, `[]`)
+			case mock.fileSecret:
+				// No handler serves the file download, so it returns 404.
+				writeBody(t, w, `[{"SecretType": "FILE", "Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "api-key"}]`)
+			default:
+				writeBody(t, w, `[{"SecretType": "CREDENTIAL", "Password": "secret_password","Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "api-key"}]`)
+			}
+		default:
+			http.Error(w, "not found", http.StatusNotFound)
+		}
+	}))
+}
+
+func TestGetSecret(t *testing.T) {
+	tests := []struct {
+		name          string
+		retrievalType string
+		key           string
+		mock          getSecretMock
+		want          string
+		wantErr       error
+		wantErrMsg    string
+		wantFound     bool // the error must not be NoSecretErr
+	}{
+		{name: "ALL retrieves a managed account", retrievalType: retrievalTypeAll, key: "managed:system01/account01", want: "managed_password"},
+		{name: "ALL retrieves a Secrets Safe secret", retrievalType: retrievalTypeAll, key: "secret:app/folder/api-key", want: "secret_password"},
+		{name: "ALL without prefix is rejected", retrievalType: retrievalTypeAll, key: "app/folder/api-key", wantErrMsg: "retrievalType ALL requires"},
+		{name: "ALL with invalid path after prefix", retrievalType: retrievalTypeAll, key: "managed:system01/folder/account01", wantErrMsg: errInvalidRetrievalPath},
+		{name: "MANAGED_ACCOUNT without prefix is unchanged", retrievalType: retrievalTypeManagedAccount, key: "system01/account01", want: "managed_password"},
+		{name: "SECRET without prefix is unchanged", retrievalType: secretTypeSecret, key: "app/folder/api-key", want: "secret_password"},
+		{name: "MANAGED_ACCOUNT accepts the managed prefix", retrievalType: retrievalTypeManagedAccount, key: "managed:system01/account01", want: "managed_password"},
+		{name: "SECRET accepts the secret prefix", retrievalType: secretTypeSecret, key: "secret:app/folder/api-key", want: "secret_password"},
+		{name: "MANAGED_ACCOUNT rejects the secret prefix", retrievalType: retrievalTypeManagedAccount, key: "secret:app/folder/api-key", wantErrMsg: "does not match store retrievalType"},
+		{name: "missing managed account returns NoSecretErr", retrievalType: retrievalTypeAll, key: "managed:system01/account01", mock: getSecretMock{missingManaged: true}, wantErr: esv1.NoSecretErr},
+		{name: "missing secret returns NoSecretErr", retrievalType: retrievalTypeAll, key: "secret:app/folder/api-key", mock: getSecretMock{missingSecret: true}, wantErr: esv1.NoSecretErr},
+		{name: "failed managed account check-in is not NoSecretErr", retrievalType: retrievalTypeAll, key: "managed:system01/account01", mock: getSecretMock{failedCheckIn: true}, wantFound: true},
+		{name: "failed file download is not NoSecretErr", retrievalType: retrievalTypeAll, key: "secret:app/folder/api-key", mock: getSecretMock{fileSecret: true}, wantFound: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeServer := newGetSecretMockServer(t, tt.mock)
+			defer fakeServer.Close()
+
+			p := newAuthenticatedProvider(t, fakeServer.URL, "3.1")
+			p.retrievaltype = tt.retrievalType
+			p.separator = "/"
+			p.decrypt = true
+			p.log = *logging.NewLogrLogger(&ESOLogger)
+
+			got, err := p.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: tt.key})
+			switch {
+			case tt.wantErr != nil:
+				require.ErrorIs(t, err, tt.wantErr)
+			case tt.wantErrMsg != "":
+				require.ErrorContains(t, err, tt.wantErrMsg)
+			case tt.wantFound:
+				require.Error(t, err)
+				require.NotErrorIs(t, err, esv1.NoSecretErr)
+			default:
+				require.NoError(t, err)
+				assert.Equal(t, tt.want, string(got))
+			}
+		})
+	}
+}
+
+// A fetch that fails with anything but not-found must not repeat the lookup: the SDK has already
+// retried technical errors, and the lookup would retry them again.
+func TestGetSecretLookupOnlyAfterNotFound(t *testing.T) {
+	tests := []struct {
+		name      string
+		mock      getSecretMock
+		wantCalls int32
+	}{
+		{name: "refused release request skips the lookup", mock: getSecretMock{noSchedule: true}, wantCalls: 1},
+		{name: "failed check-in repeats the lookup", mock: getSecretMock{failedCheckIn: true}, wantCalls: 2},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var calls atomic.Int32
+			tt.mock.managedAccountCalls = &calls
+			fakeServer := newGetSecretMockServer(t, tt.mock)
+			defer fakeServer.Close()
+
+			p := newAuthenticatedProvider(t, fakeServer.URL, "3.1")
+			p.retrievaltype = retrievalTypeAll
+			p.separator = "/"
+			p.log = *logging.NewLogrLogger(&ESOLogger)
+
+			_, err := p.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: "managed:system01/account01"})
+			require.Error(t, err)
+			require.NotErrorIs(t, err, esv1.NoSecretErr)
+			assert.Equal(t, tt.wantCalls, calls.Load())
 		})
 	}
 }
