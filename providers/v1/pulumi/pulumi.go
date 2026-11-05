@@ -28,6 +28,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 )
 
 type client struct {
@@ -52,6 +53,12 @@ const (
 )
 
 var _ esv1.SecretsClient = &client{}
+
+// PushSecretMetadataSpec defines the spec for the metadata for PushSecret.
+type PushSecretMetadataSpec struct {
+	// Secret wraps the pushed value in fn::secret. Defaults to true.
+	Secret *bool `json:"secret,omitempty"`
+}
 
 // getAuthContext returns the auth context for API calls.
 // For OIDC auth, it fetches a fresh token if needed (the OIDCTokenManager handles caching internally).
@@ -106,6 +113,15 @@ func createSubmaps(input map[string]any) map[string]any {
 	return result
 }
 
+// setPath sets value at the dotted key; the parent maps exist via createSubmaps.
+func setPath(m map[string]any, key string, value any) {
+	keys := strings.Split(key, ".")
+	for _, k := range keys[:len(keys)-1] {
+		m = m[k].(map[string]any)
+	}
+	m[keys[len(keys)-1]] = value
+}
+
 func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	authCtx, err := c.getAuthContext(ctx)
 	if err != nil {
@@ -115,7 +131,11 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	if secretKey == "" {
 		return errors.New(errPushWholeSecret)
 	}
-	value := secret.Data[secretKey]
+	meta, err := metadata.ParseMetadataParameters[PushSecretMetadataSpec](data.GetMetadata())
+	if err != nil {
+		return fmt.Errorf("failed to parse metadata: %w", err)
+	}
+	value := string(secret.Data[secretKey])
 
 	// Merge into the raw environment definition rather than the opened
 	// (resolved) environment, so imports, pulumiConfig, environmentVariables,
@@ -131,11 +151,18 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		definition.Values = &esc.EnvironmentDefinitionValues{}
 	}
 	values := createSubmaps(map[string]any{
-		data.GetRemoteKey(): string(value),
+		data.GetRemoteKey(): value,
 	})
 	if err := mergo.Merge(&values, definition.Values.AdditionalProperties); err != nil {
 		return fmt.Errorf(errPushSecrets, err)
 	}
+	// Set the pushed key after the merge so it replaces the stored value
+	// whatever its shape (a stored fn::secret reads back as {"ciphertext": ...}).
+	var pushed any = value
+	if meta == nil || meta.Spec.Secret == nil || *meta.Spec.Secret {
+		pushed = map[string]any{"fn::secret": value}
+	}
+	setPath(values, data.GetRemoteKey(), pushed)
 	definition.Values.AdditionalProperties = values
 	_, err = c.escClient.UpdateEnvironment(authCtx, c.organization, c.project, c.environment, definition)
 	if err != nil {
