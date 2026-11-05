@@ -558,6 +558,128 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 	assert.Equal(t, "This is a test", annotations["description"])
 }
 
+func TestApplyTemplateToManifest_Finalizers(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{
+		Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
+		Scheme: scheme.Scheme,
+	}
+	newES := func(finalizers ...string) *esv1.ExternalSecret {
+		return &esv1.ExternalSecret{
+			Name:      "test-es",
+			Namespace: "default",
+			Spec: esv1.ExternalSecretSpec{
+				Target: esv1.ExternalSecretTarget{
+					Name:     "test-configmap",
+					Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+					Template: &esv1.ExternalSecretTemplate{
+						EngineVersion: esv1.TemplateEngineV2,
+						Metadata:      esv1.ExternalSecretTemplateMetadata{Finalizers: finalizers},
+					},
+				},
+			},
+		}
+	}
+	existingConfigMap := func(deleting bool, finalizers ...string) *unstructured.Unstructured {
+		obj := &unstructured.Unstructured{}
+		obj.SetAPIVersion("v1")
+		obj.SetKind("ConfigMap")
+		obj.SetName("test-configmap")
+		obj.SetNamespace("default")
+		obj.SetFinalizers(finalizers)
+		if deleting {
+			now := metav1.Now()
+			obj.SetDeletionTimestamp(&now)
+		}
+		obj.Object["data"] = map[string]any{}
+		return obj
+	}
+
+	tests := map[string]struct {
+		es       *esv1.ExternalSecret
+		existing *unstructured.Unstructured
+		want     []string
+	}{
+		"adds the template finalizers on creation": {
+			es:   newES("example.com/cleanup"),
+			want: []string{"example.com/cleanup"},
+		},
+		"adds the template finalizers on update": {
+			es:       newES("example.com/cleanup"),
+			existing: existingConfigMap(false),
+			want:     []string{"example.com/cleanup"},
+		},
+		"keeps existing finalizers and does not add duplicates": {
+			es:       newES("example.com/cleanup"),
+			existing: existingConfigMap(false, "other.io/keep", "example.com/cleanup"),
+			want:     []string{"other.io/keep", "example.com/cleanup"},
+		},
+		"does not remove a finalizer that was removed from the template": {
+			es:       newES(),
+			existing: existingConfigMap(false, "example.com/cleanup"),
+			want:     []string{"example.com/cleanup"},
+		},
+		"does not add finalizers once the target is being deleted": {
+			es:       newES("example.com/cleanup"),
+			existing: existingConfigMap(true, "other.io/keep"),
+			want:     []string{"other.io/keep"},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			result, err := r.applyTemplateToManifest(context.Background(), tc.es, map[string][]byte{"key": []byte("value")}, tc.existing)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, result.GetFinalizers())
+		})
+	}
+}
+
+func TestKeepTargetFinalizers(t *testing.T) {
+	// with the Owner and Orphan policies, the rendered object does not start from the existing target
+	object := func(deleting bool, finalizers ...string) *unstructured.Unstructured {
+		obj := &unstructured.Unstructured{}
+		obj.SetFinalizers(finalizers)
+		if deleting {
+			now := metav1.Now()
+			obj.SetDeletionTimestamp(&now)
+		}
+		return obj
+	}
+
+	tests := map[string]struct {
+		rendered *unstructured.Unstructured
+		existing *unstructured.Unstructured
+		want     []string
+	}{
+		"keeps the finalizers of other controllers": {
+			rendered: object(false, "example.com/cleanup"),
+			existing: object(false, "other.io/keep"),
+			want:     []string{"other.io/keep", "example.com/cleanup"},
+		},
+		"does not add duplicates": {
+			rendered: object(false, "example.com/cleanup"),
+			existing: object(false, "example.com/cleanup", "other.io/keep"),
+			want:     []string{"example.com/cleanup", "other.io/keep"},
+		},
+		"keeps finalizers rendered by a templateFrom target": {
+			rendered: object(false, "example.com/cleanup", "example.com/from-template"),
+			existing: object(false, "other.io/keep"),
+			want:     []string{"other.io/keep", "example.com/cleanup", "example.com/from-template"},
+		},
+		"does not add rendered finalizers while the target is being deleted": {
+			rendered: object(false, "example.com/cleanup"),
+			existing: object(true, "other.io/keep"),
+			want:     []string{"other.io/keep"},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			keepTargetFinalizers(tc.rendered, tc.existing)
+			assert.Equal(t, tc.want, tc.rendered.GetFinalizers())
+		})
+	}
+}
+
 func TestApplyTemplateToManifest_AppliesOwnershipWhenCreationPolicyOwner(t *testing.T) {
 	_ = esv1.AddToScheme(scheme.Scheme)
 	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()

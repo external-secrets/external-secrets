@@ -20,6 +20,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"slices"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
@@ -27,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
@@ -252,6 +254,8 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		return nil, err
 	}
 
+	addTemplateFinalizers(es, result)
+
 	ann := result.GetAnnotations()
 	if ann == nil {
 		ann = make(map[string]string)
@@ -371,4 +375,34 @@ func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.Exter
 	}
 
 	return obj, nil
+}
+
+// addTemplateFinalizers adds the finalizers from the template metadata to a manifest target,
+// the same way they are added to Secret targets: missing ones are added, existing ones (also
+// those of other controllers) are kept, and none are added once the target is being deleted.
+func addTemplateFinalizers(es *esv1.ExternalSecret, obj *unstructured.Unstructured) {
+	if es.Spec.Target.Template == nil || !obj.GetDeletionTimestamp().IsZero() {
+		return
+	}
+	for _, finalizer := range es.Spec.Target.Template.Metadata.Finalizers {
+		controllerutil.AddFinalizer(obj, finalizer)
+	}
+}
+
+// keepTargetFinalizers sets the finalizers of the object that replaces an existing target on update.
+// An Update replaces metadata.finalizers, and with the Owner and Orphan policies the rendered object
+// does not start from the existing target, so its finalizers (also those of other controllers) are
+// carried over. The rendered finalizers (template metadata or a templateFrom target) are only added
+// while the target is not being deleted, since the API server rejects new finalizers on an object
+// that is being deleted.
+func keepTargetFinalizers(obj, existing *unstructured.Unstructured) {
+	finalizers := slices.Clone(existing.GetFinalizers())
+	if existing.GetDeletionTimestamp().IsZero() {
+		for _, finalizer := range obj.GetFinalizers() {
+			if !slices.Contains(finalizers, finalizer) {
+				finalizers = append(finalizers, finalizer)
+			}
+		}
+	}
+	obj.SetFinalizers(finalizers)
 }
