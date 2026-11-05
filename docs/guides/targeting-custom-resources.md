@@ -100,8 +100,7 @@ Intermediate maps and arrays are created if they don't exist yet, and existing s
 
 ## Drift Detection
 
-The operator automatically detects and corrects manual changes to managed custom resources. If you modify a ConfigMap or custom resource that is managed by an ExternalSecret, the operator will restore it to the desired state immediately.
-This is achieved with informers watching the relevant GVK of the Resource.
+The operator detects manual changes to a target ConfigMap or custom resource using an informer for that resource's GVK. Whether it corrects the change immediately or waits for a refresh depends on `spec.target.creationPolicy`; see the [behavior matrix](ownership-deletion-policy.md#behavior-matrix).
 
 ## Metadata and Labels
 
@@ -111,7 +110,7 @@ You can add labels and annotations to your target resources using the template m
 {% include 'manifest-labeled-configmap.yaml' %}
 ```
 
-The operator automatically adds the `externalsecrets.external-secrets.io/managed: "true"` label to track which resources it manages.
+The operator automatically adds labels to track which resources it manages (See also [behavior matrix](ownership-deletion-policy.md))
 
 ## RBAC Requirements
 

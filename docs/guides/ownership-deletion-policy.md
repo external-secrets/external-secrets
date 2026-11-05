@@ -158,3 +158,56 @@ Modifiers that cut across every row:
   data, which is only detected on a re-sync. So under `CreatedOnce` a provider-side
   deletion is never detected, under `OnChange` only on an `ExternalSecret` change, and
   under `Periodic` at the next interval.
+
+### Target behavior on sync: Normalizations and Validations.
+
+The table above describes *when* a sync happens. This table describes *what happens* on a sync with provider data available.
+An unset `spec.target.manifest` produces a Kubernetes Secret. A manifest with `apiVersion: v1` and `kind: Secret` also produces a Secret, and behaves the same way.
+Other manifest values produce the declared resource type.
+
+### Admission
+
+All admission policies, like "When defined, `spec.target.manifest` needs both kind and apiVersion to be set" are defined in our API reference documentation.
+
+### Validations
+
+Extra validations of Secrets compared to other resources:
+
+- `templateFrom` can only target `Data`, `Labels`, or `Annotations`;
+- `templateFrom` cannot target `Annotations` on secret type `kubernetes.io/service-account-token`;
+- Cannot have the type `bootstrap.kubernetes.io/token`;
+- Cannot have type `kubernetes.io/service-account-token` with `kubernetes.io/service-account.name` present;
+
+Extra validations of Manifests compared to Secret resources:
+
+- None
+
+Extra validations based on `spec.target.creationPolicy`:
+
+- Owner: Rejects the write if a controller of another kind owns the target
+
+  notes:
+
+  - This does not prevent multiple ExternalSecrets from merging different fields into the same target as field ownership is separate from owner references.
+  - The current ExternalSecret is matched by API group, kind and name, not UID
+
+Data merging also depends on `spec.target.template.mergePolicy`.
+If a valid target does not need a refresh, ESO may skip rendering and the per-sync validations above entirely.
+
+### Normalizations
+
+Normalizations are not like validations. Any attempt to template/modify these will automatically be overridden by ESO.
+
+For objects to be written, ESO normalizes the following metadata in the target object:
+
+- `reconcile.external-secrets.io/managed` label
+- `reconcile.external-secrets.io/data-hash` annotation (computed from target content)
+These reserved keys are not user-controlled. They are ALWAYS present if ESO writes the object.
+
+ESO adapts the following metadata in the target object based on the `spec.target.creationPolicy`:
+
+- When Owner: `reconcile.external-secrets.io/created-by` label is set to ESO's hash of the ExternalSecret's namespace/name
+- When Owner: the current ExternalSecret is set as the target's controller owner in `metadata.ownerReferences`
+- When Orphan/Merge/CreateOrMerge: `reconcile.external-secrets.io/created-by` label is removed
+- When Orphan/Merge/CreateOrMerge: the current ES's controller owner reference is removed IF present (other owner references untouched).
+- When None: Skipped (no write)
