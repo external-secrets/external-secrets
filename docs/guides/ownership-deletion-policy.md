@@ -96,8 +96,27 @@ If a secret gets deleted on the provider side and is not accessible
 anymore this is not considered an error and the ExternalSecret
 does not go into SecretSyncedError status. This is also true for new
 ExternalSecrets mapping to non-existing secrets in the provider.
-`deletionPolicy=Delete` only takes effect with `creationPolicy=Owner`; the operator
-refuses to delete a Secret it does not own and reports a `SecretSyncedError` otherwise.
+`deletionPolicy=Delete` only takes effect with `creationPolicy=Owner`, and setting
+`creationPolicy=Owner` alone does not prove ownership. Before deleting an existing target
+(Secret or manifest), ESO reads it and looks in its `metadata.ownerReferences` for a
+controller reference (`controller: true`) to the current ExternalSecret. The reference is
+matched on what identifies the ExternalSecret (API group, kind and name) and not on what
+changes when it is recreated or served under another version (UID, API version). An
+ExternalSecret that was deleted and recreated under the same name therefore still deletes
+the target it owns, without having to update the owner reference first.
+
+A target that fails this check (no controller reference, a controller reference to a
+different ExternalSecret, or a controller of another kind) is never deleted. What happens
+next depends on when the check ran. During a sync, ESO leaves the target alone, reports a
+failed sync and keeps polling at the configured refresh interval, so syncing recovers when
+provider data appears; the failed attempt does not advance the last successful refresh time.
+During ExternalSecret deletion, ESO logs the refusal and lets finalization finish, so an
+unrelated target can never block it.
+
+The delete itself is tied to the object that was checked (its UID and its resource
+version). If the target is replaced or modified after the ownership check, the API server
+answers with a conflict and ESO retries, rather than deleting an object whose current
+ownership was not checked.
 
 ### Merge
 Merge removes keys in the secret, but not the secret itself.
