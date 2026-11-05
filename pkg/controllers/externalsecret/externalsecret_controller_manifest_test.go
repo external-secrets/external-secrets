@@ -1630,3 +1630,52 @@ func TestReconcileGenericTargetUsesLiveTarget(t *testing.T) {
 	assert.Equal(t, "es-a", target.GetOwnerReferences()[0].Name)
 	assert.Equal(t, "rotated", target.Object["data"].(map[string]any)["key"])
 }
+
+// TestApplyTemplateToManifestAcceptsRestatedMetadata pins the promise made in
+// docs/guides/ownership-deletion-policy.md: a template that reproduces a protected
+// metadata value unchanged is accepted, and only a changed value is rejected. Numbers
+// are the interesting case, because the live object and the template reach the
+// comparison through different decoders.
+func TestApplyTemplateToManifestAcceptsRestatedMetadata(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme}
+
+	for _, tt := range []struct {
+		name, literal string
+		wantErr       bool
+	}{
+		{"number restated unchanged", "generation: 2", false},
+		{"number changed", "generation: 3", true},
+		{"string restated unchanged", "uid: target-uid", false},
+		{"string changed", "uid: victim-uid", true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			es := &esv1.ExternalSecret{
+				Name: "es", Namespace: "ns", UID: "es-uid",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "target", CreationPolicy: esv1.CreatePolicyOrphan,
+					Manifest: &esv1.ManifestReference{APIVersion: "example.io/v1", Kind: "Widget"},
+					Template: &esv1.ExternalSecretTemplate{EngineVersion: esv1.TemplateEngineV2,
+						TemplateFrom: []esv1.TemplateFrom{{Target: "metadata", Literal: &tt.literal}}},
+				}},
+			}
+			existing := &unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": "example.io/v1", "kind": "Widget",
+				"metadata": map[string]any{
+					"name": "target", "namespace": "ns", "uid": "target-uid",
+					"resourceVersion": "12", "generation": int64(2),
+				},
+			}}
+
+			result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
+			if tt.wantErr {
+				require.ErrorIs(t, err, errProtectedMetadata)
+				return
+			}
+			require.NoError(t, err)
+			metadata := result.Object["metadata"].(map[string]any)
+			assert.Equal(t, int64(2), metadata["generation"])
+			assert.Equal(t, "target-uid", metadata["uid"])
+		})
+	}
+}
