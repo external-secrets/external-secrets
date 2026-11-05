@@ -8742,7 +8742,7 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Token authenticates with Nebius Mysterybox by presenting a token.</p>
+<p>Token authenticates with Nebius SecretStash by presenting a token.</p>
 </td>
 </tr>
 <tr>
@@ -8800,7 +8800,7 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>NebiusMysteryboxProvider Configures a store to sync secrets using the Nebius Mysterybox provider.</p>
+<p>NebiusMysteryboxProvider Configures a store to sync secrets using the Nebius SecretStash provider.</p>
 </p>
 <table>
 <thead>
@@ -8818,7 +8818,7 @@ string
 </em>
 </td>
 <td>
-<p>NebiusMysterybox API endpoint</p>
+<p>Nebius SecretStash API endpoint</p>
 </td>
 </tr>
 <tr>
@@ -8831,7 +8831,7 @@ NebiusAuth
 </em>
 </td>
 <td>
-<p>Auth defines parameters to authenticate in MysteryBox</p>
+<p>Auth defines parameters to authenticate in SecretStash</p>
 </td>
 </tr>
 <tr>
@@ -8845,7 +8845,7 @@ NebiusCAProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>The provider for the CA bundle to use to validate NebiusMysterybox server certificate.</p>
+<p>The provider for the CA bundle to use to validate Nebius SecretStash server certificate.</p>
 </td>
 </tr>
 </tbody>
@@ -12161,7 +12161,7 @@ NebiusMysteryboxProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider</p>
+<p>NebiusMysterybox configures this store to sync secrets using the Nebius SecretStash provider</p>
 </td>
 </tr>
 <tr>

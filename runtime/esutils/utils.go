@@ -219,11 +219,11 @@ func RewriteTransform(operation esv1.ExternalSecretRewriteTransform, in map[stri
 	}
 
 	for key, value := range in {
-		var buf bytes.Buffer
-		if err := tmpl.Execute(&buf, map[string]string{"value": key}); err != nil {
+		result, err := estemplate.ExecuteTemplate(tmpl, map[string]string{"value": key})
+		if err != nil {
 			return nil, fmt.Errorf("transform failed with failed to execute template for key %q: %w", key, err)
 		}
-		out[buf.String()] = value
+		out[string(result)] = value
 	}
 
 	return out, nil
