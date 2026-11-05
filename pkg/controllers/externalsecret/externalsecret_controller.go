@@ -142,6 +142,7 @@ var (
 	ErrSecretIsOwned       = fmt.Errorf("secret is owned by another ExternalSecret")
 	ErrSecretSetCtrlRef    = fmt.Errorf("could not set controller reference on secret")
 	ErrSecretRemoveCtrlRef = fmt.Errorf("could not remove controller reference on secret")
+	ErrTargetNotControlled = fmt.Errorf("target is not controlled by this ExternalSecret")
 )
 
 const (
@@ -439,7 +440,17 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 			// delete the secret, if it exists
 			if existingSecret.UID != "" {
-				err = r.Delete(ctx, existingSecret)
+				// creationPolicy=Owner states the intent to own the Secret; the controller
+				// owner reference on the Secret itself is what proves it. Without this the
+				// policy alone would authorize deleting a Secret we never created.
+				// NOTE: not fixable by retrying, so no error is returned.
+				if !isControlledByExternalSecret(externalSecret, existingSecret) {
+					err = fmt.Errorf("%w: Secret %s", ErrTargetNotControlled, secretName)
+					r.markAsFailed(msgErrorDeleteSecret, ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
+					return ctrl.Result{}, nil
+				}
+
+				err = r.deleteCheckedTarget(ctx, existingSecret)
 				if err != nil && !apierrors.IsNotFound(err) {
 					r.markAsFailed(msgErrorDeleteSecret, ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
 					return ctrl.Result{}, err
@@ -643,6 +654,10 @@ func (r *Reconciler) reconcileGenericTarget(
 			err = r.deleteGenericResource(ctx, log, externalSecret)
 			if err != nil {
 				r.markAsFailed("could not delete resource", ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
+				// a target owned by someone else stays that way; retrying cannot fix it
+				if errors.Is(err, ErrTargetNotControlled) {
+					return ctrl.Result{}, nil
+				}
 				return ctrl.Result{}, err
 			}
 
@@ -858,6 +873,38 @@ func (r *Reconciler) applyOwnership(es *esv1.ExternalSecret, target client.Objec
 	return nil
 }
 
+// isControlledByExternalSecret reports whether the target's controller owner reference names
+// this ExternalSecret. It is read-only: unlike applyOwnership it never writes a reference, so
+// it cannot manufacture the ownership it is asked to confirm.
+//
+// Identity is the API group, the kind and the name. The UID is deliberately ignored, so an
+// ExternalSecret that was deleted and recreated under the same name can still delete the
+// target it owns without having to re-adopt it first. The API version is ignored too, because
+// the version a stored reference was written with can change. metav1.IsControlledBy is not
+// usable here for exactly that reason: it requires UID equality.
+func isControlledByExternalSecret(es *esv1.ExternalSecret, target client.Object) bool {
+	owner := metav1.GetControllerOf(target)
+	if owner == nil {
+		return false
+	}
+
+	ownerGK := schema.FromAPIVersionAndKind(owner.APIVersion, owner.Kind).GroupKind()
+	return ownerGK.String() == esv1.ExtSecretGroupKind && owner.Name == es.Name
+}
+
+// deleteCheckedTarget deletes a target whose controller ownership the caller has already
+// confirmed with isControlledByExternalSecret, pinned to the UID that was checked.
+//
+// The pin is the whole point of this helper existing. Authorizing a deletion takes two calls,
+// a read and a delete, and a target can be replaced under the same name in between; deleting
+// by name alone would then destroy an object whose ownership was never examined. Every
+// deletion path shares this one line so the guarantee cannot drift between them, and so a
+// single test covers it: see "refuses to delete a target that was replaced after the
+// ownership check", which drives it against a real API server.
+func (r *Reconciler) deleteCheckedTarget(ctx context.Context, target client.Object) error {
+	return r.Delete(ctx, target, client.Preconditions{UID: new(target.GetUID())})
+}
+
 func (r *Reconciler) cleanupManagedSecrets(ctx context.Context, log logr.Logger, externalSecret *esv1.ExternalSecret) error {
 	// Only delete resources if DeletionPolicy is Delete
 	if externalSecret.Spec.Target.DeletionPolicy != esv1.DeletionPolicyDelete {
@@ -867,7 +914,14 @@ func (r *Reconciler) cleanupManagedSecrets(ctx context.Context, log logr.Logger,
 
 	// if this is a generic target, use deleteGenericResource
 	if isGenericTarget(externalSecret) {
-		return r.deleteGenericResource(ctx, log, externalSecret)
+		err := r.deleteGenericResource(ctx, log, externalSecret)
+		// A target this ExternalSecret does not control is not ours to clean up. Reporting
+		// it as an error would block finalization forever on an object we must not touch.
+		if errors.Is(err, ErrTargetNotControlled) {
+			log.Info("skipping cleanup of a target controlled by someone else", "reason", err.Error())
+			return nil
+		}
+		return err
 	}
 
 	// handle Secret deletion
@@ -885,13 +939,20 @@ func (r *Reconciler) cleanupManagedSecrets(ctx context.Context, log logr.Logger,
 		return err
 	}
 
-	// Only delete if we own it
-	if metav1.IsControlledBy(&secret, externalSecret) {
-		if err := r.Delete(ctx, &secret); err != nil && !apierrors.IsNotFound(err) {
-			return err
-		}
-		log.V(1).Info(logManagedSecretDeleted, "secret", secretName, "namespace", externalSecret.Namespace, "reason", "ExternalSecret deleted")
+	// Only delete if we control it. Matching on group/kind/name rather than UID means a
+	// recreated ExternalSecret still cleans up the Secret its predecessor created.
+	if !isControlledByExternalSecret(externalSecret, &secret) {
+		log.Info("skipping cleanup of a Secret controlled by someone else",
+			"secret", secretName, "namespace", externalSecret.Namespace)
+		return nil
 	}
+
+	// A conflict here retries finalization; the next pass re-reads the target and refuses
+	// the replacement, so an unrelated object can never block ExternalSecret deletion.
+	if err := r.deleteCheckedTarget(ctx, &secret); err != nil && !apierrors.IsNotFound(err) {
+		return err
+	}
+	log.V(1).Info(logManagedSecretDeleted, "secret", secretName, "namespace", externalSecret.Namespace, "reason", "ExternalSecret deleted")
 
 	return nil
 }

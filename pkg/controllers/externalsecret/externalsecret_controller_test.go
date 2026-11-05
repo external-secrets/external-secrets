@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/onsi/gomega/format"
@@ -36,7 +37,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
@@ -2633,6 +2637,87 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Expect(k8sClient.Get(ctx, secretKey, persistedSecret)).To(Succeed())
 		Expect(persistedSecret.Type).To(Equal(v1.SecretTypeServiceAccountToken))
 		Expect(persistedSecret.Annotations).To(HaveKeyWithValue(v1.ServiceAccountNameKey, "current-workload"))
+	})
+
+	// Authorizing a deletion means reading the target, then deleting it. Between those two
+	// calls the target can be replaced by a different object under the same name, and a delete
+	// by name alone would destroy an object whose ownership was never checked. The UID
+	// precondition closes that window, and only a real API server enforces it: the fake client
+	// ignores client.Preconditions entirely.
+	It("refuses to delete a target that was replaced after the ownership check", func() {
+		ctx := context.Background()
+		const (
+			racedESName  = "raced-es"
+			racedTarget  = "raced-configmap"
+			replacedBy   = "someone-else"
+			replacedData = "data-we-must-not-delete"
+		)
+		targetKey := types.NamespacedName{Name: racedTarget, Namespace: ExternalSecretNamespace}
+
+		es := &esv1.ExternalSecret{
+			Name: racedESName, Namespace: ExternalSecretNamespace,
+			Spec: esv1.ExternalSecretSpec{
+				Target: esv1.ExternalSecretTarget{
+					Name:           racedTarget,
+					CreationPolicy: esv1.CreatePolicyOwner,
+					DeletionPolicy: esv1.DeletionPolicyDelete,
+					Manifest:       &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+				},
+			},
+		}
+
+		By("creating a target this ExternalSecret controls")
+		owned := &v1.ConfigMap{
+			Name: racedTarget, Namespace: ExternalSecretNamespace,
+			Data: map[string]string{"owner": racedESName},
+		}
+		owned.OwnerReferences = []metav1.OwnerReference{{
+			APIVersion: esv1.SchemeGroupVersion.String(), Kind: esv1.ExtSecretKind,
+			Name: racedESName, UID: "a-stale-external-secret-uid", Controller: new(true),
+		}}
+		Expect(k8sClient.Create(ctx, owned)).To(Succeed())
+
+		By("replacing the target between the ownership read and the delete")
+		realClient, err := client.NewWithWatch(cfg, client.Options{Scheme: scheme.Scheme})
+		Expect(err).ToNot(HaveOccurred())
+
+		swapped := false
+		racingClient := interceptor.NewClient(realClient, interceptor.Funcs{
+			Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+				if err := c.Get(ctx, key, obj, opts...); err != nil {
+					return err
+				}
+				if key.Name != racedTarget || swapped {
+					return nil
+				}
+				swapped = true
+				// the owned target goes away and an unrelated object takes the name
+				Expect(c.Delete(ctx, &v1.ConfigMap{Name: racedTarget, Namespace: ExternalSecretNamespace})).To(Succeed())
+				Expect(c.Create(ctx, &v1.ConfigMap{
+					Name: racedTarget, Namespace: ExternalSecretNamespace,
+					Data: map[string]string{"owner": replacedBy, "keep": replacedData},
+				})).To(Succeed())
+				return nil
+			},
+		})
+
+		r := &Reconciler{
+			Client: racingClient, Scheme: scheme.Scheme,
+			recorder: record.NewFakeRecorder(10), AllowGenericTargets: true,
+		}
+		err = r.deleteGenericResource(ctx, logr.Discard(), es)
+
+		By("reporting the conflict the API server raised rather than deleting")
+		Expect(swapped).To(BeTrue(), "the race was never triggered, so nothing was tested")
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsConflict(err)).To(BeTrue(), "expected a UID precondition conflict, got: %v", err)
+
+		By("leaving the replacement untouched")
+		survivor := &v1.ConfigMap{}
+		Expect(k8sClient.Get(ctx, targetKey, survivor)).To(Succeed())
+		Expect(survivor.Data).To(HaveKeyWithValue("owner", replacedBy))
+		Expect(survivor.Data).To(HaveKeyWithValue("keep", replacedData))
+		Expect(survivor.OwnerReferences).To(BeEmpty())
 	})
 
 	// Regression coverage for issue #6640: refreshPolicy CreatedOnce tracks its

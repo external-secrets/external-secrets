@@ -207,7 +207,9 @@ func (r *Reconciler) updateGenericResource(ctx context.Context, log logr.Logger,
 	return nil
 }
 
-// deleteGenericResource deletes a generic resource.
+// deleteGenericResource deletes the generic target, but only if this ExternalSecret controls
+// it. It returns ErrTargetNotControlled when the live target belongs to someone else, so a
+// caller can tell a refusal apart from an API failure.
 func (r *Reconciler) deleteGenericResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret) error {
 	if !r.AllowGenericTargets || !isGenericTarget(es) {
 		return nil
@@ -215,13 +217,22 @@ func (r *Reconciler) deleteGenericResource(ctx context.Context, log logr.Logger,
 
 	gvk := getTargetGVK(es)
 
-	obj := &unstructured.Unstructured{}
-	obj.SetGroupVersionKind(gvk)
-	obj.SetNamespace(es.Namespace)
-	obj.SetName(getTargetName(es))
+	// Fetch the target instead of deleting an object built from the declared name alone: the
+	// controller owner reference that authorizes this deletion only exists on the live object.
+	existing, err := r.getGenericResource(ctx, log, es)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	if !isControlledByExternalSecret(es, existing) {
+		return fmt.Errorf("%w: %s %s", ErrTargetNotControlled, gvk.Kind, getTargetName(es))
+	}
 
 	log.Info("deleting target resource", "gvk", gvk.String(), "name", getTargetName(es))
-	err := r.Client.Delete(ctx, obj)
+	err = r.deleteCheckedTarget(ctx, existing)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return fmt.Errorf("failed to delete target resource: %w", err)
 	}
