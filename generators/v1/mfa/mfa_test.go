@@ -18,6 +18,8 @@ package mfa
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -86,122 +88,6 @@ func TestGenerate(t *testing.T) {
 			},
 			wantErr: false,
 		},
-		{
-			name: "spec with sha1 algorithm should match the RFC 6238 test vector",
-			args: args{
-				jsonSpec: &apiextensions.JSON{
-					Raw: []byte(`{"spec": {"secret": {"name": "secret", "key": "secret"}, "length": 8, "algorithm": "sha1", "when": "1970-01-01T00:00:59Z"}}`),
-				},
-				client: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
-					Name:      "secret",
-					Namespace: "namespace",
-					Data: map[string][]byte{
-						"secret": []byte(rfc6238SeedSHA1),
-					},
-				}).Build(),
-			},
-			want: map[string][]byte{
-				"token":    []byte(`94287082`),
-				"timeLeft": []byte(`1`),
-			},
-			wantErr: false,
-		},
-		{
-			name: "spec with sha256 algorithm should match the RFC 6238 test vector",
-			args: args{
-				jsonSpec: &apiextensions.JSON{
-					Raw: []byte(`{"spec": {"secret": {"name": "secret", "key": "secret"}, "length": 8, "algorithm": "sha256", "when": "1970-01-01T00:00:59Z"}}`),
-				},
-				client: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
-					Name:      "secret",
-					Namespace: "namespace",
-					Data: map[string][]byte{
-						"secret": []byte(rfc6238SeedSHA256),
-					},
-				}).Build(),
-			},
-			want: map[string][]byte{
-				"token":    []byte(`46119246`),
-				"timeLeft": []byte(`1`),
-			},
-			wantErr: false,
-		},
-		{
-			name: "spec with sha512 algorithm should match the RFC 6238 test vector",
-			args: args{
-				jsonSpec: &apiextensions.JSON{
-					Raw: []byte(`{"spec": {"secret": {"name": "secret", "key": "secret"}, "length": 8, "algorithm": "sha512", "when": "1970-01-01T00:00:59Z"}}`),
-				},
-				client: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
-					Name:      "secret",
-					Namespace: "namespace",
-					Data: map[string][]byte{
-						"secret": []byte(rfc6238SeedSHA512),
-					},
-				}).Build(),
-			},
-			want: map[string][]byte{
-				"token":    []byte(`90693936`),
-				"timeLeft": []byte(`1`),
-			},
-			wantErr: false,
-		},
-		{
-			name: "spec with upper case SHA256 algorithm should be accepted",
-			args: args{
-				jsonSpec: &apiextensions.JSON{
-					Raw: []byte(`{"spec": {"secret": {"name": "secret", "key": "secret"}, "length": 8, "algorithm": "SHA256", "when": "1970-01-01T00:00:59Z"}}`),
-				},
-				client: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
-					Name:      "secret",
-					Namespace: "namespace",
-					Data: map[string][]byte{
-						"secret": []byte(rfc6238SeedSHA256),
-					},
-				}).Build(),
-			},
-			want: map[string][]byte{
-				"token":    []byte(`46119246`),
-				"timeLeft": []byte(`1`),
-			},
-			wantErr: false,
-		},
-		{
-			name: "spec with upper case SHA1 algorithm should still work",
-			args: args{
-				jsonSpec: &apiextensions.JSON{
-					Raw: []byte(`{"spec": {"secret": {"name": "secret", "key": "secret"}, "length": 8, "algorithm": "SHA1", "when": "1970-01-01T00:00:59Z"}}`),
-				},
-				client: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
-					Name:      "secret",
-					Namespace: "namespace",
-					Data: map[string][]byte{
-						"secret": []byte(rfc6238SeedSHA1),
-					},
-				}).Build(),
-			},
-			want: map[string][]byte{
-				"token":    []byte(`94287082`),
-				"timeLeft": []byte(`1`),
-			},
-			wantErr: false,
-		},
-		{
-			name: "spec with unknown algorithm should result in error",
-			args: args{
-				jsonSpec: &apiextensions.JSON{
-					Raw: []byte(`{"spec": {"secret": {"name": "secret", "key": "secret"}, "algorithm": "md5", "when": "1970-01-01T00:00:59Z"}}`),
-				},
-				client: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
-					Name:      "secret",
-					Namespace: "namespace",
-					Data: map[string][]byte{
-						"secret": []byte(rfc6238SeedSHA1),
-					},
-				}).Build(),
-			},
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -214,4 +100,67 @@ func TestGenerate(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+// generateWithAlgorithm runs the generator for an RFC 6238 style setup:
+// 8 digits, pinned to T=59s so that the token is stable.
+func generateWithAlgorithm(algorithm, seed string) (map[string][]byte, error) {
+	spec := fmt.Sprintf(`{"spec": {"secret": {"name": "secret", "key": "secret"}, "length": 8, "algorithm": %q, "when": "1970-01-01T00:00:59Z"}}`, algorithm)
+	c := clientfake.NewClientBuilder().WithObjects(&v1.Secret{
+		Name:      "secret",
+		Namespace: "namespace",
+		Data: map[string][]byte{
+			"secret": []byte(seed),
+		},
+	}).Build()
+	got, _, err := (&Generator{}).Generate(context.Background(), &apiextensions.JSON{Raw: []byte(spec)}, c, "namespace")
+	return got, err
+}
+
+// TestGenerateAlgorithm is a matrix: every supported algorithm is combined with
+// every spelling of its name. To cover a new algorithm, add one row to algorithms.
+func TestGenerateAlgorithm(t *testing.T) {
+	// Expected values are the RFC 6238 (Appendix B) test vectors at T=59s.
+	algorithms := []struct {
+		name string
+		seed string
+		want string
+	}{
+		{name: "sha1", seed: rfc6238SeedSHA1, want: "94287082"},
+		{name: "sha256", seed: rfc6238SeedSHA256, want: "46119246"},
+		{name: "sha512", seed: rfc6238SeedSHA512, want: "90693936"},
+	}
+	// otpauth URIs and provider docs write the names in upper case (SHA256).
+	spellings := []struct {
+		name  string
+		apply func(string) string
+	}{
+		{name: "lower", apply: strings.ToLower},
+		{name: "upper", apply: strings.ToUpper},
+		{name: "mixed", apply: func(s string) string { return strings.ToUpper(s[:1]) + s[1:] }},
+	}
+
+	for _, alg := range algorithms {
+		for _, spelling := range spellings {
+			t.Run(alg.name+"/"+spelling.name, func(t *testing.T) {
+				got, err := generateWithAlgorithm(spelling.apply(alg.name), alg.seed)
+				assert.NoError(t, err)
+				assert.Equal(t, map[string][]byte{
+					"token":    []byte(alg.want),
+					"timeLeft": []byte("1"),
+				}, got)
+			})
+		}
+	}
+
+	t.Run("empty algorithm defaults to sha1", func(t *testing.T) {
+		got, err := generateWithAlgorithm("", rfc6238SeedSHA1)
+		assert.NoError(t, err)
+		assert.Equal(t, []byte("94287082"), got["token"])
+	})
+
+	t.Run("unknown algorithm is rejected", func(t *testing.T) {
+		_, err := generateWithAlgorithm("md5", rfc6238SeedSHA1)
+		assert.ErrorContains(t, err, "md5 for hash function is invalid")
+	})
 }
