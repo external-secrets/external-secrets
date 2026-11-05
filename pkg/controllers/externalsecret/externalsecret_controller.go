@@ -657,17 +657,8 @@ func (r *Reconciler) reconcileGenericTarget(
 		}
 	}
 
-	// For Merge and CreateOrMerge with an existing resource, pass it to
-	// applyTemplateToManifest so templates are applied to the existing resource
-	// instead of creating a new one.
-	var baseObj *unstructured.Unstructured
-	if (externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
-		externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyCreateOrMerge) && existing != nil {
-		baseObj = existing
-	}
-
-	// render the template for the manifest
-	obj, err := r.applyTemplateToManifest(ctx, externalSecret, dataMap, baseObj)
+	// Render from the live metadata for every policy; only Merge policies retain live content.
+	obj, err := r.applyTemplateToManifest(ctx, externalSecret, dataMap, existing)
 	if err != nil {
 		// applyTemplateToManifest also applies ownership, so the same dead-end
 		// conflicts the Secret lane reports can surface here. Retrying does not
