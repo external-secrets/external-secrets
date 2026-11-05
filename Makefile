@@ -73,7 +73,6 @@ FAIL	= (echo ${TIME} ${RED}[FAIL]${CNone} && false)
 # Conformance
 
 reviewable: generate docs manifests helm.generate helm.schema.update helm.docs lint license.check helm.test.update test.crds.update tf.fmt ## Ensure a PR is ready for review.
-	@GOWORK=off go -C hack/tools mod tidy # Tools and their deps are not to be included in project's GOWORK or in the project go.mod/sum. We consider them external.
 	@GOWORK=off go -C hack/tools/gen-crd-api-reference-docs mod tidy
 	@go mod tidy
 	@cd e2e/ && go mod tidy
@@ -87,8 +86,46 @@ check-diff: reviewable ## Ensure branch is clean.
 	@status="$$(git status --porcelain)" && test -z "$$status" || (printf '%s\n' "$$status" && $(FAIL))
 	@$(OK) branch is clean
 
-update-deps: ## Update dependencies across all modules (root, apis, runtime, e2e, providers, generators)
-	@./hack/update-deps.sh
+UPDATECLI_ACTION ?= apply
+UPDATECLI_KIND ?=
+UPDATECLI_PUBLISH ?= false
+UPDATECLI_CONFIG = .updatecli.d$(if $(UPDATECLI_KIND),/$(UPDATECLI_KIND).yaml)
+update-deps: updatecli ## Update dependencies; use UPDATECLI_KIND=<kind> to limit scope, UPDATECLI_ACTION=diff to preview, or UPDATECLI_PUBLISH=true to publish PRs.
+	@test -e "$(UPDATECLI_CONFIG)" || (echo "unknown dependency kind: $(UPDATECLI_KIND)" >&2; exit 1)
+	@set -e; \
+	publish="$(UPDATECLI_PUBLISH)"; \
+	case "$$publish" in true|false) ;; *) echo "UPDATECLI_PUBLISH must be true or false" >&2; exit 1 ;; esac; \
+	token="$${GITHUB_TOKEN:-$$(gh auth token 2>/dev/null)}"; \
+	test -n "$$token" || (echo "GITHUB_TOKEN is required; set it or run 'gh auth login'" >&2; exit 1); \
+	values="{scm: {enabled: false}}"; \
+	if test "$$publish" = true; then \
+		slug="$${GITHUB_REPOSITORY:-$$(gh repo view --json nameWithOwner --jq .nameWithOwner 2>/dev/null)}"; \
+		test -n "$$slug" || (echo "GITHUB_REPOSITORY is required when the repository cannot be detected with gh" >&2; exit 1); \
+		owner="$${slug%%/*}"; repository="$${slug#*/}"; \
+		values="{scm: {enabled: true, owner: $$owner, repository: $$repository}}"; \
+	fi; \
+	GITHUB_TOKEN="$$token" $(LOCALBIN)/updatecli pipeline $(UPDATECLI_ACTION) --config $(UPDATECLI_CONFIG) \
+		--values-inline "$$values" \
+		--disable-changelog --disable-version-check
+
+.PHONY: update-deps update-deps-gomodules update-deps-golang update-deps-github-actions update-deps-containers update-deps-tools update-deps-helm update-deps-python update-deps-terraform
+update-deps-gomodules: UPDATECLI_KIND=gomodules
+update-deps-gomodules: update-deps ## Update Go dependencies in every module.
+update-deps-golang: UPDATECLI_KIND=golang
+update-deps-golang: update-deps ## Update the Go version in every module.
+update-deps-github-actions: UPDATECLI_KIND=github-actions
+update-deps-github-actions: update-deps ## Update GitHub Actions only.
+update-deps-containers: UPDATECLI_KIND=docker
+update-deps-containers: update-deps ## Update container images only.
+update-deps-tools: UPDATECLI_KIND=tools
+update-deps-tools: update-deps ## Update development tools only.
+update-deps-helm: UPDATECLI_KIND=helm
+update-deps-helm: update-deps ## Update Helm dependencies only.
+update-deps-python: UPDATECLI_KIND=python
+update-deps-python: update-deps ## Update Python dependencies only.
+update-deps-terraform: UPDATECLI_KIND=terraform
+update-deps-terraform: update-deps ## Update Terraform dependencies only.
+
 
 .PHONY: license.check
 license.check:
@@ -106,7 +143,7 @@ go-work:
 	@go work use -r .
 	@# Keep kube-openapi's schema converter on SMD v6 until apimachinery migrates to v7.
 	@go work edit -replace=k8s.io/kube-openapi=k8s.io/kube-openapi@v0.0.0-20260721132016-d427ff9ee9ad
-	@go work edit -dropuse ./e2e -dropuse ./hack/tools -dropuse ./hack/tools/gen-crd-api-reference-docs
+	@go work edit -dropuse ./e2e -dropuse ./hack/tools/gen-crd-api-reference-docs
 	@go work sync
 	@$(OK) created go workspace
 
@@ -118,7 +155,7 @@ test: generate envtest ## Run tests
 	./hack/modfiles.sh snapshot "$$snap"; \
 	trap "./hack/modfiles.sh restore $$snap" EXIT INT TERM; \
 	$(MAKE) go-work; \
-	KUBEBUILDER_ASSETS="$$($(ENVTEST) use $(KUBERNETES_VERSION) -p path --bin-dir $(LOCALBIN))" \
+	KUBEBUILDER_ASSETS="$$($(LOCALBIN)/setup-envtest use "$(ENVTEST_KUBERNETES_VERSION)" -p path --bin-dir $(LOCALBIN))" \
 	    go test -tags $(PROVIDER) work -v -race -coverprofile cover.out
 	@$(OK) go test unit-tests
 
@@ -136,14 +173,14 @@ test.e2e.managed: generate ## Run e2e tests managed
 
 .PHONY: test.crds
 test.crds: cty crds.generate.tests ## Test CRDs for modification and backwards compatibility
-	@$(INFO) $(CTY) test tests
-	$(CTY) test tests
+	@$(INFO) $(LOCALBIN)/cty test tests
+	$(LOCALBIN)/cty test tests
 	@$(OK) No breaking CRD changes detected
 
 .PHONY: test.crds.update
 test.crds.update: cty crds.generate.tests ## Update the snapshots used by the CRD tests
-	@$(INFO) $(CTY) test tests -u
-	$(CTY) test tests -u
+	@$(INFO) $(LOCALBIN)/cty test tests -u
+	$(LOCALBIN)/cty test tests -u
 	@$(OK) Successfully updated all test snapshots
 
 .PHONY: build
@@ -168,13 +205,13 @@ go-directive.check: ## Ensure go directives stay at a .0 patch so consumers are 
 lint: golangci-lint provider-replaces.check go-directive.check bare-http-transport.check ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
 	@if [ -n "$(LINT_TARGET)" ]; then \
 		$(INFO) Running golangci-lint on $(LINT_TARGET); \
-		(cd $(LINT_TARGET) && $(GOLANGCI_LINT) run ./...) || exit 1; \
+		(cd $(LINT_TARGET) && $(LOCALBIN)/golangci-lint run ./...) || exit 1; \
 		$(OK) Finished linting $(LINT_TARGET); \
 	else \
 		$(INFO) Running golangci-lint on all modules in parallel; \
 		JOBS=$${LINT_JOBS:-1}; \
 		TMPDIR=$$(mktemp -d); \
-		GOLANGCI=$(GOLANGCI_LINT); \
+		GOLANGCI=$(LOCALBIN)/golangci-lint; \
 		trap "rm -rf $$TMPDIR" EXIT; \
 		export TMPDIR GOLANGCI; \
 		find . -name go.mod -not -path "*/vendor/*" -not -path "*/e2e/*" -not -path "*/hack/tools/*" -not -path "*/node_modules/*" -exec dirname {} \; | \
@@ -207,7 +244,7 @@ bare-http-transport.check: ## Forbid bare http.Transport literals that bypass HT
 	@$(OK) bare http.Transport check
 
 generate: controller-gen ## Generate code and crds
-	@CONTROLLER_GEN=$(CONTROLLER_GEN) ./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
+	@CONTROLLER_GEN=$(LOCALBIN)/controller-gen ./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
 	@$(OK) Finished generating deepcopy and crds
 
 # ====================================================================================
@@ -252,37 +289,24 @@ helm.build: helm.generate ## Build helm chart
 	@mv $(OUTPUT_DIR)/chart/external-secrets-$(HELM_VERSION).tgz $(OUTPUT_DIR)/chart/external-secrets.tgz
 	@$(OK) helm package
 
-# install_helm_plugin is for installing the provided plugin, if it doesn't exist
-# $1 - plugin name
-# $2 - plugin version
-# $3 - plugin url
 define install_helm_plugin
-@v=$$(helm plugin list | awk '$$1=="$(1)"{print $$2}'); \
-if [ -z "$$v" ]; then \
-	$(INFO) "Installing $(1) v$(2)"; \
-	helm plugin install --version $(2) $(3); \
-	$(OK) "Installed $(1) v$(2)"; \
-elif [ "$$v" != "$(2)" ]; then \
-	$(INFO) "Found $(1) $$v. Reinstalling v$(2)"; \
-	helm plugin remove $(1); \
-	helm plugin install --version $(2) $(3); \
-	$(OK) "Reinstalled $(1) v$(2)"; \
-else \
-	$(OK) "$(1) already at v$(2)"; \
-fi
+	@version=$$(helm plugin list | awk '$$1 == "$(1)" { print $$2 }'); \
+	if test "$$version" != "$(2)"; then \
+		if test -n "$$version"; then helm plugin remove "$(1)"; fi; \
+		helm plugin install --version "$(2)" "$(3)"; \
+	fi; \
+	echo "Helm plugin $(1) $(2) is ready"
 endef
 
-HELM_SCHEMA_NAME := schema
-HELM_SCHEMA_VER  := 2.2.1
-HELM_SCHEMA_URL  := https://github.com/losisin/helm-values-schema-json.git
+HELM_SCHEMA_PLUGIN_VERSION := 2.2.1
+HELM_SCHEMA_PLUGIN_URL := https://github.com/losisin/helm-values-schema-json.git
 helm.schema.plugin:
-	$(call install_helm_plugin,$(HELM_SCHEMA_NAME),$(HELM_SCHEMA_VER), $(HELM_SCHEMA_URL))
+	$(call install_helm_plugin,schema,$(HELM_SCHEMA_PLUGIN_VERSION),$(HELM_SCHEMA_PLUGIN_URL))
 
-HELM_UNITTEST_PLUGIN_NAME := unittest
-HELM_UNITTEST_PLUGIN_VER := 1.0.0
+HELM_UNITTEST_PLUGIN_VERSION := 1.0.0
 HELM_UNITTEST_PLUGIN_URL := https://github.com/helm-unittest/helm-unittest.git
 helm.unittest.plugin:
-	$(call install_helm_plugin,$(HELM_UNITTEST_PLUGIN_NAME),$(HELM_UNITTEST_PLUGIN_VER), $(HELM_UNITTEST_PLUGIN_URL))
+	$(call install_helm_plugin,unittest,$(HELM_UNITTEST_PLUGIN_VERSION),$(HELM_UNITTEST_PLUGIN_URL))
 
 helm.schema.update: helm.schema.plugin
 	@$(INFO) Generating values.schema.json
@@ -425,83 +449,217 @@ clean:  ## Clean bins
 # ====================================================================================
 # Build Dependencies
 
-detected_OS := $(shell uname -s)
-real_OS := $(detected_OS)
-arch := $(shell uname -m)
-ifeq ($(detected_OS),Darwin)
-        detected_OS := mac
-        real_OS := darwin
-endif
-ifeq ($(detected_OS),Linux)
-        detected_OS := linux
-	real_OS := linux
-endif
-
 ## Location to install dependencies to
 LOCALBIN ?= $(shell pwd)/bin
 $(LOCALBIN):
-	mkdir -p $(LOCALBIN)
+	mkdir -p $@
 
 ## Tool Binaries
-TILT ?= $(LOCALBIN)/tilt
-CTY ?= $(LOCALBIN)/cty
-ENVTEST ?= $(LOCALBIN)/setup-envtest
-CONTROLLER_GEN ?= $(LOCALBIN)/controller-gen
-GOLANGCI_LINT ?= $(LOCALBIN)/golangci-lint
-DLV ?= $(LOCALBIN)/dlv
-CRANE ?= $(LOCALBIN)/crane
-GEN_CRD_API_REFERENCE_DOCS ?= $(LOCALBIN)/gen-crd-api-reference-docs
 LINT_TARGET ?= ""
-## Tool Versions
-KUBERNETES_VERSION := 1.33.x
-TILT_VERSION := 0.33.21
-CTY_VERSION := 1.1.3
-GOLANGCI_LINT_VERSION := 2.15.0
+TOOL_OS := $(shell uname -s | tr '[:lower:]' '[:upper:]')
+TOOL_ARCH := $(shell uname -m | sed -e 's/^x86_64$$/AMD64/' -e 's/^amd64$$/AMD64/' -e 's/^aarch64$$/ARM64/' -e 's/^arm64$$/ARM64/')
+TOOL_PLATFORM := $(TOOL_OS)_$(TOOL_ARCH)
+
+ENVTEST_KUBERNETES_VERSION := 1.33.x
+
+CONTROLLER_GEN_VERSION := v0.23.0
+CONTROLLER_GEN_REPOSITORY := kubernetes-sigs/controller-tools
+CONTROLLER_GEN_FORMAT := binary
+CONTROLLER_GEN_DARWIN_AMD64_ASSET := controller-gen-darwin-amd64
+CONTROLLER_GEN_DARWIN_AMD64_BINARY := controller-gen-darwin-amd64
+CONTROLLER_GEN_DARWIN_AMD64_SHA256 := f7e377ab51caa7eb6afba9095f268d22f7c9ffc9eb438969839c7186ec2a17e1
+CONTROLLER_GEN_DARWIN_ARM64_ASSET := controller-gen-darwin-arm64
+CONTROLLER_GEN_DARWIN_ARM64_BINARY := controller-gen-darwin-arm64
+CONTROLLER_GEN_DARWIN_ARM64_SHA256 := 4ac93bd254c07adabf6f6f88524da690f07b6004305a00ff37571ea6224ee944
+CONTROLLER_GEN_LINUX_AMD64_ASSET := controller-gen-linux-amd64
+CONTROLLER_GEN_LINUX_AMD64_BINARY := controller-gen-linux-amd64
+CONTROLLER_GEN_LINUX_AMD64_SHA256 := 849fc06f331c18ea4dcffd3f9c7e0d8d4a51013b57bbe60bc726fc125f9784a3
+CONTROLLER_GEN_LINUX_ARM64_ASSET := controller-gen-linux-arm64
+CONTROLLER_GEN_LINUX_ARM64_BINARY := controller-gen-linux-arm64
+CONTROLLER_GEN_LINUX_ARM64_SHA256 := 9610184a2bc4b7f6f680e0d558f7976848f745ba3eeb3feb2340fbe15e96ce02
+
+SETUP_ENVTEST_VERSION := v0.25.2
+SETUP_ENVTEST_REPOSITORY := kubernetes-sigs/controller-runtime
+SETUP_ENVTEST_FORMAT := binary
+SETUP_ENVTEST_DARWIN_AMD64_ASSET := setup-envtest-darwin-amd64
+SETUP_ENVTEST_DARWIN_AMD64_BINARY := setup-envtest-darwin-amd64
+SETUP_ENVTEST_DARWIN_AMD64_SHA256 := ea7b593b26af05adcd07bc829741ecc3d1542ae5d3f0140b3b4d0bddb74bca8a
+SETUP_ENVTEST_DARWIN_ARM64_ASSET := setup-envtest-darwin-arm64
+SETUP_ENVTEST_DARWIN_ARM64_BINARY := setup-envtest-darwin-arm64
+SETUP_ENVTEST_DARWIN_ARM64_SHA256 := 7c95d67911e157d2caa02f599bcf9321b4e759d2f008749b4d03ed9d3e6a8c69
+SETUP_ENVTEST_LINUX_AMD64_ASSET := setup-envtest-linux-amd64
+SETUP_ENVTEST_LINUX_AMD64_BINARY := setup-envtest-linux-amd64
+SETUP_ENVTEST_LINUX_AMD64_SHA256 := 94534f83896f3b09934d9570b213fbda04aa5c17457942270928cdca0317bf9b
+SETUP_ENVTEST_LINUX_ARM64_ASSET := setup-envtest-linux-arm64
+SETUP_ENVTEST_LINUX_ARM64_BINARY := setup-envtest-linux-arm64
+SETUP_ENVTEST_LINUX_ARM64_SHA256 := 694c6f9d830b8efa1a211cdc98859121edbb5ea523300d18c21ce89ce7feeb8e
+
+GOLANGCI_LINT_VERSION := v2.15.0
+GOLANGCI_LINT_REPOSITORY := golangci/golangci-lint
+GOLANGCI_LINT_FORMAT := tar.gz
+GOLANGCI_LINT_DARWIN_AMD64_ASSET := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-darwin-amd64.tar.gz
+GOLANGCI_LINT_DARWIN_AMD64_BINARY := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-darwin-amd64/golangci-lint
+GOLANGCI_LINT_DARWIN_AMD64_SHA256 := 767b899a28285e88ded2823d5dcc4bc5ef681173eb2d80f029a7b17ee4ece3b8
+GOLANGCI_LINT_DARWIN_ARM64_ASSET := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-darwin-arm64.tar.gz
+GOLANGCI_LINT_DARWIN_ARM64_BINARY := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-darwin-arm64/golangci-lint
+GOLANGCI_LINT_DARWIN_ARM64_SHA256 := d1e409481a8ca846c4bc97e781eb5cb1bd5c23353a0b3977a1cbda1b1b6447d5
+GOLANGCI_LINT_LINUX_AMD64_ASSET := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-linux-amd64.tar.gz
+GOLANGCI_LINT_LINUX_AMD64_BINARY := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-linux-amd64/golangci-lint
+GOLANGCI_LINT_LINUX_AMD64_SHA256 := 9b7fe6a6bf6334b98decf8d86b11415ea7889afdabdd1959fdce23af2a9ebcea
+GOLANGCI_LINT_LINUX_ARM64_ASSET := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-linux-arm64.tar.gz
+GOLANGCI_LINT_LINUX_ARM64_BINARY := golangci-lint-$(patsubst v%,%,$(GOLANGCI_LINT_VERSION))-linux-arm64/golangci-lint
+GOLANGCI_LINT_LINUX_ARM64_SHA256 := b4d8f17068b35ee6060cc2f69a16fb48740d706fbba81661c318649c114a6998
+
+DLV_VERSION := v1.27.2
+DLV_REPOSITORY := go-delve/delve
+DLV_FORMAT := tar.gz
+DLV_DARWIN_AMD64_ASSET := dlv_$(patsubst v%,%,$(DLV_VERSION))_darwin_amd64.tar.gz
+DLV_DARWIN_AMD64_BINARY := dlv
+DLV_DARWIN_AMD64_SHA256 := 66992990307bd0328994960df0cbfa34ecfb16e9cd32f5cf6c83c34912e59cc3
+DLV_DARWIN_ARM64_ASSET := dlv_$(patsubst v%,%,$(DLV_VERSION))_darwin_arm64.tar.gz
+DLV_DARWIN_ARM64_BINARY := dlv
+DLV_DARWIN_ARM64_SHA256 := c32fc68e11ff3820ba267ab12c96fa68e3804319f807fc5db4fba3b9d868df26
+DLV_LINUX_AMD64_ASSET := dlv_$(patsubst v%,%,$(DLV_VERSION))_linux_amd64.tar.gz
+DLV_LINUX_AMD64_BINARY := dlv
+DLV_LINUX_AMD64_SHA256 := 30783eb68dc1598d965491cc97762270cd63ce13f09d0cac22faa7e3eafc1b9c
+DLV_LINUX_ARM64_ASSET := dlv_$(patsubst v%,%,$(DLV_VERSION))_linux_arm64.tar.gz
+DLV_LINUX_ARM64_BINARY := dlv
+DLV_LINUX_ARM64_SHA256 := b2969e00711f905d189784654e485ea5bc6c2eaa8c5d3effcb646487f4e0bb2f
+
+CRANE_VERSION := v0.22.1
+CRANE_REPOSITORY := google/go-containerregistry
+CRANE_FORMAT := tar.gz
+CRANE_DARWIN_AMD64_ASSET := go-containerregistry_Darwin_x86_64.tar.gz
+CRANE_DARWIN_AMD64_BINARY := crane
+CRANE_DARWIN_AMD64_SHA256 := 6fedd06a648c11335f0e8b9547e4783002c30e9336047fec292942cd518bb799
+CRANE_DARWIN_ARM64_ASSET := go-containerregistry_Darwin_arm64.tar.gz
+CRANE_DARWIN_ARM64_BINARY := crane
+CRANE_DARWIN_ARM64_SHA256 := 2231fc8df8806d20d680ff1225db44e095a55dd6ac1ae8eced4faf4b278b78fb
+CRANE_LINUX_AMD64_ASSET := go-containerregistry_Linux_x86_64.tar.gz
+CRANE_LINUX_AMD64_BINARY := crane
+CRANE_LINUX_AMD64_SHA256 := 0ab7a1d6932a213aed964ce97666c3077fe691c8606413674a8b3e0b9ec4cda0
+CRANE_LINUX_ARM64_ASSET := go-containerregistry_Linux_arm64.tar.gz
+CRANE_LINUX_ARM64_BINARY := crane
+CRANE_LINUX_ARM64_SHA256 := 898c0cff975f898a33e8c4580bdafb0e7c02c7faa33374e946762f97c4ab7110
+
+TILT_VERSION := v0.37.7
+TILT_REPOSITORY := tilt-dev/tilt
+TILT_FORMAT := tar.gz
+TILT_DARWIN_AMD64_ASSET := tilt.$(patsubst v%,%,$(TILT_VERSION)).mac.x86_64.tar.gz
+TILT_DARWIN_AMD64_BINARY := tilt
+TILT_DARWIN_AMD64_SHA256 := 2022e675f9a32cdc651e8096a12caa38720be2d692d7347798607873a107fd61
+TILT_DARWIN_ARM64_ASSET := tilt.$(patsubst v%,%,$(TILT_VERSION)).mac.arm64.tar.gz
+TILT_DARWIN_ARM64_BINARY := tilt
+TILT_DARWIN_ARM64_SHA256 := 7f54afff29cae67e2751c13df00a66d56f6fbc4463573089059ba673cf128687
+TILT_LINUX_AMD64_ASSET := tilt.$(patsubst v%,%,$(TILT_VERSION)).linux.x86_64.tar.gz
+TILT_LINUX_AMD64_BINARY := tilt
+TILT_LINUX_AMD64_SHA256 := b695193fab68def8310cb971fa60bbe47ba0a782e24f54ebad287c13316a61b0
+TILT_LINUX_ARM64_ASSET := tilt.$(patsubst v%,%,$(TILT_VERSION)).linux.arm64.tar.gz
+TILT_LINUX_ARM64_BINARY := tilt
+TILT_LINUX_ARM64_SHA256 := 9f381347fa18ffca3f1d3dcdd3f6745281a6647e6107199832ceaa62a461964a
+
+CTY_VERSION := v1.1.5
+CTY_REPOSITORY := Skarlso/crd-to-sample-yaml
+CTY_FORMAT := tar.gz
+CTY_DARWIN_AMD64_ASSET := cty_darwin_amd64.tar.gz
+CTY_DARWIN_AMD64_BINARY := cty
+CTY_DARWIN_AMD64_SHA256 := 9de1bec65bdc54a74e81f0424fdd9211488d9da38c73e8e0ccf0986535df4db1
+CTY_DARWIN_ARM64_ASSET := cty_darwin_arm64.tar.gz
+CTY_DARWIN_ARM64_BINARY := cty
+CTY_DARWIN_ARM64_SHA256 := eb73fd2e4223b70ab1d69a0e1ed9208e228c5ce8ec3df063fbb5bf6791047c02
+CTY_LINUX_AMD64_ASSET := cty_linux_amd64.tar.gz
+CTY_LINUX_AMD64_BINARY := cty
+CTY_LINUX_AMD64_SHA256 := 9a9b57c46f10d8e3ac66f8e5fcc6e99cfacf4184fc1fcb1b526b9dc63ea7315b
+CTY_LINUX_ARM64_ASSET := cty_linux_arm64.tar.gz
+CTY_LINUX_ARM64_BINARY := cty
+CTY_LINUX_ARM64_SHA256 := 472250183a3f70bf89de2ca388984f05608638bf4fd5fba09a4b98bdb01343ab
+
+UPDATECLI_VERSION := v0.123.0
+UPDATECLI_REPOSITORY := updatecli/updatecli
+UPDATECLI_FORMAT := tar.gz
+UPDATECLI_DARWIN_AMD64_ASSET := updatecli_Darwin_x86_64.tar.gz
+UPDATECLI_DARWIN_AMD64_BINARY := updatecli
+UPDATECLI_DARWIN_AMD64_SHA256 := 0ebd4b303e83e1945495953a855fcdd43f2ee39b7b5529acb2415a730148bbbb
+UPDATECLI_DARWIN_ARM64_ASSET := updatecli_Darwin_arm64.tar.gz
+UPDATECLI_DARWIN_ARM64_BINARY := updatecli
+UPDATECLI_DARWIN_ARM64_SHA256 := 0d8b311f6a7bd4a53df439f29fe2372457d5eee2795872574c615cb8c3888d06
+UPDATECLI_LINUX_AMD64_ASSET := updatecli_Linux_x86_64.tar.gz
+UPDATECLI_LINUX_AMD64_BINARY := updatecli
+UPDATECLI_LINUX_AMD64_SHA256 := a0cc40caee73c6efb217762a94ab90ef57617b651409d0077524f13cc07e0760
+UPDATECLI_LINUX_ARM64_ASSET := updatecli_Linux_arm64.tar.gz
+UPDATECLI_LINUX_ARM64_BINARY := updatecli
+UPDATECLI_LINUX_ARM64_SHA256 := b3b687844062761201f0189103dbe108089692ca77e865894b2f2b546f8daf6d
+
+define install_tool
+	@set -eu; \
+	asset='$($(1)_$(TOOL_PLATFORM)_ASSET)'; \
+	checksum='$($(1)_$(TOOL_PLATFORM)_SHA256)'; \
+	binary='$($(1)_$(TOOL_PLATFORM)_BINARY)'; \
+	if test -z "$$asset" || test -z "$$checksum"; then echo "$(2) does not support $(TOOL_OS)/$(TOOL_ARCH)" >&2; exit 1; fi; \
+	mkdir -p "$(dir $@)"; \
+	tmp=$$(mktemp -d "$(dir $@).$(2)-XXXXXX"); \
+	trap 'rm -rf "$$tmp"' EXIT; \
+	url="https://github.com/$($(1)_REPOSITORY)/releases/download/$($(1)_VERSION)/$$asset"; \
+	echo "Downloading $(2) $($(1)_VERSION)"; \
+	curl --fail --location --retry 3 --silent --show-error --output "$$tmp/asset" "$$url"; \
+	if command -v sha256sum >/dev/null 2>&1; then actual=$$(sha256sum "$$tmp/asset"); else actual=$$(shasum -a 256 "$$tmp/asset"); fi; \
+	actual=$${actual%% *}; \
+	if test "$$actual" != "$$checksum"; then echo "checksum mismatch for $$asset: got $$actual, want $$checksum" >&2; exit 1; fi; \
+	case '$($(1)_FORMAT)' in \
+		binary) source="$$tmp/asset" ;; \
+		tar.gz) tar -xzf "$$tmp/asset" -C "$$tmp" "$$binary"; source="$$tmp/$$binary" ;; \
+		*) echo "unsupported format: $($(1)_FORMAT)" >&2; exit 1 ;; \
+	esac; \
+	cp "$$source" "$$tmp/.installed"; \
+	chmod 0755 "$$tmp/.installed"; \
+	mv "$$tmp/.installed" "$@"; \
+	echo "$(2) $($(1)_VERSION) installed successfully"
+endef
 
 .PHONY: envtest
-envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
-$(ENVTEST): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
-	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly sigs.k8s.io/controller-runtime/tools/setup-envtest
+envtest: $(LOCALBIN)/setup-envtest
+$(LOCALBIN)/setup-envtest: Makefile ## Download setup-envtest locally if necessary.
+	$(call install_tool,SETUP_ENVTEST,setup-envtest)
 
 .PHONY: controller-gen
-controller-gen: $(CONTROLLER_GEN) ## Build controller-gen locally if necessary.
-$(CONTROLLER_GEN): Makefile hack/tools/go.mod hack/tools/go.sum
-	mkdir -p $(dir $@)
-	GOWORK=off go -C hack/tools build -mod=readonly -o $(abspath $@) sigs.k8s.io/controller-tools/cmd/controller-gen
+controller-gen: $(LOCALBIN)/controller-gen
+$(LOCALBIN)/controller-gen: Makefile ## Download controller-gen locally if necessary.
+	$(call install_tool,CONTROLLER_GEN,controller-gen)
 
+# There is no prebuilt version for the version we are using (last pre-built is outdated).
+# TODO: Move to a maintained crd generator.
 .PHONY: gen-crd-api-reference-docs
-gen-crd-api-reference-docs: $(GEN_CRD_API_REFERENCE_DOCS) ## Download gen-crd-api-reference-docs locally if necessary.
-$(GEN_CRD_API_REFERENCE_DOCS): Makefile hack/tools/gen-crd-api-reference-docs/go.mod hack/tools/gen-crd-api-reference-docs/go.sum
+gen-crd-api-reference-docs: $(LOCALBIN)/gen-crd-api-reference-docs
+$(LOCALBIN)/gen-crd-api-reference-docs: Makefile hack/tools/gen-crd-api-reference-docs/go.mod hack/tools/gen-crd-api-reference-docs/go.sum ## Build gen-crd-api-reference-docs locally if necessary.
 	mkdir -p $(dir $@)
 	GOWORK=off go -C hack/tools/gen-crd-api-reference-docs build -mod=readonly -o $(abspath $@) github.com/ahmetb/gen-crd-api-reference-docs
 
 .PHONY: golangci-lint
-golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint from its upstream release.
-$(GOLANGCI_LINT): Makefile | $(LOCALBIN)
-	@tmp=$$(mktemp -d); trap 'rm -rf "$$tmp"' EXIT; \
-		archive=golangci-lint-$(GOLANGCI_LINT_VERSION)-$$(go env GOHOSTOS)-$$(go env GOHOSTARCH); \
-		curl -fsSL "https://github.com/golangci/golangci-lint/releases/download/v$(GOLANGCI_LINT_VERSION)/$$archive.tar.gz" -o "$$tmp/lint.tar.gz" && \
-		tar -xzf "$$tmp/lint.tar.gz" -C "$$tmp" "$$archive/golangci-lint" && \
-		install "$$tmp/$$archive/golangci-lint" "$@"
+golangci-lint: $(LOCALBIN)/golangci-lint
+$(LOCALBIN)/golangci-lint: Makefile ## Download golangci-lint locally if necessary.
+	$(call install_tool,GOLANGCI_LINT,golangci-lint)
 
 .PHONY: dlv
-dlv: $(DLV) ## Build Delve locally for the Tilt debug image.
-$(DLV): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
-	GOWORK=off CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/go-delve/delve/cmd/dlv
+dlv: $(LOCALBIN)/dlv
+$(LOCALBIN)/dlv: Makefile ## Download Delve locally for the Tilt debug image.
+	$(call install_tool,DLV,dlv)
 
 .PHONY: crane
-crane: $(CRANE) ## Build crane locally if necessary.
-$(CRANE): Makefile hack/tools/go.mod hack/tools/go.sum | $(LOCALBIN)
-	GOWORK=off GOBIN=$(abspath $(LOCALBIN)) go -C hack/tools install -mod=readonly github.com/google/go-containerregistry/cmd/crane
+crane: $(LOCALBIN)/crane
+$(LOCALBIN)/crane: Makefile ## Download crane locally if necessary.
+	$(call install_tool,CRANE,crane)
 
 .PHONY: tilt
-.PHONY: $(TILT)
-tilt: $(TILT) ## Download tilt locally if necessary. Architecture is locked at x86_64.
-$(TILT): $(LOCALBIN)
-	test -s $(LOCALBIN)/tilt || curl -fsSL https://github.com/tilt-dev/tilt/releases/download/v$(TILT_VERSION)/tilt.$(TILT_VERSION).$(detected_OS).$(arch).tar.gz | tar -xz -C $(LOCALBIN) tilt
+tilt: $(LOCALBIN)/tilt
+$(LOCALBIN)/tilt: Makefile ## Download tilt locally if necessary.
+	$(call install_tool,TILT,tilt)
 
 .PHONY: cty
-.PHONY: $(CTY)
-cty: $(CTY) ## Download cty locally if necessary. Architecture is locked at x86_64.
-$(CTY): $(LOCALBIN)
-	test -s $(LOCALBIN)/cty || curl -fsSL https://github.com/Skarlso/crd-to-sample-yaml/releases/download/v$(CTY_VERSION)/cty_$(real_OS)_amd64.tar.gz | tar -xz -C $(LOCALBIN) cty
+cty: $(LOCALBIN)/cty
+$(LOCALBIN)/cty: Makefile ## Download cty locally if necessary.
+	$(call install_tool,CTY,cty)
+
+.PHONY: updatecli
+updatecli: $(LOCALBIN)/updatecli
+$(LOCALBIN)/updatecli: Makefile ## Download Updatecli locally if necessary.
+	$(call install_tool,UPDATECLI,updatecli)

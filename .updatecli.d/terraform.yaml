@@ -1,0 +1,206 @@
+name: Update Terraform dependency constraints
+
+pipelineid: dependencies/terraform
+
+# Publishing is opt-in so local runs continue to update the current checkout.
+#{{- if .scm.enabled }}
+actions:
+  dependency-pr:
+    kind: github/pullrequest
+    scmid: default
+    title: "chore(deps): update Terraform dependencies"
+
+scms:
+  default:
+    kind: github
+    spec:
+      owner: "{{ .scm.owner }}"
+      repository: "{{ .scm.repository }}"
+      branch: main
+      token: '{{ requiredEnv "GITHUB_TOKEN" }}'
+      user: External Secrets Operator
+      email: ExternalSecretsOperator@users.noreply.github.com
+      commitusingapi: true
+      workingbranchprefix: dependencies
+      workingbranchseparator: "/"
+      commitmessage:
+        type: chore
+        scope: deps
+        hidecredit: true
+        footers: 'Signed-off-by: External Secrets Operator <ExternalSecretsOperator@users.noreply.github.com>'
+#{{- end }}
+
+sources:
+  aws:
+    kind: terraform/registry
+    transformers: &major_constraint
+      - findsubmatch:
+          pattern: '^([0-9]+)\..*$'
+          capturepattern: '~> \1.0'
+    spec:
+      type: provider
+      rawstring: hashicorp/aws
+      versionfilter: &all_versions
+        kind: semver
+        pattern: '*'
+  kubernetes:
+    kind: terraform/registry
+    transformers: *major_constraint
+    spec:
+      type: provider
+      rawstring: hashicorp/kubernetes
+      versionfilter: *all_versions
+  helm:
+    kind: terraform/registry
+    transformers: *major_constraint
+    spec:
+      type: provider
+      rawstring: hashicorp/helm
+      versionfilter: *all_versions
+  google:
+    kind: terraform/registry
+    transformers: *major_constraint
+    spec:
+      type: provider
+      rawstring: hashicorp/google
+      versionfilter: *all_versions
+  google_beta:
+    kind: terraform/registry
+    transformers: *major_constraint
+    spec:
+      type: provider
+      rawstring: hashicorp/google-beta
+      versionfilter: *all_versions
+  azuread:
+    kind: terraform/registry
+    transformers: *major_constraint
+    spec:
+      type: provider
+      rawstring: hashicorp/azuread
+      versionfilter: *all_versions
+  azurerm:
+    kind: terraform/registry
+    transformers: *major_constraint
+    spec:
+      type: provider
+      rawstring: hashicorp/azurerm
+      versionfilter: *all_versions
+  eks:
+    kind: terraform/registry
+    transformers: *major_constraint
+    spec:
+      type: module
+      rawstring: terraform-aws-modules/eks/aws
+      versionfilter: *all_versions
+  vpc:
+    kind: terraform/registry
+    transformers: *major_constraint
+    spec:
+      type: module
+      rawstring: terraform-aws-modules/vpc/aws
+      versionfilter: *all_versions
+
+targets:
+  aws:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: aws
+    spec:
+      files:
+        - terraform/aws/infrastructure/modules/cluster/provider.tf
+        - terraform/aws/kubernetes/provider.tf
+        - terraform/azure/kubernetes/provider.tf
+      matchpattern: '(source\s*=\s*"hashicorp/aws"\s+version\s*=\s*)"[^"]+"'
+      replacepattern: '$1"{{ source "aws" }}"'
+  kubernetes:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: kubernetes
+    spec:
+      files:
+        - terraform/aws/infrastructure/modules/cluster/provider.tf
+        - terraform/aws/kubernetes/provider.tf
+        - terraform/azure/infrastructure/providers.tf
+        - terraform/azure/kubernetes/provider.tf
+      matchpattern: '(source\s*=\s*"hashicorp/kubernetes"\s+version\s*=\s*)"[^"]+"'
+      replacepattern: '$1"{{ source "kubernetes" }}"'
+  helm:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: helm
+    spec:
+      files:
+        - terraform/azure/infrastructure/providers.tf
+        - terraform/azure/kubernetes/provider.tf
+      matchpattern: '(source\s*=\s*"hashicorp/helm"\s+version\s*=\s*)"[^"]+"'
+      replacepattern: '$1"{{ source "helm" }}"'
+  google:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: google
+    spec:
+      files:
+        - terraform/gcp/infrastructure/provider.tf
+        - terraform/gcp/kubernetes/provider.tf
+      matchpattern: '(source\s*=\s*"hashicorp/google"\s+version\s*=\s*)"[^"]+"'
+      replacepattern: '$1"{{ source "google" }}"'
+  google_beta:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: google_beta
+    spec:
+      files:
+        - terraform/gcp/infrastructure/provider.tf
+        - terraform/gcp/kubernetes/provider.tf
+      matchpattern: '(source\s*=\s*"hashicorp/google-beta"\s+version\s*=\s*)"[^"]+"'
+      replacepattern: '$1"{{ source "google_beta" }}"'
+  azuread:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: azuread
+    spec:
+      file: terraform/azure/infrastructure/providers.tf
+      matchpattern: '(source\s*=\s*"hashicorp/azuread"\s+version\s*=\s*)"[^"]+"'
+      replacepattern: '$1"{{ source "azuread" }}"'
+  azurerm:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: azurerm
+    spec:
+      file: terraform/azure/infrastructure/providers.tf
+      matchpattern: '(source\s*=\s*"hashicorp/azurerm"\s+version\s*=\s*)"[^"]+"'
+      replacepattern: '$1"{{ source "azurerm" }}"'
+  eks:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: eks
+    spec:
+      file: terraform/aws/infrastructure/modules/cluster/main.tf
+      matchpattern: '(source\s*=\s*"terraform-aws-modules/eks/aws"\s+version\s*=\s*)"[^"]+"'
+      replacepattern: '$1"{{ source "eks" }}"'
+  vpc:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    kind: file
+    sourceid: vpc
+    spec:
+      file: terraform/aws/infrastructure/modules/cluster/main.tf
+      matchpattern: '(source\s*=\s*"terraform-aws-modules/vpc/aws"\s+version\s*=\s*)"[^"]+"'
+      replacepattern: '$1"{{ source "vpc" }}"'

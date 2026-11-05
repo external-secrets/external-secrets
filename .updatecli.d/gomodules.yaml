@@ -1,0 +1,64 @@
+name: Update Go module dependencies
+
+pipelineid: dependencies/gomodules
+
+# Publishing is opt-in so local runs continue to update the current checkout.
+#{{- if .scm.enabled }}
+actions:
+  dependency-pr:
+    kind: github/pullrequest
+    scmid: default
+    title: "chore(deps): update Go module dependencies"
+
+scms:
+  default:
+    kind: github
+    spec:
+      owner: "{{ .scm.owner }}"
+      repository: "{{ .scm.repository }}"
+      branch: main
+      token: '{{ requiredEnv "GITHUB_TOKEN" }}'
+      user: External Secrets Operator
+      email: ExternalSecretsOperator@users.noreply.github.com
+      commitusingapi: true
+      workingbranchprefix: dependencies
+      workingbranchseparator: "/"
+      commitmessage:
+        type: chore
+        scope: deps
+        hidecredit: true
+        footers: 'Signed-off-by: External Secrets Operator <ExternalSecretsOperator@users.noreply.github.com>'
+#{{- end }}
+
+targets:
+  gomodules:
+    #{{- if .scm.enabled }}
+    scmid: default
+    #{{- end }}
+    name: Bump dependencies in all Go modules
+    kind: shell
+    disablesourceinput: true
+    spec:
+      command: |
+        if [ "$DRY_RUN" = "true" ]; then
+          # Run Go against a copy so `pipeline diff` never changes the checkout.
+          work="$(mktemp -d)"
+          trap 'rm -rf "$work"' EXIT
+          tar --exclude=.git --exclude=bin -cf - . | tar -C "$work" -xf -
+          (cd "$work" && ./hack/update-deps.sh)
+          for file in $(git ls-files '*go.mod' '*go.sum'); do
+            diff -u "$file" "$work/$file" || true
+          done
+        else
+          ./hack/update-deps.sh
+        fi
+      changedif:
+        kind: file/checksum
+        spec:
+          files:
+            - go.mod
+            - go.sum
+            - '*/go.mod'
+            - '*/go.sum'
+            - '*/*/*/go.mod'
+            - '*/*/*/go.sum'
