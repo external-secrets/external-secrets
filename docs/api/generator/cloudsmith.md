@@ -62,6 +62,10 @@ The generator gets the service account token from the namespace of the `External
 {% include 'generator-cloudsmith-argocd-example.yaml' %}
 ```
 
+Set `url` to the full OCI URL of the chart. Use the same URL as the `repoURL` of the Argo CD Application.
+
+The `project` value limits the repository to Applications in that Argo CD project. Remove `project` to make the repository available to all projects.
+
 ## Using the Generated Docker Registry Secret
 
 Once the dockerconfigjson secret is created, you can use it to authenticate with Cloudsmith's container registry in several ways:
