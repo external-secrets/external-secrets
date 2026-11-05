@@ -580,6 +580,39 @@ func TestPushSecret(t *testing.T) {
 				err: errors.New("invalid JSON format"),
 			},
 		},
+		"SetSecretLargeNumberPushSecretV2": {
+			reason: "integers above 2^53 are written to vault without losing precision",
+			value:  []byte(`{"id":9007199254740993,"nested":{"id":9007199254740993}}`),
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV2).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+					WriteWithContextFn: fake.ExpectWriteWithContextValue(map[string]any{
+						"data": map[string]any{
+							"id":     json.Number("9007199254740993"),
+							"nested": map[string]any{"id": json.Number("9007199254740993")},
+						},
+					}),
+				},
+			},
+			want: want{
+				err: nil,
+			},
+		},
+		"SetSecretNullPushSecretV1": {
+			reason: "a whole secret value of JSON null is rejected instead of panicking",
+			value:  []byte(`null`),
+			args: args{
+				store: makeValidSecretStoreWithVersion(esv1.VaultKVStoreV1).Spec.Provider.Vault,
+				vLogical: &fake.Logical{
+					ReadWithDataWithContextFn: fake.NewReadWithContextFn(nil, nil),
+					WriteWithContextFn:        fake.ExpectWriteWithContextNoCall(),
+				},
+			},
+			want: want{
+				err: errors.New("error unmarshalling vault secret: invalid JSON format"),
+			},
+		},
 		"PushSecretPropertyKV1": {
 			reason: "push secret with property adds the property",
 			value:  []byte(fakeValue),

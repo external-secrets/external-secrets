@@ -92,7 +92,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 			var incomingSecretMap map[string]any
 			incomingSecretMap, err = decodeSecretValue(value)
 			if err != nil {
-				return err
+				return errors.New("error unmarshalling incoming secret value: invalid JSON format")
 			}
 			// Compare maps instead of raw bytes to handle JSON field ordering and formatting.
 			// Values can be nested objects or arrays, which maps.Equal can't compare (it panics).
@@ -117,10 +117,9 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		// Secret got from vault is already on map[string]string format
 		secretVal[data.GetProperty()] = string(value)
 	} else {
-		err = json.Unmarshal(value, &secretVal)
+		// Decode like the comparison above, so numbers keep their exact value in Vault.
+		secretVal, err = decodeSecretValue(value)
 		if err != nil {
-			// Do not wrap the original error with %w as json.Unmarshal errors
-			// may contain sensitive secret data in the error message
 			return errors.New("error unmarshalling vault secret: invalid JSON format")
 		}
 	}
@@ -273,20 +272,23 @@ func getCurrentVersionFromMetadata(data map[string]any) (int, error) {
 }
 
 // decodeSecretValue decodes a whole secret value the same way the Vault API client decodes
-// secrets, with numbers as json.Number, so that it can be compared with the secret read from Vault.
+// secrets, with numbers as json.Number, so that it can be compared with the secret read from Vault
+// and written without losing precision. Callers must not wrap the returned error, since json
+// decoding errors may contain sensitive secret data.
 func decodeSecretValue(value []byte) (map[string]any, error) {
-	// Do not wrap the original errors with %w as json decoding errors
-	// may contain sensitive secret data in the error message
-	errInvalid := errors.New("error unmarshalling incoming secret value: invalid JSON format")
 	var secretMap map[string]any
 	dec := json.NewDecoder(bytes.NewReader(value))
 	dec.UseNumber()
 	if err := dec.Decode(&secretMap); err != nil {
-		return nil, errInvalid
+		return nil, err
+	}
+	// A whole secret must be a JSON object; null would decode to a nil map.
+	if secretMap == nil {
+		return nil, errors.New("secret value is not a JSON object")
 	}
 	// Like json.Unmarshal, reject anything after the JSON value.
 	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
-		return nil, errInvalid
+		return nil, errors.New("unexpected data after the JSON object")
 	}
 	return secretMap, nil
 }
