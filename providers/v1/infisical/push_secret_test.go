@@ -171,9 +171,9 @@ func writeJSON(w http.ResponseWriter, status int, body any) {
 	_ = json.NewEncoder(w).Encode(body)
 }
 
-// newPushTestProvider wires a Provider to a fresh plain-HTTP mock server. Each
-// server gets a unique URL, so the package-level project-ID cache never
-// collides between tests.
+// newPushTestProvider wires a Provider to a fresh plain-HTTP mock server. The
+// URL is unique only while that server is up, which is why buildPushTestProvider
+// drops the project-ID cache entry keyed on it.
 func newPushTestProvider(t *testing.T) (*Provider, *infisicalMock) {
 	return buildPushTestProvider(t, newInfisicalMock(), false)
 }
@@ -203,6 +203,10 @@ func buildPushTestProvider(t *testing.T, mock *infisicalMock, useTLS bool) (*Pro
 		hostAPI:      server.URL,
 		authIdentity: "test-identity",
 	}
+	// The cache is process wide and keyed on the host, so a later test that
+	// draws the port this server just released would answer from its entry.
+	t.Cleanup(func() { projectIDCache.Delete(p.projectCacheKey()) })
+
 	if useTLS && server.Certificate() != nil {
 		p.caCertificate = string(pem.EncodeToMemory(&pem.Block{
 			Type:  "CERTIFICATE",
