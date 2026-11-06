@@ -902,6 +902,7 @@ func isControlledByExternalSecret(es *esv1.ExternalSecret, target client.Object)
 // single test covers it: see "refuses to delete a target that was replaced after the
 // ownership check", which drives it against a real API server.
 func (r *Reconciler) deleteCheckedTarget(ctx context.Context, target client.Object) error {
+	//nolint:forbidigo // this is the one pinned delete every other path is required to use
 	return r.Delete(ctx, target, client.Preconditions{UID: new(target.GetUID())})
 }
 
@@ -976,14 +977,29 @@ func (r *Reconciler) deleteOrphanedSecrets(ctx context.Context, log logr.Logger,
 
 	// delete all secrets that are not the target secret
 	for _, secretPartial := range secretListPartial.Items {
-		if secretPartial.GetName() != secretName {
-			err := r.Delete(ctx, &secretPartial)
-			if err != nil && !apierrors.IsNotFound(err) {
-				return err
-			}
-			log.V(1).Info(logSecretDeletedOrphaned, "secret", secretPartial.GetName(), "namespace", externalSecret.Namespace)
-			r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1.ReasonDeleted, eventDeletedOrphaned)
+		if secretPartial.GetName() == secretName {
+			continue
 		}
+
+		// The owner label selects candidates; it does not authorize the delete. It is an
+		// ordinary label holding a hash of namespace/name, so anything that can write a
+		// Secret can compute and set it, and ESO would then delete an object it never
+		// created on behalf of someone who may hold only update permission. Confirm the
+		// controller owner reference instead, exactly as the other deletion paths do.
+		// This costs no extra API call: PartialObjectMetadata carries ownerReferences, and
+		// applyOwnership writes the label and the reference together under Owner, so a
+		// Secret ESO genuinely orphaned still matches.
+		if !isControlledByExternalSecret(externalSecret, &secretPartial) {
+			log.Info("skipping an orphan candidate this ExternalSecret does not control",
+				"secret", secretPartial.GetName(), "namespace", externalSecret.Namespace)
+			continue
+		}
+
+		if err := r.deleteCheckedTarget(ctx, &secretPartial); err != nil && !apierrors.IsNotFound(err) {
+			return err
+		}
+		log.V(1).Info(logSecretDeletedOrphaned, "secret", secretPartial.GetName(), "namespace", externalSecret.Namespace)
+		r.recorder.Event(externalSecret, v1.EventTypeNormal, esv1.ReasonDeleted, eventDeletedOrphaned)
 	}
 
 	return nil

@@ -15,6 +15,7 @@ linters:
     - errcheck
     - errorlint
     - exhaustive
+    - forbidigo
     - copyloopvar
     - goheader
     - gocritic
@@ -35,6 +36,15 @@ linters:
     - whitespace
     - revive
   settings:
+    forbidigo:
+      forbid:
+        # Deleting a target takes a read to authorize it and a delete to carry it out. A
+        # delete by name alone can hit an object that replaced the one that was authorized,
+        # so every target deletion goes through Reconciler.deleteCheckedTarget, which pins
+        # the UID that was checked. The controllers excluded below delete their own
+        # generated children, not user-owned targets, and do not share that hazard.
+        - pattern: ^r\.Delete$
+          msg: use r.deleteCheckedTarget to delete a target, so the delete is pinned to the UID whose ownership was checked
     depguard:
       rules:
         apis:
@@ -123,6 +133,11 @@ linters:
         - omitzero
   exclusions:
     rules:
+      # These controllers delete the ExternalSecret/PushSecret objects they generate
+      # themselves, which is not the user-target ownership hazard forbidigo guards here.
+      - path: pkg/controllers/(clusterexternalsecret|clusterpushsecret)/
+        linters:
+          - forbidigo
       # The in-tree sprig copy is excluded from legacy checks, but module boundaries still apply.
       - path: runtime/template/v2/sprig
         linters:

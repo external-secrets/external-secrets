@@ -40,6 +40,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
 	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 const (
@@ -450,10 +451,10 @@ func TestDeletePinsTargetUID(t *testing.T) {
 
 	// capturePreconditions records the options production code passes for the target, then
 	// lets the delete proceed so the path under test behaves normally.
-	capturePreconditions := func(captured **metav1.Preconditions) interceptor.Funcs {
+	capturePreconditions := func(captured **metav1.Preconditions, name string) interceptor.Funcs {
 		return interceptor.Funcs{
 			Delete: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
-				if obj.GetName() == deletionTargetName {
+				if obj.GetName() == name {
 					var applied client.DeleteOptions
 					for _, opt := range opts {
 						opt.ApplyToDelete(&applied)
@@ -478,7 +479,7 @@ func TestDeletePinsTargetUID(t *testing.T) {
 		r := &Reconciler{
 			Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
 				WithObjects(configMapTarget(owned)).
-				WithInterceptorFuncs(capturePreconditions(&captured)).Build(),
+				WithInterceptorFuncs(capturePreconditions(&captured, deletionTargetName)).Build(),
 			Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10),
 
 			AllowGenericTargets: true,
@@ -494,7 +495,7 @@ func TestDeletePinsTargetUID(t *testing.T) {
 		r := &Reconciler{
 			Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
 				WithObjects(secretTarget(owned)).
-				WithInterceptorFuncs(capturePreconditions(&captured)).Build(),
+				WithInterceptorFuncs(capturePreconditions(&captured, deletionTargetName)).Build(),
 			Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10),
 		}
 
@@ -512,7 +513,7 @@ func TestDeletePinsTargetUID(t *testing.T) {
 		fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
 			WithObjects(es, deletionStore(), secretTarget(owned)).
 			WithStatusSubresource(&esv1.ExternalSecret{}).
-			WithInterceptorFuncs(capturePreconditions(&captured)).Build()
+			WithInterceptorFuncs(capturePreconditions(&captured, deletionTargetName)).Build()
 		r := &Reconciler{
 			Client: fakeClient, SecretClient: fakeClient, Scheme: scheme.Scheme,
 			Log: logr.Discard(), recorder: record.NewFakeRecorder(100),
@@ -525,4 +526,102 @@ func TestDeletePinsTargetUID(t *testing.T) {
 		require.NoError(t, err)
 		assertPinned(t, captured)
 	})
+}
+
+// TestDeleteOrphanedSecretsAuthorization covers the third deletion trigger: creationPolicy
+// =Owner cleaning up a Secret left behind when spec.target.name changed. The owner label
+// selects candidates, but it is an ordinary label anyone able to write a Secret can set, so
+// the controller owner reference is what has to authorize the delete.
+func TestDeleteOrphanedSecretsAuthorization(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+
+	const orphanName = "the-previous-target"
+	ownerLabel := esutils.ObjectHash(deletionNamespace + "/" + deletionESName)
+
+	// labeled builds a Secret carrying this ExternalSecret's owner label, which is all the
+	// list selector looks at, plus whatever owner references the case is about.
+	labeled := func(name string, owners []metav1.OwnerReference) *v1.Secret {
+		return &v1.Secret{
+			Name: name, Namespace: deletionNamespace, UID: types.UID(name + "-uid"),
+			Labels: map[string]string{
+				esv1.LabelManaged: esv1.LabelManagedValue,
+				esv1.LabelOwner:   ownerLabel,
+			},
+			OwnerReferences: owners,
+			Data:            map[string][]byte{"key": []byte("value")},
+		}
+	}
+
+	for _, tt := range ownershipCases() {
+		t.Run(tt.name, func(t *testing.T) {
+			es := deletionES(esv1.DeletionPolicyDelete, nil)
+			r := &Reconciler{
+				Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+					WithObjects(labeled(orphanName, tt.owners), labeled(deletionTargetName, tt.owners)).Build(),
+				Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10),
+			}
+
+			require.NoError(t, r.deleteOrphanedSecrets(context.Background(), logr.Discard(), es, deletionTargetName))
+
+			orphan := &v1.Secret{}
+			orphanErr := r.Get(context.Background(),
+				types.NamespacedName{Name: orphanName, Namespace: deletionNamespace}, orphan)
+
+			// the current target is never an orphan, whatever its ownership
+			current := &v1.Secret{}
+			require.NoError(t, r.Get(context.Background(),
+				types.NamespacedName{Name: deletionTargetName, Namespace: deletionNamespace}, current),
+				"the current target must never be deleted as an orphan")
+
+			if tt.authorized {
+				assert.True(t, apierrors.IsNotFound(orphanErr), "an owned orphan should be cleaned up")
+				return
+			}
+			require.NoError(t, orphanErr, "a Secret this ExternalSecret does not control must be preserved")
+			assert.Equal(t, map[string][]byte{"key": []byte("value")}, orphan.Data)
+		})
+	}
+}
+
+// TestDeleteOrphanedSecretsPinsUID extends the wiring guarantee to the orphan cleanup path,
+// which reaches the same shared helper.
+func TestDeleteOrphanedSecretsPinsUID(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+
+	const orphanName = "the-previous-target"
+	var captured *metav1.Preconditions
+
+	orphan := &v1.Secret{
+		Name: orphanName, Namespace: deletionNamespace, UID: types.UID(orphanName + "-uid"),
+		Labels: map[string]string{
+			esv1.LabelOwner: esutils.ObjectHash(deletionNamespace + "/" + deletionESName),
+		},
+		OwnerReferences: []metav1.OwnerReference{
+			esControllerRef(deletionESName, esv1.SchemeGroupVersion.String(), "stale-uid"),
+		},
+	}
+
+	r := &Reconciler{
+		Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(orphan).
+			WithInterceptorFuncs(interceptor.Funcs{
+				Delete: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
+					if obj.GetName() == orphanName {
+						var applied client.DeleteOptions
+						for _, opt := range opts {
+							opt.ApplyToDelete(&applied)
+						}
+						captured = applied.Preconditions
+					}
+					return c.Delete(ctx, obj, opts...)
+				},
+			}).Build(),
+		Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10),
+	}
+
+	es := deletionES(esv1.DeletionPolicyDelete, nil)
+	require.NoError(t, r.deleteOrphanedSecrets(context.Background(), logr.Discard(), es, deletionTargetName))
+
+	require.NotNil(t, captured, "orphan delete carried no preconditions, so the UID is unpinned")
+	require.NotNil(t, captured.UID, "orphan delete carried preconditions without a UID")
+	assert.Equal(t, types.UID(orphanName+"-uid"), *captured.UID)
 }
