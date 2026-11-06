@@ -7104,6 +7104,21 @@ URL is having the expected value.</p>
 </tr>
 <tr>
 <td>
+<code>universeDomain</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>universeDomain is the Google Cloud universe the workload identity pool and the service account belong to,
+for example the domain of a Google Cloud Dedicated (sovereign) cloud. The Security Token Service and IAM
+Credentials endpoints (sts.<universeDomain>, iamcredentials.<universeDomain>) are derived from it.
+If specified, universe_domain found in the external account credential config will be overridden with the
+configured value. Defaults to googleapis.com.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>gcpServiceAccountEmail</code></br>
 <em>
 string
