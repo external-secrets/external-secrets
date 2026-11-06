@@ -23,6 +23,7 @@ package secretmanager
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"golang.org/x/oauth2"
@@ -78,9 +79,34 @@ func serviceAccountTokenSource(ctx context.Context, auth esv1.GCPSMAuth, storeKi
 	if err != nil {
 		return nil, err
 	}
+	// Keys issued in a non-default universe (Google Cloud Dedicated / sovereign
+	// clouds) cannot rely on the OAuth 2.0 token exchange: the token_uri in the
+	// key may point to a host that does not exist in that universe. Google's own
+	// client libraries use a self-signed JWT instead for such keys, so do the same.
+	if usesNonDefaultUniverse([]byte(credentials)) {
+		ts, err := google.JWTAccessTokenSourceWithScope([]byte(credentials), CloudPlatformRole)
+		if err != nil {
+			return nil, fmt.Errorf(errUnableProcessJSONCredentials, err)
+		}
+		return ts, nil
+	}
 	config, err := google.JWTConfigFromJSON([]byte(credentials), CloudPlatformRole)
 	if err != nil {
 		return nil, fmt.Errorf(errUnableProcessJSONCredentials, err)
 	}
 	return config.TokenSource(ctx), nil
+}
+
+// usesNonDefaultUniverse reports whether the service account key declares a
+// universe_domain other than the default googleapis.com. Keys without the
+// field (all keys issued before universe domains existed, and standard
+// googleapis.com keys) are treated as default-universe keys.
+func usesNonDefaultUniverse(keyJSON []byte) bool {
+	var key struct {
+		UniverseDomain string `json:"universe_domain"`
+	}
+	if err := json.Unmarshal(keyJSON, &key); err != nil {
+		return false
+	}
+	return key.UniverseDomain != "" && key.UniverseDomain != defaultUniverseDomain
 }
