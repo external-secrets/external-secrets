@@ -27,6 +27,39 @@ stringData:
   best-pokemon-dst: "PIKACHU is the really best!"
 ```
 
+## Selecting the source
+
+`spec.selector` names the source of the data to push. Set exactly one of
+`spec.selector.secret` or `spec.selector.generatorRef`.
+
+Under `spec.selector.secret`, set exactly one of:
+
+- **`name`** (string): a single Secret in the same namespace as the PushSecret.
+- **`selector`** (object): a label selector matching one or more Secrets in the same namespace. Every match is pushed.
+
+```yaml
+spec:
+  selector:
+    secret:
+      # Either a single Secret by name
+      name: my-secret
+
+      # Or a label selector. It must match on something.
+      selector:
+        matchLabels:
+          push-to-provider: "true"
+```
+
+The selector must set a non-empty `matchLabels` or `matchExpressions`. An empty
+selector is rejected, because an empty label selector matches *every* Secret in
+the namespace rather than none, which would push the whole namespace to the
+provider. The usual way to hit this is a chart whose `matchLabels` block renders
+empty when a value is missing.
+
+Note that this only rules out the empty case. A selector is still yours to get
+right: an expression such as `{key: absent-label, operator: DoesNotExist}` is
+accepted and does match every Secret in the namespace.
+
 ## DataTo
 
 The `spec.dataTo` field enables bulk pushing of secrets without explicit per-key configuration. This is useful when you need to push multiple related secrets and want to avoid verbose YAML.
