@@ -39,12 +39,12 @@ linters:
     forbidigo:
       forbid:
         # Deleting a target takes a read to authorize it and a delete to carry it out. A
-        # delete by name alone can hit an object that replaced the one that was authorized,
+        # delete by name alone can hit a replacement or a target whose ownership changed,
         # so every target deletion goes through Reconciler.deleteCheckedTarget, which pins
-        # the UID that was checked. The controllers excluded below delete their own
-        # generated children, not user-owned targets, and do not share that hazard.
+        # the UID and resource version that were checked. The excluded controllers delete
+        # their own generated children, not user-owned targets, and do not share that hazard.
         - pattern: ^r\.Delete$
-          msg: use r.deleteCheckedTarget to delete a target, so the delete is pinned to the UID whose ownership was checked
+          msg: use r.deleteCheckedTarget to pin the delete to the UID and resource version whose ownership was checked
     depguard:
       rules:
         apis:

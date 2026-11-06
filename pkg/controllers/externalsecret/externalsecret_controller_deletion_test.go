@@ -153,7 +153,7 @@ func configMapTarget(owners []metav1.OwnerReference) *unstructured.Unstructured 
 	target := &unstructured.Unstructured{Object: map[string]any{
 		"apiVersion": "v1", "kind": "ConfigMap",
 		"metadata": map[string]any{
-			"name": deletionTargetName, "namespace": deletionNamespace, "uid": "target-uid",
+			"name": deletionTargetName, "namespace": deletionNamespace, "uid": "target-uid", "resourceVersion": "12",
 		},
 		"data": map[string]any{"key": "value"},
 	}}
@@ -163,7 +163,7 @@ func configMapTarget(owners []metav1.OwnerReference) *unstructured.Unstructured 
 
 func secretTarget(owners []metav1.OwnerReference) *v1.Secret {
 	return &v1.Secret{
-		Name: deletionTargetName, Namespace: deletionNamespace, UID: "target-uid",
+		Name: deletionTargetName, Namespace: deletionNamespace, UID: "target-uid", ResourceVersion: "12",
 		Labels:          map[string]string{esv1.LabelManaged: esv1.LabelManagedValue},
 		OwnerReferences: owners,
 		Data:            map[string][]byte{"key": []byte("value")},
@@ -437,13 +437,73 @@ func TestProviderEmptyDeletionAuthorization(t *testing.T) {
 	})
 }
 
-// TestDeletePinsTargetUID asserts every deletion path pins its delete to the UID whose
-// ownership it just checked. Whether a real API server honors that pin is proven by the
-// envtest spec "refuses to delete a target that was replaced after the ownership check"; what
-// this covers is the wiring, which that spec cannot reach for the Secret paths. It matters
-// because the fake client ignores client.Preconditions, so a path that silently stopped
-// passing one would leave every other test in this file green.
-func TestDeletePinsTargetUID(t *testing.T) {
+// TestProviderEmptyDeletionRequeuesAndRecovers keeps polling without adopting an unowned
+// target until provider data exists, even if the last successful refresh is overdue.
+func TestProviderEmptyDeletionRequeuesAndRecovers(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	fakeProvider.Reset()
+	defer fakeProvider.Reset()
+
+	for _, tt := range []struct {
+		name     string
+		manifest *esv1.ManifestReference
+	}{
+		{"Secret", nil},
+		{"manifest", &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"}},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeProvider.WithGetSecret(nil, esv1.NoSecretErr)
+			es := deletionES(esv1.DeletionPolicyDelete, tt.manifest)
+			es.Spec.RefreshPolicy = esv1.RefreshPolicyPeriodic
+			lastRefresh := metav1.NewTime(time.Now().Add(-2 * time.Hour))
+			es.Status.RefreshTime = lastRefresh
+			var target client.Object = secretTarget(nil)
+			if tt.manifest != nil {
+				target = configMapTarget(nil)
+			}
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+				WithObjects(es, deletionStore(), target).
+				WithStatusSubresource(&esv1.ExternalSecret{}).Build()
+			r := &Reconciler{
+				Client: fakeClient, SecretClient: fakeClient, Scheme: scheme.Scheme,
+				Log: logr.Discard(), recorder: record.NewFakeRecorder(100),
+				AllowGenericTargets: true, informerManager: noopInformerManager{},
+				RequeueInterval: time.Hour,
+			}
+			request := ctrl.Request{Name: es.Name, Namespace: es.Namespace}
+
+			result, err := r.Reconcile(context.Background(), request)
+			require.NoError(t, err)
+			assert.Equal(t, ctrl.Result{RequeueAfter: time.Hour}, result, "retry normally, not immediately or never")
+
+			synced := &esv1.ExternalSecret{}
+			require.NoError(t, fakeClient.Get(context.Background(), client.ObjectKeyFromObject(es), synced))
+			ready := esv1.GetExternalSecretCondition(synced.Status, esv1.ExternalSecretReady)
+			require.NotNil(t, ready)
+			assert.Equal(t, v1.ConditionFalse, ready.Status)
+			assert.WithinDuration(t, lastRefresh.Time, synced.Status.RefreshTime.Time, time.Second, "a failed sync must not advance the last successful refresh")
+			require.NoError(t, fakeClient.Get(context.Background(), client.ObjectKeyFromObject(target), target))
+			assert.Empty(t, target.GetOwnerReferences(), "a refused delete must not adopt the target")
+
+			fakeProvider.WithGetSecret([]byte("restored"), nil)
+			_, err = r.Reconcile(context.Background(), request)
+			require.NoError(t, err)
+			require.NoError(t, fakeClient.Get(context.Background(), client.ObjectKeyFromObject(target), target))
+			require.Len(t, target.GetOwnerReferences(), 1)
+			assert.Equal(t, es.Name, target.GetOwnerReferences()[0].Name)
+			switch actual := target.(type) {
+			case *v1.Secret:
+				assert.Equal(t, []byte("restored"), actual.Data["key"])
+			case *unstructured.Unstructured:
+				assert.Equal(t, "restored", actual.Object["data"].(map[string]any)["key"])
+			}
+		})
+	}
+}
+
+// TestDeletePinsTargetVersion covers every caller; envtest covers API enforcement because
+// the fake client ignores delete preconditions.
+func TestDeletePinsTargetVersion(t *testing.T) {
 	_ = esv1.AddToScheme(scheme.Scheme)
 	owned := []metav1.OwnerReference{
 		esControllerRef(deletionESName, esv1.SchemeGroupVersion.String(), "stale-uid"),
@@ -471,6 +531,8 @@ func TestDeletePinsTargetUID(t *testing.T) {
 		require.NotNil(t, captured, "delete carried no preconditions, so the target UID is unpinned")
 		require.NotNil(t, captured.UID, "delete carried preconditions without a UID")
 		assert.Equal(t, types.UID("target-uid"), *captured.UID, "pinned to the wrong UID")
+		require.NotNil(t, captured.ResourceVersion, "delete carried no resource version")
+		assert.Equal(t, "12", *captured.ResourceVersion, "pinned to the wrong resource version")
 	}
 
 	t.Run("manifest provider-empty path", func(t *testing.T) {
@@ -583,16 +645,15 @@ func TestDeleteOrphanedSecretsAuthorization(t *testing.T) {
 	}
 }
 
-// TestDeleteOrphanedSecretsPinsUID extends the wiring guarantee to the orphan cleanup path,
-// which reaches the same shared helper.
-func TestDeleteOrphanedSecretsPinsUID(t *testing.T) {
+// TestDeleteOrphanedSecretsPinsVersion extends the wiring guarantee to orphan cleanup.
+func TestDeleteOrphanedSecretsPinsVersion(t *testing.T) {
 	_ = esv1.AddToScheme(scheme.Scheme)
 
 	const orphanName = "the-previous-target"
 	var captured *metav1.Preconditions
 
 	orphan := &v1.Secret{
-		Name: orphanName, Namespace: deletionNamespace, UID: types.UID(orphanName + "-uid"),
+		Name: orphanName, Namespace: deletionNamespace, UID: types.UID(orphanName + "-uid"), ResourceVersion: "12",
 		Labels: map[string]string{
 			esv1.LabelOwner: esutils.ObjectHash(deletionNamespace + "/" + deletionESName),
 		},
@@ -624,4 +685,6 @@ func TestDeleteOrphanedSecretsPinsUID(t *testing.T) {
 	require.NotNil(t, captured, "orphan delete carried no preconditions, so the UID is unpinned")
 	require.NotNil(t, captured.UID, "orphan delete carried preconditions without a UID")
 	assert.Equal(t, types.UID(orphanName+"-uid"), *captured.UID)
+	require.NotNil(t, captured.ResourceVersion, "orphan delete carried no resource version")
+	assert.Equal(t, "12", *captured.ResourceVersion)
 }

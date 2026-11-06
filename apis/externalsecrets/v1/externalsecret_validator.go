@@ -20,9 +20,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/equality"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 )
@@ -39,7 +41,18 @@ func (in *ExternalSecretValidator) ValidateCreate(_ context.Context, obj *Extern
 }
 
 // ValidateUpdate validates the update of an external secret object.
-func (in *ExternalSecretValidator) ValidateUpdate(_ context.Context, _, newObj *ExternalSecret) (warnings admission.Warnings, err error) {
+func (in *ExternalSecretValidator) ValidateUpdate(_ context.Context, oldObj, newObj *ExternalSecret) (warnings admission.Warnings, err error) {
+	// Unchanged legacy specs must not prevent finalization after validation rules tighten.
+	if oldObj != nil && newObj != nil &&
+		!oldObj.GetDeletionTimestamp().IsZero() && !newObj.GetDeletionTimestamp().IsZero() &&
+		equality.Semantic.DeepEqual(oldObj.Spec, newObj.Spec) && len(newObj.Finalizers) < len(oldObj.Finalizers) {
+		for _, finalizer := range newObj.Finalizers {
+			if !slices.Contains(oldObj.Finalizers, finalizer) {
+				return validateExternalSecret(newObj)
+			}
+		}
+		return nil, nil
+	}
 	return validateExternalSecret(newObj)
 }
 
