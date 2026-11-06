@@ -35,18 +35,18 @@ kubectl patch pushsecret <name> -n <namespace> --subresource=status --type=json 
 ```
 
 These entries actively prevent reconciliation of the PushSecret if ClusterSecretStore is disabled.
+When this is done, remove outdated cluster-store refs from `spec.secretStoreRefs` and `spec.dataTo[].storeRef`.
 
 If a `PushSecret` is already stuck deleting (regardless of the Deletion Policy), an administrator must clean up the remote secrets manually (or temporarily re-enable cluster-store processing to let the operator clean them up).
 
 After confirming cleanup, inspect the finalizers and remove **only** the PushSecret finalizer to allow Kubernetes deletion:
 
 ```bash
-kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.metadata.finalizers}'
+kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.metadata.finalizers}' # Show all finalizers
 kubectl patch pushsecret <name> -n <namespace> --type=json \
-  -p='[{"op":"remove","path":"/metadata/finalizers/0"}]'
+  -p='[{"op":"test","path":"/metadata/finalizers/0","value":"pushsecret.externalsecrets.io/finalizer"},{"op":"remove","path":"/metadata/finalizers/0"}]' # Remove the first finalizer if it is pushsecret. If failing, inspect the error, you might have to do it manually.
+kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.metadata.finalizers}' # Show remaining finalizers (Not found is fine).
 ```
 
-The patch is appropriate only if `pushsecret.externalsecrets.io/finalizer` is the sole finalizer. If there are others, remove that finalizer by its actual array index instead; do not remove other controllers' finalizers.
-
-When this is done, remove outdated cluster-store refs from `spec.secretStoreRefs` and `spec.dataTo[].storeRef`.
-
+If the last command commands still show a PushSecret finalizer, the remove operation has failed (For example PushSecret finalizer was not at index 0 and nothing was removed).
+In this case, find its index with the last `get` command and use that index in both `path` values; do not remove other controllers' finalizers.
