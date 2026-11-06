@@ -443,11 +443,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 				// creationPolicy=Owner states the intent to own the Secret; the controller
 				// owner reference on the Secret itself is what proves it. Without this the
 				// policy alone would authorize deleting a Secret we never created.
-				// NOTE: not fixable by retrying, so no error is returned.
+				// Keep polling normally: provider data may appear and allow a later sync.
 				if !isControlledByExternalSecret(externalSecret, existingSecret) {
 					err = fmt.Errorf("%w: Secret %s", ErrTargetNotControlled, secretName)
 					r.markAsFailed(msgErrorDeleteSecret, ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretSyncedError)
-					return ctrl.Result{}, nil
+					return r.getRequeueResult(externalSecret), nil
 				}
 
 				err = r.deleteCheckedTarget(ctx, existingSecret)
@@ -654,9 +654,9 @@ func (r *Reconciler) reconcileGenericTarget(
 			err = r.deleteGenericResource(ctx, log, externalSecret)
 			if err != nil {
 				r.markAsFailed("could not delete resource", ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
-				// a target owned by someone else stays that way; retrying cannot fix it
+				// Keep polling normally: provider data may appear and allow a later sync.
 				if errors.Is(err, ErrTargetNotControlled) {
-					return ctrl.Result{}, nil
+					return r.getRequeueResult(externalSecret), nil
 				}
 				return ctrl.Result{}, err
 			}
@@ -762,10 +762,9 @@ func (r *Reconciler) getRequeueResult(externalSecret *esv1.ExternalSecret) ctrl.
 		return ctrl.Result{}
 	}
 
-	// if the last refresh time is not set, requeue after the refresh interval
-	// note, this should not happen, as we only call this function on ExternalSecrets
-	// that have been reconciled at least once
-	if externalSecret.Status.RefreshTime.IsZero() {
+	// Failed syncs wait a full interval without advancing the last successful refresh time.
+	ready := esv1.GetExternalSecretCondition(externalSecret.Status, esv1.ExternalSecretReady)
+	if externalSecret.Status.RefreshTime.IsZero() || (ready != nil && ready.Status == v1.ConditionFalse) {
 		return ctrl.Result{RequeueAfter: refreshInterval}
 	}
 
@@ -892,18 +891,13 @@ func isControlledByExternalSecret(es *esv1.ExternalSecret, target client.Object)
 	return ownerGK.String() == esv1.ExtSecretGroupKind && owner.Name == es.Name
 }
 
-// deleteCheckedTarget deletes a target whose controller ownership the caller has already
-// confirmed with isControlledByExternalSecret, pinned to the UID that was checked.
-//
-// The pin is the whole point of this helper existing. Authorizing a deletion takes two calls,
-// a read and a delete, and a target can be replaced under the same name in between; deleting
-// by name alone would then destroy an object whose ownership was never examined. Every
-// deletion path shares this one line so the guarantee cannot drift between them, and so a
-// single test covers it: see "refuses to delete a target that was replaced after the
-// ownership check", which drives it against a real API server.
+// deleteCheckedTarget pins deletion to the object and resource version whose ownership was
+// checked, so replacement or an in-place ownership change cannot invalidate authorization.
 func (r *Reconciler) deleteCheckedTarget(ctx context.Context, target client.Object) error {
 	//nolint:forbidigo // this is the one pinned delete every other path is required to use
-	return r.Delete(ctx, target, client.Preconditions{UID: new(target.GetUID())})
+	return r.Delete(ctx, target, client.Preconditions{
+		UID: new(target.GetUID()), ResourceVersion: new(target.GetResourceVersion()),
+	})
 }
 
 func (r *Reconciler) cleanupManagedSecrets(ctx context.Context, log logr.Logger, externalSecret *esv1.ExternalSecret) error {

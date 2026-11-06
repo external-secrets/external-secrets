@@ -22,6 +22,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -703,6 +704,89 @@ func TestValidateManifestSecretTargetOnCreateAndUpdate(t *testing.T) {
 			}
 			require.NotErrorIs(t, createErr, ErrManifestSecretTarget)
 			require.NotErrorIs(t, updateErr, ErrManifestSecretTarget)
+		})
+	}
+}
+
+func TestValidateUpdateAllowsLegacyFinalization(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		mutate  func(oldObj, newObj *ExternalSecret)
+		wantErr bool
+	}{
+		{name: "remove one finalizer, preserve another"},
+		{
+			name: "remove the last finalizer",
+			mutate: func(_, newObj *ExternalSecret) {
+				newObj.Finalizers = nil
+			},
+		},
+		{
+			name: "active object remains invalid",
+			mutate: func(oldObj, newObj *ExternalSecret) {
+				oldObj.DeletionTimestamp = nil
+				newObj.DeletionTimestamp = nil
+			},
+			wantErr: true,
+		},
+		{
+			name: "new deletion timestamp does not bypass validation",
+			mutate: func(oldObj, _ *ExternalSecret) {
+				oldObj.DeletionTimestamp = nil
+			},
+			wantErr: true,
+		},
+		{
+			name: "changed spec remains invalid",
+			mutate: func(_, newObj *ExternalSecret) {
+				newObj.Spec.Target.Name = "another-target"
+			},
+			wantErr: true,
+		},
+		{
+			name: "adding a finalizer while removing others remains invalid",
+			mutate: func(_, newObj *ExternalSecret) {
+				newObj.Finalizers = []string{"new.example.com/finalizer"}
+			},
+			wantErr: true,
+		},
+		{
+			name: "ordinary update remains invalid",
+			mutate: func(oldObj, newObj *ExternalSecret) {
+				newObj.Finalizers = oldObj.Finalizers
+			},
+			wantErr: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			oldObj := &ExternalSecret{
+				DeletionTimestamp: new(metav1.Now()),
+				Finalizers: []string{
+					"externalsecrets.external-secrets.io/externalsecret-cleanup",
+					"other.example.com/finalizer",
+				},
+				Spec: ExternalSecretSpec{
+					Data: []ExternalSecretData{{}},
+					Target: ExternalSecretTarget{
+						Manifest: &ManifestReference{APIVersion: "v1", Kind: "Secret"},
+					},
+				},
+			}
+			newObj := oldObj.DeepCopy()
+			newObj.Finalizers = newObj.Finalizers[1:]
+			if tt.mutate != nil {
+				tt.mutate(oldObj, newObj)
+			}
+
+			validator := &ExternalSecretValidator{}
+			_, err := validator.ValidateUpdate(context.Background(), oldObj, newObj)
+			if tt.wantErr {
+				require.ErrorIs(t, err, ErrManifestSecretTarget)
+			} else {
+				require.NoError(t, err)
+			}
+			_, err = validator.ValidateCreate(context.Background(), newObj)
+			require.ErrorIs(t, err, ErrManifestSecretTarget, "finalization must not bypass create validation")
 		})
 	}
 }

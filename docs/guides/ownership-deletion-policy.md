@@ -105,9 +105,13 @@ compared, so an ExternalSecret that was deleted and recreated under the same nam
 still deletes the target it owns, without having to update the owner reference
 first. A target with no controller reference, a controller reference to a different
 ExternalSecret, or a controller of another kind is never deleted. If the ownership
-check fails, ESO leaves the target alone and reports a failed sync; during
-ExternalSecret deletion it instead logs the refusal and lets finalization finish,
-so an unrelated target can never block it.
+check fails, ESO leaves the target alone and reports a failed sync. Periodic polling
+continues at the configured refresh interval, so syncing can recover when provider data
+appears. Failed attempts do not advance the last successful refresh time.
+During ExternalSecret deletion ESO instead logs the refusal and lets finalization finish,
+so an unrelated target can never block it. Deletes pin both the target UID and its
+resource version: replacing the target or changing it after the ownership check causes
+a conflict and a retry rather than deleting an object whose current ownership was not checked.
 
 ### Merge
 Merge removes keys in the secret, but not the secret itself.
@@ -185,7 +189,8 @@ An unset `spec.target.manifest` produces a Kubernetes Secret. Manifest values pr
     Secret path restricts `templateFrom` to `Data`, `Labels` and `Annotations` and applies the
     Secret type rules listed below; a nested `templateFrom` target that a manifest accepted is
     not valid for a Secret. A `kind: Secret` in a custom API group is a different resource and
-    stays supported.
+    stays supported. A terminating legacy ExternalSecret can still remove existing
+    finalizers when its specification is unchanged; the ban does not prevent cleanup.
 
 ### Admission
 

@@ -2639,12 +2639,8 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Expect(persistedSecret.Annotations).To(HaveKeyWithValue(v1.ServiceAccountNameKey, "current-workload"))
 	})
 
-	// Authorizing a deletion means reading the target, then deleting it. Between those two
-	// calls the target can be replaced by a different object under the same name, and a delete
-	// by name alone would destroy an object whose ownership was never checked. The UID
-	// precondition closes that window, and only a real API server enforces it: the fake client
-	// ignores client.Preconditions entirely.
-	It("refuses to delete a target that was replaced after the ownership check", func() {
+	// Only a real API server enforces delete preconditions; the fake client ignores them.
+	DescribeTable("refuses to delete a target changed after the ownership check", func(replaceTarget bool) {
 		ctx := context.Background()
 		const (
 			racedESName  = "raced-es"
@@ -2677,7 +2673,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}}
 		Expect(k8sClient.Create(ctx, owned)).To(Succeed())
 
-		By("replacing the target between the ownership read and the delete")
+		By("changing the target between the ownership read and the delete")
 		realClient, err := client.NewWithWatch(cfg, client.Options{Scheme: scheme.Scheme})
 		Expect(err).ToNot(HaveOccurred())
 
@@ -2691,12 +2687,18 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 					return nil
 				}
 				swapped = true
-				// the owned target goes away and an unrelated object takes the name
-				Expect(c.Delete(ctx, &v1.ConfigMap{Name: racedTarget, Namespace: ExternalSecretNamespace})).To(Succeed())
-				Expect(c.Create(ctx, &v1.ConfigMap{
+				changed := &v1.ConfigMap{
 					Name: racedTarget, Namespace: ExternalSecretNamespace,
 					Data: map[string]string{"owner": replacedBy, "keep": replacedData},
-				})).To(Succeed())
+				}
+				if replaceTarget {
+					Expect(c.Delete(ctx, &v1.ConfigMap{Name: racedTarget, Namespace: ExternalSecretNamespace})).To(Succeed())
+					Expect(c.Create(ctx, changed)).To(Succeed())
+				} else {
+					changed.UID = obj.GetUID()
+					changed.ResourceVersion = obj.GetResourceVersion()
+					Expect(c.Update(ctx, changed)).To(Succeed())
+				}
 				return nil
 			},
 		})
@@ -2710,7 +2712,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		By("reporting the conflict the API server raised rather than deleting")
 		Expect(swapped).To(BeTrue(), "the race was never triggered, so nothing was tested")
 		Expect(err).To(HaveOccurred())
-		Expect(apierrors.IsConflict(err)).To(BeTrue(), "expected a UID precondition conflict, got: %v", err)
+		Expect(apierrors.IsConflict(err)).To(BeTrue(), "expected a delete precondition conflict, got: %v", err)
 
 		By("leaving the replacement untouched")
 		survivor := &v1.ConfigMap{}
@@ -2718,7 +2720,13 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Expect(survivor.Data).To(HaveKeyWithValue("owner", replacedBy))
 		Expect(survivor.Data).To(HaveKeyWithValue("keep", replacedData))
 		Expect(survivor.OwnerReferences).To(BeEmpty())
-	})
+		if !replaceTarget {
+			Expect(survivor.UID).To(Equal(owned.UID), "ownership changed without replacing the target")
+		}
+	},
+		Entry("target was replaced", true),
+		Entry("ownership changed without replacing the target", false),
+	)
 
 	// Regression coverage for issue #6640: refreshPolicy CreatedOnce tracks its
 	// "once" on the ExternalSecret's own status, not on whether the target Secret
