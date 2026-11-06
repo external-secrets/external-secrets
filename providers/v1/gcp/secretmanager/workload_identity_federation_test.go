@@ -32,6 +32,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/feature"
 )
 
 type workloadIdentityFederationTest struct {
@@ -41,6 +42,8 @@ type workloadIdentityFederationTest struct {
 	genSAToken             func(context.Context, []string, string, string) (*authv1.TokenRequest, error)
 	expectError            string
 	expectTokenSource      bool
+	isNamespaced           bool
+	allowUnsafeHostAccess  bool
 	assertImpersonation    bool
 	expectImpersonationURL string
 }
@@ -163,7 +166,7 @@ func createInvalidK8sExternalAccountConfigWithUnallowedTokenFilePath(audience st
 		"subject_token_type": workloadIdentitySubjectTokenType,
 		"token_url":          testTokenURL,
 		"credential_source": map[string]any{
-			"file": autoMountedServiceAccountTokenPath,
+			"file": "/var/run/secrets/kubernetes.io/serviceaccount/..data/token",
 		},
 		"token_info_url": testTokenInfoURL,
 	}
@@ -310,6 +313,49 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 				},
 			},
 			expectError: "invalid external_account config\ntoken_url \"https://example.com\" must match \"^https://sts\\.[^/\\s]+/v1/token$\"",
+		},
+		{
+			name: "invalid namespaced cred config - file credential source",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
+					Key:       testConfigMapKey,
+				},
+			},
+			kubeObjects: []client.Object{
+				&corev1.ConfigMap{
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
+					Data: map[string]string{
+						testConfigMapKey: createInvalidK8sExternalAccountConfigWithUnallowedTokenFilePath(testAudience),
+					},
+				},
+			},
+			isNamespaced: true,
+			expectError:  "invalid external_account config\ncredential_source.file is only supported for ClusterSecretStore; use serviceAccountRef for Kubernetes service account tokens",
+		},
+		{
+			name: "successful namespaced file credential source when explicitly enabled",
+			wifConfig: &esv1.GCPWorkloadIdentityFederation{
+				CredConfig: &esv1.ConfigMapReference{
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
+					Key:       testConfigMapKey,
+				},
+			},
+			kubeObjects: []client.Object{
+				&corev1.ConfigMap{
+					Name:      testConfigMapName,
+					Namespace: testNamespace,
+					Data: map[string]string{
+						testConfigMapKey: createInvalidK8sExternalAccountConfigWithUnallowedTokenFilePath(testAudience),
+					},
+				},
+			},
+			isNamespaced:          true,
+			allowUnsafeHostAccess: true,
+			expectTokenSource:     true,
 		},
 		{
 			name: "successful AWS federation with security credentials",
@@ -666,6 +712,8 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
+			feature.SetUnsafeAllowSecretStoreHostAccess(tc.allowUnsafeHostAccess)
+			t.Cleanup(func() { feature.SetUnsafeAllowSecretStoreHostAccess(false) })
 			fakeClient := clientfake.NewClientBuilder().WithObjects(tc.kubeObjects...).Build()
 
 			fakeSATG := &fakeSATokenGen{
@@ -679,7 +727,7 @@ func TestWorkloadIdentityFederation(t *testing.T) {
 				kubeClient:       fakeClient,
 				saTokenGenerator: fakeSATG,
 				config:           tc.wifConfig,
-				isClusterKind:    true,
+				isClusterKind:    !tc.isNamespaced,
 				namespace:        testNamespace,
 			}
 
@@ -917,7 +965,7 @@ func TestValidateCredConfig(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validateExternalAccountConfig(tc.config, tc.wif)
+			err := validateExternalAccountConfig(tc.config, tc.wif, true)
 			if tc.expectError != "" {
 				assert.Error(t, err)
 				assert.Equal(t, tc.expectError, err.Error())

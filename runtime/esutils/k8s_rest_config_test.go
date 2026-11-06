@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	fclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -32,6 +33,61 @@ import (
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	utilfake "github.com/external-secrets/external-secrets/runtime/util/fake"
 )
+
+func TestRestConfigFromKubeConfigHostAccess(t *testing.T) {
+	baseConfig := func() *clientcmdapi.Config {
+		return &clientcmdapi.Config{
+			Clusters:       map[string]*clientcmdapi.Cluster{"selected": {Server: "https://example.com"}},
+			AuthInfos:      map[string]*clientcmdapi.AuthInfo{"selected": {Token: "inline-token"}},
+			Contexts:       map[string]*clientcmdapi.Context{"selected": {Cluster: "selected", AuthInfo: "selected"}},
+			CurrentContext: "selected",
+		}
+	}
+
+	for _, tt := range []struct {
+		name      string
+		mutate    func(*clientcmdapi.Config)
+		allowFile bool
+		wantError string
+	}{
+		{name: "inline credentials are allowed"},
+		{name: "unused CA file is rejected", mutate: func(c *clientcmdapi.Config) {
+			c.Clusters["unused"] = &clientcmdapi.Cluster{CertificateAuthority: "/var/run/secrets/kubernetes.io/serviceaccount/token"}
+		}, wantError: "certificate-authority file"},
+		{name: "token file is rejected", mutate: func(c *clientcmdapi.Config) {
+			c.AuthInfos["unused"] = &clientcmdapi.AuthInfo{TokenFile: "/var/run/secrets/kubernetes.io/serviceaccount/token"}
+		}, wantError: "token file"},
+		{name: "client certificate file is rejected", mutate: func(c *clientcmdapi.Config) {
+			c.AuthInfos["unused"] = &clientcmdapi.AuthInfo{ClientCertificate: "/tmp/cert"}
+		}, wantError: "client-certificate file"},
+		{name: "client key file is rejected", mutate: func(c *clientcmdapi.Config) { c.AuthInfos["unused"] = &clientcmdapi.AuthInfo{ClientKey: "/tmp/key"} }, wantError: "client-key file"},
+		{name: "cluster store may use files", mutate: func(c *clientcmdapi.Config) {
+			c.AuthInfos["unused"] = &clientcmdapi.AuthInfo{TokenFile: "/path/that/is/not/selected"}
+		}, allowFile: true},
+		{name: "exec is always rejected", mutate: func(c *clientcmdapi.Config) {
+			c.AuthInfos["unused"] = &clientcmdapi.AuthInfo{Exec: &clientcmdapi.ExecConfig{Command: "/bin/false"}}
+		}, allowFile: true, wantError: "forbidden exec"},
+		{name: "auth provider is always rejected", mutate: func(c *clientcmdapi.Config) {
+			c.AuthInfos["unused"] = &clientcmdapi.AuthInfo{AuthProvider: &clientcmdapi.AuthProviderConfig{Name: "gcp"}}
+		}, allowFile: true, wantError: "forbidden auth-provider"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := baseConfig()
+			if tt.mutate != nil {
+				tt.mutate(cfg)
+			}
+			err := validateKubeConfigHostAccess(cfg, tt.allowFile)
+			if tt.wantError == "" {
+				assert.NoError(t, err)
+				return
+			}
+			assert.ErrorContains(t, err, tt.wantError)
+		})
+	}
+
+	_, err := restConfigFromKubeConfig([]byte(authTestKubeConfig), false)
+	assert.NoError(t, err)
+}
 
 const (
 	caCert = `-----BEGIN CERTIFICATE-----

@@ -559,8 +559,7 @@ External Secrets meta/v1.SecretKeySelector
 <em>(Optional)</em>
 <p>Optional secret field containing a Kubernetes ServiceAccount JWT used
 for authenticating with Akeyless. If a name is specified without a key,
-<code>token</code> is the default. If one is not specified, the one bound to
-the controller will be used.</p>
+<code>token</code> is the default. One of ServiceAccountRef or SecretRef is required.</p>
 </td>
 </tr>
 </tbody>
@@ -7044,8 +7043,8 @@ ConfigMapReference
 </td>
 <td>
 <p>credConfig holds the configmap reference containing the GCP external account credential configuration in JSON format and the key name containing the json data.
-For using Kubernetes cluster as the identity provider, use serviceAccountRef instead. Operators mounted serviceaccount token cannot be used as the token source, instead
-serviceAccountRef must be used by providing operators service account details.</p>
+credential_source.file is only supported in ClusterSecretStore because the referenced file is read from the operator pod.
+For using Kubernetes cluster as the identity provider, use serviceAccountRef instead.</p>
 </td>
 </tr>
 <tr>
@@ -7688,7 +7687,8 @@ IBMAuthContainerAuth
 <a href="#external-secrets.io/v1.IBMAuth">IBMAuth</a>)
 </p>
 <p>
-<p>IBMAuthContainerAuth defines container-based authentication with IAM Trusted Profile.</p>
+<p>IBMAuthContainerAuth defines container-based authentication with IAM Trusted Profile.
+This authentication method is only supported for ClusterSecretStore because it reads a token from the operator pod.</p>
 </p>
 <table>
 <thead>
@@ -7717,7 +7717,7 @@ string
 </em>
 </td>
 <td>
-<p>Location the token is mounted on the pod</p>
+<p>Location where the token is mounted in the operator pod.</p>
 </td>
 </tr>
 <tr>
@@ -14149,8 +14149,7 @@ External Secrets meta/v1.SecretKeySelector
 <em>(Optional)</em>
 <p>Optional secret field containing a Kubernetes ServiceAccount JWT used
 for authenticating with Vault. If a name is specified without a key,
-<code>token</code> is the default. If one is not specified, the one bound to
-the controller will be used.</p>
+<code>token</code> is the default. One of ServiceAccountRef or SecretRef is required.</p>
 </td>
 </tr>
 <tr>

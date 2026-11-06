@@ -38,6 +38,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/feature"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -53,14 +54,15 @@ const (
 	payloadConst      = "payload"
 	smAPIKeyConst     = "api_key"
 
-	errIBMClient                = "cannot setup new ibm client: %w"
-	errUninitializedIBMProvider = "provider IBM is not initialized"
-	errJSONSecretUnmarshal      = "unable to unmarshal secret from JSON: %w"
-	errJSONSecretMarshal        = "unable to marshal secret to JSON: %w"
-	errExtractingSecret         = "unable to extract the fetched secret %s of type %s while performing %s"
-	errNotImplemented           = "not implemented"
-	errKeyDoesNotExist          = "key %s does not exist in secret %s"
-	errFieldIsEmpty             = "warn: %s is empty for secret %s\n"
+	errIBMClient                 = "cannot setup new ibm client: %w"
+	errUninitializedIBMProvider  = "provider IBM is not initialized"
+	errJSONSecretUnmarshal       = "unable to unmarshal secret from JSON: %w"
+	errJSONSecretMarshal         = "unable to marshal secret to JSON: %w"
+	errExtractingSecret          = "unable to extract the fetched secret %s of type %s while performing %s"
+	errNotImplemented            = "not implemented"
+	errKeyDoesNotExist           = "key %s does not exist in secret %s"
+	errFieldIsEmpty              = "warn: %s is empty for secret %s\n"
+	errContainerAuthClusterStore = "container auth reads a token from the operator pod and is only supported for ClusterSecretStore or when explicitly enabled by the operator"
 
 	iamDefaultEndpoint = "https://iam.cloud.ibm.com"
 )
@@ -617,6 +619,10 @@ func (ibm *providerIBM) ValidateStore(store esv1.GenericStore) (admission.Warnin
 	}
 
 	if !missingContainerRef {
+		if !feature.HostAccessAllowed(store.GetKind()) {
+			return nil, errors.New(errContainerAuthClusterStore)
+		}
+
 		// catch undefined container auth profile
 		if containerRef.Profile == "" {
 			return nil, errors.New("container auth profile cannot be empty")
@@ -626,8 +632,12 @@ func (ibm *providerIBM) ValidateStore(store esv1.GenericStore) (admission.Warnin
 		if containerRef.TokenLocation == "" {
 			containerRef.TokenLocation = "/var/run/secrets/tokens/vault-token"
 		}
-		if _, err := os.Open(containerRef.TokenLocation); err != nil {
+		file, err := os.Open(containerRef.TokenLocation)
+		if err != nil {
 			return nil, fmt.Errorf("cannot read container auth token %s. %w", containerRef.TokenLocation, err)
+		}
+		if err := file.Close(); err != nil {
+			return nil, fmt.Errorf("cannot close container auth token %s. %w", containerRef.TokenLocation, err)
 		}
 		return nil, nil
 	}
@@ -667,6 +677,9 @@ func (ibm *providerIBM) NewClient(ctx context.Context, store esv1.GenericStore, 
 	var err error
 	var secretsManager *sm.SecretsManagerV2
 	containerAuth := iStore.store.Auth.ContainerAuth
+	if !esutils.IsNil(containerAuth) && !feature.HostAccessAllowed(store.GetKind()) {
+		return nil, errors.New(errContainerAuthClusterStore)
+	}
 	if !esutils.IsNil(containerAuth) && containerAuth.Profile != "" {
 		// container-based auth
 		containerAuthProfile := iStore.store.Auth.ContainerAuth.Profile
