@@ -42,6 +42,17 @@ The External Secret Operator creates secret and sets the `ownerReference` field 
 !!! note "Secrets with `ownerReference` field not found"
     If the secret exists and the ownerReference field is not found, the controller treats this secret as orphaned. It will take ownership of this secret by adding an `ownerReference` field and updating it.
 
+Under `Owner`, each sync also cleans up Secrets this ExternalSecret created earlier under
+another name, which is what is left behind when `spec.target.name` changes. ESO looks for
+Secrets in the namespace that carry its `reconcile.external-secrets.io/created-by` label, and
+deletes one only if it also has a controller owner reference to the current ExternalSecret
+(the same check, and the same pinned delete, as for [`deletionPolicy=Delete`](#delete)). The
+label alone is not enough: a Secret that carries it without that reference (a copy of an
+ESO-managed Secret, or one somebody labeled by hand) is left in place. This cleanup runs
+before the current target is written. If a previous Secret was modified after ESO read it,
+the API server refuses the delete with a conflict, the sync is reported as failed, and both
+the cleanup and the write of the current target happen on the retry.
+
 ### Orphan
 Whenever triggered via `RefreshPolicy` conditions, the operator creates/updates
 the target Secret according to the provider available information.
