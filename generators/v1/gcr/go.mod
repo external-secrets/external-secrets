@@ -6,6 +6,7 @@ require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/providers/v1/gcp v0.0.0-20261021124231-db95fe1c087b
 	github.com/external-secrets/external-secrets/runtime v0.0.0
+	github.com/stretchr/testify v1.12.1
 	golang.org/x/oauth2 v0.37.0
 	k8s.io/api v0.37.1
 	k8s.io/apiextensions-apiserver v0.37.1
