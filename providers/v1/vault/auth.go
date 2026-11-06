@@ -144,9 +144,7 @@ func createServiceAccountToken(
 		audiences = append(audiences, additionalAud...)
 	}
 	tokenRequest := &authv1.TokenRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
+		Namespace: namespace,
 		Spec: authv1.TokenRequestSpec{
 			Audiences:         audiences,
 			ExpirationSeconds: &expirationSeconds,

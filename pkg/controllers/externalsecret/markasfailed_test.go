@@ -24,7 +24,6 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/record"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -38,7 +37,7 @@ const secretValue = "8019210420527506405"
 func markAsFailedFixture() (*Reconciler, *esv1.ExternalSecret, prometheus.Counter) {
 	r := &Reconciler{recorder: record.NewFakeRecorder(10)}
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{Name: "es", Namespace: "default"},
+		Name: "es", Namespace: "default",
 	}
 	return r, es, prometheus.NewCounter(prometheus.CounterOpts{Name: "test_sync_errors"})
 }
@@ -81,6 +80,13 @@ func TestMarkAsFailedKeepsUnsafeErrorsOutOfCondition(t *testing.T) {
 			if strings.Contains(cond.Message, secretValue) {
 				t.Fatalf("condition message leaked provider text: %q", cond.Message)
 			}
+			event := <-r.recorder.(*record.FakeRecorder).Events
+			if strings.Contains(event, secretValue) {
+				t.Fatalf("event leaked provider text: %q", event)
+			}
+			if !strings.Contains(event, msgErrorGetSecretData) {
+				t.Errorf("event %q lost the generic failure message", event)
+			}
 			if cond.Status != v1.ConditionFalse {
 				t.Errorf("status = %v, want False", cond.Status)
 			}
@@ -103,6 +109,10 @@ func TestMarkAsFailedDetailsSafeErrors(t *testing.T) {
 	}
 	if !strings.Contains(cond.Message, "my-secret") {
 		t.Errorf("message %q dropped the safe detail", cond.Message)
+	}
+	event := <-r.recorder.(*record.FakeRecorder).Events
+	if !strings.Contains(event, "my-secret") {
+		t.Errorf("event %q dropped the safe detail", event)
 	}
 }
 

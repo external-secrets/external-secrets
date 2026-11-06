@@ -30,7 +30,6 @@ import (
 	"github.com/openbao/openbao/api/v2"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sClient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -386,10 +385,8 @@ func (c *client) getJwt(ctx context.Context, kube k8sClient.Client, namespace st
 		}
 
 		sa := &v1.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      kubernetesAuth.ServiceAccountRef.Name,
-				Namespace: saNamespace,
-			},
+			Name:      kubernetesAuth.ServiceAccountRef.Name,
+			Namespace: saNamespace,
 		}
 
 		tokenRequest := &authv1.TokenRequest{

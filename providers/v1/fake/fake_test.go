@@ -26,7 +26,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -62,8 +61,8 @@ func TestValidateStore(t *testing.T) {
 	_, err := p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeNil())
 	// missing key in data
-	data := esv1.FakeProviderData{}
-	data.Version = "v1"
+	data := esv1.FakeProviderData{
+		Version: "v1"}
 	store.Spec.Provider.Fake.Data = []esv1.FakeProviderData{data}
 	_, err = p.ValidateStore(store)
 	gomega.Expect(err).To(gomega.BeEquivalentTo(fmt.Errorf(errMissingKeyField, 0)))
@@ -202,9 +201,7 @@ func TestGetAllSecrets(t *testing.T) {
 			p := Provider{}
 
 			client, err := p.NewClient(ctx, &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("secret-store-%v", i),
-				},
+				Name: fmt.Sprintf("secret-store-%v", i),
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Fake: &esv1.FakeProvider{
@@ -301,9 +298,7 @@ func TestGetSecret(t *testing.T) {
 	for i, row := range tbl {
 		t.Run(row.name, func(t *testing.T) {
 			cl, err := p.NewClient(context.Background(), &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("secret-store-%v", i),
-				},
+				Name: fmt.Sprintf("secret-store-%v", i),
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Fake: &esv1.FakeProvider{
@@ -359,9 +354,7 @@ func TestSetSecret(t *testing.T) {
 	for i, row := range tbl {
 		t.Run(row.name, func(t *testing.T) {
 			cl, err := p.NewClient(context.Background(), &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("secret-store-%v", i),
-				},
+				Name: fmt.Sprintf("secret-store-%v", i),
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Fake: &esv1.FakeProvider{
@@ -431,9 +424,7 @@ func TestSecretExists(t *testing.T) {
 	for i, row := range tbl {
 		t.Run(row.name, func(t *testing.T) {
 			cl, err := p.NewClient(context.Background(), &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("secret-store-%v", i),
-				},
+				Name: fmt.Sprintf("secret-store-%v", i),
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Fake: &esv1.FakeProvider{
@@ -558,9 +549,7 @@ func TestGetSecretMap(t *testing.T) {
 	for i, row := range tbl {
 		t.Run(row.name, func(t *testing.T) {
 			cl, err := p.NewClient(context.Background(), &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: fmt.Sprintf("secret-store-%v", i),
-				},
+				Name: fmt.Sprintf("secret-store-%v", i),
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Fake: &esv1.FakeProvider{

@@ -117,6 +117,10 @@ spec:
       projectID: string
     githubAccessTokenSpec:
       appID: string
+      appIDRef:
+        key: string
+        name: string
+        namespace: string
       auth:
         privateKey:
           secretRef:
@@ -124,6 +128,10 @@ spec:
             name: string
             namespace: string
       installID: string
+      installIDRef:
+        key: string
+        name: string
+        namespace: string
       permissions: {}
       repositories: [] # minItems 0 of type string
       url: string
@@ -171,7 +179,9 @@ spec:
       encoding: "raw"
       length: 24
       noUpper: false
+      prefix: string
       secretKeys: [string] # minItems 1 of type string
+      suffix: string
       symbolCharacters: string
       symbols: 1
     quayAccessTokenSpec:

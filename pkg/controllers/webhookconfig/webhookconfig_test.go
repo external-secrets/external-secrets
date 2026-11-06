@@ -24,7 +24,6 @@ import (
 	admissionregistration "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	discoveryv1 "k8s.io/api/discovery/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/external-secrets/external-secrets/runtime/constants"
@@ -246,11 +245,9 @@ var _ = Describe("ValidatingWebhookConfig reconcile", Ordered, func() {
 
 func makeValidatingWebhookConfig() *admissionregistration.ValidatingWebhookConfiguration {
 	return &admissionregistration.ValidatingWebhookConfiguration{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "name-shouldnt-matter",
-			Labels: map[string]string{
-				constants.WellKnownLabelKey: constants.WellKnownLabelValueWebhook,
-			},
+		Name: "name-shouldnt-matter",
+		Labels: map[string]string{
+			constants.WellKnownLabelKey: constants.WellKnownLabelValueWebhook,
 		},
 		Webhooks: []admissionregistration.ValidatingWebhook{
 			{
@@ -285,10 +282,8 @@ func makeValidatingWebhookConfig() *admissionregistration.ValidatingWebhookConfi
 
 func makeSecret() *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ctrlSecretName,
-			Namespace: ctrlSecretNamespace,
-		},
+		Name:      ctrlSecretName,
+		Namespace: ctrlSecretNamespace,
 		Data: map[string][]byte{
 			caCertName: []byte(defaultCACert),
 		},
@@ -297,10 +292,8 @@ func makeSecret() *corev1.Secret {
 
 func makeService() *corev1.Service {
 	return &corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ctrlSvcName,
-			Namespace: ctrlSvcNamespace,
-		},
+		Name:      ctrlSvcName,
+		Namespace: ctrlSvcNamespace,
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{
 				{
@@ -314,12 +307,10 @@ func makeService() *corev1.Service {
 
 func makeEndpointSlice() *discoveryv1.EndpointSlice {
 	return &discoveryv1.EndpointSlice{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      ctrlSvcName + "-slice",
-			Namespace: ctrlSvcNamespace,
-			Labels: map[string]string{
-				"kubernetes.io/service-name": ctrlSvcName,
-			},
+		Name:      ctrlSvcName + "-slice",
+		Namespace: ctrlSvcNamespace,
+		Labels: map[string]string{
+			"kubernetes.io/service-name": ctrlSvcName,
 		},
 		AddressType: discoveryv1.AddressTypeIPv4,
 		Endpoints: []discoveryv1.Endpoint{

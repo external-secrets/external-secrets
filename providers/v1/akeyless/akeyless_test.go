@@ -28,7 +28,6 @@ import (
 	"github.com/akeylesslabs/akeyless-go/v4"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -168,6 +167,43 @@ func TestAkeylessGetSecret(t *testing.T) {
 	}
 }
 
+// TestAkeylessGetSecretTranslatesNoSecretErr guards against a regression where
+// GetSecret returned the raw ErrItemNotExists instead of the sentinel
+// esv1.NoSecretErr callers (deletionPolicy, SecretExists, PushSecret) rely on.
+func TestAkeylessGetSecretTranslatesNoSecretErr(t *testing.T) {
+	sm := Akeyless{
+		Client: fakeakeyless.New().SetGetSecretFn(func(_ string, _ int32) (string, error) {
+			return "", ErrItemNotExists
+		}),
+	}
+
+	out, err := sm.GetSecret(context.Background(), *makeValidRef())
+
+	require.ErrorIs(t, err, esv1.NoSecretErr)
+	require.Nil(t, out)
+}
+
+// TestAkeylessGetSecretDoesNotMisreportOtherErrors is the sibling case for
+// TestAkeylessGetSecretTranslatesNoSecretErr: a client error that is not
+// ErrItemNotExists (e.g. an auth failure) must reach the caller unchanged, not get
+// folded into esv1.NoSecretErr. This package has had exactly this class of bug before
+// (see TestGetSecretByTypeSurfacesAuthFailure, guarding the same distinction one layer
+// down) -- the new translation in GetSecret needs the identical guard at this layer too.
+func TestAkeylessGetSecretDoesNotMisreportOtherErrors(t *testing.T) {
+	clientErr := errors.New("access denied")
+	sm := Akeyless{
+		Client: fakeakeyless.New().SetGetSecretFn(func(_ string, _ int32) (string, error) {
+			return "", clientErr
+		}),
+	}
+
+	out, err := sm.GetSecret(context.Background(), *makeValidRef())
+
+	require.NotErrorIs(t, err, esv1.NoSecretErr)
+	require.ErrorIs(t, err, clientErr)
+	require.Nil(t, out)
+}
+
 func TestValidateStore(t *testing.T) {
 	provider := Provider{}
 
@@ -237,12 +273,8 @@ func TestValidateStore(t *testing.T) {
 	t.Run("secret auth with serviceAccountRef in different namespace", func(t *testing.T) {
 		ns := "other-ns"
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Namespace: "app-test",
-			},
-			TypeMeta: metav1.TypeMeta{
-				Kind: esv1.SecretStoreKind,
-			},
+			Namespace: "app-test",
+			Kind:      esv1.SecretStoreKind,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					Akeyless: &esv1.AkeylessProvider{
@@ -275,9 +307,7 @@ func TestValidateStore(t *testing.T) {
 	t.Run("cluster secret auth with serviceAccountRef namespace", func(t *testing.T) {
 		ns := "app-test"
 		store := &esv1.ClusterSecretStore{
-			TypeMeta: metav1.TypeMeta{
-				Kind: esv1.ClusterSecretStoreKind,
-			},
+			Kind: esv1.ClusterSecretStoreKind,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					Akeyless: &esv1.AkeylessProvider{

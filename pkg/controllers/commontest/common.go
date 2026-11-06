@@ -37,10 +37,8 @@ func CreateNamespace(baseName string, c client.Client) (string, error) {
 func CreateNamespaceWithLabels(baseName string, c client.Client, labels map[string]string) (string, error) {
 	genName := fmt.Sprintf("ctrl-test-%v", baseName)
 	ns := &v1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: genName,
-			Labels:       labels,
-		},
+		GenerateName: genName,
+		Labels:       labels,
 	}
 
 	err := wait.PollUntilContextTimeout(context.Background(), time.Second, 10*time.Second, true, func(ctx context.Context) (done bool, err error) {

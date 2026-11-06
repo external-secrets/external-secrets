@@ -18,10 +18,12 @@ package externalsecret
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 
 	v1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -31,6 +33,25 @@ import (
 
 	_ "github.com/external-secrets/external-secrets/pkg/register" // Loading registered providers.
 )
+
+var (
+	errServiceAccountTokenSecret = errors.New("service-account-token Secret with service-account-name annotation is not allowed")
+	errBootstrapTokenSecret      = errors.New("bootstrap-token Secret is not allowed")
+)
+
+func validateSecretCandidate(secret *v1.Secret) error {
+	//nolint:exhaustive // Only the privileged Secret types require special handling.
+	switch secret.Type {
+	case v1.SecretTypeServiceAccountToken:
+		if _, ok := secret.Annotations[v1.ServiceAccountNameKey]; ok {
+			return errServiceAccountTokenSecret
+		}
+	case v1.SecretTypeBootstrapToken:
+		return errBootstrapTokenSecret
+	}
+
+	return nil
+}
 
 // ApplyTemplate merges templates in the following order:
 // * template.Data (highest precedence)
@@ -62,6 +83,10 @@ func (r *Reconciler) ApplyTemplate(ctx context.Context, es *esv1.ExternalSecret,
 		maps.Insert(secret.Data, maps.All(dataMap))
 		return nil
 	}
+
+	log := r.Log.WithValues("ExternalSecret", client.ObjectKeyFromObject(es))
+	log.V(1).Info("template render started")
+	defer log.V(1).Info("template render finished")
 
 	// set the secret type if it is defined in the template, otherwise keep the existing type
 	if es.Spec.Target.Template.Type != "" {

@@ -11,7 +11,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine:3.24@sha256:28bd5fe8b56d1bd048e5babf5b10710ebe0bae67db86916198a6eec434943f8b
+# Pinned release: alpine:3.24.3 (Alpine; tracking 3.x)
+FROM alpine@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
 RUN apk add -U --no-cache \
     bash \
     diffutils \
@@ -34,3 +35,8 @@ RUN python3 -m venv .venv && \
 # Disable the top-level directory owner check
 # https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
 RUN git config --system --add safe.directory '*'
+
+# Keep the image non-root by default; the docs Makefile overrides the UID/GID
+# with the host user's IDs when bind-mounting the repository.
+ENV HOME=/tmp
+USER 1000:1000

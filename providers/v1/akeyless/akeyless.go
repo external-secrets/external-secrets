@@ -54,6 +54,8 @@ const (
 	defaultAPIUrl           = "https://api.akeyless.io"
 	extSecretManagedTag     = "k8s-external-secrets"
 	aKeylessToken       Ctx = "AKEYLESS_TOKEN"
+	// defaultTimeout is used for the Akeyless HTTP client.
+	defaultTimeout = 30 * time.Second
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -250,7 +252,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 }
 
 func (a *Akeyless) contextWithToken(ctx context.Context) (context.Context, error) {
-	if v := ctx.Value(aKeylessToken); v != nil {
+	if ctx.Value(aKeylessToken) != nil {
 		return ctx, nil
 	}
 	token, err := a.Client.TokenFromSecretRef(ctx)
@@ -295,6 +297,9 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRem
 		}
 	}
 	value, err := a.Client.GetSecretByType(ctx, ref.Key, version)
+	if errors.Is(err, ErrItemNotExists) {
+		return nil, esv1.NoSecretErr
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -434,7 +439,7 @@ func (a *Akeyless) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRe
 		return false, errors.New(errUninitalizedAkeylessProvider)
 	}
 	secret, err := a.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: ref.GetRemoteKey()})
-	if errors.Is(err, ErrItemNotExists) {
+	if errors.Is(err, esv1.NoSecretErr) {
 		return false, nil
 	}
 	if err != nil {
@@ -472,7 +477,7 @@ func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd es
 		return err
 	}
 	secretRemote, err := a.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: psd.GetRemoteKey()})
-	isNotExists := errors.Is(err, ErrItemNotExists)
+	isNotExists := errors.Is(err, esv1.NoSecretErr)
 	if err != nil && !isNotExists {
 		return err
 	}
@@ -553,7 +558,7 @@ func (a *Akeyless) DeleteSecret(ctx context.Context, psr esv1.PushSecretRemoteRe
 }
 
 func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1.AkeylessProvider) (*http.Client, error) {
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: defaultTimeout}
 	if len(provider.CABundle) == 0 && provider.CAProvider == nil {
 		return client, nil
 	}
@@ -575,11 +580,15 @@ func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1
 		return nil, errors.New("failed to append caBundle")
 	}
 
-	tlsConf := &tls.Config{
+	transport, err := esutils.CloneDefaultHTTPTransport()
+	if err != nil {
+		return nil, err
+	}
+	transport.TLSClientConfig = &tls.Config{
 		RootCAs:    caCertPool,
 		MinVersion: tls.VersionTLS12,
 	}
-	client.Transport = &http.Transport{TLSClientConfig: tlsConf}
+	client.Transport = transport
 	return client, nil
 }
 

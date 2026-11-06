@@ -38,7 +38,7 @@ const (
 	apiDocsURL = "https://docs.beyondtrust.com/bt-docs/docs/secrets-api"
 
 	// API version header for BeyondTrust Workload Credentials.
-	apiVersionHeader = "bt-secrets-api-version"
+	apiVersionHeader = "bt-wlc-api-version"
 	apiVersion       = "2026-04-28"
 
 	// Default timeout for HTTP requests.

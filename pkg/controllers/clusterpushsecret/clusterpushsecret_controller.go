@@ -211,10 +211,8 @@ func setClusterPushSecretCondition(ps *v1alpha1.ClusterPushSecret, condition v1a
 
 func (r *Reconciler) createOrUpdatePushSecret(ctx context.Context, csp *v1alpha1.ClusterPushSecret, namespace v1.Namespace, esName string, esMetadata v1alpha1.PushSecretMetadata) error {
 	pushSecret := &v1alpha1.PushSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace.Name,
-			Name:      esName,
-		},
+		Namespace: namespace.Name,
+		Name:      esName,
 	}
 
 	mutateFunc := func() error {
@@ -351,10 +349,8 @@ func (r *Reconciler) findObjectsForNamespace(ctx context.Context, namespace clie
 
 			if labelSelector.Matches(labels.Set(namespace.GetLabels())) {
 				requests = append(requests, reconcile.Request{
-					NamespacedName: types.NamespacedName{
-						Name:      cps.GetName(),
-						Namespace: cps.GetNamespace(),
-					},
+					Name:      cps.GetName(),
+					Namespace: cps.GetNamespace(),
 				})
 				break
 			}

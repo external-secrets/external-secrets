@@ -470,9 +470,7 @@ func (a *akeylessBase) getJWTfromServiceAccountToken(ctx context.Context, servic
 		audiences = append(audiences, additionalAud...)
 	}
 	tokenRequest := &authenticationv1.TokenRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: a.namespace,
-		},
+		Namespace: a.namespace,
 		Spec: authenticationv1.TokenRequestSpec{
 			Audiences:         audiences,
 			ExpirationSeconds: &expirationSeconds,

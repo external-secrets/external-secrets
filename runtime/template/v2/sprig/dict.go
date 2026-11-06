@@ -2,6 +2,7 @@ package sprig
 
 import (
 	"dario.cat/mergo"
+	"errors"
 	"github.com/mitchellh/copystructure"
 )
 
@@ -99,7 +100,7 @@ func merge(dst map[string]interface{}, srcs ...map[string]interface{}) interface
 func mustMerge(dst map[string]interface{}, srcs ...map[string]interface{}) (interface{}, error) {
 	for _, src := range srcs {
 		if err := mergo.Merge(&dst, src); err != nil {
-			return nil, err
+			return nil, errors.New("dictionary merge failed")
 		}
 	}
 	return dst, nil
@@ -117,7 +118,7 @@ func mergeOverwrite(dst map[string]interface{}, srcs ...map[string]interface{}) 
 func mustMergeOverwrite(dst map[string]interface{}, srcs ...map[string]interface{}) (interface{}, error) {
 	for _, src := range srcs {
 		if err := mergo.MergeWithOverwrite(&dst, src); err != nil {
-			return nil, err
+			return nil, errors.New("dictionary merge failed")
 		}
 	}
 	return dst, nil
@@ -135,14 +136,18 @@ func values(dict map[string]interface{}) []interface{} {
 func deepCopy(i interface{}) interface{} {
 	c, err := mustDeepCopy(i)
 	if err != nil {
-		panic("deepCopy error: " + err.Error())
+		panic("deep copy failed")
 	}
 
 	return c
 }
 
 func mustDeepCopy(i interface{}) (interface{}, error) {
-	return copystructure.Copy(i)
+	c, err := copystructure.Copy(i)
+	if err != nil {
+		return nil, errors.New("deep copy failed")
+	}
+	return c, nil
 }
 
 func dig(ps ...interface{}) (interface{}, error) {

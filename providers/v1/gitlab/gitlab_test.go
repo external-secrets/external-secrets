@@ -31,7 +31,6 @@ import (
 	"github.com/yandex-cloud/go-sdk/iamkey"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -341,9 +340,7 @@ func TestNewClient(t *testing.T) {
 	const namespace = "namespace"
 
 	store := &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
+		Namespace: namespace,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Gitlab: &esv1.GitlabProvider{},
@@ -398,11 +395,9 @@ func toJSON(t *testing.T, v any) []byte {
 
 func createK8sSecret(ctx context.Context, t *testing.T, k8sClient k8sclient.Client, namespace, secretName, secretKey string, secretValue []byte) error {
 	err := k8sClient.Create(ctx, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-			Name:      secretName,
-		},
-		Data: map[string][]byte{secretKey: secretValue},
+		Namespace: namespace,
+		Name:      secretName,
+		Data:      map[string][]byte{secretKey: secretValue},
 	})
 	tassert.Nil(t, err)
 	return nil
@@ -462,8 +457,8 @@ func TestGetSecret(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setNilMockClient),
 	}
 
-	sm := gitlabBase{}
-	sm.store = &esv1.GitlabProvider{}
+	sm := gitlabBase{
+		store: &esv1.GitlabProvider{}}
 	for k, v := range successCases {
 		sm.projectVariablesClient = v.mockProjectVarClient
 		sm.groupVariablesClient = v.mockGroupVarClient
@@ -483,9 +478,9 @@ func TestGetSecret(t *testing.T) {
 // TestResolveGroupIDs tests the resolving of group IDs for a GitLab store.
 func TestResolveGroupIDs(t *testing.T) {
 	v := makeValidSecretManagerTestCaseCustom()
-	sm := gitlabBase{}
-	sm.store = &esv1.GitlabProvider{}
-	sm.projectsClient = v.mockProjectsClient
+	sm := gitlabBase{
+		store:          &esv1.GitlabProvider{},
+		projectsClient: v.mockProjectsClient}
 	sm.store.ProjectID = v.projectID
 	sm.store.InheritFromGroups = true
 
@@ -732,8 +727,8 @@ func TestGetAllSecrets(t *testing.T) {
 		makeValidSecretManagerGetAllTestCaseCustom(setNilMockClient),
 	}
 
-	sm := gitlabBase{}
-	sm.store = &esv1.GitlabProvider{}
+	sm := gitlabBase{
+		store: &esv1.GitlabProvider{}}
 	for k, v := range cases {
 		sm.projectVariablesClient = v.mockProjectVarClient
 		sm.groupVariablesClient = v.mockGroupVarClient
@@ -792,8 +787,8 @@ func TestGetAllSecretsWithGroups(t *testing.T) {
 		makeValidSecretManagerGetAllTestCaseCustom(groupAndProjectWithDifferentEnvSecrets),
 	}
 
-	sm := gitlabBase{}
-	sm.store = &esv1.GitlabProvider{}
+	sm := gitlabBase{
+		store: &esv1.GitlabProvider{}}
 	sm.store.Environment = environment
 	for k, v := range cases {
 		sm.projectVariablesClient = v.mockProjectVarClient
@@ -827,8 +822,8 @@ func TestValidate(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setGroupListAPIRespNil),
 		makeValidSecretManagerTestCaseCustom(setGroupListAPIRespBadCode),
 	}
-	sm := gitlabBase{}
-	sm.store = &esv1.GitlabProvider{}
+	sm := gitlabBase{
+		store: &esv1.GitlabProvider{}}
 	for k, v := range successCases {
 		sm.projectsClient = v.mockProjectsClient
 		sm.projectVariablesClient = v.mockProjectVarClient
@@ -870,8 +865,8 @@ func TestGetSecretMap(t *testing.T) {
 		makeValidSecretManagerTestCaseCustom(setAPIErr),
 	}
 
-	sm := gitlabBase{}
-	sm.store = &esv1.GitlabProvider{}
+	sm := gitlabBase{
+		store: &esv1.GitlabProvider{}}
 	for k, v := range successCases {
 		sm.projectVariablesClient = v.mockProjectVarClient
 		sm.groupVariablesClient = v.mockGroupVarClient

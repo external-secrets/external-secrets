@@ -47,6 +47,12 @@ const (
 // GetSecret retrieves a secret from the Kubernetes API server by its key.
 func (c *Client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
 	secret, err := c.userSecretClient.Get(ctx, ref.Key, metav1.GetOptions{})
+	metrics.ObserveAPICall(ProviderKubernetes, CallKubernetesGetSecret, err)
+	// A missing source Secret must be NoSecretError, as in GetSecretMap, so that
+	// deletionPolicy (e.g. Delete) applies instead of a sync error.
+	if apierrors.IsNotFound(err) {
+		return nil, esv1.NoSecretError{}
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -141,10 +147,8 @@ func (c *Client) PushSecret(ctx context.Context, secret *v1.Secret, data esv1.Pu
 
 	secretClient := c.secretsClientFor(targetNamespace)
 	remoteSecret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: targetNamespace,
-			Name:      data.GetRemoteKey(),
-		},
+		Namespace: targetNamespace,
+		Name:      data.GetRemoteKey(),
 	}
 
 	return c.createOrUpdate(ctx, secretClient, remoteSecret, func() error {
