@@ -68,7 +68,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, err
 	}
 
-	onboardbaseClient, err := oClient.NewOnboardbaseClient(client.onboardbaseAPIKey, client.onboardbasePasscode)
+	onboardbaseClient, err := oClient.NewOnboardbaseClient(client.onboardbaseAPIKey, client.onboardbasePasscode, client.store.APIHost)
 	if err != nil {
 		return nil, fmt.Errorf(errNewClient, err)
 	}
