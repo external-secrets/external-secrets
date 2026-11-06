@@ -21,6 +21,7 @@ Multi-module repo: `apis/`, `runtime/`, `e2e/`, and each `providers/v1/*/` have 
 - For SHA-only image pins in `.updatecli.d/docker.yaml`, resolve the digest from `{{ source "<image>_version" }}` so the human-readable full-tag comment and the digest refer to the same release. Update both targets when adding an image.
 - Provider docs `{% include %}` reusable YAML snippets from `docs/snippets/` (`macros` plugin). AWS authentication is documented once on the standalone `docs/provider/aws-access.md` page; the per-service pages (`aws-secrets-manager.md`, `aws-parameter-store.md`) link to it rather than transcluding it.
 - CRD tests use snapshot testing. Run `make test.crds.update` to update snapshots after CRD changes.
+- Admission validators must allow terminating objects to remove existing finalizers with an unchanged spec, so tighter validation does not strand legacy resources. Keep create, spec changes, and finalizer additions validated.
 - `make update-deps` updates dependencies across all modules at once.
 - Add a `git notes add HEAD` entry on every non-trivial commit. Record key design decisions, trade-offs, and gotchas. Queryable via `git notes show <sha>`.
 - If you discover a non-obvious pattern while implementing, add it here before the PR is merged. Keep entries general — applicable across the codebase, not specific to one provider or feature.

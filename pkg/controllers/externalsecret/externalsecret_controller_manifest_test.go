@@ -19,6 +19,7 @@ package externalsecret
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
@@ -30,128 +31,310 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
+	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
+	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
-func TestValidateManifestSecretCandidate(t *testing.T) {
-	secretTarget := &esv1.ExternalSecret{Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
-		Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "Secret"},
-	}}}
-
-	configMapTarget := &esv1.ExternalSecret{Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
-		Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
-	}}}
+func TestApplyTemplateToManifestKeepsTargetIdentity(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme}
 
 	tests := []struct {
-		name            string
-		es              *esv1.ExternalSecret
-		object          map[string]any
-		wantErr         error
-		wantErrContains string
+		name, target, literal string
+		existing              bool
+		wantErr               string
 	}{
-		{
-			name: "rejects created service account token Secret",
-			es:   secretTarget,
-			object: map[string]any{
-				"apiVersion": "v1",
-				"kind":       "Secret",
-				"type":       string(v1.SecretTypeServiceAccountToken),
-				"metadata": map[string]any{"annotations": map[string]any{
-					v1.ServiceAccountNameKey: "service-account",
-				}},
-			},
-			wantErr: errServiceAccountTokenSecret,
-		},
-		{
-			name: "rejects updated bootstrap token Secret",
-			es:   secretTarget,
-			object: map[string]any{
-				"apiVersion": "v1",
-				"kind":       "Secret",
-				"type":       string(v1.SecretTypeBootstrapToken),
-			},
-			wantErr: errBootstrapTokenSecret,
-		},
-		{
-			name: "allows matching non-Secret manifest",
-			es:   configMapTarget,
-			object: map[string]any{
-				"apiVersion": "v1",
-				"kind":       "ConfigMap",
-			},
-		},
-		{
-			name: "rejects ConfigMap rendered as Secret",
-			es:   configMapTarget,
-			object: map[string]any{
-				"apiVersion": "v1",
-				"kind":       "Secret",
-			},
-			wantErrContains: `rendered target GVK "/v1, Kind=Secret" differs from declared target GVK "/v1, Kind=ConfigMap"`,
-		},
-		{
-			name: "rejects changed API version",
-			es: &esv1.ExternalSecret{Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
-				Manifest: &esv1.ManifestReference{APIVersion: "example.io/v1", Kind: "Target"},
-			}}},
-			object: map[string]any{
-				"apiVersion": "other.io/v1",
-				"kind":       "Target",
-			},
-			wantErrContains: `rendered target GVK "other.io/v1, Kind=Target" differs from declared target GVK "example.io/v1, Kind=Target"`,
-		},
+		{"namespace via literal", "metadata.namespace", "victim", false, "rendered target changed protected metadata"},
+		{"namespace on existing object", "metadata.namespace", "victim", true, "rendered target changed protected metadata"},
+		{"namespace via metadata map", "metadata", "namespace: victim", true, "rendered target changed protected metadata"},
+		{"name via literal", "metadata.name", "pwned-by-attacker", false, "rendered target changed protected metadata"},
+		{"malformed metadata", "metadata", "null", false, "rendered target changed protected metadata"},
+		{"same identity via metadata map", "metadata", "namespace: attacker\nname: harmless-local-name", false, ""},
+		{"metadata map omits identity", "metadata", "labels:\n  app: test", false, ""},
+		{"metadata labels remain templatable", "metadata.labels", "app: test", false, ""},
+		{"kind via literal", "kind", "Secret", false, `rendered target GVK "/v1, Kind=Secret" differs from declared target GVK "/v1, Kind=ConfigMap"`},
+		{"API version via literal", "apiVersion", "other.io/v1", false, `rendered target GVK "other.io/v1, Kind=ConfigMap" differs from declared target GVK "/v1, Kind=ConfigMap"`},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			obj := &unstructured.Unstructured{Object: tt.object}
-			err := validateManifestSecretCandidate(tt.es, obj)
-			switch {
-			case tt.wantErr != nil:
-				require.ErrorIs(t, err, tt.wantErr)
-			case tt.wantErrContains != "":
-				require.EqualError(t, err, tt.wantErrContains)
-			default:
-				require.NoError(t, err)
+			es := &esv1.ExternalSecret{
+				Name: "evil-es", Namespace: "attacker",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "harmless-local-name", CreationPolicy: esv1.CreatePolicyOrphan,
+					Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+					Template: &esv1.ExternalSecretTemplate{EngineVersion: esv1.TemplateEngineV2,
+						TemplateFrom: []esv1.TemplateFrom{{Target: tt.target, Literal: &tt.literal}}},
+				}},
+			}
+			var existing *unstructured.Unstructured
+			if tt.existing {
+				existing = &unstructured.Unstructured{Object: map[string]any{
+					"apiVersion": "v1", "kind": "ConfigMap",
+					"metadata": map[string]any{"name": "harmless-local-name", "namespace": "attacker"},
+					"data":     map[string]any{"key": "old"},
+				}}
+			}
+
+			result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
+			if tt.wantErr != "" {
+				require.EqualError(t, err, tt.wantErr)
+				assert.Nil(t, result)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, "attacker", result.GetNamespace())
+			assert.Equal(t, "harmless-local-name", result.GetName())
+		})
+	}
+}
+
+func TestApplyTemplateToManifestProtectsMetadata(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme}
+
+	tests := []struct {
+		name, target, literal string
+		existing              bool
+		wantErr               bool
+	}{
+		{"owner references", "metadata.ownerReferences", "- apiVersion: v1\n  kind: ConfigMap\n  name: victim\n  uid: victim-uid", false, true},
+		{"finalizers", "metadata.finalizers", "- attacker.io/hold", false, true},
+		{"uid on create", "metadata.uid", "victim-uid", false, true},
+		{"creation timestamp on create", "metadata.creationTimestamp", "2025-01-01T00:00:00Z", false, true},
+		{"uid", "metadata.uid", "victim-uid", true, true},
+		{"resource version", "metadata.resourceVersion", "1234", true, true},
+		{"replace retained metadata", "metadata", "name: target\nnamespace: ns", true, false},
+		{"replace retained metadata with labels", "metadata", "labels:\n  app: test", true, false},
+		{"change retained uid via metadata map", "metadata", "name: target\nnamespace: ns\nuid: victim-uid", true, true},
+		{"ordinary annotations", "metadata.annotations", "app.example.com/key: value", true, false},
+		{"replaced labels map", "metadata.labels", "null", true, false},
+		{"replaced annotations map", "metadata.annotations", "null", true, false},
+		{"controller labels and annotation", "metadata", `name: target
+namespace: ns
+labels:
+  reconcile.external-secrets.io/managed: 'false'
+  reconcile.external-secrets.io/created-by: spoofed
+  app: test
+annotations:
+  reconcile.external-secrets.io/data-hash: spoofed
+  app.example.com/key: value`, false, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			es := &esv1.ExternalSecret{
+				Name: "es", Namespace: "ns",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "target", CreationPolicy: esv1.CreatePolicyOrphan,
+					Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+					Template: &esv1.ExternalSecretTemplate{EngineVersion: esv1.TemplateEngineV2,
+						TemplateFrom: []esv1.TemplateFrom{{Target: tt.target, Literal: &tt.literal}}},
+				}},
+			}
+			var existing *unstructured.Unstructured
+			if tt.existing {
+				existing = &unstructured.Unstructured{Object: map[string]any{
+					"apiVersion": "v1", "kind": "ConfigMap",
+					"metadata": map[string]any{
+						"name": "target", "namespace": "ns", "uid": "original-uid", "resourceVersion": "1",
+						"creationTimestamp": "2025-01-01T00:00:00Z",
+						"managedFields":     []any{map[string]any{"manager": "kube-apiserver", "operation": "Update", "apiVersion": "v1"}},
+						"ownerReferences":   []any{map[string]any{"apiVersion": "v1", "kind": "ConfigMap", "name": "unrelated", "uid": "unrelated-uid"}},
+						"labels":            map[string]any{"other-controller": "keep"},
+						"annotations":       map[string]any{"other-controller": "keep", "app.example.com/key": "old"},
+					},
+					"data": map[string]any{"key": "old"},
+				}}
+			}
+			result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
+			if tt.wantErr {
+				require.EqualError(t, err, "rendered target changed protected metadata")
+				assert.Nil(t, result)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, esv1.LabelManagedValue, result.GetLabels()[esv1.LabelManaged])
+			assert.Empty(t, result.GetLabels()[esv1.LabelOwner])
+			hash, err := genericTargetContentHash(result)
+			require.NoError(t, err)
+			assert.Equal(t, hash, result.GetAnnotations()[esv1.AnnotationDataHash])
+			if tt.existing {
+				assert.Equal(t, "keep", result.GetLabels()["other-controller"])
+				assert.Equal(t, "keep", result.GetAnnotations()["other-controller"])
+				for _, key := range []string{"name", "namespace", "uid", "resourceVersion", "creationTimestamp", "managedFields", "ownerReferences"} {
+					assert.Equal(t, existing.Object["metadata"].(map[string]any)[key], result.Object["metadata"].(map[string]any)[key], key)
+				}
+			}
+			if tt.name == "ordinary annotations" || tt.name == "controller labels and annotation" {
+				assert.Equal(t, "value", result.GetAnnotations()["app.example.com/key"])
 			}
 		})
 	}
 }
 
-func TestApplyTemplateToManifestRejectsRetainedSecretType(t *testing.T) {
+func TestApplyTemplateToManifestExistingMetadataAcrossPolicies(t *testing.T) {
 	_ = esv1.AddToScheme(scheme.Scheme)
-	r := &Reconciler{
-		Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
-		Scheme: scheme.Scheme,
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme}
+	literal := "labels:\n  app: test\nannotations:\n  app.example.com/key: value"
+	for _, policy := range []esv1.ExternalSecretCreationPolicy{
+		esv1.CreatePolicyMerge, esv1.CreatePolicyCreateOrMerge, esv1.CreatePolicyOrphan, esv1.CreatePolicyOwner,
+	} {
+		t.Run(string(policy), func(t *testing.T) {
+			es := &esv1.ExternalSecret{
+				Name: "es", Namespace: "ns", UID: "es-uid",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "target", CreationPolicy: policy,
+					Manifest: &esv1.ManifestReference{APIVersion: "example.io/v1", Kind: "Widget"},
+					Template: &esv1.ExternalSecretTemplate{EngineVersion: esv1.TemplateEngineV2,
+						TemplateFrom: []esv1.TemplateFrom{
+							{Target: "metadata", Literal: &literal},
+							{Target: "spec.new", Literal: new("key: new")},
+						}},
+				}},
+			}
+			existing := &unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": "example.io/v1", "kind": "Widget",
+				"metadata": map[string]any{
+					"name": "target", "namespace": "ns", "uid": "target-uid", "resourceVersion": "12",
+					"creationTimestamp": "2025-01-01T00:00:00Z",
+					"managedFields":     []any{map[string]any{"manager": "kube-apiserver", "operation": "Update", "apiVersion": "example.io/v1"}},
+					"finalizers":        []any{"unrelated.example.io/cleanup"},
+					"ownerReferences":   []any{map[string]any{"apiVersion": "v1", "kind": "ConfigMap", "name": "unrelated", "uid": "unrelated-uid"}},
+					"labels":            map[string]any{"other-controller": "keep"},
+					"annotations":       map[string]any{"other-controller": "keep"},
+				},
+				"spec": map[string]any{"old": "keep"},
+			}}
+			result, err := r.applyTemplateToManifest(context.Background(), es, nil, existing)
+			require.NoError(t, err)
+			for _, key := range []string{"name", "namespace", "uid", "resourceVersion", "creationTimestamp", "managedFields", "finalizers"} {
+				assert.Equal(t, existing.Object["metadata"].(map[string]any)[key], result.Object["metadata"].(map[string]any)[key], key)
+			}
+			assert.Equal(t, "unrelated", result.GetOwnerReferences()[0].Name)
+			assert.Equal(t, "keep", result.GetLabels()["other-controller"])
+			assert.Equal(t, "test", result.GetLabels()["app"])
+			assert.Equal(t, "keep", result.GetAnnotations()["other-controller"])
+			assert.Equal(t, "value", result.GetAnnotations()["app.example.com/key"])
+			assert.Equal(t, "new", result.Object["spec"].(map[string]any)["new"].(map[string]any)["key"])
+			if policy == esv1.CreatePolicyMerge || policy == esv1.CreatePolicyCreateOrMerge {
+				assert.Equal(t, "keep", result.Object["spec"].(map[string]any)["old"])
+			} else {
+				assert.NotContains(t, result.Object["spec"].(map[string]any), "old")
+			}
+			if policy == esv1.CreatePolicyOwner {
+				require.Len(t, result.GetOwnerReferences(), 2)
+				assert.Equal(t, "es", result.GetOwnerReferences()[1].Name)
+			} else {
+				require.Len(t, result.GetOwnerReferences(), 1)
+			}
+			// Rendering must not mutate the object fetched from the API.
+			assert.Equal(t, "keep", existing.Object["spec"].(map[string]any)["old"])
+		})
 	}
-	es := &esv1.ExternalSecret{
-		Name:      "test-es",
-		Namespace: "default",
-		Annotations: map[string]string{
-			v1.ServiceAccountNameKey: "service-account",
-		},
-		Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
-			Name:     "test-secret",
-			Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "Secret"},
-		}},
-	}
-	existing := &unstructured.Unstructured{Object: map[string]any{
-		"apiVersion": "v1",
-		"kind":       "Secret",
-		"metadata": map[string]any{
-			"name":      "test-secret",
-			"namespace": "default",
-		},
-		"type": string(v1.SecretTypeServiceAccountToken),
-		"data": map[string]any{},
-	}}
+}
 
-	_, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
-	require.ErrorIs(t, err, errServiceAccountTokenSecret)
+// TestApplyTemplateToManifestOwnershipOfExistingTarget checks ownership against the live
+// target's owner references. Retaining existing metadata is what makes these references
+// visible to applyOwnership in the first place.
+func TestApplyTemplateToManifestOwnershipOfExistingTarget(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+
+	esControllerRef := func(name string) metav1.OwnerReference {
+		return metav1.OwnerReference{
+			APIVersion: esv1.SchemeGroupVersion.String(), Kind: esv1.ExtSecretKind,
+			Name: name, UID: types.UID(name + "-uid"), Controller: new(true),
+		}
+	}
+	unrelatedRef := metav1.OwnerReference{
+		APIVersion: "v1", Kind: "ConfigMap", Name: "unrelated", UID: "unrelated-uid",
+	}
+
+	tests := []struct {
+		name     string
+		policy   esv1.ExternalSecretCreationPolicy
+		owners   []metav1.OwnerReference
+		wantErr  error
+		wantRefs []string
+	}{
+		{
+			name:    "Owner refuses to replace another ExternalSecret controller",
+			policy:  esv1.CreatePolicyOwner,
+			owners:  []metav1.OwnerReference{esControllerRef("other-es")},
+			wantErr: ErrSecretIsOwned,
+		},
+		{
+			name:    "Orphan refuses to write a target owned by another ExternalSecret",
+			policy:  esv1.CreatePolicyOrphan,
+			owners:  []metav1.OwnerReference{esControllerRef("other-es")},
+			wantErr: ErrSecretIsOwned,
+		},
+		{
+			name:    "Merge refuses to write a target owned by another ExternalSecret",
+			policy:  esv1.CreatePolicyMerge,
+			owners:  []metav1.OwnerReference{esControllerRef("other-es")},
+			wantErr: ErrSecretIsOwned,
+		},
+		{
+			name:    "Owner refuses to replace a controller of another kind",
+			policy:  esv1.CreatePolicyOwner,
+			owners:  []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: "Deployment", Name: "owner-dep", UID: "dep-uid", Controller: new(true)}},
+			wantErr: ErrSecretSetCtrlRef,
+		},
+		{
+			name:     "Owner adopts a target that only has non-controller references",
+			policy:   esv1.CreatePolicyOwner,
+			owners:   []metav1.OwnerReference{unrelatedRef},
+			wantRefs: []string{"unrelated", "es"},
+		},
+		{
+			name:     "Orphan removes only its own controller reference",
+			policy:   esv1.CreatePolicyOrphan,
+			owners:   []metav1.OwnerReference{unrelatedRef, esControllerRef("es")},
+			wantRefs: []string{"unrelated"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme}
+			es := &esv1.ExternalSecret{
+				Name: "es", Namespace: "ns", UID: "es-uid",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "target", CreationPolicy: tt.policy,
+					Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+				}},
+			}
+			existing := &unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": "v1", "kind": "ConfigMap",
+				"metadata": map[string]any{"name": "target", "namespace": "ns", "uid": "target-uid"},
+			}}
+			existing.SetOwnerReferences(tt.owners)
+
+			result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
+				return
+			}
+			require.NoError(t, err)
+
+			names := make([]string, 0, len(result.GetOwnerReferences()))
+			for _, ref := range result.GetOwnerReferences() {
+				names = append(names, ref.Name)
+			}
+			assert.Equal(t, tt.wantRefs, names)
+		})
+	}
 }
 
 func TestIsGenericTarget(t *testing.T) {
@@ -279,6 +462,52 @@ func TestValidateGenericTarget(t *testing.T) {
 			allowGenericTargets: true,
 			expectedError:       true,
 			errorContains:       "kind is required",
+		},
+		{
+			name: "core Secret target - flag enabled - rejected",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Manifest: &esv1.ManifestReference{
+							APIVersion: "v1",
+							Kind:       "Secret",
+						},
+					},
+				},
+			},
+			allowGenericTargets: true,
+			expectedError:       true,
+			errorContains:       "must not target the core v1 Secret kind",
+		},
+		{
+			name: "core Secret target through an explicit empty group - rejected",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Manifest: &esv1.ManifestReference{
+							APIVersion: "/v1",
+							Kind:       "Secret",
+						},
+					},
+				},
+			},
+			allowGenericTargets: true,
+			expectedError:       true,
+			errorContains:       "must not target the core v1 Secret kind",
+		},
+		{
+			name: "Secret kind in a custom group - flag enabled - valid",
+			es: &esv1.ExternalSecret{
+				Spec: esv1.ExternalSecretSpec{
+					Target: esv1.ExternalSecretTarget{
+						Manifest: &esv1.ManifestReference{
+							APIVersion: "example.io/v1",
+							Kind:       "Secret",
+						},
+					},
+				},
+			},
+			allowGenericTargets: true,
 		},
 	}
 
@@ -1013,7 +1242,8 @@ func TestApplyTemplateToManifest_MergeBehavior(t *testing.T) {
 		Namespace: "default",
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
-				Name: "test-slack-config",
+				Name:           "test-slack-config",
+				CreationPolicy: esv1.CreatePolicyMerge,
 				Manifest: &esv1.ManifestReference{
 					APIVersion: "notification.toolkit.fluxcd.io/v1beta1",
 					Kind:       "Provider",
@@ -1240,4 +1470,271 @@ func TestIsGenericTargetValid(t *testing.T) {
 		_, err := isGenericTargetValid(obj, makeES(esv1.CreatePolicyOwner))
 		assert.Error(t, err)
 	})
+}
+
+// noopInformerManager satisfies InformerManager for reconcile-level tests, which do not
+// exercise drift detection.
+type noopInformerManager struct{}
+
+func (noopInformerManager) EnsureInformer(context.Context, schema.GroupVersionKind, types.NamespacedName) (bool, error) {
+	return false, nil
+}
+func (noopInformerManager) ReleaseInformer(context.Context, schema.GroupVersionKind, types.NamespacedName) error {
+	return nil
+}
+func (noopInformerManager) IsManaged(schema.GroupVersionKind) bool { return false }
+func (noopInformerManager) GetInformer(schema.GroupVersionKind) (runtimecache.Informer, bool) {
+	return nil, false
+}
+func (noopInformerManager) Source() source.TypedSource[ctrl.Request] { return nil }
+func (noopInformerManager) SetQueue(workqueue.TypedRateLimitingInterface[ctrl.Request]) error {
+	return nil
+}
+
+// TestReconcileGenericTargetUsesLiveTarget drives reconcileGenericTarget against a fake
+// API server. The renderer tests above can only prove that applyTemplateToManifest honors
+// the metadata it is handed; this proves the caller actually hands it the live object.
+func TestReconcileGenericTargetUsesLiveTarget(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+
+	const (
+		namespace  = "ns"
+		targetName = "shared-configmap"
+		storeName  = "test-store"
+	)
+
+	newES := func(name string) *esv1.ExternalSecret {
+		return &esv1.ExternalSecret{
+			Name: name, Namespace: namespace, UID: types.UID(name + "-uid"),
+			Spec: esv1.ExternalSecretSpec{
+				RefreshInterval: &metav1.Duration{Duration: time.Hour},
+				SecretStoreRef:  esv1.SecretStoreRef{Name: storeName, Kind: esv1.SecretStoreKind},
+				Data: []esv1.ExternalSecretData{{
+					SecretKey: "key",
+					RemoteRef: esv1.ExternalSecretDataRemoteRef{Key: "remote-key"},
+				}},
+				Target: esv1.ExternalSecretTarget{
+					Name:           targetName,
+					CreationPolicy: esv1.CreatePolicyOwner,
+					Manifest:       &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+				},
+			},
+		}
+	}
+
+	store := &esv1.SecretStore{
+		Name: storeName, Namespace: namespace,
+		Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{
+			AWS: &esv1.AWSProvider{Service: esv1.AWSServiceSecretsManager},
+		}},
+	}
+
+	fakeProvider.Reset()
+	defer fakeProvider.Reset()
+	fakeProvider.WithGetSecret([]byte("value"), nil)
+
+	r := &Reconciler{
+		Client:              fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(store).Build(),
+		Scheme:              scheme.Scheme,
+		Log:                 logr.Discard(),
+		recorder:            record.NewFakeRecorder(100),
+		AllowGenericTargets: true,
+		informerManager:     noopInformerManager{},
+	}
+
+	reconcile := func(t *testing.T, es *esv1.ExternalSecret) {
+		t.Helper()
+		resourceLabels := ctrlmetrics.RefineNonConditionMetricLabels(
+			map[string]string{"name": es.Name, "namespace": es.Namespace})
+		_, err := r.reconcileGenericTarget(context.Background(), es, logr.Discard(), time.Now(),
+			resourceLabels, esmetrics.GetCounterVec(esmetrics.SyncCallsErrorKey))
+		require.NoError(t, err)
+	}
+	liveTarget := func(t *testing.T) *unstructured.Unstructured {
+		t.Helper()
+		target := &unstructured.Unstructured{}
+		target.SetGroupVersionKind(v1.SchemeGroupVersion.WithKind("ConfigMap"))
+		require.NoError(t, r.Get(context.Background(),
+			types.NamespacedName{Name: targetName, Namespace: namespace}, target))
+		return target
+	}
+
+	esA := newES("es-a")
+	reconcile(t, esA)
+
+	target := liveTarget(t)
+	require.Len(t, target.GetOwnerReferences(), 1)
+	assert.Equal(t, "es-a", target.GetOwnerReferences()[0].Name)
+	assert.Equal(t, "value", target.Object["data"].(map[string]any)["key"])
+
+	// another controller adds metadata to the live target out of band
+	target.SetFinalizers([]string{"unrelated.example.io/cleanup"})
+	labels := target.GetLabels()
+	labels["other-controller"] = "keep"
+	target.SetLabels(labels)
+	require.NoError(t, r.Update(context.Background(), target))
+
+	// the next sync of the owning ExternalSecret must not drop that metadata
+	fakeProvider.WithGetSecret([]byte("rotated"), nil)
+	reconcile(t, newES("es-a"))
+
+	target = liveTarget(t)
+	assert.Equal(t, []string{"unrelated.example.io/cleanup"}, target.GetFinalizers())
+	assert.Equal(t, "keep", target.GetLabels()["other-controller"])
+	assert.Equal(t, "rotated", target.Object["data"].(map[string]any)["key"])
+	require.Len(t, target.GetOwnerReferences(), 1)
+	assert.Equal(t, "es-a", target.GetOwnerReferences()[0].Name)
+
+	// a second ExternalSecret must not take over a target owned by the first
+	esB := newES("es-b")
+	reconcile(t, esB)
+
+	require.NotEmpty(t, esB.Status.Conditions)
+	assert.Equal(t, esv1.ConditionReasonSecretOwnedByOther, esB.Status.Conditions[0].Reason)
+	target = liveTarget(t)
+	require.Len(t, target.GetOwnerReferences(), 1)
+	assert.Equal(t, "es-a", target.GetOwnerReferences()[0].Name)
+	assert.Equal(t, "rotated", target.Object["data"].(map[string]any)["key"])
+}
+
+// TestApplyTemplateToManifestAcceptsRestatedMetadata pins the promise made in
+// docs/guides/ownership-deletion-policy.md: a template that reproduces a protected
+// metadata value unchanged is accepted, and only a changed value is rejected. Numbers
+// are the interesting case, because the live object and the template reach the
+// comparison through different decoders.
+func TestApplyTemplateToManifestAcceptsRestatedMetadata(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme}
+
+	for _, tt := range []struct {
+		name, literal string
+		wantErr       bool
+	}{
+		{"number restated unchanged", "generation: 2", false},
+		{"number changed", "generation: 3", true},
+		{"string restated unchanged", "uid: target-uid", false},
+		{"string changed", "uid: victim-uid", true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			es := &esv1.ExternalSecret{
+				Name: "es", Namespace: "ns", UID: "es-uid",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "target", CreationPolicy: esv1.CreatePolicyOrphan,
+					Manifest: &esv1.ManifestReference{APIVersion: "example.io/v1", Kind: "Widget"},
+					Template: &esv1.ExternalSecretTemplate{EngineVersion: esv1.TemplateEngineV2,
+						TemplateFrom: []esv1.TemplateFrom{{Target: "metadata", Literal: &tt.literal}}},
+				}},
+			}
+			existing := &unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": "example.io/v1", "kind": "Widget",
+				"metadata": map[string]any{
+					"name": "target", "namespace": "ns", "uid": "target-uid",
+					"resourceVersion": "12", "generation": int64(2),
+				},
+			}}
+
+			result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
+			if tt.wantErr {
+				require.ErrorIs(t, err, errProtectedMetadata)
+				return
+			}
+			require.NoError(t, err)
+			metadata := result.Object["metadata"].(map[string]any)
+			assert.Equal(t, int64(2), metadata["generation"])
+			assert.Equal(t, "target-uid", metadata["uid"])
+		})
+	}
+}
+
+// TestReconcileRejectsStoredSecretManifest covers an ExternalSecret that already names a core
+// Secret manifest, which the admission webhook now refuses but cannot retroactively remove.
+// The controller has to refuse it too, and must leave whatever sits at the target name alone
+// rather than adopting it through the generic write path.
+func TestReconcileRejectsStoredSecretManifest(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+
+	const (
+		namespace  = "ns"
+		esName     = "stored-es"
+		targetName = "target-secret"
+		storeName  = "test-store"
+	)
+
+	for _, tt := range []struct {
+		name         string
+		targetExists bool
+	}{
+		{"missing target is not created", false},
+		{"existing target is not mutated", true},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			es := &esv1.ExternalSecret{
+				Name: esName, Namespace: namespace, UID: "es-uid",
+				Spec: esv1.ExternalSecretSpec{
+					RefreshInterval: &metav1.Duration{Duration: time.Hour},
+					SecretStoreRef:  esv1.SecretStoreRef{Name: storeName, Kind: esv1.SecretStoreKind},
+					Data: []esv1.ExternalSecretData{{
+						SecretKey: "key",
+						RemoteRef: esv1.ExternalSecretDataRemoteRef{Key: "remote-key"},
+					}},
+					Target: esv1.ExternalSecretTarget{
+						Name:           targetName,
+						CreationPolicy: esv1.CreatePolicyOwner,
+						Manifest:       &esv1.ManifestReference{APIVersion: "v1", Kind: "Secret"},
+					},
+				},
+			}
+			store := &esv1.SecretStore{
+				Name: storeName, Namespace: namespace,
+				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{
+					AWS: &esv1.AWSProvider{Service: esv1.AWSServiceSecretsManager},
+				}},
+			}
+
+			objects := []client.Object{es, store}
+			if tt.targetExists {
+				objects = append(objects, &v1.Secret{
+					Name: targetName, Namespace: namespace,
+					Data: map[string][]byte{"untouched": []byte("original")},
+				})
+			}
+
+			fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+				WithObjects(objects...).
+				WithStatusSubresource(&esv1.ExternalSecret{}).Build()
+			r := &Reconciler{
+				Client: fakeClient, SecretClient: fakeClient, Scheme: scheme.Scheme,
+				Log: logr.Discard(), recorder: record.NewFakeRecorder(100),
+				// the unsafe flag is on, so the ban is the only thing refusing this
+				AllowGenericTargets: true,
+				informerManager:     noopInformerManager{},
+				RequeueInterval:     time.Hour,
+			}
+
+			// a configuration error is not retryable, so no error is returned for requeue
+			_, err := r.Reconcile(context.Background(), ctrl.Request{
+				Name: esName, Namespace: namespace,
+			})
+			require.NoError(t, err)
+
+			synced := &esv1.ExternalSecret{}
+			require.NoError(t, r.Get(context.Background(),
+				types.NamespacedName{Name: esName, Namespace: namespace}, synced))
+			cond := esv1.GetExternalSecretCondition(synced.Status, esv1.ExternalSecretReady)
+			require.NotNil(t, cond)
+			assert.Equal(t, v1.ConditionFalse, cond.Status)
+
+			target := &v1.Secret{}
+			getErr := r.Get(context.Background(),
+				types.NamespacedName{Name: targetName, Namespace: namespace}, target)
+			if !tt.targetExists {
+				assert.True(t, apierrors.IsNotFound(getErr), "target must not be created")
+				return
+			}
+			require.NoError(t, getErr)
+			assert.Equal(t, map[string][]byte{"untouched": []byte("original")}, target.Data)
+			assert.Empty(t, target.OwnerReferences)
+			assert.Empty(t, target.Labels[esv1.LabelManaged])
+		})
+	}
 }
