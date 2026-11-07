@@ -1,6 +1,6 @@
 {{- $shouldRenderStr := include "external-secrets.shouldRenderServiceMonitor" . | trim }}
 {{- if and .Values.serviceMonitor.enabled (eq $shouldRenderStr "true") }}
-apiVersion: "monitoring.coreos.com/v1"
+apiVersion: "monitoring.coreos.com/v1/ServiceMonitor"
 kind: ServiceMonitor
 metadata:
   labels:
@@ -39,7 +39,7 @@ spec:
     {{- end }}
 ---
 {{- if .Values.webhook.create }}
-apiVersion: "monitoring.coreos.com/v1"
+apiVersion: "monitoring.coreos.com/v1/ServiceMonitor"
 kind: ServiceMonitor
 metadata:
   labels:
@@ -79,7 +79,7 @@ spec:
 {{- end }}
 ---
 {{- if .Values.certController.create }}
-apiVersion: "monitoring.coreos.com/v1"
+apiVersion: "monitoring.coreos.com/v1/ServiceMonitor"
 kind: ServiceMonitor
 metadata:
   labels:
