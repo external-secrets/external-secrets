@@ -21,12 +21,15 @@ package gitlab
 // and in e2e/suite/common/common.go, but this breaks Azure provider.
 
 import (
+	"fmt"
 
 	// nolint
 	. "github.com/onsi/ginkgo/v2"
+	v1 "k8s.io/api/core/v1"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
 	"github.com/external-secrets/external-secrets-e2e/suites/provider/cases/common"
+	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
 
 var _ = Describe("[gitlab]", Label("gitlab"), func() {
@@ -42,5 +45,32 @@ var _ = Describe("[gitlab]", Label("gitlab"), func() {
 		Entry(common.JSONDataWithTemplate(f)),
 		Entry(common.SyncWithoutTargetName(f)),
 		Entry(common.JSONDataWithoutTargetName(f)),
+		Entry(emptyVariableValue(f)),
+		Entry(common.DeletionPolicyDelete(f)),
 	)
 })
+
+// emptyVariableValue syncs an existing variable whose value is an empty string.
+func emptyVariableValue(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[gitlab] should sync an existing variable with an empty value", func(tc *framework.TestCase) {
+		secretKey := fmt.Sprintf("%s-%s", f.Namespace.Name, "empty")
+		remoteRefKey := f.MakeRemoteRefKey(secretKey)
+		tc.Secrets = map[string]framework.SecretEntry{
+			remoteRefKey: {Value: ""},
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				secretKey: []byte(""),
+			},
+		}
+		tc.ExternalSecret.Spec.Data = []esv1.ExternalSecretData{
+			{
+				SecretKey: secretKey,
+				RemoteRef: esv1.ExternalSecretDataRemoteRef{
+					Key: remoteRefKey,
+				},
+			},
+		}
+	}
+}
