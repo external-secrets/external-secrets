@@ -18,6 +18,7 @@ Multi-module repo: `apis/`, `runtime/`, `e2e/`, and each `providers/v1/*/` have 
 
 - `make reviewable` is the gate for PRs. Run it, not individual checks.
 - Helm chart is the source of truth for deploy manifests. `make manifests` generates static YAML from it.
+- For SHA-only image pins in `.updatecli.d/docker.yaml`, resolve the digest from `{{ source "<image>_version" }}` so the human-readable full-tag comment and the digest refer to the same release. Update both targets when adding an image.
 - Provider docs `{% include %}` reusable YAML snippets from `docs/snippets/` (`macros` plugin). AWS authentication is documented once on the standalone `docs/provider/aws-access.md` page; the per-service pages (`aws-secrets-manager.md`, `aws-parameter-store.md`) link to it rather than transcluding it.
 - CRD tests use snapshot testing. Run `make test.crds.update` to update snapshots after CRD changes.
 - `make update-deps` updates dependencies across all modules at once.
@@ -46,6 +47,9 @@ Build tags live in `pkg/register/<name>.go`.
 
 ### Runtime helpers (use these, do not roll your own)
 
+- `runtime/esutils.CloneDefaultHTTPTransport()` when building an outbound `http.Client` with custom TLS.
+  Do not construct `&http.Transport{}` — a zero-value transport skips `ProxyFromEnvironment`. Enforced by
+  `hack/check-bare-http-transport.sh` (wired into `make lint`).
 - `runtime/esutils/resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, ref)` for credential resolution. It enforces
   `ClusterSecretStore` vs `SecretStore` namespace scoping. Pass `store.GetKind()` and the ES namespace.
 - `runtime/esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{...})` for CA bundles.

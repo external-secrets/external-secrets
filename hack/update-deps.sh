@@ -145,13 +145,13 @@ main() {
     fi
     echo ""
     
-    # 5. Update build tools module
-    if ! update_module "hack/tools" "build tools" tool; then
+    # 5. Update build tools modules outside the workspace (see make go-work).
+    if ! GOWORK=off update_module "hack/tools" "build tools" tool; then
         failed_modules+=("build tools")
     fi
     echo ""
 
-    if ! update_module "hack/tools/gen-crd-api-reference-docs" "gen-crd-api-reference-docs" tool; then
+    if ! GOWORK=off update_module "hack/tools/gen-crd-api-reference-docs" "gen-crd-api-reference-docs" tool; then
         failed_modules+=("gen-crd-api-reference-docs")
     fi
     echo ""

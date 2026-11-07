@@ -625,6 +625,57 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
+	// if PushSecret switches from properties to a whole secret for the same remote key,
+	// it should not delete the remote key the whole secret has just been pushed to
+	syncAndSwitchPropertiesToWholeSecret := func(tc *testCase) {
+		var deleteCallCount atomic.Int32
+		fakeProvider.WithDeleteSecretFn(func() error {
+			deleteCallCount.Add(1)
+			return nil
+		})
+		syncAndDeleteWithProperties(tc)
+		tc.assert = func(_ *v1alpha1.PushSecret, _ *v1.Secret) bool {
+			updatedPS := &v1alpha1.PushSecret{}
+			psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
+			storeKey := fmt.Sprintf(storePrefixTemplate, PushSecretStore)
+			// Wait for initial sync
+			Eventually(func() bool {
+				err := k8sClient.Get(context.Background(), psKey, updatedPS)
+				if err != nil {
+					return false
+				}
+				_, ok1 := updatedPS.Status.SyncedPushSecrets[storeKey][defaultPath+"/field1"]
+				_, ok2 := updatedPS.Status.SyncedPushSecrets[storeKey][defaultPath+"/field2"]
+				return ok1 && ok2
+			}, time.Second*10, time.Second).Should(BeTrue())
+
+			// Push the whole secret to the same remote key instead
+			updatedPS.Spec.Data = []v1alpha1.PushSecretData{
+				{
+					Match: v1alpha1.PushSecretMatch{
+						RemoteRef: v1alpha1.PushSecretRemoteRef{
+							RemoteKey: defaultPath,
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Update(context.Background(), updatedPS, &client.UpdateOptions{})).Should(Succeed())
+
+			// Verify the status only holds the whole secret
+			Eventually(func() bool {
+				err := k8sClient.Get(context.Background(), psKey, updatedPS)
+				if err != nil {
+					return false
+				}
+				synced := updatedPS.Status.SyncedPushSecrets[storeKey]
+				_, ok := synced[defaultPath]
+				return ok && len(synced) == 1
+			}, time.Second*10, time.Second).Should(BeTrue())
+			Expect(deleteCallCount.Load()).To(BeZero())
+			return true
+		}
+	}
+
 	// if PushSecret's DeletionPolicy is cleared, it should delete successfully
 	syncChangePolicyAndDeleteSuccessfully := func(tc *testCase) {
 		tc.pushsecret = &v1alpha1.PushSecret{
@@ -2349,6 +2400,7 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should sync with conversion strategy", syncSuccessfullyWithConversionStrategy),
 		Entry("should delete if DeletionPolicy=Delete", syncAndDeleteSuccessfully),
 		Entry("should delete secrets with properties and update status correctly", syncAndDeleteWithProperties),
+		Entry("should not delete the remote key when switching from properties to a whole secret", syncAndSwitchPropertiesToWholeSecret),
 		Entry("should delete after DeletionPolicy changed from Delete to None", syncChangePolicyAndDeleteSuccessfully),
 		Entry("should cleanup provider secrets when source Secret is deleted", deleteProviderSecretsOnSourceSecretDeleted),
 		Entry("should track deletion tasks if Delete fails", failDelete),
@@ -2836,6 +2888,29 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 		})
 	})
 
+	pushData := func(remoteKey, property string) v1alpha1.PushSecretData {
+		return v1alpha1.PushSecretData{Match: v1alpha1.PushSecretMatch{RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: remoteKey, Property: property}}}
+	}
+
+	DescribeTable("isRemoteKeyStillPushed",
+		func(oldRef v1alpha1.PushSecretData, newEntries []v1alpha1.PushSecretData, want bool) {
+			newData := make(map[string]v1alpha1.PushSecretData, len(newEntries))
+			for _, entry := range newEntries {
+				newData[statusRef(entry)] = entry
+			}
+
+			Expect(isRemoteKeyStillPushed(oldRef, newData)).To(Equal(want))
+		},
+		Entry("should keep a property replaced by a whole secret",
+			pushData("shared", "field1"), []v1alpha1.PushSecretData{pushData("shared", "")}, true),
+		Entry("should keep a whole secret replaced by properties",
+			pushData("shared", ""), []v1alpha1.PushSecretData{pushData("shared", "field1"), pushData("shared", "field2")}, true),
+		Entry("should delete a property removed while another property stays",
+			pushData("shared", "field2"), []v1alpha1.PushSecretData{pushData("shared", "field1")}, false),
+		Entry("should delete a remote key that is no longer pushed",
+			pushData("old", ""), []v1alpha1.PushSecretData{pushData("new", "")}, false),
+	)
+
 	Describe("mergeDataEntries", func() {
 		It("should merge valid entries", func() {
 			secret := &v1.Secret{Data: map[string][]byte{"a": []byte("v1"), "b": []byte("v2")}}
@@ -2850,6 +2925,13 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result).To(HaveLen(2))
+		})
+
+		It("should bound transform rewrites", func() {
+			rewrite, err := compileRewrite(v1alpha1.PushSecretRewrite{Transform: &esv1.ExternalSecretRewriteTransform{Template: `{{ until 35000000 | join " " }}`}})
+			Expect(err).ToNot(HaveOccurred())
+			_, err = rewrite("key")
+			Expect(err).To(MatchError(ContainSubstring("safety limit")))
 		})
 
 		It("should override dataTo with explicit for same source key", func() {

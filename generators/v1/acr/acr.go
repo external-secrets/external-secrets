@@ -262,7 +262,8 @@ func accessTokenForWorkloadIdentity(
 		if clientID == "" || tenantID == "" || tokenFilePath == "" {
 			return "", errors.New("missing environment variables")
 		}
-		token, err := os.ReadFile(filepath.Clean(tokenFilePath))
+		// The webhook-provided path is the intended token file; its location is configurable.
+		token, err := os.ReadFile(filepath.Clean(tokenFilePath)) //nolint:gosec // G703: AZURE_FEDERATED_TOKEN_FILE is a trusted pod environment setting
 		if err != nil {
 			return "", fmt.Errorf("unable to read token file %s: %w", tokenFilePath, err)
 		}

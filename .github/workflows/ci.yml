@@ -22,7 +22,7 @@ jobs:
     outputs:
       noop: ${{ steps.noop.outputs.should_skip }}
     steps:
-      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
         with:
           egress-policy: audit
       - name: Detect No-op Changes
@@ -42,7 +42,7 @@ jobs:
     if: needs.detect-noop.outputs.noop != 'true' && github.ref != 'refs/heads/main'
 
     steps:
-      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
         with:
           egress-policy: audit
       - name: Checkout
@@ -60,7 +60,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
         with:
           egress-policy: audit
       - name: Checkout
@@ -76,6 +76,12 @@ jobs:
 
       - name: Download Go modules
         run: go mod download
+
+      # The Helm 4 plugin installer requires verification that these Git-sourced plugins do not support.
+      - name: Set up Helm 3
+        uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
+        with:
+          version: v3.22.1
 
       - name: Configure Git
         run: |
@@ -97,7 +103,7 @@ jobs:
       contents: read
 
     steps:
-      - uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2.22.1
+      - uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
         with:
           egress-policy: audit
       - name: Checkout
