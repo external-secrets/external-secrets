@@ -324,6 +324,9 @@
                         "readOnlyRootFilesystem": {
                             "type": "boolean"
                         },
+                        "runAsGroup": {
+                            "type": "integer"
+                        },
                         "runAsNonRoot": {
                             "type": "boolean"
                         },
@@ -955,6 +958,9 @@
                 "readOnlyRootFilesystem": {
                     "type": "boolean"
                 },
+                "runAsGroup": {
+                    "type": "integer"
+                },
                 "runAsNonRoot": {
                     "type": "boolean"
                 },
@@ -1444,6 +1450,9 @@
                         },
                         "readOnlyRootFilesystem": {
                             "type": "boolean"
+                        },
+                        "runAsGroup": {
+                            "type": "integer"
                         },
                         "runAsNonRoot": {
                             "type": "boolean"
