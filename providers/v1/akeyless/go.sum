@@ -23,8 +23,8 @@ github.com/Masterminds/goutils v1.1.1 h1:5nUrii3FMTL5diU80unEVvNevw1nH4+ZV4DSLVJ
 github.com/Masterminds/goutils v1.1.1/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
 github.com/Masterminds/semver/v3 v3.5.0 h1:kQceYJfbupGfZOKZQg0kou0DgAKhzDg2NZPAwZ/2OOE=
 github.com/Masterminds/semver/v3 v3.5.0/go.mod h1:4V+yj/TJE1HU9XfppCwVMZq3I84lprf4nC11bSS5beM=
-github.com/akeylesslabs/akeyless-go-cloud-id v0.3.9 h1:UNBgfrB6Vmu5FNEoo9QYOMsmzma3QRL+gZnmiT0KGD8=
-github.com/akeylesslabs/akeyless-go-cloud-id v0.3.9/go.mod h1:dghXhPKyX0lCXWeLrDhXsKM6ZZgO60WceJ62NUthPSE=
+github.com/akeylesslabs/akeyless-go-cloud-id v0.3.10 h1:hB32+cC/b2/LsvkDr/kNdvfDsjuWAKQRm8Ocz+pJ2g4=
+github.com/akeylesslabs/akeyless-go-cloud-id v0.3.10/go.mod h1:dghXhPKyX0lCXWeLrDhXsKM6ZZgO60WceJ62NUthPSE=
 github.com/akeylesslabs/akeyless-go/v4 v4.3.0 h1:i1tGIFzlfswKMdcnAcTMNebtr+W4zYFz3mtgUZddAW0=
 github.com/akeylesslabs/akeyless-go/v4 v4.3.0/go.mod h1:WBMaWCcgX5LWbRaAAY0+uSLc7mjNC/dxuS5+RX+EhJI=
 github.com/aws/aws-sdk-go-v2 v1.47.3 h1:HRoT/MkNi3bjO5xF4dCzLzvVmkvRGHj3/cLINDnJejk=

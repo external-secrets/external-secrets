@@ -424,9 +424,11 @@ External Secrets meta/v1.ServiceAccountSelector
 <td>
 <em>(Optional)</em>
 <p>ServiceAccountRef specifies a Kubernetes ServiceAccount used for azure_ad
-authentication on AKS Workload Identity. The operator obtains a federated
-identity token from this ServiceAccount via the TokenRequest API instead
-of using the ESO controller pod identity. Ignored for other access types.</p>
+authentication on AKS Workload Identity, or for aws_iam authentication on
+EKS IAM Roles for Service Accounts (the ServiceAccount must carry the
+eks.amazonaws.com/role-arn annotation). The operator obtains a token for
+this ServiceAccount via the TokenRequest API instead of using the ESO
+controller pod identity. Ignored for other access types.</p>
 </td>
 </tr>
 </tbody>

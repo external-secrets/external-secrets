@@ -27,7 +27,6 @@ import (
 	"os"
 	"strings"
 
-	aws_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/aws"
 	gcp_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/gcp"
 	"github.com/akeylesslabs/akeyless-go/v4"
 	authenticationv1 "k8s.io/api/authentication/v1"
@@ -304,7 +303,7 @@ func (a *akeylessBase) getCloudID(ctx context.Context, provider, accTypeParam st
 	case "azure_ad":
 		return a.getAzureCloudID(ctx, accTypeParam, auth)
 	case "aws_iam":
-		return aws_cloud_id.GetCloudId()
+		return a.getAWSCloudID(ctx, auth)
 	case "gcp":
 		return gcp_cloud_id.GetCloudID(accTypeParam)
 	default:

@@ -197,7 +197,7 @@ require (
 	github.com/PaesslerAG/jsonpath v0.1.1 // indirect
 	github.com/ProtonMail/go-crypto v1.5.2 // indirect
 	github.com/ProtonMail/gopenpgp/v3 v3.5.2 // indirect
-	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.9 // indirect
+	github.com/akeylesslabs/akeyless-go-cloud-id v0.3.10 // indirect
 	github.com/akeylesslabs/akeyless-go/v4 v4.3.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
