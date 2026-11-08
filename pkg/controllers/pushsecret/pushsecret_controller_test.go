@@ -24,6 +24,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -31,11 +32,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	crmetrics "sigs.k8s.io/controller-runtime/pkg/metrics"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
 	ctest "github.com/external-secrets/external-secrets/pkg/controllers/commontest"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/pkg/controllers/pushsecret/psmetrics"
 	"github.com/external-secrets/external-secrets/runtime/testing/fake"
 
@@ -76,6 +79,7 @@ func init() {
 	esv1.ForceRegister(fakeProvider, &esv1.SecretStoreProvider{
 		Fake: &esv1.FakeProvider{},
 	}, esv1.MaintenanceStatusMaintained)
+	ctrlmetrics.SetUpLabelNames(false)
 	psmetrics.SetUpMetrics()
 }
 
@@ -2291,6 +2295,22 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
+	It("should remove the metrics of a deleted PushSecret", func() {
+		ctx := context.Background()
+		tc := makeDefaultTestcase()
+		failNoSecretStore(tc)
+		Expect(k8sClient.Create(ctx, tc.secret)).To(Succeed())
+		Expect(k8sClient.Create(ctx, tc.pushsecret)).To(Succeed())
+		Eventually(func() int {
+			return pushSecretSeries(PushSecretNamespace, PushSecretName)
+		}, timeout, interval).ShouldNot(BeZero())
+
+		Expect(k8sClient.Delete(ctx, tc.pushsecret)).To(Succeed())
+		Eventually(func() int {
+			return pushSecretSeries(PushSecretNamespace, PushSecretName)
+		}, timeout, interval).Should(BeZero())
+	})
+
 	DescribeTable("When reconciling a PushSecret",
 		func(tweaks ...testTweaks) {
 			tc := makeDefaultTestcase()
@@ -2898,3 +2918,25 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 		})
 	})
 })
+
+// pushSecretSeries counts the pushsecret_* series registered for one PushSecret.
+func pushSecretSeries(namespace, name string) int {
+	families, err := crmetrics.Registry.Gather()
+	Expect(err).ToNot(HaveOccurred())
+	count := 0
+	for _, family := range families {
+		if !strings.HasPrefix(family.GetName(), psmetrics.PushSecretSubsystem+"_") {
+			continue
+		}
+		for _, metric := range family.GetMetric() {
+			labels := map[string]string{}
+			for _, label := range metric.GetLabel() {
+				labels[label.GetName()] = label.GetValue()
+			}
+			if labels["namespace"] == namespace && labels["name"] == name {
+				count++
+			}
+		}
+	}
+	return count
+}

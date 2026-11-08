@@ -132,3 +132,15 @@ func UpdatePushSecretCondition(ps *esapi.PushSecret, condition *esapi.PushSecret
 func GetGaugeVec(key string) *prometheus.GaugeVec {
 	return gaugeVecMetrics[key]
 }
+
+// RemoveMetrics deletes all metrics published by the resource.
+func RemoveMetrics(namespace, name string) {
+	for _, gaugeVecMetric := range gaugeVecMetrics {
+		gaugeVecMetric.DeletePartialMatch(
+			map[string]string{
+				"namespace": namespace,
+				"name":      name,
+			},
+		)
+	}
+}
