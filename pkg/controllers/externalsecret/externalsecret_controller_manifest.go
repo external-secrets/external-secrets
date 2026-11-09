@@ -185,7 +185,10 @@ func (r *Reconciler) createGenericResource(ctx context.Context, log logr.Logger,
 	}
 
 	log.Info("creating target resource", "gvk", gvk.String(), "name", getTargetName(es))
-	err = r.Client.Create(ctx, obj)
+	// Claim the fields we write. Without a field owner every ExternalSecret's writes land
+	// under one shared manager, and the metadata cleanup below could not tell the keys this
+	// ExternalSecret set from another ExternalSecret's or another controller's.
+	err = r.Client.Create(ctx, obj, client.FieldOwner(fqdnFor(es.Name)))
 	if err != nil {
 		return fmt.Errorf("failed to create target resource: %w", err)
 	}
@@ -198,7 +201,7 @@ func (r *Reconciler) updateGenericResource(ctx context.Context, log logr.Logger,
 	gvk := getTargetGVK(es)
 
 	log.Info("updating target resource", "gvk", gvk.String(), "name", getTargetName(es))
-	err := r.Client.Update(ctx, existing)
+	err := r.Client.Update(ctx, existing, client.FieldOwner(fqdnFor(es.Name)))
 	if err != nil {
 		return fmt.Errorf("failed to update target resource: %w", err)
 	}
@@ -280,6 +283,18 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 
 	// Keep the original metadata for validation; only labels and annotations are templatable.
 	existingMetadata := obj.DeepCopy().Object["metadata"].(map[string]any)
+
+	// Seeding from the live object keeps other controllers' labels and annotations, but it
+	// would also make this ExternalSecret's own keys un-removable: drop one from the template
+	// and the live copy puts it straight back. Clear the keys it owns so the merge below
+	// re-adds only what it still renders. This mirrors setMetadata on the Secret lane.
+	//
+	// Targets written before ESO declared a field owner have their keys recorded under the
+	// client's default manager, so on the first sync after upgrade a key this ExternalSecret
+	// has since stopped rendering survives once. Everything written after is attributed.
+	if err := templating.ClearOwnedMetadata(obj, es.Name, labels, annotations); err != nil {
+		return nil, err
+	}
 
 	srcLabels, srcAnnotations := es.ObjectMeta.Labels, es.ObjectMeta.Annotations
 	if es.Spec.Target.Template != nil {
