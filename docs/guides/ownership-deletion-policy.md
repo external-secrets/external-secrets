@@ -231,7 +231,7 @@ Extra validations based on `spec.target.creationPolicy`:
 
   notes:
 
-  - This does not prevent multiple ExternalSecrets from merging different fields into the same target as field ownership is separate from owner references.
+  - This does not prevent multiple ExternalSecrets from merging different fields into the same target, as [field ownership](#field-ownership) is separate from owner references.
   - The current ExternalSecret is matched by API group, kind and name, not UID
 
 Data merging also depends on `spec.target.template.mergePolicy`.
@@ -262,3 +262,27 @@ ESO adapts the following metadata in the target object based on the `spec.target
 - When Orphan/Merge/CreateOrMerge: `reconcile.external-secrets.io/created-by` label is removed
 - When Orphan/Merge/CreateOrMerge: the current ES's controller owner reference is removed IF present (other owner references untouched).
 - When None: Skipped (no write)
+
+### Field ownership
+
+Every write ESO makes to a target declares a Kubernetes [field manager](https://kubernetes.io/docs/reference/using-api/server-side-apply/#field-management) derived from the ExternalSecret's name, for Secrets and for `spec.target.manifest` targets alike:
+
+- `externalsecrets.external-secrets.io/<name>`
+- `externalsecrets.external-secrets.io/sha3/<hash>` when the first form would exceed 63 characters, which happens once the ExternalSecret's name is longer than 27 characters
+
+Kubernetes records that name in the target's `metadata.managedFields`, per field. ESO reads it back on the next sync to answer one question: which labels and annotations did *this* ExternalSecret set last time?
+
+That is what makes removing them possible. Rendering starts from the live object so that metadata written by other controllers survives, and a plain merge can only add or overwrite keys. So before merging, ESO deletes the label and annotation keys `managedFields` attributes to it, then re-adds only what it renders now:
+
+- Remove a key from `spec.target.template.metadata.labels` or `.annotations` (or from the ExternalSecret's own labels and annotations when there is no template) and it is removed from the target on the next sync.
+- Keys owned by another controller, or by another ExternalSecret writing the same target, are never touched. This is why several ExternalSecrets can contribute metadata to one target under `Orphan`, `Merge` or `CreateOrMerge`.
+- The reserved keys in [Normalizations](#normalizations) are rewritten on every sync regardless.
+
+!!! note "Behavior change"
+
+    Earlier versions left these keys behind in two cases, so a label or annotation removed from an ExternalSecret stayed on the target until someone edited it by hand:
+
+    - Secrets, when the ExternalSecret's name was longer than 27 characters. The write used the hashed manager name while the read looked for the plain one, so no keys were ever attributed.
+    - `spec.target.manifest` targets, in all cases. Those writes did not declare a field manager at all.
+
+    Both now behave as described above. After upgrading, a key that was *already* orphaned on a manifest target survives one further sync: it was recorded under the client's default manager, so ESO cannot attribute it until it rewrites the target once. If you have been relying on a leftover key, add it to the template explicitly.
