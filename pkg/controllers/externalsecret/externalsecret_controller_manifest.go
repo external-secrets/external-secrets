@@ -58,7 +58,7 @@ func (r *Reconciler) validateGenericTarget(log logr.Logger, es *esv1.ExternalSec
 	// Same check the admission webhook runs, applied before any provider retrieval,
 	// rendering or write, so objects stored before the ban and ExternalSecrets admitted
 	// without the webhook are refused here instead of reaching the generic write path.
-	if err := esv1.ValidateManifestTarget(es); err != nil {
+	if err := esv1.ValidateManifestTarget(&es.Spec); err != nil {
 		return err
 	}
 

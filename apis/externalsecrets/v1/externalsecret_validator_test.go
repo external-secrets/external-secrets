@@ -18,6 +18,7 @@ package v1
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -695,7 +696,12 @@ func TestValidateManifestSecretTargetOnCreateAndUpdate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_, createErr := validator.ValidateCreate(context.Background(), tt.obj)
-			_, updateErr := validator.ValidateUpdate(context.Background(), tt.obj, tt.obj)
+
+			// The update has to change the spec to reach the rules at all, so it is
+			// modeled as the switch described above: an ExternalSecret that already
+			// targets an allowed custom resource is repointed at the target under test.
+			existing := secretManifest("example.io/v1", "ConfigMap")
+			_, updateErr := validator.ValidateUpdate(context.Background(), existing, tt.obj)
 
 			if tt.wantReject {
 				require.ErrorIs(t, createErr, ErrManifestSecretTarget)
@@ -708,7 +714,12 @@ func TestValidateManifestSecretTargetOnCreateAndUpdate(t *testing.T) {
 	}
 }
 
-func TestValidateUpdateAllowsLegacyFinalization(t *testing.T) {
+// TestValidateUpdateAdmitsUnchangedSpecs pins the one shortcut ValidateUpdate takes: an
+// update that leaves the spec untouched is admitted, whatever it does to metadata. Every
+// case starts from an ExternalSecret whose stored spec names a core v1/Secret manifest, a
+// spec that was storable before this restriction and cannot be stored now, because that is
+// the only way the shortcut is observable.
+func TestValidateUpdateAdmitsUnchangedSpecs(t *testing.T) {
 	for _, tt := range []struct {
 		name    string
 		mutate  func(oldObj, newObj *ExternalSecret)
@@ -716,25 +727,42 @@ func TestValidateUpdateAllowsLegacyFinalization(t *testing.T) {
 	}{
 		{name: "remove one finalizer, preserve another"},
 		{
+			// The controller attaches its finalizer before it validates the target, so
+			// refusing this leaves a legacy object looping on the rejected patch instead
+			// of reaching the condition that explains the invalid spec.
+			name: "controller claims an active legacy object",
+			mutate: func(oldObj, newObj *ExternalSecret) {
+				oldObj.DeletionTimestamp = nil
+				oldObj.Finalizers = nil
+				newObj.DeletionTimestamp = nil
+				newObj.Finalizers = []string{"externalsecrets.external-secrets.io/externalsecret-cleanup"}
+			},
+		},
+		{
 			name: "remove the last finalizer",
 			mutate: func(_, newObj *ExternalSecret) {
 				newObj.Finalizers = nil
 			},
 		},
 		{
-			name: "active object remains invalid",
+			// Validation has no finalizer rules, so there is nothing for a swap to slip
+			// past. Refusing it only blocks an edit that is already permitted on every
+			// ExternalSecret whose stored spec happens to be valid.
+			name: "swap one finalizer for another",
+			mutate: func(_, newObj *ExternalSecret) {
+				newObj.Finalizers = []string{"new.example.com/finalizer"}
+			},
+		},
+		{
+			// A GitOps controller reapplying an untouched legacy manifest sends exactly
+			// this: same spec, different tracking annotation.
+			name: "metadata-only update on a live object",
 			mutate: func(oldObj, newObj *ExternalSecret) {
 				oldObj.DeletionTimestamp = nil
 				newObj.DeletionTimestamp = nil
+				newObj.Finalizers = oldObj.Finalizers
+				newObj.Annotations = map[string]string{"argocd.argoproj.io/tracking-id": "app"}
 			},
-			wantErr: true,
-		},
-		{
-			name: "new deletion timestamp does not bypass validation",
-			mutate: func(oldObj, _ *ExternalSecret) {
-				oldObj.DeletionTimestamp = nil
-			},
-			wantErr: true,
 		},
 		{
 			name: "changed spec remains invalid",
@@ -744,16 +772,12 @@ func TestValidateUpdateAllowsLegacyFinalization(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "adding a finalizer while removing others remains invalid",
-			mutate: func(_, newObj *ExternalSecret) {
-				newObj.Finalizers = []string{"new.example.com/finalizer"}
-			},
-			wantErr: true,
-		},
-		{
-			name: "ordinary update remains invalid",
+			// The shortcut keys off the spec alone, so a finalizer change cannot carry a
+			// spec change past validation with it.
+			name: "spec change alongside a finalizer addition remains invalid",
 			mutate: func(oldObj, newObj *ExternalSecret) {
-				newObj.Finalizers = oldObj.Finalizers
+				newObj.Finalizers = append(slices.Clone(oldObj.Finalizers), "new.example.com/finalizer")
+				newObj.Spec.Target.Name = "another-target"
 			},
 			wantErr: true,
 		},
@@ -786,7 +810,7 @@ func TestValidateUpdateAllowsLegacyFinalization(t *testing.T) {
 				require.NoError(t, err)
 			}
 			_, err = validator.ValidateCreate(context.Background(), newObj)
-			require.ErrorIs(t, err, ErrManifestSecretTarget, "finalization must not bypass create validation")
+			require.ErrorIs(t, err, ErrManifestSecretTarget, "an admitted update must not make the spec creatable")
 		})
 	}
 }

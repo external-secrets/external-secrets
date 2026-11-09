@@ -20,7 +20,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -42,15 +41,14 @@ func (in *ExternalSecretValidator) ValidateCreate(_ context.Context, obj *Extern
 
 // ValidateUpdate validates the update of an external secret object.
 func (in *ExternalSecretValidator) ValidateUpdate(_ context.Context, oldObj, newObj *ExternalSecret) (warnings admission.Warnings, err error) {
-	// Unchanged legacy specs must not prevent finalization after validation rules tighten.
-	if oldObj != nil && newObj != nil &&
-		!oldObj.GetDeletionTimestamp().IsZero() && !newObj.GetDeletionTimestamp().IsZero() &&
-		equality.Semantic.DeepEqual(oldObj.Spec, newObj.Spec) && len(newObj.Finalizers) < len(oldObj.Finalizers) {
-		for _, finalizer := range newObj.Finalizers {
-			if !slices.Contains(oldObj.Finalizers, finalizer) {
-				return validateExternalSecret(newObj)
-			}
-		}
+	// An unchanged spec can only reproduce the verdict the stored object already carries, so
+	// refusing such an update prevents no invalid state. It only strands objects stored
+	// before a rule tightened: the controller attaches its finalizer before it validates the
+	// target, so a refusal there loops on the rejected patch instead of reaching the status
+	// condition that explains the spec, and an operator cannot edit the object's metadata to
+	// work around it either. Soundness rests on validateExternalSecretSpec reading nothing
+	// but the spec, which its signature enforces.
+	if oldObj != nil && newObj != nil && equality.Semantic.DeepEqual(oldObj.Spec, newObj.Spec) {
 		return nil, nil
 	}
 	return validateExternalSecret(newObj)
@@ -61,33 +59,50 @@ func (in *ExternalSecretValidator) ValidateDelete(_ context.Context, _ *External
 	return nil, nil
 }
 
+// validateExternalSecret guards against a nil object and hands the spec to the rules. It
+// holds no rules itself so that validateExternalSecretSpec can keep its narrow signature.
 func validateExternalSecret(es *ExternalSecret) (admission.Warnings, error) {
 	if es == nil {
 		return nil, errors.New("external secret cannot be nil during validation")
 	}
 
+	return validateExternalSecretSpec(&es.Spec)
+}
+
+// validateExternalSecretSpec holds every ExternalSecret validation rule.
+//
+// Keep this signature. Taking the spec alone is what makes "the verdict depends on the spec
+// and nothing else" true by construction, and ValidateUpdate relies on exactly that to admit
+// updates that leave the spec untouched. Widening it to *ExternalSecret, to reach a name,
+// label, annotation, owner reference or status field, would silently turn every rule in here
+// into a create-only rule: on update the spec would still compare equal and ValidateUpdate
+// would return before any of this ran. Nothing would fail, the rule would simply stop being
+// enforced. So if a rule genuinely needs a field outside the spec, change ValidateUpdate to
+// compare whole objects first, and expect that to reopen the stranding problem this shortcut
+// exists to solve.
+func validateExternalSecretSpec(spec *ExternalSecretSpec) (admission.Warnings, error) {
 	var errs error
-	if err := validatePolicies(es); err != nil {
+	if err := validatePolicies(spec); err != nil {
 		errs = errors.Join(errs, err)
 	}
 
-	if len(es.Spec.Data) == 0 && len(es.Spec.DataFrom) == 0 {
+	if len(spec.Data) == 0 && len(spec.DataFrom) == 0 {
 		errs = errors.Join(errs, errors.New("either data or dataFrom should be specified"))
 	}
 
-	if err := validatePrivilegedTemplate(es.Spec.Target.Template); err != nil {
+	if err := validatePrivilegedTemplate(spec.Target.Template); err != nil {
 		errs = errors.Join(errs, err)
 	}
 
-	if err := ValidateManifestTarget(es); err != nil {
+	if err := ValidateManifestTarget(spec); err != nil {
 		errs = errors.Join(errs, err)
 	}
 
-	if err := validateTemplateFromTarget(es); err != nil {
+	if err := validateTemplateFromTarget(spec); err != nil {
 		errs = errors.Join(errs, err)
 	}
 
-	for _, ref := range es.Spec.DataFrom {
+	for _, ref := range spec.DataFrom {
 		if err := validateExtractFindGenerator(ref); err != nil {
 			errs = errors.Join(errs, err)
 		}
@@ -101,7 +116,7 @@ func validateExternalSecret(es *ExternalSecret) (admission.Warnings, error) {
 		}
 	}
 
-	errs = validateDuplicateKeys(es, errs)
+	errs = validateDuplicateKeys(spec, errs)
 	return nil, errs
 }
 
@@ -130,16 +145,16 @@ func validateExtractFindGenerator(ref ExternalSecretDataFromRemoteRef) error {
 	return nil
 }
 
-func validatePolicies(es *ExternalSecret) error {
+func validatePolicies(spec *ExternalSecretSpec) error {
 	var errs error
-	if es.Spec.Target.DeletionPolicy == DeletionPolicyDelete &&
-		(es.Spec.Target.CreationPolicy == CreatePolicyMerge ||
-			es.Spec.Target.CreationPolicy == CreatePolicyNone ||
-			es.Spec.Target.CreationPolicy == CreatePolicyCreateOrMerge) {
+	if spec.Target.DeletionPolicy == DeletionPolicyDelete &&
+		(spec.Target.CreationPolicy == CreatePolicyMerge ||
+			spec.Target.CreationPolicy == CreatePolicyNone ||
+			spec.Target.CreationPolicy == CreatePolicyCreateOrMerge) {
 		errs = errors.Join(errs, errors.New("deletionPolicy=Delete must not be used when the controller doesn't own the secret. Please set creationPolicy=Owner"))
 	}
 
-	if es.Spec.Target.DeletionPolicy == DeletionPolicyMerge && es.Spec.Target.CreationPolicy == CreatePolicyNone {
+	if spec.Target.DeletionPolicy == DeletionPolicyMerge && spec.Target.CreationPolicy == CreatePolicyNone {
 		errs = errors.Join(errs, errors.New("deletionPolicy=Merge must not be used with creationPolicy=None. There is no Secret to merge with"))
 	}
 
@@ -190,8 +205,8 @@ var ErrManifestSecretTarget = errors.New(
 // ValidateManifestTarget restricts what spec.target.manifest may declare. The admission
 // webhook reaches it through validateExternalSecret; the controller calls it so stored
 // objects and a bypassed webhook are covered too.
-func ValidateManifestTarget(es *ExternalSecret) error {
-	manifest := es.Spec.Target.Manifest
+func ValidateManifestTarget(spec *ExternalSecretSpec) error {
+	manifest := spec.Target.Manifest
 	if manifest == nil {
 		return nil
 	}
@@ -214,12 +229,12 @@ func ValidateManifestTarget(es *ExternalSecret) error {
 // renders into a Secret. Only the default target does: ValidateManifestTarget rejects a
 // manifest naming the core Secret kind, so any manifest target is a non-Secret resource
 // and keeps the nested paths custom resources need.
-func validateTemplateFromTarget(es *ExternalSecret) error {
-	if es.Spec.Target.Manifest != nil {
+func validateTemplateFromTarget(spec *ExternalSecretSpec) error {
+	if spec.Target.Manifest != nil {
 		return nil
 	}
 
-	return ValidateSecretTemplateFromTargets(es.Spec.Target.Template)
+	return ValidateSecretTemplateFromTargets(spec.Target.Template)
 }
 
 // ValidateSecretTemplateFromTargets restricts templateFrom targets to the well-known Secret
@@ -250,10 +265,10 @@ func ValidateSecretTemplateFromTargets(tpl *ExternalSecretTemplate) error {
 	return errs
 }
 
-func validateDuplicateKeys(es *ExternalSecret, errs error) error {
-	if es.Spec.Target.DeletionPolicy == DeletionPolicyRetain {
+func validateDuplicateKeys(spec *ExternalSecretSpec, errs error) error {
+	if spec.Target.DeletionPolicy == DeletionPolicyRetain {
 		seenKeys := make(map[string]struct{})
-		for _, data := range es.Spec.Data {
+		for _, data := range spec.Data {
 			secretKey := data.SecretKey
 			if _, exists := seenKeys[secretKey]; exists {
 				errs = errors.Join(errs, fmt.Errorf("duplicate secretKey found: %s", secretKey))
