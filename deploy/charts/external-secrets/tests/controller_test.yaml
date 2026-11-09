@@ -336,6 +336,8 @@ tests:
                 - "root.example.com"
   - it: should add readinessProbe with defaults when enabled
     set:
+      livenessProbe:
+        enabled: false
       readinessProbe:
         enabled: true
     asserts:
@@ -362,6 +364,11 @@ tests:
       - notExists:
           path: spec.template.spec.containers[0].livenessProbe
   - it: should not render probes or health server when both probes are disabled
+    set:
+      livenessProbe:
+        enabled: false
+      readinessProbe:
+        enabled: false
     asserts:
       - notExists:
           path: spec.template.spec.containers[0].livenessProbe
@@ -370,12 +377,7 @@ tests:
       - notContains:
           path: spec.template.spec.containers[0].args
           content: "--live-addr=:8082"
-  - it: should render both probes when both are enabled
-    set:
-      livenessProbe:
-        enabled: true
-      readinessProbe:
-        enabled: true
+  - it: should render both probes by default
     asserts:
       - equal:
           path: spec.template.spec.containers[0].livenessProbe
@@ -405,6 +407,7 @@ tests:
   - it: should use livenessProbe.spec.port for health server even when only readiness is enabled
     set:
       livenessProbe:
+        enabled: false
         spec:
           port: 9090
       readinessProbe:

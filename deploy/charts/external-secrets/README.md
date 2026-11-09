@@ -54,7 +54,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | certController.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | certController.image.tag | string | `""` |  |
 | certController.imagePullSecrets | list | `[]` |  |
-| certController.livenessProbe.enabled | bool | `false` |  |
+| certController.livenessProbe.enabled | bool | `true` |  |
 | certController.livenessProbe.failureThreshold | int | `5` |  |
 | certController.livenessProbe.initialDelaySeconds | int | `10` |  |
 | certController.livenessProbe.periodSeconds | int | `10` |  |
@@ -178,7 +178,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | leaderElectionLeaseDuration | string | "15s" | Duration that non-leader candidates will wait to force acquire leadership. Increase this along with renewDeadline to tolerate a busy or briefly unavailable API server (for example during control plane maintenance) without churning leadership. Leave empty to use the controller default ('15s'). |
 | leaderElectionRenewDeadline | string | "10s" | Duration that the acting leader will retry refreshing leadership before giving up. Must be less than leaderElectionLeaseDuration. Leave empty to use the controller default ('10s'). |
 | leaderElectionRetryPeriod | string | "2s" | Duration the leader election client waits between tries of actions. Leave empty to use the controller default ('2s'). |
-| livenessProbe.enabled | bool | `false` | Enabled determines if the liveness probe should be used or not. By default it's disabled. |
+| livenessProbe.enabled | bool | `true` | Enabled determines if the liveness probe should be used or not. Enabled by default. |
 | livenessProbe.spec | object | `{"address":"","failureThreshold":5,"httpGet":{"path":"/healthz","port":"live"},"initialDelaySeconds":10,"periodSeconds":10,"port":8082,"successThreshold":1,"timeoutSeconds":5}` | The body of the liveness probe settings. |
 | livenessProbe.spec.address | string | `""` | Bind address for the health server used by both liveness and readiness probes (--live-addr flag). |
 | livenessProbe.spec.failureThreshold | int | `5` | Number of consecutive probe failures that should occur before considering the probe as failed. |
@@ -227,7 +227,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | rbac.leaderElection | object | `{"create":true}` | Specifies whether the namespaced leader election Role and RoleBinding are created. These are only used when leaderElect is true; set to false to omit them when running without leader election. Only takes effect when rbac.create is true. |
 | rbac.serviceAccountTokenCreate | bool | `true` | Specifies whether the serviceaccounts/token create permission is included in the controller RBAC. When set to false, users must create per-ServiceAccount Role/RoleBinding with resourceNames constraint to grant ESO token creation for specific ServiceAccounts referenced in SecretStore specs. |
 | rbac.servicebindings.create | bool | `true` | Specifies whether a clusterrole to give servicebindings read access should be created. |
-| readinessProbe.enabled | bool | `false` | Determines whether the readiness probe is enabled. Disabled by default. Enabling this will auto-start the health server (--live-addr) even if livenessProbe is disabled. Health server address/port are configured via livenessProbe.spec.address and livenessProbe.spec.port. |
+| readinessProbe.enabled | bool | `true` | Determines whether the readiness probe is enabled. Enabled by default. Enabling this will auto-start the health server (--live-addr) even if livenessProbe is disabled. Health server address/port are configured via livenessProbe.spec.address and livenessProbe.spec.port. |
 | readinessProbe.spec | object | `{"failureThreshold":3,"httpGet":{"path":"/readyz","port":"live"},"initialDelaySeconds":10,"periodSeconds":10,"successThreshold":1,"timeoutSeconds":5}` | The body of the readiness probe settings (standard Kubernetes probe spec). |
 | readinessProbe.spec.failureThreshold | int | `3` | Number of consecutive probe failures that should occur before considering the probe as failed. |
 | readinessProbe.spec.httpGet | object | `{"path":"/readyz","port":"live"}` | Handler for readiness probe. |
@@ -309,7 +309,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | webhook.imagePullSecrets | list | `[]` |  |
-| webhook.livenessProbe.enabled | bool | `false` |  |
+| webhook.livenessProbe.enabled | bool | `true` |  |
 | webhook.livenessProbe.failureThreshold | int | `5` |  |
 | webhook.livenessProbe.initialDelaySeconds | int | `10` |  |
 | webhook.livenessProbe.periodSeconds | int | `10` |  |
