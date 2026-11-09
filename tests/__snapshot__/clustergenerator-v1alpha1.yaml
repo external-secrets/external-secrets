@@ -59,6 +59,11 @@ spec:
     ecrAuthorizationTokenSpec:
       auth:
         jwt:
+          roleArn: string
+          secretRef:
+            key: string
+            name: string
+            namespace: string
           serviceAccountRef:
             audiences: [] # minItems 0 of type string
             name: string
@@ -198,6 +203,11 @@ spec:
     stsSessionTokenSpec:
       auth:
         jwt:
+          roleArn: string
+          secretRef:
+            key: string
+            name: string
+            namespace: string
           serviceAccountRef:
             audiences: [] # minItems 0 of type string
             name: string

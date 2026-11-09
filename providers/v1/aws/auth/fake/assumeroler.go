@@ -35,12 +35,18 @@ type stsAPI interface {
 // AssumeRoler is a mock implementation of the AWS STS AssumeRole API.
 type AssumeRoler struct {
 	stsAPI
-	AssumeRoleFunc func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error)
+	AssumeRoleFunc                func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error)
+	AssumeRoleWithWebIdentityFunc func(input *sts.AssumeRoleWithWebIdentityInput) (*sts.AssumeRoleWithWebIdentityOutput, error)
 }
 
 // AssumeRole mocks the AWS STS AssumeRole API.
 func (f *AssumeRoler) AssumeRole(_ context.Context, params *sts.AssumeRoleInput, _ ...func(*sts.Options)) (*sts.AssumeRoleOutput, error) {
 	return f.AssumeRoleFunc(params)
+}
+
+// AssumeRoleWithWebIdentity mocks the AWS STS AssumeRoleWithWebIdentity API.
+func (f *AssumeRoler) AssumeRoleWithWebIdentity(_ context.Context, params *sts.AssumeRoleWithWebIdentityInput, _ ...func(*sts.Options)) (*sts.AssumeRoleWithWebIdentityOutput, error) {
+	return f.AssumeRoleWithWebIdentityFunc(params)
 }
 
 // CredentialsProvider is a mock implementation of the AWS credentials provider.

@@ -24,6 +24,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	ststypes "github.com/aws/aws-sdk-go-v2/service/sts/types"
 	"github.com/stretchr/testify/assert"
@@ -399,6 +400,133 @@ func TestNewSession(t *testing.T) {
 			expectedSecretKey: "4444",
 		},
 		{
+			name:      "jwt auth via secret ref",
+			namespace: esNamespaceKey,
+			secrets: []v1.Secret{
+				{
+					Name:      "oidc-token",
+					Namespace: esNamespaceKey,
+					Data:      map[string][]byte{"token": []byte("my-oidc-jwt")},
+				},
+			},
+			webIdentity: fakeWebIdentityProvider(t, "arn:aws:iam::123456789012:role/oidc", "my-oidc-jwt", "5555", "6666"),
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						AWS: &esv1.AWSProvider{
+							Auth: esv1.AWSAuth{
+								JWTAuth: &esv1.AWSJWTAuth{
+									SecretRef: &esmeta.SecretKeySelector{Name: "oidc-token", Key: "token"},
+									RoleArn:   "arn:aws:iam::123456789012:role/oidc",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectProvider:    true,
+			expectedKeyID:     "5555",
+			expectedSecretKey: "6666",
+		},
+		{
+			name:      "jwt auth via secret ref in cluster secret store",
+			namespace: esNamespaceKey,
+			secrets: []v1.Secret{
+				{
+					Name:      "oidc-token",
+					Namespace: platformTeamNsKey,
+					Data:      map[string][]byte{"token": []byte("platform-jwt")},
+				},
+			},
+			webIdentity: fakeWebIdentityProvider(t, "arn:aws:iam::123456789012:role/oidc", "platform-jwt", "5555", "6666"),
+			store: &esv1.ClusterSecretStore{
+				APIVersion: esv1.ClusterSecretStoreKindAPIVersion,
+				Kind:       esv1.ClusterSecretStoreKind,
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						AWS: &esv1.AWSProvider{
+							Auth: esv1.AWSAuth{
+								JWTAuth: &esv1.AWSJWTAuth{
+									SecretRef: &esmeta.SecretKeySelector{Name: "oidc-token", Key: "token", Namespace: aws.String(platformTeamNsKey)},
+									RoleArn:   "arn:aws:iam::123456789012:role/oidc",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectProvider:    true,
+			expectedKeyID:     "5555",
+			expectedSecretKey: "6666",
+		},
+		{
+			name:      "jwt auth via secret ref + assume role chains on top of web identity credentials",
+			namespace: esNamespaceKey,
+			secrets: []v1.Secret{
+				{
+					Name:      "oidc-token",
+					Namespace: esNamespaceKey,
+					Data:      map[string][]byte{"token": []byte("my-oidc-jwt")},
+				},
+			},
+			webIdentity: fakeWebIdentityProvider(t, "arn:aws:iam::123456789012:role/oidc", "my-oidc-jwt", "5555", "6666"),
+			stsProvider: func(cfg *aws.Config) STSprovider {
+				// the base credentials must be the ones obtained via web identity
+				creds, err := cfg.Credentials.Retrieve(context.Background())
+				assert.NoError(t, err)
+				assert.Equal(t, "5555", creds.AccessKeyID)
+				return &fakesess.AssumeRoler{
+					AssumeRoleFunc: func(input *sts.AssumeRoleInput) (*sts.AssumeRoleOutput, error) {
+						assert.Equal(t, "arn:aws:iam::222222222222:role/target", *input.RoleArn)
+						return &sts.AssumeRoleOutput{
+							Credentials: &ststypes.Credentials{
+								AccessKeyId:     aws.String("7777"),
+								SecretAccessKey: aws.String("8888"),
+								Expiration:      aws.Time(time.Now().Add(time.Hour)),
+								SessionToken:    aws.String("9999"),
+							},
+						}, nil
+					},
+				}
+			},
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						AWS: &esv1.AWSProvider{
+							Role: "arn:aws:iam::222222222222:role/target",
+							Auth: esv1.AWSAuth{
+								JWTAuth: &esv1.AWSJWTAuth{
+									SecretRef: &esmeta.SecretKeySelector{Name: "oidc-token", Key: "token"},
+									RoleArn:   "arn:aws:iam::123456789012:role/oidc",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectProvider:    true,
+			expectedKeyID:     "7777",
+			expectedSecretKey: "8888",
+		},
+		{
+			name:      "jwt auth via secret ref without roleArn",
+			namespace: esNamespaceKey,
+			expectErr: errJWTSecretRefRequiresRoleArn,
+			store: &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{
+					Provider: &esv1.SecretStoreProvider{
+						AWS: &esv1.AWSProvider{
+							Auth: esv1.AWSAuth{
+								JWTAuth: &esv1.AWSJWTAuth{
+									SecretRef: &esmeta.SecretKeySelector{Name: "oidc-token", Key: "token"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "configure aws using environment variables + assume role + check external id",
 			stsProvider: func(_ *aws.Config) STSprovider {
 				return &fakesess.AssumeRoler{
@@ -452,6 +580,7 @@ type TestSessionRow struct {
 	secrets           []v1.Secret
 	sa                *v1.ServiceAccount
 	jwtProvider       jwtProviderFactory
+	webIdentity       WebIdentityProviderFactory
 	namespace         string
 	stsProvider       STSProvider
 	expectProvider    bool
@@ -480,11 +609,12 @@ func testRow(t *testing.T, row TestSessionRow) {
 	})
 	assert.Nil(t, err)
 	s, err := New(context.Background(), Opts{
-		Store:       row.store,
-		Kube:        kc,
-		Namespace:   row.namespace,
-		AssumeRoler: row.stsProvider,
-		JWTProvider: row.jwtProvider,
+		Store:               row.store,
+		Kube:                kc,
+		Namespace:           row.namespace,
+		AssumeRoler:         row.stsProvider,
+		JWTProvider:         row.jwtProvider,
+		WebIdentityProvider: row.webIdentity,
 	})
 	if !ErrorContains(err, row.expectErr) {
 		t.Errorf("expected error %s but found %s", row.expectErr, err.Error())
@@ -806,6 +936,101 @@ func TestNewGeneratorSession_DefaultCredentialChainFallback(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEmpty(t, creds.AccessKeyID)
 	assert.NotEmpty(t, creds.SecretAccessKey)
+}
+
+// fakeWebIdentityProvider asserts the role ARN and the token read from the
+// Secret, and returns static credentials.
+func fakeWebIdentityProvider(t *testing.T, wantRoleArn, wantToken, keyID, secretKey string) WebIdentityProviderFactory {
+	t.Helper()
+	return func(roleArn, _ string, tokenFetcher stscreds.IdentityTokenRetriever) (aws.CredentialsProvider, error) {
+		assert.Equal(t, wantRoleArn, roleArn)
+		return fakesess.CredentialsProvider{
+			RetrieveFunc: func() (aws.Credentials, error) {
+				token, err := tokenFetcher.GetIdentityToken()
+				if err != nil {
+					return aws.Credentials{}, err
+				}
+				assert.Equal(t, wantToken, string(token))
+				return aws.Credentials{AccessKeyID: keyID, SecretAccessKey: secretKey, SessionToken: "token", Source: "fake"}, nil
+			},
+		}, nil
+	}
+}
+
+func TestDefaultWebIdentityProvider(t *testing.T) {
+	ctx := context.Background()
+	kube := clientfake.NewClientBuilder().Build()
+	assert.NoError(t, kube.Create(ctx, &v1.Secret{
+		Name: "oidc-token", Namespace: "test-ns",
+		Data: map[string][]byte{"token": []byte("my-oidc-jwt")},
+	}))
+
+	called := false
+	stsClient := &fakesess.AssumeRoler{
+		AssumeRoleWithWebIdentityFunc: func(input *sts.AssumeRoleWithWebIdentityInput) (*sts.AssumeRoleWithWebIdentityOutput, error) {
+			called = true
+			assert.Equal(t, "arn:aws:iam::123456789012:role/oidc", *input.RoleArn)
+			assert.Equal(t, "my-oidc-jwt", *input.WebIdentityToken)
+			assert.Equal(t, "external-secrets-provider-aws", *input.RoleSessionName)
+			return &sts.AssumeRoleWithWebIdentityOutput{
+				Credentials: &ststypes.Credentials{
+					AccessKeyId:     aws.String("WEBID_KEY"),
+					SecretAccessKey: aws.String("WEBID_SECRET"),
+					SessionToken:    aws.String("WEBID_TOKEN"),
+					Expiration:      aws.Time(time.Now().Add(time.Hour)),
+				},
+			}, nil
+		},
+	}
+
+	creds, err := credsFromJWTSecretRef(esv1.AWSAuth{
+		JWTAuth: &esv1.AWSJWTAuth{
+			SecretRef: &esmeta.SecretKeySelector{Name: "oidc-token", Key: "token"},
+			RoleArn:   "arn:aws:iam::123456789012:role/oidc",
+		},
+	}, "eu-west-1", "", kube, "test-ns", func(roleArn, _ string, tokenFetcher stscreds.IdentityTokenRetriever) (aws.CredentialsProvider, error) {
+		return stscreds.NewWebIdentityRoleProvider(stsClient, roleArn, tokenFetcher, func(o *stscreds.WebIdentityRoleOptions) {
+			o.RoleSessionName = "external-secrets-provider-aws"
+		}), nil
+	})
+	assert.NoError(t, err)
+
+	got, err := creds.Retrieve(ctx)
+	assert.NoError(t, err)
+	assert.True(t, called)
+	assert.Equal(t, "WEBID_KEY", got.AccessKeyID)
+	assert.Equal(t, "WEBID_SECRET", got.SecretAccessKey)
+}
+
+func TestNewGeneratorSession_JWTSecretRef(t *testing.T) {
+	ctx := context.Background()
+	k8sClient := clientfake.NewClientBuilder().Build()
+
+	t.Run("requires roleArn", func(t *testing.T) {
+		_, err := NewGeneratorSession(ctx, esv1.AWSAuth{
+			JWTAuth: &esv1.AWSJWTAuth{
+				SecretRef: &esmeta.SecretKeySelector{Name: "oidc-token", Key: "token"},
+			},
+		}, "", "us-east-1", k8sClient, "test-ns", DefaultSTSProvider, DefaultJWTProvider)
+		assert.ErrorContains(t, err, errJWTSecretRefRequiresRoleArn)
+	})
+
+	t.Run("does not use service account flow", func(t *testing.T) {
+		cfg, err := NewGeneratorSession(ctx, esv1.AWSAuth{
+			JWTAuth: &esv1.AWSJWTAuth{
+				SecretRef: &esmeta.SecretKeySelector{Name: "oidc-token", Key: "token"},
+				RoleArn:   "arn:aws:iam::123456789012:role/oidc",
+			},
+		}, "", "us-east-1", k8sClient, "test-ns", DefaultSTSProvider, func(_, _, _ string, _ []string, _ string) (aws.CredentialsProvider, error) {
+			t.Fatal("service account jwt provider must not be called for jwt.secretRef")
+			return nil, nil
+		})
+		assert.NoError(t, err)
+		assert.NotNil(t, cfg)
+		cache, ok := cfg.Credentials.(*aws.CredentialsCache)
+		assert.True(t, ok)
+		assert.True(t, cache.IsCredentialsProvider(&stscreds.WebIdentityRoleProvider{}))
+	})
 }
 
 func TestCredentialsProviderName(t *testing.T) {

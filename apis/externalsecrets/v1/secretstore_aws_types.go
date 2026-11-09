@@ -46,9 +46,25 @@ type AWSAuthSecretRef struct {
 	SessionToken *esmeta.SecretKeySelector `json:"sessionTokenSecretRef,omitempty"`
 }
 
-// AWSJWTAuth stores reference to Authenticate against AWS using service account tokens.
+// AWSJWTAuth stores reference to Authenticate against AWS using service account tokens
+// or a JWT stored in a Kubernetes Secret.
+// Only one of serviceAccountRef or secretRef can be specified.
 type AWSJWTAuth struct {
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+
+	// SecretRef references a key in a Secret that holds a JWT, e.g. one issued
+	// by an OIDC identity provider other than the cluster's service account issuer.
+	// The token is read from the Secret every time credentials are refreshed and
+	// exchanged for AWS credentials using sts:AssumeRoleWithWebIdentity.
+	// Requires roleArn to be set.
+	// +optional
+	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+
+	// RoleArn is the ARN of the IAM role to assume with the JWT referenced by secretRef.
+	// Required when secretRef is set. Not supported with serviceAccountRef,
+	// which takes the role from the eks.amazonaws.com/role-arn annotation.
+	// +optional
+	RoleArn string `json:"roleArn,omitempty"`
 }
 
 // AWSServiceType is a enum that defines the service/API that is used to fetch the secrets.
