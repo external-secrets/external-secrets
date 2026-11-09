@@ -232,17 +232,25 @@ func GetManagedLabelKeys(secret *v1.Secret, fieldOwner string) ([]string, error)
 	})
 }
 
+// FieldOwner returns the field manager name ESO writes under for the named resource. Readers
+// of managedFields and writers must agree on this string exactly, so it is derived in one
+// place here; deriving it separately is what let the two drift apart.
+func FieldOwner(name string) string {
+	// If the name is just too big, use the SHA3 hash of the name
+	// Done this way for backwards compatibility thus avoiding breaking changes
+	fqdn := fmt.Sprintf(fieldOwnerTemplate, name)
+	if len(fqdn) > 63 {
+		fqdn = fmt.Sprintf(fieldOwnerTemplateSha, sha3.Sum224([]byte(name)))
+	}
+	return fqdn
+}
+
 func getManagedFieldKeys(
 	secret *v1.Secret,
 	fieldOwner string,
 	process func(fields map[string]any) []string,
 ) ([]string, error) {
-	// If secret name is just too big, use the SHA3 hash of the secret name
-	// Done this way for backwards compatibility thus avoiding breaking changes
-	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
-	if len(fieldOwner) > 63 {
-		fqdn = fmt.Sprintf(fieldOwnerTemplateSha, sha3.Sum224([]byte(fieldOwner)))
-	}
+	fqdn := FieldOwner(fieldOwner)
 	var keys []string
 	for _, v := range secret.ObjectMeta.ManagedFields {
 		if v.Manager != fqdn {
