@@ -31,8 +31,11 @@ import (
 
 	infisicalSdk "github.com/infisical/go-sdk"
 	. "github.com/onsi/ginkgo/v2"
+	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	crclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
@@ -53,10 +56,24 @@ const (
 	infisicalOrgName       = "eso-e2e"
 	infisicalProjectName   = "eso-e2e"
 	infisicalProjectSlug   = "eso-e2e-tests"
+
+	// InfisicalKubernetesAuthServiceAccount is the only ServiceAccount name the
+	// Kubernetes auth identity accepts, so a login with the controller's own
+	// token fails.
+	InfisicalKubernetesAuthServiceAccount = "infisical-e2e"
+	// InfisicalKubernetesAuthAudience is the only token audience the
+	// Kubernetes auth identity accepts.
+	InfisicalKubernetesAuthAudience = "infisical-e2e"
+	// infisicalTokenReviewer names the ServiceAccount, and its
+	// ClusterRoleBinding, that Infisical uses to review login tokens.
+	infisicalTokenReviewer = "infisical-token-reviewer"
+	// The FQDN, because Infisical resolves the host without search domains.
+	infisicalKubernetesHost = "https://kubernetes.default.svc.cluster.local"
 )
 
 // Infisical deploys a self-hosted Infisical into the cluster and provisions a
-// project plus a Universal Auth machine identity for the e2e suite to use.
+// project plus a Universal Auth and a Kubernetes auth machine identity for the
+// e2e suite to use.
 type Infisical struct {
 	chart         *HelmChart
 	Namespace     string
@@ -74,6 +91,10 @@ type Infisical struct {
 	ProjectID       string
 	ProjectSlug     string
 	EnvironmentSlug string
+
+	// KubernetesIdentityID is a second machine identity, which logs in with
+	// Kubernetes auth as InfisicalKubernetesAuthServiceAccount.
+	KubernetesIdentityID string
 
 	// SDKClient is logged in via Universal Auth and used by the suite to seed
 	// and remove backend secrets.
@@ -167,6 +188,7 @@ func (l *Infisical) cleanup() {
 		l.portForwarder = nil
 	}
 	_ = l.chart.Uninstall()
+	_ = l.deleteTokenReviewerBinding()
 	_ = l.chart.config.KubeClientSet.CoreV1().Namespaces().Delete(GinkgoT().Context(), l.Namespace, metav1.DeleteOptions{})
 }
 
@@ -198,6 +220,9 @@ func (l *Infisical) createInstanceSecret() error {
 			"ENCRYPTION_KEY": hex.EncodeToString(encKey),
 			"AUTH_SECRET":    base64.StdEncoding.EncodeToString(authSecret),
 			"SITE_URL":       l.HostAPI,
+			// Kubernetes auth reviews tokens at the in-cluster API server,
+			// which has a private IP that Infisical refuses by default.
+			"ALLOW_INTERNAL_IP_CONNECTIONS": "true",
 		}
 		return nil
 	})
@@ -220,7 +245,8 @@ func (l *Infisical) waitForAPI() error {
 }
 
 // bootstrap initializes a fresh instance and provisions everything the suite
-// needs: an admin identity, a project, and a Universal Auth machine identity.
+// needs: an admin identity, a project, a Universal Auth machine identity, and
+// a Kubernetes auth machine identity.
 func (l *Infisical) bootstrap() error {
 	var boot struct {
 		Identity struct {
@@ -261,27 +287,9 @@ func (l *Infisical) bootstrap() error {
 	l.ProjectSlug = project.Project.Slug
 	l.EnvironmentSlug = pickEnvironment(project.Project.Environments)
 
-	// Create the machine identity, then grant it admin access to the project.
-	// The org role alone does not confer project access, so without the
-	// membership the identity gets a 403 on secret operations.
-	var identity struct {
-		Identity struct {
-			ID string `json:"id"`
-		} `json:"identity"`
-	}
-	if err := l.apiCall(http.MethodPost, "/api/v1/identities", token, map[string]any{
-		"name":           "eso-e2e",
-		"organizationId": boot.Organization.ID,
-		"role":           "member",
-	}, &identity); err != nil {
-		return fmt.Errorf("create identity: %w", err)
-	}
-	identityID := identity.Identity.ID
-
-	if err := l.apiCall(http.MethodPost, "/api/v2/workspace/"+l.ProjectID+"/identity-memberships/"+identityID, token, map[string]any{
-		"role": "admin",
-	}, nil); err != nil {
-		return fmt.Errorf("add identity to project: %w", err)
+	identityID, err := l.createProjectIdentity(token, boot.Organization.ID, "eso-e2e")
+	if err != nil {
+		return err
 	}
 
 	trustedIPs := []map[string]string{{"ipAddress": "0.0.0.0/0"}, {"ipAddress": "::/0"}}
@@ -313,7 +321,114 @@ func (l *Infisical) bootstrap() error {
 	}
 	l.ClientSecret = secret.ClientSecret
 
+	return l.bootstrapKubernetesAuth(token, boot.Organization.ID, trustedIPs)
+}
+
+// createProjectIdentity creates a machine identity, then grants it admin
+// access to the project. The org role alone does not confer project access,
+// so without the membership the identity gets a 403 on secret operations.
+func (l *Infisical) createProjectIdentity(token, orgID, name string) (string, error) {
+	var identity struct {
+		Identity struct {
+			ID string `json:"id"`
+		} `json:"identity"`
+	}
+	if err := l.apiCall(http.MethodPost, "/api/v1/identities", token, map[string]any{
+		"name":           name,
+		"organizationId": orgID,
+		"role":           "member",
+	}, &identity); err != nil {
+		return "", fmt.Errorf("create identity %s: %w", name, err)
+	}
+	identityID := identity.Identity.ID
+
+	if err := l.apiCall(http.MethodPost, "/api/v2/workspace/"+l.ProjectID+"/identity-memberships/"+identityID, token, map[string]any{
+		"role": "admin",
+	}, nil); err != nil {
+		return "", fmt.Errorf("add identity %s to project: %w", name, err)
+	}
+	return identityID, nil
+}
+
+// bootstrapKubernetesAuth provisions the identity that serviceAccountRef
+// stores log in as. Infisical checks each login token with a TokenReview at
+// the cluster API server, signed with the token reviewer's own token.
+func (l *Infisical) bootstrapKubernetesAuth(token, orgID string, trustedIPs []map[string]string) error {
+	identityID, err := l.createProjectIdentity(token, orgID, "eso-e2e-kubernetes")
+	if err != nil {
+		return err
+	}
+
+	reviewerJWT, err := l.createTokenReviewer()
+	if err != nil {
+		return fmt.Errorf("create token reviewer: %w", err)
+	}
+	rootCA, err := l.chart.config.KubeClientSet.CoreV1().ConfigMaps(l.Namespace).Get(GinkgoT().Context(), "kube-root-ca.crt", metav1.GetOptions{})
+	if err != nil {
+		return fmt.Errorf("read cluster CA: %w", err)
+	}
+
+	if err := l.apiCall(http.MethodPost, "/api/v1/auth/kubernetes-auth/identities/"+identityID, token, map[string]any{
+		"kubernetesHost":          infisicalKubernetesHost,
+		"caCert":                  rootCA.Data["ca.crt"],
+		"tokenReviewerJwt":        reviewerJWT,
+		"tokenReviewMode":         "api",
+		"allowedNamespaces":       "",
+		"allowedNames":            InfisicalKubernetesAuthServiceAccount,
+		"allowedAudience":         InfisicalKubernetesAuthAudience,
+		"accessTokenTTL":          2592000,
+		"accessTokenMaxTTL":       2592000,
+		"accessTokenNumUsesLimit": 0,
+		"accessTokenTrustedIps":   trustedIPs,
+	}, nil); err != nil {
+		return fmt.Errorf("attach kubernetes auth: %w", err)
+	}
+	l.KubernetesIdentityID = identityID
 	return nil
+}
+
+// createTokenReviewer creates a ServiceAccount that may review tokens and
+// returns a token for it that outlives the suite.
+func (l *Infisical) createTokenReviewer() (string, error) {
+	ctx := GinkgoT().Context()
+	sa := &v1.ServiceAccount{ObjectMeta: metav1.ObjectMeta{Name: infisicalTokenReviewer, Namespace: l.Namespace}}
+	if _, err := controllerutil.CreateOrUpdate(ctx, l.chart.config.CRClient, sa, func() error { return nil }); err != nil {
+		return "", err
+	}
+
+	crb := &rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: infisicalTokenReviewer}}
+	if _, err := controllerutil.CreateOrUpdate(ctx, l.chart.config.CRClient, crb, func() error {
+		crb.Subjects = []rbacv1.Subject{
+			{
+				Kind:      rbacv1.ServiceAccountKind,
+				Name:      infisicalTokenReviewer,
+				Namespace: l.Namespace,
+			},
+		}
+		crb.RoleRef = rbacv1.RoleRef{
+			APIGroup: rbacv1.GroupName,
+			Kind:     "ClusterRole",
+			Name:     "system:auth-delegator",
+		}
+		return nil
+	}); err != nil {
+		return "", err
+	}
+
+	tr, err := l.chart.config.KubeClientSet.CoreV1().ServiceAccounts(l.Namespace).CreateToken(ctx, infisicalTokenReviewer, &authv1.TokenRequest{
+		Spec: authv1.TokenRequestSpec{ExpirationSeconds: new(int64(24 * 60 * 60))},
+	}, metav1.CreateOptions{})
+	if err != nil {
+		return "", err
+	}
+	return tr.Status.Token, nil
+}
+
+// deleteTokenReviewerBinding removes the cluster-scoped binding, which the
+// namespace delete does not.
+func (l *Infisical) deleteTokenReviewerBinding() error {
+	crb := &rbacv1.ClusterRoleBinding{ObjectMeta: metav1.ObjectMeta{Name: infisicalTokenReviewer}}
+	return crclient.IgnoreNotFound(l.chart.config.CRClient.Delete(GinkgoT().Context(), crb))
 }
 
 // pickEnvironment returns the "dev" environment slug when present, otherwise the
@@ -386,6 +501,9 @@ func (l *Infisical) Uninstall() error {
 		l.portForwarder = nil
 	}
 	if err := l.chart.Uninstall(); err != nil {
+		return err
+	}
+	if err := l.deleteTokenReviewerBinding(); err != nil {
 		return err
 	}
 	return l.chart.config.KubeClientSet.CoreV1().Namespaces().Delete(GinkgoT().Context(), l.Namespace, metav1.DeleteOptions{})
