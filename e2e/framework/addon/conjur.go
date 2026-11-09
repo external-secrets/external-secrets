@@ -416,14 +416,16 @@ func (l *Conjur) patchAuthenticatorServiceSidecar() error {
 	deployment.Spec.Template.Spec.Volumes = append(deployment.Spec.Template.Spec.Volumes, binVolume)
 	deployment.Spec.Template.Spec.InitContainers = append(deployment.Spec.Template.Spec.InitContainers, corev1.Container{
 		Name:         "authenticator-service-fetch",
-		Image:        "curlimages/curl:8.11.0",
+		// Pinned release: curlimages/curl:8.23.0 (curl; tracking 8.x)
+		Image:        "curlimages/curl@sha256:11e64e28c5f58c8d93ee95fcf22ac055f48b0bc440e0ce7d8013bbb5ad6aa8ac",
 		Command:      []string{"/bin/sh", "-c"},
 		Args:         []string{authenticatorServiceInitScript},
 		VolumeMounts: []corev1.VolumeMount{binVolumeMount},
 	})
 	deployment.Spec.Template.Spec.Containers = append(deployment.Spec.Template.Spec.Containers, corev1.Container{
 		Name:         authenticatorServiceContainerName,
-		Image:        "gcr.io/distroless/static-debian12:latest",
+		// Pinned release: gcr.io/distroless/static-debian13:latest (Distroless static; Debian 13)
+		Image:        "gcr.io/distroless/static-debian13@sha256:034df5c1737e8241f6ed6423a12e720ee0f6d6f088609ee172f98f6f2166ef5d",
 		Command:      []string{"/authsvc/authenticator-service"},
 		Args:         []string{"-c", "/authsvc/config.json"},
 		VolumeMounts: []corev1.VolumeMount{binVolumeMount},

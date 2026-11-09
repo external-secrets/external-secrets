@@ -1,4 +1,5 @@
-FROM registry.access.redhat.com/ubi9/ubi@sha256:803a35a0a8e6a84e8d8b00ae862ac501526211c9b11a61b0fda2afe9c6e4834f AS minimal-ubi
+# Pinned release: registry.access.redhat.com/ubi9/ubi:9.8 (Red Hat UBI; tracking 9.x)
+FROM registry.access.redhat.com/ubi9/ubi@sha256:217dd5692d369799d34d09ffb6f5f3404efebc7900834490fdf9ae92fd6721d4 AS minimal-ubi
 
 # Add metadata
 LABEL maintainer="cncf-externalsecretsop-maintainers@lists.cncf.io" \

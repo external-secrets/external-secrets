@@ -262,7 +262,7 @@ func TestProviderGetSecretMap(t *testing.T) {
 				}
 			},
 			assertError: func(t *testing.T, err error) {
-				require.ErrorContains(t, err, "found more than 1 fields with title 'name' in 'key', got 2")
+				require.ErrorContains(t, err, "found more than 1 fields with title 'name', got 2")
 			},
 			ref: v1.ExternalSecretDataRemoteRef{
 				Key:      "key",

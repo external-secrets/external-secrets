@@ -49,6 +49,7 @@ Setting `--loglevel=debug` (Helm: `log.level: debug`) enables additional log lin
 - **Managed secret cleanup** -- logged when a managed Secret is deleted because its owning ExternalSecret was deleted. Fields: `secret`, `namespace`, `reason`.
 - **Orphaned secret cleanup** -- logged when an orphaned Secret is deleted. Fields: `secret`, `namespace`.
 - **Secret data key diff** -- logged after every update where data keys actually changed (keys added, updated, removed, or emptied). Only key names are logged, never their values. Fields: `secret`, `namespace`, `added`, `updated`, `removed`, `emptied`.
+- **ExternalSecret template render** -- logs `template render started` and `template render finished` for Secret and generic targets, with the ExternalSecret namespace/name but no template or secret values. An unmatched start in the previous pod's logs can help locate a render interrupted by an OOM kill, but logs may not flush before the process dies and multiple renders can run concurrently.
 
 These messages can be used to build alerting rules on destructive operations. The diff computation is skipped entirely when debug logging is not enabled, so there is no performance impact at the default log level.
 
