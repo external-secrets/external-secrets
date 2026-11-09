@@ -5,10 +5,8 @@ go 1.27.0
 require (
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
-	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.12.1
 	github.com/tidwall/gjson v1.20.0
-	github.com/yandex-cloud/go-sdk v0.40.0
 	gitlab.com/gitlab-org/api/client-go v1.46.0
 	k8s.io/api v0.37.1
 	sigs.k8s.io/controller-runtime v0.25.2
@@ -27,7 +25,6 @@ require (
 	github.com/fatih/color v1.19.0 // indirect
 	github.com/fsnotify/fsnotify v1.10.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.6 // indirect
-	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-openapi/jsonpointer v1.0.2 // indirect
 	github.com/go-openapi/jsonreference v1.0.3 // indirect
@@ -46,6 +43,7 @@ require (
 	github.com/goccy/go-json v0.11.2 // indirect
 	github.com/google/gnostic-models v0.7.1 // indirect
 	github.com/google/go-querystring v1.2.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/hashicorp/go-cleanhttp v0.5.2 // indirect
 	github.com/hashicorp/go-retryablehttp v0.7.8 // indirect
 	github.com/huandu/xstrings v1.6.3 // indirect
@@ -75,7 +73,6 @@ require (
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.2 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	github.com/yandex-cloud/go-genproto v0.130.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.58.0 // indirect
@@ -87,13 +84,9 @@ require (
 	golang.org/x/text v0.43.0 // indirect
 	golang.org/x/time v0.16.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.5.0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20261019180522-ce908d29299b // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20261019180522-ce908d29299b // indirect
-	google.golang.org/grpc v1.84.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
 	gopkg.in/evanphx/json-patch.v4 v4.13.0 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiextensions-apiserver v0.37.1 // indirect
 	k8s.io/apimachinery v0.37.1 // indirect
 	k8s.io/client-go v0.37.1 // indirect
