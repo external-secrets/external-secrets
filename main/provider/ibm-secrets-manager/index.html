@@ -5749,7 +5749,7 @@ Below example creates a kubernetes secret based on ID of the secret in Secrets M
 <div class="highlight"><pre><span></span><code>kubectl get secret secret-to-be-created -n &lt;namespace&gt; | -o jsonpath=&#39;{.data.test}&#39; | base64 -d
 </code></pre></div></p>
 <h3 id="populating-the-kubernetes-secret-with-metadata-from-ibm-secrets-manager-provider">Populating the Kubernetes secret with metadata from IBM Secrets Manager Provider</h3>
-<p>ESO can add metadata while creating or updating a Kubernetes secret to be reflected in its labels or annotations. The metadata could be any of the fields that are supported and returned in the response by IBM Secrets Manager.</p>
+<p>ESO can add metadata while creating or updating a Kubernetes secret to be reflected in its labels or annotations. The metadata could be any of the fields that are supported and returned in the response by IBM Secrets Manager. Optional metadata fields, such as a private certificate's <code>issuer</code>, are omitted when IBM Secrets Manager does not return them.</p>
 <p>In order for the user to opt in to adding metadata to secret, an existing optional field <code>spec.dataFrom.extract.metadataPolicy</code> can be set to <code>Fetch</code>, its default value being <code>None</code>. In addition to this, templating provided be ESO can be leveraged to specify the key-value pairs of the resultant secrets' labels and annotation.</p>
 <p>In order for the required metadata to be populated in the Kubernetes secret, combination of below should be provided in the External Secrets resource:</p>
 <ol>
