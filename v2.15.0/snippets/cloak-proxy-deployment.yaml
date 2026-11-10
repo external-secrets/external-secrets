@@ -1,0 +1,28 @@
+# The cloak external secrets proxy
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloak-external-secrets
+  namespace: external-secrets
+spec:
+  selector:
+    matchLabels:
+      app: cloak-external-secrets
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: cloak-external-secrets
+    spec:
+      containers:
+      - name: cloak-external-secrets
+        image: purtontech/cloak-external-secrets:latest
+        imagePullPolicy: IfNotPresent
+        env: 
+          - name: ECDH_PRIVATE_KEY 
+            valueFrom: 
+              secretKeyRef: 
+                name: cloak-key 
+                key: ecdh_private_key 
+        ports:
+        - containerPort: 7105

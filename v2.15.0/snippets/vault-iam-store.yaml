@@ -1,0 +1,24 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: vault-backend-aws-iam
+spec:
+  provider:
+    vault:
+      server: "http://my.vault.server:8200"
+      path: secret
+      version: v2
+      namespace: <vault_namespace>
+      auth:
+        iam:
+          # Path where the AWS auth method is enabled in Vault, e.g: "aws/". Defaults to aws
+          path: aws
+          # AWS Region. Defaults to us-east-1
+          region: us-east-1
+          # Vault Role. In vault, a role describes an identity with a set of permissions, groups, or policies you want to attach a user of the secrets engine
+          vaultRole: vault-role-for-aws-iam-auth
+          # Optional. Placeholder to supply header X-Vault-AWS-IAM-Server-ID. It is an additional (optional) header used by Vault IAM auth method to mitigate against different types of replay attacks. More details here: https://developer.hashicorp.com/vault/docs/auth/aws
+          vaultAwsIamServerID: example-vaultAwsIamServerID
+          jwt:
+            serviceAccountRef:
+              name: my-serviceaccount #Provide service account with IRSA enabled

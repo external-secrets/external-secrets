@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: gitlab-secret
+  labels: 
+    type: gitlab
+type: Opaque 
+stringData:
+  token: "**access token goes here**"

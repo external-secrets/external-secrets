@@ -1,0 +1,8 @@
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: SSHKey
+metadata:
+  name: example-ecdsa-key
+spec:
+  keyType: "ecdsa"
+  keySize: 521
+  comment: "ecdsa@example.com"

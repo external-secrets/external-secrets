@@ -1,0 +1,15 @@
+---
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: gitlab-deploy-token
+spec:
+  refreshInterval: "1h"
+  target:
+    name: gitlab-deploy-token # Name for the secret to be created on the cluster
+  dataFrom:
+    - sourceRef:
+        generatorRef:
+          apiVersion: generators.external-secrets.io/v1alpha1
+          kind: GitlabDeployToken
+          name: gitlab-deploy-token
