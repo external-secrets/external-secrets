@@ -109,29 +109,6 @@ framework changes and the spec documents. The protobuf contract is byte-for-byte
 identical across #5527, #6245 and #6710. `#5527` was closed by its reviewers in
 favour of `#6245` because of the user-facing `Provider` kind.
 
-### What reviewers asked for and never got
-
-Across #6245 and #6710 the human review (evrardj-roche, alekc) converges on a
-short list that was still open before this revision:
-
-- a design document explaining *why* the indirection (`SecretStore` →
-  `ProviderClass` → provider CR) exists, instead of AI-generated spec dumps;
-- delivery as independently reviewable chunks behind a flag, not a 20–60k LOC
-  blob ("Rebasing won't help the community in the long run");
-- the gRPC protocol documented (#7215) and the validation boundary documented
-  (#7214);
-- mTLS concerns: the client key stored in a Secret the provider can read, a
-  ten-year certificate validity, CA/server/client generation in one function,
-  a `tls_enabled` metric that advertises a plaintext mode;
-- protocol concerns: stateless provider vs. provider that reads Kubernetes,
-  streaming for large `GetAllSecrets`, gRPC status ↔ ESO error mapping, a
-  notification when a store moves to another runtime;
-- do not change `v1beta1`; split the capabilities refactor and the
-  `common.go` refactor out of the big PR;
-- consider building the provider server out of tree so that the contract
-  cannot be changed silently.
-
-Every item above now has a decision in this document set.
 
 ## Assessment of the proof of concept against the goals
 
@@ -171,28 +148,6 @@ What must change before any of it merges:
 | 395-line connection pool with health-check goroutines, 575-line client with per-call verbose logging | More code than the problem needs; gRPC `ClientConn` already multiplexes | One `ClientConn` per `ProviderClass` generation, in a small cache (D10) |
 | `GeneratorProvider` gRPC service and adapter exist, but no core path ever calls them (`GeneratorRef` has no runtime indirection) | Dead surface in the first milestone | Generators out of scope for milestone 1; separate design (N2) |
 | `AuthenticationScope` type added to `apis` and unused | API noise | Dropped; scope rules are expressed by `providerRef.namespace` rules in [API.md](./API.md) |
-
-### Which branch is closest to done
-
-- **#6710 is closest to a mergeable state** by distance: 267 files, +13.5k
-  hand-written lines, CI red (`check-diff`, `unit-tests`, SonarCloud), one
-  positive high-level review. It still cannot be reviewed as one PR, and it has
-  the structural problems above.
-- **#6245 is the most complete proof** that the shape works: three real
-  providers (fake, kubernetes, aws with SecretsManager + ParameterStore and the
-  ECR/STS generators), a helm chart that deploys providers, the e2e suite
-  running against them, and the written rationale (the `docs/superpowers/`
-  specs). It should be kept as the reference branch and mined, not merged.
-- **#5527** is superseded by its author.
-- **#6632** (OCI packages) is the only design that delivers runtime install
-  and upgrade of providers, at the price of a privileged package manager that
-  installs CRDs and creates RBAC. The core does not need that to meet the
-  goals; a Helm chart per provider does. The useful part of #6632, a
-  registration object that advertises served kinds and capabilities, is
-  covered by `ProviderClass.status`.
-
-Roughly 60% of #6710's hand-written code is reusable once relocated and
-trimmed; [ROADMAP.md](./ROADMAP.md) lists the file-to-PR mapping.
 
 ## Decisions
 
