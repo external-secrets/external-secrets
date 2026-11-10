@@ -254,8 +254,9 @@ spec:
     #   no namespace on a reference -> SecretStore: this store's namespace
     #                                  ClusterSecretStore: the CALLER's (ExternalSecret)
     #                                  namespace = referent authentication
-    #   explicit namespace          -> honoured only through a ClusterSecretStore;
+        #   explicit namespace          -> honoured only through a ClusterSecretStore;
     #                                  REJECTED BY THE PROVIDER through a SecretStore
+    #                                  unless it equals the CR's own namespace
     # so one CR serves every namespace the store's conditions admit.
     # providerRef validation happens on the ESO controller (CEL + runtime); the
     # credential-reference rule is enforced by the provider (it alone sees the CR).
@@ -374,15 +375,17 @@ spec:
     # serverName: ""
 
   # auth: optional. How ESO proves ITSELF to the provider. Zero or more mechanisms.
-  #   default (controller): {clientCertificate: {}} for an address with TLS; nothing for a socket.
+    #   default (controller): {clientCertificate: {}} for an address with TLS; nothing for a socket.
+  #   An explicit empty `auth: {}` suppresses that default: no mechanism at all.
   #   CEL: auth requires tls.enabled (nothing authenticates over cleartext).
   #   CEL: a socket endpoint has no auth (the container boundary is the identity).
-  #   An address with TLS and NO mechanism is HTTPS(dev): flag; Insecure=True.
+    #   An address with TLS and `auth: {}` is HTTPS(dev): flag; Insecure=True.
   auth:
     # clientCertificate: presented in the TLS handshake; this is what makes the TLS mutual.
     #   {}         issued by the Managed issuer together with the server certificate
     #              (CEL: requires tls.issuer Managed). This is the default.
-    #   secretRef  bring your own: a Secret with client.crt and client.key
+        #   secretRef  bring your own: a kubernetes.io/tls Secret with tls.crt and tls.key, as
+    #              cert-manager writes it (optionally ca.crt)
     #              (CEL: required with tls.issuer External, forbidden with Managed).
     #              ProviderClass: secretRef.namespace must be empty (CEL);
     #              ClusterProviderClass: required (CEL).
@@ -467,7 +470,7 @@ The rows are named after the compositions this design set is asked to support. T
 | **HTTPS+MTLS, managed** (default) | `address` | `grpc` | `enabled`, `issuer: Managed` | `clientCertificate: {}`, issued by the same issuer | no | in-cluster production with no external PKI |
 | **HTTPS+MTLS, external PKI** | `address` | `grpc` | `enabled`, `issuer: External`, `caBundle` or `caRef` | `clientCertificate.secretRef` (cert-manager, corporate PKI) | no | clusters that already run a PKI |
 | **IPC** | `socket` | `grpc` | `enabled: false` | none (the container boundary) | no | clusters that cannot run any PKI; providers shipped as sidecars |
-| **HTTPS(dev)** | `address` | `grpc` | `enabled`, `issuer: External` with `caBundle`, `caRef` or `insecureSkipVerify` | none | **yes** | development; a TLS endpoint without client authentication is readable by any pod that can reach it |
+| **HTTPS(dev)** | `address` | `grpc` | `enabled`, `issuer: External` with `caBundle`, `caRef` or `insecureSkipVerify` | `auth: {}` (explicit opt-out of the default) | **yes** | development; a TLS endpoint without client authentication is readable by any pod that can reach it |
 | **HTTP(dev)** | `address` | `grpc` | `enabled: false` (HTTP/2 cleartext, h2c) | none | **yes** | local development, kind clusters |
 | **GRPC** | the wire protocol of all rows above; `protocol: grpc` is the default and the only value implemented in milestone 1 | | | | | |
 | *(reserved)* **HTTPS + ServiceAccount token** | `address` | `grpc` | `enabled`, `issuer: External`, `caBundle`/`caRef` (e.g. a chart-generated self-signed serving certificate) | `serviceAccountToken`, validated by the provider with `TokenReview` | no | the production answer for clusters without a PKI that still want network isolation and per-provider identity |
@@ -477,6 +480,7 @@ Rules the table encodes:
 
 - A `socket` endpoint has no network path: TLS is off and `auth` is absent (CEL), and the composition is not flagged insecure. Isolation is the container boundary, not the network.
 - Any `address` composition **without an `auth` mechanism**, **without TLS** (`enabled: false`), or **without server verification** (`insecureSkipVerify`) is development-only: the class controller sets `Ready=False/InsecureTransportNotAllowed` unless it runs with `--experimental-allow-insecure-provider-transport`, and sets `Insecure=True` when it does.
+- An explicit empty `auth: {}` is the opt-out of the `clientCertificate` default and the only way to express HTTPS(dev); omitting `auth` means the default.
 - `auth` needs an encrypted transport: no mechanism is accepted with `tls.enabled: false` (CEL).
 - The `Managed` issuer issues the server certificate and, when `auth.clientCertificate` is present without `secretRef`, the client certificate too. A `Managed` client certificate with an `External` server certificate is rejected (CEL): the provider would need ESO's class CA as its client CA next to another server CA, for the saving of one `Certificate` object.
 - `Managed` requires an `address` that is a Service DNS name, and for a namespaced `ProviderClass` a Service in the class's own namespace ([mTLS.md](./mTLS.md)).
@@ -488,8 +492,8 @@ CEL rules on the class (content-only; the flag check is runtime):
 | --- | --- |
 | `has(self.endpoint.address) != has(self.endpoint.socket)` | exactly one of `endpoint.address` or `endpoint.socket` must be set |
 | `!has(self.endpoint.socket) \|\| !has(self.tls) \|\| !(has(self.tls.enabled) && self.tls.enabled)` | a socket endpoint does not use TLS |
-| `!has(self.endpoint.socket) \|\| !has(self.auth)` | a socket endpoint has no client authentication |
-| `!has(self.auth) \|\| !has(self.tls) \|\| !has(self.tls.enabled) \|\| self.tls.enabled` | client authentication requires TLS |
+| `!has(self.endpoint.socket) \|\| !has(self.auth) \|\| (!has(self.auth.clientCertificate) && !has(self.auth.serviceAccountToken))` | a socket endpoint has no client authentication |
+| `!has(self.auth) \|\| (!has(self.auth.clientCertificate) && !has(self.auth.serviceAccountToken)) \|\| !has(self.tls) \|\| !has(self.tls.enabled) \|\| self.tls.enabled` | client authentication requires TLS |
 | `!has(self.tls) \|\| [has(self.tls.caBundle), has(self.tls.caRef), has(self.tls.insecureSkipVerify) && self.tls.insecureSkipVerify].filter(x, x).size() <= 1` | at most one of `caBundle`, `caRef`, `insecureSkipVerify` |
 | `!has(self.tls) \|\| !has(self.tls.issuer) \|\| self.tls.issuer != 'External' \|\| has(self.tls.caBundle) \|\| has(self.tls.caRef) \|\| (has(self.tls.insecureSkipVerify) && self.tls.insecureSkipVerify)` | the `External` issuer needs a way to verify the server |
 | `!has(self.tls) \|\| (has(self.tls.issuer) && self.tls.issuer == 'External') \|\| (!has(self.tls.caBundle) && !has(self.tls.caRef) && !(has(self.tls.insecureSkipVerify) && self.tls.insecureSkipVerify))` | the `Managed` issuer provides the server CA itself |
@@ -598,7 +602,7 @@ spec:
       name: provider-fake-serving-cert
       key: ca.crt
     # or, for a throwaway environment: insecureSkipVerify: true
-  # no auth: nothing authenticates ESO to this provider
+    auth: {}            # explicit empty auth opts out of the clientCertificate default: nothing authenticates ESO
 status:
   transport: grpc+tls
   conditions:
@@ -700,8 +704,9 @@ spec:                                # == esv1.AWSProvider minus the `service` d
                                      # this CR's namespace for a SecretStore, the CALLER's namespace for a
                                      # ClusterSecretStore (referent authentication). An explicit namespace
                                      # here is honoured only through a ClusterSecretStore and is REJECTED
-                                     # BY THE PROVIDER through a SecretStore (v1 rule; the core cannot see
-                                     # inside this CR, so it cannot pre-check it).
+                                     # BY THE PROVIDER through a SecretStore unless it equals this CR's
+                                     # namespace (v1 rule; the core cannot see inside this CR, so it
+                                     # cannot pre-check it).
                                      # The provider's RBAC can be limited to serviceaccounts/token for this
                                      # one ServiceAccount, which v1 cannot do (the core needs it everywhere)
   secretsManager:
@@ -716,14 +721,14 @@ Two namespaces are involved and they are different things: where the provider CR
 
 | Store kind | `runtimeRef.kind` | Class resolved where | `providerRef.namespace` | Provider CR lives in | Namespace-less credential refs resolve in | Explicit namespace on a credential ref |
 | --- | --- | --- | --- | --- | --- | --- |
-| `SecretStore` | omitted or `ProviderClass` | store namespace | forbidden (CEL) | store namespace | store namespace | rejected |
-| `SecretStore` | `ClusterProviderClass` | cluster | forbidden (CEL) | store namespace | store namespace | rejected |
+| `SecretStore` | omitted or `ProviderClass` | store namespace | forbidden (CEL) | store namespace | store namespace | accepted only if it equals the store namespace; otherwise rejected |
+| `SecretStore` | `ClusterProviderClass` | cluster | forbidden (CEL) | store namespace | store namespace | accepted only if it equals the store namespace; otherwise rejected |
 | `ClusterSecretStore` | omitted or `ClusterProviderClass` | cluster | required (CEL) | that namespace | caller (ES/PS) namespace: referent authentication | honoured |
 | `ClusterSecretStore` | `ProviderClass` | rejected (CEL) | – | – | – | – |
 
 This is v1's referent-authentication rule moved one object down: one `ClusterSecretStore` and one provider CR in an admin namespace serve every tenant namespace, each with its own `Secret` or `ServiceAccount`. A CR whose references all carry explicit namespaces is the non-referent case (one identity for every caller). `conditions` on the `ClusterSecretStore` continue to gate which caller namespaces may use it. The SDK applies `credential_namespace` for the provider; a provider that derives a namespace from anything else fails conformance.
 
-**Who rejects what.** The core cannot see inside the provider CR, so the explicit-namespace rule is enforced by the **provider**: a reference that carries its own namespace, used through a `SecretStore` (`allow_explicit_credential_namespace: false`), is refused by the provider with `FAILED_PRECONDITION` and the error code `ExplicitNamespaceNotAllowed`. Because a `SecretStore` is validated with its own namespace as `credential_namespace`, this surfaces at store validation as `Ready=False / ProviderValidationFailed` carrying the provider's message, before any `ExternalSecret` is touched. The core's part is limited to what it can see: the store-level rules in the table and the CEL rules above. What happens when a provider does not honour its part is covered in [PROTOCOL.md](./PROTOCOL.md) "Contract enforcement".
+**Who rejects what.** The core cannot see inside the provider CR, so the explicit-namespace rule is enforced by the **provider**: a reference that carries a namespace other than the CR's own, used through a `SecretStore` (`allow_explicit_credential_namespace: false`), is refused by the provider with `FAILED_PRECONDITION` and the error code `ExplicitNamespaceNotAllowed`; a namespace equal to the CR's own is accepted, as v1 accepts it today, so an inline spec converts unchanged. Because a `SecretStore` is validated with its own namespace as `credential_namespace`, this surfaces at store validation as `Ready=False / ProviderValidationFailed` carrying the provider's message, before any `ExternalSecret` is touched. The core's part is limited to what it can see: the store-level rules in the table and the CEL rules above. What happens when a provider does not honour its part is covered in [PROTOCOL.md](./PROTOCOL.md) "Contract enforcement".
 
 ### Status on the store
 
@@ -764,7 +769,7 @@ spec:
   auth:
     jwt:
       serviceAccountRef:
-        name: app-secrets            # no namespace; a namespace here is REJECTED BY THE PROVIDER through a SecretStore
+                name: app-secrets            # no namespace; a namespace other than team-a here is REJECTED BY THE PROVIDER
 ---
 apiVersion: external-secrets.io/v1
 kind: SecretStore
@@ -894,7 +899,7 @@ spec:
 | --- | --- | --- | --- |
 | Platform team | `ClusterProviderClass` | class, CR `aws-shared`, the store | class, CR `aws-platform`, the store |
 | Tenant | CR `aws-prod`, `SecretStore`, a `ServiceAccount` | one `ServiceAccount` | nothing |
-| Provider RBAC | `serviceaccounts/token` in served namespaces | cluster-wide `serviceaccounts/token` (opt-in) | one `Role` in `external-secrets-system` |
+| Provider RBAC (example; each provider declares the set its backend needs) | `serviceaccounts/token` in served namespaces | cluster-wide `serviceaccounts/token` (opt-in) | one `Role` in `external-secrets-system` |
 
 ## *(new)* User experience comparison
 
@@ -909,7 +914,7 @@ spec:
 
 ## *(new)* Install requirements
 
-Default path (`tls.issuer: Managed` with `auth.clientCertificate`), per provider: the provider's Helm chart installs its CRD(s), a `Deployment`, a `Service`, a `ServiceAccount`, a namespaced `Role`/`RoleBinding` (read its own CRs; read Secrets/ServiceAccounts in the namespaces it serves; see [THREAT_MODEL.md](./THREAT_MODEL.md)), an empty server-certificate Secret plus a `Role`/`RoleBinding` that allows the ESO cert-controller to fill that one Secret, a `(Cluster)ProviderClass`, and optionally a `NetworkPolicy`. On the ESO side: `providerRuntime.enabled=true` turns on the controller flag, the two class CRDs, RBAC for them, and the cert-controller issuer. No cert-manager, no new operator.
+Default path (`tls.issuer: Managed` with `auth.clientCertificate`), per provider: the provider's Helm chart installs its CRD(s), a `Deployment`, a `Service`, a `ServiceAccount`, a namespaced `Role`/`RoleBinding` (for example: read its own CRs; read Secrets/ServiceAccounts in the namespaces it serves; the exact rules are each provider's to declare; see [THREAT_MODEL.md](./THREAT_MODEL.md)), an empty server-certificate Secret plus a `Role`/`RoleBinding` that allows the ESO cert-controller to fill that one Secret, a `(Cluster)ProviderClass`, and optionally a `NetworkPolicy`. On the ESO side: `providerRuntime.enabled=true` turns on the controller flag, the two class CRDs, RBAC for them, and the cert-controller issuer. No cert-manager, no new operator.
 
 cert-manager path (`tls.issuer: External`): the user (or the provider chart, when `certManager.enabled`) creates a server `Certificate` for the provider and a client `Certificate` whose Secret the class references through `auth.clientCertificate.secretRef`. cert-controller does nothing for that class.
 
@@ -919,7 +924,7 @@ IPC path (`endpoint.socket`): no Service, no certificates, no cert-controller. T
 
 1. **Semantic migration inside `v1`.** Users replace `spec.provider.<name>` with `spec.providerRef` + `spec.runtimeRef` and create the provider CR. `esoctl migrate store` reads a v1 store and emits the provider CR and the edited store, keeping names so no `ExternalSecret` changes. Both forms coexist indefinitely; a cluster can run in-process and out-of-process stores side by side.
 2. **Chart-managed classes.** Installing a provider chart creates its `(Cluster)ProviderClass`, so the documented path is "install the provider, point the store at it".
-3. **Clean `v2alpha1` store.** Only after the `v1` clean subset is in use: `external-secrets.io/v2alpha1 SecretStore` without `spec.provider`, `runtimeRef` and `providerRef` required. Introducing it earlier would require lossless conversion between an object with an inline union and one without, which does not exist; the #6245 authors reached the same conclusion.
+3. **Clean `v2alpha1` store.** Only after the `v1` clean subset is in use: `external-secrets.io/v2alpha1 SecretStore` without `spec.provider`, `runtimeRef` and `providerRef` required. Introducing it earlier would require lossless conversion between an object with an inline union and one without, which does not exist; the #6245 authors reached the same conclusion. The path there is staged, one release each: the controller first emits deprecation warnings for inline `spec.provider` stores, then stops serving them, then the field is removed from the `v1` CRD, and only then is `v2alpha1` served.
 4. **Deprecation** of in-process providers follows PR #7124 and `DEPRECATING.md`; not part of this design.
 
 Rejected: a "compatibility mode" where a `v1` store keeps `spec.provider` and adds `runtimeRef`, with the core serialising the inline spec over the wire. #6245 implemented and then removed it: it keeps the union in the core forever and it is a by-value contract with the confused-deputy problem described in [THREAT_MODEL.md](./THREAT_MODEL.md) T11.
