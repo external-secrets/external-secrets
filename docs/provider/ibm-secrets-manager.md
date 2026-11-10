@@ -254,7 +254,12 @@ kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.tes
 ```
 
 ### Populating the Kubernetes secret with metadata from IBM Secrets Manager Provider
-ESO can add metadata while creating or updating a Kubernetes secret to be reflected in its labels or annotations. The metadata could be any of the fields that are supported and returned in the response by IBM Secrets Manager. Optional metadata fields, such as a private certificate's `issuer`, are omitted when IBM Secrets Manager does not return them.
+ESO can add metadata while creating or updating a Kubernetes secret to be reflected in its labels or annotations. The metadata could be any of the fields that are supported and returned in the response by IBM Secrets Manager. Optional metadata fields, such as a private certificate's `issuer`, are omitted from the provider data map when IBM Secrets Manager does not return them.
+
+With the v2 template engine, directly referencing a missing field (for example, `{% raw %}{{ .issuer }}{% endraw %}`) causes reconciliation to fail rather than omitting the label or annotation.
+
+Tip: Set `spec.target.template.metadata.annotations.issuer` to `{% raw %}{{ index . "issuer" | default "unknown" }}{% endraw %}` to render `unknown` when `issuer` is absent or empty.
+Tip: Store the issuer distinguished name in an annotation rather than a label, because it can contain characters that are invalid in label values.
 
 In order for the user to opt in to adding metadata to secret, an existing optional field `spec.dataFrom.extract.metadataPolicy` can be set to `Fetch`, its default value being `None`. In addition to this, templating provided be ESO can be leveraged to specify the key-value pairs of the resultant secrets' labels and annotation.
 
