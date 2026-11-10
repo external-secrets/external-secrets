@@ -10,6 +10,11 @@ Minimal manifests for the simple case are in [`examples/`](./examples/): a
 `SecretStore` that points at both. `ExternalSecret` and `PushSecret` do not
 change.
 
+By moving provider configuration to a GVK Reference under `providerRef`, this allows
+providers to not even be on the same Kubernetes Cluster as ESO - as long as they can
+translate a `providerRef` GVK into some internal config that might live in memory,
+in a database, in another kubernetes cluster, etc.
+
 ### Today: providers compiled into the controller
 
 ```mermaid
