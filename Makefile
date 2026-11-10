@@ -165,7 +165,7 @@ provider-replaces.check: ## Ensure cross-provider dependencies use local replace
 go-directive.check: ## Ensure go directives stay at a .0 patch so consumers are not forced to bump
 	@./hack/check-go-directive.sh
 
-lint: golangci-lint provider-replaces.check go-directive.check ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
+lint: golangci-lint provider-replaces.check go-directive.check bare-http-transport.check ## Run golangci-lint (set LINT_TARGET to run on specific module, LINT_JOBS for parallel jobs)
 	@if [ -n "$(LINT_TARGET)" ]; then \
 		$(INFO) Running golangci-lint on $(LINT_TARGET); \
 		(cd $(LINT_TARGET) && $(GOLANGCI_LINT) run ./...) || exit 1; \
@@ -200,6 +200,11 @@ lint: golangci-lint provider-replaces.check go-directive.check ## Run golangci-l
 		fi; \
 		$(OK) Finished linting all modules; \
 	fi
+
+.PHONY: bare-http-transport.check
+bare-http-transport.check: ## Forbid bare http.Transport literals that bypass HTTP proxy env
+	@./hack/check-bare-http-transport.sh
+	@$(OK) bare http.Transport check
 
 generate: controller-gen ## Generate code and crds
 	@CONTROLLER_GEN=$(CONTROLLER_GEN) ./hack/crd.generate.sh $(BUNDLE_DIR) $(CRD_DIR)
