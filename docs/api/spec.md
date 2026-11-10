@@ -564,8 +564,9 @@ External Secrets meta/v1.ServiceAccountSelector
 <td>
 <em>(Optional)</em>
 <p>Optional ServiceAccountRef requests a token via the TokenRequest API.
-Set audiences to match the Akeyless OAuth2 auth-method audience (and
-cluster OIDC expectations). Mutually exclusive with SecretRef.</p>
+Set audiences to match the Akeyless OAuth2 auth-method audience. When
+audiences is empty the token is requested for the &ldquo;akeyless&rdquo; audience,
+never the Kubernetes API server. Mutually exclusive with SecretRef.</p>
 </td>
 </tr>
 <tr>
@@ -578,7 +579,7 @@ int64
 <td>
 <em>(Optional)</em>
 <p>Optional expiration time in seconds for TokenRequest tokens.
-Defaults to 600 (10 minutes).</p>
+Defaults to 600 (10 minutes). Kubernetes rejects TokenRequest values below 600.</p>
 </td>
 </tr>
 </tbody>

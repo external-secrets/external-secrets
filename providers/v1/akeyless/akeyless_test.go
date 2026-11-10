@@ -573,6 +573,31 @@ func TestValidateStore(t *testing.T) {
 		_, err := provider.ValidateStore(store)
 		require.ErrorContains(t, err, errJWTAuthMissingSecretName)
 	})
+
+	t.Run("jwt auth secretRef without namespace on ClusterSecretStore", func(t *testing.T) {
+		store := &esv1.ClusterSecretStore{
+			Kind: esv1.ClusterSecretStoreKind,
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							JWTAuth: &esv1.AkeylessJWTAuth{
+								AccessID: "p-jwt",
+								SecretRef: &esmeta.SecretKeySelector{
+									Name: "akeyless-jwt",
+									Key:  "token",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		_, err := provider.ValidateStore(store)
+		require.NoError(t, err)
+	})
 }
 
 func TestGetSecretMap(t *testing.T) {

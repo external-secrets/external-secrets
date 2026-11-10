@@ -193,7 +193,7 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 			if jwtAuth.SecretRef.Name == "" {
 				return nil, errors.New(errJWTAuthMissingSecretName)
 			}
-			if err := esutils.ValidateSecretSelector(store, *jwtAuth.SecretRef); err != nil {
+			if err := esutils.ValidateReferentSecretSelector(store, *jwtAuth.SecretRef); err != nil {
 				return nil, fmt.Errorf("invalid Auth.JWTAuth.SecretRef: %w", err)
 			}
 		case hasSA:

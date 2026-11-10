@@ -26,13 +26,13 @@ import (
 )
 
 const (
-	errFetchAccessIDSecret        = "could not fetch accessID secret: %w"
-	errFetchAccessTypeSecret      = "could not fetch AccessType secret: %w"
-	errFetchAccessTypeParamSecret = "could not fetch AccessTypeParam secret: %w"
-	errMissingSAK                 = "missing SecretAccessKey"
-	errMissingAKID                = "missing AccessKeyID"
-	errMissingAccessTypeParam     = "missing AccessTypeParam for Akeyless access key auth"
-	errMissingJWT                  = "missing JWT for Akeyless jwt/oauth2 auth"
+	errFetchAccessIDSecret         = "could not fetch accessID secret: %w"
+	errFetchAccessTypeSecret       = "could not fetch AccessType secret: %w"
+	errFetchAccessTypeParamSecret  = "could not fetch AccessTypeParam secret: %w"
+	errMissingSAK                  = "missing SecretAccessKey"
+	errMissingAKID                 = "missing AccessKeyID"
+	errMissingAccessTypeParam      = "missing AccessTypeParam for Akeyless access key auth"
+	errMissingJWT                  = "missing JWT for Akeyless jwt auth"
 	errMissingJWTAccessID          = "missing AccessID for Akeyless jwtAuth"
 	errJWTAuthTokenSource          = "jwtAuth requires exactly one of secretRef or serviceAccountRef"
 	errJWTAuthBothTokenSources     = "jwtAuth: secretRef and serviceAccountRef are mutually exclusive"
@@ -42,16 +42,10 @@ const (
 
 	akeylessJWTAccessType = "jwt"
 	defaultJWTTokenTTL    = int64(600)
+	// defaultJWTAudience keeps TokenRequest from issuing a token scoped to the
+	// API server, which would be usable against the cluster if it leaked.
+	defaultJWTAudience = "akeyless"
 )
-
-func isJWTAccessType(accessType string) bool {
-	switch accessType {
-	case "jwt", "oauth2":
-		return true
-	default:
-		return false
-	}
-}
 
 func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 	prov, err := GetAKeylessProvider(a.store)
@@ -112,7 +106,7 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 	if (accessType == "api_key" || accessType == "access_key") && accessTypeParam == "" {
 		return "", errors.New(errMissingAccessTypeParam)
 	}
-	if isJWTAccessType(accessType) && accessTypeParam == "" {
+	if accessType == akeylessJWTAccessType && accessTypeParam == "" {
 		return "", errors.New(errMissingJWT)
 	}
 
@@ -158,7 +152,11 @@ func (a *akeylessBase) resolveJWTAuthToken(ctx context.Context, jwtAuth *esv1.Ak
 		if jwtAuth.ExpirationSeconds != nil && *jwtAuth.ExpirationSeconds > 0 {
 			exp = *jwtAuth.ExpirationSeconds
 		}
-		jwt, err := a.getJWTfromServiceAccountToken(ctx, *jwtAuth.ServiceAccountRef, nil, exp)
+		var defaultAud []string
+		if len(jwtAuth.ServiceAccountRef.Audiences) == 0 {
+			defaultAud = []string{defaultJWTAudience}
+		}
+		jwt, err := a.getJWTfromServiceAccountToken(ctx, *jwtAuth.ServiceAccountRef, defaultAud, exp)
 		if err != nil {
 			return "", err
 		}

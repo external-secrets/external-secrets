@@ -79,13 +79,12 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 		authBody.AccessType = new(accType)
 		authBody.K8sServiceAccountToken = new(jwtStringBase64)
 		authBody.K8sAuthConfigName = new(K8SAuthConfigName)
-	case isJWTAccessType(accType):
+	case accType == akeylessJWTAccessType:
 		jwtToken := strings.TrimSpace(accTypeParam)
 		if jwtToken == "" {
 			return "", errors.New(errMissingJWT)
 		}
-		apiType := akeylessJWTAccessType
-		authBody.AccessType = &apiType
+		authBody.AccessType = new(accType)
 		authBody.Jwt = &jwtToken
 	default:
 		cloudID, err := a.getCloudID(ctx, accType, accTypeParam, auth)

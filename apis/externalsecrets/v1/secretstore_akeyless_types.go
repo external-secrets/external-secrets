@@ -99,8 +99,9 @@ type AkeylessJWTAuth struct {
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 
 	// Optional ServiceAccountRef requests a token via the TokenRequest API.
-	// Set audiences to match the Akeyless OAuth2 auth-method audience (and
-	// cluster OIDC expectations). Mutually exclusive with SecretRef.
+	// Set audiences to match the Akeyless OAuth2 auth-method audience. When
+	// audiences is empty the token is requested for the "akeyless" audience,
+	// never the Kubernetes API server. Mutually exclusive with SecretRef.
 	// +optional
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 
