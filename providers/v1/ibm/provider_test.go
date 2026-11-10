@@ -1092,7 +1092,6 @@ func TestGetSecretMap(t *testing.T) {
 			"downloaded":           []byte(strconv.FormatBool(*secret.Downloaded)),
 			"expiration_date":      []byte(expirationDate.String()),
 			"id":                   []byte(nilValue),
-			"issuer":               []byte(nilValue),
 			"labels":               []byte("[" + strings.Join(secret.Labels, " ") + "]"),
 			"locks_total":          []byte(strconv.Itoa(int(*secret.LocksTotal))),
 			"private_key":          []byte(secretPrivateKey),
