@@ -128,6 +128,19 @@ func UpdatePushSecretCondition(ps *esapi.PushSecret, condition *esapi.PushSecret
 		})).Set(value)
 }
 
+// RemoveMetrics deletes all metrics published for the PushSecret with the
+// given namespace and name, regardless of any additional labels.
+func RemoveMetrics(namespace, name string) {
+	for _, gaugeVecMetric := range gaugeVecMetrics {
+		gaugeVecMetric.DeletePartialMatch(
+			prometheus.Labels{
+				"namespace": namespace,
+				"name":      name,
+			},
+		)
+	}
+}
+
 // GetGaugeVec returns a GaugeVec for the given metric key.
 func GetGaugeVec(key string) *prometheus.GaugeVec {
 	return gaugeVecMetrics[key]
