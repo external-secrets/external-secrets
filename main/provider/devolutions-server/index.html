@@ -4303,6 +4303,28 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#store-with-a-vault" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Store with a vault
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#store-without-a-vault" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Store without a vault
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#folder-paths" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5303,6 +5325,28 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#store-with-a-vault" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Store with a vault
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#store-without-a-vault" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Store without a vault
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#folder-paths" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5513,7 +5557,7 @@
 </tr>
 <tr>
 <td><code>vault</code></td>
-<td>(Optional) The name or UUID of the vault to fetch secrets from. When omitted, the vault must be specified in the secret key using the legacy <code>&lt;vault-id&gt;/&lt;entry-id&gt;</code> format.</td>
+<td>(Optional) The name or UUID of the vault to fetch secrets from. When omitted, each secret key names its own vault as <code>&lt;vault&gt;/&lt;entry&gt;</code>, letting one store serve many vaults.</td>
 </tr>
 <tr>
 <td><code>insecure</code></td>
@@ -5531,7 +5575,9 @@
 </table>
 <p><strong>NOTE:</strong> For <code>ClusterSecretStore</code>, ensure you specify the <code>namespace</code> in the secret references.</p>
 <h2 id="referencing-secrets">Referencing Secrets</h2>
-<p>Entries can be referenced by <strong>UUID</strong> or <strong>name</strong>:</p>
+<p>How a key is interpreted depends on whether the store sets <code>vault</code>.</p>
+<h3 id="store-with-a-vault">Store with a vault</h3>
+<p>The vault is configured in the SecretStore's <code>vault</code> field (name or UUID), so the key only needs to identify the entry:</p>
 <table>
 <thead>
 <tr>
@@ -5558,18 +5604,109 @@
 </tr>
 </tbody>
 </table>
-<p>The vault is configured in the SecretStore's <code>vault</code> field (name or UUID), so the key only needs to identify the entry.</p>
+<h3 id="store-without-a-vault">Store without a vault</h3>
+<p>The first segment of the key names the vault, and the rest identifies the entry exactly as above. This lets a single <code>ClusterSecretStore</code> serve every app in the cluster, each pointing at its own vault:</p>
+<table>
+<thead>
+<tr>
+<th>Format</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Vault name and entry name</td>
+<td><code>payments/db-credentials</code></td>
+</tr>
+<tr>
+<td>Vault name with folder path</td>
+<td><code>payments/infrastructure/databases/db-credentials</code></td>
+</tr>
+<tr>
+<td>Vault UUID and entry UUID</td>
+<td><code>054890f4-.../be3b23b3-...</code></td>
+</tr>
+</tbody>
+</table>
+<p>The vault and the entry each accept a name or a UUID.</p>
+<p><strong>UUID-shaped names are reserved.</strong> A segment that parses as a UUID is always treated as an ID, never looked up as a name. So a vault, folder or entry whose name happens to look like a UUID cannot be addressed by that name — use its real UUID instead. For the same reason a folder path cannot start with a UUID-shaped segment: <code>payments/&lt;uuid-like-folder&gt;/db-credentials</code> is rejected.</p>
+<div class="highlight"><pre><span></span><code><span class="nn">---</span>
+<span class="c1"># One store for the whole cluster: no vault, so each key names its own.</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dvls-cluster-store</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">dvls</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">serverUrl</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;https://dvls.example.com&#39;</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">appId</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dvls-credentials</span>
+<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app-id</span>
+<span class="w">          </span><span class="nt">appSecret</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dvls-credentials</span>
+<span class="w">            </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app-secret</span>
+<span class="nn">---</span>
+<span class="c1"># The payments app reads from its own vault.</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">payments-credentials</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">payments</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dvls-cluster-store</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">payments-secret</span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
+<span class="w">  </span><span class="nt">dataFrom</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">extract</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;payments/db-credentials&#39;</span>
+<span class="nn">---</span>
+<span class="c1"># The billing app reads from a different vault, through the same store.</span>
+<span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">billing-credentials</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">billing</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h</span>
+<span class="w">  </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ClusterSecretStore</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dvls-cluster-store</span>
+<span class="w">  </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">billing-secret</span>
+<span class="w">    </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
+<span class="w">  </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+<span class="w">      </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;billing/infrastructure/databases/db-credentials&#39;</span>
+<span class="w">        </span><span class="nt">property</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
+</code></pre></div>
+<p>A key with no separator is rejected, since there is no vault to fall back to. Empty path segments (<code>payments//db-credentials</code>) and a trailing segment after an entry UUID are also rejected.</p>
+<p><strong>Access:</strong> DVLS grants are per vault, so the application identity behind a shared store needs read access to every vault its keys reference. This is the trade-off against a per-app store.</p>
+<p><strong>Cost:</strong> resolving a vault <strong>name</strong> enumerates every vault visible to the identity. The result is cached for the lifetime of one reconciliation, so a key set spanning many vaults costs a single enumeration — but a new client is created per ExternalSecret refresh, so a large fleet on one shared store repeats it per refresh. Use vault UUIDs or a longer <code>refreshInterval</code> if that matters.</p>
+<p><strong>Renames:</strong> a vault name is a convenience reference, not a stable identifier. Renaming a vault changes what its old name resolves to. Use UUIDs where that matters.</p>
+<p><strong>Missing vault vs. missing entry:</strong> DVLS addresses an entry as <code>/vault/{vault}/entry/{entry}</code>, so a <code>404</code> alone cannot say which of the two is gone. The provider confirms the vault before reporting an entry as absent, so a deleted or inaccessible vault surfaces as an error rather than an empty secret. This matters under <code>deletionPolicy: Delete</code>, where a secret reported absent is removed from the cluster.</p>
 <h3 id="folder-paths">Folder paths</h3>
 <p>If an entry is inside a folder, you can include the folder path before the entry name. Both forward slashes (<code>/</code>) and backslashes (<code>\</code>) are accepted as path separators:</p>
 <div class="highlight"><pre><span></span><code>folder/subfolder/entry-name
 folder\subfolder\entry-name
 </code></pre></div>
+<p>These examples assume the store sets <code>vault</code>. Without it the first segment is read as the vault, so the same entry is <code>payments/folder/subfolder/entry-name</code>.</p>
 <p><strong>Note:</strong> When using backslashes in YAML, you must escape them with a double backslash (<code>\\</code>):</p>
 <div class="highlight"><pre><span></span><code><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;folder\\subfolder\\entry-name&quot;</span>
 </code></pre></div>
 <p>Forward slashes do not need escaping and are recommended for simplicity.</p>
-<p><strong>Important:</strong> Entry names containing forward slashes (<code>/</code>) or backslashes (<code>\</code>) are not supported with name-based lookups, as those characters are interpreted as path separators. Use the entry UUID instead.</p>
+<p><strong>Important:</strong> Entry and vault names containing forward slashes (<code>/</code>) or backslashes (<code>\</code>) are not supported with name-based lookups, as those characters are interpreted as separators. Use the UUID instead.</p>
 <p>The folder path is <strong>optional</strong>. Without a path, the provider searches across all folders in the vault. If multiple entries share the same name in different folders, you can either specify the folder path or use the entry UUID to disambiguate.</p>
+<p>A folder path matches the given folder <strong>and its subfolders</strong>, so it narrows a search rather than pinning an exact folder.</p>
 <p><strong>Name-based lookups</strong> resolve the name to a UUID at runtime via an API call. If multiple credential entries match, an error is returned. For write-heavy scenarios (frequent <code>PushSecret</code> operations), prefer UUID references to avoid the extra lookup per operation.</p>
 <p>You can find UUIDs in the DVLS web interface by viewing the entry properties.</p>
 <h2 id="supported-credential-types">Supported Credential Types</h2>
@@ -5702,7 +5839,7 @@ folder\subfolder\entry-name
 <span class="w">        </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">password</span>
 <span class="w">        </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">          </span><span class="c1"># When vault is set in the SecretStore, remoteKey is the entry name</span>
-<span class="w">          </span><span class="c1"># (or path/name). Without vault, use the legacy &#39;vault-uuid/entry-uuid&#39; format.</span>
+<span class="w">          </span><span class="c1"># (or path/name). Without vault, prefix it with the vault: &#39;my-vault/db-credentials&#39;.</span>
 <span class="w">          </span><span class="nt">remoteKey</span><span class="p">:</span><span class="w"> </span><span class="s">&#39;db-credentials&#39;</span>
 </code></pre></div>
 <p><strong>Note:</strong> Push secret updates an existing entry's password field. The entry must already exist in DVLS.</p>
