@@ -389,9 +389,9 @@ func addTemplateFinalizers(es *esv1.ExternalSecret, obj *unstructured.Unstructur
 	}
 }
 
-// keepTargetFinalizers sets the finalizers of the object that replaces an existing target on update.
-// An Update replaces metadata.finalizers, and with the Owner and Orphan policies the rendered object
-// does not start from the existing target, so its finalizers (also those of other controllers) are
+// keepTargetFinalizers sets the finalizers of the object that replaces an existing target on update
+// with the Merge and CreateOrMerge policies, where ESO does not own the whole target: an Update
+// replaces metadata.finalizers, so the existing finalizers (also those of other controllers) are
 // carried over. The rendered finalizers (template metadata or a templateFrom target) are only added
 // while the target is not being deleted, since the API server rejects new finalizers on an object
 // that is being deleted.
@@ -405,4 +405,15 @@ func keepTargetFinalizers(obj, existing *unstructured.Unstructured) {
 		}
 	}
 	obj.SetFinalizers(finalizers)
+}
+
+// ownTargetFinalizers sets the finalizers of the object that replaces an existing target on update
+// with the Owner and Orphan policies, where ESO owns the whole target: its finalizers are the
+// rendered ones, so finalizers removed or renamed in the template are removed from the target.
+// Once the target is being deleted, its finalizers are kept as they are, so pending cleanup still
+// runs and no new finalizer is added.
+func ownTargetFinalizers(obj, existing *unstructured.Unstructured) {
+	if !existing.GetDeletionTimestamp().IsZero() {
+		obj.SetFinalizers(existing.GetFinalizers())
+	}
 }

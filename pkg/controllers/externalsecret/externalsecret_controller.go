@@ -709,7 +709,11 @@ func (r *Reconciler) reconcileGenericTarget(
 		if existing != nil {
 			obj.SetResourceVersion(existing.GetResourceVersion())
 			obj.SetUID(existing.GetUID())
-			keepTargetFinalizers(obj, existing)
+			if externalSecret.Spec.Target.CreationPolicy == esv1.CreatePolicyCreateOrMerge {
+				keepTargetFinalizers(obj, existing)
+			} else {
+				ownTargetFinalizers(obj, existing)
+			}
 			err = r.updateGenericResource(ctx, log, externalSecret, obj)
 		} else {
 			err = r.createGenericResource(ctx, log, externalSecret, obj)

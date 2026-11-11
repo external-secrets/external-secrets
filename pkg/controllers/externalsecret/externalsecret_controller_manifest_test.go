@@ -595,6 +595,7 @@ func TestApplyTemplateToManifest_Finalizers(t *testing.T) {
 		return obj
 	}
 
+	// With an existing target, these render onto it, which is the Merge and CreateOrMerge path.
 	tests := map[string]struct {
 		es       *esv1.ExternalSecret
 		existing *unstructured.Unstructured
@@ -635,7 +636,7 @@ func TestApplyTemplateToManifest_Finalizers(t *testing.T) {
 }
 
 func TestKeepTargetFinalizers(t *testing.T) {
-	// with the Owner and Orphan policies, the rendered object does not start from the existing target
+	// Merge and CreateOrMerge: ESO does not own the whole target, so finalizers are only added
 	object := func(deleting bool, finalizers ...string) *unstructured.Unstructured {
 		obj := &unstructured.Unstructured{}
 		obj.SetFinalizers(finalizers)
@@ -675,6 +676,52 @@ func TestKeepTargetFinalizers(t *testing.T) {
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			keepTargetFinalizers(tc.rendered, tc.existing)
+			assert.Equal(t, tc.want, tc.rendered.GetFinalizers())
+		})
+	}
+}
+
+func TestOwnTargetFinalizers(t *testing.T) {
+	// Owner and Orphan: ESO owns the whole target, so its finalizers follow the rendered ones
+	object := func(deleting bool, finalizers ...string) *unstructured.Unstructured {
+		obj := &unstructured.Unstructured{}
+		obj.SetFinalizers(finalizers)
+		if deleting {
+			now := metav1.Now()
+			obj.SetDeletionTimestamp(&now)
+		}
+		return obj
+	}
+
+	tests := map[string]struct {
+		rendered *unstructured.Unstructured
+		existing *unstructured.Unstructured
+		want     []string
+	}{
+		"removes a finalizer that was removed from the template": {
+			rendered: object(false),
+			existing: object(false, "example.com/cleanup"),
+			want:     nil,
+		},
+		"replaces a renamed finalizer": {
+			rendered: object(false, "example.com/bar"),
+			existing: object(false, "example.com/foo"),
+			want:     []string{"example.com/bar"},
+		},
+		"removes finalizers that are not rendered, such as a typo or another controller's": {
+			rendered: object(false, "example.com/cleanup"),
+			existing: object(false, "example.com/claenup", "other.io/keep", "example.com/cleanup"),
+			want:     []string{"example.com/cleanup"},
+		},
+		"keeps the finalizers unchanged while the target is being deleted": {
+			rendered: object(false, "example.com/new"),
+			existing: object(true, "example.com/cleanup", "other.io/keep"),
+			want:     []string{"example.com/cleanup", "other.io/keep"},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			ownTargetFinalizers(tc.rendered, tc.existing)
 			assert.Equal(t, tc.want, tc.rendered.GetFinalizers())
 		})
 	}
