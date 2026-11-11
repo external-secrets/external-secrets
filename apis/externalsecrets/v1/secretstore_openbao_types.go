@@ -78,7 +78,9 @@ type OpenBaoProvider struct {
 	Version OpenBaoKVStoreVersion `json:"version"`
 
 	// Headers to be added to OpenBao request
+	// X-Vault-* headers are not allowed here to avoid conflict with other fields.
 	// +optional
+	// +kubebuilder:validation:XValidation:rule="self.all(key, !key.startsWith('X-Vault-'))", message="X-Vault-* headers are not allowed"
 	Headers map[string]string `json:"headers,omitempty"`
 }
 

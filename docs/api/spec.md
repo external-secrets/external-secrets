@@ -9909,7 +9909,8 @@ map[string]string
 </td>
 <td>
 <em>(Optional)</em>
-<p>Headers to be added to OpenBao request</p>
+<p>Headers to be added to OpenBao request
+X-Vault-* headers are not allowed here to avoid conflict with other fields.</p>
 </td>
 </tr>
 </tbody>

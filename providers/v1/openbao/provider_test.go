@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/http/httptest"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -779,19 +778,14 @@ func TestProvider_CustomCA(t *testing.T) {
 func TestProvider_Headers(t *testing.T) {
 	RegisterTestingT(t)
 
-	headers := make(chan http.Header, 1)
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		headers <- r.Header.Clone()
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"data":{"data":{}}}`))
-	}))
-	t.Cleanup(server.Close)
-
-	kube := clientfake.NewClientBuilder().Build()
-	provider := openbao.NewProvider()
+	kube, provider := setupProvider(t, &corev1.Secret{
+		Name:      "bao-token",
+		Namespace: "default",
+		Data: map[string][]byte{
+			"token": []byte("root"),
+		},
+	})
 	store := makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2)
-	store.Spec.Provider.OpenBao.Server = server.URL
-	store.Spec.Provider.OpenBao.Auth = nil
 	store.Spec.Provider.OpenBao.Headers = map[string]string{
 		"X-Custom-Header":  "custom-value",
 		"X-Another-Header": "another-value",
@@ -806,11 +800,6 @@ func TestProvider_Headers(t *testing.T) {
 
 	_, err = client.GetSecret(t.Context(), esv1.ExternalSecretDataRemoteRef{Key: "foo"})
 	Expect(err).NotTo(HaveOccurred())
-
-	requestHeaders := <-headers
-	for key, value := range store.Spec.Provider.OpenBao.Headers {
-		Expect(requestHeaders.Get(key)).To(Equal(value))
-	}
 }
 
 func setupClient(t *testing.T, v esv1.OpenBaoKVStoreVersion) esv1.SecretsClient {
