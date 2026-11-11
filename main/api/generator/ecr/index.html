@@ -1258,6 +1258,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aws-pod-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AWS Pod Identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -5087,6 +5104,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="Authentication">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#aws-pod-identity" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AWS Pod Identity
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -5152,12 +5186,24 @@ The authorization token is valid for 12 hours. For more information, see <a href
 </tbody>
 </table>
 <h2 id="authentication">Authentication</h2>
-<p>You can choose from three authentication mechanisms:</p>
+<p>You can choose from these authentication mechanisms:</p>
 <ul>
 <li>static credentials using <code>spec.auth.secretRef</code></li>
-<li>point to a IRSA Service Account with <code>spec.auth.jwt</code></li>
-<li>use credentials from the <a href="https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default">SDK default credentials chain</a> from the controller environment</li>
+<li>point to an IRSA Service Account with <code>spec.auth.jwt</code></li>
+<li>use credentials from the <a href="https://docs.aws.amazon.com/sdk-for-java/v1/developer-guide/credentials.html#credentials-default">SDK default credentials chain</a> from the controller environment (includes <a href="https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html">EKS Pod Identity</a> when the External Secrets controller ServiceAccount is associated with a Pod Identity)</li>
 </ul>
+<p>If <code>spec.role</code> is set, ESO assumes that role using whatever controller credentials are already available (Pod Identity, IRSA on the controller ServiceAccount, or static keys). You do <strong>not</strong> need <code>spec.auth.jwt</code> for Pod Identity.</p>
+<h3 id="aws-pod-identity">AWS Pod Identity</h3>
+<p>Configure <a href="https://docs.aws.amazon.com/eks/latest/userguide/pod-identities.html">EKS Pod Identity</a> on the External Secrets controller ServiceAccount, then omit <code>spec.auth</code>. Optionally set <code>spec.role</code> to a workload role that the controller identity can assume:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ECRAuthorizationToken</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ecr-gen</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">region</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">eu-west-1</span>
+<span class="w">  </span><span class="c1"># optional: assume this role using the controller&#39;s Pod Identity</span>
+<span class="w">  </span><span class="nt">role</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;arn:aws:iam::111122223333:role/ecr-token-role&quot;</span>
+</code></pre></div>
 <h2 id="example-manifest">Example Manifest</h2>
 <div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">generators.external-secrets.io/v1alpha1</span>
 <span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ECRAuthorizationToken</span>
