@@ -256,16 +256,20 @@ helm.build: helm.generate ## Build helm chart
 # $1 - plugin name
 # $2 - plugin version
 # $3 - plugin url
+# Helm 4 verifies plugin signatures by default and rejects VCS sources unless
+# --verify=false is passed; Helm 3 has no --verify flag, so detect support first.
 define install_helm_plugin
-@v=$$(helm plugin list | awk '$$1=="$(1)"{print $$2}'); \
+@verify_flag=""; \
+if helm plugin install --help 2>/dev/null | grep -q -- '--verify'; then verify_flag="--verify=false"; fi; \
+v=$$(helm plugin list | awk '$$1=="$(1)"{print $$2}'); \
 if [ -z "$$v" ]; then \
 	$(INFO) "Installing $(1) v$(2)"; \
-	helm plugin install --version $(2) $(3); \
+	helm plugin install --version $(2) $$verify_flag $(3); \
 	$(OK) "Installed $(1) v$(2)"; \
 elif [ "$$v" != "$(2)" ]; then \
 	$(INFO) "Found $(1) $$v. Reinstalling v$(2)"; \
 	helm plugin remove $(1); \
-	helm plugin install --version $(2) $(3); \
+	helm plugin install --version $(2) $$verify_flag $(3); \
 	$(OK) "Reinstalled $(1) v$(2)"; \
 else \
 	$(OK) "$(1) already at v$(2)"; \
