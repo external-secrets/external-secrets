@@ -18,7 +18,8 @@ We do not do test coverage for any other kubernetes version than the ones runnin
 
 | ESO Version | Kubernetes Version | Release Date | End of Life    |
 |-------------|--------------------|--------------|----------------|
-| 2.14        | 1.37               | Oct 16, 2026 | Next release   |
+| 2.15        | 1.37               | Nov 10, 2026 | Next release   |
+| 2.14        | 1.37               | Oct 16, 2026 | Nov 10, 2026   |
 | 2.13        | 1.36               | Oct 16, 2026 | Oct 23, 2026   |
 | 2.12        | 1.36               | Oct 06, 2026 | Oct 16, 2026   |
 | 2.11        | 1.36               | Sep 18, 2026 | Oct 06, 2026   |
@@ -134,7 +135,7 @@ The following table show the support for features across different providers.
 | Cloud.ru                         |      x       |      x       |                      |            x            |        x         |             |              x              |
 | Delinea                          |              |              |                      |                         |        x         |             |                             |
 | Devolutions Server               |              |              |                      |                         |        x         |      x      |              x              |
-| CyberArk Secrets Manager         |      x       |      x       |                      |            x            |        x         |             |                             |
+| CyberArk Secrets Manager         |      x       |      x       |                      |            x            |        x         |      x      |                             |
 | Doppler                          |      x       |              |                      |                         |        x         |             |                             |
 | Fortanix                         |              |              |                      |            x            |        x         |             |                             |
 | GCP Secret Manager               |      x       |      x       |          x           |            x            |        x         |      x      |              x              |

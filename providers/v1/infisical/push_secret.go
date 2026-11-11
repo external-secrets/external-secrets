@@ -37,6 +37,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/infisical/constants"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -367,7 +368,10 @@ func (p *Provider) fetchProjectID(ctx context.Context) (string, error) {
 
 	base := appendAPIEndpoint(p.hostAPI)
 	token := p.sdkClient.Auth().GetAccessToken()
-	client := p.lookupHTTPClient()
+	client, err := p.lookupHTTPClient()
+	if err != nil {
+		return "", err
+	}
 	escapedSlug := url.PathEscape(p.apiScope.ProjectSlug)
 
 	var lastErr error
@@ -431,12 +435,10 @@ func (p *Provider) lookupProjectID(ctx context.Context, client *http.Client, tok
 
 // lookupHTTPClient builds an HTTP client for the project lookup, honoring the
 // store's CA bundle when one is configured.
-func (p *Provider) lookupHTTPClient() *http.Client {
-	var transport *http.Transport
-	if t, ok := http.DefaultTransport.(*http.Transport); ok && t != nil {
-		transport = t.Clone()
-	} else {
-		transport = &http.Transport{}
+func (p *Provider) lookupHTTPClient() (*http.Client, error) {
+	transport, err := esutils.CloneDefaultHTTPTransport()
+	if err != nil {
+		return nil, fmt.Errorf("failed to clone default HTTP transport: %w", err)
 	}
 	if p.caCertificate != "" {
 		pool := x509.NewCertPool()
@@ -444,7 +446,7 @@ func (p *Provider) lookupHTTPClient() *http.Client {
 			transport.TLSClientConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
 		}
 	}
-	return &http.Client{Timeout: projectLookupTimeout, Transport: transport}
+	return &http.Client{Timeout: projectLookupTimeout, Transport: transport}, nil
 }
 
 // appendAPIEndpoint mirrors the go-sdk's base-URL normalisation so the lookup

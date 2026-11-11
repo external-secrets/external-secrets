@@ -51,7 +51,7 @@ error() {
 update_module() {
     local module_path="$1"
     local module_name="$2"
-    local package_pattern="${3:-.}"
+    local package_pattern="${3:-./...}"
     
     info "Updating dependencies for $module_name..."
     
