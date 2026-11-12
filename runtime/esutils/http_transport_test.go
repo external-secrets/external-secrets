@@ -45,6 +45,8 @@ func TestCloneDefaultHTTPTransport(t *testing.T) {
 			assertTransport: func(t *testing.T, transport *http.Transport) {
 				require.NotSame(t, defaultTransport, transport)
 				require.False(t, transport.ForceAttemptHTTP2)
+				require.NotNil(t, transport.TLSClientConfig)
+				require.Empty(t, transport.TLSClientConfig.NextProtos)
 				require.Equal(t, defaultTransport.MaxIdleConns, transport.MaxIdleConns)
 			},
 		},

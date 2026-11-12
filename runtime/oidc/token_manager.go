@@ -21,7 +21,6 @@ package oidc
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -256,9 +255,6 @@ func postJSONRequestInternal(ctx context.Context, url string, requestBody any, p
 	transport, err := esutils.CloneDefaultHTTPTransport()
 	if err != nil {
 		return nil, fmt.Errorf("failed to clone default HTTP transport: %w", err)
-	}
-	transport.TLSClientConfig = &tls.Config{
-		MinVersion: tls.VersionTLS12,
 	}
 
 	client := &http.Client{

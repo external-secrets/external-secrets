@@ -20,7 +20,6 @@ package akeyless
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"errors"
@@ -584,10 +583,7 @@ func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1
 	if err != nil {
 		return nil, err
 	}
-	transport.TLSClientConfig = &tls.Config{
-		RootCAs:    caCertPool,
-		MinVersion: tls.VersionTLS12,
-	}
+	transport.TLSClientConfig.RootCAs = caCertPool
 	client.Transport = transport
 	return client, nil
 }
