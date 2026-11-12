@@ -122,9 +122,9 @@ func (a *Azure) setKeyVaultSecretWithNewSDK(ctx context.Context, secretName stri
 	return nil
 }
 
-func (a *Azure) setKeyVaultCertificateWithNewSDK(ctx context.Context, secretName string, value []byte, tags map[string]string) error {
+func (a *Azure) setKeyVaultCertificateWithNewSDK(ctx context.Context, secretName string, value []byte, password string, tags map[string]string) error {
 	val := b64.StdEncoding.EncodeToString(value)
-	localCert, err := getCertificateFromValue(value)
+	localCert, err := getCertificateFromValue(value, password)
 	if err != nil {
 		return fmt.Errorf("value from secret is not a valid certificate: %w", err)
 	}
@@ -164,6 +164,9 @@ func (a *Azure) setKeyVaultCertificateWithNewSDK(ctx context.Context, secretName
 	params := azcertificates.ImportCertificateParameters{
 		Base64EncodedCertificate: &val,
 		Tags:                     certTags,
+	}
+	if password != "" {
+		params.Password = &password
 	}
 
 	_, err = a.certsClient.ImportCertificate(ctx, secretName, params, nil)
