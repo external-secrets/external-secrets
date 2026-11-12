@@ -17,9 +17,13 @@ limitations under the License.
 package v1
 
 import (
+	"context"
+	"slices"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 const (
@@ -523,7 +527,10 @@ either data or dataFrom should be specified`,
 			},
 		},
 		{
-			name: "templateFrom nested target is rejected for a manifest naming a Secret",
+			// Previously this reported only the templateFrom error. The manifest itself is
+			// now rejected, and a manifest target is never a Secret, so the Secret-only
+			// templateFrom restriction no longer applies to it.
+			name: "manifest naming a Secret is rejected, with a nested templateFrom target",
 			obj: &ExternalSecret{
 				Spec: ExternalSecretSpec{
 					DataFrom: []ExternalSecretDataFromRemoteRef{
@@ -546,7 +553,97 @@ either data or dataFrom should be specified`,
 					},
 				},
 			},
-			expectedErr: `templateFrom target="type" is not allowed when targeting a Secret, must be one of "Data", "Annotations" or "Labels"`,
+			expectedErr: ErrManifestSecretTarget.Error(),
+		},
+		{
+			name: "manifest naming a Secret is rejected with no template at all",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Data: []ExternalSecretData{{}},
+					Target: ExternalSecretTarget{
+						Manifest: &ManifestReference{
+							APIVersion: "v1",
+							Kind:       "Secret",
+						},
+					},
+				},
+			},
+			expectedErr: ErrManifestSecretTarget.Error(),
+		},
+		{
+			name: "manifest naming a Secret is rejected with an ordinary valid Secret template",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Data: []ExternalSecretData{{}},
+					Target: ExternalSecretTarget{
+						Manifest: &ManifestReference{
+							APIVersion: "v1",
+							Kind:       "Secret",
+						},
+						Template: &ExternalSecretTemplate{
+							Type: corev1.SecretTypeOpaque,
+							TemplateFrom: []TemplateFrom{
+								{Target: TemplateTargetData},
+							},
+						},
+					},
+				},
+			},
+			expectedErr: ErrManifestSecretTarget.Error(),
+		},
+		{
+			// "/v1" parses to the same core group/version as "v1", so it must not be a
+			// way around the ban.
+			name: "manifest naming a Secret through an explicit empty group is rejected",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Data: []ExternalSecretData{{}},
+					Target: ExternalSecretTarget{
+						Manifest: &ManifestReference{
+							APIVersion: "/v1",
+							Kind:       "Secret",
+						},
+					},
+				},
+			},
+			expectedErr: ErrManifestSecretTarget.Error(),
+		},
+		{
+			name: "manifest naming a Secret kind in a custom group is allowed",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Data: []ExternalSecretData{{}},
+					Target: ExternalSecretTarget{
+						Manifest: &ManifestReference{
+							APIVersion: "example.io/v1",
+							Kind:       "Secret",
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "default Secret target stays supported",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Data:   []ExternalSecretData{{}},
+					Target: ExternalSecretTarget{},
+				},
+			},
+		},
+		{
+			name: "ConfigMap manifest target stays supported",
+			obj: &ExternalSecret{
+				Spec: ExternalSecretSpec{
+					Data: []ExternalSecretData{{}},
+					Target: ExternalSecretTarget{
+						Manifest: &ManifestReference{
+							APIVersion: "v1",
+							Kind:       "ConfigMap",
+						},
+					},
+				},
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -565,6 +662,155 @@ either data or dataFrom should be specified`,
 			if tt.expectedErr != "" {
 				t.Errorf("validateExternalSecret() should have returned an error but got nil")
 			}
+		})
+	}
+}
+
+// TestValidateManifestSecretTargetOnCreateAndUpdate goes through the admission entry points
+// rather than validateExternalSecret, because both must refuse the target: rejecting only on
+// create would leave an existing ExternalSecret free to switch to a Secret manifest.
+func TestValidateManifestSecretTargetOnCreateAndUpdate(t *testing.T) {
+	validator := &ExternalSecretValidator{}
+	secretManifest := func(apiVersion, kind string) *ExternalSecret {
+		return &ExternalSecret{
+			Spec: ExternalSecretSpec{
+				Data: []ExternalSecretData{{}},
+				Target: ExternalSecretTarget{
+					Manifest: &ManifestReference{APIVersion: apiVersion, Kind: kind},
+				},
+			},
+		}
+	}
+
+	tests := []struct {
+		name       string
+		obj        *ExternalSecret
+		wantReject bool
+	}{
+		{"core Secret manifest", secretManifest("v1", "Secret"), true},
+		{"core Secret manifest with an explicit empty group", secretManifest("/v1", "Secret"), true},
+		{"custom group Secret kind", secretManifest("example.io/v1", "Secret"), false},
+		{"ConfigMap manifest", secretManifest("v1", "ConfigMap"), false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, createErr := validator.ValidateCreate(context.Background(), tt.obj)
+
+			// The update has to change the spec to reach the rules at all, so it is
+			// modeled as the switch described above: an ExternalSecret that already
+			// targets an allowed custom resource is repointed at the target under test.
+			existing := secretManifest("example.io/v1", "ConfigMap")
+			_, updateErr := validator.ValidateUpdate(context.Background(), existing, tt.obj)
+
+			if tt.wantReject {
+				require.ErrorIs(t, createErr, ErrManifestSecretTarget)
+				require.ErrorIs(t, updateErr, ErrManifestSecretTarget)
+				return
+			}
+			require.NotErrorIs(t, createErr, ErrManifestSecretTarget)
+			require.NotErrorIs(t, updateErr, ErrManifestSecretTarget)
+		})
+	}
+}
+
+// TestValidateUpdateAdmitsUnchangedSpecs pins the one shortcut ValidateUpdate takes: an
+// update that leaves the spec untouched is admitted, whatever it does to metadata. Every
+// case starts from an ExternalSecret whose stored spec names a core v1/Secret manifest, a
+// spec that was storable before this restriction and cannot be stored now, because that is
+// the only way the shortcut is observable.
+func TestValidateUpdateAdmitsUnchangedSpecs(t *testing.T) {
+	for _, tt := range []struct {
+		name    string
+		mutate  func(oldObj, newObj *ExternalSecret)
+		wantErr bool
+	}{
+		{name: "remove one finalizer, preserve another"},
+		{
+			// The controller attaches its finalizer before it validates the target, so
+			// refusing this leaves a legacy object looping on the rejected patch instead
+			// of reaching the condition that explains the invalid spec.
+			name: "controller claims an active legacy object",
+			mutate: func(oldObj, newObj *ExternalSecret) {
+				oldObj.DeletionTimestamp = nil
+				oldObj.Finalizers = nil
+				newObj.DeletionTimestamp = nil
+				newObj.Finalizers = []string{"externalsecrets.external-secrets.io/externalsecret-cleanup"}
+			},
+		},
+		{
+			name: "remove the last finalizer",
+			mutate: func(_, newObj *ExternalSecret) {
+				newObj.Finalizers = nil
+			},
+		},
+		{
+			// Validation has no finalizer rules, so there is nothing for a swap to slip
+			// past. Refusing it only blocks an edit that is already permitted on every
+			// ExternalSecret whose stored spec happens to be valid.
+			name: "swap one finalizer for another",
+			mutate: func(_, newObj *ExternalSecret) {
+				newObj.Finalizers = []string{"new.example.com/finalizer"}
+			},
+		},
+		{
+			// A GitOps controller reapplying an untouched legacy manifest sends exactly
+			// this: same spec, different tracking annotation.
+			name: "metadata-only update on a live object",
+			mutate: func(oldObj, newObj *ExternalSecret) {
+				oldObj.DeletionTimestamp = nil
+				newObj.DeletionTimestamp = nil
+				newObj.Finalizers = oldObj.Finalizers
+				newObj.Annotations = map[string]string{"argocd.argoproj.io/tracking-id": "app"}
+			},
+		},
+		{
+			name: "changed spec remains invalid",
+			mutate: func(_, newObj *ExternalSecret) {
+				newObj.Spec.Target.Name = "another-target"
+			},
+			wantErr: true,
+		},
+		{
+			// The shortcut keys off the spec alone, so a finalizer change cannot carry a
+			// spec change past validation with it.
+			name: "spec change alongside a finalizer addition remains invalid",
+			mutate: func(oldObj, newObj *ExternalSecret) {
+				newObj.Finalizers = append(slices.Clone(oldObj.Finalizers), "new.example.com/finalizer")
+				newObj.Spec.Target.Name = "another-target"
+			},
+			wantErr: true,
+		},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			oldObj := &ExternalSecret{
+				DeletionTimestamp: new(metav1.Now()),
+				Finalizers: []string{
+					"externalsecrets.external-secrets.io/externalsecret-cleanup",
+					"other.example.com/finalizer",
+				},
+				Spec: ExternalSecretSpec{
+					Data: []ExternalSecretData{{}},
+					Target: ExternalSecretTarget{
+						Manifest: &ManifestReference{APIVersion: "v1", Kind: "Secret"},
+					},
+				},
+			}
+			newObj := oldObj.DeepCopy()
+			newObj.Finalizers = newObj.Finalizers[1:]
+			if tt.mutate != nil {
+				tt.mutate(oldObj, newObj)
+			}
+
+			validator := &ExternalSecretValidator{}
+			_, err := validator.ValidateUpdate(context.Background(), oldObj, newObj)
+			if tt.wantErr {
+				require.ErrorIs(t, err, ErrManifestSecretTarget)
+			} else {
+				require.NoError(t, err)
+			}
+			_, err = validator.ValidateCreate(context.Background(), newObj)
+			require.ErrorIs(t, err, ErrManifestSecretTarget, "an admitted update must not make the spec creatable")
 		})
 	}
 }

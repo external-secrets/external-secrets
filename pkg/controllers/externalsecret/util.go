@@ -18,8 +18,6 @@ package externalsecret
 
 import (
 	"bytes"
-	"crypto/sha3"
-	"fmt"
 	"sort"
 
 	v1 "k8s.io/api/core/v1"
@@ -27,6 +25,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
+	"github.com/external-secrets/external-secrets/pkg/controllers/templating"
 )
 
 // NewExternalSecretCondition a set of default options for creating an External Secret Condition.
@@ -78,13 +77,7 @@ func filterOutCondition(conditions []esv1.ExternalSecretStatusCondition, condTyp
 }
 
 func fqdnFor(name string) string {
-	fqdn := fmt.Sprintf(fieldOwnerTemplate, name)
-	// If secret name is just too big, use the SHA3 hash of the secret name
-	// Done this way for backwards compatibility thus avoiding breaking changes
-	if len(fqdn) > 63 {
-		fqdn = fmt.Sprintf(fieldOwnerTemplateSha, sha3.Sum224([]byte(name)))
-	}
-	return fqdn
+	return templating.FieldOwner(name)
 }
 
 // diffSecretDataKeys compares a secret's data keys before and after a mutation

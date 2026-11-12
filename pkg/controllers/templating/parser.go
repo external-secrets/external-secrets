@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -177,8 +178,8 @@ func (p *Parser) MergeMap(tplMap map[string]string, target string) error {
 }
 
 // GetManagedAnnotationKeys returns the keys of the annotations managed by the given field owner.
-func GetManagedAnnotationKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
-	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]any) []string {
+func GetManagedAnnotationKeys(obj metav1.Object, fieldOwner string) ([]string, error) {
+	return getManagedFieldKeys(obj, fieldOwner, func(fields map[string]any) []string {
 		metadataFields, exists := fields["f:metadata"]
 		if !exists {
 			return nil
@@ -204,10 +205,10 @@ func GetManagedAnnotationKeys(secret *v1.Secret, fieldOwner string) ([]string, e
 }
 
 // GetManagedLabelKeys returns the keys of labels that are managed by the given field owner.
-// It checks the ManagedFields of the secret for entries with the specified field owner
+// It checks the ManagedFields of the object for entries with the specified field owner
 // and extracts the keys of the labels from the fields managed by that owner.
-func GetManagedLabelKeys(secret *v1.Secret, fieldOwner string) ([]string, error) {
-	return getManagedFieldKeys(secret, fieldOwner, func(fields map[string]any) []string {
+func GetManagedLabelKeys(obj metav1.Object, fieldOwner string) ([]string, error) {
+	return getManagedFieldKeys(obj, fieldOwner, func(fields map[string]any) []string {
 		metadataFields, exists := fields["f:metadata"]
 		if !exists {
 			return nil
@@ -232,19 +233,51 @@ func GetManagedLabelKeys(secret *v1.Secret, fieldOwner string) ([]string, error)
 	})
 }
 
+// FieldOwner returns the field manager name ESO writes under for the named resource. Readers
+// of managedFields and writers must agree on this string exactly, so it is derived in one
+// place here; deriving it separately is what let the two drift apart.
+func FieldOwner(name string) string {
+	// If the name is just too big, use the SHA3 hash of the name
+	// Done this way for backwards compatibility thus avoiding breaking changes
+	fqdn := fmt.Sprintf(fieldOwnerTemplate, name)
+	if len(fqdn) > 63 {
+		fqdn = fmt.Sprintf(fieldOwnerTemplateSha, sha3.Sum224([]byte(name)))
+	}
+	return fqdn
+}
+
+// ClearOwnedMetadata removes from labels and annotations the keys the named owner set on a
+// previous write, read from the object's managedFields. Keys owned by anything else are left
+// alone. Callers merge what they render now over the result, so a key the owner has stopped
+// rendering disappears instead of surviving in the live object forever.
+func ClearOwnedMetadata(obj metav1.Object, owner string, labels, annotations map[string]string) error {
+	labelKeys, err := GetManagedLabelKeys(obj, owner)
+	if err != nil {
+		return err
+	}
+	for _, key := range labelKeys {
+		delete(labels, key)
+	}
+
+	annotationKeys, err := GetManagedAnnotationKeys(obj, owner)
+	if err != nil {
+		return err
+	}
+	for _, key := range annotationKeys {
+		delete(annotations, key)
+	}
+
+	return nil
+}
+
 func getManagedFieldKeys(
-	secret *v1.Secret,
+	obj metav1.Object,
 	fieldOwner string,
 	process func(fields map[string]any) []string,
 ) ([]string, error) {
-	// If secret name is just too big, use the SHA3 hash of the secret name
-	// Done this way for backwards compatibility thus avoiding breaking changes
-	fqdn := fmt.Sprintf(fieldOwnerTemplate, fieldOwner)
-	if len(fieldOwner) > 63 {
-		fqdn = fmt.Sprintf(fieldOwnerTemplateSha, sha3.Sum224([]byte(fieldOwner)))
-	}
+	fqdn := FieldOwner(fieldOwner)
 	var keys []string
-	for _, v := range secret.ObjectMeta.ManagedFields {
+	for _, v := range obj.GetManagedFields() {
 		if v.Manager != fqdn {
 			continue
 		}
