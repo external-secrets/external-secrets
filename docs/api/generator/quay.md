@@ -26,6 +26,8 @@ kubectl create token default -n default | cut -d '.' -f 2 | sed 's/[^=]$/&==/' |
 
 Then use the instructions [here](https://docs.projectquay.io/manage_quay.html#setting-robot-federation) to set up a robot account and federation.
 
+Starting with Red Hat Quay 3.18, robot federation supports audience validation during federated robot token exchange. Configure `spec.serviceAccountRef.audiences` to request a Kubernetes service account token whose `aud` claim matches the audience configured in Quay for the robot federation entry.
+
 ## Example Manifest
 
 ```yaml
