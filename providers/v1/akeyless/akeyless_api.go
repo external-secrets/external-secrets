@@ -108,7 +108,7 @@ func (a *akeylessBase) authenticate(ctx context.Context, accessID, accType, accT
 	case accType == akeylessJWTAccessType:
 		jwtToken := strings.TrimSpace(accTypeParam)
 		if jwtToken == "" {
-			return "", errors.New(errMissingJWT)
+			return "", time.Time{}, errors.New(errMissingJWT)
 		}
 		authBody.AccessType = new(accType)
 		authBody.Jwt = &jwtToken
