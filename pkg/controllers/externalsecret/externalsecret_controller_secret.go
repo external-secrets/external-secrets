@@ -42,6 +42,8 @@ import (
 
 // GetProviderSecretData returns the provider's secret data with the provided ExternalSecret.
 func (r *Reconciler) GetProviderSecretData(ctx context.Context, externalSecret *esv1.ExternalSecret) (providerData map[string][]byte, err error) {
+	ctx = esutils.WithExternalSecretMetadata(ctx, externalSecret)
+
 	// We MUST NOT create multiple instances of a provider client (mostly due to limitations with GCP)
 	// Clientmanager keeps track of the client instances
 	// that are created during the fetching process and closes clients

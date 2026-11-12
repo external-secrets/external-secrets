@@ -124,7 +124,7 @@ func (w *Webhook) GetSecretMap(ctx context.Context, provider *Spec, ref *esv1.Ex
 }
 
 // GetTemplateData prepares the template data for webhook requests based on the given remote reference.
-func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1.ExternalSecretDataRemoteRef, secrets []Secret, urlEncode bool) (map[string]map[string]string, error) {
+func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1.ExternalSecretDataRemoteRef, secrets []Secret, urlEncode bool) (map[string]any, error) {
 	data := map[string]map[string]string{}
 	if ref != nil {
 		if urlEncode {
@@ -147,7 +147,30 @@ func (w *Webhook) GetTemplateData(ctx context.Context, ref *esv1.ExternalSecretD
 	if err := w.getTemplatedSecrets(ctx, secrets, data); err != nil {
 		return nil, err
 	}
-	return data, nil
+	templateData := map[string]any{"externalSecret": nil}
+	if metadata, ok := esutils.ExternalSecretMetadataFromContext(ctx); ok {
+		labels := make(map[string]string, len(metadata.Labels))
+		for key, value := range metadata.Labels {
+			if urlEncode {
+				value = url.QueryEscape(value)
+			}
+			labels[key] = value
+		}
+		if urlEncode {
+			metadata.Name = url.QueryEscape(metadata.Name)
+			metadata.Namespace = url.QueryEscape(metadata.Namespace)
+		}
+		templateData["externalSecret"] = map[string]any{
+			"name":      metadata.Name,
+			"namespace": metadata.Namespace,
+			"labels":    labels,
+		}
+	}
+	// Preserve existing secret aliases, including an alias named externalSecret.
+	for name, values := range data {
+		templateData[name] = values
+	}
+	return templateData, nil
 }
 
 // GetTemplatePushData prepares the template data for webhook push requests.
@@ -276,7 +299,7 @@ func (w *Webhook) PushWebhookData(ctx context.Context, provider *Spec, data []by
 	return nil
 }
 
-func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byte, url, method string, rawData map[string]map[string]string) ([]byte, error) {
+func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byte, url, method string, rawData any) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, method, url, bytes.NewReader(data))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -329,7 +352,7 @@ func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byt
 }
 
 // ReqAddHeaders adds headers to an HTTP request based on provider configuration.
-func (w *Webhook) ReqAddHeaders(r *http.Request, provider *Spec, rawData map[string]map[string]string) (*http.Request, error) {
+func (w *Webhook) ReqAddHeaders(r *http.Request, provider *Spec, rawData any) (*http.Request, error) {
 	reqWithHeaders := r
 
 	for hKey, hValueTpl := range provider.Headers {
@@ -442,7 +465,7 @@ func (w *Webhook) GetCACertPool(ctx context.Context, provider *Spec) (*x509.Cert
 }
 
 // ExecuteTemplateString executes a template and returns the result as a string.
-func ExecuteTemplateString(tmpl string, data map[string]map[string]string) (string, error) {
+func ExecuteTemplateString(tmpl string, data any) (string, error) {
 	result, err := ExecuteTemplate(tmpl, data)
 	if err != nil {
 		return "", err
@@ -451,7 +474,7 @@ func ExecuteTemplateString(tmpl string, data map[string]map[string]string) (stri
 }
 
 // ExecuteTemplate executes a template and returns the result as a bytes.Buffer.
-func ExecuteTemplate(tmpl string, data map[string]map[string]string) (bytes.Buffer, error) {
+func ExecuteTemplate(tmpl string, data any) (bytes.Buffer, error) {
 	var result bytes.Buffer
 	if tmpl == "" {
 		return result, nil
