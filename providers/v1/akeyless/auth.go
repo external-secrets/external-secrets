@@ -114,21 +114,21 @@ func (a *akeylessBase) tokenWithExpiry(ctx context.Context) (string, time.Time, 
 		return "", time.Time{}, errors.New(errMissingAccessTypeParam)
 	}
 	if accessType == akeylessJWTAccessType && accessTypeParam == "" {
-		return "", errors.New(errMissingJWT)
+		return "", time.Time{}, errors.New(errMissingJWT)
 	}
 
 	return a.authenticate(ctx, accessID, accessType, accessTypeParam, prov.Auth)
 }
 
-func (a *akeylessBase) tokenFromJWTAuth(ctx context.Context, jwtAuth *esv1.AkeylessJWTAuth) (string, error) {
+func (a *akeylessBase) tokenFromJWTAuth(ctx context.Context, jwtAuth *esv1.AkeylessJWTAuth) (string, time.Time, error) {
 	if jwtAuth.AccessID == "" {
-		return "", errors.New(errMissingJWTAccessID)
+		return "", time.Time{}, errors.New(errMissingJWTAccessID)
 	}
 	jwtToken, err := a.resolveJWTAuthToken(ctx, jwtAuth)
 	if err != nil {
-		return "", err
+		return "", time.Time{}, err
 	}
-	return a.GetToken(ctx, jwtAuth.AccessID, akeylessJWTAccessType, jwtToken, nil)
+	return a.authenticate(ctx, jwtAuth.AccessID, akeylessJWTAccessType, jwtToken, nil)
 }
 
 func (a *akeylessBase) resolveJWTAuthToken(ctx context.Context, jwtAuth *esv1.AkeylessJWTAuth) (string, error) {
