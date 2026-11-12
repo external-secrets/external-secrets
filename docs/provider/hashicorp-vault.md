@@ -645,7 +645,8 @@ In Vault 1.7 forwarding can be achieved by setting the `X-Vault-Inconsistent`
 header to `forward-active-node`. By default, this behavior is disabled and must
 be explicitly enabled in the server's [replication configuration](https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header).
 
-Once the server allows it, enable the header in the SecretStore with `forwardInconsistent`:
+Once the server allows it, enable the header in the SecretStore with `forwardInconsistent`. The provider only sends
+`X-Vault-Inconsistent: forward-active-node` when `readYourWrites` is enabled as well, so set both:
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -658,7 +659,9 @@ spec:
       server: "https://my.vault.server:8200"
       path: "secret"
       version: "v2"
-      # Forward read-after-write requests to the active node instead of retrying
+      # Track the X-Vault-Index of writes and logins ...
+      readYourWrites: true
+      # ... and forward read-after-write requests to the active node instead of retrying
       forwardInconsistent: true
       auth:
         # ...
