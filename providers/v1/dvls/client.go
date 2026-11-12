@@ -572,6 +572,14 @@ func (c *Client) clearField(ctx context.Context, vaultID, entryID, property stri
 	if property == "" && !isDefaultCredential(entry) {
 		return true, nil
 	}
+	// Username and domain exist only on a username and password entry, and a
+	// push of them to any other subtype is refused, so such an item on one was
+	// synced by an older version, which wrote its value to the password. On a
+	// username and password entry that cannot be told apart from a current push
+	// of the field, so there only the named field is cleared.
+	if field != fieldPassword && !isDefaultCredential(entry) {
+		field = fieldPassword
+	}
 
 	fields, err := entryToSecretMap(entry)
 	if err != nil {

@@ -2112,6 +2112,26 @@ func TestClient_DeleteSecret_PasswordOfAccessCodeDeletesEntry(t *testing.T) {
 	assert.Equal(t, testEntryUUID, mockCred.lastDeleted)
 }
 
+func TestClient_DeleteSecret_LegacyUsernameOnAccessCodeDeletesEntry(t *testing.T) {
+	// An AccessCode entry has no username or domain, and a push of them to one is
+	// refused, so a synced item naming them was pushed by an older version, which
+	// wrote its value to the password. Deleting it takes that password, and with
+	// it the entry.
+	for _, property := range []string{"username", "domain"} {
+		t.Run(property, func(t *testing.T) {
+			c, mockCred := newTestClient(map[string]dvls.Entry{
+				testEntryUUID: {
+					Id: testEntryUUID, Name: testEntryName, Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeAccessCode,
+					Data: &dvls.EntryCredentialAccessCodeData{Password: "pw"},
+				},
+			})
+
+			require.NoError(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: property}))
+			assert.Equal(t, testEntryUUID, mockCred.lastDeleted)
+		})
+	}
+}
+
 func TestClient_PushSecret_KeepsFieldChangedSinceRead(t *testing.T) {
 	// Another worker pushes the username between this push's read and its
 	// update. Sending back the username this push read would undo that.
