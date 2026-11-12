@@ -443,6 +443,9 @@
                 "createSecretStore": {
                     "type": "boolean"
                 },
+                "keep": {
+                    "type": "boolean"
+                },
                 "unsafeServeV1Beta1": {
                     "type": "boolean"
                 }

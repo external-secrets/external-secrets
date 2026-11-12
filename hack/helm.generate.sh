@@ -41,6 +41,6 @@ for i in "${HELM_DIR}"/templates/crds/*.yml; do
 
   $SEDPRG -i 's/name: kubernetes/name: {{ include "external-secrets.fullname" . }}-webhook/g' "$i"
   $SEDPRG -i 's/namespace: default/namespace: {{ .Release.Namespace | quote }}/g' "$i"
-  $SEDPRG -i '0,/annotations/!b;//a\    {{- with .Values.crds.annotations }}\n    {{- toYaml . | nindent 4}}\n    {{- end }}\n    {{- if and .Values.crds.conversion.enabled .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}\n    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "external-secrets.fullname" . }}-webhook\n    {{- end }}' "$i"
+  $SEDPRG -i '0,/annotations/!b;//a\    {{- if .Values.crds.keep }}\n    helm.sh/resource-policy: keep\n    {{- end }}\n    {{- with .Values.crds.annotations }}\n    {{- toYaml . | nindent 4}}\n    {{- end }}\n    {{- if and .Values.crds.conversion.enabled .Values.webhook.certManager.enabled .Values.webhook.certManager.addInjectorAnnotations }}\n    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "external-secrets.fullname" . }}-webhook\n    {{- end }}' "$i"
   mv "$i" "${i%.yml}.yaml"
 done

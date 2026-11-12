@@ -5,6 +5,19 @@ tests:
   - it: should match snapshot of default values
     asserts:
       - matchSnapshot: {}
+  - it: should keep the CRDs by default
+    asserts:
+      - equal:
+          path: metadata.annotations["helm.sh/resource-policy"]
+          value: keep
+
+  - it: should not add the keep annotation when crds.keep is false
+    set:
+      crds.keep: false
+    asserts:
+      - isNull:
+          path: metadata.annotations["helm.sh/resource-policy"]
+
   - it: should disable conversion webhook
     set:
       crds.conversion.enabled: false

@@ -21,7 +21,7 @@ helm install external-secrets external-secrets/external-secrets
 ```
 
 ### Custom Resources
-By default, the chart will install external-secrets CRDs, this can be controlled with `installCRDs` value.
+By default, the chart will install external-secrets CRDs, this can be controlled with `installCRDs` value. The CRDs carry the `helm.sh/resource-policy: keep` annotation (`crds.keep`, default `true`), so switching `installCRDs` to `false` or uninstalling the release does not delete them together with all your ExternalSecrets and SecretStores.
 
 ## Uninstalling the Chart
 To uninstall the `external-secrets` deployment:
@@ -130,6 +130,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | crds.createClusterSecretStore | bool | `true` | If true, create CRDs for Cluster Secret Store. If set to false you must also set processClusterStore: false. |
 | crds.createPushSecret | bool | `true` | If true, create CRDs for Push Secret. If set to false you must also set processPushSecret: false. |
 | crds.createSecretStore | bool | `true` | If true, create CRDs for Secret Store. If set to false you must also set processSecretStore: false. |
+| crds.keep | bool | `true` | If true, add the `helm.sh/resource-policy: keep` annotation to the CRDs so that Helm does not delete them (and, through garbage collection, every ExternalSecret, SecretStore, ... in the cluster) when the release is uninstalled or when `installCRDs` is later set to false. Set to false to let Helm manage the CRD lifecycle fully. |
 | crds.unsafeServeV1Beta1 | bool | `false` | If true, enable v1beta1 API version serving for ExternalSecret, ClusterExternalSecret, SecretStore, and ClusterSecretStore CRDs. v1beta1 is deprecated. Only enable this for backward compatibility if you have existing v1beta1 resources. Warning: This flag will be removed on 2026.05.01. |
 | createOperator | bool | `true` | Specifies whether an external secret operator deployment be created. |
 | deploymentAnnotations | object | `{}` | Annotations to add to Deployment |

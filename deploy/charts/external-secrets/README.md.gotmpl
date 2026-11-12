@@ -23,7 +23,7 @@ helm install {{ template "chart.name" . }} {{ $org }}/{{ template "chart.name" .
 ```
 
 ### Custom Resources
-By default, the chart will install external-secrets CRDs, this can be controlled with `installCRDs` value.
+By default, the chart will install external-secrets CRDs, this can be controlled with `installCRDs` value. The CRDs carry the `helm.sh/resource-policy: keep` annotation (`crds.keep`, default `true`), so switching `installCRDs` to `false` or uninstalling the release does not delete them together with all your ExternalSecrets and SecretStores.
 
 ## Uninstalling the Chart
 To uninstall the `{{ template "chart.name" . }}` deployment:
