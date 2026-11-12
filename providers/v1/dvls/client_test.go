@@ -2054,19 +2054,28 @@ func TestClient_DeleteSecret_PropertyAlreadyClear(t *testing.T) {
 	assert.Equal(t, "", mockCred.lastUpdated.Id)
 }
 
-func TestClient_DeleteSecret_UnknownPropertyLeavesEntryAlone(t *testing.T) {
+func TestClient_DeleteSecret_UnknownPropertyDeletesThePassword(t *testing.T) {
 	// Before properties were honored, a ref like "key/secret" was accepted and
-	// ignored. Under deletionPolicy Delete such a PushSecret must still be able
-	// to go away: the delete succeeds and touches nothing, since a push of that
-	// property could never have written it.
-	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("app-user", "app-pass")})
+	// its value written to the password. Under deletionPolicy Delete such a
+	// PushSecret must still be able to go away, and take that password with it.
+	ref := pushSecretRemoteRefStub{remoteKey: testEntryName, property: "key/secret"}
 
-	err := c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: "key/secret"})
-	require.NoError(t, err)
-	assert.Equal(t, "", mockCred.lastDeleted)
-	assert.Equal(t, "", mockCred.lastUpdated.Id)
-	assert.Contains(t, mockCred.entries, testEntryUUID)
-	assert.Zero(t, mockCred.entriesCalls[testVaultUUID], "nothing is looked up for a property that was never pushed")
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("app-user", "app-pass")})
+	require.NoError(t, c.DeleteSecret(context.Background(), ref))
+	require.Equal(t, "", mockCred.lastDeleted, "the entry must be kept")
+	credData, _ := mockCred.entries[testEntryUUID].Data.(*dvls.EntryCredentialDefaultData)
+	assert.Equal(t, "app-user", credData.Username)
+	assert.Equal(t, "", credData.Password)
+
+	// On an AccessCode entry the password is all there is, so the entry goes.
+	c, mockCred = newTestClient(map[string]dvls.Entry{
+		testEntryUUID: {
+			Id: testEntryUUID, Name: testEntryName, Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeAccessCode,
+			Data: &dvls.EntryCredentialAccessCodeData{Password: "pw"},
+		},
+	})
+	require.NoError(t, c.DeleteSecret(context.Background(), ref))
+	assert.Equal(t, testEntryUUID, mockCred.lastDeleted)
 }
 
 func TestClient_DeleteSecret_PropertyDisambiguatesVault(t *testing.T) {

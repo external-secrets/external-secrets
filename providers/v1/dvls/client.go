@@ -467,14 +467,14 @@ func hasFolder(entries []dvls.Entry, name, fullPath string) bool {
 // deleted once no field is left. An entry of another subtype than a username
 // and password is deleted whole by an item with no property, as it always was.
 func (c *Client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
-	// A property this provider cannot push was never written, since a push of it
-	// is refused, so there is nothing of it to delete. Older versions ignored the
-	// property, so existing PushSecrets can still carry one: failing here would
-	// leave such a PushSecret stuck in Terminating under deletionPolicy Delete.
-	if ref.GetProperty() != "" {
-		if _, err := pushField(ref.GetProperty()); err != nil {
-			return nil
-		}
+	// A push of a property this provider cannot push is refused, and only items
+	// that synced are deleted, so such an item was pushed by an older version.
+	// That version ignored the property and wrote the password, so the password
+	// is what it deletes. Failing here instead would leave the PushSecret stuck
+	// in Terminating under deletionPolicy Delete.
+	property := ref.GetProperty()
+	if _, err := pushField(property); err != nil {
+		property = ""
 	}
 
 	vaultID, entryID, err := c.resolveRef(ctx, ref.GetRemoteKey())
@@ -484,7 +484,7 @@ func (c *Client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	if err != nil {
 		return err
 	}
-	last, err := c.clearField(ctx, vaultID, entryID, ref.GetProperty())
+	last, err := c.clearField(ctx, vaultID, entryID, property)
 	if err != nil || !last {
 		return err
 	}
