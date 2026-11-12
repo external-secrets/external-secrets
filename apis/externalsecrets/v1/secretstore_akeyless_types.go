@@ -60,7 +60,8 @@ type AkeylessAuth struct {
 
 	// JWTAuth authenticates with an Akeyless OAuth2.0/JWT auth method by
 	// submitting access-type=jwt and a bearer JWT. Prefer this over stuffing
-	// the JWT into SecretRef.accessTypeParam when using projected tokens.
+	// the JWT into SecretRef.accessTypeParam when using TokenRequest-issued tokens.
+	// When set, SecretRef and ServiceAccountRef on AkeylessAuth are ignored.
 	// +optional
 	JWTAuth *AkeylessJWTAuth `json:"jwtAuth,omitempty"`
 
@@ -90,6 +91,8 @@ type AkeylessAuthSecretRef struct {
 // +kubebuilder:validation:XValidation:rule="has(self.secretRef) != has(self.serviceAccountRef)",message="exactly one of secretRef or serviceAccountRef must be set"
 // +kubebuilder:validation:XValidation:rule="!has(self.secretRef) || (has(self.secretRef.name) && size(self.secretRef.name) > 0)",message="secretRef.name must be nonempty"
 // +kubebuilder:validation:XValidation:rule="!has(self.serviceAccountRef) || (has(self.serviceAccountRef.name) && size(self.serviceAccountRef.name) > 0)",message="serviceAccountRef.name must be nonempty"
+// +kubebuilder:validation:XValidation:rule="!has(self.serviceAccountRef) || (has(self.serviceAccountRef.audiences) && size(self.serviceAccountRef.audiences) > 0)",message="serviceAccountRef.audiences must be set to the Akeyless auth method audience"
+// +kubebuilder:validation:XValidation:rule="!has(self.expirationSeconds) || has(self.serviceAccountRef)",message="expirationSeconds only applies to serviceAccountRef"
 type AkeylessJWTAuth struct {
 	// the Akeyless OAuth2.0/JWT auth-method access-id
 	// +kubebuilder:validation:MinLength=1
@@ -101,14 +104,15 @@ type AkeylessJWTAuth struct {
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 
 	// Optional ServiceAccountRef requests a token via the TokenRequest API.
-	// Set audiences to match the Akeyless OAuth2 auth-method audience. When
-	// audiences is empty the token is requested for the "akeyless" audience,
-	// never the Kubernetes API server. Mutually exclusive with SecretRef.
+	// audiences is required and must match the Akeyless OAuth2.0/JWT
+	// auth-method audience, so the token is never scoped to the Kubernetes
+	// API server. Mutually exclusive with SecretRef.
 	// +optional
 	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
 
-	// Optional expiration time in seconds for TokenRequest tokens.
-	// Defaults to 600 (10 minutes). Kubernetes rejects TokenRequest values below 600.
+	// Optional expiration time in seconds for TokenRequest tokens. Only valid
+	// with ServiceAccountRef. Defaults to 600 (10 minutes). Kubernetes rejects
+	// TokenRequest values below 600.
 	// +optional
 	// +kubebuilder:validation:Minimum=600
 	ExpirationSeconds *int64 `json:"expirationSeconds,omitempty"`

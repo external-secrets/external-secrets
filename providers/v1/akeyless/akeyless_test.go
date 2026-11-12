@@ -539,7 +539,8 @@ func TestValidateStore(t *testing.T) {
 							JWTAuth: &esv1.AkeylessJWTAuth{
 								AccessID: "p-jwt",
 								ServiceAccountRef: &esmeta.ServiceAccountSelector{
-									Name: "akeyless-jwt-sa",
+									Name:      "akeyless-jwt-sa",
+									Audiences: []string{"akeyless.io"},
 								},
 								ExpirationSeconds: &exp,
 							},
@@ -572,6 +573,109 @@ func TestValidateStore(t *testing.T) {
 
 		_, err := provider.ValidateStore(store)
 		require.ErrorContains(t, err, errJWTAuthMissingSecretName)
+	})
+
+	t.Run("jwt auth validation errors", func(t *testing.T) {
+		otherNS := "team-b"
+		exp := int64(600)
+		aud := []string{"akeyless.io"}
+		tests := []struct {
+			name    string
+			jwtAuth *esv1.AkeylessJWTAuth
+			wantErr string
+		}{
+			{
+				name: "empty accessID",
+				jwtAuth: &esv1.AkeylessJWTAuth{
+					SecretRef: &esmeta.SecretKeySelector{Name: "akeyless-jwt"},
+				},
+				wantErr: errMissingJWTAccessID,
+			},
+			{
+				name: "empty serviceAccountRef name",
+				jwtAuth: &esv1.AkeylessJWTAuth{
+					AccessID:          "p-jwt",
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{Audiences: aud},
+				},
+				wantErr: errJWTAuthMissingSAName,
+			},
+			{
+				name: "serviceAccountRef without audiences",
+				jwtAuth: &esv1.AkeylessJWTAuth{
+					AccessID:          "p-jwt",
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "akeyless-jwt-sa"},
+				},
+				wantErr: errJWTAuthMissingAudiences,
+			},
+			{
+				name: "expirationSeconds with secretRef",
+				jwtAuth: &esv1.AkeylessJWTAuth{
+					AccessID:          "p-jwt",
+					SecretRef:         &esmeta.SecretKeySelector{Name: "akeyless-jwt"},
+					ExpirationSeconds: &exp,
+				},
+				wantErr: errJWTAuthExpirationWithoutSA,
+			},
+			{
+				name: "SecretStore secretRef in another namespace",
+				jwtAuth: &esv1.AkeylessJWTAuth{
+					AccessID:  "p-jwt",
+					SecretRef: &esmeta.SecretKeySelector{Name: "akeyless-jwt", Namespace: &otherNS},
+				},
+				wantErr: "invalid Auth.JWTAuth.SecretRef",
+			},
+			{
+				name: "SecretStore serviceAccountRef in another namespace",
+				jwtAuth: &esv1.AkeylessJWTAuth{
+					AccessID:          "p-jwt",
+					ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "akeyless-jwt-sa", Namespace: &otherNS, Audiences: aud},
+				},
+				wantErr: "invalid Auth.JWTAuth.ServiceAccountRef",
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				store := &esv1.SecretStore{
+					Namespace: "team-a",
+					Spec: esv1.SecretStoreSpec{
+						Provider: &esv1.SecretStoreProvider{
+							Akeyless: &esv1.AkeylessProvider{
+								AkeylessGWApiURL: &akeylessGWApiURL,
+								Auth:             &esv1.AkeylessAuth{JWTAuth: tt.jwtAuth},
+							},
+						},
+					},
+				}
+				_, err := provider.ValidateStore(store)
+				require.ErrorContains(t, err, tt.wantErr)
+			})
+		}
+	})
+
+	t.Run("jwt auth warns about ignored secretRef and serviceAccountRef", func(t *testing.T) {
+		store := &esv1.SecretStore{
+			Spec: esv1.SecretStoreSpec{
+				Provider: &esv1.SecretStoreProvider{
+					Akeyless: &esv1.AkeylessProvider{
+						AkeylessGWApiURL: &akeylessGWApiURL,
+						Auth: &esv1.AkeylessAuth{
+							SecretRef: esv1.AkeylessAuthSecretRef{
+								AccessID: esmeta.SecretKeySelector{Name: "akeyless-creds", Key: "accessId"},
+							},
+							ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "azure-sa"},
+							JWTAuth: &esv1.AkeylessJWTAuth{
+								AccessID:  "p-jwt",
+								SecretRef: &esmeta.SecretKeySelector{Name: "akeyless-jwt"},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		warnings, err := provider.ValidateStore(store)
+		require.NoError(t, err)
+		require.ElementsMatch(t, []string{warnJWTAuthIgnoresSecretRef, warnJWTAuthIgnoresSA}, []string(warnings))
 	})
 
 	t.Run("jwt auth secretRef without namespace on ClusterSecretStore", func(t *testing.T) {

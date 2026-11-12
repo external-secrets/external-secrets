@@ -112,44 +112,55 @@ func newTokenRequestClientset(token string, err error) (*k8sfake.Clientset, *[]c
 	return cs, &captured
 }
 
+const testJWTAudience = "akeyless.io"
+
 func TestResolveJWTAuthTokenFromServiceAccount(t *testing.T) {
 	otherNS := "team-b"
 	customExp := int64(3600)
+	aud := []string{testJWTAudience}
 
 	tests := []struct {
 		name          string
 		storeKind     string
 		jwtAuth       esv1.AkeylessJWTAuth
 		tokenErr      error
+		wantNoRequest bool
 		wantNamespace string
 		wantAudiences []string
 		wantExp       int64
 		wantErr       string
 	}{
 		{
-			name:      "no audiences defaults to akeyless, not the API server",
+			name:      "missing audiences is rejected before TokenRequest",
 			storeKind: esv1.SecretStoreKind,
 			jwtAuth: esv1.AkeylessJWTAuth{
 				AccessID:          "p-jwt",
 				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "akeyless-sa"},
 			},
+			wantNoRequest: true,
+			wantErr:       errJWTAuthMissingAudiences,
+		},
+		{
+			name:      "audiences use the default expiration",
+			storeKind: esv1.SecretStoreKind,
+			jwtAuth: esv1.AkeylessJWTAuth{
+				AccessID:          "p-jwt",
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "akeyless-sa", Audiences: aud},
+			},
 			wantNamespace: "default",
-			wantAudiences: []string{defaultJWTAudience},
+			wantAudiences: aud,
 			wantExp:       defaultJWTTokenTTL,
 		},
 		{
-			name:      "explicit audiences and expiration are passed through",
+			name:      "explicit expiration is passed through",
 			storeKind: esv1.SecretStoreKind,
 			jwtAuth: esv1.AkeylessJWTAuth{
-				AccessID: "p-jwt",
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{
-					Name:      "akeyless-sa",
-					Audiences: []string{"https://example.akeyless.io"},
-				},
+				AccessID:          "p-jwt",
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "akeyless-sa", Audiences: aud},
 				ExpirationSeconds: &customExp,
 			},
 			wantNamespace: "default",
-			wantAudiences: []string{"https://example.akeyless.io"},
+			wantAudiences: aud,
 			wantExp:       customExp,
 		},
 		{
@@ -157,10 +168,10 @@ func TestResolveJWTAuthTokenFromServiceAccount(t *testing.T) {
 			storeKind: esv1.SecretStoreKind,
 			jwtAuth: esv1.AkeylessJWTAuth{
 				AccessID:          "p-jwt",
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "akeyless-sa", Namespace: &otherNS},
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "akeyless-sa", Namespace: &otherNS, Audiences: aud},
 			},
 			wantNamespace: "default",
-			wantAudiences: []string{defaultJWTAudience},
+			wantAudiences: aud,
 			wantExp:       defaultJWTTokenTTL,
 		},
 		{
@@ -168,10 +179,10 @@ func TestResolveJWTAuthTokenFromServiceAccount(t *testing.T) {
 			storeKind: esv1.ClusterSecretStoreKind,
 			jwtAuth: esv1.AkeylessJWTAuth{
 				AccessID:          "p-jwt",
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "akeyless-sa", Namespace: &otherNS},
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "akeyless-sa", Namespace: &otherNS, Audiences: aud},
 			},
 			wantNamespace: otherNS,
-			wantAudiences: []string{defaultJWTAudience},
+			wantAudiences: aud,
 			wantExp:       defaultJWTTokenTTL,
 		},
 		{
@@ -179,11 +190,11 @@ func TestResolveJWTAuthTokenFromServiceAccount(t *testing.T) {
 			storeKind: esv1.SecretStoreKind,
 			jwtAuth: esv1.AkeylessJWTAuth{
 				AccessID:          "p-jwt",
-				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "akeyless-sa"},
+				ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "akeyless-sa", Audiences: aud},
 			},
 			tokenErr:      errors.New("forbidden"),
 			wantNamespace: "default",
-			wantAudiences: []string{defaultJWTAudience},
+			wantAudiences: aud,
 			wantExp:       defaultJWTTokenTTL,
 			wantErr:       "forbidden",
 		},
@@ -200,13 +211,17 @@ func TestResolveJWTAuthTokenFromServiceAccount(t *testing.T) {
 
 			got, err := base.resolveJWTAuthToken(t.Context(), &tt.jwtAuth)
 
-			require.Len(t, *captured, 1)
-			req := (*captured)[0]
-			require.Equal(t, tt.wantNamespace, req.namespace)
-			require.Equal(t, "akeyless-sa", req.name)
-			require.Equal(t, tt.wantAudiences, req.spec.Audiences)
-			require.NotNil(t, req.spec.ExpirationSeconds)
-			require.Equal(t, tt.wantExp, *req.spec.ExpirationSeconds)
+			if tt.wantNoRequest {
+				require.Empty(t, *captured)
+			} else {
+				require.Len(t, *captured, 1)
+				req := (*captured)[0]
+				require.Equal(t, tt.wantNamespace, req.namespace)
+				require.Equal(t, "akeyless-sa", req.name)
+				require.Equal(t, tt.wantAudiences, req.spec.Audiences)
+				require.NotNil(t, req.spec.ExpirationSeconds)
+				require.Equal(t, tt.wantExp, *req.spec.ExpirationSeconds)
+			}
 			if tt.wantErr != "" {
 				require.ErrorContains(t, err, tt.wantErr)
 				return
@@ -277,7 +292,7 @@ func TestTokenFromJWTAuthSendsJWTAccessType(t *testing.T) {
 
 		token, err := base.tokenFromJWTAuth(t.Context(), &esv1.AkeylessJWTAuth{
 			AccessID:          "p-jwt",
-			ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "akeyless-sa"},
+			ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "akeyless-sa", Audiences: []string{testJWTAudience}},
 		})
 		require.NoError(t, err)
 		require.Equal(t, "t-akeyless", token)
@@ -286,6 +301,108 @@ func TestTokenFromJWTAuthSendsJWTAccessType(t *testing.T) {
 		require.Equal(t, "jwt", body["access-type"])
 		require.Equal(t, "sa.jwt.token", body["jwt"])
 	})
+}
+
+// TestTokenFromSecretRefJWTRouting drives the store-level entry point, so both the
+// jwtAuth dispatch and the generic credentials Secret with accessType=jwt are covered.
+func TestTokenFromSecretRefJWTRouting(t *testing.T) {
+	gwURL := "https://api.akeyless.io"
+	jwtSecret := &corev1.Secret{
+		Name:      "akeyless-jwt",
+		Namespace: "default",
+		Data:      map[string][]byte{"token": []byte("idp.jwt.token")},
+	}
+	credsWithJWT := &corev1.Secret{
+		Name:      "akeyless-creds",
+		Namespace: "default",
+		Data: map[string][]byte{
+			"accessId":        []byte("p-creds"),
+			"accessType":      []byte("jwt"),
+			"accessTypeParam": []byte("creds.jwt.token"),
+		},
+	}
+	credsWithoutJWT := &corev1.Secret{
+		Name:      "akeyless-creds",
+		Namespace: "default",
+		Data: map[string][]byte{
+			"accessId":   []byte("p-creds"),
+			"accessType": []byte("jwt"),
+		},
+	}
+	credsRef := func(withParam bool) esv1.AkeylessAuthSecretRef {
+		ref := esv1.AkeylessAuthSecretRef{
+			AccessID:   esmeta.SecretKeySelector{Name: "akeyless-creds", Key: "accessId"},
+			AccessType: esmeta.SecretKeySelector{Name: "akeyless-creds", Key: "accessType"},
+		}
+		if withParam {
+			ref.AccessTypeParam = esmeta.SecretKeySelector{Name: "akeyless-creds", Key: "accessTypeParam"}
+		}
+		return ref
+	}
+
+	tests := []struct {
+		name         string
+		auth         esv1.AkeylessAuth
+		secret       *corev1.Secret
+		wantAccessID string
+		wantJWT      string
+		wantErr      string
+	}{
+		{
+			name: "jwtAuth.secretRef",
+			auth: esv1.AkeylessAuth{JWTAuth: &esv1.AkeylessJWTAuth{
+				AccessID:  "p-jwt",
+				SecretRef: &esmeta.SecretKeySelector{Name: "akeyless-jwt", Key: "token"},
+			}},
+			secret:       jwtSecret,
+			wantAccessID: "p-jwt",
+			wantJWT:      "idp.jwt.token",
+		},
+		{
+			name:         "credentials Secret with accessType jwt",
+			auth:         esv1.AkeylessAuth{SecretRef: credsRef(true)},
+			secret:       credsWithJWT,
+			wantAccessID: "p-creds",
+			wantJWT:      "creds.jwt.token",
+		},
+		{
+			name:    "credentials Secret with accessType jwt but no accessTypeParam",
+			auth:    esv1.AkeylessAuth{SecretRef: credsRef(false)},
+			secret:  credsWithoutJWT,
+			wantErr: errMissingJWT,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			auth := tt.auth
+			store := &esv1.SecretStore{
+				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{Akeyless: &esv1.AkeylessProvider{
+					AkeylessGWApiURL: &gwURL,
+					Auth:             &auth,
+				}}},
+			}
+			base := &akeylessBase{
+				kube:      fake.NewClientBuilder().WithObjects(tt.secret).Build(),
+				store:     store,
+				namespace: "default",
+				storeKind: esv1.SecretStoreKind,
+			}
+			body := newAuthServer(t, base)
+
+			token, err := base.TokenFromSecretRef(t.Context())
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				require.Empty(t, body, "Akeyless /auth must not be called")
+				return
+			}
+			require.NoError(t, err)
+			require.Equal(t, "t-akeyless", token)
+			require.Equal(t, tt.wantAccessID, body["access-id"])
+			require.Equal(t, "jwt", body["access-type"])
+			require.Equal(t, tt.wantJWT, body["jwt"])
+		})
+	}
 }
 
 func TestGetTokenJWTRequiresToken(t *testing.T) {

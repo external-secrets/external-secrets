@@ -425,7 +425,8 @@ AkeylessJWTAuth
 <em>(Optional)</em>
 <p>JWTAuth authenticates with an Akeyless OAuth2.0/JWT auth method by
 submitting access-type=jwt and a bearer JWT. Prefer this over stuffing
-the JWT into SecretRef.accessTypeParam when using projected tokens.</p>
+the JWT into SecretRef.accessTypeParam when using TokenRequest-issued tokens.
+When set, SecretRef and ServiceAccountRef on AkeylessAuth are ignored.</p>
 </td>
 </tr>
 <tr>
@@ -564,9 +565,9 @@ External Secrets meta/v1.ServiceAccountSelector
 <td>
 <em>(Optional)</em>
 <p>Optional ServiceAccountRef requests a token via the TokenRequest API.
-Set audiences to match the Akeyless OAuth2 auth-method audience. When
-audiences is empty the token is requested for the &ldquo;akeyless&rdquo; audience,
-never the Kubernetes API server. Mutually exclusive with SecretRef.</p>
+audiences is required and must match the Akeyless OAuth2.0/JWT
+auth-method audience, so the token is never scoped to the Kubernetes
+API server. Mutually exclusive with SecretRef.</p>
 </td>
 </tr>
 <tr>
@@ -578,8 +579,9 @@ int64
 </td>
 <td>
 <em>(Optional)</em>
-<p>Optional expiration time in seconds for TokenRequest tokens.
-Defaults to 600 (10 minutes). Kubernetes rejects TokenRequest values below 600.</p>
+<p>Optional expiration time in seconds for TokenRequest tokens. Only valid
+with ServiceAccountRef. Defaults to 600 (10 minutes). Kubernetes rejects
+TokenRequest values below 600.</p>
 </td>
 </tr>
 </tbody>

@@ -38,13 +38,14 @@ const (
 	errJWTAuthBothTokenSources     = "jwtAuth: secretRef and serviceAccountRef are mutually exclusive"
 	errJWTAuthMissingSecretName    = "jwtAuth.secretRef.name must be set"
 	errJWTAuthMissingSAName        = "jwtAuth.serviceAccountRef.name must be set"
+	errJWTAuthMissingAudiences     = "jwtAuth.serviceAccountRef.audiences must be set to the Akeyless auth method audience"
+	errJWTAuthExpirationWithoutSA  = "jwtAuth.expirationSeconds only applies to serviceAccountRef"
 	errMultipleAkeylessAuthMethods = "only one of kubernetesAuth or jwtAuth may be set"
+	warnJWTAuthIgnoresSecretRef    = "authSecretRef.secretRef is ignored because jwtAuth is set"
+	warnJWTAuthIgnoresSA           = "authSecretRef.serviceAccountRef is ignored because jwtAuth is set"
 
 	akeylessJWTAccessType = "jwt"
 	defaultJWTTokenTTL    = int64(600)
-	// defaultJWTAudience keeps TokenRequest from issuing a token scoped to the
-	// API server, which would be usable against the cluster if it leaked.
-	defaultJWTAudience = "akeyless"
 )
 
 func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
@@ -114,9 +115,6 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 }
 
 func (a *akeylessBase) tokenFromJWTAuth(ctx context.Context, jwtAuth *esv1.AkeylessJWTAuth) (string, error) {
-	if jwtAuth == nil {
-		return "", errors.New(errMissingJWTAccessID)
-	}
 	if jwtAuth.AccessID == "" {
 		return "", errors.New(errMissingJWTAccessID)
 	}
@@ -148,15 +146,16 @@ func (a *akeylessBase) resolveJWTAuthToken(ctx context.Context, jwtAuth *esv1.Ak
 		}
 		return jwt, nil
 	case hasSA:
+		// Without an audience TokenRequest scopes the token to the API server,
+		// which would let a leaked token be used against the cluster.
+		if len(jwtAuth.ServiceAccountRef.Audiences) == 0 {
+			return "", errors.New(errJWTAuthMissingAudiences)
+		}
 		exp := defaultJWTTokenTTL
 		if jwtAuth.ExpirationSeconds != nil && *jwtAuth.ExpirationSeconds > 0 {
 			exp = *jwtAuth.ExpirationSeconds
 		}
-		var defaultAud []string
-		if len(jwtAuth.ServiceAccountRef.Audiences) == 0 {
-			defaultAud = []string{defaultJWTAudience}
-		}
-		jwt, err := a.getJWTfromServiceAccountToken(ctx, *jwtAuth.ServiceAccountRef, defaultAud, exp)
+		jwt, err := a.getJWTfromServiceAccountToken(ctx, *jwtAuth.ServiceAccountRef, nil, exp)
 		if err != nil {
 			return "", err
 		}
