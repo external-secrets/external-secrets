@@ -17,8 +17,9 @@ limitations under the License.
 package akeyless
 
 import (
-	"sync"
 	"time"
+
+	lru "github.com/hashicorp/golang-lru/v2"
 )
 
 // Item type almost never changes; ESO only needs it to pick get-secret vs
@@ -34,20 +35,27 @@ type itemTypeEntry struct {
 	expiry   time.Time
 }
 
+// itemTypeCache checks expiry on read instead of using expirable.LRU, whose
+// cleanup goroutine never exits and would leak with every discarded client.
 type itemTypeCache struct {
-	mu      sync.Mutex
-	entries map[string]itemTypeEntry
+	entries *lru.Cache[string, itemTypeEntry]
 	now     func() time.Time
 	ttl     time.Duration
-	max     int
 }
 
 func newItemTypeCache() *itemTypeCache {
+	return newItemTypeCacheWithSize(itemTypeCacheMaxEntries)
+}
+
+func newItemTypeCacheWithSize(size int) *itemTypeCache {
+	entries, err := lru.New[string, itemTypeEntry](size)
+	if err != nil {
+		panic(err)
+	}
 	return &itemTypeCache{
-		entries: make(map[string]itemTypeEntry),
+		entries: entries,
 		now:     time.Now,
 		ttl:     itemTypeCacheTTL,
-		max:     itemTypeCacheMaxEntries,
 	}
 }
 
@@ -55,13 +63,12 @@ func (c *itemTypeCache) get(name string) (string, bool) {
 	if c == nil {
 		return "", false
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	ent, ok := c.entries[name]
-	if !ok || !c.now().Before(ent.expiry) {
-		if ok {
-			delete(c.entries, name)
-		}
+	ent, ok := c.entries.Get(name)
+	if !ok {
+		return "", false
+	}
+	if !c.now().Before(ent.expiry) {
+		c.entries.Remove(name)
 		return "", false
 	}
 	return ent.itemType, true
@@ -71,47 +78,12 @@ func (c *itemTypeCache) set(name, itemType string) {
 	if c == nil || name == "" || itemType == "" {
 		return
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.purgeExpiredLocked()
-	c.entries[name] = itemTypeEntry{itemType: itemType, expiry: c.now().Add(c.ttl)}
-	c.enforceMaxLocked()
+	c.entries.Add(name, itemTypeEntry{itemType: itemType, expiry: c.now().Add(c.ttl)})
 }
 
 func (c *itemTypeCache) invalidate(name string) {
 	if c == nil {
 		return
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	delete(c.entries, name)
-}
-
-func (c *itemTypeCache) purgeExpiredLocked() {
-	now := c.now()
-	for name, ent := range c.entries {
-		if !now.Before(ent.expiry) {
-			delete(c.entries, name)
-		}
-	}
-}
-
-func (c *itemTypeCache) enforceMaxLocked() {
-	if c.max <= 0 || len(c.entries) <= c.max {
-		return
-	}
-	// Drop the soonest-expiring entries until we are back under the cap.
-	for len(c.entries) > c.max {
-		var drop string
-		var soonest time.Time
-		first := true
-		for name, ent := range c.entries {
-			if first || ent.expiry.Before(soonest) {
-				drop = name
-				soonest = ent.expiry
-				first = false
-			}
-		}
-		delete(c.entries, drop)
-	}
+	c.entries.Remove(name)
 }

@@ -13,7 +13,14 @@ For non-global SaaS tenants, set `akeylessGWApiURL` (or the `AKEYLESS_URL` envir
 
 When using an Akeyless Gateway, you can set `ignoreCache: true` on the SecretStore to bypass the Gateway cache and fetch the latest secret value from Akeyless SaaS on every sync. This matches the `ignore_cache` option in the Akeyless Kubernetes Secrets Injector. Use this only when you need fresh values on each reconcile: it increases load on the Gateway and upstream Akeyless API compared to serving cached responses.
 
-**NOTE:** `ignoreCache` affects Gateway-side caching only. ESO still reuses the provider client between reconciles when the SecretStore spec is unchanged.
+**NOTE:** `ignoreCache` also disables ESO's in-process item-type cache (described below), so every sync looks up the item type. It does not disable token reuse. ESO still reuses the provider client between reconciles when the SecretStore spec is unchanged.
+
+ESO caches two things in memory for each provider client, which is created per SecretStore and namespace and replaced when the SecretStore spec changes:
+
+- **Akeyless token:** reused until the expiry returned by Akeyless authentication, minus 30 seconds. If no expiry is returned, the token is reused for about 4 minutes. If a request made with a cached token fails with HTTP 401 or 403, ESO discards the token and retries the request once with a fresh one.
+- **Item type** (static, dynamic, rotated or certificate): cached for 10 minutes, for up to 1024 items. If a read with a cached type fails, ESO looks up the item again in the same sync, so deleted items and items recreated as a different type are handled immediately.
+
+To set the operator-wide `AKEYLESS_URL` environment variable with the Helm chart, use `extraEnv`.
 
 Akeyless provides several Authentication Methods:
 
