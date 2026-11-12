@@ -1,0 +1,49 @@
+# Runs the unit tests for the Node scripts under .github/scripts.
+#
+# These tests existed before this workflow but nothing executed them, so a
+# broken helper would only have surfaced in production on a live pull request.
+name: Scripts Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/scripts/**'
+      - '.github/workflows/scripts-test.yml'
+  pull_request:
+    paths:
+      - '.github/scripts/**'
+      - '.github/workflows/scripts-test.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Node script tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      # node --test exits 0 when its glob matches nothing, so a rename would
+      # turn CI green having run no tests at all. Count first, recursively, so
+      # the guard covers the same set as the glob below.
+      - name: Check test files are discoverable
+        run: |
+          count=$(find .github/scripts -type f -name '*-test.js' -printf '.' | wc -c | tr -d ' ')
+          echo "found $count test file(s)"
+          if [ "$count" -lt 3 ]; then
+            echo "::error::expected at least 3 test files under .github/scripts, found $count"
+            exit 1
+          fi
+
+      - name: Run tests
+        run: node --test '.github/scripts/**/*-test.js'
