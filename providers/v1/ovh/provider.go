@@ -26,11 +26,14 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/ovh/okms-sdk-go"
 	"github.com/ovh/okms-sdk-go/types"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/clientcredentials"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -41,14 +44,26 @@ import (
 )
 
 const (
-	emptyTokenSecretRef           = "ovh store auth.token.tokenSecretRef cannot be empty"
-	emptyKeySecretRef             = "ovh store auth.mtls.keySecretRef cannot be empty"
-	emptyCertSecretRef            = "ovh store auth.mtls.certSecretRef cannot be empty"
-	createOvhProviderError        = "failed to create new ovh provider client"
-	createOkmsClientError         = "failed to create new okms client"
-	configureTokenOkmsClientError = "failed to configure token okms client"
-	configureMtlsOkmsClientError  = "failed to configure mtls okms client"
+	emptyTokenSecretRef            = "ovh store auth.token.tokenSecretRef cannot be empty"
+	emptyKeySecretRef              = "ovh store auth.mtls.keySecretRef cannot be empty"
+	emptyCertSecretRef             = "ovh store auth.mtls.certSecretRef cannot be empty"
+	createOvhProviderError         = "failed to create new ovh provider client"
+	createOkmsClientError          = "failed to create new okms client"
+	configureTokenOkmsClientError  = "failed to configure token okms client"
+	configureMtlsOkmsClientError   = "failed to configure mtls okms client"
+	emptyClientIDSecretRef         = "ovh store auth.oauth2.clientIDSecretRef cannot be empty"
+	emptyClientSecretSecretRef     = "ovh store auth.oauth2.clientSecretSecretRef cannot be empty"
+	configureOAuth2OkmsClientError = "failed to configure oauth2 okms client"
+	// defaultOAuth2TokenURL is OVHcloud's European token endpoint. Canada and the US have
+	// their own, and a store may name either through auth.oauth2.tokenURL.
+	defaultOAuth2TokenURL = "https://www.ovh.com/auth/oauth2/token"
+	// oauth2Scope is the only scope OVHcloud's token endpoint accepts.
+	oauth2Scope          = "all"
+	invalidTokenURLError = "invalid auth.oauth2.tokenURL"
 )
+
+// oauth2TokenURLHosts are the hosts OVHcloud publishes token endpoints on, one per region.
+var oauth2TokenURLHosts = []string{"www.ovh.com", "ca.ovh.com", "us.ovhcloud.com"}
 
 // Provider implements the ESO Provider interface for OVHcloud.
 type Provider struct {
@@ -130,13 +145,16 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		okmsTimeout:       okmsTimeout,
 	}
 
-	// Authentication configuration: token or mTLS.
+	// Authentication configuration: token, mTLS or OAuth2.
 	if ovhStore.Auth.ClientToken != nil {
 		err = configureHTTPTokenClient(ctx, p, cl,
 			ovhStore.Server, ovhStore.Auth.ClientToken)
 	} else if ovhStore.Auth.ClientMTLS != nil {
 		err = configureHTTPMTLSClient(ctx, p, cl,
 			ovhStore.Server, ovhStore.Auth.ClientMTLS)
+	} else if ovhStore.Auth.ClientOAuth2 != nil {
+		err = configureHTTPOAuth2Client(ctx, p, cl,
+			ovhStore.Server, ovhStore.Auth.ClientOAuth2)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", createOvhProviderError, err)
@@ -187,6 +205,116 @@ func getToken(ctx context.Context, p *Provider, cl *ovhClient, clientToken *esv1
 	}
 
 	return token, nil
+}
+
+// configureHTTPOAuth2Client configures the client to authenticate with an OVHcloud service account.
+//
+// A service account yields an OAuth2 client id and client secret, which are exchanged for a short
+// lived access token. The exchange and every renewal are handled by the transport returned by
+// clientcredentials, so nothing here has to watch an expiry.
+func configureHTTPOAuth2Client(ctx context.Context, p *Provider, cl *ovhClient, server string, clientOAuth2 *esv1.OvhClientOAuth2) error {
+	clientID, err := p.secretKeyResolver.Resolve(ctx, cl.kube,
+		cl.ovhStoreKind, cl.ovhStoreNameSpace, clientOAuth2.ClientID)
+	if err != nil {
+		return fmt.Errorf("%s: could not retrieve client id: %w", configureOAuth2OkmsClientError, err)
+	}
+	if clientID == "" {
+		return errors.New(emptyClientIDSecretRef)
+	}
+
+	clientSecret, err := p.secretKeyResolver.Resolve(ctx, cl.kube,
+		cl.ovhStoreKind, cl.ovhStoreNameSpace, clientOAuth2.ClientSecret)
+	if err != nil {
+		return fmt.Errorf("%s: could not retrieve client secret: %w", configureOAuth2OkmsClientError, err)
+	}
+	if clientSecret == "" {
+		return errors.New(emptyClientSecretSecretRef)
+	}
+
+	tokenURL, err := resolveOAuth2TokenURL(clientOAuth2.TokenURL)
+	if err != nil {
+		return fmt.Errorf("%s: %w", configureOAuth2OkmsClientError, err)
+	}
+
+	config := newOAuth2Config(clientID, clientSecret, tokenURL)
+
+	// The timeout applies to the token exchange as well as to the KMS calls: without this the
+	// exchange would use the default client and ignore okmsTimeout entirely.
+	//
+	// CheckRedirect holds a redirect to the same rules as the configured endpoint: the client
+	// credentials travel in the exchange request, so a token endpoint answering a redirect to
+	// plain HTTP, or to a host that is not OVHcloud's, would hand them to somebody else.
+	exchangeClient := &http.Client{
+		Timeout:       cl.okmsTimeout,
+		CheckRedirect: checkOAuth2Redirect,
+	}
+	ctx = context.WithValue(ctx, oauth2.HTTPClient, exchangeClient)
+	httpClient := config.Client(ctx)
+	httpClient.Timeout = cl.okmsTimeout
+
+	cl.okmsClient, err = okms.NewRestAPIClientWithHttp(server, httpClient)
+	if err != nil {
+		return fmt.Errorf("%s: %s: %w", configureOAuth2OkmsClientError, createOkmsClientError, err)
+	}
+	if cl.okmsClient == nil {
+		return fmt.Errorf("%s: okms client is nil", configureOAuth2OkmsClientError)
+	}
+
+	// No Authorization header is set here: the transport adds one and renews it.
+	cl.okmsClient.WithCustomHeader("Content-type", "application/json")
+
+	return nil
+}
+
+// newOAuth2Config builds the client credentials configuration for OVHcloud's token endpoint.
+//
+// The scope is not optional: OVHcloud answers a request without one with invalid_scope, and
+// "all" is the only value it accepts.
+func newOAuth2Config(clientID, clientSecret, tokenURL string) *clientcredentials.Config {
+	return &clientcredentials.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		TokenURL:     tokenURL,
+		Scopes:       []string{oauth2Scope},
+		AuthStyle:    oauth2.AuthStyleInHeader,
+	}
+}
+
+// checkOAuth2Redirect refuses a redirect that would take the token exchange off HTTPS or off
+// one of OVHcloud's hosts.
+func checkOAuth2Redirect(req *http.Request, _ []*http.Request) error {
+	if req.URL.Scheme != "https" {
+		return fmt.Errorf("refusing redirect to a non-https token endpoint: %s", req.URL.Scheme)
+	}
+	if !slices.Contains(oauth2TokenURLHosts, req.URL.Host) {
+		return fmt.Errorf("refusing redirect to a token endpoint outside OVHcloud: %s", req.URL.Host)
+	}
+	return nil
+}
+
+// resolveOAuth2TokenURL returns the token endpoint to use, and refuses anything that is not one
+// of OVHcloud's.
+//
+// The value comes from a SecretStore, so whoever can edit one would otherwise choose where the
+// client credentials are sent. Restricting it to OVHcloud's own hosts, over HTTPS, keeps that
+// choice to picking a region.
+func resolveOAuth2TokenURL(raw string) (string, error) {
+	if raw == "" {
+		return defaultOAuth2TokenURL, nil
+	}
+
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", invalidTokenURLError, err)
+	}
+	if parsed.Scheme != "https" {
+		return "", fmt.Errorf("%s: scheme must be https, got %q", invalidTokenURLError, parsed.Scheme)
+	}
+	if !slices.Contains(oauth2TokenURLHosts, parsed.Host) {
+		return "", fmt.Errorf("%s: host must be one of %v, got %q",
+			invalidTokenURLError, oauth2TokenURLHosts, parsed.Host)
+	}
+	return raw, nil
 }
 
 // configureHTTPMTLSClient configures the client to use mTLS for HTTP requests.
@@ -311,15 +439,21 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	}
 
 	// Validate the provider's authentication method.
-	return p.validateAuth(provider)
+	return p.validateAuth(store, provider)
 }
 
-func (p *Provider) validateAuth(provider *esv1.SecretStoreProvider) (admission.Warnings, error) {
+func (p *Provider) validateAuth(store esv1.GenericStore, provider *esv1.SecretStoreProvider) (admission.Warnings, error) {
 	auth := provider.OVHcloud.Auth
-	if auth.ClientMTLS == nil && auth.ClientToken == nil {
+	configured := 0
+	for _, set := range []bool{auth.ClientMTLS != nil, auth.ClientToken != nil, auth.ClientOAuth2 != nil} {
+		if set {
+			configured++
+		}
+	}
+	if configured == 0 {
 		return nil, errors.New("missing authentication method")
-	} else if auth.ClientMTLS != nil && auth.ClientToken != nil {
-		return nil, errors.New("only one authentication method allowed (mtls | token)")
+	} else if configured > 1 {
+		return nil, errors.New("only one authentication method allowed (mtls | token | oauth2)")
 	}
 	if auth.ClientToken != nil && auth.ClientToken.ClientTokenSecret == (v1.SecretKeySelector{}) {
 		return nil, errors.New("missing token secret for token authentication")
@@ -327,7 +461,32 @@ func (p *Provider) validateAuth(provider *esv1.SecretStoreProvider) (admission.W
 	if auth.ClientMTLS != nil && (auth.ClientMTLS.ClientCertificate == (v1.SecretKeySelector{}) || auth.ClientMTLS.ClientKey == (v1.SecretKeySelector{})) {
 		return nil, errors.New("missing tls certificate or key for mtls authentication")
 	}
+	if auth.ClientOAuth2 != nil {
+		return nil, validateOAuth2Selectors(store, auth.ClientOAuth2)
+	}
 	return nil, nil
+}
+
+// validateOAuth2Selectors rejects a selector the client could not resolve. The CRD requires the
+// two selector objects but neither name nor key inside them, and OVHcloud has no default key to
+// fall back on, so an incomplete one is caught here rather than at the first reconcile.
+func validateOAuth2Selectors(store esv1.GenericStore, clientOAuth2 *esv1.OvhClientOAuth2) error {
+	selectors := []struct {
+		field string
+		ref   v1.SecretKeySelector
+	}{
+		{"clientIDSecretRef", clientOAuth2.ClientID},
+		{"clientSecretSecretRef", clientOAuth2.ClientSecret},
+	}
+	for _, selector := range selectors {
+		if selector.ref.Name == "" || selector.ref.Key == "" {
+			return fmt.Errorf("auth.oauth2.%s needs both a name and a key", selector.field)
+		}
+		if err := esutils.ValidateReferentSecretSelector(store, selector.ref); err != nil {
+			return fmt.Errorf("auth.oauth2.%s: %w", selector.field, err)
+		}
+	}
+	return nil
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
