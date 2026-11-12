@@ -34,12 +34,11 @@ const (
 	withUniversalAuthCluster = "with universal auth and cluster store"
 )
 
-// The suite seeds read-path secrets through the SDK and exercises the push
-// path through the provider's PushSecret implementation.
-// FindByTag is excluded because the provider does not implement tag lookup
-// (it returns "find by tags not supported"), and FindByNameWithPath is
-// excluded because it searches from a bare namespace name, while Infisical
-// wants an absolute folder path.
+// The suite seeds read-path secrets through the SDK, or through the API when
+// they carry tags or metadata, and exercises the push path through the
+// provider's PushSecret implementation.
+// FindByNameWithPath and FindByTagWithPath are excluded because they search
+// from a bare folder name, while Infisical wants an absolute folder path.
 var _ = Describe("[infisical]", Label("infisical"), Ordered, func() {
 	f := framework.New("infisical")
 	infisical := addon.NewInfisical()
@@ -64,6 +63,10 @@ var _ = Describe("[infisical]", Label("infisical"), Ordered, func() {
 		framework.Compose(withUniversalAuth, f, common.NestedJSONWithGJSON, useUniversalAuth(prov)),
 		framework.Compose(withUniversalAuth, f, common.FindByName, useUniversalAuth(prov)),
 		framework.Compose(withUniversalAuth, f, common.FindByNameAndRewrite, useUniversalAuth(prov)),
+		// FindByTag seeds and finds metadata, since its keys are not the
+		// reserved infisical.com/tags key. findByTagSlugs covers real tags.
+		framework.Compose(withUniversalAuth, f, common.FindByTag, useUniversalAuth(prov)),
+		framework.Compose(withUniversalAuth, f, findByTagSlugs, useUniversalAuth(prov)),
 		framework.Compose(withUniversalAuth, f, common.DataPropertyDockerconfigJSON, useUniversalAuth(prov)),
 		framework.Compose(withUniversalAuth, f, common.SSHKeySync, useUniversalAuth(prov)),
 		framework.Compose(withUniversalAuth, f, common.SSHKeySyncDataProperty, useUniversalAuth(prov)),
@@ -109,6 +112,31 @@ func findPathScopesTheSearch(f *framework.Framework) (string, func(*framework.Te
 		}
 		tc.ExternalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
 			{Find: &esv1.ExternalSecretFind{Path: &root}},
+		}
+	}
+}
+
+// findByTagSlugs covers the reserved find.tags key: it matches Infisical tags
+// by slug, the other keys match metadata, and a secret must have all of them.
+// Each of the two secrets left out lacks one entry, the tag or the metadata.
+// The tag slug is the namespace name, so specs do not share tags.
+func findByTagSlugs(f *framework.Framework) (string, func(*framework.TestCase)) {
+	return "[infisical] should find secrets that have every listed tag and metadata entry", func(tc *framework.TestCase) {
+		ns := f.Namespace.Name
+		match := map[string]string{infisicalTagsKey: ns, "team": ns}
+		tc.Secrets = map[string]framework.SecretEntry{
+			"E2E_TAGS_MATCH":       {Value: "match", Tags: match},
+			"E2E_TAGS_NO_METADATA": {Value: "tag-only", Tags: map[string]string{infisicalTagsKey: ns}},
+			"E2E_TAGS_NO_TAG":      {Value: "metadata-only", Tags: map[string]string{"team": ns}},
+		}
+		tc.ExpectedSecret = &v1.Secret{
+			Type: v1.SecretTypeOpaque,
+			Data: map[string][]byte{
+				"E2E_TAGS_MATCH": []byte("match"),
+			},
+		}
+		tc.ExternalSecret.Spec.DataFrom = []esv1.ExternalSecretDataFromRemoteRef{
+			{Find: &esv1.ExternalSecretFind{Tags: match}},
 		}
 	}
 }
