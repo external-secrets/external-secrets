@@ -465,6 +465,16 @@ func hasFolder(entries []dvls.Entry, name, fullPath string) bool {
 // entry, so only that field is cleared, and the entry itself is deleted once it
 // was the last field left.
 func (c *Client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
+	// A property this provider cannot push was never written, since a push of it
+	// is refused, so there is nothing of it to delete. Older versions ignored the
+	// property, so existing PushSecrets can still carry one: failing here would
+	// leave such a PushSecret stuck in Terminating under deletionPolicy Delete.
+	if ref.GetProperty() != "" {
+		if _, err := pushField(ref.GetProperty()); err != nil {
+			return nil
+		}
+	}
+
 	vaultID, entryID, err := c.resolveRef(ctx, ref.GetRemoteKey())
 	if isNotFoundError(err) {
 		return nil

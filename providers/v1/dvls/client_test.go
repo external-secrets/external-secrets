@@ -2016,6 +2016,21 @@ func TestClient_DeleteSecret_PropertyAlreadyClear(t *testing.T) {
 	assert.Equal(t, "", mockCred.lastUpdated.Id)
 }
 
+func TestClient_DeleteSecret_UnknownPropertyLeavesEntryAlone(t *testing.T) {
+	// Before properties were honored, a ref like "key/secret" was accepted and
+	// ignored. Under deletionPolicy Delete such a PushSecret must still be able
+	// to go away: the delete succeeds and touches nothing, since a push of that
+	// property could never have written it.
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("app-user", "app-pass")})
+
+	err := c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: "key/secret"})
+	require.NoError(t, err)
+	assert.Equal(t, "", mockCred.lastDeleted)
+	assert.Equal(t, "", mockCred.lastUpdated.Id)
+	assert.Contains(t, mockCred.entries, testEntryUUID)
+	assert.Zero(t, mockCred.entriesCalls[testVaultUUID], "nothing is looked up for a property that was never pushed")
+}
+
 func TestClient_DeleteSecret_PropertyDisambiguatesVault(t *testing.T) {
 	// Clearing a field reads the entry first, and that read's 404 is as
 	// ambiguous as the delete's: the field is only gone once the vault is
