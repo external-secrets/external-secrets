@@ -302,6 +302,17 @@ func (c *Client) createEntry(ctx context.Context, vaultID, entryRef string, valu
 	if name == "" {
 		return errors.New("entry name cannot be empty")
 	}
+	// A UUID anywhere in the reference is an id, not a name to create: a legacy
+	// "<vault-uuid>/<entry-uuid>" key on a store that sets a vault would
+	// otherwise become a folder named after the vault with the entry inside it,
+	// and the push would report success while the real entry stopped updating.
+	for _, segment := range append(strings.Split(path, `\`), name) {
+		if isUUID(strings.TrimSpace(segment)) {
+			return fmt.Errorf("cannot create entry %q: %q is a UUID, which names an existing vault or entry "+
+				"rather than a folder or entry to create; on a store that sets a vault, "+
+				"reference an existing entry by its UUID alone", entryRef, segment)
+		}
+	}
 
 	if err := c.ensureFolderPath(ctx, vaultID, path); err != nil {
 		return err

@@ -1413,6 +1413,41 @@ func TestClient_PushSecret_TrimsKeyBeforeCreating(t *testing.T) {
 	})
 }
 
+func TestClient_PushSecret_NeverCreatesFromUUIDSegments(t *testing.T) {
+	// A UUID in any segment is an id, not a name. A legacy "<vault-uuid>/<entry-uuid>"
+	// key on a store that sets a vault must not become a folder named after the
+	// vault with an entry inside it, reported as Synced.
+	tests := []struct {
+		name   string
+		pinned bool
+		key    string
+	}{
+		{"legacy key on a store with a vault", true, testVaultUUID + "/" + testEntryUUID},
+		{"UUID folder", true, "prod/" + testEntryUUID + "/db"},
+		{"UUID name under a folder", true, `prod\` + testEntryUUID},
+		{"UUID name on a store without a vault", false, testVaultName + "/prod/" + testEntryUUID},
+		{"UUID folder on a store without a vault", false, testVaultName + "/prod/" + testEntryUUID + "/db"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockCred := newMockCredentialClient(nil)
+			mockFolder := newMockFolderClient()
+			vaultID := testVaultUUID
+			if !tt.pinned {
+				vaultID = ""
+			}
+			c := NewClient(mockCred, mockFolder, newMockVaultClient(defaultTestVaults()), vaultID, tt.pinned)
+			secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+
+			err := c.PushSecret(context.Background(), secret, pushSecretDataStub{remoteKey: tt.key, secretKey: "password"})
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "is a UUID")
+			assert.Equal(t, 0, mockCred.created)
+			assert.Empty(t, mockFolder.created)
+		})
+	}
+}
+
 func TestClient_PushSecret_CreatesMissingEntryUnderPath(t *testing.T) {
 	c, mockCred := newTestClient(nil)
 	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
