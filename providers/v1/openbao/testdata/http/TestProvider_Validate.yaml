@@ -19,7 +19,7 @@ interactions:
         proto: HTTP/1.1
         proto_major: 1
         proto_minor: 1
-        content_length: 925
+        content_length: 1162
         body: |-
             {
               "accessor": "kv_01234567",
@@ -44,7 +44,7 @@ interactions:
                   "version": "1"
                 },
                 "plugin_version": "",
-                "running_plugin_version": "v2.5.5+builtin.bao",
+                "running_plugin_version": "v2.6.2+builtin.bao",
                 "running_sha256": "",
                 "seal_wrap": false,
                 "type": "kv",
@@ -62,7 +62,7 @@ interactions:
               "plugin_version": "",
               "renewable": false,
               "request_id": "00000000-0000-0000-0000-000000000000",
-              "running_plugin_version": "v2.5.5+builtin.bao",
+              "running_plugin_version": "v2.6.2+builtin.bao",
               "running_sha256": "",
               "seal_wrap": false,
               "type": "kv",
@@ -74,7 +74,7 @@ interactions:
             Cache-Control:
                 - no-store
             Content-Length:
-                - "925"
+                - "1162"
             Content-Type:
                 - application/json
             Strict-Transport-Security:
@@ -100,7 +100,7 @@ interactions:
         proto: HTTP/1.1
         proto_major: 1
         proto_minor: 1
-        content_length: 925
+        content_length: 1162
         body: |-
             {
               "accessor": "kv_01234567",
@@ -125,7 +125,7 @@ interactions:
                   "version": "1"
                 },
                 "plugin_version": "",
-                "running_plugin_version": "v2.5.5+builtin.bao",
+                "running_plugin_version": "v2.6.2+builtin.bao",
                 "running_sha256": "",
                 "seal_wrap": false,
                 "type": "kv",
@@ -143,7 +143,7 @@ interactions:
               "plugin_version": "",
               "renewable": false,
               "request_id": "00000000-0000-0000-0000-000000000000",
-              "running_plugin_version": "v2.5.5+builtin.bao",
+              "running_plugin_version": "v2.6.2+builtin.bao",
               "running_sha256": "",
               "seal_wrap": false,
               "type": "kv",
@@ -155,7 +155,7 @@ interactions:
             Cache-Control:
                 - no-store
             Content-Length:
-                - "925"
+                - "1162"
             Content-Type:
                 - application/json
             Strict-Transport-Security:
@@ -181,7 +181,7 @@ interactions:
         proto: HTTP/1.1
         proto_major: 1
         proto_minor: 1
-        content_length: 1043
+        content_length: 1290
         body: |-
             {
               "accessor": "system_01234567",
@@ -209,7 +209,7 @@ interactions:
                 "local": false,
                 "options": null,
                 "plugin_version": "",
-                "running_plugin_version": "v2.5.5+builtin.bao",
+                "running_plugin_version": "v2.6.2+builtin.bao",
                 "running_sha256": "",
                 "seal_wrap": true,
                 "type": "system",
@@ -224,7 +224,7 @@ interactions:
               "plugin_version": "",
               "renewable": false,
               "request_id": "00000000-0000-0000-0000-000000000000",
-              "running_plugin_version": "v2.5.5+builtin.bao",
+              "running_plugin_version": "v2.6.2+builtin.bao",
               "running_sha256": "",
               "seal_wrap": true,
               "type": "system",
@@ -236,7 +236,7 @@ interactions:
             Cache-Control:
                 - no-store
             Content-Length:
-                - "1043"
+                - "1290"
             Content-Type:
                 - application/json
             Strict-Transport-Security:
