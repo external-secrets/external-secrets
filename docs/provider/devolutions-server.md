@@ -172,7 +172,7 @@ A push that sets `property` to `username`, `password` or `domain` writes that fi
 ```
 
 - Only the named field changes; the entry's other fields keep their values.
-- With `updatePolicy: IfNotExists`, each field is checked on its own, so a field the entry does not hold yet is still written after another item has created the entry.
+- With `updatePolicy: IfNotExists`, each field is checked on its own, so a field the entry does not hold yet is still written after another item has created the entry. An item that sets no `property` checks the password, so it can share a `remoteKey` with items that name the username or domain.
 - `deletionPolicy: Delete` clears only the fields the `PushSecret` pushed, and deletes the entry once none are left.
 - `username` and `domain` exist only on `Credential/Default` entries: pushing them to an entry of another subtype fails rather than overwriting its password. Any other `property` is refused.
 

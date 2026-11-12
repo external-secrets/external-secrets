@@ -511,13 +511,17 @@ func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	if err != nil {
 		return false, err
 	}
-	if ref.GetProperty() == "" {
+	// A push writes one field, so the question is about that field, not the
+	// entry. With updatePolicy IfNotExists the controller checks each pushed item
+	// on its own, so the item that creates the entry must not make the others on
+	// it skip their fields. That holds for an item with no property too: it
+	// writes the password, so on a username and password entry the password is
+	// what it checks. Other subtypes keep the entry-level answer they have always
+	// had, since their fields are not named password (an API key, say) and
+	// IfNotExists would otherwise start writing to entries it used to leave alone.
+	if ref.GetProperty() == "" && !isDefaultCredential(entry) {
 		return true, nil
 	}
-
-	// A property asks about one field, not the entry. With updatePolicy
-	// IfNotExists the controller checks each pushed item on its own, so the item
-	// that creates the entry must not make the others on it skip their fields.
 	field, err := pushField(ref.GetProperty())
 	if err != nil {
 		return false, err
@@ -861,6 +865,12 @@ func entryToSecretMap(entry dvls.Entry) (map[string][]byte, error) {
 	return result, nil
 }
 
+// isDefaultCredential reports whether the entry is a Credential/Default, the
+// subtype that holds a username, a password and a domain.
+func isDefaultCredential(entry dvls.Entry) bool {
+	return entry.GetType() == dvls.EntryCredentialType && entry.SubType == dvls.EntryCredentialSubTypeDefault
+}
+
 // defaultDataUpdate is dvls.EntryCredentialDefaultData without omitempty, for
 // the update that clears one of its fields.
 type defaultDataUpdate struct {
@@ -891,7 +901,7 @@ func setCredentialField(entry *dvls.Entry, field, value string) error {
 	if field == fieldPassword {
 		return entry.SetCredentialSecret(value)
 	}
-	if entry.GetType() != dvls.EntryCredentialType || entry.SubType != dvls.EntryCredentialSubTypeDefault {
+	if !isDefaultCredential(*entry) {
 		return fmt.Errorf("entry %q is %s/%s, which has no %s field: only %s/%s entries have one",
 			entry.Name, entry.GetType(), entry.SubType, field, dvls.EntryCredentialType, dvls.EntryCredentialSubTypeDefault)
 	}

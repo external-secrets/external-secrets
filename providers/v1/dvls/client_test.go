@@ -1261,7 +1261,10 @@ func TestClient_SecretExists(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, exists)
 
-	mockCred.entries[testEntryUUID] = dvls.Entry{Id: testEntryUUID, Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeDefault}
+	mockCred.entries[testEntryUUID] = dvls.Entry{
+		Id: testEntryUUID, Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeDefault,
+		Data: &dvls.EntryCredentialDefaultData{Password: "pw"},
+	}
 
 	exists, err = c.SecretExists(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryUUID})
 	assert.NoError(t, err)
@@ -1273,7 +1276,10 @@ func TestClient_SecretExists(t *testing.T) {
 }
 
 func TestClient_SecretExists_ByName(t *testing.T) {
-	entry := dvls.Entry{Id: testEntryUUID, Name: testEntryName, Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeDefault}
+	entry := dvls.Entry{
+		Id: testEntryUUID, Name: testEntryName, Type: dvls.EntryCredentialType, SubType: dvls.EntryCredentialSubTypeDefault,
+		Data: &dvls.EntryCredentialDefaultData{Password: "pw"},
+	}
 	c, _ := newTestClient(map[string]dvls.Entry{testEntryUUID: entry})
 
 	exists, err := c.SecretExists(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName})
@@ -1883,7 +1889,8 @@ func TestClient_PushSecret_UnknownPropertyIsRefused(t *testing.T) {
 func TestClient_SecretExists_PropertyChecksTheField(t *testing.T) {
 	c, _ := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("app-user", "")})
 
-	for property, want := range map[string]bool{"": true, "username": true, "password": false, "domain": false} {
+	// No property pushes the password, so it checks the password too.
+	for property, want := range map[string]bool{"": false, "username": true, "password": false, "domain": false} {
 		exists, err := c.SecretExists(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: property})
 		assert.NoError(t, err)
 		assert.Equal(t, want, exists, "property %q", property)
@@ -1891,6 +1898,69 @@ func TestClient_SecretExists_PropertyChecksTheField(t *testing.T) {
 
 	_, err := c.SecretExists(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: "api-key"})
 	assert.Error(t, err)
+}
+
+func TestClient_SecretExists_IfNotExistsMixesItemsWithAndWithoutProperty(t *testing.T) {
+	// One item names the username, the other pushes the password without naming
+	// it. Whichever goes first, both fields must end up in the entry: the
+	// unnamed item checks the password, not the entry, and the entry is created
+	// as Credential/Default so a username always has a field to go into.
+	type item struct{ secretKey, property string }
+	username := item{"username", "username"}
+	password := item{"password", ""}
+
+	for name, order := range map[string][]item{
+		"username first": {username, password},
+		"password first": {password, username},
+	} {
+		t.Run(name, func(t *testing.T) {
+			c, mockCred := newTestClient(nil)
+			ifNotExists := func() {
+				for _, it := range order {
+					ref := pushSecretRemoteRefStub{remoteKey: `prod\db`, property: it.property}
+					exists, err := c.SecretExists(context.Background(), ref)
+					require.NoError(t, err)
+					if !exists {
+						data := pushSecretDataStub{remoteKey: `prod\db`, secretKey: it.secretKey, property: it.property}
+						require.NoError(t, c.PushSecret(context.Background(), userPassSecret(), data))
+					}
+				}
+			}
+
+			ifNotExists()
+			assert.Equal(t, 1, mockCred.created)
+			credData, ok := mockCred.entries[mockCred.lastCreated.Id].Data.(*dvls.EntryCredentialDefaultData)
+			require.True(t, ok)
+			assert.Equal(t, "app-user", credData.Username)
+			assert.Equal(t, "app-pass", credData.Password)
+
+			// A second reconcile finds both fields and writes nothing.
+			mockCred.lastUpdated = dvls.Entry{}
+			ifNotExists()
+			assert.Equal(t, 1, mockCred.created)
+			assert.Equal(t, "", mockCred.lastUpdated.Id)
+		})
+	}
+}
+
+func TestClient_SecretExists_NoPropertyKeepsEntryLevelForOtherSubtypes(t *testing.T) {
+	// Only a username and password entry has a password field to check. Any
+	// other subtype answers for the whole entry, as it always has, so
+	// IfNotExists keeps leaving it alone.
+	apiKey := dvls.Entry{
+		Id: testEntryUUID, Name: testEntryName, Type: dvls.EntryCredentialType,
+		SubType: dvls.EntryCredentialSubTypeApiKey,
+		Data:    &dvls.EntryCredentialApiKeyData{ApiId: "id", ApiKey: "key"},
+	}
+	c, _ := newTestClient(map[string]dvls.Entry{testEntryUUID: apiKey})
+	exists, err := c.SecretExists(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName})
+	require.NoError(t, err)
+	assert.True(t, exists)
+
+	c, _ = newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("app-user", "")})
+	exists, err = c.SecretExists(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName})
+	require.NoError(t, err)
+	assert.False(t, exists, "a username and password entry without a password lacks what the item pushes")
 }
 
 func TestClient_SecretExists_IfNotExistsFillsEveryField(t *testing.T) {
