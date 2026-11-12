@@ -247,7 +247,12 @@ func (w *Webhook) PushWebhookData(ctx context.Context, provider *Spec, data []by
 	if err != nil {
 		return err
 	}
-	escapedData["remoteRef"][remoteKey.GetRemoteKey()] = url.QueryEscape(string(data))
+	escapedValue := url.QueryEscape(string(data))
+	escapedData["remoteRef"][remoteKey.GetRemoteKey()] = escapedValue
+	// .remoteRef.remoteKey holds the escaped key in this map, so store the value
+	// under it too; otherwise {{ index .remoteRef .remoteRef.remoteKey }} in the
+	// URL silently renders empty for keys that escaping changes (e.g. "a/b")
+	escapedData["remoteRef"][url.QueryEscape(remoteKey.GetRemoteKey())] = escapedValue
 
 	rawData, err := w.GetTemplatePushData(ctx, remoteKey, provider.Secrets, false)
 	if err != nil {
