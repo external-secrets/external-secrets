@@ -7311,7 +7311,7 @@ spec:
                           type: object
                           x-kubernetes-validations:
                             - message: X-Vault-* headers are not allowed
-                              rule: self.all(key, !key.startsWith('X-Vault-'))
+                              rule: self.all(key, !key.lowerAscii().startsWith('x-vault-'))
                         namespace:
                           description: |-
                             Name of the [OpenBao Namespace]. Namespaces is a set of features within
@@ -20998,7 +20998,7 @@ spec:
                           type: object
                           x-kubernetes-validations:
                             - message: X-Vault-* headers are not allowed
-                              rule: self.all(key, !key.startsWith('X-Vault-'))
+                              rule: self.all(key, !key.lowerAscii().startsWith('x-vault-'))
                         namespace:
                           description: |-
                             Name of the [OpenBao Namespace]. Namespaces is a set of features within
