@@ -2015,6 +2015,37 @@ func TestClient_DeleteSecret_PropertyClearsOnlyThatField(t *testing.T) {
 	assert.Equal(t, testEntryUUID, mockCred.lastDeleted)
 }
 
+func TestClient_DeleteSecret_NoPropertyClearsOnlyThePassword(t *testing.T) {
+	// An item with no property pushes the password, so deleting it clears the
+	// password and keeps a username that another item pushed.
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("app-user", "app-pass")})
+
+	require.NoError(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName}))
+	require.Equal(t, "", mockCred.lastDeleted, "the entry must be kept")
+	credData, _ := mockCred.entries[testEntryUUID].Data.(*dvls.EntryCredentialDefaultData)
+	assert.Equal(t, "app-user", credData.Username)
+	assert.Equal(t, "", credData.Password)
+
+	// With the password as the last field, the entry goes.
+	c, mockCred = newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("", "app-pass")})
+	require.NoError(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName}))
+	assert.Equal(t, testEntryUUID, mockCred.lastDeleted)
+}
+
+func TestClient_DeleteSecret_NoPropertyDeletesOtherSubtypes(t *testing.T) {
+	// Only a username and password entry is cleared field by field. Any other
+	// subtype is deleted whole by an item with no property, as it always was.
+	apiKey := dvls.Entry{
+		Id: testEntryUUID, Name: testEntryName, Type: dvls.EntryCredentialType,
+		SubType: dvls.EntryCredentialSubTypeApiKey,
+		Data:    &dvls.EntryCredentialApiKeyData{ApiId: "id", ApiKey: "key"},
+	}
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: apiKey})
+
+	require.NoError(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName}))
+	assert.Equal(t, testEntryUUID, mockCred.lastDeleted)
+}
+
 func TestClient_DeleteSecret_PropertyAlreadyClear(t *testing.T) {
 	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("", "app-pass")})
 

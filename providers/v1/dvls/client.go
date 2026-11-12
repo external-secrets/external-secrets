@@ -462,9 +462,10 @@ func hasFolder(entries []dvls.Entry, name, fullPath string) bool {
 	return false
 }
 
-// DeleteSecret deletes a secret from DVLS. A property names one field of the
-// entry, so only that field is cleared, and the entry itself is deleted once it
-// was the last field left.
+// DeleteSecret deletes a secret from DVLS. Only the field the item pushed is
+// cleared, the password when it names no property, and the entry itself is
+// deleted once no field is left. An entry of another subtype than a username
+// and password is deleted whole by an item with no property, as it always was.
 func (c *Client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
 	// A property this provider cannot push was never written, since a push of it
 	// is refused, so there is nothing of it to delete. Older versions ignored the
@@ -483,11 +484,9 @@ func (c *Client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	if err != nil {
 		return err
 	}
-	if ref.GetProperty() != "" {
-		last, err := c.clearField(ctx, vaultID, entryID, ref.GetProperty())
-		if err != nil || !last {
-			return err
-		}
+	last, err := c.clearField(ctx, vaultID, entryID, ref.GetProperty())
+	if err != nil || !last {
+		return err
 	}
 	if err := c.cred.DeleteByID(ctx, vaultID, entryID); err != nil {
 		if isNotFoundError(err) {
@@ -546,9 +545,10 @@ func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 }
 
 // clearField clears the field a property names from the entry, and reports
-// whether it was the entry's last one, in which case it changes nothing and
-// leaves deleting the entry to the caller. An entry or field that is already
-// gone has nothing left to clear.
+// whether the entry should be deleted instead because no other field would be
+// left, in which case it changes nothing and leaves deleting the entry to the
+// caller. An entry that is already gone, or a field already cleared from an
+// entry that holds others, has nothing left to clear.
 func (c *Client) clearField(ctx context.Context, vaultID, entryID, property string) (last bool, err error) {
 	field, err := pushField(property)
 	if err != nil {
@@ -566,13 +566,16 @@ func (c *Client) clearField(ctx context.Context, vaultID, entryID, property stri
 	if err != nil {
 		return false, fmt.Errorf(errFailedToGetEntry, err)
 	}
+	// Only a username and password entry has fields to clear one by one. Other
+	// subtypes keep what an item with no property has always done to them, as
+	// SecretExists does.
+	if property == "" && !isDefaultCredential(entry) {
+		return true, nil
+	}
 
 	fields, err := entryToSecretMap(entry)
 	if err != nil {
 		return false, err
-	}
-	if _, ok := fields[field]; !ok {
-		return false, nil
 	}
 	others := 0
 	for k := range fields {
@@ -583,6 +586,9 @@ func (c *Client) clearField(ctx context.Context, vaultID, entryID, property stri
 	}
 	if others == 0 {
 		return true, nil
+	}
+	if _, ok := fields[field]; !ok {
+		return false, nil
 	}
 
 	if err := setCredentialField(&entry, field, ""); err != nil {
