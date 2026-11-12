@@ -260,7 +260,7 @@ helm.build: helm.generate ## Build helm chart
 # --verify=false is passed; Helm 3 has no --verify flag, so detect support first.
 define install_helm_plugin
 @verify_flag=""; \
-if helm plugin install --help 2>/dev/null | grep -q -- '--verify'; then verify_flag="--verify=false"; fi; \
+if helm plugin install --help 2>/dev/null | grep -- '--verify' >/dev/null; then verify_flag="--verify=false"; fi; \
 v=$$(helm plugin list | awk '$$1=="$(1)"{print $$2}'); \
 if [ -z "$$v" ]; then \
 	$(INFO) "Installing $(1) v$(2)"; \
