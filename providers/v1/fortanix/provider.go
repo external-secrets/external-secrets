@@ -19,6 +19,8 @@ package fortanix
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"net/http"
@@ -64,8 +66,37 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 		return nil, fmt.Errorf(errCannotResolveSecretKeyRef, err)
 	}
 
+	httpClient := http.DefaultClient
+
+	if len(config.CABundle) > 0 || config.CAProvider != nil {
+		cert, err := esutils.FetchCACertFromSource(ctx, esutils.CreateCertOpts{
+			StoreKind:  store.GetKind(),
+			Client:     kube,
+			Namespace:  namespace,
+			CABundle:   config.CABundle,
+			CAProvider: config.CAProvider,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		caCertPool := x509.NewCertPool()
+		if !caCertPool.AppendCertsFromPEM(cert) {
+			return nil, errors.New("failed to append caBundle")
+		}
+
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.TLSClientConfig = &tls.Config{
+			RootCAs:    caCertPool,
+			MinVersion: tls.VersionTLS12,
+		}
+		httpClient = &http.Client{
+			Transport: transport,
+		}
+	}
+
 	sdkmsClient := sdkms.Client{
-		HTTPClient: http.DefaultClient,
+		HTTPClient: httpClient,
 		Auth:       sdkms.APIKey(apiKey),
 		Endpoint:   config.APIURL,
 	}
