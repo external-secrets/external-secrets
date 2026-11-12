@@ -515,10 +515,12 @@ func (c *Client) resolveRef(ctx context.Context, key string) (vaultID, entryID s
 // entryRef returns the part of a key that names the entry within its vault:
 // the whole key when the store pins a vault, and what follows the vault
 // reference otherwise. It is only called once resolveRef has accepted the key,
-// so splitting it again cannot fail.
+// so splitting it again cannot fail. The reference is trimmed as resolving it
+// was: a key that resolves as " <uuid>" must also be created as one, or the
+// UUID check is bypassed and each reconcile creates another entry.
 func (c *Client) entryRef(key string) string {
 	if c.pinnedVault {
-		return key
+		return strings.TrimSpace(key)
 	}
 	_, ref, _ := splitVaultRef(key)
 	return ref

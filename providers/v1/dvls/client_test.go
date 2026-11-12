@@ -1381,6 +1381,38 @@ func TestClient_PushSecret_CreatesMissingEntry(t *testing.T) {
 	assert.Equal(t, "created-value", credData.Password)
 }
 
+func TestClient_PushSecret_TrimsKeyBeforeCreating(t *testing.T) {
+	// Resolving trims the key, so creating has to as well. Otherwise " <uuid>"
+	// slips past the UUID check and every reconcile creates another entry.
+	t.Run("padded UUID is refused", func(t *testing.T) {
+		c, mockCred := newTestClient(nil)
+		secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+		// One leading space, as reported. Padding both sides would not test
+		// anything: uuid.Parse reads any 38-character string as "{<uuid>}".
+		data := pushSecretDataStub{remoteKey: " " + testEntryUUID, secretKey: "password"}
+
+		for range 3 {
+			err := c.PushSecret(context.Background(), secret, data)
+			require.Error(t, err)
+			assert.Contains(t, err.Error(), "entry must exist before pushing secrets")
+		}
+		assert.Equal(t, 0, mockCred.created)
+	})
+
+	t.Run("padded name is created once, trimmed", func(t *testing.T) {
+		c, mockCred := newTestClient(nil)
+		secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+		data := pushSecretDataStub{remoteKey: " " + testNonExistName + " ", secretKey: "password"}
+
+		assert.NoError(t, c.PushSecret(context.Background(), secret, data))
+		assert.Equal(t, testNonExistName, mockCred.lastCreated.Name)
+
+		next := NewClient(mockCred, newMockFolderClient(), newMockVaultClient(nil), testVaultUUID, true)
+		assert.NoError(t, next.PushSecret(context.Background(), secret, data))
+		assert.Equal(t, 1, mockCred.created)
+	})
+}
+
 func TestClient_PushSecret_CreatesMissingEntryUnderPath(t *testing.T) {
 	c, mockCred := newTestClient(nil)
 	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
