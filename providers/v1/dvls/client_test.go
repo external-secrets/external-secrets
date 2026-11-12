@@ -1733,7 +1733,7 @@ func TestClient_PushSecret_FolderLookupVaultError(t *testing.T) {
 }
 
 func TestClient_PushSecret_RejectsEmptyFolderSegment(t *testing.T) {
-	c, mockCred, _ := newTestClientWithFolders(nil)
+	c, mockCred, mockFolder := newTestClientWithFolders(nil)
 	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
 	data := pushSecretDataStub{remoteKey: "prod//db/postgres", secretKey: "password"}
 
@@ -1741,6 +1741,9 @@ func TestClient_PushSecret_RejectsEmptyFolderSegment(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "a path segment cannot be empty")
 	assert.Equal(t, 0, mockCred.created)
+	// The empty segment follows "prod", which must not be created first.
+	assert.Empty(t, mockFolder.created)
+	assert.Equal(t, 0, mockFolder.lookups)
 }
 
 func TestClient_PushSecret_CreateError(t *testing.T) {

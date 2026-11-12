@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 
@@ -357,12 +358,15 @@ func (c *Client) ensureFolderPath(ctx context.Context, vaultID, path string) err
 		return fmt.Errorf("cannot create folder path %q: the client has no folder access", path)
 	}
 
-	var parent string
-	for segment := range strings.SplitSeq(path, `\`) {
-		if segment == "" {
-			return fmt.Errorf("invalid folder path %q: a path segment cannot be empty", path)
-		}
+	// Every segment is checked before any folder is created, so an invalid key
+	// leaves nothing behind in the vault.
+	segments := strings.Split(path, `\`)
+	if slices.Contains(segments, "") {
+		return fmt.Errorf("invalid folder path %q: a path segment cannot be empty", path)
+	}
 
+	var parent string
+	for _, segment := range segments {
 		current := segment
 		if parent != "" {
 			current = parent + `\` + segment
