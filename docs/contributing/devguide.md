@@ -11,6 +11,10 @@ cd external-secrets
 _Note: many of the `make` commands use [yq](https://github.com/mikefarah/yq), version 4.2X.X or higher._
 
 Our helm chart is tested using `helm-unittest`. You will need it to run tests locally if you modify the helm chart.
+Run `make helm` to install the same pinned Helm 4 binary used by CI in `bin/`. Helm chart make targets use that
+binary. `helm-unittest` installs from a signed release with a pinned signing-key fingerprint (requires `curl` and
+`gpg`). `make helm.schema.update` uses `helm-values-schema-json`, which does not publish provenance files, so its
+installation explicitly skips signature verification.
 
 ```shell
 make helm.test
