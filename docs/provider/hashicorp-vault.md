@@ -615,6 +615,25 @@ to retry the request until the server has an index greater than or equal
 to that returned with the last write. Obviously though, this has a performance
 hit because the read is blocked until the follower's local state has caught up.
 
+Enable this behaviour in the SecretStore with `readYourWrites`:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: vault-backend
+spec:
+  provider:
+    vault:
+      server: "https://my.vault.server:8200"
+      path: "secret"
+      version: "v2"
+      # Send the X-Vault-Index returned by writes and logins on every request
+      readYourWrites: true
+      auth:
+        # ...
+```
+
 #### Forward Inconsistent
 
 Vault also supports proxying inconsistent requests to the current cluster leader
@@ -625,3 +644,22 @@ Vault 1.10.0 and later [support a replication configuration](https://www.vaultpr
 In Vault 1.7 forwarding can be achieved by setting the `X-Vault-Inconsistent`
 header to `forward-active-node`. By default, this behavior is disabled and must
 be explicitly enabled in the server's [replication configuration](https://www.vaultproject.io/docs/configuration/replication#allow_forwarding_via_header).
+
+Once the server allows it, enable the header in the SecretStore with `forwardInconsistent`:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: vault-backend
+spec:
+  provider:
+    vault:
+      server: "https://my.vault.server:8200"
+      path: "secret"
+      version: "v2"
+      # Forward read-after-write requests to the active node instead of retrying
+      forwardInconsistent: true
+      auth:
+        # ...
+```

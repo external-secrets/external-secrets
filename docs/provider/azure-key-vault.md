@@ -181,10 +181,11 @@ spec:
       customCloudConfig:
         # Azure Active Directory endpoint for authentication
         activeDirectoryEndpoint: "https://login.microsoftonline.com/"
-        # Optional: Key Vault endpoint if different from vaultUrl domain
-        keyVaultEndpoint: "https://vault.local.azurestack.external/"
         # Optional: Resource Manager endpoint for resource operations
         resourceManagerEndpoint: "https://management.local.azurestack.external/"
+        # Accepted but currently not applied: the Key Vault host always comes from vaultUrl
+        # keyVaultEndpoint: "https://vault.local.azurestack.external/"
+        # keyVaultDNSSuffix: "vault.local.azurestack.external"
       # ... rest of authentication configuration (Service Principal example)
       authType: ServicePrincipal
       tenantId: "your-tenant-id"
@@ -200,6 +201,7 @@ spec:
 !!! note
 
     - `useAzureSDK: true` is mandatory when using `customCloudConfig`
+    - Only `activeDirectoryEndpoint` (required) and `resourceManagerEndpoint` are applied. `keyVaultEndpoint` and `keyVaultDNSSuffix` are accepted by the API but the provider does not use them: the Key Vault host is taken from `vaultUrl`
     - `customCloudConfig` can be used with any `environmentType` (PublicCloud, ChinaCloud, etc.)
     - For AzureStackCloud, `customCloudConfig` is required
     - Contact your Azure Stack administrator for the correct endpoint URLs
