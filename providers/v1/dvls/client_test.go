@@ -1346,7 +1346,7 @@ func TestClient_PushSecret_UUIDNotFound(t *testing.T) {
 
 	err := c.PushSecret(context.Background(), secret, data)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "no longer exists")
+	assert.Contains(t, err.Error(), "entry must exist before pushing secrets")
 	assert.Equal(t, 0, mockCred.created)
 }
 
@@ -1418,39 +1418,104 @@ func TestClient_PushSecret_CreateIsReadableByGetSecret(t *testing.T) {
 	assert.Equal(t, []byte("round-trip"), got)
 }
 
-func TestClient_PushSecret_StoreWithoutVaultNeverCreates(t *testing.T) {
-	// Creation is limited to stores that set a vault. On any other store a
-	// missing entry fails exactly as it did before creation existed, whether
-	// the key names the entry by UUID or by name.
-	for _, key := range []string{
-		testVaultUUID + "/" + testEntryUUID,
-		testVaultName + "/prod/" + testNonExistName,
-	} {
-		t.Run(key, func(t *testing.T) {
+func TestClient_PushSecret_StoreWithoutVaultNeverCreatesByUUID(t *testing.T) {
+	// A store with no vault takes the vault from the key. A "<vault-uuid>/<entry-uuid>"
+	// key names one specific entry, so a miss there has nothing to create from:
+	// it must fail, and must not create a folder or entry named after either UUID.
+	mockCred := newMockCredentialClient(nil)
+	mockFolder := newMockFolderClient()
+	c := NewClient(mockCred, mockFolder, newMockVaultClient(defaultTestVaults()), "", false)
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+	data := pushSecretDataStub{remoteKey: testVaultUUID + "/" + testEntryUUID, secretKey: "password"}
+
+	err := c.PushSecret(context.Background(), secret, data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "entry must exist before pushing secrets")
+	assert.Contains(t, err.Error(), testEntryUUID)
+	assert.Equal(t, 0, mockCred.created)
+	assert.Empty(t, mockFolder.created)
+}
+
+func TestClient_PushSecret_StoreWithoutVaultCreatesInKeyVault(t *testing.T) {
+	// The first segment names the vault, by name or UUID, and the rest is the
+	// entry's path and name inside it, exactly as on a store that sets a vault.
+	for _, vaultRef := range []string{testVaultName2, testVaultUUID2} {
+		t.Run(vaultRef, func(t *testing.T) {
 			mockCred := newMockCredentialClient(nil)
 			mockFolder := newMockFolderClient()
 			c := NewClient(mockCred, mockFolder, newMockVaultClient(defaultTestVaults()), "", false)
 			secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
-			data := pushSecretDataStub{remoteKey: key, secretKey: "password"}
+			data := pushSecretDataStub{remoteKey: vaultRef + "/prod/db/postgres", secretKey: "password"}
 
-			err := c.PushSecret(context.Background(), secret, data)
-			assert.Error(t, err)
-			assert.Contains(t, err.Error(), "entry must exist before pushing secrets")
-			assert.Equal(t, 0, mockCred.created)
-			assert.Empty(t, mockFolder.created)
+			assert.NoError(t, c.PushSecret(context.Background(), secret, data))
+
+			created := mockCred.lastCreated
+			assert.Equal(t, testVaultUUID2, created.VaultId)
+			assert.Equal(t, "postgres", created.Name)
+			assert.Equal(t, `prod\db`, created.Path)
+			assert.Equal(t, 1, mockCred.created)
+
+			// The vault name is not part of the folder tree.
+			assert.Len(t, mockFolder.created, 2)
+			assert.Equal(t, "prod", mockFolder.created[0].Name)
+			assert.Equal(t, "", mockFolder.created[0].Path)
+			assert.Equal(t, testVaultUUID2, mockFolder.created[0].VaultId)
+			assert.Equal(t, "db", mockFolder.created[1].Name)
+			assert.Equal(t, "prod", mockFolder.created[1].Path)
 		})
 	}
 }
 
-func TestClient_CreateEntry_RequiresPinnedVault(t *testing.T) {
-	// PushSecret reports the miss before it reaches createEntry on a store with
-	// no vault, so this covers the precondition where it lives.
+func TestClient_PushSecret_StoreWithoutVaultCreateIsReadable(t *testing.T) {
+	// The created entry must resolve again by the same key on the next
+	// reconciliation, or every push would create another copy of it.
+	mockCred := newMockCredentialClient(nil)
+	c := NewClient(mockCred, newMockFolderClient(), newMockVaultClient(defaultTestVaults()), "", false)
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("round-trip")}}
+	key := testVaultName2 + "/prod/db/postgres"
+	data := pushSecretDataStub{remoteKey: key, secretKey: "password"}
+
+	assert.NoError(t, c.PushSecret(context.Background(), secret, data))
+
+	// A second push in the same reconciliation finds it in the name cache.
+	lookups := mockCred.entriesCalls[testVaultUUID2]
+	assert.NoError(t, c.PushSecret(context.Background(), secret, data))
+	assert.Equal(t, lookups, mockCred.entriesCalls[testVaultUUID2])
+
+	next := NewClient(mockCred, newMockFolderClient(), newMockVaultClient(defaultTestVaults()), "", false)
+	got, err := next.GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{Key: key})
+	assert.NoError(t, err)
+	assert.Equal(t, []byte("round-trip"), got)
+
+	assert.NoError(t, next.PushSecret(context.Background(), secret, data))
+	assert.Equal(t, 1, mockCred.created)
+}
+
+func TestClient_PushSecret_StoreWithoutVaultUnknownVaultCreatesNothing(t *testing.T) {
+	// A vault that does not resolve is a vault error, never a missing entry,
+	// so nothing is created anywhere.
+	mockCred := newMockCredentialClient(nil)
+	mockFolder := newMockFolderClient()
+	c := NewClient(mockCred, mockFolder, newMockVaultClient(defaultTestVaults()), "", false)
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("pw")}}
+	data := pushSecretDataStub{remoteKey: "no-such-vault/prod/postgres", secretKey: "password"}
+
+	err := c.PushSecret(context.Background(), secret, data)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), `vault "no-such-vault"`)
+	assert.Equal(t, 0, mockCred.created)
+	assert.Empty(t, mockFolder.created)
+}
+
+func TestClient_CreateEntry_RequiresVault(t *testing.T) {
+	// PushSecret only reaches createEntry once a vault is resolved, so this
+	// covers the precondition where it lives.
 	mockCred := newMockCredentialClient(nil)
 	c := NewClient(mockCred, newMockFolderClient(), newMockVaultClient(nil), "", false)
 
-	err := c.createEntry(context.Background(), testVaultUUID, `prod\db\postgres`, []byte("pw"))
+	err := c.createEntry(context.Background(), "", `prod\db\postgres`, []byte("pw"))
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "only created on a store that sets a vault")
+	assert.Contains(t, err.Error(), "no vault to create it in")
 	assert.Equal(t, 0, mockCred.created)
 }
 

@@ -222,9 +222,8 @@ func (c *Client) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (ma
 	return nil, errNotImplemented
 }
 
-// PushSecret writes the value to the entry the remote key addresses. On a store
-// that sets a vault, an entry that does not exist yet is created; a store that
-// does not still requires the entry to exist.
+// PushSecret writes the value to the entry the remote key addresses, creating
+// that entry when it does not exist yet.
 func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	if secret == nil {
 		return errors.New("secret is required for DVLS push")
@@ -235,12 +234,12 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return err
 	}
 
+	// resolveRef reports a missing entry only once the vault is resolved, so
+	// vaultID is set on that path and the entry can be created in it.
 	vaultID, entryID, err := c.resolveRef(ctx, data.GetRemoteKey())
 	switch {
-	case isNotFoundError(err) && c.pinnedVault:
-		return c.createEntry(ctx, c.vaultID, data.GetRemoteKey(), value)
 	case isNotFoundError(err):
-		return fmt.Errorf("entry %q not found: entry must exist before pushing secrets", data.GetRemoteKey())
+		return c.createEntry(ctx, vaultID, c.entryRef(data.GetRemoteKey()), value)
 	case err != nil:
 		return err
 	}
@@ -253,15 +252,13 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		if vaultErr := c.confirmVault(ctx, vaultID); vaultErr != nil {
 			return vaultErr
 		}
-		if !c.pinnedVault {
-			return fmt.Errorf("entry %s not found in vault %s: entry must exist before pushing secrets", entryID, vaultID)
-		}
 		// The reference resolved to an id the vault no longer has, so the name
 		// cache is stale. Drop it and create the entry the key asks for.
+		ref := c.entryRef(data.GetRemoteKey())
 		c.mu.Lock()
-		delete(c.nameCache, entryCacheKey(vaultID, data.GetRemoteKey()))
+		delete(c.nameCache, entryCacheKey(vaultID, ref))
 		c.mu.Unlock()
-		return c.createEntry(ctx, vaultID, data.GetRemoteKey(), value)
+		return c.createEntry(ctx, vaultID, ref, value)
 	}
 	if err != nil {
 		return fmt.Errorf(errFailedToGetEntry, err)
@@ -280,27 +277,28 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 }
 
 // createEntry creates the credential entry a push addressed but that the vault
-// does not hold yet. The remote key carries the entry's name and, optionally,
-// the folder path it belongs under, because DVLS addresses an entry by name
-// within a path rather than by the whole string.
+// does not hold yet. entryRef is the part of the remote key that names the
+// entry within its vault: the entry's name and, optionally, the folder path it
+// belongs under, because DVLS addresses an entry by name within a path rather
+// than by the whole string.
 //
 // The entry is created as a Credential/AccessCode: that is the subtype whose
 // single field GetSecret reads back as "password", so a value pushed here is
 // readable by an ExternalSecret that sets no property. Any folder the path
 // names is created first, so that the entry lands in a tree that exists.
 //
-// Creation is limited to stores that set a vault. PushSecret reports a miss on
-// any other store before it gets here; the guard keeps the invariant local to
-// the function that relies on it.
-func (c *Client) createEntry(ctx context.Context, vaultID, remoteKey string, value []byte) error {
-	if !c.pinnedVault {
-		return fmt.Errorf("cannot create entry %q: entries are only created on a store that sets a vault", remoteKey)
+// An entry referenced by UUID is never created: the UUID names one specific
+// entry, which no longer exists, so there is nothing to create it as. That
+// covers the "<vault-uuid>/<entry-uuid>" keys of a store without a vault too.
+func (c *Client) createEntry(ctx context.Context, vaultID, entryRef string, value []byte) error {
+	if vaultID == "" {
+		return fmt.Errorf("cannot create entry %q: no vault to create it in", entryRef)
 	}
-	if isUUID(remoteKey) {
-		return fmt.Errorf("cannot create entry %q: a remote key given as a UUID names an entry that no longer exists", remoteKey)
+	if isUUID(entryRef) {
+		return fmt.Errorf("entry %s not found in vault %s: entry must exist before pushing secrets", entryRef, vaultID)
 	}
 
-	name, path := parseEntryRef(remoteKey)
+	name, path := parseEntryRef(entryRef)
 	if name == "" {
 		return errors.New("entry name cannot be empty")
 	}
@@ -324,11 +322,11 @@ func (c *Client) createEntry(ctx context.Context, vaultID, remoteKey string, val
 
 	id, err := c.cred.New(ctx, entry)
 	if err != nil {
-		return fmt.Errorf("failed to create entry %q: %w", remoteKey, err)
+		return fmt.Errorf("failed to create entry %q: %w", entryRef, err)
 	}
 
 	c.mu.Lock()
-	c.nameCache[entryCacheKey(vaultID, remoteKey)] = id
+	c.nameCache[entryCacheKey(vaultID, entryRef)] = id
 	c.mu.Unlock()
 	return nil
 }
@@ -512,6 +510,18 @@ func (c *Client) resolveRef(ctx context.Context, key string) (vaultID, entryID s
 	}
 	entryID, err = c.resolveEntryRef(ctx, vaultID, entryRef)
 	return vaultID, entryID, err
+}
+
+// entryRef returns the part of a key that names the entry within its vault:
+// the whole key when the store pins a vault, and what follows the vault
+// reference otherwise. It is only called once resolveRef has accepted the key,
+// so splitting it again cannot fail.
+func (c *Client) entryRef(key string) string {
+	if c.pinnedVault {
+		return key
+	}
+	_, ref, _ := splitVaultRef(key)
+	return ref
 }
 
 // confirmVault reports whether a 404 from the entry endpoint really means the entry is gone.
