@@ -113,18 +113,20 @@ spec:
 
 ### DataFrom
 
-`dataFrom.find` returns every secret in the organization, keyed by secret ID:
+When using dataFrom like this:
 
 ```yaml
   dataFrom:
   - find:
       conversionStrategy: Default
       decodingStrategy: None
+      name:
+        regexp: db_
 ```
 
-!!! warning
-
-    The provider does not currently filter by the `find` selector: the `name.regexp`, `tags`, and `path` fields are ignored and every secret in the organization is returned (see [issue #6550](https://github.com/external-secrets/external-secrets/issues/6550)). Use a `rewrite` rule, or individual `data` entries, if you need a subset.
+only the secrets whose name matches `name.regexp` are returned.
+A `find` without `name.regexp`, or with an empty one, returns every secret in the organization.
+Bitwarden Secrets Manager has no concept of tags or paths, so setting `find.tags` or `find.path` results in an error.
 
 Note that the secrets in the map will end up something like this:
 

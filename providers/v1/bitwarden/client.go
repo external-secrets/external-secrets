@@ -30,13 +30,15 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
+	"github.com/external-secrets/external-secrets/runtime/find"
 )
 
 const (
 	// NoteMetadataKey defines the note for the pushed secret.
 	NoteMetadataKey = "note"
 
-	errNoProvider = "store does not have a provider"
+	errNoProvider              = "store does not have a provider"
+	errUnsupportedFindOperator = "provider does not support tags or path operators in find"
 )
 
 var (
@@ -291,11 +293,24 @@ func (p *Provider) parseYamlSecretData(data []byte) (map[string][]byte, error) {
 }
 
 // GetAllSecrets gets multiple secrets from the provider and loads into a kubernetes secret.
-// First load all secrets from secretStore path configuration
-// Then, gets secrets from a matching name or matching custom_metadata.
-func (p *Provider) GetAllSecrets(ctx context.Context, _ esv1.ExternalSecretFind) (map[string][]byte, error) {
+// It lists every secret in the organization and keeps the ones whose key matches find.name.regexp.
+// An empty or missing regexp matches every secret. Tags and path are not supported by Bitwarden.
+func (p *Provider) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFind) (map[string][]byte, error) {
+	if ref.Path != nil || len(ref.Tags) > 0 {
+		return nil, errors.New(errUnsupportedFindOperator)
+	}
+
+	var findName esv1.FindName
+	if ref.Name != nil {
+		findName = *ref.Name
+	}
+	matcher, err := find.New(findName)
+	if err != nil {
+		return nil, err
+	}
+
 	spec := p.store.GetSpec()
-	if spec == nil {
+	if spec == nil || spec.Provider == nil {
 		return nil, errors.New(errNoProvider)
 	}
 
@@ -306,6 +321,10 @@ func (p *Provider) GetAllSecrets(ctx context.Context, _ esv1.ExternalSecretFind)
 
 	result := map[string][]byte{}
 	for _, d := range secrets.Data {
+		if !matcher.MatchName(d.Key) {
+			continue
+		}
+
 		sec, err := p.bitwardenSdkClient.GetSecret(ctx, d.ID)
 		if err != nil {
 			return nil, fmt.Errorf(errFailedToGetSecret, err)
