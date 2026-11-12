@@ -161,6 +161,8 @@ The DVLS provider supports pushing secrets back to DVLS:
 
 **Note:** Creating an entry or a folder needs the application identity to hold **Add** permission on the target folder. Without it a push to a remote key the vault does not have fails with a permission error from the server, while pushes to entries that already exist keep working.
 
+**Note:** Looking an entry up and creating it are two separate calls, so two `PushSecret`s that push to the same missing `remoteKey` at the same moment can both create it. The key then matches two entries and fails with `found 2 credential entries` until one of them is deleted in DVLS. The items of one `PushSecret` are pushed one after another and never race, and neither do separate `PushSecret`s while the controller runs a single worker (`--concurrent=1`, the default). With more workers, push each new `remoteKey` from a single `PushSecret`.
+
 ## Limitations
 
 - **GetAllSecrets**: The `find` operation for discovering secrets is not currently supported
