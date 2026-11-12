@@ -7304,6 +7304,16 @@ spec:
                             - name
                             - type
                           type: object
+                        headers:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            Headers to be added to OpenBao request
+                            X-Vault-* headers are not allowed here to avoid conflict with other fields.
+                          type: object
+                          x-kubernetes-validations:
+                            - message: X-Vault-* headers are not allowed
+                              rule: self.all(key, !key.lowerAscii().startsWith('x-vault-'))
                         namespace:
                           description: |-
                             Name of the [OpenBao Namespace]. Namespaces is a set of features within
@@ -20983,6 +20993,16 @@ spec:
                             - name
                             - type
                           type: object
+                        headers:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            Headers to be added to OpenBao request
+                            X-Vault-* headers are not allowed here to avoid conflict with other fields.
+                          type: object
+                          x-kubernetes-validations:
+                            - message: X-Vault-* headers are not allowed
+                              rule: self.all(key, !key.lowerAscii().startsWith('x-vault-'))
                         namespace:
                           description: |-
                             Name of the [OpenBao Namespace]. Namespaces is a set of features within
