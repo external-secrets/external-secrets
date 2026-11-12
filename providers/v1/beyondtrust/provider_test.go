@@ -927,6 +927,46 @@ func newOwnerFieldsMockServer(t *testing.T, secretsPath string, captured map[str
 	}))
 }
 
+func TestClose_SignsOut(t *testing.T) {
+	signOutCalled := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case authConnectTokenPath:
+			writeBody(t, w, `{"access_token": "fake_token", "expires_in": 600, "token_type": "Bearer"}`)
+		case authSignAppInPath:
+			writeBody(t, w, `{"UserId":1, "EmailAddress":"test@beyondtrust.com"}`)
+		case "/Auth/Signout":
+			signOutCalled = true
+			writeBody(t, w, ``)
+		default:
+			http.Error(w, "not found", http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
+
+	p := newAuthenticatedProvider(t, server.URL, "3.1")
+	_, err := p.getAuthentication()
+	require.NoError(t, err)
+
+	require.NoError(t, p.Close(context.Background()))
+	assert.True(t, signOutCalled)
+}
+
+func TestClose_NoAuth_SkipsSignOut(t *testing.T) {
+	signOutCalled := false
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/Auth/Signout" {
+			signOutCalled = true
+		}
+		http.Error(w, "not found", http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	p := newAuthenticatedProvider(t, server.URL, "3.1")
+	require.NoError(t, p.Close(context.Background()))
+	assert.False(t, signOutCalled)
+}
+
 // newAuthenticatedProvider builds a Provider authenticated against serverURL
 // with the requested API version. Used by tests that need a ready-to-call
 // Provider without inlining the full auth/HTTP-client wiring.
