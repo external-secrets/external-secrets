@@ -3504,6 +3504,34 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#authentication-with-oauth20jwt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication with OAuth2.0/JWT
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication with OAuth2.0/JWT">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#akeyless-setup-for-serviceaccount-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Akeyless setup for ServiceAccount tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#authentication-with-cloud-identity-or-api-access-key" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5286,6 +5314,34 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#authentication-with-oauth20jwt" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authentication with OAuth2.0/JWT
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Authentication with OAuth2.0/JWT">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#akeyless-setup-for-serviceaccount-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Akeyless setup for ServiceAccount tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#authentication-with-cloud-identity-or-api-access-key" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5503,6 +5559,75 @@ If you use a customer fragment, define the value of akeylessGWApiURL as the URL 
 <span class="w">            </span><span class="c1"># namespace: &quot;my-namespace&quot;  # required for ClusterSecretStore</span>
 </code></pre></div>
 <p><strong>NOTE:</strong> In case of a <code>ClusterSecretStore</code>, be sure to provide <code>namespace</code> for <code>serviceAccountRef</code> and <code>secretRef</code> according to the namespaces where the secrets reside.</p>
+<h3 id="authentication-with-oauth20jwt">Authentication with OAuth2.0/JWT</h3>
+<p>Use an <a href="https://docs.akeyless.io/docs/auth-with-oauth-jwt">Akeyless OAuth2.0/JWT</a> auth method. The provider calls Akeyless <code>Auth</code> with <code>access-type=jwt</code> and the bearer JWT.</p>
+<p>Preferred SecretStore shape is <code>authSecretRef.jwtAuth</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-jwt-auth</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app-test</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">akeyless</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">akeylessGWApiURL</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;https://api.akeyless.io&quot;</span>
+<span class="w">      </span><span class="nt">authSecretRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">jwtAuth</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">accessID</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;p-xxxxxx&quot;</span>
+<span class="w">          </span><span class="c1"># Option A: JWT stored in a Secret (IdP-issued access/ID token)</span>
+<span class="w">          </span><span class="nt">secretRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-jwt</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">token</span>
+<span class="w">          </span><span class="c1"># Option B: mint a Kubernetes SA token via TokenRequest</span>
+<span class="w">          </span><span class="c1"># (requires create on serviceaccounts/token — Helm rbac.serviceAccountTokenCreate, default true)</span>
+<span class="w">          </span><span class="c1"># serviceAccountRef:</span>
+<span class="w">          </span><span class="c1">#   name: akeyless-jwt-sa</span>
+<span class="w">          </span><span class="c1">#   # required; must match the Akeyless auth method&#39;s --audience</span>
+<span class="w">          </span><span class="c1">#   audiences:</span>
+<span class="w">          </span><span class="c1">#     - &quot;akeyless.io&quot;</span>
+<span class="w">          </span><span class="c1"># expirationSeconds: 600</span>
+</code></pre></div>
+<p>JWT material:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">akeyless-jwt</span>
+<span class="w">  </span><span class="nt">namespace</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app-test</span>
+<span class="nt">type</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">stringData</span><span class="p">:</span>
+<span class="w">  </span><span class="c1"># Bearer JWT issued by your IdP for the Akeyless OAuth2.0/JWT auth method</span>
+<span class="w">  </span><span class="nt">token</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;YOUR_JWT_HERE&quot;</span>
+</code></pre></div>
+<p><code>jwtAuth.serviceAccountRef</code> uses the TokenRequest API (<code>create</code> on <code>serviceaccounts/token</code>). The Helm chart grants this when <code>rbac.serviceAccountTokenCreate</code> is <code>true</code> (the default). <code>serviceAccountRef.audiences</code> is required and must match the audience configured on the Akeyless OAuth2.0/JWT auth method. This keeps the token from being scoped to the Kubernetes API server, so it cannot be replayed against the cluster API.</p>
+<p>When <code>jwtAuth</code> is set, it takes precedence: <code>authSecretRef.secretRef</code> and <code>authSecretRef.serviceAccountRef</code> are ignored, and ESO returns a warning if they are also set.</p>
+<h4 id="akeyless-setup-for-serviceaccount-tokens">Akeyless setup for ServiceAccount tokens</h4>
+<p>For <code>serviceAccountRef</code>, the Akeyless auth method must trust your cluster's ServiceAccount token issuer:</p>
+<ol>
+<li>
+<p>Export the cluster JWKS and note the issuer. Refresh the JWKS in Akeyless when the cluster signing keys rotate.</p>
+<div class="highlight"><pre><span></span><code>kubectl<span class="w"> </span>get<span class="w"> </span>--raw<span class="w"> </span>/openid/v1/jwks<span class="w"> </span>&gt;<span class="w"> </span>cluster-jwks.json
+kubectl<span class="w"> </span>get<span class="w"> </span>--raw<span class="w"> </span>/.well-known/openid-configuration<span class="w">  </span><span class="c1"># &quot;issuer&quot; field</span>
+</code></pre></div>
+</li>
+<li>
+<p>Create an OAuth2.0/JWT auth method that trusts that JWKS, with <code>sub</code> as the unique identifier and the same audience you set in <code>serviceAccountRef.audiences</code>:</p>
+<div class="highlight"><pre><span></span><code>akeyless<span class="w"> </span>auth-method<span class="w"> </span>create<span class="w"> </span>oauth2<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--name<span class="w"> </span>/k8s/cluster-oidc<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--jwks-json-file<span class="w"> </span>./cluster-jwks.json<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--issuer<span class="w"> </span>&lt;issuer-from-openid-configuration&gt;<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--unique-identifier<span class="w"> </span>sub<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--audience<span class="w"> </span>akeyless.io
+</code></pre></div>
+<p>If the cluster JWKS is publicly reachable, you can use <code>--jwks-uri</code> instead of <code>--jwks-json-file</code>.</p>
+</li>
+<li>
+<p>Scope access per ServiceAccount with role associations on the <code>sub</code> claim:</p>
+<div class="highlight"><pre><span></span><code>akeyless<span class="w"> </span>assoc-role-am<span class="w"> </span>--role-name<span class="w"> </span>&lt;role&gt;<span class="w"> </span>--am-name<span class="w"> </span>/k8s/cluster-oidc<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--sub-claims<span class="w"> </span><span class="nv">sub</span><span class="o">=</span>system:serviceaccount:&lt;namespace&gt;:&lt;serviceaccount&gt;
+</code></pre></div>
+</li>
+</ol>
+<p>Alternatively, store <code>accessType=jwt</code> and put the JWT in <code>accessTypeParam</code> via the generic credentials Secret below.</p>
 <h3 id="authentication-with-cloud-identity-or-api-access-key">Authentication with Cloud-Identity or Api-Access-Key</h3>
 <p>Akeyless providers require an access-id, access-type and access-type-param
 to set your SecretStore with an authentication method from Akeyless.</p>
@@ -5538,6 +5663,10 @@ to set your SecretStore with an authentication method from Akeyless.</p>
 <tr>
 <td><code>k8s</code></td>
 <td>The k8s configuration name</td>
+</tr>
+<tr>
+<td><code>jwt</code></td>
+<td>The bearer JWT</td>
 </tr>
 </tbody>
 </table>
