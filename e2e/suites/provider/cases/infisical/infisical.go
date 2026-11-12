@@ -75,6 +75,11 @@ var _ = Describe("[infisical]", Label("infisical"), Ordered, func() {
 		framework.Compose(withUniversalAuth, f, findPathScopesTheSearch, useUniversalAuth(prov)),
 		// one case through a ClusterSecretStore to cover the cluster-scoped path
 		framework.Compose(withUniversalAuthCluster, f, common.JSONDataFromSync, useUniversalAuthClusterStore(prov)),
+		// serviceAccountRef: the identity accepts only the test ServiceAccount's
+		// token with its audience, so these fail if the controller logs in with
+		// its own token or drops the audiences.
+		framework.Compose(withKubernetesAuth, f, common.SimpleDataSync, useKubernetesAuth(prov)),
+		framework.Compose(withKubernetesAuthCluster, f, common.JSONDataFromSync, useKubernetesAuthClusterStore(prov)),
 	)
 
 	DescribeTable("push secrets",

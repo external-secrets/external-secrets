@@ -142,6 +142,35 @@ spec:
         environmentSlug: dev
 ```
 
+### Authenticating as a ServiceAccount
+
+By default, the operator authenticates with its own service account token. Set `serviceAccountRef` to authenticate as a different ServiceAccount instead. The operator requests a short-lived token for it through the Kubernetes TokenRequest API, so one operator can serve many machine identities. `serviceAccountRef` takes precedence over `serviceAccountTokenPath`.
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: infisical
+spec:
+  provider:
+    infisical:
+      auth:
+        kubernetesAuthCredentials:
+          identityId:
+            name: kubernetes-auth-credentials
+            key: identityId
+          serviceAccountRef:
+            name: my-app
+            # Optional: audiences to request for the token
+            # audiences:
+            #   - infisical
+      secretsScope:
+        projectSlug: my-project
+        environmentSlug: dev
+```
+
+For a `SecretStore`, the ServiceAccount must be in the same namespace as the `ExternalSecret`. For a `ClusterSecretStore`, `serviceAccountRef.namespace` is required.
+
 ---
 
 ## AWS IAM Auth
@@ -793,6 +822,6 @@ The `secretsScope` configuration controls which secrets are accessible:
 
 ## Validation and Auth Method Precedence
 
-`ValidateStore` only performs field-level validation for the `universalAuthCredentials` block. All other authentication methods (Kubernetes, AWS, Azure, GCP, JWT, LDAP, OCI, Token) are not statically validated -- missing required fields are caught at runtime when the provider first attempts to authenticate.
+`ValidateStore` only performs field-level validation for the `universalAuthCredentials` block and the `kubernetesAuthCredentials.serviceAccountRef` namespace. All other authentication methods (Kubernetes, AWS, Azure, GCP, JWT, LDAP, OCI, Token) are not statically validated -- missing required fields are caught at runtime when the provider first attempts to authenticate.
 
 If multiple authentication blocks are set simultaneously, the provider selects the first one it finds in this order: `universalAuthCredentials` > `azureAuthCredentials` > `gcpIdTokenAuthCredentials` > `gcpIamAuthCredentials` > `jwtAuthCredentials` > `ldapAuthCredentials` > `ociAuthCredentials` > `kubernetesAuthCredentials` > `awsAuthCredentials` > `tokenAuthCredentials`. Only one auth block should be set per store.
