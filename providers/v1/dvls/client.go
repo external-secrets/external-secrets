@@ -278,10 +278,11 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		return fmt.Errorf(errFailedToGetEntry, err)
 	}
 
-	// Only the named field changes: an update sends the whole entry back, so
-	// the fields this push does not name keep the values the server returned.
 	if err := setCredentialField(&existingEntry, field, string(value)); err != nil {
 		return err
+	}
+	if isDefaultCredential(existingEntry) {
+		existingEntry.Data = fieldUpdate(field, string(value))
 	}
 
 	_, err = c.cred.Update(ctx, existingEntry)
@@ -587,10 +588,8 @@ func (c *Client) clearField(ctx context.Context, vaultID, entryID, property stri
 	if err := setCredentialField(&entry, field, ""); err != nil {
 		return false, err
 	}
-	// DVLS keeps a data field an update leaves out, and go-dvls leaves out
-	// every empty one, so the cleared field has to be sent explicitly empty.
-	if data, ok := entry.GetCredentialDefaultData(); ok {
-		entry.Data = defaultDataUpdate(*data)
+	if isDefaultCredential(entry) {
+		entry.Data = fieldUpdate(field, "")
 	}
 	if _, err := c.cred.Update(ctx, entry); err != nil {
 		return false, fmt.Errorf("failed to update entry: %w", err)
@@ -881,12 +880,14 @@ func isDefaultCredential(entry dvls.Entry) bool {
 	return entry.GetType() == dvls.EntryCredentialType && entry.SubType == dvls.EntryCredentialSubTypeDefault
 }
 
-// defaultDataUpdate is dvls.EntryCredentialDefaultData without omitempty, for
-// the update that clears one of its fields.
-type defaultDataUpdate struct {
-	Domain   string `json:"domain"`
-	Password string `json:"password"`
-	Username string `json:"username"`
+// fieldUpdate is the data of an update that writes one field of a
+// Credential/Default entry, and sends nothing else. DVLS keeps every data field
+// an update leaves out, so the entry's other fields stay as they are on the
+// server rather than as they were when the entry was read: two pushes to
+// different fields of one entry cannot undo each other. An empty value is sent
+// too, which is how a field is cleared; go-dvls would leave it out.
+func fieldUpdate(field, value string) map[string]string {
+	return map[string]string{field: value}
 }
 
 // pushField maps a push's property to the credential field it writes. No

@@ -171,7 +171,7 @@ A push that sets `property` to `username`, `password` or `domain` writes that fi
 {% include 'dvls-push-secret-username-password.yaml' %}
 ```
 
-- Only the named field changes; the entry's other fields keep their values.
+- Only the named field changes; the entry's other fields keep their values. An update sends only that field, so items that push different fields of one entry do not undo each other, even with more than one worker.
 - With `updatePolicy: IfNotExists`, each field is checked on its own, so a field the entry does not hold yet is still written after another item has created the entry. An item that sets no `property` checks the password, so it can share a `remoteKey` with items that name the username or domain.
 - `deletionPolicy: Delete` clears only the fields the `PushSecret` pushed, and deletes the entry once none are left. That deletes the whole entry, its notes and history included, even when the `PushSecret` did not create it, so use it only on entries the `PushSecret` owns.
 - `username` and `domain` exist only on `Credential/Default` entries: pushing them to an entry of another subtype fails rather than overwriting its password. Any other `property` is refused on push and ignored on delete, so a `PushSecret` written for an older version, where the property was ignored, can still be deleted.

@@ -68,6 +68,9 @@ type mockCredentialClient struct {
 	lastUpdated   dvls.Entry
 	lastDeleted   string
 	created       int
+	// afterGet runs once GetByID has read an entry, to change the stored one
+	// the way a concurrent writer would.
+	afterGet func()
 
 	mu           sync.Mutex
 	entriesCalls map[string]int
@@ -98,7 +101,11 @@ func (m *mockCredentialClient) GetByID(_ context.Context, vaultID, entryID strin
 	}
 
 	if entry, ok := m.entries[entryID]; ok && entryMatchesVault(entry, vaultID) {
-		return roundTrip(entry), nil
+		out := roundTrip(entry)
+		if m.afterGet != nil {
+			m.afterGet()
+		}
+		return out, nil
 	}
 
 	return dvls.Entry{}, &dvls.RequestError{Err: fmt.Errorf("unexpected status code %d", http.StatusNotFound), Url: entryID, StatusCode: http.StatusNotFound}
@@ -2063,6 +2070,36 @@ func TestClient_DeleteSecret_PasswordOfAccessCodeDeletesEntry(t *testing.T) {
 
 	assert.NoError(t, c.DeleteSecret(context.Background(), pushSecretRemoteRefStub{remoteKey: testEntryName, property: "password"}))
 	assert.Equal(t, testEntryUUID, mockCred.lastDeleted)
+}
+
+func TestClient_PushSecret_KeepsFieldChangedSinceRead(t *testing.T) {
+	// Another worker pushes the username between this push's read and its
+	// update. Sending back the username this push read would undo that.
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("u0", "p0")})
+	mockCred.afterGet = func() {
+		mockCred.afterGet = nil
+		mockCred.entries[testEntryUUID] = defaultEntry("u1", "p0")
+	}
+
+	data := pushSecretDataStub{remoteKey: testEntryName, secretKey: "password", property: "password"}
+	require.NoError(t, c.PushSecret(context.Background(), userPassSecret(), data))
+	credData, _ := mockCred.entries[testEntryUUID].Data.(*dvls.EntryCredentialDefaultData)
+	assert.Equal(t, "u1", credData.Username)
+	assert.Equal(t, "app-pass", credData.Password)
+}
+
+func TestClient_DeleteSecret_KeepsFieldChangedSinceRead(t *testing.T) {
+	c, mockCred := newTestClient(map[string]dvls.Entry{testEntryUUID: defaultEntry("u0", "p0")})
+	mockCred.afterGet = func() {
+		mockCred.afterGet = nil
+		mockCred.entries[testEntryUUID] = defaultEntry("u0", "p1")
+	}
+
+	ref := pushSecretRemoteRefStub{remoteKey: testEntryName, property: "username"}
+	require.NoError(t, c.DeleteSecret(context.Background(), ref))
+	credData, _ := mockCred.entries[testEntryUUID].Data.(*dvls.EntryCredentialDefaultData)
+	assert.Equal(t, "", credData.Username)
+	assert.Equal(t, "p1", credData.Password)
 }
 
 // --- Tests: isNotFoundError ---
