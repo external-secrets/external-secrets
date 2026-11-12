@@ -404,8 +404,8 @@ type VaultUserPassAuth struct {
 // VaultGCPAuth authenticates with Vault using Google Cloud Platform authentication method.
 // Refer: https://developer.hashicorp.com/vault/docs/auth/gcp
 //
-// When ServiceAccountRef, SecretRef and WorkloadIdentity are not specified, the provider will use the controller pod's
-// identity to authenticate with GCP. This supports both GKE Workload Identity and service account keys.
+// When ServiceAccountRef, SecretRef, WorkloadIdentity and WorkloadIdentityFederation are not specified, the provider will use the controller pod's
+// identity to authenticate with GCP. This supports GKE Workload Identity, Workload Identity Federation and service account keys.
 type VaultGCPAuth struct {
 	// Path where the GCP auth method is enabled in Vault, e.g: "gcp"
 	// +kubebuilder:default=gcp
@@ -431,6 +431,17 @@ type VaultGCPAuth struct {
 	// Specify a service account with Workload Identity
 	// +optional
 	WorkloadIdentity *GCPWorkloadIdentity `json:"workloadIdentity,omitempty"`
+
+	// Specify Workload Identity Federation configuration
+	// +optional
+	WorkloadIdentityFederation *GCPWorkloadIdentityFederation `json:"workloadIdentityFederation,omitempty"`
+
+	// ServiceAccountEmail is the email of the Google Cloud service account to use for IAM authentication
+	// +kubebuilder:example:="vault-gsa@my-project.iam.gserviceaccount.com"
+	// +kubebuilder:validation:Pattern:=^.+@.+\.gserviceaccount\.com$
+	// +kubebuilder:validation:MinLength:=1
+	// +optional
+	ServiceAccountEmail string `json:"serviceAccountEmail,omitempty"`
 
 	// ServiceAccountRef to a service account for impersonation
 	// +optional
