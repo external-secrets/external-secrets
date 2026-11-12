@@ -379,37 +379,25 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 		c.Timeout = provider.Timeout.Duration
 	}
 
+	transport, err := esutils.CloneDefaultHTTPTransport()
+	if err != nil {
+		return nil, err
+	}
+	c.Transport = transport
+
 	// add CA to client if it is there
 	if len(provider.CABundle) > 0 || provider.CAProvider != nil {
 		caCertPool, err := w.GetCACertPool(ctx, provider)
 		if err != nil {
 			return nil, err
 		}
-
-		tlsConf := &tls.Config{
-			RootCAs:       caCertPool,
-			MinVersion:    tls.VersionTLS12,
-			Renegotiation: tls.RenegotiateOnceAsClient,
-		}
-
-		transport, err := esutils.CloneDefaultHTTPTransport()
-		if err != nil {
-			return nil, err
-		}
-		transport.TLSClientConfig = tlsConf
-		c.Transport = transport
+		transport.TLSClientConfig.RootCAs = caCertPool
+		transport.TLSClientConfig.Renegotiation = tls.RenegotiateOnceAsClient
 	}
+
 	// add authentication method if it's there
 	if provider.Auth != nil {
 		if provider.Auth.NTLM != nil {
-			transport, ok := c.Transport.(*http.Transport)
-			if !ok {
-				cloned, err := esutils.CloneDefaultHTTPTransport()
-				if err != nil {
-					return nil, err
-				}
-				transport = cloned
-			}
 			transport.TLSNextProto = map[string]func(authority string, c *tls.Conn) http.RoundTripper{} // Needed to disable HTTP/2
 			c.Transport = &ntlmssp.Negotiator{RoundTripper: transport}
 		}
