@@ -20,7 +20,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -1374,11 +1376,17 @@ func TestClient_PushSecret_CreatesMissingEntry(t *testing.T) {
 	assert.Equal(t, "", created.Path)
 	assert.Equal(t, testVaultUUID, created.VaultId)
 	assert.Equal(t, dvls.EntryCredentialType, created.Type)
-	assert.Equal(t, dvls.EntryCredentialSubTypeAccessCode, created.SubType)
+	assert.Equal(t, dvls.EntryCredentialSubTypeDefault, created.SubType)
 
-	credData, ok := created.Data.(*dvls.EntryCredentialAccessCodeData)
-	assert.True(t, ok)
+	credData, ok := created.Data.(*dvls.EntryCredentialDefaultData)
+	require.True(t, ok)
 	assert.Equal(t, "created-value", credData.Password)
+	assert.Empty(t, credData.Username)
+
+	// It reads back exactly as a password-only AccessCode entry would.
+	fields, err := entryToSecretMap(created)
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{"entry-id", "entry-name", "password"}, slices.Collect(maps.Keys(fields)))
 }
 
 func TestClient_PushSecret_TrimsKeyBeforeCreating(t *testing.T) {

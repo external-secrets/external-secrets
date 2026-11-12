@@ -282,10 +282,12 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 // belongs under, because DVLS addresses an entry by name within a path rather
 // than by the whole string.
 //
-// The entry is created as a Credential/AccessCode: that is the subtype whose
-// single field GetSecret reads back as "password", so a value pushed here is
-// readable by an ExternalSecret that sets no property. Any folder the path
-// names is created first, so that the entry lands in a tree that exists.
+// The entry is created as a Credential/Default, the username and password
+// subtype, with only the password set. It reads back exactly as an AccessCode
+// entry would, since empty fields are left out, so a value pushed here is
+// readable by an ExternalSecret that sets no property; and a later push of a
+// username to the same entry has a field to write. Any folder the path names
+// is created first, so that the entry lands in a tree that exists.
 //
 // An entry referenced by UUID is never created: the UUID names one specific
 // entry, which no longer exists, so there is nothing to create it as. That
@@ -323,7 +325,7 @@ func (c *Client) createEntry(ctx context.Context, vaultID, entryRef string, valu
 		Name:    name,
 		Path:    path,
 		Type:    dvls.EntryCredentialType,
-		SubType: dvls.EntryCredentialSubTypeAccessCode,
+		SubType: dvls.EntryCredentialSubTypeDefault,
 	}
 	// The subtype must be set first: SetCredentialSecret builds the data struct
 	// that matches it.
