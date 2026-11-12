@@ -38,6 +38,7 @@ reconciler.
 | `--live-addr`                                 | string   | :8082   | The address the live endpoint binds to                                                                                                                             |
 | `--metrics-addr`                              | string   | :8080   | The address the metric endpoint binds to.                                                                                                                          |
 | `--namespace`                                 | string   | -       | watch external secrets scoped in the provided namespace only. ClusterSecretStore can be used but only work if it doesn't reference resources from other namespaces |
+| `--namespace-regex-cache-size`                | int      | 256     | Maximum number of compiled ClusterSecretStore namespaceRegexes kept in memory.                                                                                     |
 | `--store-requeue-interval`                    | duration | 5m0s    | Default Time duration between reconciling (Cluster)SecretStores                                                                                                    |
 | `--enable-http2`                              | boolean  | false   | If set, HTTP/2 will be enabled for the metrics server                                                                                                              |
 
