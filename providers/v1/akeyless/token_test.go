@@ -20,6 +20,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sync/atomic"
 	"testing"
@@ -76,12 +77,14 @@ func TestCachedOrFreshTokenReusesUntilExpiry(t *testing.T) {
 	}
 	client := &Akeyless{Client: mock}
 
-	first, err := client.cachedOrFreshToken(context.Background())
+	first, cached, err := client.cachedOrFreshToken(context.Background())
 	require.NoError(t, err)
+	require.False(t, cached)
 	require.Equal(t, token, first)
 
-	second, err := client.cachedOrFreshToken(context.Background())
+	second, cached, err := client.cachedOrFreshToken(context.Background())
 	require.NoError(t, err)
+	require.True(t, cached)
 	require.Equal(t, token, second)
 	require.Equal(t, int32(1), mock.calls.Load(), "expected a single Auth/token fetch")
 }
@@ -97,10 +100,96 @@ func TestCachedOrFreshTokenRefreshesWhenExpired(t *testing.T) {
 		tokenExpiry: time.Now().Add(-time.Second),
 	}
 
-	got, err := client.cachedOrFreshToken(context.Background())
+	got, _, err := client.cachedOrFreshToken(context.Background())
 	require.NoError(t, err)
 	require.Equal(t, mock.token, got)
 	require.Equal(t, int32(1), mock.calls.Load())
+}
+
+func TestAuthCredsExpiry(t *testing.T) {
+	require.True(t, authCredsExpiry(0).IsZero())
+	require.Equal(t, time.Unix(1_700_000_000, 0), authCredsExpiry(1_700_000_000))
+	require.Equal(t, time.UnixMilli(1_700_000_000_123), authCredsExpiry(1_700_000_000_123))
+}
+
+type expiringTokenClient struct {
+	*fakeakeyless.AkeylessMockClient
+	expiry time.Time
+}
+
+func (c *expiringTokenClient) tokenWithExpiry(_ context.Context) (string, time.Time, error) {
+	return "t-opaque", c.expiry, nil
+}
+
+func TestCachedOrFreshTokenUsesAuthExpiry(t *testing.T) {
+	expiry := time.Now().Add(time.Hour).Truncate(time.Second)
+	client := &Akeyless{Client: &expiringTokenClient{AkeylessMockClient: fakeakeyless.New(), expiry: expiry}}
+
+	_, _, err := client.cachedOrFreshToken(context.Background())
+	require.NoError(t, err)
+	require.Equal(t, expiry.Add(-tokenExpirySkew), client.tokenExpiry)
+}
+
+func TestCachedOrFreshTokenFallsBackWithoutAuthExpiry(t *testing.T) {
+	client := &Akeyless{Client: &expiringTokenClient{AkeylessMockClient: fakeakeyless.New()}}
+
+	before := time.Now()
+	_, _, err := client.cachedOrFreshToken(context.Background())
+	require.NoError(t, err)
+	require.WithinRange(t, client.tokenExpiry, before.Add(defaultTokenCacheTTL), time.Now().Add(defaultTokenCacheTTL))
+}
+
+// rejectingClient issues numbered tokens and rejects the ones listed in rejected.
+type rejectingClient struct {
+	*fakeakeyless.AkeylessMockClient
+	authCalls atomic.Int32
+	rejected  map[string]bool
+	seen      []string
+}
+
+func (c *rejectingClient) TokenFromSecretRef(_ context.Context) (string, error) {
+	return fmt.Sprintf("t-%d", c.authCalls.Add(1)), nil
+}
+
+func (c *rejectingClient) GetSecretByType(ctx context.Context, _ string, _ int32) (string, error) {
+	token, _ := ctx.Value(aKeylessToken).(string)
+	c.seen = append(c.seen, token)
+	if c.rejected[token] {
+		return "", &unauthorizedError{err: errors.New("can't get secret value: token expired")}
+	}
+	return "secret-val", nil
+}
+
+func TestGetSecretRetriesOnceWhenCachedTokenRejected(t *testing.T) {
+	mock := &rejectingClient{AkeylessMockClient: fakeakeyless.New(), rejected: map[string]bool{"t-cached": true}}
+	client := &Akeyless{Client: mock, cachedToken: "t-cached", tokenExpiry: time.Now().Add(time.Hour)}
+
+	out, err := client.GetSecret(context.Background(), *makeValidRef())
+
+	require.NoError(t, err)
+	require.Equal(t, "secret-val", string(out))
+	require.Equal(t, []string{"t-cached", "t-1"}, mock.seen)
+	require.Equal(t, "t-1", client.cachedToken)
+}
+
+func TestGetSecretDoesNotRetryWithFreshToken(t *testing.T) {
+	mock := &rejectingClient{AkeylessMockClient: fakeakeyless.New(), rejected: map[string]bool{"t-1": true}}
+	client := &Akeyless{Client: mock}
+
+	_, err := client.GetSecret(context.Background(), *makeValidRef())
+
+	require.ErrorIs(t, err, ErrUnauthorized)
+	require.Equal(t, int32(1), mock.authCalls.Load())
+	require.Equal(t, []string{"t-1"}, mock.seen)
+}
+
+func TestInvalidateTokenKeepsConcurrentlyRefreshedToken(t *testing.T) {
+	client := &Akeyless{cachedToken: "t-new", tokenExpiry: time.Now().Add(time.Hour)}
+	client.invalidateToken("t-old")
+	require.Equal(t, "t-new", client.cachedToken)
+
+	client.invalidateToken("t-new")
+	require.Empty(t, client.cachedToken)
 }
 
 func TestGetSecretReusesTokenAcrossCalls(t *testing.T) {

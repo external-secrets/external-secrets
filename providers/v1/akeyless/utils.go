@@ -56,10 +56,6 @@ const (
 	akeylessFedRampDomain = ".secondfront.com"
 )
 
-// Overridable for tests.
-var getenv = os.Getenv
-var probeAkeylessURL = defaultProbeAkeylessURL
-
 // GetAKeylessProvider does the necessary nil checks and returns the akeyless provider or an error.
 func GetAKeylessProvider(store esv1.GenericStore) (*esv1.AkeylessProvider, error) {
 	if store == nil {
@@ -86,19 +82,20 @@ func ignoreCacheEnabled(prov *esv1.AkeylessProvider) bool {
 // resolveAkeylessAPIURL picks the API base used for Auth and every secret
 // operation. Preference: SecretStore akeylessGWApiURL, then AKEYLESS_URL, then
 // the global SaaS API. Vault/UAM hosts are mapped to their api.* counterparts
-// so Auth and GetSecretValue always share the same tenant endpoint.
-func resolveAkeylessAPIURL(configured string) string {
+// so Auth and GetSecretValue always share the same tenant endpoint. probe is
+// used to detect SaaS API roots on other hosts (see getV2Url).
+func resolveAkeylessAPIURL(configured string, probe func(string) string) string {
 	raw := strings.TrimSpace(configured)
 	if raw == "" {
-		raw = strings.TrimSpace(getenv(akeylessURLEnv))
+		raw = strings.TrimSpace(os.Getenv(akeylessURLEnv))
 	}
 	if raw == "" {
 		return defaultAPIUrl
 	}
-	return normalizeAkeylessAPIURL(raw)
+	return normalizeAkeylessAPIURL(raw, probe)
 }
 
-func normalizeAkeylessAPIURL(raw string) string {
+func normalizeAkeylessAPIURL(raw string, probe func(string) string) string {
 	if !strings.Contains(raw, "://") {
 		raw = "https://" + raw
 	}
@@ -117,7 +114,7 @@ func normalizeAkeylessAPIURL(raw string) string {
 		return strings.TrimSuffix(u.String(), "/")
 	}
 
-	return getV2Url(u.String())
+	return getV2Url(u.String(), probe)
 }
 
 // mapAkeylessVaultHostToAPI rewrites only known Akeyless SaaS UAM hosts
@@ -158,31 +155,27 @@ func formatURLHost(host, port string) string {
 	return host
 }
 
-func getV2Url(path string) string {
+// getV2Url returns gateway URLs that do not end in /v2 as scheme://host/v2,
+// dropping any other path or query, as the provider always has.
+func getV2Url(path string, probe func(string) string) string {
 	// SaaS API roots answer POST / with "unknown command"; leave them alone.
-	rebody := probeAkeylessURL(path)
+	rebody := probe(path)
 	if strings.Contains(rebody, "unknown command") {
 		return path
 	}
 
+	if strings.HasSuffix(path, "/v2") {
+		return path
+	}
 	u, err := url.Parse(path)
 	if err != nil {
 		return path
 	}
-	p := strings.TrimSuffix(u.Path, "/")
-	if p == "/v2" || strings.HasSuffix(p, "/v2") {
-		return path
-	}
-	if p == "" {
-		u.Path = "/v2"
-	} else {
-		u.Path = p + "/v2"
-	}
-	return u.String()
+	return u.Scheme + "://" + u.Host + "/v2"
 }
 
 func defaultProbeAkeylessURL(target string) string {
-	req, err := http.NewRequest(http.MethodPost, target, http.NoBody)
+	req, err := http.NewRequest(http.MethodPost, target, http.NoBody) //nolint:gosec // G704: target is the configured Akeyless API URL, which the client calls anyway
 	if err != nil {
 		return ""
 	}
@@ -191,7 +184,7 @@ func defaultProbeAkeylessURL(target string) string {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) //nolint:gosec // G704: see NewRequest above
 	if err != nil {
 		return ""
 	}

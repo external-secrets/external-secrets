@@ -17,6 +17,8 @@ limitations under the License.
 package akeyless
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -65,15 +67,9 @@ func TestIgnoreCacheEnabled(t *testing.T) {
 	}
 }
 
-func TestResolveAkeylessAPIURL(t *testing.T) {
-	prevGetenv := getenv
-	prevProbe := probeAkeylessURL
-	t.Cleanup(func() {
-		getenv = prevGetenv
-		probeAkeylessURL = prevProbe
-	})
-	probeAkeylessURL = func(string) string { return "" }
+func noProbe(string) string { return "" }
 
+func TestResolveAkeylessAPIURL(t *testing.T) {
 	tests := []struct {
 		name       string
 		configured string
@@ -150,22 +146,49 @@ func TestResolveAkeylessAPIURL(t *testing.T) {
 			configured: "https://[2001:db8::1]:8080",
 			want:       "https://[2001:db8::1]:8080/v2",
 		},
+		{
+			name:       "gateway path other than v2 is replaced by v2",
+			configured: "https://gw.example.com:8000/api",
+			want:       "https://gw.example.com:8000/v2",
+		},
+		{
+			name:       "gateway query is dropped",
+			configured: "https://gw.example.com:8000/v2?x=1",
+			want:       "https://gw.example.com:8000/v2",
+		},
+		{
+			name:       "gateway path ending in v2 unchanged",
+			configured: "https://gw.example.com:8000/api/v2",
+			want:       "https://gw.example.com:8000/api/v2",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			getenv = func(string) string { return tt.env }
-			require.Equal(t, tt.want, resolveAkeylessAPIURL(tt.configured))
+			t.Setenv(akeylessURLEnv, tt.env)
+			require.Equal(t, tt.want, resolveAkeylessAPIURL(tt.configured, noProbe))
 		})
 	}
 }
 
 func TestGetV2UrlLeavesSaaSProbeAlone(t *testing.T) {
-	prevProbe := probeAkeylessURL
-	t.Cleanup(func() { probeAkeylessURL = prevProbe })
-	probeAkeylessURL = func(string) string { return `{"error":"unknown command ''"}` }
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"error":"unknown command ''"}`))
+	}))
+	t.Cleanup(srv.Close)
 
-	require.Equal(t, "https://api.custom.example", getV2Url("https://api.custom.example"))
+	require.Equal(t, srv.URL, getV2Url(srv.URL, defaultProbeAkeylessURL))
+}
+
+func TestGetV2UrlAppendsV2ForGateway(t *testing.T) {
+	t.Parallel()
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	t.Cleanup(srv.Close)
+
+	require.Equal(t, srv.URL+"/v2", getV2Url(srv.URL, defaultProbeAkeylessURL))
 }
 
 func TestIsAkeylessSaaSAPIHost(t *testing.T) {

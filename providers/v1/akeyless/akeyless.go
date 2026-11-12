@@ -285,7 +285,7 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	if spec != nil && spec.AkeylessGWApiURL != nil {
 		configuredURL = *spec.AkeylessGWApiURL
 	}
-	akeylessGwAPIURL := resolveAkeylessAPIURL(configuredURL)
+	akeylessGwAPIURL := resolveAkeylessAPIURL(configuredURL, defaultProbeAkeylessURL)
 
 	if spec.Auth == nil {
 		return nil, errors.New("missing Auth in store config")
@@ -311,17 +311,6 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	return &Akeyless{Client: akl, url: akeylessGwAPIURL}, nil
 }
 
-func (a *Akeyless) contextWithToken(ctx context.Context) (context.Context, error) {
-	if v := ctx.Value(aKeylessToken); v != nil {
-		return ctx, nil
-	}
-	token, err := a.cachedOrFreshToken(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return context.WithValue(ctx, aKeylessToken, token), nil
-}
-
 // Close closes the Akeyless client connection.
 func (a *Akeyless) Close(_ context.Context) error {
 	return nil
@@ -345,10 +334,6 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRem
 	if esutils.IsNil(a.Client) {
 		return nil, errors.New(errUninitalizedAkeylessProvider)
 	}
-	ctx, err := a.contextWithToken(ctx)
-	if err != nil {
-		return nil, err
-	}
 	version := int32(0)
 	if ref.Version != "" {
 		i, err := strconv.ParseInt(ref.Version, 10, 32)
@@ -356,7 +341,9 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRem
 			version = int32(i)
 		}
 	}
-	value, err := a.Client.GetSecretByType(ctx, ref.Key, version)
+	value, err := withToken(ctx, a, func(ctx context.Context) (string, error) {
+		return a.Client.GetSecretByType(ctx, ref.Key, version)
+	})
 	if errors.Is(err, ErrItemNotExists) {
 		return nil, esv1.NoSecretErr
 	}
@@ -392,10 +379,6 @@ func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFin
 	if esutils.IsNil(a.Client) {
 		return nil, errors.New(errUninitalizedAkeylessProvider)
 	}
-	ctx, err := a.contextWithToken(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	searchPath := ""
 	if ref.Path != nil {
@@ -407,14 +390,15 @@ func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFin
 			searchPath += "/"
 		}
 	}
-	if ref.Name != nil {
-		return a.findSecretsFromName(ctx, searchPath, *ref.Name)
-	}
-	if len(ref.Tags) > 0 {
-		return a.getSecrets(ctx, searchPath, ref.Tags)
-	}
-
-	return nil, errors.New("unexpected find operator")
+	return withToken(ctx, a, func(ctx context.Context) (map[string][]byte, error) {
+		if ref.Name != nil {
+			return a.findSecretsFromName(ctx, searchPath, *ref.Name)
+		}
+		if len(ref.Tags) > 0 {
+			return a.getSecrets(ctx, searchPath, ref.Tags)
+		}
+		return nil, errors.New("unexpected find operator")
+	})
 }
 
 func (a *Akeyless) getSecrets(ctx context.Context, searchPath string, tags map[string]string) (map[string][]byte, error) {
@@ -532,10 +516,13 @@ func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd es
 	if esutils.IsNil(a.Client) {
 		return errors.New(errUninitalizedAkeylessProvider)
 	}
-	ctx, err := a.contextWithToken(ctx)
-	if err != nil {
-		return err
-	}
+	_, err := withToken(ctx, a, func(ctx context.Context) (struct{}, error) {
+		return struct{}{}, a.pushSecret(ctx, secret, psd)
+	})
+	return err
+}
+
+func (a *Akeyless) pushSecret(ctx context.Context, secret *corev1.Secret, psd esv1.PushSecretData) error {
 	secretRemote, err := a.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: psd.GetRemoteKey()})
 	isNotExists := errors.Is(err, esv1.NoSecretErr)
 	if err != nil && !isNotExists {
@@ -578,10 +565,13 @@ func (a *Akeyless) DeleteSecret(ctx context.Context, psr esv1.PushSecretRemoteRe
 	if esutils.IsNil(a.Client) {
 		return errors.New(errUninitalizedAkeylessProvider)
 	}
-	ctx, err := a.contextWithToken(ctx)
-	if err != nil {
-		return err
-	}
+	_, err := withToken(ctx, a, func(ctx context.Context) (struct{}, error) {
+		return struct{}{}, a.deleteSecret(ctx, psr)
+	})
+	return err
+}
+
+func (a *Akeyless) deleteSecret(ctx context.Context, psr esv1.PushSecretRemoteRef) error {
 	item, err := a.Client.DescribeItem(ctx, psr.GetRemoteKey())
 	if err != nil {
 		return err

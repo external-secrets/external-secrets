@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	aws_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/aws"
 	gcp_cloud_id "github.com/akeylesslabs/akeyless-go-cloud-id/cloudprovider/gcp"
@@ -46,7 +47,25 @@ var (
 	ErrItemNotExists = errors.New("item does not exist")
 	// ErrTokenNotExists is returned when the authentication token is not available.
 	ErrTokenNotExists = errors.New("token does not exist")
+	// ErrUnauthorized matches errors for requests Akeyless rejected with 401 or 403.
+	ErrUnauthorized = errors.New("akeyless request unauthorized")
 )
+
+// unauthorizedError keeps the original message while matching ErrUnauthorized.
+type unauthorizedError struct {
+	err error
+}
+
+func (e *unauthorizedError) Error() string { return e.err.Error() }
+
+func (e *unauthorizedError) Unwrap() []error { return []error{e.err, ErrUnauthorized} }
+
+func apiError(res *http.Response, err error) error {
+	if res != nil && (res.StatusCode == http.StatusUnauthorized || res.StatusCode == http.StatusForbidden) {
+		return &unauthorizedError{err: err}
+	}
+	return err
+}
 
 // DefServiceAccountFile is the default path to the Kubernetes service account token.
 const DefServiceAccountFile = "/var/run/secrets/kubernetes.io/serviceaccount/token"
@@ -61,6 +80,13 @@ type Tokener interface {
 // It supports various authentication methods including API key, access key,
 // Kubernetes service account token, OAuth2.0/JWT, and cloud provider methods.
 func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeParam string, auth *esv1.AkeylessAuth) (string, error) {
+	token, _, err := a.authenticate(ctx, accessID, accType, accTypeParam, auth)
+	return token, err
+}
+
+// authenticate is GetToken that also returns the token expiry reported by
+// Akeyless, or the zero time when Auth does not return one.
+func (a *akeylessBase) authenticate(ctx context.Context, accessID, accType, accTypeParam string, auth *esv1.AkeylessAuth) (string, time.Time, error) {
 	authBody := akeyless.NewAuthWithDefaults()
 	authBody.AccessId = new(accessID)
 	switch {
@@ -68,11 +94,11 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 		authBody.AccessKey = new(accTypeParam)
 	case accType == "k8s":
 		if auth == nil || auth.KubernetesAuth == nil {
-			return "", errors.New("kubernetes auth configuration is required")
+			return "", time.Time{}, errors.New("kubernetes auth configuration is required")
 		}
 		jwtString, err := a.getK8SServiceAccountJWT(ctx, auth.KubernetesAuth)
 		if err != nil {
-			return "", fmt.Errorf("failed to read JWT with Kubernetes Auth from %v. error: %w", DefServiceAccountFile, err)
+			return "", time.Time{}, fmt.Errorf("failed to read JWT with Kubernetes Auth from %v. error: %w", DefServiceAccountFile, err)
 		}
 		jwtStringBase64 := base64.StdEncoding.EncodeToString([]byte(jwtString))
 		K8SAuthConfigName := accTypeParam
@@ -89,7 +115,7 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 	default:
 		cloudID, err := a.getCloudID(ctx, accType, accTypeParam, auth)
 		if err != nil {
-			return "", errors.New("Require Cloud ID " + err.Error())
+			return "", time.Time{}, errors.New("Require Cloud ID " + err.Error())
 		}
 		authBody.AccessType = new(accType)
 		authBody.CloudId = new(cloudID)
@@ -98,51 +124,58 @@ func (a *akeylessBase) GetToken(ctx context.Context, accessID, accType, accTypeP
 	authOut, res, err := a.RestAPI.Auth(ctx).Body(*authBody).Execute()
 	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMAuth, err)
 	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
-		return "", fmt.Errorf("authentication failed: %v", string(apiErr.Body()))
+		return "", time.Time{}, fmt.Errorf("authentication failed: %v", string(apiErr.Body()))
 	}
 	if err != nil {
-		return "", fmt.Errorf("authentication failed: %w", err)
+		return "", time.Time{}, fmt.Errorf("authentication failed: %w", err)
 	}
 	defer func() {
 		_ = res.Body.Close()
 	}()
-	token := authOut.GetToken()
-	return token, nil
+	return authOut.GetToken(), authCredsExpiry(authOut.Creds.GetExpiry()), nil
 }
 
 // GetSecretByType retrieves a secret from Akeyless based on its type.
 func (a *akeylessBase) GetSecretByType(ctx context.Context, secretName string, version int32) (string, error) {
-	secretType, err := a.secretType(ctx, secretName)
+	secretType, cached, err := a.secretType(ctx, secretName)
 	if err != nil {
 		return "", err
 	}
 	value, err := a.fetchSecretByType(ctx, secretType, secretName, version)
-	if err != nil {
-		// Cached type may be stale (item recreated as a different kind).
-		a.itemTypes.invalidate(secretName)
+	if err == nil || !cached || errors.Is(err, ErrUnauthorized) {
+		return value, err
+	}
+	// The cached type may be stale: the item may have been deleted (DescribeItem
+	// maps that to ErrItemNotExists) or recreated as a different kind.
+	a.itemTypes.invalidate(secretName)
+	freshType, _, describeErr := a.secretType(ctx, secretName)
+	if describeErr != nil {
+		return "", describeErr
+	}
+	if freshType == secretType {
 		return "", err
 	}
-	return value, nil
+	return a.fetchSecretByType(ctx, freshType, secretName, version)
 }
 
-func (a *akeylessBase) secretType(ctx context.Context, secretName string) (string, error) {
+func (a *akeylessBase) secretType(ctx context.Context, secretName string) (secretType string, cached bool, err error) {
 	if !a.ignoreCache {
-		if cached, ok := a.itemTypes.get(secretName); ok {
-			return cached, nil
+		if itemType, ok := a.itemTypes.get(secretName); ok {
+			return itemType, true, nil
 		}
 	}
 	item, err := a.DescribeItem(ctx, secretName)
 	if err != nil {
-		return "", err
+		return "", false, err
 	}
 	if _, ok := item.GetItemNameOk(); !ok {
-		return "", ErrItemNotExists
+		return "", false, ErrItemNotExists
 	}
-	secretType := item.GetItemType()
+	secretType = item.GetItemType()
 	if !a.ignoreCache {
 		a.itemTypes.set(secretName, secretType)
 	}
-	return secretType, nil
+	return secretType, false, nil
 }
 
 func (a *akeylessBase) fetchSecretByType(ctx context.Context, secretType, secretName string, version int32) (string, error) {
@@ -187,7 +220,7 @@ func (a *akeylessBase) DescribeItem(ctx context.Context, itemName string) (*akey
 		if res.StatusCode == http.StatusNotFound {
 			return nil, ErrItemNotExists
 		}
-		return nil, fmt.Errorf("can't describe item: %v, error: %v", itemName, string(apiErr.Body()))
+		return nil, apiError(res, fmt.Errorf("can't describe item: %v, error: %v", itemName, string(apiErr.Body())))
 	}
 	if err != nil {
 		return nil, fmt.Errorf("can't describe item: %w", err)
@@ -213,7 +246,7 @@ func (a *akeylessBase) GetCertificate(ctx context.Context, certificateName strin
 	gcvOut, res, err := a.RestAPI.GetCertificateValue(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMGetCertificateValue, err)
 	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
-		return "", fmt.Errorf("can't get certificate value: %v", string(apiErr.Body()))
+		return "", apiError(res, fmt.Errorf("can't get certificate value: %v", string(apiErr.Body())))
 	}
 	if err != nil {
 		return "", fmt.Errorf("can't get certificate value: %w", err)
@@ -244,7 +277,7 @@ func (a *akeylessBase) GetRotatedSecrets(ctx context.Context, secretName string,
 	gsvOut, res, err := a.RestAPI.GetRotatedSecretValue(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMGetRotatedSecretValue, err)
 	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
-		return "", fmt.Errorf("can't get rotated secret value: %v", string(apiErr.Body()))
+		return "", apiError(res, fmt.Errorf("can't get rotated secret value: %v", string(apiErr.Body())))
 	}
 	if err != nil {
 		return "", fmt.Errorf("can't get rotated secret value: %w", err)
@@ -285,7 +318,7 @@ func (a *akeylessBase) GetDynamicSecrets(ctx context.Context, secretName string)
 	gsvOut, res, err := a.RestAPI.GetDynamicSecretValue(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMGetDynamicSecretValue, err)
 	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
-		return "", fmt.Errorf("can't get dynamic secret value: %v", string(apiErr.Body()))
+		return "", apiError(res, fmt.Errorf("can't get dynamic secret value: %v", string(apiErr.Body())))
 	}
 	if err != nil {
 		return "", fmt.Errorf("can't get dynamic secret value: %w", err)
@@ -314,7 +347,7 @@ func (a *akeylessBase) GetStaticSecret(ctx context.Context, secretName string, v
 	gsvOut, res, err := a.RestAPI.GetSecretValue(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMGetSecretValue, err)
 	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
-		return "", fmt.Errorf("can't get secret value: %v", string(apiErr.Body()))
+		return "", apiError(res, fmt.Errorf("can't get secret value: %v", string(apiErr.Body())))
 	}
 	if err != nil {
 		return "", fmt.Errorf("can't get secret value: %w", err)
@@ -364,7 +397,7 @@ func (a *akeylessBase) ListSecrets(ctx context.Context, path, tag string) ([]str
 	lipOut, res, err := a.RestAPI.ListItems(ctx).Body(body).Execute()
 	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMListItems, err)
 	if apiErr, ok := errors.AsType[akeyless.GenericOpenAPIError](err); ok {
-		return nil, fmt.Errorf("can't get secrets list: %v", string(apiErr.Body()))
+		return nil, apiError(res, fmt.Errorf("can't get secrets list: %v", string(apiErr.Body())))
 	}
 	if err != nil {
 		return nil, fmt.Errorf("error on get secrets list: %w", err)
