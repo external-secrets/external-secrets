@@ -270,7 +270,7 @@ func TestTokenFromJWTAuthSendsJWTAccessType(t *testing.T) {
 		}
 		body := newAuthServer(t, base)
 
-		token, err := base.tokenFromJWTAuth(t.Context(), &esv1.AkeylessJWTAuth{
+		token, _, err := base.tokenFromJWTAuth(t.Context(), &esv1.AkeylessJWTAuth{
 			AccessID:  "p-jwt",
 			SecretRef: &esmeta.SecretKeySelector{Name: "akeyless-jwt"},
 		})
@@ -290,7 +290,7 @@ func TestTokenFromJWTAuthSendsJWTAccessType(t *testing.T) {
 		}
 		body := newAuthServer(t, base)
 
-		token, err := base.tokenFromJWTAuth(t.Context(), &esv1.AkeylessJWTAuth{
+		token, _, err := base.tokenFromJWTAuth(t.Context(), &esv1.AkeylessJWTAuth{
 			AccessID:          "p-jwt",
 			ServiceAccountRef: &esmeta.ServiceAccountSelector{Name: "akeyless-sa", Audiences: []string{testJWTAudience}},
 		})
