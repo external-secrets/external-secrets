@@ -26,7 +26,11 @@ helm install external-secrets external-secrets/external-secrets --set crds.creat
 
 When `processClusterStore=false` (or `--enable-cluster-store-reconciler=false`), a `PushSecret` referencing a `ClusterSecretStore` is skipped entirely, even if it also references namespaced `SecretStore`s. This includes `spec.dataTo[].storeRef`, references selected by labels, and cluster stores previously recorded in `status.syncedPushSecrets`. The operator will not push to or delete from those stores; remote secrets already pushed remain in the provider.
 
-Before disabling cluster stores, migrate or remove affected `PushSecret`s and clean up their remote secrets while access is still available. To resume a `PushSecret` after disabling cluster stores, **start by removing the status entries** in `status.syncedPushSecrets`.
+Before disabling cluster stores, migrate or remove affected `PushSecret`s while access is still available, respecting their `deletionPolicy`.
+
+If a `PushSecret` is already stuck deleting with `deletionPolicy: Delete`, **clean up its remote secrets before removing status entries or spec references**. An administrator must do this manually, or temporarily re-enable cluster-store processing to let the operator perform cleanup. With `deletionPolicy: None`, provider secrets are retained and manual cleanup is left to the deployer. Follow the finalizer instructions below after any required cleanup.
+
+To resume a `PushSecret` that is **not deleting** after disabling cluster stores, **first clean up or migrate remote secrets in the affected cluster stores**, then remove **only the status entries for those stores** from `status.syncedPushSecrets`. Removing these entries makes the operator forget those remote secrets, preventing automatic cleanup on later deletion.
 
 For example, to remove the status entry for `ClusterSecretStore/shared`:
 ```bash
@@ -35,18 +39,28 @@ kubectl patch pushsecret <name> -n <namespace> --subresource=status --type=json 
 ```
 
 These entries actively prevent reconciliation of the PushSecret if ClusterSecretStore is disabled.
+When this is done, remove outdated cluster-store refs from `spec.secretStoreRefs`. For each affected `spec.dataTo` item, remove the item or replace its `storeRef` with a valid namespaced `SecretStore` reference. If the replacement names a store, it must also appear in `spec.secretStoreRefs`.
 
-If a `PushSecret` is already stuck deleting (regardless of the Deletion Policy), an administrator must clean up the remote secrets manually (or temporarily re-enable cluster-store processing to let the operator clean them up).
+If removing cluster-store references leaves no target, configure a namespaced `SecretStore` target in `spec.secretStoreRefs`, or remove the `PushSecret` if it is no longer needed. An empty target list does not resume processing.
 
-After confirming cleanup, inspect the finalizers and remove **only** the PushSecret finalizer to allow Kubernetes deletion:
+If the spec already references only namespaced stores and no spec edit is needed, change an annotation after the status patch to trigger reconciliation; status-only updates are ignored:
 
 ```bash
-kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.metadata.finalizers}'
-kubectl patch pushsecret <name> -n <namespace> --type=json \
-  -p='[{"op":"remove","path":"/metadata/finalizers/0"}]'
+kubectl annotate pushsecret <name> -n <namespace> force-sync=$(date +%s) --overwrite
 ```
 
-The patch is appropriate only if `pushsecret.externalsecrets.io/finalizer` is the sole finalizer. If there are others, remove that finalizer by its actual array index instead; do not remove other controllers' finalizers.
+For a `PushSecret` that is stuck deleting, after completing any cleanup required by its `deletionPolicy`, inspect the finalizers and remove **only** the PushSecret finalizer to allow Kubernetes deletion:
 
-When this is done, remove outdated cluster-store refs from `spec.secretStoreRefs` and `spec.dataTo[].storeRef`.
+```bash
+kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.metadata.finalizers}' # Show all finalizers
+```
 
+If `pushsecret.externalsecrets.io/finalizer` is absent, there is no PushSecret finalizer to remove. Otherwise, use its zero-based index in both `path` values below (the example assumes index `0`); do not remove other controllers' finalizers.
+
+```bash
+kubectl patch pushsecret <name> -n <namespace> --type=json \
+  -p='[{"op":"test","path":"/metadata/finalizers/0","value":"pushsecret.externalsecrets.io/finalizer"},{"op":"remove","path":"/metadata/finalizers/0"}]'
+kubectl get pushsecret <name> -n <namespace> -o jsonpath='{.metadata.finalizers}' # Show remaining finalizers
+```
+
+If `get` returns `NotFound`, the PushSecret has been deleted successfully. If the PushSecret finalizer remains, inspect the patch error (for example, permissions or admission webhook failures) before retrying. If its position changed, find its current index with `get` and update both `path` values.
