@@ -84,6 +84,24 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 				}
 			}
 		}
+		if auth.Jwt != nil {
+			if auth.Jwt.SecretRef != nil && auth.Jwt.KubernetesServiceAccountToken != nil {
+				return nil, errors.New("exactly one of `secretRef` or `kubernetesServiceAccountToken` must be supplied as token source for jwt authentication")
+			}
+			if auth.Jwt.SecretRef != nil {
+				if err := esutils.ValidateReferentSecretSelector(store, *auth.Jwt.SecretRef); err != nil {
+					return nil, fmt.Errorf(errInvalidRef, "Auth.Jwt.SecretRef", err)
+				}
+			}
+			if auth.Jwt.KubernetesServiceAccountToken != nil {
+				if err := esutils.ValidateReferentServiceAccountSelector(store, auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef); err != nil {
+					return nil, fmt.Errorf(errInvalidRef, "Auth.Jwt.KubernetesServiceAccountToken.ServiceAccountRef", err)
+				}
+			}
+			if auth.Jwt.SecretRef == nil && auth.Jwt.KubernetesServiceAccountToken == nil {
+				return nil, errors.New("neither `secretRef` nor `kubernetesServiceAccountToken` was supplied as token source for jwt authentication")
+			}
+		}
 	}
 
 	return nil, nil
