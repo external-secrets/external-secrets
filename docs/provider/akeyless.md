@@ -19,9 +19,10 @@ Akeyless provides several Authentication Methods:
 
 Options for obtaining Kubernetes credentials include:
 
-1. Using a service account jwt referenced in serviceAccountRef
-2. Using the jwt from a Kind=Secret referenced by the secretRef
-3. Using transient credentials from the mounted service account token within the external-secrets operator
+1. Requesting a service account JWT for `serviceAccountRef`
+2. Using the JWT from a `Kind=Secret` referenced by `secretRef`
+
+One of `serviceAccountRef` or `secretRef` must be configured. The controller's mounted service account token is never used implicitly.
 
 #### Create the Akeyless Secret Store Provider with Kubernetes Auth-Method
 

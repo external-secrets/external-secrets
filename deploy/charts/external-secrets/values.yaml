@@ -176,6 +176,11 @@ genericTargets:
   #     verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
   resources: []
 
+security:
+  # -- Allow namespaced SecretStores to select files in the controller container.
+  # This can expose the controller service-account token and other mounted credentials.
+  unsafeAllowSecretStoreHostAccess: false
+
 # -- Specifies whether an external secret operator deployment be created.
 createOperator: true
 
