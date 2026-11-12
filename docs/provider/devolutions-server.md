@@ -155,7 +155,13 @@ The DVLS provider supports pushing secrets back to DVLS:
 {% include 'dvls-push-secret.yaml' %}
 ```
 
-**Note:** Push secret updates an existing entry's password field. The entry must already exist in DVLS.
+**Note:** Push writes the password field of the entry the `remoteKey` addresses. If that entry does not exist it is created as a `Credential/Default` entry holding only the password, which an `ExternalSecret` that sets no `property` reads back as `password`. A `remoteKey` written as a UUID names one specific existing entry and is never created, and neither is one whose entry name or any folder in its path is a UUID: such a key is refused rather than turned into a folder named after an id. On a store without `vault`, the entry is created in the vault the key's first segment names, so `payments/prod/db-password` creates `prod\db-password` in `payments`. The vault itself must already exist, and a `<vault-uuid>/<entry-uuid>` key still names one existing entry, so a push to a missing one keeps failing as before.
+
+**Note:** A `remoteKey` may name folders, as in `prod/db/postgres-password`. DVLS keeps folders as entries of their own, so any level of that path the vault does not hold yet is created before the entry is, from the root down. Existing folders are reused; only the missing levels are added. A misspelled path therefore leaves the folders it named behind: `deletionPolicy` removes the entry a `PushSecret` created but never its folders, so they have to be cleaned up in DVLS by hand.
+
+**Note:** Creating an entry or a folder needs the application identity to hold **Add** permission on the target folder. Without it a push to a remote key the vault does not have fails with a permission error from the server, while pushes to entries that already exist keep working.
+
+**Note:** Looking an entry up and creating it are two separate calls, so two `PushSecret`s that push to the same missing `remoteKey` at the same moment can both create it. The key then matches two entries and fails with `found 2 credential entries` until one of them is deleted in DVLS. The items of one `PushSecret` are pushed one after another and never race, and neither do separate `PushSecret`s while the controller runs a single worker (`--concurrent=1`, the default). With more workers, push each new `remoteKey` from a single `PushSecret`.
 
 ## Limitations
 
