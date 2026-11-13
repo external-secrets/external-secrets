@@ -114,7 +114,7 @@ Maintenance values: `MaintenanceStatusMaintained`, `NotMaintained`, `Deprecated`
 - Write `docs/provider/<slug>.md`. Conventional sections: intro, Authentication or Store Configuration, External Secret Spec / GetSecret, optional PushSecret.
 - YAML examples live in `docs/snippets/<name>-secret-store.yaml`, `<name>-external-secret.yaml`, `<name>-push-secret.yaml`.
   Pull them in via `{% include '<name>-secret-store.yaml' %}`.
-- Add nav entry to the `Provider:` block in `hack/api-docs/mkdocs.yml`. Order is alphabetical
+- Add nav entry to the `Provider:` block in `hack/api-docs/mkdocs.yml`. Order is alphabetical and is case-insensitive.
 
 ## Adding a Generator
 
