@@ -40,6 +40,7 @@ providers/v1/cloudru/                  @external-secrets/provider-cloudru-review
 providers/v1/conjur/                   @external-secrets/provider-conjur-reviewers
 providers/v1/delinea/                  @external-secrets/provider-delinea-reviewers
 providers/v1/doppler/                  @external-secrets/provider-doppler-reviewers
+providers/v1/dvls/                     @external-secrets/provider-dvls-reviewers
 providers/v1/fake/                     @external-secrets/provider-fake-reviewers
 providers/v1/fortanix/                 @external-secrets/provider-fortanix-reviewers
 providers/v1/gcp/                      @external-secrets/provider-gcp-reviewers
@@ -64,4 +65,3 @@ providers/v1/senhasegura/              @external-secrets/provider-senhasegura-re
 providers/v1/vault/                    @external-secrets/provider-vault-reviewers
 providers/v1/webhook/                  @external-secrets/provider-webhook-reviewers
 providers/v1/yandex/                   @external-secrets/provider-yandex-reviewers
-
