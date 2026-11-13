@@ -27,7 +27,6 @@ Multi-module repo: `apis/`, `runtime/`, `e2e/`, and each `providers/v1/*/` have 
 - Never edit `zz_generated.*` files by hand. They are owned by controller-gen. Modify the source types and run `make generate` (included in `make reviewable`).
 - After everything is committed - **ALWAYS RUN `make check-diff`** - this is the first step where PRs fall apart that LLMs forget - there are a lot of generated code outside of the main `make reviewable` spec like helm chart tests, docs, etc.
 - The `go` directive in every `go.mod` is the minimum Go version consumers must use, so keep it at a `.0` patch (`go 1.27.0`). To build with a newer Go release (e.g. for a CVE fix), bump `toolchain` in the root `go.mod` only; `actions/setup-go` reads it, and importers ignore it. `make update-deps` bumps it to the latest patch of the same minor; Dependabot cannot. `make lint` enforces this via `hack/check-go-directive.sh`.
-- 
 
 ## Adding a Provider
 
@@ -115,7 +114,7 @@ Maintenance values: `MaintenanceStatusMaintained`, `NotMaintained`, `Deprecated`
 - Write `docs/provider/<slug>.md`. Conventional sections: intro, Authentication or Store Configuration, External Secret Spec / GetSecret, optional PushSecret.
 - YAML examples live in `docs/snippets/<name>-secret-store.yaml`, `<name>-external-secret.yaml`, `<name>-push-secret.yaml`.
   Pull them in via `{% include '<name>-secret-store.yaml' %}`.
-- Add nav entry to the `Provider:` block in `hack/api-docs/mkdocs.yml`. Order is historical; append at the bottom.
+- Add nav entry to the `Provider:` block in `hack/api-docs/mkdocs.yml`. Order is alphabetical and is case-insensitive.
 
 ## Adding a Generator
 

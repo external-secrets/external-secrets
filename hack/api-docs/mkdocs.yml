@@ -121,53 +121,53 @@ nav:
       - Tooling:
           - Using the esoctl tool: guides/using-esoctl-tool.md
   - Provider:
-      - AWS Secrets Manager: provider/aws-secrets-manager.md
-      - AWS Parameter Store: provider/aws-parameter-store.md
-      - AWS Certificate Manager: provider/aws-certificate-manager.md
+      - 1Password Connect Server: provider/1password-automation.md
+      - 1Password SDK: provider/1password-sdk.md
+      - Akeyless: provider/akeyless.md
       - AWS Access: provider/aws-access.md
+      - AWS Certificate Manager: provider/aws-certificate-manager.md
+      - AWS Parameter Store: provider/aws-parameter-store.md
+      - AWS Secrets Manager: provider/aws-secrets-manager.md
       - Azure Key Vault: provider/azure-key-vault.md
       - Barbican: provider/barbican.md
       - BeyondTrust: provider/beyondtrust.md
       - BeyondTrust Workload Credentials: provider/beyondtrustworkloadcredentials.md
       - Bitwarden Secrets Manager: provider/bitwarden-secrets-manager.md
       - Chef: provider/chef.md
+      - Cloak End 2 End Encrypted Secrets: provider/cloak.md
       - Cloud.ru Secret Manager: provider/cloudru.md
       - CyberArk Conjur: provider/conjur.md
+      - Delinea: provider/delinea.md
+      - Devolutions Server: provider/devolutions-server.md
+      - Doppler: provider/doppler.md
+      - Fake: provider/fake.md
+      - Fortanix: provider/fortanix.md
+      - GitHub Actions and Dependabot Secrets: provider/github.md
+      - GitLab Variables: provider/gitlab-variables.md
       - Google Cloud Secret Manager: provider/google-secrets-manager.md
       - HashiCorp Vault: provider/hashicorp-vault.md
+      - IBM Secrets Manager: provider/ibm-secrets-manager.md
+      - Infisical: provider/infisical.md
+      - Keeper Security: provider/keeper-security.md
       - Kubernetes: provider/kubernetes.md
       - Kubernetes CRD: provider/crd.md
-      - IBM Secrets Manager: provider/ibm-secrets-manager.md
-      - Akeyless: provider/akeyless.md
-      - Yandex Certificate Manager: provider/yandex-certificate-manager.md
-      - Yandex Lockbox: provider/yandex-lockbox.md
-      - GitLab Variables: provider/gitlab-variables.md
-      - GitHub Actions and Dependabot Secrets: provider/github.md
+      - Nebius SecretStash: provider/nebius-mysterybox.md
+      - ngrok: provider/ngrok.md
+      - Onboardbase: provider/onboardbase.md
+      - OpenBao: provider/openbao.md
       - Oracle Vault: provider/oracle-vault.md
       - OVHcloud: provider/ovhcloud.md
-      - 1Password Connect Server: provider/1password-automation.md
-      - 1Password SDK: provider/1password-sdk.md
-      - Webhook: provider/webhook.md
-      - Fake: provider/fake.md
-      - senhasegura DevOps Secrets Management (DSM): provider/senhasegura-dsm.md
-      - Doppler: provider/doppler.md
-      - Keeper Security: provider/keeper-security.md
-      - Cloak End 2 End Encrypted Secrets: provider/cloak.md
-      - Scaleway: provider/scaleway.md
-      - Delinea: provider/delinea.md
-      - Secret Server: provider/secretserver.md
       - Passbolt: provider/passbolt.md
-      - Pulumi ESC: provider/pulumi.md
-      - Onboardbase: provider/onboardbase.md
       - Password Depot: provider-passworddepot.md
-      - Fortanix: provider/fortanix.md
-      - Infisical: provider/infisical.md
       - Previder: provider/previder.md
-      - OpenBao: provider/openbao.md
+      - Pulumi ESC: provider/pulumi.md
+      - Scaleway: provider/scaleway.md
+      - Secret Server: provider/secretserver.md
+      - senhasegura DevOps Secrets Management (DSM): provider/senhasegura-dsm.md
       - Volcengine: provider/volcengine.md
-      - ngrok: provider/ngrok.md
-      - Devolutions Server: provider/devolutions-server.md
-      - Nebius SecretStash: provider/nebius-mysterybox.md
+      - Webhook: provider/webhook.md
+      - Yandex Certificate Manager: provider/yandex-certificate-manager.md
+      - Yandex Lockbox: provider/yandex-lockbox.md
   - Examples:
       - FluxCD: examples/gitops-using-fluxcd.md
       - Anchore Engine: examples/anchore-engine-credentials.md
