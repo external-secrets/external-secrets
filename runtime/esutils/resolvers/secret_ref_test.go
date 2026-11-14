@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -38,10 +37,8 @@ func TestResolveSecretKeyRef(t *testing.T) {
 	testKey := "test-key"
 	testValue := "test-value"
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: testNamespace,
-			Name:      testSecret,
-		},
+		Namespace: testNamespace,
+		Name:      testSecret,
 		Data: map[string][]byte{
 			testKey: []byte(testValue),
 		},

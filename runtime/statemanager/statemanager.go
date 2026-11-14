@@ -163,15 +163,13 @@ func (m *Manager) EnqueueSetLatest(ctx context.Context, stateKey, namespace stri
 
 func (m *Manager) createGeneratorState(resource *apiextensions.JSON, state genapi.GeneratorProviderState, namespace, stateKey string) (*genapi.GeneratorState, error) {
 	genState := &genapi.GeneratorState{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: fmt.Sprintf("gen-%s-%s-", strings.ToLower(m.resource.GetObjectKind().GroupVersionKind().Kind), m.resource.GetName()),
-			Namespace:    namespace,
-			Labels: map[string]string{
-				genapi.GeneratorStateLabelOwnerKey: ownerKey(
-					m.resource,
-					stateKey,
-				),
-			},
+		GenerateName: fmt.Sprintf("gen-%s-%s-", strings.ToLower(m.resource.GetObjectKind().GroupVersionKind().Kind), m.resource.GetName()),
+		Namespace:    namespace,
+		Labels: map[string]string{
+			genapi.GeneratorStateLabelOwnerKey: ownerKey(
+				m.resource,
+				stateKey,
+			),
 		},
 		Spec: genapi.GeneratorStateSpec{
 			Resource: resource,

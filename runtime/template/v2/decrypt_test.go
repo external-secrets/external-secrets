@@ -21,7 +21,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -64,7 +64,7 @@ func TestRsaDecrypt_UnsupportedScheme(t *testing.T) {
 	privateKey, _ := generateRSAPrivateKeyPEM(t)
 	_, err := rsaDecrypt("Unsupported", "SHA256", "data", privateKey)
 	assert.Error(t, err)
-	assert.Equal(t, fmt.Errorf(errSchemeNotSupported, "Unsupported"), err)
+	assert.Equal(t, errors.New(errSchemeNotSupported), err)
 }
 
 func TestRsaDecrypt_RSAOAEP_Success(t *testing.T) {

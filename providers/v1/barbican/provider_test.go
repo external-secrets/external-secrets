@@ -23,7 +23,6 @@ import (
 	"github.com/gophercloud/gophercloud/v2"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -442,10 +441,8 @@ func TestGetProviderWithAuthType(t *testing.T) {
 
 func makeValidSecretStore() *esv1.SecretStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-store",
-			Namespace: testNamespace,
-		},
+		Name:      "test-store",
+		Namespace: testNamespace,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Barbican: &esv1.BarbicanProvider{
@@ -513,9 +510,9 @@ func makeSecretStoreWithNoPasswordRef() *esv1.SecretStore {
 
 func makeClusterSecretStoreNoNamespace() *esv1.ClusterSecretStore {
 	return &esv1.ClusterSecretStore{
-		TypeMeta:   metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
-		ObjectMeta: metav1.ObjectMeta{Name: "test-cluster-store"},
-		Spec:       makeValidSecretStore().Spec,
+		Kind: esv1.ClusterSecretStoreKind,
+		Name: "test-cluster-store",
+		Spec: makeValidSecretStore().Spec,
 	}
 }
 
@@ -529,10 +526,8 @@ func makeClusterSecretStoreWithNamespace() *esv1.ClusterSecretStore {
 
 func makeValidSecret() *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testSecretName,
-			Namespace: testNamespace,
-		},
+		Name:      testSecretName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			"username": []byte(testUsername),
 			"password": []byte(testPassword),
@@ -542,10 +537,8 @@ func makeValidSecret() *corev1.Secret {
 
 func makeValidSecretWithNoUsername() *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testSecretName,
-			Namespace: testNamespace,
-		},
+		Name:      testSecretName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			"password": []byte(testPassword),
 		},
@@ -554,10 +547,8 @@ func makeValidSecretWithNoUsername() *corev1.Secret {
 
 func makeSecretWithMissingPassword() *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testSecretName,
-			Namespace: testNamespace,
-		},
+		Name:      testSecretName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			"username": []byte(testUsername),
 			// missing password key
@@ -580,10 +571,8 @@ func makeSecretStoreWithExplicitPasswordAuthType() *esv1.SecretStore {
 // Helper: application credential auth store.
 func makeSecretStoreWithAppCredAuth() *esv1.SecretStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-store-appcred",
-			Namespace: testNamespace,
-		},
+		Name:      "test-store-appcred",
+		Namespace: testNamespace,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Barbican: &esv1.BarbicanProvider{
@@ -639,10 +628,8 @@ func makeSecretStoreWithUnsupportedAuthType() *esv1.SecretStore {
 // Helper: valid k8s secret for application credentials.
 func makeValidAppCredSecret() *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testAppCredSecName,
-			Namespace: testNamespace,
-		},
+		Name:      testAppCredSecName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			"app-cred-id":     []byte(testAppCredID),
 			"app-cred-secret": []byte(testAppCredSecret),
@@ -653,10 +640,8 @@ func makeValidAppCredSecret() *corev1.Secret {
 // Helper: k8s secret with only the app credential secret (no ID).
 func makeAppCredSecretWithNoID() *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testAppCredSecName,
-			Namespace: testNamespace,
-		},
+		Name:      testAppCredSecName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			"app-cred-secret": []byte(testAppCredSecret),
 		},
@@ -666,10 +651,8 @@ func makeAppCredSecretWithNoID() *corev1.Secret {
 // Helper: k8s secret with empty username value.
 func makeSecretWithEmptyUsername() *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testSecretName,
-			Namespace: testNamespace,
-		},
+		Name:      testSecretName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			"username": []byte(""),
 			"password": []byte(testPassword),
@@ -680,10 +663,8 @@ func makeSecretWithEmptyUsername() *corev1.Secret {
 // Helper: k8s secret with empty password value.
 func makeSecretWithEmptyPassword() *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testSecretName,
-			Namespace: testNamespace,
-		},
+		Name:      testSecretName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			"username": []byte(testUsername),
 			"password": []byte(""),
@@ -694,10 +675,8 @@ func makeSecretWithEmptyPassword() *corev1.Secret {
 // Helper: k8s secret with empty app-cred-id value.
 func makeAppCredSecretWithEmptyID() *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testAppCredSecName,
-			Namespace: testNamespace,
-		},
+		Name:      testAppCredSecName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			"app-cred-id":     []byte(""),
 			"app-cred-secret": []byte(testAppCredSecret),
@@ -708,10 +687,8 @@ func makeAppCredSecretWithEmptyID() *corev1.Secret {
 // Helper: k8s secret with empty app-cred-secret value.
 func makeAppCredSecretWithEmptySecret() *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testAppCredSecName,
-			Namespace: testNamespace,
-		},
+		Name:      testAppCredSecName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			"app-cred-id":     []byte(testAppCredID),
 			"app-cred-secret": []byte(""),
@@ -722,10 +699,8 @@ func makeAppCredSecretWithEmptySecret() *corev1.Secret {
 // Helper: k8s secret with app credential ID but missing app credential secret.
 func makeAppCredSecretWithMissingSecret() *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      testAppCredSecName,
-			Namespace: testNamespace,
-		},
+		Name:      testAppCredSecName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			"app-cred-id": []byte(testAppCredID),
 			// missing app-cred-secret key

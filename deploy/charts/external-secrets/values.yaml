@@ -88,6 +88,7 @@ commonLabels: {}
 
 # -- If true, external-secrets will perform leader election between instances to ensure no more
 # than one instance of external-secrets operates at a time.
+# Should be enabled when replicaCount or certController.replicaCount is greater than 1.
 leaderElect: false
 
 # -- ID of the lease object used for leader election.
@@ -234,6 +235,12 @@ serviceAccount:
 rbac:
   # -- Specifies whether role and rolebinding resources should be created.
   create: true
+
+  # -- Specifies whether the namespaced leader election Role and RoleBinding are created.
+  # These are only used when leaderElect is true; set to false to omit them when running
+  # without leader election. Only takes effect when rbac.create is true.
+  leaderElection:
+    create: true
 
   # -- Specifies whether the serviceaccounts/token create permission is included in the controller RBAC.
   # When set to false, users must create per-ServiceAccount Role/RoleBinding with resourceNames constraint

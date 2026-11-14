@@ -34,7 +34,6 @@ import (
 	g "github.com/onsi/gomega"
 	"github.com/passbolt/go-passbolt/helper"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -314,8 +313,8 @@ func TestBuildHTTPClient(t *testing.T) {
 
 	kubeObjs := []runtime.Object{
 		&corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: "passbolt-ca", Namespace: "ns"},
-			Data:       map[string][]byte{"ca.crt": caPEM},
+			Name: "passbolt-ca", Namespace: "ns",
+			Data: map[string][]byte{"ca.crt": caPEM},
 		},
 	}
 	kube := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(kubeObjs...).Build()

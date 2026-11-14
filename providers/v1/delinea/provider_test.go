@@ -24,7 +24,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
 	kubeErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -195,7 +194,7 @@ func TestNewClient(t *testing.T) {
 	clientSecretValue := "client secret"
 
 	clientSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+		Name: "foo", Namespace: "default",
 		Data: map[string][]byte{
 			clientIDKey:     []byte(clientIDValue),
 			clientSecretKey: []byte(clientSecretValue),
@@ -222,7 +221,7 @@ func TestNewClient(t *testing.T) {
 		},
 		"namespace-dependent cluster secret store": {
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+				Kind: esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Delinea: validProvider,
@@ -302,7 +301,7 @@ func TestNewClient(t *testing.T) {
 		},
 		"cluster secret store": {
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+				Kind: esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Delinea: &esv1.DelineaProvider{
@@ -322,7 +321,7 @@ func TestNewClient(t *testing.T) {
 			store := tc.store
 			if store == nil {
 				store = &esv1.SecretStore{
-					TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+					Kind: esv1.SecretStoreKind,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							Delinea: tc.provider,

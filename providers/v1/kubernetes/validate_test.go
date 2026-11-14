@@ -161,9 +161,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "caprovider with empty namespace for cluster secret store",
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "ClusterSecretStore",
-				},
+				Kind: "ClusterSecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Kubernetes: &esv1.KubernetesProvider{
@@ -181,9 +179,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			name: "caprovider with non empty namespace for secret store",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Kubernetes: &esv1.KubernetesProvider{

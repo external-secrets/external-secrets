@@ -26,7 +26,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -316,9 +315,7 @@ func TestValidateStore(t *testing.T) {
 			wantErr: false,
 			args: args{
 				store: &esv1.ClusterSecretStore{
-					TypeMeta: v1.TypeMeta{
-						Kind: esv1.ClusterSecretStoreKind,
-					},
+					Kind: esv1.ClusterSecretStoreKind,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							AWS: &esv1.AWSProvider{
@@ -342,9 +339,7 @@ func TestValidateStore(t *testing.T) {
 			wantErr: false,
 			args: args{
 				store: &esv1.ClusterSecretStore{
-					TypeMeta: v1.TypeMeta{
-						Kind: esv1.ClusterSecretStoreKind,
-					},
+					Kind: esv1.ClusterSecretStoreKind,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							AWS: &esv1.AWSProvider{
@@ -368,9 +363,7 @@ func TestValidateStore(t *testing.T) {
 			wantErr: false,
 			args: args{
 				store: &esv1.ClusterSecretStore{
-					TypeMeta: v1.TypeMeta{
-						Kind: esv1.ClusterSecretStoreKind,
-					},
+					Kind: esv1.ClusterSecretStoreKind,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							AWS: &esv1.AWSProvider{
@@ -529,10 +522,8 @@ func TestValidRetryInput(t *testing.T) {
 	ctx := context.TODO()
 
 	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-		ObjectMeta: v1.ObjectMeta{
-			Name:      "creds",
-			Namespace: "default",
-		},
+		Name:      "creds",
+		Namespace: "default",
 		Data: map[string][]byte{
 			"sak": []byte("OK"),
 			"ak":  []byte("OK"),

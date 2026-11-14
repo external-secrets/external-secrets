@@ -298,7 +298,7 @@ The server configuration consists of:
 - `apiUrl`: The base URL of your BeyondTrust Workload Credentials API
 - `siteId`: Your BeyondTrust site identifier (UUID format)
 
-The provider automatically constructs the full API endpoint as: `{apiUrl}/{siteId}/secrets`
+The provider automatically constructs the full API endpoint as: `{apiUrl}/{siteId}/wlc`
 
 ## Certificate Trust
 

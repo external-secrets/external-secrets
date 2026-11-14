@@ -30,7 +30,6 @@ import (
 	sm "github.com/IBM/secrets-manager-go-sdk/v2/secretsmanagerv2"
 	"github.com/go-openapi/strfmt"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -1093,7 +1092,6 @@ func TestGetSecretMap(t *testing.T) {
 			"downloaded":           []byte(strconv.FormatBool(*secret.Downloaded)),
 			"expiration_date":      []byte(expirationDate.String()),
 			"id":                   []byte(nilValue),
-			"issuer":               []byte(nilValue),
 			"labels":               []byte("[" + strings.Join(secret.Labels, " ") + "]"),
 			"locks_total":          []byte(strconv.Itoa(int(*secret.LocksTotal))),
 			"private_key":          []byte(secretPrivateKey),
@@ -1422,10 +1420,8 @@ func TestValidRetryInput(t *testing.T) {
 	expected := fmt.Sprintf("cannot setup new ibm client: time: invalid duration %q", invalid)
 	ctx := context.TODO()
 	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "fake-secret",
-			Namespace: "default",
-		},
+		Name:      "fake-secret",
+		Namespace: "default",
 		Data: map[string][]byte{
 			"fake-key": []byte("ImAFakeApiKey"),
 		},

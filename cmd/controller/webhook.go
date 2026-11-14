@@ -77,6 +77,7 @@ var webhookCmd = &cobra.Command{
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 		go func(c crds.CertInfo, dnsName string, every time.Duration) {
 			sigs := make(chan os.Signal, 1)
 			signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)

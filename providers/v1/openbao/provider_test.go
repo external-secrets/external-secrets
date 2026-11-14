@@ -36,7 +36,6 @@ import (
 	"gopkg.in/dnaeon/go-vcr.v4/pkg/recorder"
 	authv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -108,10 +107,8 @@ func makeValidSecretStoreWithVersion(v esv1.OpenBaoKVStoreVersion) *esv1.SecretS
 		path = "secret_v1"
 	}
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "openbao-store",
-			Namespace: "default",
-		},
+		Name:      "openbao-store",
+		Namespace: "default",
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				OpenBao: &esv1.OpenBaoProvider{
@@ -368,10 +365,8 @@ func TestProvider_Auth(t *testing.T) {
 	targetNamespace := "the-namespace"
 
 	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "shared-secret",
-			Namespace: "default",
-		},
+		Name:      "shared-secret",
+		Namespace: "default",
 		Data: map[string][]byte{
 			"approle-id":           []byte("dynamic-roleid"),
 			"approle-secret":       []byte("the-secret"),
@@ -379,16 +374,12 @@ func TestProvider_Auth(t *testing.T) {
 			"serviceaccount-token": []byte("the-jwt"),
 		},
 	}, &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "the-serviceaccount",
-			Namespace: "default",
-		},
+		Name:      "the-serviceaccount",
+		Namespace: "default",
 	},
 		&corev1.ServiceAccount{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "the-serviceaccount",
-				Namespace: "the-namespace",
-			},
+			Name:      "the-serviceaccount",
+			Namespace: "the-namespace",
 		}).
 		// clientfake won't create service account token on its own. We use an interceptor to fake
 		// the jwt creation.
@@ -508,9 +499,7 @@ func TestProvider_Auth(t *testing.T) {
 
 			if tc.clusterStore {
 				store = &esv1.ClusterSecretStore{
-					ObjectMeta: metav1.ObjectMeta{
-						Name: "cluster-store",
-					},
+					Name: "cluster-store",
 					Spec: s.Spec,
 				}
 			} else {
@@ -532,10 +521,8 @@ func TestProvider_Auth(t *testing.T) {
 func TestProvider_Auth_UserPass(t *testing.T) {
 	RegisterTestingT(t)
 	kube, provider := setupProvider(t, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "password-of-alice",
-			Namespace: "default",
-		},
+		Name:      "password-of-alice",
+		Namespace: "default",
 		Data: map[string][]byte{
 			"pw": []byte("bob4ever"),
 		},
@@ -572,10 +559,8 @@ func TestProvider_BaoNamespaces(t *testing.T) {
 	v := esv1.OpenBaoKVStoreV2
 
 	kube, provider := setupProvider(t, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "auth",
-			Namespace: "default",
-		},
+		Name:      "auth",
+		Namespace: "default",
 		Data: map[string][]byte{
 			"token":    []byte("root"),
 			"password": []byte("bob4ever"),
@@ -640,10 +625,8 @@ func TestProvider_Validate(t *testing.T) {
 	RegisterTestingT(t)
 
 	kube, provider := setupProvider(t, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "bao-token",
-			Namespace: "default",
-		},
+		Name:      "bao-token",
+		Namespace: "default",
 		Data: map[string][]byte{
 			"token": []byte("root"),
 		},
@@ -728,10 +711,8 @@ func TestProvider_CustomCA(t *testing.T) {
 				},
 			},
 			k8sObjects: []client.Object{&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "dummy-ca",
-					Namespace: "default",
-				},
+				Name:      "dummy-ca",
+				Namespace: "default",
 				Data: map[string][]byte{
 					"ca.pem": dummyCA,
 				},
@@ -796,10 +777,8 @@ func TestProvider_CustomCA(t *testing.T) {
 
 func setupClient(t *testing.T, v esv1.OpenBaoKVStoreVersion) esv1.SecretsClient {
 	kube, provider := setupProvider(t, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "bao-token",
-			Namespace: "default",
-		},
+		Name:      "bao-token",
+		Namespace: "default",
 		Data: map[string][]byte{
 			"token": []byte("root"),
 		},

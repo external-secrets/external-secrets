@@ -26,6 +26,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -35,6 +36,8 @@ import (
 	"sigs.k8s.io/yaml"
 
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
 
 // Generator implements GitHub token generation functionality.
@@ -64,6 +67,18 @@ const (
 	contextTimeout    = 30 * time.Second
 	httpClientTimeout = 5 * time.Second
 )
+
+var (
+	errAppIDNotSet      = errors.New("appID or appIDRef must be set")
+	errAppIDBothSet     = errors.New("appID and appIDRef are mutually exclusive, only one may be set")
+	errInstallIDNotSet  = errors.New("installID or installIDRef must be set")
+	errInstallIDBothSet = errors.New("installID and installIDRef are mutually exclusive, only one may be set")
+)
+
+type appIdentity struct {
+	appID     string
+	installID string
+}
 
 // Generate creates an authentication token for GitHub.
 // It uses a GitHub App installation token to authenticate with GitHub API.
@@ -164,6 +179,12 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 	if err != nil {
 		return nil, fmt.Errorf(errParseSpec, err)
 	}
+
+	identity, err := resolveAppIdentity(ctx, k, n, res.Spec)
+	if err != nil {
+		return nil, err
+	}
+
 	gh := &Github{
 		Kube:         k,
 		Namespace:    n,
@@ -172,7 +193,7 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 		Permissions:  res.Spec.Permissions,
 	}
 
-	ghPath := fmt.Sprintf("/app/installations/%s/access_tokens", res.Spec.InstallID)
+	ghPath := fmt.Sprintf("/app/installations/%s/access_tokens", identity.installID)
 	gh.URL = defaultGithubAPI + ghPath
 	if res.Spec.URL != "" {
 		gh.URL = res.Spec.URL + ghPath
@@ -186,10 +207,65 @@ func newGHClient(ctx context.Context, k client.Client, n string, hc *http.Client
 	if err != nil {
 		return nil, fmt.Errorf("error parsing RSA private key: %w", err)
 	}
-	if gh.InstallTkn, err = GetInstallationToken(pk, res.Spec.AppID); err != nil {
+	if gh.InstallTkn, err = GetInstallationToken(pk, identity.appID); err != nil {
 		return nil, fmt.Errorf("can't get InstallationToken: %w", err)
 	}
 	return gh, nil
+}
+
+func resolveAppIdentity(ctx context.Context, k client.Client, n string, spec genv1alpha1.GithubAccessTokenSpec) (appIdentity, error) {
+	appID, err := identitySource{
+		field:      "appID",
+		literal:    spec.AppID,
+		ref:        spec.AppIDRef,
+		errNotSet:  errAppIDNotSet,
+		errBothSet: errAppIDBothSet,
+	}.resolve(ctx, k, n)
+	if err != nil {
+		return appIdentity{}, err
+	}
+
+	installID, err := identitySource{
+		field:      "installID",
+		literal:    spec.InstallID,
+		ref:        spec.InstallIDRef,
+		errNotSet:  errInstallIDNotSet,
+		errBothSet: errInstallIDBothSet,
+	}.resolve(ctx, k, n)
+	if err != nil {
+		return appIdentity{}, err
+	}
+
+	return appIdentity{appID: appID, installID: installID}, nil
+}
+
+type identitySource struct {
+	field      string
+	literal    string
+	ref        *esmeta.SecretKeySelector
+	errNotSet  error
+	errBothSet error
+}
+
+// Secret data commonly carries a trailing newline, which would corrupt the URL path and JWT issuer.
+func (s identitySource) resolve(ctx context.Context, k client.Client, n string) (string, error) {
+	switch {
+	case s.literal != "" && s.ref != nil:
+		return "", s.errBothSet
+	case s.ref != nil:
+		val, err := resolvers.SecretKeyRef(ctx, k, resolvers.EmptyStoreKind, n, s.ref)
+		if err != nil {
+			return "", fmt.Errorf("error getting %s from secret: %w", s.field, err)
+		}
+		if val = strings.TrimSpace(val); val == "" {
+			return "", fmt.Errorf("%s secret %q key %q is empty: %w", s.field, s.ref.Name, s.ref.Key, s.errNotSet)
+		}
+		return val, nil
+	case strings.TrimSpace(s.literal) != "":
+		return strings.TrimSpace(s.literal), nil
+	default:
+		return "", s.errNotSet
+	}
 }
 
 // GetInstallationToken generates a GitHub installation token using the provided private key and app ID.

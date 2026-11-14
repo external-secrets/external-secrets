@@ -25,6 +25,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"math/big"
 	"strings"
@@ -41,7 +42,6 @@ import (
 	"github.com/youmark/pkcs8"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	fakeacm "github.com/external-secrets/external-secrets/providers/v1/aws/certificatemanager/fake"
@@ -154,7 +154,7 @@ func (r remoteRef) GetProperty() string  { return r.property }
 
 func tlsSecret(tlsCrt, tlsKey []byte) *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "my-tls", Namespace: "default"},
+		Name: "my-tls", Namespace: "default",
 		Data: map[string][]byte{
 			"tls.crt": tlsCrt,
 			"tls.key": tlsKey,
@@ -426,7 +426,7 @@ func TestPushSecret_MissingCertKey(t *testing.T) {
 
 	psd := &pushSecretData{remoteKey: testRemoteKey}
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "bad-secret", Namespace: "default"},
+		Name: "bad-secret", Namespace: "default",
 		Data: map[string][]byte{
 			"tls.key": []byte("KEY"),
 		},
@@ -841,6 +841,25 @@ func TestGetSecret_EmptyARN(t *testing.T) {
 	_, err := newProvider(&fakeacm.Client{}).GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{})
 	if err == nil {
 		t.Fatal("expected error for empty ARN")
+	}
+}
+
+// TestGetSecret_NotFound guards against a regression where GetSecret wrapped
+// errCertificateNotFound in a generic error instead of translating it to the
+// esv1.NoSecretErr sentinel, unlike SecretExists/DeleteSecret/reimportCertificate
+// in the same file, which all check for it correctly.
+func TestGetSecret_NotFound(t *testing.T) {
+	fake := &fakeacm.Client{
+		GetCertificateFn: func(_ context.Context, _ *acm.GetCertificateInput, _ ...func(*acm.Options)) (*acm.GetCertificateOutput, error) {
+			return nil, &smithyFakeNotFound{}
+		},
+	}
+
+	_, err := newProvider(fake).GetSecret(context.Background(), esv1.ExternalSecretDataRemoteRef{
+		Key: "arn:aws:acm:us-east-1:123456789012:certificate/missing",
+	})
+	if !errors.Is(err, esv1.NoSecretErr) {
+		t.Fatalf("expected esv1.NoSecretErr, got: %v", err)
 	}
 }
 

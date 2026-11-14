@@ -24,7 +24,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -136,10 +135,8 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 					Raw: []byte(validDynamicSecretSpec),
 				},
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "beyondtrustworkloadcredentials-token",
-						Namespace: namespace,
-					},
+					Name:      "beyondtrustworkloadcredentials-token",
+					Namespace: namespace,
 					Data: map[string][]byte{
 						"token": []byte("test-token"),
 					},
@@ -176,10 +173,8 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 					Raw: []byte(validDynamicSecretSpecNoFolder),
 				},
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "beyondtrustworkloadcredentials-token",
-						Namespace: namespace,
-					},
+					Name:      "beyondtrustworkloadcredentials-token",
+					Namespace: namespace,
 					Data: map[string][]byte{
 						"token": []byte("test-token"),
 					},
@@ -214,10 +209,8 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 					Raw: []byte(validDynamicSecretSpecWithFolder),
 				},
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "beyondtrustworkloadcredentials-token",
-						Namespace: namespace,
-					},
+					Name:      "beyondtrustworkloadcredentials-token",
+					Namespace: namespace,
 					Data: map[string][]byte{
 						"token": []byte("test-token"),
 					},

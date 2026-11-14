@@ -23,7 +23,7 @@ import (
 // UUIDSpec controls the behavior of the uuid generator.
 type UUIDSpec struct{}
 
-// UUID generates a version 1 UUID (e56657e3-764f-11ef-a397-65231a88c216).
+// UUID generates a version 4 UUID (21061816-abbd-40ef-8985-6db0fbcbc4c4).
 // +kubebuilder:object:root=true
 // +kubebuilder:storageversion
 // +kubebuilder:subresource:status

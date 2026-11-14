@@ -13,7 +13,7 @@ func dictGetOrEmpty(dict map[string]interface{}, key string) string {
 	}
 	tp := reflect.TypeOf(value).Kind()
 	if tp != reflect.String {
-		panic(fmt.Sprintf("unable to parse %s key, must be of type string, but %s found", key, tp.String()))
+		panic("unable to parse dictionary value: expected string")
 	}
 	return reflect.ValueOf(value).String()
 }
@@ -22,7 +22,7 @@ func urlParse(v string) map[string]interface{} {
 	dict := map[string]interface{}{}
 	parsedURL, err := url.Parse(v)
 	if err != nil {
-		panic(fmt.Sprintf("unable to parse url: %s", err))
+		panic("unable to parse url")
 	}
 	dict["scheme"] = parsedURL.Scheme
 	dict["host"] = parsedURL.Host
@@ -54,7 +54,7 @@ func urlJoin(d map[string]interface{}) string {
 	if userinfo != "" {
 		tempURL, err := url.Parse(fmt.Sprintf("proto://%s@host", userinfo))
 		if err != nil {
-			panic(fmt.Sprintf("unable to parse userinfo in dict: %s", err))
+			panic("unable to parse url userinfo")
 		}
 		user = tempURL.User
 	}

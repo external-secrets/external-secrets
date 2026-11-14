@@ -22,7 +22,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -47,10 +46,8 @@ const (
 func TestProvider_NewClient(t *testing.T) {
 	p := &Provider{}
 	store := &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-store",
-			Namespace: testNamespace,
-		},
+		Name:      "test-store",
+		Namespace: testNamespace,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Volcengine: &esv1.VolcengineProvider{
@@ -73,10 +70,8 @@ func TestProvider_NewClient(t *testing.T) {
 	}
 
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      secretName,
-			Namespace: testNamespace,
-		},
+		Name:      secretName,
+		Namespace: testNamespace,
 		Data: map[string][]byte{
 			accessKeyIDKey:     []byte("test-access-key"),
 			secretAccessKeyKey: []byte("test-secret-key"),
@@ -192,10 +187,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 	t.Run("case 6: should return error when AccessKeyID is invalid", func(t *testing.T) {
 		otherNamespace := otherNamespace
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "volcengile-store",
-				Namespace: "kms-system",
-			},
+			Name:      "volcengile-store",
+			Namespace: "kms-system",
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					Volcengine: &esv1.VolcengineProvider{
@@ -220,10 +213,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 	t.Run("case 7: should return error when SecretAccessKey is invalid", func(t *testing.T) {
 		otherNamespace := otherNamespace
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "volcengile-store",
-				Namespace: "kms-system",
-			},
+			Name:      "volcengile-store",
+			Namespace: "kms-system",
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					Volcengine: &esv1.VolcengineProvider{
@@ -252,10 +243,8 @@ func TestProvider_ValidateStore(t *testing.T) {
 	t.Run("case 8: should return error when Token is invalid", func(t *testing.T) {
 		otherNamespace := otherNamespace
 		store := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "volcengile-store",
-				Namespace: "kms-system",
-			},
+			Name:      "volcengile-store",
+			Namespace: "kms-system",
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					Volcengine: &esv1.VolcengineProvider{

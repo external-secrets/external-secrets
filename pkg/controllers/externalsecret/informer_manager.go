@@ -208,10 +208,8 @@ func (h *enqueueHandler) enqueue(obj any) {
 	// Enqueue reconcile requests for each ExternalSecret
 	for i := range externalSecretsList.Items {
 		req := ctrl.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      externalSecretsList.Items[i].GetName(),
-				Namespace: externalSecretsList.Items[i].GetNamespace(),
-			},
+			Name:      externalSecretsList.Items[i].GetName(),
+			Namespace: externalSecretsList.Items[i].GetNamespace(),
 		}
 		h.queue.Add(req)
 

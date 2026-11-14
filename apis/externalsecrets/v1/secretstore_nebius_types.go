@@ -38,7 +38,7 @@ type NebiusAuth struct {
 	// }
 	// +optional
 	ServiceAccountCreds esmeta.SecretKeySelector `json:"serviceAccountCredsSecretRef,omitempty"`
-	// Token authenticates with Nebius Mysterybox by presenting a token.
+	// Token authenticates with Nebius SecretStash by presenting a token.
 	// +optional
 	Token esmeta.SecretKeySelector `json:"tokenSecretRef,omitempty"`
 
@@ -70,16 +70,16 @@ type NebiusWorkloadIdentity struct {
 	IAMServiceAccountID string `json:"iamServiceAccountID"`
 }
 
-// NebiusMysteryboxProvider Configures a store to sync secrets using the Nebius Mysterybox provider.
+// NebiusMysteryboxProvider Configures a store to sync secrets using the Nebius SecretStash provider.
 type NebiusMysteryboxProvider struct {
 
-	// NebiusMysterybox API endpoint
+	// Nebius SecretStash API endpoint
 	APIDomain string `json:"apiDomain"`
 
-	// Auth defines parameters to authenticate in MysteryBox
+	// Auth defines parameters to authenticate in SecretStash
 	Auth NebiusAuth `json:"auth"`
 
-	// The provider for the CA bundle to use to validate NebiusMysterybox server certificate.
+	// The provider for the CA bundle to use to validate Nebius SecretStash server certificate.
 	// +optional
 	CAProvider *NebiusCAProvider `json:"caProvider,omitempty"`
 }
