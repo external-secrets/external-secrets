@@ -82,7 +82,8 @@ const (
 // authConfigurationsCacheSize is set from --oracle-workload-identity-cache-size.
 // The OCI SDK gives no way to close a workload identity configuration provider,
 // so evicted entries leak. It must be at least the number of stores using
-// serviceAccountRef, otherwise the cache churns and memory keeps growing.
+// serviceAccountRef plus the number of distinct regions used by workload
+// identity stores without one, otherwise the cache churns and memory keeps growing.
 var authConfigurationsCacheSize = defaultAuthConfigurationsCacheSize
 
 func init() {
@@ -92,7 +93,8 @@ func init() {
 		"oracle-workload-identity-cache-size",
 		defaultAuthConfigurationsCacheSize,
 		"Maximum number of Oracle workload identity configuration providers to cache. "+
-			"Set it to at least the number of Oracle SecretStores and ClusterSecretStores using serviceAccountRef.",
+			"Set it to at least the number of Oracle SecretStores and ClusterSecretStores using serviceAccountRef, "+
+			"plus one per region used by workload identity stores without serviceAccountRef.",
 	)
 	feature.Register(feature.Feature{
 		Flags: fs,
