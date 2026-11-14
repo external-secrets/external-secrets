@@ -18,7 +18,6 @@ package gitlab
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -26,9 +25,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/google/uuid"
 	tassert "github.com/stretchr/testify/assert"
-	"github.com/yandex-cloud/go-sdk/iamkey"
 	gitlab "gitlab.com/gitlab-org/api/client-go"
 	corev1 "k8s.io/api/core/v1"
 	k8sclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -379,18 +376,12 @@ func TestNewClient(t *testing.T) {
 	tassert.EqualError(t, err, "cannot get Kubernetes secret \"authorizedKeySecretName\" from namespace \"namespace\": secrets \"authorizedKeySecretName\" not found")
 	tassert.Nil(t, secretClient)
 
-	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, toJSON(t, newFakeAuthorizedKey()))
+	err = createK8sSecret(ctx, t, k8sClient, namespace, authorizedKeySecretName, authorizedKeySecretKey, []byte("fake-gitlab-token"))
 	tassert.Nil(t, err)
 
 	secretClient, err = provider.NewClient(context.Background(), store, k8sClient, namespace)
 	tassert.Nil(t, err)
 	tassert.NotNil(t, secretClient)
-}
-
-func toJSON(t *testing.T, v any) []byte {
-	jsonBytes, err := json.Marshal(v)
-	tassert.Nil(t, err)
-	return jsonBytes
 }
 
 func createK8sSecret(ctx context.Context, t *testing.T, k8sClient k8sclient.Client, namespace, secretName, secretKey string, secretValue []byte) error {
@@ -401,17 +392,6 @@ func createK8sSecret(ctx context.Context, t *testing.T, k8sClient k8sclient.Clie
 	})
 	tassert.Nil(t, err)
 	return nil
-}
-
-func newFakeAuthorizedKey() *iamkey.Key {
-	uniqueLabel := uuid.NewString()
-	return &iamkey.Key{
-		Id: uniqueLabel,
-		Subject: &iamkey.Key_ServiceAccountId{
-			ServiceAccountId: uniqueLabel,
-		},
-		PrivateKey: uniqueLabel,
-	}
 }
 
 // test the sm<->gcp interface
