@@ -69,6 +69,8 @@ Note that if a service account is not provided in the secret store, the Oracle p
 {% include 'oracle-workload-identity.yaml' %}
 ```
 
+Each store that sets `serviceAccountRef` gets its own cached workload identity provider. The OCI SDK can't close these, so once there are more such stores than the cache holds, providers keep getting rebuilt and the controller's memory grows. The cache holds 50 by default. If you have more stores than that, raise it with the controller flag `--oracle-workload-identity-cache-size` (for example through `extraArgs` in the Helm chart).
+
 ## Creating an External Secret
 
 To create a Kubernetes secret from an OCI Vault secret a `Kind=ExternalSecret` is needed. The External Secret will reference an OCI Vault instance containing secrets with either JSON or plaintext data.

@@ -35,6 +35,7 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/keymanagement"
 	"github.com/oracle/oci-go-sdk/v65/secrets"
 	"github.com/oracle/oci-go-sdk/v65/vault"
+	"github.com/spf13/pflag"
 	"github.com/tidwall/gjson"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/kubernetes"
@@ -47,6 +48,7 @@ import (
 	"github.com/external-secrets/external-secrets/runtime/cache"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/feature"
 )
 
 const (
@@ -68,14 +70,34 @@ const (
 )
 
 const (
-	// auth config cache LRU cache size.
-	authConfigurationsCacheSize = 50
+	// default size of the workload identity auth config LRU cache.
+	defaultAuthConfigurationsCacheSize = 50
 	// cache kind for using operator's default service account.
 	defaultSACacheKind = "oke-workload-identity-default-sa"
 	// cache version for using operator's default service account provider.
 	// depends only on the region and doesn't need version-based invalidation.
 	defaultSACacheVersion = "v0"
 )
+
+// authConfigurationsCacheSize is set from --oracle-workload-identity-cache-size.
+// The OCI SDK gives no way to close a workload identity configuration provider,
+// so evicted entries leak. It must be at least the number of stores using
+// serviceAccountRef, otherwise the cache churns and memory keeps growing.
+var authConfigurationsCacheSize = defaultAuthConfigurationsCacheSize
+
+func init() {
+	fs := pflag.NewFlagSet("oracle", pflag.ExitOnError)
+	fs.IntVar(
+		&authConfigurationsCacheSize,
+		"oracle-workload-identity-cache-size",
+		defaultAuthConfigurationsCacheSize,
+		"Maximum number of Oracle workload identity configuration providers to cache. "+
+			"Set it to at least the number of Oracle SecretStores and ClusterSecretStores using serviceAccountRef.",
+	)
+	feature.Register(feature.Feature{
+		Flags: fs,
+	})
+}
 
 // https://github.com/external-secrets/external-secrets/issues/644
 var _ esv1.SecretsClient = &VaultManagementService{}
@@ -90,7 +112,23 @@ type VaultManagementService struct {
 	compartment             string
 	encryptionKey           string
 	workloadIdentityMutex   sync.Mutex
+	authConfigurationsOnce  sync.Once
 	authConfigurationsCache *cache.Cache[auth.ConfigurationProviderWithClaimAccess]
+}
+
+// authCache returns the workload identity auth config cache, creating it on first use.
+// It is created lazily because the provider is registered before flags are parsed.
+func (vms *VaultManagementService) authCache() *cache.Cache[auth.ConfigurationProviderWithClaimAccess] {
+	vms.authConfigurationsOnce.Do(func() {
+		if vms.authConfigurationsCache == nil {
+			size := authConfigurationsCacheSize
+			if size < 1 {
+				size = defaultAuthConfigurationsCacheSize
+			}
+			vms.authConfigurationsCache = cache.Must[auth.ConfigurationProviderWithClaimAccess](size, nil)
+		}
+	})
+	return vms.authConfigurationsCache
 }
 
 // VMInterface defines the interface for OCI Secrets Management Client operations.
@@ -627,7 +665,7 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(
 			Name: region,
 			Kind: defaultSACacheKind,
 		}
-		if provider, ok := vms.authConfigurationsCache.Get(defaultSACacheVersion, key); ok {
+		if provider, ok := vms.authCache().Get(defaultSACacheVersion, key); ok {
 			return provider, nil
 		}
 
@@ -635,7 +673,7 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(
 		if err != nil {
 			return nil, err
 		}
-		vms.authConfigurationsCache.Add(defaultSACacheVersion, key, provider)
+		vms.authCache().Add(defaultSACacheVersion, key, provider)
 		return provider, nil
 	}
 
@@ -644,7 +682,7 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(
 		Namespace: store.GetNamespace(),
 		Kind:      store.GetKind(),
 	}
-	if provider, ok := vms.authConfigurationsCache.Get(store.GetResourceVersion(), key); ok {
+	if provider, ok := vms.authCache().Get(store.GetResourceVersion(), key); ok {
 		return provider, nil
 	}
 
@@ -669,7 +707,7 @@ func (vms *VaultManagementService) getWorkloadIdentityProvider(
 		return nil, err
 	}
 
-	vms.authConfigurationsCache.Add(store.GetResourceVersion(), key, provider)
+	vms.authCache().Add(store.GetResourceVersion(), key, provider)
 	return provider, nil
 }
 
@@ -747,9 +785,7 @@ func sanitizeOCISDKErr(err error) error {
 
 // NewProvider creates a new Provider instance.
 func NewProvider() esv1.Provider {
-	return &VaultManagementService{
-		authConfigurationsCache: cache.Must[auth.ConfigurationProviderWithClaimAccess](authConfigurationsCacheSize, nil),
-	}
+	return &VaultManagementService{}
 }
 
 // ProviderSpec returns the provider specification for registration.
