@@ -24,6 +24,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -308,6 +309,10 @@ func (c *Client) GenerateDynamicSecret(ctx context.Context, secretName string, f
 		decoder.UseNumber()
 		if err := decoder.Decode(&wrapped); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal generated secret response: %w", err)
+		}
+		// Decode stops after the first JSON value, so reject anything after it like json.Unmarshal does.
+		if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+			return nil, fmt.Errorf("failed to unmarshal generated secret response: unexpected data after the JSON object")
 		}
 		if len(wrapped.Secret) == 0 {
 			return nil, fmt.Errorf("generated secret response contains no secret")

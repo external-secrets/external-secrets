@@ -76,6 +76,24 @@ func TestGenerateDynamicSecret(t *testing.T) {
 			wantErr:    "generated secret response contains no secret",
 		},
 		{
+			name:       "Trailing whitespace",
+			statusCode: http.StatusOK,
+			body:       "{\"secret\":{\"password\":\"p\"}}\n",
+			want:       btwcutil.GeneratedSecret{"password": "p"},
+		},
+		{
+			name:       "Trailing garbage",
+			statusCode: http.StatusOK,
+			body:       `{"secret":{"password":"p"}}garbage`,
+			wantErr:    "failed to unmarshal generated secret response: unexpected data after the JSON object",
+		},
+		{
+			name:       "Second JSON object",
+			statusCode: http.StatusOK,
+			body:       `{"secret":{"password":"p"}}{"secret":{"password":"q"}}`,
+			wantErr:    "failed to unmarshal generated secret response: unexpected data after the JSON object",
+		},
+		{
 			name:       "Invalid response body",
 			statusCode: http.StatusCreated,
 			body:       `not json`,
