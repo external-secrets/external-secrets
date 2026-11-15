@@ -19,6 +19,7 @@ limitations under the License.
 package httpclient
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -302,7 +303,10 @@ func (c *Client) GenerateDynamicSecret(ctx context.Context, secretName string, f
 		var wrapped struct {
 			Secret btwcutil.GeneratedSecret `json:"secret"`
 		}
-		if err := json.Unmarshal(body, &wrapped); err != nil {
+		// UseNumber keeps numbers as their original literal, so large integers are not rounded through float64.
+		decoder := json.NewDecoder(bytes.NewReader(body))
+		decoder.UseNumber()
+		if err := decoder.Decode(&wrapped); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal generated secret response: %w", err)
 		}
 		if len(wrapped.Secret) == 0 {

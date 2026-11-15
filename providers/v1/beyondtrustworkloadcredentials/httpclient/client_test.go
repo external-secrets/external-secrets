@@ -18,6 +18,7 @@ package httpclient
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -54,8 +55,18 @@ func TestGenerateDynamicSecret(t *testing.T) {
 			want: btwcutil.GeneratedSecret{
 				"username":   "app_user_x1",
 				"password":   "s3cr3t",
-				"ttl":        float64(3600),
+				"ttl":        json.Number("3600"),
 				"connection": map[string]any{"host": "db1"},
+			},
+		},
+		{
+			name:       "Numbers keep their original literal",
+			statusCode: http.StatusCreated,
+			body:       `{"secret":{"id":9007199254740993,"ratio":1.5e3,"connection":{"port":5432}}}`,
+			want: btwcutil.GeneratedSecret{
+				"id":         json.Number("9007199254740993"),
+				"ratio":      json.Number("1.5e3"),
+				"connection": map[string]any{"port": json.Number("5432")},
 			},
 		},
 		{

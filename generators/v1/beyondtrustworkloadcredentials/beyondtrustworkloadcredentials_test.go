@@ -18,6 +18,7 @@ package beyondtrustworkloadcredentialsdynamic
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 
@@ -432,6 +433,19 @@ func TestConvertToByteMap(t *testing.T) {
 				"renewable":  []byte("true"),
 				"connection": []byte(`{"host":"db1","port":5432}`),
 				"roles":      []byte(`["read","write"]`),
+			},
+		},
+		{
+			name: "Decoded numbers keep their original literal",
+			input: btwcutil.GeneratedSecret{
+				"id":         json.Number("9007199254740993"),
+				"ratio":      json.Number("1.5e3"),
+				"connection": map[string]any{"port": json.Number("5432")},
+			},
+			want: map[string][]byte{
+				"id":         []byte("9007199254740993"),
+				"ratio":      []byte("1.5e3"),
+				"connection": []byte(`{"port":5432}`),
 			},
 		},
 		{
