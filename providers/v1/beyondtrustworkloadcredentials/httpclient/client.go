@@ -270,7 +270,7 @@ func (c *Client) GetSecrets(ctx context.Context, folderPath *string, recursive b
 }
 
 // GenerateDynamicSecret calls the dynamic secret generation endpoint.
-func (c *Client) GenerateDynamicSecret(ctx context.Context, secretName string, folderPath *string) (*btwcutil.GeneratedSecret, error) {
+func (c *Client) GenerateDynamicSecret(ctx context.Context, secretName string, folderPath *string) (btwcutil.GeneratedSecret, error) {
 	path := formatPath(folderPath)
 
 	endpoint := fmt.Sprintf("%s/dynamic/%s/generate", c.baseURL.String(), url.PathEscape(secretName))
@@ -305,7 +305,10 @@ func (c *Client) GenerateDynamicSecret(ctx context.Context, secretName string, f
 		if err := json.Unmarshal(body, &wrapped); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal generated secret response: %w", err)
 		}
-		return &wrapped.Secret, nil
+		if len(wrapped.Secret) == 0 {
+			return nil, fmt.Errorf("generated secret response contains no secret")
+		}
+		return wrapped.Secret, nil
 	}
 
 	return nil, parseError(body, resp.StatusCode, path)

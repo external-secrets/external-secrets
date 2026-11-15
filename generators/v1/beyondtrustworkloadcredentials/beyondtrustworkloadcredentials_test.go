@@ -35,13 +35,12 @@ type args struct {
 	jsonSpec     *apiextensions.JSON
 	kube         kclient.Client
 	btsClientFn  func(server, token string) (btwcutil.Client, error)
-	generateMock func(ctx context.Context, name string, folderPath *string) (*btwcutil.GeneratedSecret, error)
+	generateMock func(ctx context.Context, name string, folderPath *string) (btwcutil.GeneratedSecret, error)
 }
 
 type want struct {
-	val        map[string][]byte
-	partialVal map[string][]byte
-	err        error
+	val map[string][]byte
+	err error
 }
 
 type testCase struct {
@@ -146,13 +145,13 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 					client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 					return client, nil
 				},
-				generateMock: func(ctx context.Context, name string, folderPath *string) (*btwcutil.GeneratedSecret, error) {
-					return &btwcutil.GeneratedSecret{
-						AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
-						SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-						SessionToken:    "FwoGZXIvYXdzEBYaD...",
-						Expiration:      "2025-12-08T12:00:00Z",
-						LeaseID:         "aws/creds/example/abc123",
+				generateMock: func(ctx context.Context, name string, folderPath *string) (btwcutil.GeneratedSecret, error) {
+					return btwcutil.GeneratedSecret{
+						"accessKeyId":     "AKIAIOSFODNN7EXAMPLE",
+						"secretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+						"sessionToken":    "FwoGZXIvYXdzEBYaD...",
+						"expiration":      "2025-12-08T12:00:00Z",
+						"leaseId":         "aws/creds/example/abc123",
 					}, nil
 				},
 			},
@@ -184,21 +183,53 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 					client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 					return client, nil
 				},
-				generateMock: func(ctx context.Context, name string, folderPath *string) (*btwcutil.GeneratedSecret, error) {
+				generateMock: func(ctx context.Context, name string, folderPath *string) (btwcutil.GeneratedSecret, error) {
 					if folderPath != nil {
 						return nil, errors.New("expected nil folder path")
 					}
-					// For generic secrets, we'll just return empty fields
-					return &btwcutil.GeneratedSecret{
-						AccessKeyID:     "admin",
-						SecretAccessKey: "secret123",
+					return btwcutil.GeneratedSecret{
+						"username": "admin",
+						"password": "secret123",
 					}, nil
 				},
 			},
 			want: want{
-				partialVal: map[string][]byte{
-					"accessKeyId":     []byte("admin"),
-					"secretAccessKey": []byte("secret123"),
+				val: map[string][]byte{
+					"username": []byte("admin"),
+					"password": []byte("secret123"),
+				},
+			},
+		},
+		"SuccessfulGenerationWithNonAWSFields": {
+			reason: "Map every field of a dynamic secret that does not return AWS credentials.",
+			args: args{
+				jsonSpec: &apiextensions.JSON{
+					Raw: []byte(validDynamicSecretSpecWithFolder),
+				},
+				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
+					Name:      "beyondtrustworkloadcredentials-token",
+					Namespace: namespace,
+					Data: map[string][]byte{
+						"token": []byte("test-token"),
+					},
+				}).Build(),
+				generateMock: func(ctx context.Context, name string, folderPath *string) (btwcutil.GeneratedSecret, error) {
+					return btwcutil.GeneratedSecret{
+						"username":   "app_user_x1",
+						"password":   "s3cr3t",
+						"leaseId":    "db/creds/app/def456",
+						"expiration": "2025-12-08T13:00:00Z",
+						"ttl":        float64(3600),
+					}, nil
+				},
+			},
+			want: want{
+				val: map[string][]byte{
+					"username":   []byte("app_user_x1"),
+					"password":   []byte("s3cr3t"),
+					"leaseId":    []byte("db/creds/app/def456"),
+					"expiration": []byte("2025-12-08T13:00:00Z"),
+					"ttl":        []byte("3600"),
 				},
 			},
 		},
@@ -220,7 +251,7 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 					client.WithValues(context.Background(), nil, nil, nil, nil, nil, nil)
 					return client, nil
 				},
-				generateMock: func(ctx context.Context, name string, folderPath *string) (*btwcutil.GeneratedSecret, error) {
+				generateMock: func(ctx context.Context, name string, folderPath *string) (btwcutil.GeneratedSecret, error) {
 					return nil, errors.New("API error: insufficient permissions")
 				},
 			},
@@ -278,16 +309,6 @@ func TestBeyondtrustWorkloadCredentialsDynamicSecretGenerator(t *testing.T) {
 					}
 				} else {
 					t.Errorf("\n%s\nbeyondtrustworkloadcredentials.Generate(...): -want error, +got val:\n%v", tc.reason, val)
-				}
-			} else if tc.want.partialVal != nil {
-				// Success case: expect no error
-				if err != nil {
-					t.Fatalf("\n%s\nbeyondtrustworkloadcredentials.Generate(...): unexpected error: expected nil, got %v", tc.reason, err)
-				}
-				for k, v := range tc.want.partialVal {
-					if diff := cmp.Diff(v, val[k]); diff != "" {
-						t.Errorf("\n%s\nbeyondtrustworkloadcredentials.Generate(...) -> %s: -want partial, +got partial:\n%s", tc.reason, k, diff)
-					}
 				}
 			} else {
 				// Success case: expect no error
@@ -350,18 +371,19 @@ func TestPathParsing(t *testing.T) {
 
 func TestConvertToByteMap(t *testing.T) {
 	tests := []struct {
-		name  string
-		input *btwcutil.GeneratedSecret
-		want  map[string][]byte
+		name    string
+		input   btwcutil.GeneratedSecret
+		want    map[string][]byte
+		wantErr string
 	}{
 		{
-			name: "Valid string values",
-			input: &btwcutil.GeneratedSecret{
-				AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
-				SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-				SessionToken:    "FwoGZXIvYXdzEBYaD...",
-				LeaseID:         "aws/creds/example/abc123",
-				Expiration:      "2025-12-08T12:00:00Z",
+			name: "AWS credentials",
+			input: btwcutil.GeneratedSecret{
+				"accessKeyId":     "AKIAIOSFODNN7EXAMPLE",
+				"secretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+				"sessionToken":    "FwoGZXIvYXdzEBYaD...",
+				"leaseId":         "aws/creds/example/abc123",
+				"expiration":      "2025-12-08T12:00:00Z",
 			},
 			want: map[string][]byte{
 				"accessKeyId":     []byte("AKIAIOSFODNN7EXAMPLE"),
@@ -372,12 +394,12 @@ func TestConvertToByteMap(t *testing.T) {
 			},
 		},
 		{
-			name: "Empty session token",
-			input: &btwcutil.GeneratedSecret{
-				AccessKeyID:     "AKIAIOSFODNN7EXAMPLE",
-				SecretAccessKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
-				LeaseID:         "aws/creds/example/abc123",
-				Expiration:      "2025-12-08T12:00:00Z",
+			name: "AWS credentials without session token",
+			input: btwcutil.GeneratedSecret{
+				"accessKeyId":     "AKIAIOSFODNN7EXAMPLE",
+				"secretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+				"leaseId":         "aws/creds/example/abc123",
+				"expiration":      "2025-12-08T12:00:00Z",
 			},
 			want: map[string][]byte{
 				"accessKeyId":     []byte("AKIAIOSFODNN7EXAMPLE"),
@@ -386,11 +408,71 @@ func TestConvertToByteMap(t *testing.T) {
 				"expiration":      []byte("2025-12-08T12:00:00Z"),
 			},
 		},
+		{
+			name: "Arbitrary string fields",
+			input: btwcutil.GeneratedSecret{
+				"username": "app_user_x1",
+				"password": "s3cr3t",
+			},
+			want: map[string][]byte{
+				"username": []byte("app_user_x1"),
+				"password": []byte("s3cr3t"),
+			},
+		},
+		{
+			name: "Non-string values are marshaled to JSON",
+			input: btwcutil.GeneratedSecret{
+				"ttl":        float64(3600),
+				"renewable":  true,
+				"connection": map[string]any{"host": "db1", "port": float64(5432)},
+				"roles":      []any{"read", "write"},
+			},
+			want: map[string][]byte{
+				"ttl":        []byte("3600"),
+				"renewable":  []byte("true"),
+				"connection": []byte(`{"host":"db1","port":5432}`),
+				"roles":      []byte(`["read","write"]`),
+			},
+		},
+		{
+			name: "Null values are skipped",
+			input: btwcutil.GeneratedSecret{
+				"username":     "app_user_x1",
+				"sessionToken": nil,
+			},
+			want: map[string][]byte{
+				"username": []byte("app_user_x1"),
+			},
+		},
+		{
+			name:  "Empty secret",
+			input: btwcutil.GeneratedSecret{},
+			want:  map[string][]byte{},
+		},
+		{
+			name: "Value that cannot be marshaled",
+			input: btwcutil.GeneratedSecret{
+				"invalid": func() {},
+			},
+			wantErr: `failed to marshal generated secret value for key "invalid": json: unsupported type: func()`,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := convertToByteMap(tt.input)
+			got, err := convertToByteMap(tt.input)
+			if tt.wantErr != "" {
+				if err == nil {
+					t.Fatalf("convertToByteMap() expected error %q, got nil", tt.wantErr)
+				}
+				if diff := cmp.Diff(tt.wantErr, err.Error()); diff != "" {
+					t.Errorf("convertToByteMap() error mismatch (-want +got):\n%s", diff)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("convertToByteMap() unexpected error: %v", err)
+			}
 			if diff := cmp.Diff(tt.want, got); diff != "" {
 				t.Errorf("convertToByteMap() mismatch (-want +got):\n%s", diff)
 			}
