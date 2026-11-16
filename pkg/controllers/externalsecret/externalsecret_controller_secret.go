@@ -169,6 +169,13 @@ func (r *Reconciler) handleGenerateSecrets(
 	if err != nil {
 		return nil, err
 	}
+	unmanaged, err := shouldSkipGenerator(r, generatorResource)
+	if err != nil {
+		return nil, err
+	}
+	if unmanaged {
+		return nil, fmt.Errorf("can not reference unmanaged generator %q", remoteRef.SourceRef.GeneratorRef.Name)
+	}
 	var latestState *genv1alpha1.GeneratorState
 	if generatorState != nil {
 		latestState, err = generatorState.GetLatestState(generatorStateKey(i))

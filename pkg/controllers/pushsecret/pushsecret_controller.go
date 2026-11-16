@@ -18,7 +18,6 @@ limitations under the License.
 package pushsecret
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -69,7 +68,7 @@ const (
 	errGetSecretStore          = "could not get SecretStore %q, %w"
 	errGetClusterSecretStore   = "could not get ClusterSecretStore %q, %w"
 	errSetSecretFailed         = "could not write remote ref %v to target secretstore %v: %v"
-	errFailedSetSecret         = "set secret failed: %v"
+	errFailedSetSecret         = "set secret failed"
 	errConvert                 = "could not apply conversion strategy to keys: %v"
 	pushSecretFinalizer        = "pushsecret.externalsecrets.io/finalizer"
 	errCloudNotUpdateFinalizer = "could not update finalizers: %w"
@@ -81,12 +80,13 @@ const (
 // specified secret stores according to the defined policies and templates.
 type Reconciler struct {
 	client.Client
-	Log             logr.Logger
-	Scheme          *runtime.Scheme
-	recorder        record.EventRecorder
-	RestConfig      *rest.Config
-	RequeueInterval time.Duration
-	ControllerClass string
+	Log                       logr.Logger
+	Scheme                    *runtime.Scheme
+	recorder                  record.EventRecorder
+	RestConfig                *rest.Config
+	RequeueInterval           time.Duration
+	ControllerClass           string
+	ClusterSecretStoreEnabled bool
 }
 
 // storeInfo holds the identifying attributes of a secret store for per-store processing.
@@ -201,6 +201,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, fmt.Errorf("get resource: %w", err)
 	}
 
+	if r.shouldSkipClusterSecretStore(&ps) {
+		log.V(1).Info("skipping PushSecret, ClusterSecretStore feature is disabled")
+		return ctrl.Result{}, nil
+	}
+
 	refreshInt := r.RequeueInterval
 	if ps.Spec.RefreshInterval != nil {
 		refreshInt = ps.Spec.RefreshInterval.Duration
@@ -227,8 +232,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			// trigger a cleanup with no Synced Map
 			badState, err := r.DeleteSecretFromProviders(ctx, &ps, esapi.SyncedPushSecretsMap{}, mgr)
 			if err != nil {
-				msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
-				r.markAsFailed(msg, &ps, badState)
+				r.markAsFailed("failed to delete secrets from provider", err, &ps, badState)
 				return ctrl.Result{}, err
 			}
 			controllerutil.RemoveFinalizer(&ps, pushSecretFinalizer)
@@ -259,7 +263,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	if err := validateDataToStoreRefs(ps.Spec.DataTo, ps.Spec.SecretStoreRefs); err != nil {
-		r.markAsFailed(err.Error(), &ps, nil)
+		r.markAsFailed("", ctrlutil.Safe(err), &ps, nil)
 		return ctrl.Result{}, err
 	}
 
@@ -271,12 +275,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			len(ps.Status.SyncedPushSecrets) > 0 {
 			return ctrl.Result{}, r.handleSourceSecretDeleted(ctx, &ps, mgr)
 		}
-		r.markAsFailed(errFailedGetSecret, &ps, nil)
+		r.markAsFailed(errFailedGetSecret, err, &ps, nil)
 		return ctrl.Result{}, err
 	}
 	secretStores, err := r.GetSecretStores(ctx, ps)
 	if err != nil {
-		r.markAsFailed(err.Error(), &ps, nil)
+		r.markAsFailed("", ctrlutil.Safe(err), &ps, nil)
 
 		return ctrl.Result{}, err
 	}
@@ -292,18 +296,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		activeSecretStores[ref] = store
 	}
 
-	secretStores, err = removeUnmanagedStores(ctx, req.Namespace, r, activeSecretStores)
-	if err != nil {
-		r.markAsFailed(err.Error(), &ps, nil)
-		return ctrl.Result{}, err
-	}
+	secretStores = removeUnmanagedStores(r, activeSecretStores)
 	// if no stores are managed by this controller
 	if len(secretStores) == 0 {
 		return ctrl.Result{}, nil
 	}
 
 	if err := validateDataToMatchesResolvedStores(ps.Spec.DataTo, secretStores); err != nil {
-		r.markAsFailed(err.Error(), &ps, nil)
+		r.markAsFailed("", ctrlutil.Safe(err), &ps, nil)
 		return ctrl.Result{}, err
 	}
 
@@ -321,8 +321,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			}
 
 			totalSecrets := mergeSecretState(syncedSecrets, ps.Status.SyncedPushSecrets)
-			msg := fmt.Sprintf(errFailedSetSecret, err)
-			r.markAsFailed(msg, &ps, totalSecrets)
+			r.markAsFailed(errFailedSetSecret, err, &ps, totalSecrets)
 
 			return ctrl.Result{}, err
 		}
@@ -330,8 +329,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		case esapi.PushSecretDeletionPolicyDelete:
 			badSyncState, err := r.DeleteSecretFromProviders(ctx, &ps, syncedSecrets, mgr)
 			if err != nil {
-				msg := fmt.Sprintf("Failed to Delete Secrets from Provider: %v", err)
-				r.markAsFailed(msg, &ps, badSyncState)
+				r.markAsFailed("failed to delete secrets from provider", err, &ps, badSyncState)
 				return ctrl.Result{}, err
 			}
 		case esapi.PushSecretDeletionPolicyNone:
@@ -346,6 +344,29 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	return ctrl.Result{RequeueAfter: refreshInt}, nil
 }
 
+func (r *Reconciler) shouldSkipClusterSecretStore(ps *esapi.PushSecret) bool {
+	if r.ClusterSecretStoreEnabled {
+		return false
+	}
+	for _, ref := range ps.Spec.SecretStoreRefs {
+		if ref.Kind == esv1.ClusterSecretStoreKind {
+			return true
+		}
+	}
+	for _, dataTo := range ps.Spec.DataTo {
+		if dataTo.StoreRef != nil && dataTo.StoreRef.Kind == esv1.ClusterSecretStoreKind {
+			return true
+		}
+	}
+	// Cleanup also uses stores saved in status, even after they are removed from spec.
+	for store := range ps.Status.SyncedPushSecrets {
+		if strings.HasPrefix(store, esv1.ClusterSecretStoreKind+"/") {
+			return true
+		}
+	}
+	return false
+}
+
 // handleSourceSecretDeleted cleans up provider secrets when source Secret is unavailable.
 func (r *Reconciler) handleSourceSecretDeleted(ctx context.Context, ps *esapi.PushSecret, mgr *secretstore.Manager) error {
 	log := r.Log.WithValues("pushsecret", client.ObjectKeyFromObject(ps))
@@ -353,8 +374,7 @@ func (r *Reconciler) handleSourceSecretDeleted(ctx context.Context, ps *esapi.Pu
 
 	badState, err := r.DeleteSecretFromProviders(ctx, ps, esapi.SyncedPushSecretsMap{}, mgr)
 	if err != nil {
-		msg := fmt.Sprintf("failed to cleanup provider secrets: %v", err)
-		r.markAsFailed(msg, ps, badState)
+		r.markAsFailed("failed to cleanup provider secrets", err, ps, badState)
 		return err
 	}
 
@@ -376,7 +396,14 @@ func shouldRefresh(ps esapi.PushSecret) bool {
 	return ps.Status.RefreshTime.Add(ps.Spec.RefreshInterval.Duration).Before(time.Now())
 }
 
-func (r *Reconciler) markAsFailed(msg string, ps *esapi.PushSecret, syncState esapi.SyncedPushSecretsMap) {
+func (r *Reconciler) markAsFailed(msg string, err error, ps *esapi.PushSecret, syncState esapi.SyncedPushSecretsMap) {
+	if detail := ctrlutil.SafeMessage(err); detail != "" {
+		if msg == "" {
+			msg = detail
+		} else {
+			msg = fmt.Sprintf("%s: %s", msg, detail)
+		}
+	}
 	cond := NewPushSecretCondition(esapi.PushSecretReady, v1.ConditionFalse, esapi.ReasonErrored, msg)
 	SetPushSecretCondition(ps, *cond)
 	if syncState != nil {
@@ -427,7 +454,9 @@ func mergeSecretState(newMap, old esapi.SyncedPushSecretsMap) esapi.SyncedPushSe
 
 // DeleteSecretFromProviders removes secrets from providers that are no longer needed.
 // It compares the existing synced secrets in the PushSecret status with the new desired state,
-// and deletes any secrets that are no longer present in the new state.
+// and deletes any secrets that are no longer present in the new state. A removed entry is not
+// deleted when the new state still pushes its remote key as a whole secret, or by properties
+// that replace a whole secret, since that would delete what the new state has just written.
 func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.PushSecret, newMap esapi.SyncedPushSecretsMap, mgr *secretstore.Manager) (esapi.SyncedPushSecretsMap, error) {
 	out := mergeSecretState(newMap, ps.Status.SyncedPushSecrets)
 	for storeName, oldData := range ps.Status.SyncedPushSecrets {
@@ -451,9 +480,11 @@ func (r *Reconciler) DeleteSecretFromProviders(ctx context.Context, ps *esapi.Pu
 		for oldEntry, oldRef := range oldData {
 			_, ok := newData[oldEntry]
 			if !ok {
-				err = r.DeleteSecretFromStore(ctx, client, oldRef)
-				if err != nil {
-					return out, err
+				if !isRemoteKeyStillPushed(oldRef, newData) {
+					err = r.DeleteSecretFromStore(ctx, client, oldRef)
+					if err != nil {
+						return out, err
+					}
 				}
 				delete(out[storeName], oldEntry)
 			}
@@ -586,7 +617,7 @@ func (r *Reconciler) pushSecretEntry(
 
 	key := params.data.GetSecretKey()
 	if !secretKeyExists(key, secretData) {
-		return fmt.Errorf("secret key %v does not exist", key)
+		return ctrlutil.Safe(fmt.Errorf("secret key %v does not exist", key))
 	}
 
 	if params.updatePolicy == esapi.PushSecretUpdatePolicyIfNotExists {
@@ -831,33 +862,28 @@ func statusRef(ref esv1.PushSecretData) string {
 	return ref.GetRemoteKey()
 }
 
-// removeUnmanagedStores iterates over all SecretStore references and evaluates the controllerClass property.
+// isRemoteKeyStillPushed checks if a removed entry's remote key is still pushed as a whole secret or by properties replacing a whole secret.
+func isRemoteKeyStillPushed(oldRef esapi.PushSecretData, newData map[string]esapi.PushSecretData) bool {
+	for _, newRef := range newData {
+		if newRef.GetRemoteKey() != oldRef.GetRemoteKey() {
+			continue
+		}
+		if newRef.GetProperty() == "" || oldRef.GetProperty() == "" {
+			return true
+		}
+	}
+	return false
+}
+
+// removeUnmanagedStores filters the already-resolved stores by controller class.
 // Returns a map containing only managed stores.
-func removeUnmanagedStores(ctx context.Context, namespace string, r *Reconciler, ss map[esapi.PushSecretStoreRef]esv1.GenericStore) (map[esapi.PushSecretStoreRef]esv1.GenericStore, error) {
-	for ref := range ss {
-		var store esv1.GenericStore
-		switch ref.Kind {
-		case esv1.SecretStoreKind:
-			store = &esv1.SecretStore{}
-		case esv1.ClusterSecretStoreKind:
-			store = &esv1.ClusterSecretStore{}
-			namespace = ""
-		}
-		err := r.Client.Get(ctx, types.NamespacedName{
-			Name:      ref.Name,
-			Namespace: namespace,
-		}, store)
-
-		if err != nil {
-			return ss, err
-		}
-
-		class := store.GetSpec().Controller
-		if class != "" && class != r.ControllerClass {
+func removeUnmanagedStores(r *Reconciler, ss map[esapi.PushSecretStoreRef]esv1.GenericStore) map[esapi.PushSecretStoreRef]esv1.GenericStore {
+	for ref, store := range ss {
+		if !secretstore.ShouldProcessStore(store, r.ControllerClass) {
 			delete(ss, ref)
 		}
 	}
-	return ss, nil
+	return ss
 }
 
 // matchKeys filters secret keys based on the provided match pattern.
@@ -1209,11 +1235,11 @@ func compileRewrite(op esapi.PushSecretRewrite) (func(string) (string, error), e
 			return nil, fmt.Errorf("invalid template: %w", err)
 		}
 		return func(key string) (string, error) {
-			var buf bytes.Buffer
-			if err := tmpl.Execute(&buf, map[string]string{"value": key}); err != nil {
+			result, err := estemplate.ExecuteTemplate(tmpl, map[string]string{"value": key})
+			if err != nil {
 				return "", fmt.Errorf("template exec: %w", err)
 			}
-			return buf.String(), nil
+			return string(result), nil
 		}, nil
 	default:
 		return func(key string) (string, error) { return key, nil }, nil

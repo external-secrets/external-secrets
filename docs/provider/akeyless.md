@@ -31,6 +31,59 @@ Options for obtaining Kubernetes credentials include:
 
 **NOTE:** In case of a `ClusterSecretStore`, be sure to provide `namespace` for `serviceAccountRef` and `secretRef` according to the namespaces where the secrets reside.
 
+### Authentication with OAuth2.0/JWT
+
+Use an [Akeyless OAuth2.0/JWT](https://docs.akeyless.io/docs/auth-with-oauth-jwt) auth method. The provider calls Akeyless `Auth` with `access-type=jwt` and the bearer JWT.
+
+Preferred SecretStore shape is `authSecretRef.jwtAuth`:
+
+```yaml
+{% include 'akeyless-secret-store-jwt-auth.yaml' %}
+```
+
+JWT material:
+
+```yaml
+{% include 'akeyless-credentials-jwt-secret.yaml' %}
+```
+
+`jwtAuth.serviceAccountRef` uses the TokenRequest API (`create` on `serviceaccounts/token`). The Helm chart grants this when `rbac.serviceAccountTokenCreate` is `true` (the default). `serviceAccountRef.audiences` is required and must match the audience configured on the Akeyless OAuth2.0/JWT auth method. This keeps the token from being scoped to the Kubernetes API server, so it cannot be replayed against the cluster API.
+
+When `jwtAuth` is set, it takes precedence: `authSecretRef.secretRef` and `authSecretRef.serviceAccountRef` are ignored, and ESO returns a warning if they are also set.
+
+#### Akeyless setup for ServiceAccount tokens
+
+For `serviceAccountRef`, the Akeyless auth method must trust your cluster's ServiceAccount token issuer:
+
+1. Export the cluster JWKS and note the issuer. Refresh the JWKS in Akeyless when the cluster signing keys rotate.
+
+    ```bash
+    kubectl get --raw /openid/v1/jwks > cluster-jwks.json
+    kubectl get --raw /.well-known/openid-configuration  # "issuer" field
+    ```
+
+2. Create an OAuth2.0/JWT auth method that trusts that JWKS, with `sub` as the unique identifier and the same audience you set in `serviceAccountRef.audiences`:
+
+    ```bash
+    akeyless auth-method create oauth2 \
+      --name /k8s/cluster-oidc \
+      --jwks-json-file ./cluster-jwks.json \
+      --issuer <issuer-from-openid-configuration> \
+      --unique-identifier sub \
+      --audience akeyless.io
+    ```
+
+    If the cluster JWKS is publicly reachable, you can use `--jwks-uri` instead of `--jwks-json-file`.
+
+3. Scope access per ServiceAccount with role associations on the `sub` claim:
+
+    ```bash
+    akeyless assoc-role-am --role-name <role> --am-name /k8s/cluster-oidc \
+      --sub-claims sub=system:serviceaccount:<namespace>:<serviceaccount>
+    ```
+
+Alternatively, store `accessType=jwt` and put the JWT in `accessTypeParam` via the generic credentials Secret below.
+
 ### Authentication with Cloud-Identity or Api-Access-Key
 
 Akeyless providers require an access-id, access-type and access-type-param
@@ -46,6 +99,7 @@ The supported auth-methods and their parameters are:
 | `api_key`      | The access key                     |
 | `access_key`   | The access key (alias for api_key) |
 | `k8s`          | The k8s configuration name         |
+| `jwt`          | The bearer JWT                     |
 
 For `azure_ad` on AKS Workload Identity, set `authSecretRef.serviceAccountRef` to a ServiceAccount annotated with `azure.workload.identity/client-id` and `azure.workload.identity/tenant-id`. This field is only used when `accessType` is `azure_ad`; other access types ignore it.
 

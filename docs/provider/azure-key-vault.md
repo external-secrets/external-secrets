@@ -259,7 +259,10 @@ You can optionally attach metadata to the secret via the `spec.data[].metadata` 
 ```
 
 !!! note
-    In order to create a PushSecret targeting Secrets, the [Key Vault Secrets Officer](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-secrets-officer) role, alternatively Access Policy permissions `Set` and `Delete` for Secrets must be granted to the identity configured on the SecretStore.
+    In order to create a PushSecret targeting Secrets, the [Key Vault Secrets Officer](https://learn.microsoft.com/en-us/azure/role-based-access-control/built-in-roles/security#key-vault-secrets-officer) role must be granted to the identity configured on the SecretStore. When using Access Policies instead of Azure RBAC, grant the `Set` and `Delete` Secret permissions. Also grant `Get` and `Recover` if External Secrets Operator must recover a soft-deleted secret with the same name.
+
+!!! note
+    When a PushSecret write conflicts with a soft-deleted secret, External Secrets Operator recovers it only if the deleted secret has the `managed-by: external-secrets` tag. The recovered value can be visible temporarily. The controller reports a reconciliation error and writes the desired value on a subsequent reconciliation after Azure makes the secret available. Secrets without the ownership tag are not recovered. Normal secret writes are not affected.
 
 !!! note
     Omitting `contentType` (or setting it to an empty string) is interpreted as "don't change" rather than "clear": if the secret in Azure Key Vault already has a `ContentType` set, it will be preserved on update. There is currently no way to clear an existing `ContentType` via PushSecret — if you need to remove it, delete the secret from Azure Key Vault directly and let PushSecret recreate it.
