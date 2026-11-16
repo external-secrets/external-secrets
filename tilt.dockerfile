@@ -3,4 +3,6 @@ FROM alpine@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2
 WORKDIR /
 COPY ./bin/external-secrets /external-secrets
 
+USER 1000:1000
+
 ENTRYPOINT ["/external-secrets"]

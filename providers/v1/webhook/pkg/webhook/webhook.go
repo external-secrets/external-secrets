@@ -317,7 +317,15 @@ func (w *Webhook) executeRequest(ctx context.Context, provider *Spec, data []byt
 	}
 
 	// return response body
-	return io.ReadAll(resp.Body)
+	responseBodySize := maxResponseBodySize.Load()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, responseBodySize+1))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	if int64(len(body)) > responseBodySize {
+		return nil, fmt.Errorf("response body exceeds %d bytes", responseBodySize)
+	}
+	return body, nil
 }
 
 // ReqAddHeaders adds headers to an HTTP request based on provider configuration.
@@ -371,9 +379,6 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 		c.Timeout = provider.Timeout.Duration
 	}
 
-	transport := http.DefaultTransport.(*http.Transport).Clone()
-	customTransport := false
-
 	// add CA to client if it is there
 	if len(provider.CABundle) > 0 || provider.CAProvider != nil {
 		caCertPool, err := w.GetCACertPool(ctx, provider)
@@ -387,22 +392,28 @@ func (w *Webhook) GetHTTPClient(ctx context.Context, provider *Spec) (*http.Clie
 			Renegotiation: tls.RenegotiateOnceAsClient,
 		}
 
+		transport, err := esutils.CloneDefaultHTTPTransport()
+		if err != nil {
+			return nil, err
+		}
 		transport.TLSClientConfig = tlsConf
-		customTransport = true
+		c.Transport = transport
 	}
-	// add authentication method if it s there
+	// add authentication method if it's there
 	if provider.Auth != nil {
 		if provider.Auth.NTLM != nil {
-			// NTLM requires HTTP/1.1. Reuse the configured transport so custom
-			// CA roots are not discarded when NTLM and TLS are used together.
-			transport.TLSNextProto = map[string]func(authority string, c *tls.Conn) http.RoundTripper{}
+			transport, ok := c.Transport.(*http.Transport)
+			if !ok {
+				cloned, err := esutils.CloneDefaultHTTPTransport()
+				if err != nil {
+					return nil, err
+				}
+				transport = cloned
+			}
+			transport.TLSNextProto = map[string]func(authority string, c *tls.Conn) http.RoundTripper{} // Needed to disable HTTP/2
 			c.Transport = &ntlmssp.Negotiator{RoundTripper: transport}
-			customTransport = false
 		}
 		// add additional auth methods here
-	}
-	if customTransport {
-		c.Transport = transport
 	}
 
 	// return client with all add-ons

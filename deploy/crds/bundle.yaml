@@ -1,4 +1,3 @@
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -1632,7 +1631,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -2324,7 +2322,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -2468,6 +2465,99 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            jwtAuth:
+                              description: |-
+                                JWTAuth authenticates with an Akeyless OAuth2.0/JWT auth method by
+                                submitting access-type=jwt and a bearer JWT. Prefer this over stuffing
+                                the JWT into SecretRef.accessTypeParam when using TokenRequest-issued tokens.
+                                When set, SecretRef and ServiceAccountRef on AkeylessAuth are ignored.
+                              properties:
+                                accessID:
+                                  description: the Akeyless OAuth2.0/JWT auth-method access-id
+                                  minLength: 1
+                                  type: string
+                                expirationSeconds:
+                                  description: |-
+                                    Optional expiration time in seconds for TokenRequest tokens. Only valid
+                                    with ServiceAccountRef. Defaults to 600 (10 minutes). Kubernetes rejects
+                                    TokenRequest values below 600.
+                                  format: int64
+                                  minimum: 600
+                                  type: integer
+                                secretRef:
+                                  description: |-
+                                    Optional SecretRef that refers to a key in a Secret resource containing
+                                    the JWT used to authenticate with Akeyless.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: |-
+                                    Optional ServiceAccountRef requests a token via the TokenRequest API.
+                                    audiences is required and must match the Akeyless OAuth2.0/JWT
+                                    auth-method audience, so the token is never scoped to the Kubernetes
+                                    API server. Mutually exclusive with SecretRef.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                              type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of secretRef or serviceAccountRef must be set
+                                  rule: has(self.secretRef) != has(self.serviceAccountRef)
+                                - message: secretRef.name must be nonempty
+                                  rule: '!has(self.secretRef) || (has(self.secretRef.name) && size(self.secretRef.name) > 0)'
+                                - message: serviceAccountRef.name must be nonempty
+                                  rule: '!has(self.serviceAccountRef) || (has(self.serviceAccountRef.name) && size(self.serviceAccountRef.name) > 0)'
+                                - message: serviceAccountRef.audiences must be set to the Akeyless auth method audience
+                                  rule: '!has(self.serviceAccountRef) || (has(self.serviceAccountRef.audiences) && size(self.serviceAccountRef.audiences) > 0)'
+                                - message: expirationSeconds only applies to serviceAccountRef
+                                  rule: '!has(self.expirationSeconds) || has(self.serviceAccountRef)'
                             kubernetesAuth:
                               description: |-
                                 Kubernetes authenticates with Akeyless by passing the ServiceAccount
@@ -4952,7 +5042,9 @@ spec:
                         vault:
                           description: |-
                             Vault is the name or UUID of the vault to fetch secrets from.
-                            When omitted, the vault must be specified in the secret key using the legacy format "<vault-id>/<entry-id>".
+                            When omitted, each secret key must name its own vault: the first slash or backslash
+                            separates the vault from the entry reference. Both accept a name or a UUID, and the entry
+                            reference may include a folder path. This allows one store to serve secrets from many vaults.
                           type: string
                       required:
                         - auth
@@ -6550,13 +6642,13 @@ spec:
                           type: object
                       type: object
                     nebiusmysterybox:
-                      description: NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider
+                      description: NebiusMysterybox configures this store to sync secrets using the Nebius SecretStash provider
                       properties:
                         apiDomain:
-                          description: NebiusMysterybox API endpoint
+                          description: Nebius SecretStash API endpoint
                           type: string
                         auth:
-                          description: Auth defines parameters to authenticate in MysteryBox
+                          description: Auth defines parameters to authenticate in SecretStash
                           properties:
                             serviceAccountCredsSecretRef:
                               description: |-
@@ -6598,7 +6690,7 @@ spec:
                                   type: string
                               type: object
                             tokenSecretRef:
-                              description: Token authenticates with Nebius Mysterybox by presenting a token.
+                              description: Token authenticates with Nebius SecretStash by presenting a token.
                               properties:
                                 key:
                                   description: |-
@@ -6674,7 +6766,7 @@ spec:
                             - message: exactly one of serviceAccountCredsSecretRef, tokenSecretRef, or workloadIdentity must be set
                               rule: '(has(self.serviceAccountCredsSecretRef) && has(self.serviceAccountCredsSecretRef.name) && size(self.serviceAccountCredsSecretRef.name) > 0 ? 1 : 0) + (has(self.tokenSecretRef) && has(self.tokenSecretRef.name) && size(self.tokenSecretRef.name) > 0 ? 1 : 0) + (has(self.workloadIdentity) ? 1 : 0) == 1'
                         caProvider:
-                          description: The provider for the CA bundle to use to validate NebiusMysterybox server certificate.
+                          description: The provider for the CA bundle to use to validate Nebius SecretStash server certificate.
                           properties:
                             certSecretRef:
                               description: |-
@@ -13946,7 +14038,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -15349,7 +15440,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -16001,7 +16091,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -16145,6 +16234,99 @@ spec:
                         authSecretRef:
                           description: Auth configures how the operator authenticates with Akeyless.
                           properties:
+                            jwtAuth:
+                              description: |-
+                                JWTAuth authenticates with an Akeyless OAuth2.0/JWT auth method by
+                                submitting access-type=jwt and a bearer JWT. Prefer this over stuffing
+                                the JWT into SecretRef.accessTypeParam when using TokenRequest-issued tokens.
+                                When set, SecretRef and ServiceAccountRef on AkeylessAuth are ignored.
+                              properties:
+                                accessID:
+                                  description: the Akeyless OAuth2.0/JWT auth-method access-id
+                                  minLength: 1
+                                  type: string
+                                expirationSeconds:
+                                  description: |-
+                                    Optional expiration time in seconds for TokenRequest tokens. Only valid
+                                    with ServiceAccountRef. Defaults to 600 (10 minutes). Kubernetes rejects
+                                    TokenRequest values below 600.
+                                  format: int64
+                                  minimum: 600
+                                  type: integer
+                                secretRef:
+                                  description: |-
+                                    Optional SecretRef that refers to a key in a Secret resource containing
+                                    the JWT used to authenticate with Akeyless.
+                                  properties:
+                                    key:
+                                      description: |-
+                                        A key in the referenced Secret.
+                                        Some instances of this field may be defaulted, in others it may be required.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[-._a-zA-Z0-9]+$
+                                      type: string
+                                    name:
+                                      description: The name of the Secret resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        The namespace of the Secret resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  type: object
+                                serviceAccountRef:
+                                  description: |-
+                                    Optional ServiceAccountRef requests a token via the TokenRequest API.
+                                    audiences is required and must match the Akeyless OAuth2.0/JWT
+                                    auth-method audience, so the token is never scoped to the Kubernetes
+                                    API server. Mutually exclusive with SecretRef.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                              required:
+                                - accessID
+                              type: object
+                              x-kubernetes-validations:
+                                - message: exactly one of secretRef or serviceAccountRef must be set
+                                  rule: has(self.secretRef) != has(self.serviceAccountRef)
+                                - message: secretRef.name must be nonempty
+                                  rule: '!has(self.secretRef) || (has(self.secretRef.name) && size(self.secretRef.name) > 0)'
+                                - message: serviceAccountRef.name must be nonempty
+                                  rule: '!has(self.serviceAccountRef) || (has(self.serviceAccountRef.name) && size(self.serviceAccountRef.name) > 0)'
+                                - message: serviceAccountRef.audiences must be set to the Akeyless auth method audience
+                                  rule: '!has(self.serviceAccountRef) || (has(self.serviceAccountRef.audiences) && size(self.serviceAccountRef.audiences) > 0)'
+                                - message: expirationSeconds only applies to serviceAccountRef
+                                  rule: '!has(self.expirationSeconds) || has(self.serviceAccountRef)'
                             kubernetesAuth:
                               description: |-
                                 Kubernetes authenticates with Akeyless by passing the ServiceAccount
@@ -18629,7 +18811,9 @@ spec:
                         vault:
                           description: |-
                             Vault is the name or UUID of the vault to fetch secrets from.
-                            When omitted, the vault must be specified in the secret key using the legacy format "<vault-id>/<entry-id>".
+                            When omitted, each secret key must name its own vault: the first slash or backslash
+                            separates the vault from the entry reference. Both accept a name or a UUID, and the entry
+                            reference may include a folder path. This allows one store to serve secrets from many vaults.
                           type: string
                       required:
                         - auth
@@ -20227,13 +20411,13 @@ spec:
                           type: object
                       type: object
                     nebiusmysterybox:
-                      description: NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider
+                      description: NebiusMysterybox configures this store to sync secrets using the Nebius SecretStash provider
                       properties:
                         apiDomain:
-                          description: NebiusMysterybox API endpoint
+                          description: Nebius SecretStash API endpoint
                           type: string
                         auth:
-                          description: Auth defines parameters to authenticate in MysteryBox
+                          description: Auth defines parameters to authenticate in SecretStash
                           properties:
                             serviceAccountCredsSecretRef:
                               description: |-
@@ -20275,7 +20459,7 @@ spec:
                                   type: string
                               type: object
                             tokenSecretRef:
-                              description: Token authenticates with Nebius Mysterybox by presenting a token.
+                              description: Token authenticates with Nebius SecretStash by presenting a token.
                               properties:
                                 key:
                                   description: |-
@@ -20351,7 +20535,7 @@ spec:
                             - message: exactly one of serviceAccountCredsSecretRef, tokenSecretRef, or workloadIdentity must be set
                               rule: '(has(self.serviceAccountCredsSecretRef) && has(self.serviceAccountCredsSecretRef.name) && size(self.serviceAccountCredsSecretRef.name) > 0 ? 1 : 0) + (has(self.tokenSecretRef) && has(self.tokenSecretRef.name) && size(self.tokenSecretRef.name) > 0 ? 1 : 0) + (has(self.workloadIdentity) ? 1 : 0) == 1'
                         caProvider:
-                          description: The provider for the CA bundle to use to validate NebiusMysterybox server certificate.
+                          description: The provider for the CA bundle to use to validate Nebius SecretStash server certificate.
                           properties:
                             certSecretRef:
                               description: |-
@@ -27623,7 +27807,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -27832,7 +28015,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -28045,7 +28227,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -28138,7 +28319,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -30744,7 +30924,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -30939,7 +31118,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -31005,7 +31183,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -31266,7 +31443,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -31374,7 +31550,6 @@ spec:
       storage: true
       subresources: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -31548,7 +31723,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -31697,7 +31871,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -31837,7 +32010,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -31930,7 +32102,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -32053,7 +32224,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -32142,7 +32312,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -32214,7 +32383,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -32420,7 +32588,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -32471,7 +32638,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
@@ -33488,7 +33654,6 @@ spec:
       subresources:
         status: {}
 ---
-apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:

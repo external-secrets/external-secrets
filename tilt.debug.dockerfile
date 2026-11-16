@@ -4,6 +4,9 @@ WORKDIR /
 COPY ./bin/external-secrets /external-secrets
 COPY ./bin/dlv /dlv
 
+ENV HOME=/tmp
+USER 1000:1000
+
 EXPOSE 30000
 
 # dlv --listen=:30000 --api-version=2 --headless=true exec /app/build/api

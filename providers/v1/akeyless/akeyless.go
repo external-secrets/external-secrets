@@ -54,6 +54,8 @@ const (
 	defaultAPIUrl           = "https://api.akeyless.io"
 	extSecretManagedTag     = "k8s-external-secrets"
 	aKeylessToken       Ctx = "AKEYLESS_TOKEN"
+	// defaultTimeout is used for the Akeyless HTTP client.
+	defaultTimeout = 30 * time.Second
 )
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -148,6 +150,10 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 			return nil, errors.New(errInvalidAkeylessURL)
 		}
 	}
+	if akeylessSpec.Auth.KubernetesAuth != nil && akeylessSpec.Auth.JWTAuth != nil {
+		return nil, errors.New(errMultipleAkeylessAuthMethods)
+	}
+
 	if akeylessSpec.Auth.KubernetesAuth != nil {
 		if akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef != nil {
 			if err := esutils.ValidateReferentServiceAccountSelector(store, *akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef); err != nil {
@@ -169,6 +175,54 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 			return nil, errors.New("missing kubernetes config name")
 		}
 		return nil, nil
+	}
+
+	if akeylessSpec.Auth.JWTAuth != nil {
+		jwtAuth := akeylessSpec.Auth.JWTAuth
+		if jwtAuth.AccessID == "" {
+			return nil, errors.New(errMissingJWTAccessID)
+		}
+		hasSecret := jwtAuth.SecretRef != nil
+		hasSA := jwtAuth.ServiceAccountRef != nil
+		switch {
+		case hasSecret && hasSA:
+			return nil, errors.New(errJWTAuthBothTokenSources)
+		case !hasSecret && !hasSA:
+			return nil, errors.New(errJWTAuthTokenSource)
+		case hasSecret:
+			if jwtAuth.SecretRef.Name == "" {
+				return nil, errors.New(errJWTAuthMissingSecretName)
+			}
+			if err := esutils.ValidateReferentSecretSelector(store, *jwtAuth.SecretRef); err != nil {
+				return nil, fmt.Errorf("invalid Auth.JWTAuth.SecretRef: %w", err)
+			}
+		case hasSA:
+			if jwtAuth.ServiceAccountRef.Name == "" {
+				return nil, errors.New(errJWTAuthMissingSAName)
+			}
+			if err := esutils.ValidateReferentServiceAccountSelector(store, *jwtAuth.ServiceAccountRef); err != nil {
+				return nil, fmt.Errorf("invalid Auth.JWTAuth.ServiceAccountRef: %w", err)
+			}
+			if len(jwtAuth.ServiceAccountRef.Audiences) == 0 {
+				return nil, errors.New(errJWTAuthMissingAudiences)
+			}
+		}
+		if jwtAuth.ExpirationSeconds != nil {
+			if !hasSA {
+				return nil, errors.New(errJWTAuthExpirationWithoutSA)
+			}
+			if *jwtAuth.ExpirationSeconds < defaultJWTTokenTTL {
+				return nil, fmt.Errorf("Auth.JWTAuth.ExpirationSeconds must be at least %d", defaultJWTTokenTTL)
+			}
+		}
+		var warnings admission.Warnings
+		if akeylessSpec.Auth.SecretRef.AccessID.Name != "" {
+			warnings = append(warnings, warnJWTAuthIgnoresSecretRef)
+		}
+		if akeylessSpec.Auth.ServiceAccountRef != nil {
+			warnings = append(warnings, warnJWTAuthIgnoresSA)
+		}
+		return warnings, nil
 	}
 
 	accessID := akeylessSpec.Auth.SecretRef.AccessID
@@ -556,7 +610,7 @@ func (a *Akeyless) DeleteSecret(ctx context.Context, psr esv1.PushSecretRemoteRe
 }
 
 func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1.AkeylessProvider) (*http.Client, error) {
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{Timeout: defaultTimeout}
 	if len(provider.CABundle) == 0 && provider.CAProvider == nil {
 		return client, nil
 	}
@@ -578,11 +632,15 @@ func (a *akeylessBase) getAkeylessHTTPClient(ctx context.Context, provider *esv1
 		return nil, errors.New("failed to append caBundle")
 	}
 
-	tlsConf := &tls.Config{
+	transport, err := esutils.CloneDefaultHTTPTransport()
+	if err != nil {
+		return nil, err
+	}
+	transport.TLSClientConfig = &tls.Config{
 		RootCAs:    caCertPool,
 		MinVersion: tls.VersionTLS12,
 	}
-	client.Transport = &http.Transport{TLSClientConfig: tlsConf}
+	client.Transport = transport
 	return client, nil
 }
 

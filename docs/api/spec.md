@@ -414,6 +414,23 @@ token stored in the named Secret resource.</p>
 </tr>
 <tr>
 <td>
+<code>jwtAuth</code></br>
+<em>
+<a href="#external-secrets.io/v1.AkeylessJWTAuth">
+AkeylessJWTAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>JWTAuth authenticates with an Akeyless OAuth2.0/JWT auth method by
+submitting access-type=jwt and a bearer JWT. Prefer this over stuffing
+the JWT into SecretRef.accessTypeParam when using TokenRequest-issued tokens.
+When set, SecretRef and ServiceAccountRef on AkeylessAuth are ignored.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>serviceAccountRef</code></br>
 <em>
 <a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
@@ -440,7 +457,7 @@ of using the ESO controller pod identity. Ignored for other access types.</p>
 <p>
 <p>AkeylessAuthSecretRef references a Secret that contains the details
 to authenticate with Akeyless.
-AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.</p>
+AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME OR JWT.</p>
 </p>
 <table>
 <thead>
@@ -485,6 +502,86 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.AkeylessJWTAuth">AkeylessJWTAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.AkeylessAuth">AkeylessAuth</a>)
+</p>
+<p>
+<p>AkeylessJWTAuth authenticates with Akeyless using an OAuth2.0/JWT auth method
+(API access-type=jwt). Provide either a Secret holding the JWT or a
+ServiceAccount for TokenRequest-issued tokens (for example Kubernetes OIDC
+federation against Akeyless). Requires create on serviceaccounts/token when
+using ServiceAccountRef (Helm: rbac.serviceAccountTokenCreate, default true).</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>the Akeyless OAuth2.0/JWT auth-method access-id</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional SecretRef that refers to a key in a Secret resource containing
+the JWT used to authenticate with Akeyless.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional ServiceAccountRef requests a token via the TokenRequest API.
+audiences is required and must match the Akeyless OAuth2.0/JWT
+auth-method audience, so the token is never scoped to the Kubernetes
+API server. Mutually exclusive with SecretRef.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expirationSeconds</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional expiration time in seconds for TokenRequest tokens. Only valid
+with ServiceAccountRef. Defaults to 600 (10 minutes). Kubernetes rejects
+TokenRequest values below 600.</p>
 </td>
 </tr>
 </tbody>
@@ -4420,7 +4517,9 @@ string
 <td>
 <em>(Optional)</em>
 <p>Vault is the name or UUID of the vault to fetch secrets from.
-When omitted, the vault must be specified in the secret key using the legacy format &ldquo;<vault-id>/<entry-id>&rdquo;.</p>
+When omitted, each secret key must name its own vault: the first slash or backslash
+separates the vault from the entry reference. Both accept a name or a UUID, and the entry
+reference may include a folder path. This allows one store to serve secrets from many vaults.</p>
 </td>
 </tr>
 <tr>
@@ -8730,7 +8829,7 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Token authenticates with Nebius Mysterybox by presenting a token.</p>
+<p>Token authenticates with Nebius SecretStash by presenting a token.</p>
 </td>
 </tr>
 <tr>
@@ -8788,7 +8887,7 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>NebiusMysteryboxProvider Configures a store to sync secrets using the Nebius Mysterybox provider.</p>
+<p>NebiusMysteryboxProvider Configures a store to sync secrets using the Nebius SecretStash provider.</p>
 </p>
 <table>
 <thead>
@@ -8806,7 +8905,7 @@ string
 </em>
 </td>
 <td>
-<p>NebiusMysterybox API endpoint</p>
+<p>Nebius SecretStash API endpoint</p>
 </td>
 </tr>
 <tr>
@@ -8819,7 +8918,7 @@ NebiusAuth
 </em>
 </td>
 <td>
-<p>Auth defines parameters to authenticate in MysteryBox</p>
+<p>Auth defines parameters to authenticate in SecretStash</p>
 </td>
 </tr>
 <tr>
@@ -8833,7 +8932,7 @@ NebiusCAProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>The provider for the CA bundle to use to validate NebiusMysterybox server certificate.</p>
+<p>The provider for the CA bundle to use to validate Nebius SecretStash server certificate.</p>
 </td>
 </tr>
 </tbody>
@@ -12149,7 +12248,7 @@ NebiusMysteryboxProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider</p>
+<p>NebiusMysterybox configures this store to sync secrets using the Nebius SecretStash provider</p>
 </td>
 </tr>
 <tr>

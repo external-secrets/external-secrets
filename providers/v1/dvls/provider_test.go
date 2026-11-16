@@ -234,7 +234,7 @@ func TestProvider_ValidateStore(t *testing.T) {
 		assert.Contains(t, err.Error(), "serverUrl is required")
 	})
 
-	t.Run("case 3a: should accept empty vault (uses default)", func(t *testing.T) {
+	t.Run("case 3a: should accept empty vault (vault comes from the key)", func(t *testing.T) {
 		store := &esv1.SecretStore{
 			Name:      "dvls-store",
 			Namespace: testNamespace,

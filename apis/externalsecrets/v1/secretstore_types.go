@@ -278,7 +278,7 @@ type SecretStoreProvider struct {
 	// +optional
 	Barbican *BarbicanProvider `json:"barbican,omitempty"`
 
-	// NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider
+	// NebiusMysterybox configures this store to sync secrets using the Nebius SecretStash provider
 	// +optional
 	NebiusMysterybox *NebiusMysteryboxProvider `json:"nebiusmysterybox,omitempty"`
 

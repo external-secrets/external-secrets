@@ -35,3 +35,8 @@ RUN python3 -m venv .venv && \
 # Disable the top-level directory owner check
 # https://github.com/git/git/commit/8959555cee7ec045958f9b6dd62e541affb7e7d9
 RUN git config --system --add safe.directory '*'
+
+# Keep the image non-root by default; the docs Makefile overrides the UID/GID
+# with the host user's IDs when bind-mounting the repository.
+ENV HOME=/tmp
+USER 1000:1000

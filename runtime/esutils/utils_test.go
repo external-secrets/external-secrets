@@ -631,6 +631,11 @@ func TestRewrite(t *testing.T) {
 	}
 }
 
+func TestRewriteTransformLimits(t *testing.T) {
+	_, err := RewriteTransform(esv1.ExternalSecretRewriteTransform{Template: `{{ until 35000000 | join " " }}`}, map[string][]byte{"key": []byte("value")})
+	assert.ErrorContains(t, err, "safety limit")
+}
+
 func TestRewriteMerge(t *testing.T) {
 	type args struct {
 		operation esv1.ExternalSecretRewriteMerge
