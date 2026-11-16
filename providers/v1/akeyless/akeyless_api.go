@@ -428,11 +428,8 @@ func (a *akeylessBase) CreateSecret(ctx context.Context, remoteKey, data string)
 		return err
 	}
 	_, res, err := a.RestAPI.CreateSecret(ctx).Body(body).Execute()
-	defer func() {
-		_ = res.Body.Close()
-	}()
 	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMCreateSecret, err)
-	return err
+	return closeWriteResponse(res, err)
 }
 
 func (a *akeylessBase) UpdateSecret(ctx context.Context, remoteKey, data string) error {
@@ -444,11 +441,8 @@ func (a *akeylessBase) UpdateSecret(ctx context.Context, remoteKey, data string)
 		return err
 	}
 	_, res, err := a.RestAPI.UpdateSecretVal(ctx).Body(body).Execute()
-	defer func() {
-		_ = res.Body.Close()
-	}()
 	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMUpdateSecretVal, err)
-	return err
+	return closeWriteResponse(res, err)
 }
 
 func (a *akeylessBase) DeleteSecret(ctx context.Context, remoteKey string) error {
@@ -459,11 +453,20 @@ func (a *akeylessBase) DeleteSecret(ctx context.Context, remoteKey string) error
 		return err
 	}
 	_, res, err := a.RestAPI.DeleteItem(ctx).Body(body).Execute()
-	defer func() {
-		_ = res.Body.Close()
-	}()
 	metrics.ObserveAPICall(ProviderAKEYLESSSM, CallAKEYLESSSMDeleteItem, err)
-	return err
+	return closeWriteResponse(res, err)
+}
+
+// closeWriteResponse closes the body of a write response, which is nil when the
+// request never reached Akeyless, and marks 401/403 errors as ErrUnauthorized.
+func closeWriteResponse(res *http.Response, err error) error {
+	if res != nil && res.Body != nil {
+		_ = res.Body.Close()
+	}
+	if err != nil {
+		return apiError(res, err)
+	}
+	return nil
 }
 
 func (a *akeylessBase) getK8SServiceAccountJWT(ctx context.Context, kubernetesAuth *esv1.AkeylessKubernetesAuth) (string, error) {
