@@ -26,23 +26,72 @@ jobs:
       checks: write
       contents: read
     outputs:
-      check_run_id: ${{ steps.create_check.outputs.check_run_id }}
+      approved_repository: ${{ steps.approval.outputs.approved_repository }}
+      approved_sha: ${{ steps.approval.outputs.approved_sha }}
+      check_run_id: ${{ steps.approval.outputs.check_run_id }}
     steps:
       - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
         with:
           egress-policy: audit
 
-      - name: Create status check
-        id: create_check
+      - name: Validate approved head and create status check
+        id: approval
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
-          PROVIDER: ${{ github.event.client_payload.slash_command.args.named.provider }}
+          BASE_REPOSITORY: ${{ github.repository }}
+          HEAD_REPOSITORY: ${{ github.event.client_payload.pull_request.head.repo.full_name }}
           HEAD_SHA: ${{ github.event.client_payload.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.client_payload.pull_request.number }}
+          PROVIDER: ${{ github.event.client_payload.slash_command.args.named.provider }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const job_name = "e2e-managed-" + process.env.PROVIDER
-            const ref = process.env.HEAD_SHA
+            const approvedRepository = process.env.HEAD_REPOSITORY
+            const approvedSha = process.env.HEAD_SHA
+            const baseRepository = process.env.BASE_REPOSITORY
+            const provider = process.env.PROVIDER
+            const pullNumber = Number.parseInt(process.env.PR_NUMBER, 10)
+
+            if (!['aws', 'gcp', 'azure'].includes(provider)) {
+              throw new Error(`unsupported managed provider '${provider}'`)
+            }
+            if (!Number.isSafeInteger(pullNumber) || pullNumber <= 0) {
+              throw new Error(`invalid pull request number '${process.env.PR_NUMBER}'`)
+            }
+            if (!/^[0-9a-f]{40}$/i.test(approvedSha)) {
+              throw new Error('approved pull request head is not a 40-character commit SHA')
+            }
+            if (!approvedRepository) {
+              throw new Error('approved pull request head repository is missing')
+            }
+
+            const { data: pull } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: pullNumber,
+            })
+            const liveHeadRepository = pull.head.repo?.full_name
+
+            if (pull.state !== 'open') {
+              throw new Error(`pull request #${pullNumber} is not open`)
+            }
+            if (pull.base.repo.full_name.toLowerCase() !== baseRepository.toLowerCase()) {
+              throw new Error(`pull request #${pullNumber} targets an unexpected repository`)
+            }
+            if (!liveHeadRepository ||
+                liveHeadRepository.toLowerCase() !== approvedRepository.toLowerCase()) {
+              throw new Error(`pull request #${pullNumber} head repository changed after approval`)
+            }
+            if (pull.head.sha.toLowerCase() !== approvedSha.toLowerCase()) {
+              throw new Error(
+                `pull request #${pullNumber} head changed after approval; rerun /ok-to-test-managed`,
+              )
+            }
+
+            core.setOutput('approved_repository', approvedRepository)
+            core.setOutput('approved_sha', approvedSha)
+
+            const job_name = "e2e-managed-" + provider
+            const ref = approvedSha
             const { data: checks } = await github.rest.checks.listForRef({
               ...context.repo,
               ref
@@ -86,10 +135,11 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Fork based /ok-to-test-managed checkout
+      - name: Checkout approved pull request head
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
+          repository: ${{ needs.setup.outputs.approved_repository }}
+          ref: ${{ needs.setup.outputs.approved_sha }}
           persist-credentials: false
 
       - name: Setup Go
@@ -107,15 +157,15 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
+          key: ${{ runner.os }}-build-unit-tests-${{ needs.setup.outputs.approved_sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-unit-tests-${{ needs.setup.outputs.approved_sha }}-
 
       - name: Cache Go Dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
+          key: ${{ runner.os }}-pkg-${{ needs.setup.outputs.approved_sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-${{ needs.setup.outputs.approved_sha }}-
 
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
 
@@ -173,10 +223,11 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Fork based /ok-to-test-managed checkout
+      - name: Checkout approved pull request head
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
+          repository: ${{ needs.setup.outputs.approved_repository }}
+          ref: ${{ needs.setup.outputs.approved_sha }}
           persist-credentials: false
 
       - name: Setup Go
@@ -194,15 +245,15 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
+          key: ${{ runner.os }}-build-unit-tests-${{ needs.setup.outputs.approved_sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-unit-tests-${{ needs.setup.outputs.approved_sha }}-
 
       - name: Cache Go Dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
+          key: ${{ runner.os }}-pkg-${{ needs.setup.outputs.approved_sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-${{ needs.setup.outputs.approved_sha }}-
 
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
 
@@ -268,10 +319,11 @@ jobs:
         with:
           egress-policy: audit
 
-      - name: Fork based /ok-to-test-managed checkout
+      - name: Checkout approved pull request head
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
+          repository: ${{ needs.setup.outputs.approved_repository }}
+          ref: ${{ needs.setup.outputs.approved_sha }}
           persist-credentials: false
 
       - name: Setup Go
@@ -289,15 +341,15 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.go.outputs.build-cache }}
-          key: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-build-unit-tests-${{ github.sha }}-
+          key: ${{ runner.os }}-build-unit-tests-${{ needs.setup.outputs.approved_sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-build-unit-tests-${{ needs.setup.outputs.approved_sha }}-
 
       - name: Cache Go Dependencies
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ steps.go.outputs.mod-cache }}
-          key: ${{ runner.os }}-pkg-${{ github.sha }}-${{ hashFiles('**/go.sum') }}
-          restore-keys: ${{ runner.os }}-pkg-${{ github.sha }}-
+          key: ${{ runner.os }}-pkg-${{ needs.setup.outputs.approved_sha }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: ${{ runner.os }}-pkg-${{ needs.setup.outputs.approved_sha }}-
 
       - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
 
