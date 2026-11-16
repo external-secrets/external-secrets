@@ -32,7 +32,6 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	vaultiamauth "github.com/external-secrets/external-secrets/providers/v1/vault/iamauth"
 	vaultutil "github.com/external-secrets/external-secrets/providers/v1/vault/util"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -145,9 +144,7 @@ func createServiceAccountToken(
 		audiences = append(audiences, additionalAud...)
 	}
 	tokenRequest := &authv1.TokenRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: namespace,
-		},
+		Namespace: namespace,
 		Spec: authv1.TokenRequestSpec{
 			Audiences:         audiences,
 			ExpirationSeconds: &expirationSeconds,
@@ -169,7 +166,7 @@ func createServiceAccountToken(
 func checkToken(ctx context.Context, token vaultutil.Token) (bool, *time.Time, error) {
 	// https://www.vaultproject.io/api-docs/auth/token#lookup-a-token-self
 	resp, err := token.LookupSelfWithContext(ctx)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultLookupSelf, err)
+	metrics.ObserveAPICall(ProviderHCVault, CallHCVaultLookupSelf, err)
 	if err != nil {
 		return false, nil, err
 	}
@@ -229,7 +226,7 @@ func revokeTokenIfValid(ctx context.Context, client vaultutil.Client) error {
 	}
 	if valid {
 		err = client.AuthToken().RevokeSelfWithContext(ctx, client.Token())
-		metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultRevokeSelf, err)
+		metrics.ObserveAPICall(ProviderHCVault, CallHCVaultRevokeSelf, err)
 		if err != nil {
 			return fmt.Errorf(errVaultRevokeToken, err)
 		}

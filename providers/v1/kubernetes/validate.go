@@ -27,7 +27,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
@@ -56,7 +55,7 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 		},
 	}
 	authReview, err := c.userReviewClient.Create(ctx, &t, metav1.CreateOptions{})
-	metrics.ObserveAPICall(constants.ProviderKubernetes, constants.CallKubernetesCreateSelfSubjectRulesReview, err)
+	metrics.ObserveAPICall(ProviderKubernetes, CallKubernetesCreateSelfSubjectRulesReview, err)
 	if err != nil {
 		return esv1.ValidationResultUnknown, fmt.Errorf("could not verify if client is valid: %w", err)
 	}

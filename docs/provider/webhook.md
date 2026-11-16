@@ -159,8 +159,14 @@ data:
   password: dGVzdA== # "test"
 ```
 
+### HTTP response limit
 
-
+Successful response bodies are limited to 10 MiB. A larger response fails reconciliation
+with an error instead of being loaded into controller memory. This limit applies to
+responses used by `ExternalSecret`, `PushSecret`, and the Webhook generator. Configure the
+limit in bytes with the controller's `--webhook-provider-max-response-size` flag. Helm
+installations can pass the flag through
+`extraArgs.webhook-provider-max-response-size`.
 
 !!! note
       If a webhook endpoint for a given `ExternalSecret` returns a 404 status code, the secret is considered to have been deleted.  This will trigger the `deletionPolicy` set on the `ExternalSecret`.

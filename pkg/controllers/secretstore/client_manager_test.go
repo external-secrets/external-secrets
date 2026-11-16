@@ -25,7 +25,6 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -76,23 +75,19 @@ func TestManagerGet(t *testing.T) {
 	}
 
 	defaultStore := &esv1.SecretStore{
-		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: testNamespace,
-		},
-		Spec:   fakeSpec,
-		Status: readyStatus,
+		Kind:      esv1.SecretStoreKind,
+		Name:      "foo",
+		Namespace: testNamespace,
+		Spec:      fakeSpec,
+		Status:    readyStatus,
 	}
 
 	otherStore := &esv1.SecretStore{
-		TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "other",
-			Namespace: testNamespace,
-		},
-		Spec:   fakeSpec,
-		Status: readyStatus,
+		Kind:      esv1.SecretStoreKind,
+		Name:      "other",
+		Namespace: testNamespace,
+		Spec:      fakeSpec,
+		Status:    readyStatus,
 	}
 
 	var mgr *Manager
@@ -382,9 +377,7 @@ func TestShouldProcessSecret(t *testing.T) {
 				},
 			},
 			namespace: &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: testNamespace,
-				},
+				Name: testNamespace,
 			},
 			want: true,
 		},
@@ -396,9 +389,7 @@ func TestShouldProcessSecret(t *testing.T) {
 				},
 			},
 			namespace: &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: testNamespace,
-				},
+				Name: testNamespace,
 			},
 			want: true,
 		},
@@ -410,9 +401,7 @@ func TestShouldProcessSecret(t *testing.T) {
 				},
 			},
 			namespace: &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: testNamespace,
-				},
+				Name: testNamespace,
 			},
 			want: false,
 		},
@@ -425,12 +414,10 @@ func TestShouldProcessSecret(t *testing.T) {
 			}
 
 			defaultStore := &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "foo",
-					Namespace: tt.namespace.Name,
-				},
-				Spec: fakeSpec,
+				Kind:      esv1.ClusterSecretStoreKind,
+				Name:      "foo",
+				Namespace: tt.namespace.Name,
+				Spec:      fakeSpec,
 			}
 
 			client := fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(defaultStore, tt.namespace).Build()

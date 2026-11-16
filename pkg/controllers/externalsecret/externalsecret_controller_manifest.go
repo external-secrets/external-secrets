@@ -72,6 +72,35 @@ func getTargetGVK(es *esv1.ExternalSecret) schema.GroupVersionKind {
 	}
 }
 
+// validateManifestSecretCandidate ensures rendering did not change the declared GVK
+// and applies the final Secret policy to explicit core/v1 Secret targets.
+func validateManifestSecretCandidate(es *esv1.ExternalSecret, obj *unstructured.Unstructured) error {
+	declaredGVK := getTargetGVK(es)
+	renderedGVK := obj.GroupVersionKind()
+
+	if renderedGVK != declaredGVK {
+		return fmt.Errorf(
+			"rendered target GVK %q differs from declared target GVK %q",
+			renderedGVK.String(),
+			declaredGVK.String(),
+		)
+	}
+
+	if declaredGVK != v1.SchemeGroupVersion.WithKind("Secret") {
+		return nil
+	}
+
+	secretType, _, err := unstructured.NestedString(obj.Object, "type")
+	if err != nil {
+		return fmt.Errorf("invalid Secret type: %w", err)
+	}
+
+	secret := &v1.Secret{Type: v1.SecretType(secretType)}
+	secret.SetAnnotations(obj.GetAnnotations())
+
+	return validateSecretCandidate(secret)
+}
+
 // getTargetName returns the name of the target resource.
 func getTargetName(es *esv1.ExternalSecret) string {
 	if es.Spec.Target.Name != "" {
@@ -239,6 +268,9 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 	if err := r.applyOwnership(es, result); err != nil {
 		return nil, err
 	}
+	if err := validateManifestSecretCandidate(es, result); err != nil {
+		return nil, err
+	}
 
 	return result, nil
 }
@@ -272,6 +304,10 @@ func (r *Reconciler) createSimpleManifest(obj *unstructured.Unstructured, dataMa
 
 // renderTemplatedManifest renders templates for a custom resource.
 func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.ExternalSecret, obj *unstructured.Unstructured, dataMap map[string][]byte) (*unstructured.Unstructured, error) {
+	log := r.Log.WithValues("ExternalSecret", client.ObjectKeyFromObject(es))
+	log.V(1).Info("template render started")
+	defer log.V(1).Info("template render finished")
+
 	execute, err := template.EngineForVersion(es.Spec.Target.Template.EngineVersion)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get template engine: %w", err)

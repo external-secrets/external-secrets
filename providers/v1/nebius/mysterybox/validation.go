@@ -37,15 +37,18 @@ const (
 	errMissingProvider                         = "storeSpec is missing provider"
 	errInvalidProvider                         = "invalid provider spec. Missing nebiusmysterybox field in store %s"
 	errMissingAuthOptions                      = "invalid auth configuration: none provided"
-	errInvalidAuthConfig                       = "invalid auth configuration: exactly one must be specified"
+	errTooManyAuthConfigs                      = "invalid auth configuration: exactly one must be specified"
 	errInvalidTokenAuthConfig                  = "invalid token auth configuration: no secret key specified"
 	errInvalidSACredsAuthConfig                = "invalid ServiceAccount creds auth configuration: no secret key specified"
+	errEmptyWorkloadIdentityIAMAccount         = "empty workload identity configuration: Nebius IAM service account ID must be specified if kubernetes service account is specified"
+	errInvalidWorkloadIdentityServiceAccount   = "invalid workload identity configuration: Kubernetes service account must be specified for workload identity auth option"
 	errFailedToRetrieveToken                   = "failed to retrieve iam token by credentials: %w"
 	errMissingAPIDomain                        = "API domain must be set"
 	errInvalidAPIDomain                        = "API domain is not valid"
 	errInvalidAPIDomainWithError               = errInvalidAPIDomain + ": %w"
 	errInvalidCertificateConfigNoNameSpecified = "invalid certificate configuration: no name specified"
 	errInvalidCertificateConfigNoKeySpecified  = "invalid certificate configuration: no key specified"
+	errCustomAudienceIsNotAllowed              = "custom audiences are not allowed for Nebius provider"
 )
 
 var labelRe = regexp.MustCompile(`^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$`)
@@ -65,6 +68,11 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 
 	if err := validateProviderAuth(provider); err != nil {
 		return nil, err
+	}
+	if provider.Auth.WorkloadIdentity != nil {
+		if err := esutils.ValidateServiceAccountSelector(store, *provider.Auth.WorkloadIdentity.ServiceAccountRef); err != nil {
+			return nil, err
+		}
 	}
 
 	var selectors []*esmeta.SecretKeySelector
@@ -114,19 +122,54 @@ func getNebiusMysteryboxProvider(store esv1.GenericStore) (*esv1.NebiusMysterybo
 }
 
 func validateProviderAuth(provider *esv1.NebiusMysteryboxProvider) error {
-	if provider.Auth.Token.Name == "" && provider.Auth.ServiceAccountCreds.Name == "" {
+	specifiedAuthMethods := 0
+	if provider.Auth.Token.Name != "" {
+		specifiedAuthMethods++
+	}
+	if provider.Auth.ServiceAccountCreds.Name != "" {
+		specifiedAuthMethods++
+	}
+	if provider.Auth.WorkloadIdentity != nil {
+		specifiedAuthMethods++
+	}
+
+	if specifiedAuthMethods == 0 {
 		return errors.New(errMissingAuthOptions)
 	}
-	if provider.Auth.Token.Name != "" && provider.Auth.ServiceAccountCreds.Name != "" {
-		return errors.New(errInvalidAuthConfig)
+	if specifiedAuthMethods != 1 {
+		return errors.New(errTooManyAuthConfigs)
 	}
+
 	if provider.Auth.Token.Name != "" && provider.Auth.Token.Key == "" {
 		return errors.New(errInvalidTokenAuthConfig)
 	}
-	if provider.Auth.ServiceAccountCreds.Name != "" && provider.Auth.ServiceAccountCreds.Key == "" {
+	if err := validateServiceAccountCredentialsAuth(provider.Auth.ServiceAccountCreds); err != nil {
+		return err
+	}
+
+	return validateWorkloadIdentityAuth(provider.Auth.WorkloadIdentity)
+}
+
+func validateServiceAccountCredentialsAuth(credentials esmeta.SecretKeySelector) error {
+	if credentials.Name != "" && credentials.Key == "" {
 		return errors.New(errInvalidSACredsAuthConfig)
 	}
+
 	return nil
+}
+
+func validateWorkloadIdentityAuth(workloadIdentity *esv1.NebiusWorkloadIdentity) error {
+	if workloadIdentity == nil {
+		return nil
+	}
+	if workloadIdentity.ServiceAccountRef == nil || workloadIdentity.ServiceAccountRef.Name == "" {
+		return errors.New(errInvalidWorkloadIdentityServiceAccount)
+	}
+	if strings.TrimSpace(workloadIdentity.IAMServiceAccountID) == "" {
+		return errors.New(errEmptyWorkloadIdentityIAMAccount)
+	}
+
+	return validateAudiences(workloadIdentity.ServiceAccountRef.Audiences)
 }
 
 func (p *Provider) validateAPIDomain(apiDomain string) error {
@@ -193,6 +236,13 @@ func validateCertificate(certificate *esmeta.SecretKeySelector) error {
 	}
 	if certificate.Key == "" {
 		return errors.New(errInvalidCertificateConfigNoKeySpecified)
+	}
+	return nil
+}
+
+func validateAudiences(audiences []string) error {
+	if audiences != nil && len(audiences) != 0 {
+		return errors.New(errCustomAudienceIsNotAllowed)
 	}
 	return nil
 }

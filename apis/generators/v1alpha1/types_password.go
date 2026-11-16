@@ -64,6 +64,16 @@ type PasswordSpec struct {
 	// +kubebuilder:default="raw"
 	// +kubebuilder:validation:Enum=base64;base64url;base32;hex;raw
 	Encoding *string `json:"encoding,omitempty"`
+
+	// Prefix is prepended to every generated password after encoding.
+	// It is not counted in length or subject to the character settings.
+	// +optional
+	Prefix string `json:"prefix,omitempty"`
+
+	// Suffix is appended to every generated password after encoding.
+	// It is not counted in length or subject to the character settings.
+	// +optional
+	Suffix string `json:"suffix,omitempty"`
 }
 
 // Password generates a random password based on the

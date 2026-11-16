@@ -1,4 +1,4 @@
-The UUID generator provides random UUIDs that you can feed into your applications. A UUID (Universally Unique Identifier) is a 128-bit label used for information in computer systems. Please see below for the format in use.
+The UUID generator provides random UUIDs that you can feed into your applications. A UUID (Universally Unique Identifier) is a 128-bit label used for information in computer systems. The generator produces version 4 (random) UUIDs as defined in [RFC 9562](https://www.rfc-editor.org/rfc/rfc9562), in the lowercase canonical form.
 
 ## Output Keys and Values
 
@@ -25,11 +25,5 @@ Example `ExternalSecret` that references the UUID generator:
 Which will generate a `Kind=Secret` with a key called 'uuid' that may look like:
 
 ```
-EA111697-E7D0-452C-A24C-8E396947E865
-```
-
-With default values you would get something like:
-
-```
-4BEE258F-64C9-4755-92DC-AFF76451471B
+21061816-abbd-40ef-8985-6db0fbcbc4c4
 ```

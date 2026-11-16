@@ -51,12 +51,13 @@ type ActionsServiceClient interface {
 	ListOrgSecrets(ctx context.Context, org string, opts *github.ListOptions) (*github.Secrets, *github.Response, error)
 }
 
-// Client implements the External Secrets Kubernetes provider for GitHub Actions secrets.
+// Client implements the External Secrets Kubernetes provider for GitHub Actions or Dependabot secrets.
 type Client struct {
 	crClient         client.Client
 	store            esv1.GenericStore
 	provider         *esv1.GithubProvider
 	baseClient       github.ActionsService
+	dependabotClient github.DependabotService
 	namespace        string
 	storeKind        string
 	repoID           int64
@@ -70,7 +71,7 @@ type Client struct {
 	listSelectedReposFn func(ctx context.Context, name string) (github.SelectedRepoIDs, error)
 }
 
-// DeleteSecret deletes a secret from GitHub Actions.
+// DeleteSecret deletes a secret from the configured GitHub secrets service.
 func (g *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemoteRef) error {
 	_, err := g.deleteSecretFn(ctx, remoteRef)
 	if err != nil {
@@ -79,7 +80,7 @@ func (g *Client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	return nil
 }
 
-// SecretExists checks if a secret exists in GitHub Actions.
+// SecretExists checks if a secret exists in the configured GitHub secrets service.
 func (g *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef) (bool, error) {
 	githubSecret, _, err := g.getSecretFn(ctx, ref)
 	if err != nil {
@@ -91,7 +92,7 @@ func (g *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	return false, nil
 }
 
-// PushSecret pushes a new secret to GitHub Actions.
+// PushSecret pushes a new secret to the configured GitHub secrets service.
 func (g *Client) PushSecret(ctx context.Context, secret *corev1.Secret, remoteRef esv1.PushSecretData) error {
 	githubSecret, response, err := g.getSecretFn(ctx, remoteRef)
 	if err != nil && (response == nil || response.StatusCode != 404) {
@@ -199,7 +200,7 @@ func (g *Client) Close(_ context.Context) error {
 	return nil
 }
 
-// Validate checks if the client is properly configured and has access to the GitHub Actions API.
+// Validate checks if the client is properly configured and has access to the configured GitHub secrets API.
 func (g *Client) Validate() (esv1.ValidationResult, error) {
 	if g.store.GetKind() == esv1.ClusterSecretStoreKind {
 		return esv1.ValidationResultUnknown, nil

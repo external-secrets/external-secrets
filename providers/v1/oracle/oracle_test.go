@@ -34,7 +34,6 @@ import (
 	"github.com/oracle/oci-go-sdk/v65/vault"
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -152,12 +151,10 @@ func TestOracleVaultGetSecret(t *testing.T) {
 	// key is passed in, output is sent back
 	setSecretString := func(smtc *vaultTestCase) {
 		smtc.apiOutput = &secrets.GetSecretBundleByNameResponse{
-			SecretBundle: secrets.SecretBundle{
-				SecretId:      new("test-id"),
-				VersionNumber: new(int64(1)),
-				SecretBundleContent: secrets.Base64SecretBundleContentDetails{
-					Content: new(base64.StdEncoding.EncodeToString([]byte(secretValue))),
-				},
+			SecretId:      new("test-id"),
+			VersionNumber: new(int64(1)),
+			SecretBundleContent: secrets.Base64SecretBundleContentDetails{
+				Content: new(base64.StdEncoding.EncodeToString([]byte(secretValue))),
 			},
 		}
 		smtc.expectedSecret = secretValue
@@ -504,10 +501,8 @@ func TestVaultManagementServiceNewClient(t *testing.T) {
 				t.Fatalf("failed to add to schema: %v", err)
 			}
 			builder := clientfake.NewClientBuilder().WithRuntimeObjects(&corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      authSecretName,
-					Namespace: namespace,
-				},
+				Name:      authSecretName,
+				Namespace: namespace,
 				Data: map[string][]byte{
 					"privateKey": pem.EncodeToMemory(&pem.Block{
 						Type:  "RSA PRIVATE KEY",

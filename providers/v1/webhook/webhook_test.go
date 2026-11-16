@@ -655,9 +655,7 @@ func testPushSecret(tc testCase, t *testing.T, client esv1.SecretsClient) {
 		data[k] = []byte(v)
 	}
 	sec := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: tc.Args.Secret.Name,
-		},
+		Name: tc.Args.Secret.Name,
 		Data: data,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
@@ -678,13 +676,9 @@ func testPushSecret(tc testCase, t *testing.T, client esv1.SecretsClient) {
 
 func makeClusterSecretStore(url string, args args) *esv1.ClusterSecretStore {
 	store := &esv1.ClusterSecretStore{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "ClusterSecretStore",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "wehbook-store",
-			Namespace: "default",
-		},
+		Kind:      "ClusterSecretStore",
+		Name:      "wehbook-store",
+		Namespace: "default",
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Webhook: &esv1.WebhookProvider{
@@ -833,5 +827,25 @@ func TestDeleteSecret(t *testing.T) {
 				t.Errorf("DeleteSecret() used method %v, want %v", receivedMethod, tt.expectMethod)
 			}
 		})
+	}
+}
+
+func TestGetAllSecrets(t *testing.T) {
+	store := makeClusterSecretStore("http://fake-url", args{URL: "/api/secret"})
+	prov := &Provider{}
+	client, err := prov.NewClient(context.Background(), store, nil, "testnamespace")
+	if err != nil {
+		t.Fatalf("failed to create client: %v", err)
+	}
+
+	result, err := client.GetAllSecrets(context.Background(), esv1.ExternalSecretFind{})
+	if result != nil {
+		t.Errorf("expected nil result, got %v", result)
+	}
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if err.Error() != errGetAllSecretsNotSupported {
+		t.Errorf("expected error %q, got %q", errGetAllSecretsNotSupported, err.Error())
 	}
 }

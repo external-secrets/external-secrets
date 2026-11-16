@@ -22,7 +22,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	esapi "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -484,14 +483,10 @@ func makeDefaultTestcase() *testCase {
 			// this is a noop by default
 		},
 		store: &esapi.SecretStore{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       esapi.SecretStoreKind,
-				APIVersion: esapi.SecretStoreKindAPIVersion,
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      defaultStoreName,
-				Namespace: "default",
-			},
+			Kind:       esapi.SecretStoreKind,
+			APIVersion: esapi.SecretStoreKindAPIVersion,
+			Name:       defaultStoreName,
+			Namespace:  "default",
 			Spec: esapi.SecretStoreSpec{
 				Controller: defaultControllerClass,
 				// empty provider
@@ -511,14 +506,10 @@ func useClusterStore(tc *testCase) {
 	meta := tc.store.GetObjectMeta()
 
 	tc.store = &esapi.ClusterSecretStore{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       esapi.ClusterSecretStoreKind,
-			APIVersion: esapi.ClusterSecretStoreKindAPIVersion,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: meta.Name,
-		},
-		Spec: *spc,
+		Kind:       esapi.ClusterSecretStoreKind,
+		APIVersion: esapi.ClusterSecretStoreKindAPIVersion,
+		Name:       meta.Name,
+		Spec:       *spc,
 	}
 
 	if tc.ps != nil {
@@ -528,10 +519,8 @@ func useClusterStore(tc *testCase) {
 
 func usePushSecret(tc *testCase) {
 	tc.ps = &esv1alpha1.PushSecret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "push-secret",
-			Namespace: "default",
-		},
+		Name:      "push-secret",
+		Namespace: "default",
 		Spec: esv1alpha1.PushSecretSpec{
 			DeletionPolicy: esv1alpha1.PushSecretDeletionPolicyDelete,
 			Selector: esv1alpha1.PushSecretSelector{

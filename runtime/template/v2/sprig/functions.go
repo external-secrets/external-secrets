@@ -1,7 +1,6 @@
 package sprig
 
 import (
-	"errors"
 	"math/rand"
 	"path"
 	"path/filepath"
@@ -52,26 +51,26 @@ var genericMap = map[string]interface{}{
 	"unixEpoch":        unixEpoch,
 
 	// Strings
-	"abbrev":     abbrev,
-	"abbrevboth": abbrevboth,
-	"trunc":      trunc,
-	"trim":       strings.TrimSpace,
-	"upper":      strings.ToUpper,
-	"lower":      strings.ToLower,
-	"title":      strings.Title,
-	"untitle":    untitle,
-	"substr":     substring,
-	"repeat":     func(count int, str string) string { return strings.Repeat(str, count) },
-	"trimall":    func(a, b string) string { return strings.Trim(b, a) },
-	"trimAll":    func(a, b string) string { return strings.Trim(b, a) },
-	"trimSuffix": func(a, b string) string { return strings.TrimSuffix(b, a) },
-	"trimPrefix": func(a, b string) string { return strings.TrimPrefix(b, a) },
-	"nospace":    util.DeleteWhiteSpace,
-	"initials":   initials,
-	"randAlphaNum": randAlphaNumeric,
-	"randAlpha":    randAlpha,
-	"randAscii":    randAscii,
-	"randNumeric":  randNumeric,
+	"abbrev":       abbrev,
+	"abbrevboth":   abbrevboth,
+	"trunc":        trunc,
+	"trim":         strings.TrimSpace,
+	"upper":        strings.ToUpper,
+	"lower":        strings.ToLower,
+	"title":        strings.Title,
+	"untitle":      untitle,
+	"substr":       substring,
+	"repeat":       limitedRepeat,
+	"trimall":      func(a, b string) string { return strings.Trim(b, a) },
+	"trimAll":      func(a, b string) string { return strings.Trim(b, a) },
+	"trimSuffix":   func(a, b string) string { return strings.TrimSuffix(b, a) },
+	"trimPrefix":   func(a, b string) string { return strings.TrimPrefix(b, a) },
+	"nospace":      util.DeleteWhiteSpace,
+	"initials":     initials,
+	"randAlphaNum": func(n int) (string, error) { return limitedRandom(n, randAlphaNumeric) },
+	"randAlpha":    func(n int) (string, error) { return limitedRandom(n, randAlpha) },
+	"randAscii":    func(n int) (string, error) { return limitedRandom(n, randAscii) },
+	"randNumeric":  func(n int) (string, error) { return limitedRandom(n, randNumeric) },
 	"swapcase":     util.SwapCase,
 	"shuffle":      xstrings.Shuffle,
 	"snakecase":    xstrings.ToSnakeCase,
@@ -85,9 +84,9 @@ var genericMap = map[string]interface{}{
 	"quote":        quote,
 	"squote":       squote,
 	"cat":          cat,
-	"indent":       indent,
-	"nindent":      nindent,
-	"replace":      replace,
+	"indent":       func(n int, s string) (string, error) { return limitedIndent(n, s, false) },
+	"nindent":      func(n int, s string) (string, error) { return limitedIndent(n, s, true) },
+	"replace":      limitedReplace,
 	"plural":       plural,
 	"sha1sum":      sha1sum,
 	"sha256sum":    sha256sum,
@@ -99,7 +98,7 @@ var genericMap = map[string]interface{}{
 	"int64":     toInt64,
 	"int":       toInt,
 	"float64":   toFloat64,
-	"seq":       seq,
+	"seq":       limitedSeq,
 	"toDecimal": toDecimal,
 
 	"split":     split,
@@ -107,8 +106,8 @@ var genericMap = map[string]interface{}{
 	"splitn":    splitn,
 	"toStrings": strslice,
 
-	"until":     until,
-	"untilStep": untilStep,
+	"until":     limitedUntil,
+	"untilStep": limitedUntilStep,
 
 	"add1": func(i interface{}) int64 { return toInt64(i) + 1 },
 	"add": func(i ...interface{}) int64 {
@@ -128,7 +127,7 @@ var genericMap = map[string]interface{}{
 		}
 		return val
 	},
-	"randInt": func(min, max int) int { return rand.Intn(max-min) + min },
+	"randInt": func(minimum, maximum int) int { return rand.Intn(maximum-minimum) + minimum },
 	"add1f": func(i interface{}) float64 {
 		return execDecimalOp(i, []interface{}{1}, func(d1, d2 decimal.Decimal) decimal.Decimal { return d1.Add(d2) })
 	},
@@ -145,16 +144,16 @@ var genericMap = map[string]interface{}{
 	"mulf": func(a interface{}, v ...interface{}) float64 {
 		return execDecimalOp(a, v, func(d1, d2 decimal.Decimal) decimal.Decimal { return d1.Mul(d2) })
 	},
-	"biggest": max,
-	"max":     max,
-	"min":     min,
+	"biggest": maximum,
+	"max":     maximum,
+	"min":     minimum,
 	"maxf":    maxf,
 	"minf":    minf,
 	"ceil":    ceil,
 	"floor":   floor,
 	"round":   round,
 
-	"join":      join,
+	"join":      limitedJoin,
 	"sortAlpha": sortAlpha,
 
 	// Defaults
@@ -162,7 +161,7 @@ var genericMap = map[string]interface{}{
 	"empty":            empty,
 	"coalesce":         coalesce,
 	"all":              all,
-	"any":              any,
+	"any":              hasany,
 	"compact":          compact,
 	"mustCompact":      mustCompact,
 	"fromJson":         fromJson,
@@ -265,7 +264,7 @@ var genericMap = map[string]interface{}{
 	"genSignedCertWithKey":     generateSignedCertificateWithPEMKey,
 	"encryptAES":               encryptAES,
 	"decryptAES":               decryptAES,
-	"randBytes":                randBytes,
+	"randBytes":                limitedRandBytes,
 
 	// UUIDs:
 	"uuidv4": uuidv4,
@@ -273,9 +272,6 @@ var genericMap = map[string]interface{}{
 	// SemVer:
 	"semver":        semver,
 	"semverCompare": semverCompare,
-
-	// Flow Control:
-	"fail": func(msg string) (string, error) { return "", errors.New(msg) },
 
 	// Regex
 	"regexMatch":                 regexMatch,

@@ -27,7 +27,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -632,6 +631,11 @@ func TestRewrite(t *testing.T) {
 	}
 }
 
+func TestRewriteTransformLimits(t *testing.T) {
+	_, err := RewriteTransform(esv1.ExternalSecretRewriteTransform{Template: `{{ until 35000000 | join " " }}`}, map[string][]byte{"key": []byte("value")})
+	assert.ErrorContains(t, err, "safety limit")
+}
+
 func TestRewriteMerge(t *testing.T) {
 	type args struct {
 		operation esv1.ExternalSecretRewriteMerge
@@ -1137,9 +1141,7 @@ func TestValidateSecretSelector(t *testing.T) {
 		{
 			desc: "cluster secret store with namespace reference",
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.ClusterSecretStoreKind,
-				},
+				Kind: esv1.ClusterSecretStoreKind,
 			},
 			ref: esmetav1.SecretKeySelector{
 				Namespace: new("test"),
@@ -1149,9 +1151,7 @@ func TestValidateSecretSelector(t *testing.T) {
 		{
 			desc: "secret store without namespace reference",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.SecretStoreKind,
-				},
+				Kind: esv1.SecretStoreKind,
 			},
 			ref:      esmetav1.SecretKeySelector{},
 			expected: nil,
@@ -1159,12 +1159,8 @@ func TestValidateSecretSelector(t *testing.T) {
 		{
 			desc: "secret store with the same namespace reference",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.SecretStoreKind,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test",
-				},
+				Kind:      esv1.SecretStoreKind,
+				Namespace: "test",
 			},
 			ref: esmetav1.SecretKeySelector{
 				Namespace: new("test"),
@@ -1174,9 +1170,7 @@ func TestValidateSecretSelector(t *testing.T) {
 		{
 			desc: "cluster secret store without namespace reference",
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.ClusterSecretStoreKind,
-				},
+				Kind: esv1.ClusterSecretStoreKind,
 			},
 			ref:      esmetav1.SecretKeySelector{},
 			expected: errRequireNamespace,
@@ -1184,12 +1178,8 @@ func TestValidateSecretSelector(t *testing.T) {
 		{
 			desc: "secret store with the different namespace reference",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.SecretStoreKind,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test",
-				},
+				Kind:      esv1.SecretStoreKind,
+				Namespace: "test",
 			},
 			ref: esmetav1.SecretKeySelector{
 				Namespace: new("different"),
@@ -1219,9 +1209,7 @@ func TestValidateReferentSecretSelector(t *testing.T) {
 		{
 			desc: "cluster secret store with namespace reference",
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.ClusterSecretStoreKind,
-				},
+				Kind: esv1.ClusterSecretStoreKind,
 			},
 			ref: esmetav1.SecretKeySelector{
 				Namespace: new("test"),
@@ -1231,9 +1219,7 @@ func TestValidateReferentSecretSelector(t *testing.T) {
 		{
 			desc: "secret store without namespace reference",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.SecretStoreKind,
-				},
+				Kind: esv1.SecretStoreKind,
 			},
 			ref:      esmetav1.SecretKeySelector{},
 			expected: nil,
@@ -1241,12 +1227,8 @@ func TestValidateReferentSecretSelector(t *testing.T) {
 		{
 			desc: "secret store with the same namespace reference",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.SecretStoreKind,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test",
-				},
+				Kind:      esv1.SecretStoreKind,
+				Namespace: "test",
 			},
 			ref: esmetav1.SecretKeySelector{
 				Namespace: new("test"),
@@ -1256,12 +1238,8 @@ func TestValidateReferentSecretSelector(t *testing.T) {
 		{
 			desc: "secret store with the different namespace reference",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.SecretStoreKind,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test",
-				},
+				Kind:      esv1.SecretStoreKind,
+				Namespace: "test",
 			},
 			ref: esmetav1.SecretKeySelector{
 				Namespace: new("different"),
@@ -1291,9 +1269,7 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 		{
 			desc: "cluster secret store with namespace reference",
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.ClusterSecretStoreKind,
-				},
+				Kind: esv1.ClusterSecretStoreKind,
 			},
 			ref: esmetav1.ServiceAccountSelector{
 				Namespace: new("test"),
@@ -1303,9 +1279,7 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 		{
 			desc: "secret store without namespace reference",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.SecretStoreKind,
-				},
+				Kind: esv1.SecretStoreKind,
 			},
 			ref:      esmetav1.ServiceAccountSelector{},
 			expected: nil,
@@ -1313,12 +1287,8 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 		{
 			desc: "secret store with the same namespace reference",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.SecretStoreKind,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test",
-				},
+				Kind:      esv1.SecretStoreKind,
+				Namespace: "test",
 			},
 			ref: esmetav1.ServiceAccountSelector{
 				Namespace: new("test"),
@@ -1328,9 +1298,7 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 		{
 			desc: "cluster secret store without namespace reference",
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.ClusterSecretStoreKind,
-				},
+				Kind: esv1.ClusterSecretStoreKind,
 			},
 			ref:      esmetav1.ServiceAccountSelector{},
 			expected: errRequireNamespace,
@@ -1338,12 +1306,8 @@ func TestValidateServiceAccountSelector(t *testing.T) {
 		{
 			desc: "secret store with the different namespace reference",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.SecretStoreKind,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test",
-				},
+				Kind:      esv1.SecretStoreKind,
+				Namespace: "test",
 			},
 			ref: esmetav1.ServiceAccountSelector{
 				Namespace: new("different"),
@@ -1373,9 +1337,7 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 		{
 			desc: "cluster secret store with namespace reference",
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.ClusterSecretStoreKind,
-				},
+				Kind: esv1.ClusterSecretStoreKind,
 			},
 			ref: esmetav1.ServiceAccountSelector{
 				Namespace: new("test"),
@@ -1385,9 +1347,7 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 		{
 			desc: "secret store without namespace reference",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.SecretStoreKind,
-				},
+				Kind: esv1.SecretStoreKind,
 			},
 			ref:      esmetav1.ServiceAccountSelector{},
 			expected: nil,
@@ -1395,12 +1355,8 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 		{
 			desc: "secret store with the same namespace reference",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.SecretStoreKind,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test",
-				},
+				Kind:      esv1.SecretStoreKind,
+				Namespace: "test",
 			},
 			ref: esmetav1.ServiceAccountSelector{
 				Namespace: new("test"),
@@ -1410,12 +1366,8 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 		{
 			desc: "secret store with the different namespace reference",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: esv1.SecretStoreKind,
-				},
-				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test",
-				},
+				Kind:      esv1.SecretStoreKind,
+				Namespace: "test",
 			},
 			ref: esmetav1.ServiceAccountSelector{
 				Namespace: new("different"),
@@ -1438,19 +1390,15 @@ func TestValidateReferentServiceAccountSelector(t *testing.T) {
 func TestFetchCACertFromSourceRejectsCrossNamespaceCAProviderConfigMapForSecretStore(t *testing.T) {
 	fakeClient := clientfake.NewClientBuilder().WithObjects(
 		&v1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "ca-cm",
-				Namespace: "default",
-			},
+			Name:      "ca-cm",
+			Namespace: "default",
 			Data: map[string]string{
 				"ca.crt": "local-cert",
 			},
 		},
 		&v1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "ca-cm",
-				Namespace: "other",
-			},
+			Name:      "ca-cm",
+			Namespace: "other",
 			Data: map[string]string{
 				"ca.crt": "other-cert",
 			},
@@ -1476,19 +1424,15 @@ func TestFetchCACertFromSourceRejectsCrossNamespaceCAProviderConfigMapForSecretS
 func TestFetchCACertFromSourceRejectsCrossNamespaceCAProviderSecretForSecretStore(t *testing.T) {
 	fakeClient := clientfake.NewClientBuilder().WithObjects(
 		&v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "ca-secret",
-				Namespace: "default",
-			},
+			Name:      "ca-secret",
+			Namespace: "default",
 			Data: map[string][]byte{
 				"tls.crt": []byte("local-cert"),
 			},
 		},
 		&v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "ca-secret",
-				Namespace: "other",
-			},
+			Name:      "ca-secret",
+			Namespace: "other",
 			Data: map[string][]byte{
 				"tls.crt": []byte("other-cert"),
 			},

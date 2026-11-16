@@ -24,7 +24,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -144,9 +143,7 @@ func deleteCRD(crd *apiextensions.CustomResourceDefinition) {
 
 func makeCRD(plural, group string) *apiextensions.CustomResourceDefinition {
 	return &apiextensions.CustomResourceDefinition{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: plural + "." + group,
-		},
+		Name: plural + "." + group,
 		Spec: apiextensions.CustomResourceDefinitionSpec{
 			Versions: []apiextensions.CustomResourceDefinitionVersion{
 				{
@@ -187,24 +184,20 @@ func makeCRD(plural, group string) *apiextensions.CustomResourceDefinition {
 
 func makeSecret() corev1.Secret {
 	return corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: "default",
-			Labels: map[string]string{
-				"foo": "bar",
-			},
+		Name:      "foo",
+		Namespace: "default",
+		Labels: map[string]string{
+			"foo": "bar",
 		},
 	}
 }
 
 func makeService() corev1.Service {
 	return corev1.Service{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "foo",
-			Namespace: "default",
-			Labels: map[string]string{
-				"foo": "bar",
-			},
+		Name:      "foo",
+		Namespace: "default",
+		Labels: map[string]string{
+			"foo": "bar",
 		},
 		Spec: corev1.ServiceSpec{
 			Ports: []corev1.ServicePort{

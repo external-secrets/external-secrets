@@ -12,17 +12,17 @@ jobs:
     permissions:
       pull-requests: write  # for peter-evans/slash-command-dispatch to create PR reaction
       issues: write        # for adding labels and comments
-      contents: read       # for reading CODEOWNERS.md
+      contents: read       # for reading .github/CODEOWNERS
     runs-on: ubuntu-latest
     # Only run for PRs, not issue comments
     if: ${{ github.event.issue.pull_request }}
     steps:
-    # Checkout repo to access CODEOWNERS.md
+    # Checkout repo to access .github/CODEOWNERS
     - name: Checkout repository
       uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         sparse-checkout: |
-          CODEOWNERS.md
+          .github/CODEOWNERS
           .github/scripts
         persist-credentials: false
 
@@ -49,7 +49,7 @@ jobs:
 
     - name: Process LGTM Command
       if: ${{ github.event.comment.body == '/lgtm' }}
-      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v7
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
       with:
         github-token: ${{ steps.generate_token.outputs.token }}
         script: |

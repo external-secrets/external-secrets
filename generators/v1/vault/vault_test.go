@@ -25,7 +25,6 @@ import (
 	vaultapi "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -117,10 +116,8 @@ spec:
   path: "github/token/example"`),
 				},
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "testing",
-						Namespace: "testing",
-					},
+					Name:      "testing",
+					Namespace: "testing",
 					Secrets: []corev1.ObjectReference{
 						{
 							Name: "test",
@@ -152,10 +149,8 @@ spec:
   path: "github/token/example"`),
 				},
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "testing",
-						Namespace: "testing",
-					},
+					Name:      "testing",
+					Namespace: "testing",
 					Secrets: []corev1.ObjectReference{
 						{
 							Name: "test",
@@ -188,10 +183,8 @@ spec:
   allowEmptyResponse: true`),
 				},
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "testing",
-						Namespace: "testing",
-					},
+					Name:      "testing",
+					Namespace: "testing",
 					Secrets: []corev1.ObjectReference{
 						{
 							Name: "test",
@@ -225,10 +218,8 @@ spec:
   allowEmptyResponse: true`),
 				},
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "testing",
-						Namespace: "testing",
-					},
+					Name:      "testing",
+					Namespace: "testing",
 					Secrets: []corev1.ObjectReference{
 						{
 							Name: "test",
@@ -258,10 +249,8 @@ spec:
   path: "github/token/example"`),
 				},
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "testing",
-						Namespace: "testing",
-					},
+					Name:      "testing",
+					Namespace: "testing",
 					Secrets: []corev1.ObjectReference{
 						{
 							Name: "test",
@@ -303,10 +292,8 @@ spec:
   resultType: "Auth"`),
 				},
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "testing",
-						Namespace: "testing",
-					},
+					Name:      "testing",
+					Namespace: "testing",
 					Secrets: []corev1.ObjectReference{
 						{
 							Name: "test",
@@ -348,10 +335,8 @@ spec:
   resultType: "Raw"`),
 				},
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "testing",
-						Namespace: "testing",
-					},
+					Name:      "testing",
+					Namespace: "testing",
 					Secrets: []corev1.ObjectReference{
 						{
 							Name: "test",
@@ -415,8 +400,8 @@ spec:
 
 func TestVaultDynamicSecretGetParameters(t *testing.T) {
 	sa := &corev1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{Name: "testing", Namespace: "testing"},
-		Secrets:    []corev1.ObjectReference{{Name: "test"}},
+		Name: "testing", Namespace: "testing",
+		Secrets: []corev1.ObjectReference{{Name: "test"}},
 	}
 
 	t.Run("ForwardsGetParameters", func(t *testing.T) {

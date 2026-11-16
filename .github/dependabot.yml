@@ -10,29 +10,39 @@ updates:
       codeql:
         patterns:
           - "github/codeql-action/*"
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "weekly"
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
 
   - package-ecosystem: docker
     directory: /e2e
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
 
   - package-ecosystem: docker
     directory: /hack/api-docs
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
 
   - package-ecosystem: pip
     directory: /hack/api-docs
     schedule:
       interval: weekly
+    cooldown:
+      default-days: 7
     open-pull-requests-limit: 10
 
   - package-ecosystem: gomod

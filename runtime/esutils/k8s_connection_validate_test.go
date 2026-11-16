@@ -20,8 +20,6 @@ import (
 	"strings"
 	"testing"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
@@ -31,9 +29,9 @@ import (
 // read GetObjectKind().GroupVersionKind().Kind, agree with GetKind().
 func storeOfKind(kind string) esv1.GenericStore {
 	if kind == esv1.ClusterSecretStoreKind {
-		return &esv1.ClusterSecretStore{TypeMeta: metav1.TypeMeta{Kind: kind}}
+		return &esv1.ClusterSecretStore{Kind: kind}
 	}
-	return &esv1.SecretStore{TypeMeta: metav1.TypeMeta{Kind: kind}}
+	return &esv1.SecretStore{Kind: kind}
 }
 
 func TestIsReferentKubernetesAuth(t *testing.T) {

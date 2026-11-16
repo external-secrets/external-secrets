@@ -33,7 +33,6 @@ import (
 	"google.golang.org/api/option"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	utilpointer "k8s.io/utils/pointer"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/external-secrets/external-secrets-e2e/framework"
@@ -55,17 +54,27 @@ type GcpProvider struct {
 	controllerClass string
 }
 
-func NewGCPProvider(f *framework.Framework, credentials, projectID string,
-	clusterLocation string, clusterName string, serviceAccountName string, serviceAccountNamespace string, controllerClass string) *GcpProvider {
+// GCPProviderConfig contains the settings needed to initialize a GCP provider.
+type GCPProviderConfig struct {
+	Credentials             string
+	ProjectID               string
+	ClusterLocation         string
+	ClusterName             string
+	ServiceAccountName      string
+	ServiceAccountNamespace string
+	ControllerClass         string
+}
+
+func NewGCPProvider(f *framework.Framework, config GCPProviderConfig) *GcpProvider {
 	prov := &GcpProvider{
-		credentials:             credentials,
-		projectID:               projectID,
+		credentials:             config.Credentials,
+		projectID:               config.ProjectID,
 		framework:               f,
-		clusterLocation:         clusterLocation,
-		clusterName:             clusterName,
-		ServiceAccountName:      serviceAccountName,
-		ServiceAccountNamespace: serviceAccountNamespace,
-		controllerClass:         controllerClass,
+		clusterLocation:         config.ClusterLocation,
+		clusterName:             config.ClusterName,
+		ServiceAccountName:      config.ServiceAccountName,
+		ServiceAccountNamespace: config.ServiceAccountNamespace,
+		controllerClass:         config.ControllerClass,
 	}
 
 	BeforeEach(func() {
@@ -83,13 +92,15 @@ func NewGCPProvider(f *framework.Framework, credentials, projectID string,
 }
 
 func NewFromEnv(f *framework.Framework, controllerClass string) *GcpProvider {
-	projectID := os.Getenv("GCP_FED_PROJECT_ID")
-	credentials := os.Getenv("GCP_SERVICE_ACCOUNT_KEY")
-	serviceAccountName := os.Getenv("GCP_KSA_NAME")
-	serviceAccountNamespace := "default"
-	clusterLocation := os.Getenv("GCP_FED_REGION")
-	clusterName := os.Getenv("GCP_GKE_CLUSTER")
-	return NewGCPProvider(f, credentials, projectID, clusterLocation, clusterName, serviceAccountName, serviceAccountNamespace, controllerClass)
+	return NewGCPProvider(f, GCPProviderConfig{
+		Credentials:             os.Getenv("GCP_SERVICE_ACCOUNT_KEY"),
+		ProjectID:               os.Getenv("GCP_FED_PROJECT_ID"),
+		ClusterLocation:         os.Getenv("GCP_FED_REGION"),
+		ClusterName:             os.Getenv("GCP_GKE_CLUSTER"),
+		ServiceAccountName:      os.Getenv("GCP_KSA_NAME"),
+		ServiceAccountNamespace: "default",
+		ControllerClass:         controllerClass,
+	})
 }
 
 func (s *GcpProvider) getClient(ctx context.Context) (client *secretmanager.Client, err error) {
@@ -267,7 +278,7 @@ func (s *GcpProvider) CreateSpecifcSASecretStore() {
 						ClusterName:     s.clusterName,
 						ServiceAccountRef: esmeta.ServiceAccountSelector{
 							Name:      s.ServiceAccountName,
-							Namespace: utilpointer.String(s.ServiceAccountNamespace),
+							Namespace: new(s.ServiceAccountNamespace),
 						},
 					},
 				},

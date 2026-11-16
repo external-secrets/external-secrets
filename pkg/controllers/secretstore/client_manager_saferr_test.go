@@ -24,7 +24,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -59,8 +58,8 @@ func TestGetFromStoreProviderResolutionIsSafe(t *testing.T) {
 	mgr, _ := newSafeErrManager(t)
 
 	store := &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{Name: "no-provider", Namespace: "default"},
-		Spec:       esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{}},
+		Name: "no-provider", Namespace: "default",
+		Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{}},
 	}
 
 	_, err := mgr.GetFromStore(context.Background(), store, "default")
@@ -83,7 +82,7 @@ func TestGetFromStoreClientErrorIsNotSafe(t *testing.T) {
 	}, esv1.MaintenanceStatusMaintained)
 
 	store := &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{Name: "aws-store", Namespace: "default"},
+		Name: "aws-store", Namespace: "default",
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{AWS: &esv1.AWSProvider{}},
 		},

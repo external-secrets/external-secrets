@@ -96,7 +96,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 func (r *Reconciler) handleFinalizer(ctx context.Context, generatorState *genv1alpha1.GeneratorState) (bool, error) {
 	if generatorState.ObjectMeta.DeletionTimestamp.IsZero() {
-		if added := controllerutil.AddFinalizer(generatorState, generatorStateFinalizer); added {
+		if controllerutil.AddFinalizer(generatorState, generatorStateFinalizer) {
 			if err := r.Client.Update(ctx, generatorState, &client.UpdateOptions{}); err != nil {
 				return false, fmt.Errorf("could not update finalizers: %w", err)
 			}

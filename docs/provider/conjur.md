@@ -185,6 +185,103 @@ kubectl apply -n external-secrets -f conjur-secret-store.yaml
 # kubectl delete secretstore -n external-secrets conjur
 ```
 
+### Option 4: External secret store with IAM authentication
+
+This method uses the AWS IAM `authn-iam` authenticator to authenticate with Secrets Manager. The ESO pod presents a signed AWS `GetCallerIdentity` request; Conjur verifies it against the IAM role mapped to the Conjur host. No long-lived credentials are stored — ambient credentials are used automatically (IRSA, EC2 instance profile, ECS task role, environment variables, etc.).
+
+When you use IAM authentication, the following must be specified in the `SecretStore`:
+
+* `account` — The name of the Secrets Manager account.
+* `serviceID` — The ID of the IAM Authenticator `WebService` configured in Secrets Manager.
+* `hostId` — The Conjur host mapped to the AWS IAM role (e.g. `data/myapp/123456789012/MyRole`).
+
+Optionally, you may reference a Kubernetes Secret that contains explicit AWS credentials via the `secretRef` field:
+
+* `accessKeyIDSecretRef` — Reference to a Secret key containing the AWS Access Key ID.
+* `secretAccessKeySecretRef` — Reference to a Secret key containing the AWS Secret Access Key.
+* `sessionTokenSecretRef` (optional) — Reference to a Secret key containing the AWS Session Token. Required only when using temporary credentials (for example, credentials obtained via `AssumeRole` or `AssumeRoleWithWebIdentity`).
+
+If `secretRef` is omitted, the default AWS SDK credential chain is used.
+
+The Secrets Manager `url` must use `https://` when using IAM authentication, since the AWS IAM authenticator sends
+a signed request as a bearer credential. If you must connect over plain HTTP (for example, a service mesh sidecar
+that terminates TLS locally), set `insecure: true` to explicitly opt out of this check.
+
+#### Step 1: Define an external secret store
+
+```yaml
+{% include 'conjur-secret-store-iam.yaml' %}
+```
+
+#### Step 2: Create the external secrets store
+
+```shell
+kubectl apply -n external-secrets -f conjur-secret-store.yaml
+```
+
+### Option 5: External secret store with Azure authentication
+
+This method uses the Azure `authn-azure` authenticator to authenticate with Secrets Manager. The ESO pod presents an Azure JWT token; Conjur verifies it against the managed identity mapped to the Conjur host.
+
+Two sub-modes are available:
+
+* **Ambient IMDS** (recommended on AKS / Azure VM): no `serviceAccountRef` is set. `conjur-api-go` fetches the Azure JWT from the Azure Instance Metadata Service (IMDS) automatically. Use this when the pod runs on Azure infrastructure with a managed identity attached.
+* **ServiceAccount token** (`serviceAccountRef`): ESO requests a Kubernetes ServiceAccount token via the TokenRequest API and forwards it as the Azure JWT. Use this for local testing or when running outside Azure.
+
+For **user-assigned** managed identities you must also set `clientId` to the client ID of the managed identity. For **system-assigned** identities, omit `clientId`.
+
+#### Step 1: Define an external secret store (ambient IMDS)
+
+```yaml
+{% include 'conjur-secret-store-azure-ambient.yaml' %}
+```
+
+#### Step 1 (alternative): Define an external secret store (ServiceAccount token)
+
+```yaml
+{% include 'conjur-secret-store-azure-sa.yaml' %}
+```
+
+#### Step 2: Create the external secrets store
+
+```shell
+kubectl apply -n external-secrets -f conjur-secret-store.yaml
+```
+
+### Option 6: External secret store with GCP authentication
+
+This method uses the GCP `authn-gcp` authenticator to authenticate with Secrets Manager. The ESO pod presents a GCP identity token; Conjur verifies it against the service account mapped to the Conjur host.
+
+Two sub-modes are supported:
+
+* **Ambient GCP Metadata Service** (recommended on GKE with Workload Identity): no `secretRef` is set. `conjur-api-go` fetches the GCP identity token from the GCP Metadata Service automatically. Use this when the pod runs on GKE with Workload Identity or on a GCE instance.
+* **Kubernetes Secret** (`secretRef`): a pre-obtained GCP identity token is read from a Kubernetes Secret. Use this for local testing or when running outside GCP.
+
+The following must be specified in the `SecretStore`:
+
+* `account` — The Conjur organization account name.
+* `hostId` — The Conjur host mapped to the GCP service account (e.g. `data/myapp/myhost`).
+
+Optionally, you may set `serviceID` to the GCP Authenticator `WebService` ID configured in Conjur policy. This field is reserved for future use; Conjur's authn-gcp authenticator does not include the service ID in the authentication URL.
+
+#### Step 1: Define an external secret store (ambient GCP Metadata Service)
+
+```yaml
+{% include 'conjur-secret-store-gcp-ambient.yaml' %}
+```
+
+#### Step 1 (alternative): Define an external secret store (explicit token from Kubernetes Secret)
+
+```yaml
+{% include 'conjur-secret-store-gcp-secretref.yaml' %}
+```
+
+#### Step 2: Create the external secrets store
+
+```shell
+kubectl apply -n external-secrets -f conjur-secret-store.yaml
+```
+
 ## Define an external secret
 
 After you have configured the Secrets Manager provider secret store, you can fetch secrets from Secrets Manager.
@@ -249,6 +346,98 @@ kubectl apply -n external-secrets -f conjur-external-secret.yaml
 # Assuming the secret name is "secret00", this will show the value
 kubectl get secret -n external-secrets conjur -o jsonpath="{.data.secret00}"  | base64 --decode && echo
 ```
+
+## Define a push secret
+
+The Secrets Manager provider also supports [PushSecret](../guides/pushsecrets.md). This means that you can
+push the values of a Kubernetes secret into Secrets Manager variables.
+
+Here is an example of how to push a single key of a Kubernetes secret into Secrets Manager:
+
+```yaml
+{% include 'conjur-push-secret.yaml' %}
+```
+
+Save the push secret file as `conjur-push-secret.yaml`. The source Kubernetes secret (`app1-credentials` in this
+example) must already exist in the same namespace as the PushSecret.
+
+### Remote key and policy
+
+In Secrets Manager, a variable must be declared in a policy before a value can be stored in it. For this reason,
+ESO does not write values directly to `remoteKey`. It first loads a policy that declares the variables, and then
+sets their values.
+
+The `remoteRef.remoteKey` must contain at least one `/`. ESO splits it at the last `/`:
+
+* the part before the last `/` is the **parent policy**, which must already exist (for example `data/app1`)
+* the last segment is the name of a **policy** that ESO creates under the parent (for example `pushed`)
+
+On each sync, ESO loads a policy into the parent policy (in `POST` mode, which only adds to it). The policy contains:
+
+* one variable for each value that is pushed, annotated with `managed-by: external-secrets`
+* a `delegation/consumers` group, annotated with `editable: "true"`, which has `read` and `execute` privileges on
+  those variables. To give an application access to the pushed values, add its host or layer to this group.
+
+The Secrets Manager host that the `SecretStore` uses must have permission to load policy into the parent policy
+(`create`) and to set the values of the variables that it creates (`update`). The host also needs `read` and
+`execute` on those variables, because ESO compares their current values before it writes. The policy grants these
+privileges only to `delegation/consumers`, so add the host to this group if it does not already have them. If ESO
+cannot read the value of a variable, it skips that variable without reporting an error, so the variable can keep an
+old value while the PushSecret still shows as synced.
+
+### Secret key and property
+
+The name of the variable depends on whether `secretKey` and `remoteRef.property` are set:
+
+| `secretKey` | `property` | Result                                                                                           |
+|-------------|------------|--------------------------------------------------------------------------------------------------|
+| set         | not set    | One variable `<remoteKey>/<secretKey>` that holds the value of that key                          |
+| set         | set        | One variable `<remoteKey>/<property>` that holds the value of that key                           |
+| not set     | not set    | One variable `<remoteKey>/<key>` for each key in the source secret                               |
+| not set     | set        | One variable `<remoteKey>/<property>` that holds all keys of the source secret as a JSON object |
+
+Pushing all keys into one `property` only works if every value in the source secret is valid UTF-8 text.
+Binary values cannot be written into the JSON object correctly.
+
+### Existing variables
+
+Before ESO writes a variable, it checks whether the variable already exists:
+
+* If the variable does not exist, ESO creates it.
+* If the variable exists but does not have the `managed-by: external-secrets` annotation, ESO skips it and does
+  not change it. ESO does not report an error for this. Variables that other tools manage are never overwritten.
+* If ESO cannot read the current value of the variable, it skips the variable.
+* If the value is the same as the value in Kubernetes, ESO skips the variable, so no new version is created.
+
+### Update and deletion policies
+
+* `updatePolicy: IfNotExists` is not supported. Use the default `Replace` policy.
+* `deletionPolicy: Delete` is not supported. ESO cannot remove variables from Secrets Manager, so deleting the
+  PushSecret returns an error. Removing an entry from `spec.data` also returns an error, unless the same `remoteKey`
+  is still pushed as a whole secret, or `property` entries for that `remoteKey` replace a removed whole-secret entry.
+  In those cases, ESO skips the cleanup and the variables stay in Secrets Manager. Keep the default
+  `deletionPolicy: None` and remove the variables from Secrets Manager yourself.
+
+## Create the push secret
+
+```shell
+# WARNING: creates the push-secret in the "external-secrets" namespace, update the value as needed
+#
+kubectl apply -n external-secrets -f conjur-push-secret.yaml
+
+# WARNING: running the delete command will delete the push-secrets configuration
+# It does not delete the variables in Secrets Manager
+#
+# If there is a need to delete the push secret
+# kubectl delete pushsecret -n external-secrets conjur
+```
+
+## Get the Secrets Manager variable
+
+* Check that the push secret is synced: `kubectl get pushsecret -n external-secrets conjur`
+* Log in to your Secrets Manager server and verify that the variable exists and has the
+  `managed-by: external-secrets` annotation
+* Review the value of the variable to verify that it contains the same value as your Kubernetes secret
 
 ## See also
 

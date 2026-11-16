@@ -18,21 +18,19 @@ package iam
 
 import (
 	"context"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/nebius/gosdk/auth"
+	gosdkauth "github.com/nebius/gosdk/auth"
 	iam "github.com/nebius/gosdk/services/nebius/iam/v1"
 
+	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/auth"
 	"github.com/external-secrets/external-secrets/providers/v1/nebius/common/sdk"
 )
 
 const (
-	errInvalidSubjectCreds        = "invalid subject credentials: malformed JSON"
-	errSubjectCredsCannotBeSigned = "invalid subject credentials: cannot be signed %w"
+	errCreateExchangeTokenRequest = "could not create token exchange request: %w"
 )
 
 // GrpcTokenExchanger is a client for exchanging credentials over gRPC to obtain IAM tokens.
@@ -50,21 +48,25 @@ func NewGrpcTokenExchanger(logger logr.Logger, exchangeTokenObserveCallFunc func
 }
 
 // ExchangeIamToken exchanges subject credentials for a new IAM token using a gRPC-based token exchange service.
-func (t *GrpcTokenExchanger) ExchangeIamToken(ctx context.Context, apiDomain, subjectCreds string, issuedAt time.Time, caCertificate []byte) (*Token, error) {
-	parsedSubjectCreds := &auth.ServiceAccountCredentials{}
-	if err := json.Unmarshal([]byte(subjectCreds), parsedSubjectCreds); err != nil {
+func (t *GrpcTokenExchanger) ExchangeIamToken(ctx context.Context, apiDomain string, resolvedCreds auth.TokenExchangeCredentials, issuedAt time.Time, caCertificate []byte) (*Token, error) {
+	var tokenRequester gosdkauth.ExchangeTokenRequester
+	var err error
+
+	switch creds := resolvedCreds.(type) {
+	case *auth.ResolvedServiceAccountCreds:
+		tokenRequester = t.newServiceAccountTokenRequester(creds)
+	case *auth.ResolvedFederatedCredentials:
+		tokenRequester = t.newFederatedServiceAccountTokenRequester(creds)
+	default:
+		err = fmt.Errorf("unknown auth type %T", creds)
+	}
+
+	if err != nil {
 		if t.exchangeTokenObserveCall != nil {
 			t.exchangeTokenObserveCall(err)
 		}
-		return nil, errors.New(errInvalidSubjectCreds)
+		return nil, err
 	}
-
-	reader := auth.NewPrivateKeyParser(
-		[]byte(parsedSubjectCreds.SubjectCredentials.PrivateKey),
-		parsedSubjectCreds.SubjectCredentials.KeyID,
-		parsedSubjectCreds.SubjectCredentials.Subject,
-	)
-	tokenRequester := auth.NewServiceAccountExchangeTokenRequester(reader)
 
 	iamSdk, err := sdk.NewSDK(ctx, apiDomain, caCertificate)
 	if err != nil {
@@ -82,7 +84,7 @@ func (t *GrpcTokenExchanger) ExchangeIamToken(ctx context.Context, apiDomain, su
 		if t.exchangeTokenObserveCall != nil {
 			t.exchangeTokenObserveCall(err)
 		}
-		return nil, fmt.Errorf(errSubjectCredsCannotBeSigned, err)
+		return nil, fmt.Errorf(errCreateExchangeTokenRequest, err)
 	}
 
 	tok, err := tokenExchanger.Exchange(ctx, req)
@@ -98,6 +100,21 @@ func (t *GrpcTokenExchanger) ExchangeIamToken(ctx context.Context, apiDomain, su
 		ExpiresAt: issuedAt.Add(time.Duration(tok.GetExpiresIn()) * time.Second),
 		IssuedAt:  issuedAt,
 	}, nil
+}
+
+func (t *GrpcTokenExchanger) newServiceAccountTokenRequester(credentials *auth.ResolvedServiceAccountCreds) gosdkauth.ServiceAccountExchangeTokenRequester {
+	reader := gosdkauth.NewPrivateKeyParser(
+		[]byte(credentials.PrivateKey),
+		credentials.KeyID,
+		credentials.Subject,
+	)
+	return gosdkauth.NewServiceAccountExchangeTokenRequester(reader)
+}
+func (t *GrpcTokenExchanger) newFederatedServiceAccountTokenRequester(resolvedCreds *auth.ResolvedFederatedCredentials) *gosdkauth.FederatedCredentialsTokenRequester {
+	reader := gosdkauth.NewStaticFederatedCredentialsReader(
+		gosdkauth.FederatedCredentials(resolvedCreds.SubjectToken),
+	)
+	return gosdkauth.NewFederatedCredentialsTokenRequester(resolvedCreds.ServiceAccountID, reader)
 }
 
 var _ TokenExchanger = &GrpcTokenExchanger{}

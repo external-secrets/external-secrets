@@ -89,6 +89,15 @@ spec:
           {{- if .Values.enableHTTP2 }}
           - --enable-http2=true
           {{- end }}
+          {{- if (.Values.certController.tls.minVersion | default .Values.tls.minVersion) }}
+          - --tls-min-version={{ .Values.certController.tls.minVersion | default .Values.tls.minVersion }}
+          {{- end }}
+          {{- if (.Values.certController.tls.ciphers | default .Values.tls.ciphers) }}
+          - --tls-ciphers={{ .Values.certController.tls.ciphers | default .Values.tls.ciphers }}
+          {{- end }}
+          {{- if (.Values.certController.tls.curvePreferences | default .Values.tls.curvePreferences) }}
+          - --tls-curve-preferences={{ join "," (.Values.certController.tls.curvePreferences | default .Values.tls.curvePreferences) }}
+          {{- end }}
           {{- if .Values.leaderElect }}
           - --enable-leader-election=true
           {{- end }}

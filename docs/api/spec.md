@@ -414,6 +414,23 @@ token stored in the named Secret resource.</p>
 </tr>
 <tr>
 <td>
+<code>jwtAuth</code></br>
+<em>
+<a href="#external-secrets.io/v1.AkeylessJWTAuth">
+AkeylessJWTAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>JWTAuth authenticates with an Akeyless OAuth2.0/JWT auth method by
+submitting access-type=jwt and a bearer JWT. Prefer this over stuffing
+the JWT into SecretRef.accessTypeParam when using TokenRequest-issued tokens.
+When set, SecretRef and ServiceAccountRef on AkeylessAuth are ignored.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>serviceAccountRef</code></br>
 <em>
 <a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
@@ -440,7 +457,7 @@ of using the ESO controller pod identity. Ignored for other access types.</p>
 <p>
 <p>AkeylessAuthSecretRef references a Secret that contains the details
 to authenticate with Akeyless.
-AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.</p>
+AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME OR JWT.</p>
 </p>
 <table>
 <thead>
@@ -485,6 +502,86 @@ External Secrets meta/v1.SecretKeySelector
 </em>
 </td>
 <td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.AkeylessJWTAuth">AkeylessJWTAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.AkeylessAuth">AkeylessAuth</a>)
+</p>
+<p>
+<p>AkeylessJWTAuth authenticates with Akeyless using an OAuth2.0/JWT auth method
+(API access-type=jwt). Provide either a Secret holding the JWT or a
+ServiceAccount for TokenRequest-issued tokens (for example Kubernetes OIDC
+federation against Akeyless). Requires create on serviceaccounts/token when
+using ServiceAccountRef (Helm: rbac.serviceAccountTokenCreate, default true).</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>the Akeyless OAuth2.0/JWT auth-method access-id</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional SecretRef that refers to a key in a Secret resource containing
+the JWT used to authenticate with Akeyless.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional ServiceAccountRef requests a token via the TokenRequest API.
+audiences is required and must match the Akeyless OAuth2.0/JWT
+auth-method audience, so the token is never scoped to the Kubernetes
+API server. Mutually exclusive with SecretRef.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>expirationSeconds</code></br>
+<em>
+int64
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Optional expiration time in seconds for TokenRequest tokens. Only valid
+with ServiceAccountRef. Defaults to 600 (10 minutes). Kubernetes rejects
+TokenRequest values below 600.</p>
 </td>
 </tr>
 </tbody>
@@ -1180,6 +1277,23 @@ configuration is not supported with the legacy go-autorest SDK.</p>
 <tbody>
 <tr>
 <td>
+<code>authType</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanAuthType">
+BarbicanAuthType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AuthType selects how Barbican authenticates.
+- &ldquo;password&rdquo;: use username and password.
+- &ldquo;applicationCredential&rdquo;: use application credential ID and secret.
+Defaults to &ldquo;password&rdquo;.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>username</code></br>
 <em>
 <a href="#external-secrets.io/v1.BarbicanProviderUsernameRef">
@@ -1188,6 +1302,8 @@ BarbicanProviderUsernameRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>Username / Password authentication fields.</p>
 </td>
 </tr>
 <tr>
@@ -1200,9 +1316,61 @@ BarbicanProviderPasswordRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>applicationCredentialID</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProviderAppCredIDRef">
+BarbicanProviderAppCredIDRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ID of the application credential used for authentication.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>applicationCredentialSecret</code></br>
+<em>
+<a href="#external-secrets.io/v1.BarbicanProviderAppCredSecretRef">
+BarbicanProviderAppCredSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanAuthType">BarbicanAuthType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
+</p>
+<p>
+<p>BarbicanAuthType defines the authentication method used by the Barbican provider.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;applicationCredential&#34;</p></td>
+<td><p>BarbicanAuthTypeApplicationCredential uses OpenStack Application Credentials.</p>
+</td>
+</tr><tr><td><p>&#34;password&#34;</p></td>
+<td><p>BarbicanAuthTypePassword uses username/password Keystone authentication.</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.BarbicanProvider">BarbicanProvider
 </h3>
@@ -1267,6 +1435,78 @@ string
 <em>
 <a href="#external-secrets.io/v1.BarbicanAuth">
 BarbicanAuth
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProviderAppCredIDRef">BarbicanProviderAppCredIDRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
+</p>
+<p>
+<p>BarbicanProviderAppCredIDRef defines a reference to an Application Credential ID.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>value</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BarbicanProviderAppCredSecretRef">BarbicanProviderAppCredSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BarbicanAuth">BarbicanAuth</a>)
+</p>
+<p>
+<p>BarbicanProviderAppCredSecretRef defines a reference to an Application Credential Secret.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
 </a>
 </em>
 </td>
@@ -3547,6 +3787,132 @@ ConjurCert
 <p>Cert enables certificate-based authentication using a client certificate and key.</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>iam</code></br>
+<em>
+<a href="#external-secrets.io/v1.ConjurIAM">
+ConjurIAM
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>IAM enables authentication to Conjur via the authn-iam authenticator.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>azure</code></br>
+<em>
+<a href="#external-secrets.io/v1.ConjurAzure">
+ConjurAzure
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Azure enables authentication to Conjur via the authn-azure authenticator.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>gcp</code></br>
+<em>
+<a href="#external-secrets.io/v1.ConjurGCP">
+ConjurGCP
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>GCP enables authentication to Conjur via the authn-gcp authenticator.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ConjurAzure">ConjurAzure
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ConjurAuth">ConjurAuth</a>)
+</p>
+<p>
+<p>ConjurAzure configures authentication to Conjur via the authn-azure authenticator.
+It uses an Azure JWT token to authenticate — either fetched from the Azure Instance
+Metadata Service (IMDS) automatically, or sourced from a Kubernetes ServiceAccount token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>account</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Account is the Conjur organization account name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ServiceID is the Conjur authn-azure webservice identifier (e.g. &ldquo;prod&rdquo;).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>HostID is the Conjur host mapped to the Azure managed identity
+(e.g. &ldquo;data/myapp/myhost&rdquo;).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>clientId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ClientID is the Azure managed identity client ID. Required for user-assigned
+managed identities; omit for system-assigned identities.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef specifies the Kubernetes service account for which to request
+a token via the TokenRequest API. That token is used as the Azure JWT for Conjur
+authn-azure. If omitted, the token is fetched from the Azure IMDS endpoint instead.</p>
+</td>
+</tr>
 </tbody>
 </table>
 <h3 id="external-secrets.io/v1.ConjurCert">ConjurCert
@@ -3626,6 +3992,257 @@ External Secrets meta/v1.SecretKeySelector
 <td>
 <p>ClientKeyRef is a reference to a specific &lsquo;key&rsquo; containing the private RSA client key
 within a Secret resource. The key must be PEM-encoded.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ConjurGCP">ConjurGCP
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ConjurAuth">ConjurAuth</a>)
+</p>
+<p>
+<p>ConjurGCP configures authentication to Conjur via the authn-gcp authenticator.
+It uses a GCP identity token to authenticate — either fetched from the GCP Metadata
+Service automatically (GKE Workload Identity or GCE instance), or sourced from a
+Kubernetes Secret.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>account</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Account is the Conjur organization account name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceID is the Conjur authn-gcp webservice identifier (e.g. &ldquo;prod&rdquo;).
+Note: Conjur&rsquo;s authn-gcp authenticator does not include the service ID in the
+authentication URL; this field is reserved for future use.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>HostID is the Conjur host mapped to the GCP service account
+(e.g. &ldquo;data/myapp/myhost&rdquo;).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.ConjurGCPSecretRef">
+ConjurGCPSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef holds a reference to a Kubernetes Secret containing a pre-obtained
+GCP identity token. If omitted, the token is fetched from the GCP Metadata
+Service automatically (requires GKE Workload Identity or a GCE/GKE node).</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ConjurGCPSecretRef">ConjurGCPSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ConjurGCP">ConjurGCP</a>)
+</p>
+<p>
+<p>ConjurGCPSecretRef holds a reference to a Kubernetes Secret containing a GCP identity token.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>jwt</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>JWT is a reference to the Kubernetes Secret key holding the GCP identity token.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ConjurIAM">ConjurIAM
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ConjurAuth">ConjurAuth</a>)
+</p>
+<p>
+<p>ConjurIAM configures authentication to Conjur via the authn-iam authenticator.
+It uses the AWS STS GetCallerIdentity endpoint to authenticate.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>account</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>Account is the Conjur organization account name.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ServiceID is the Conjur authn-iam webservice identifier (e.g. &ldquo;prod&rdquo;).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>hostId</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>HostID is the Conjur host mapped to the AWS IAM role
+(e.g. &ldquo;data/myapp/123456789012/MyRole&rdquo;).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretRef</code></br>
+<em>
+<a href="#external-secrets.io/v1.ConjurIAMSecretRef">
+ConjurIAMSecretRef
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>SecretRef holds optional references to Kubernetes Secrets containing explicit
+AWS credentials. If omitted, the default AWS SDK credential chain is used
+(IRSA, instance metadata, environment variables, etc.).</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>insecure</code></br>
+<em>
+bool
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Insecure allows authenticating to Conjur over plain HTTP. The AWS IAM authenticator
+sends a signed request as a bearer credential, so this should only be enabled when the
+connection is otherwise protected (e.g. a service mesh sidecar terminating TLS).</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.ConjurIAMSecretRef">ConjurIAMSecretRef
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.ConjurIAM">ConjurIAM</a>)
+</p>
+<p>
+<p>ConjurIAMSecretRef holds secret selectors for explicit AWS credentials.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>accessKeyIDSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>A reference to a Secret key containing the AWS Access Key ID.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>secretAccessKeySecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<p>A reference to a Secret key containing the AWS Secret Access Key.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>sessionTokenSecretRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>A reference to a Secret key containing the AWS Session Token.
+Required only when using temporary credentials.</p>
 </td>
 </tr>
 </tbody>
@@ -3900,7 +4517,9 @@ string
 <td>
 <em>(Optional)</em>
 <p>Vault is the name or UUID of the vault to fetch secrets from.
-When omitted, the vault must be specified in the secret key using the legacy format &ldquo;<vault-id>/<entry-id>&rdquo;.</p>
+When omitted, each secret key must name its own vault: the first slash or backslash
+separates the vault from the entry reference. Both accept a name or a UUID, and the entry
+reference may include a folder path. This allows one store to serve secrets from many vaults.</p>
 </td>
 </tr>
 <tr>
@@ -6830,6 +7449,21 @@ GithubAppAuth
 </tr>
 <tr>
 <td>
+<code>secretType</code></br>
+<em>
+<a href="#external-secrets.io/v1.GithubSecretType">
+GithubSecretType
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>secretType specifies which GitHub secret service to use.
+Defaults to Actions for backwards compatibility.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>appID</code></br>
 <em>
 int64
@@ -6901,6 +7535,30 @@ whatever visibility they already have in GitHub.</p>
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.GithubSecretType">GithubSecretType
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.GithubProvider">GithubProvider</a>)
+</p>
+<p>
+<p>GithubSecretType specifies the GitHub secret service to use.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;Actions&#34;</p></td>
+<td><p>GithubSecretTypeActions selects GitHub Actions secrets.</p>
+</td>
+</tr><tr><td><p>&#34;Dependabot&#34;</p></td>
+<td><p>GithubSecretTypeDependabot selects GitHub Dependabot secrets.</p>
+</td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.GitlabAuth">GitlabAuth
 </h3>
@@ -7616,6 +8274,7 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 </td>
 </tr>
 <tr>
@@ -8170,7 +8829,21 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <em>(Optional)</em>
-<p>Token authenticates with Nebius Mysterybox by presenting a token.</p>
+<p>Token authenticates with Nebius SecretStash by presenting a token.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>workloadIdentity</code></br>
+<em>
+<a href="#external-secrets.io/v1.NebiusWorkloadIdentity">
+NebiusWorkloadIdentity
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>WorkloadIdentity defines configuration for workload identity authentication to Nebius IAM.</p>
 </td>
 </tr>
 </tbody>
@@ -8214,7 +8887,7 @@ External Secrets meta/v1.SecretKeySelector
 <a href="#external-secrets.io/v1.SecretStoreProvider">SecretStoreProvider</a>)
 </p>
 <p>
-<p>NebiusMysteryboxProvider Configures a store to sync secrets using the Nebius Mysterybox provider.</p>
+<p>NebiusMysteryboxProvider Configures a store to sync secrets using the Nebius SecretStash provider.</p>
 </p>
 <table>
 <thead>
@@ -8232,7 +8905,7 @@ string
 </em>
 </td>
 <td>
-<p>NebiusMysterybox API endpoint</p>
+<p>Nebius SecretStash API endpoint</p>
 </td>
 </tr>
 <tr>
@@ -8245,7 +8918,7 @@ NebiusAuth
 </em>
 </td>
 <td>
-<p>Auth defines parameters to authenticate in MysteryBox</p>
+<p>Auth defines parameters to authenticate in SecretStash</p>
 </td>
 </tr>
 <tr>
@@ -8259,7 +8932,53 @@ NebiusCAProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>The provider for the CA bundle to use to validate NebiusMysterybox server certificate.</p>
+<p>The provider for the CA bundle to use to validate Nebius SecretStash server certificate.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.NebiusWorkloadIdentity">NebiusWorkloadIdentity
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.NebiusAuth">NebiusAuth</a>)
+</p>
+<p>
+<p>NebiusWorkloadIdentity defines configuration for workload identity authentication to Nebius IAM.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountRef references a Kubernetes ServiceAccount used to request a
+temporary JWT via the TokenRequest API. The JWT is then exchanged for a
+Nebius IAM token using workload federation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>iamServiceAccountID</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>IAMServiceAccountID is the Nebius IAM service account identifier that the
+federated Kubernetes service account should impersonate during token exchange.</p>
 </td>
 </tr>
 </tbody>
@@ -11104,7 +11823,7 @@ GithubProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>Github configures this store to push GitHub Actions secrets using the GitHub API provider.
+<p>Github configures this store to push GitHub Actions or Dependabot secrets using the GitHub API provider.
 Note: This provider only supports write operations (PushSecret) and cannot fetch secrets from GitHub</p>
 </td>
 </tr>
@@ -11529,7 +12248,7 @@ NebiusMysteryboxProvider
 </td>
 <td>
 <em>(Optional)</em>
-<p>NebiusMysterybox configures this store to sync secrets using NebiusMysterybox provider</p>
+<p>NebiusMysterybox configures this store to sync secrets using the Nebius SecretStash provider</p>
 </td>
 </tr>
 <tr>
@@ -28616,6 +29335,22 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>AppID is the GitHub App ID. Exactly one of AppID or AppIDRef must be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>appIDRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AppIDRef references a secret key containing the GitHub App ID. Exactly one of AppID or AppIDRef must be set.</p>
 </td>
 </tr>
 <tr>
@@ -28626,6 +29361,23 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>InstallID is the GitHub App installation ID. Exactly one of InstallID or InstallIDRef must be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>installIDRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>InstallIDRef references a secret key containing the GitHub App installation ID. Exactly one of InstallID or
+InstallIDRef must be set.</p>
 </td>
 </tr>
 <tr>
@@ -28706,6 +29458,22 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>AppID is the GitHub App ID. Exactly one of AppID or AppIDRef must be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>appIDRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>AppIDRef references a secret key containing the GitHub App ID. Exactly one of AppID or AppIDRef must be set.</p>
 </td>
 </tr>
 <tr>
@@ -28716,6 +29484,23 @@ string
 </em>
 </td>
 <td>
+<em>(Optional)</em>
+<p>InstallID is the GitHub App installation ID. Exactly one of InstallID or InstallIDRef must be set.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>installIDRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#SecretKeySelector">
+External Secrets meta/v1.SecretKeySelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>InstallIDRef references a secret key containing the GitHub App installation ID. Exactly one of InstallID or
+InstallIDRef must be set.</p>
 </td>
 </tr>
 <tr>
@@ -29939,6 +30724,32 @@ Valid values are:
 - &ldquo;hex&rdquo;: hexadecimal encoding</p>
 </td>
 </tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix is prepended to every generated password after encoding.
+It is not counted in length or subject to the character settings.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>suffix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Suffix is appended to every generated password after encoding.
+It is not counted in length or subject to the character settings.</p>
+</td>
+</tr>
 </table>
 </td>
 </tr>
@@ -30060,6 +30871,32 @@ Valid values are:
 - &ldquo;base64url&rdquo;: base64url encoding
 - &ldquo;base32&rdquo;: base32 encoding
 - &ldquo;hex&rdquo;: hexadecimal encoding</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>prefix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Prefix is prepended to every generated password after encoding.
+It is not counted in length or subject to the character settings.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>suffix</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>Suffix is appended to every generated password after encoding.
+It is not counted in length or subject to the character settings.</p>
 </td>
 </tr>
 </tbody>
@@ -30616,7 +31453,7 @@ string
 <h3 id="generators.external-secrets.io/v1alpha1.UUID">UUID
 </h3>
 <p>
-<p>UUID generates a version 1 UUID (e56657e3-764f-11ef-a397-65231a88c216).</p>
+<p>UUID generates a version 4 UUID (21061816-abbd-40ef-8985-6db0fbcbc4c4).</p>
 </p>
 <table>
 <thead>

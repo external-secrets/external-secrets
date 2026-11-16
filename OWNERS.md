@@ -1,7 +1,7 @@
 # External Secrets Owners
 
 This document maps **specialty areas** to GitHub teams used for reviews and approvals.  
-It complements the automation in [`CODEOWNERS`](./CODEOWNERS) and the roles defined in
+It complements the automation in [`CODEOWNERS`](./.github/CODEOWNERS) and the roles defined in
 [`CONTRIBUTOR_LADDER.md`](./CONTRIBUTOR_LADDER.md).
 
 - **Reviewer**: may review and `/lgtm` within their specialty.

@@ -30,7 +30,6 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	fakeps "github.com/external-secrets/external-secrets/providers/v1/aws/parameterstore/fake"
@@ -969,10 +968,8 @@ func TestGetSecretMap(t *testing.T) {
 
 func makeValidParameterStore() *esv1.SecretStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "aws-parameterstore",
-			Namespace: "default",
-		},
+		Name:      "aws-parameterstore",
+		Namespace: "default",
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				AWS: &esv1.AWSProvider{

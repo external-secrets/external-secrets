@@ -44,7 +44,7 @@ spec:
       imagePullSecrets:
         {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
       {{- end }}
-      hostNetwork: {{ .Values.webhook.hostNetwork}}
+      hostNetwork: {{ .Values.webhook.hostNetwork }}
       serviceAccountName: {{ include "external-secrets-webhook.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.webhook.serviceAccount.automount }}
       {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}
@@ -83,6 +83,15 @@ spec:
           {{- end }}
           {{- if .Values.enableHTTP2 }}
           - --enable-http2=true
+          {{- end }}
+          {{- if (.Values.webhook.tls.minVersion | default .Values.tls.minVersion) }}
+          - --tls-min-version={{ .Values.webhook.tls.minVersion | default .Values.tls.minVersion }}
+          {{- end }}
+          {{- if (.Values.webhook.tls.ciphers | default .Values.tls.ciphers) }}
+          - --tls-ciphers={{ .Values.webhook.tls.ciphers | default .Values.tls.ciphers }}
+          {{- end }}
+          {{- if (.Values.webhook.tls.curvePreferences | default .Values.tls.curvePreferences) }}
+          - --tls-curve-preferences={{ join "," (.Values.webhook.tls.curvePreferences | default .Values.tls.curvePreferences) }}
           {{- end }}
           {{- range $key, $value := .Values.webhook.extraArgs }}
             {{- if $value }}

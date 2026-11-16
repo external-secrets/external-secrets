@@ -23,7 +23,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/core/v1"
 	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
@@ -64,10 +63,8 @@ func TestGenerate(t *testing.T) {
 					Raw: []byte(`{"spec": {"secret": {"name": "secret", "key": "secret"}, "when": "1998-05-05T05:05:05Z"}}`),
 				},
 				client: clientfake.NewClientBuilder().WithObjects(&v1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "secret",
-						Namespace: "namespace",
-					},
+					Name:      "secret",
+					Namespace: "namespace",
 					Data: map[string][]byte{
 						"secret": []byte("foo"),
 					},

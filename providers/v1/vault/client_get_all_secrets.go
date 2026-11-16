@@ -23,7 +23,6 @@ import (
 	"strings"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
-	"github.com/external-secrets/external-secrets/runtime/constants"
 	"github.com/external-secrets/external-secrets/runtime/find"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
@@ -57,7 +56,7 @@ func (c *client) findSecretsFromTags(ctx context.Context, candidates []string, t
 	secrets := make(map[string][]byte)
 	for _, name := range candidates {
 		match := true
-		metadata, err := c.readSecretMetadata(ctx, name)
+		metadata, err := c.readSecretMetadata(ctx, name, false)
 		if err != nil {
 			return nil, err
 		}
@@ -115,7 +114,7 @@ func (c *client) listSecrets(ctx context.Context, path string) ([]string, error)
 		return nil, err
 	}
 	secret, err := c.logical.ListWithContext(ctx, url)
-	metrics.ObserveAPICall(constants.ProviderHCVault, constants.CallHCVaultListSecrets, err)
+	metrics.ObserveAPICall(ProviderHCVault, CallHCVaultListSecrets, err)
 	if err != nil {
 		return nil, fmt.Errorf(errReadSecret, err)
 	}

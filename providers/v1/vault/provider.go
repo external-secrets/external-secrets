@@ -323,53 +323,76 @@ func initCache(size int) {
 	})
 }
 
-func init() {
-	var (
-		vaultTokenCacheSize     int
-		experimentalEnableCache bool
-		experimentalCacheSize   int
-	)
+// vaultCacheFlags holds the token cache flag values. Keeping them in a struct
+// lets the registration and the resolution be covered by a test without going
+// through init() and the package level state it writes.
+type vaultCacheFlags struct {
+	enable    bool
+	size      int
+	expEnable bool
+	expSize   int
+}
 
-	fs := pflag.NewFlagSet("vault", pflag.ExitOnError)
+// registerVaultCacheFlags declares the token cache flags on a new FlagSet.
+// Both deprecated experimental flags carry the same defaults as the flags that
+// replace them, so their value alone cannot tell an explicit setting apart from
+// an untouched default. resolveVaultCacheConfig uses fs.Changed for that.
+func registerVaultCacheFlags(errorHandling pflag.ErrorHandling) (*pflag.FlagSet, *vaultCacheFlags) {
+	flags := &vaultCacheFlags{}
+	fs := pflag.NewFlagSet("vault", errorHandling)
 	fs.BoolVar(
-		&enableCache,
+		&flags.enable,
 		"enable-vault-token-cache",
 		false,
 		"Enable Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.",
 	)
 	// max. 265k vault leases with 30bytes each ~= 7MB
 	fs.IntVar(
-		&vaultTokenCacheSize,
+		&flags.size,
 		"vault-token-cache-size",
 		defaultCacheSize,
 		"Maximum size of Vault token cache. Only used if --enable-vault-token-cache is set.",
 	)
 	fs.BoolVar(
-		&experimentalEnableCache,
+		&flags.expEnable,
 		"experimental-enable-vault-token-cache",
 		false,
 		"Enable Vault token cache. External secrets will reuse the Vault token without creating a new one on each request.",
 	)
 	// max. 265k vault leases with 30bytes each ~= 7MB
 	fs.IntVar(
-		&experimentalCacheSize,
+		&flags.expSize,
 		"experimental-vault-token-cache-size",
 		defaultCacheSize,
 		"Maximum size of Vault token cache. Only used if --experimental-enable-vault-token-cache is set.",
 	)
+	return fs, flags
+}
+
+// resolveVaultCacheConfig returns the token cache settings to apply. A deprecated
+// experimental flag only takes effect when it was explicitly passed, otherwise its
+// default would overwrite the supported flag on every start.
+func resolveVaultCacheConfig(fs *pflag.FlagSet, flags *vaultCacheFlags) (bool, int) {
+	enable, size := flags.enable, flags.size
+	if fs.Changed("experimental-enable-vault-token-cache") {
+		logger.Info("DEPRECATION WARNING: --experimental-enable-vault-token-cache is deprecated. Please use --enable-vault-token-cache instead. This flag will be removed in a future release.")
+		enable = flags.expEnable
+	}
+	if fs.Changed("experimental-vault-token-cache-size") {
+		logger.Info("DEPRECATION WARNING: --experimental-vault-token-cache-size is deprecated. Please use --vault-token-cache-size instead. This flag will be removed in a future release.")
+		size = flags.expSize
+	}
+	return enable, size
+}
+
+func init() {
+	fs, flags := registerVaultCacheFlags(pflag.ExitOnError)
 	feature.Register(feature.Feature{
 		Flags: fs,
 		Initialize: func() {
-			// Check for deprecated experimental flags and warn users
-			if experimentalEnableCache {
-				logger.Info("DEPRECATION WARNING: --experimental-enable-vault-token-cache is deprecated. Please use --enable-vault-token-cache instead. This flag will be removed in a future release.")
-				enableCache = true
-			}
-			if experimentalCacheSize > 0 {
-				logger.Info("DEPRECATION WARNING: --experimental-vault-token-cache-size is deprecated. Please use --vault-token-cache-size instead. This flag will be removed in a future release.")
-				vaultTokenCacheSize = experimentalCacheSize
-			}
-			initCache(vaultTokenCacheSize)
+			enable, size := resolveVaultCacheConfig(fs, flags)
+			enableCache = enable
+			initCache(size)
 		},
 	})
 }

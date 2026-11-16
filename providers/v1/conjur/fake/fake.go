@@ -53,10 +53,8 @@ func (mc *ConjurMockClient) AddSecret(variable, secret string) error {
 func (mc *ConjurMockClient) GetStaticSecretDetails(id string) (*conjurapi.StaticSecretResponse, error) {
 	if mc.SecretDetails == nil || mc.SecretDetails[id] == nil {
 		return &conjurapi.StaticSecretResponse{
-			StaticSecret: conjurapi.StaticSecret{
-				Annotations: map[string]string{
-					"managed-by": "external-secrets",
-				},
+			Annotations: map[string]string{
+				"managed-by": "external-secrets",
 			},
 			Permissions: conjurapi.Permission{},
 		}, nil

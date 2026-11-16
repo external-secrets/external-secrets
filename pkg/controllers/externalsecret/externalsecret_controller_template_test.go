@@ -23,12 +23,88 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 )
+
+func TestValidateSecretCandidate(t *testing.T) {
+	tests := []struct {
+		name    string
+		secret  *v1.Secret
+		wantErr error
+	}{
+		{
+			name: "opaque Secret",
+			secret: &v1.Secret{
+				Type: v1.SecretTypeOpaque,
+				Annotations: map[string]string{
+					v1.ServiceAccountNameKey: "service-account",
+				},
+			},
+		},
+		{
+			name: "service account token without service account annotation",
+			secret: &v1.Secret{
+				Type: v1.SecretTypeServiceAccountToken,
+			},
+		},
+		{
+			name: "service account token with service account annotation",
+			secret: &v1.Secret{
+				Type: v1.SecretTypeServiceAccountToken,
+				Annotations: map[string]string{
+					v1.ServiceAccountNameKey: "service-account",
+				},
+			},
+			wantErr: errServiceAccountTokenSecret,
+		},
+		{
+			name: "bootstrap token",
+			secret: &v1.Secret{
+				Type: v1.SecretTypeBootstrapToken,
+			},
+			wantErr: errBootstrapTokenSecret,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateSecretCandidate(tt.secret)
+			require.ErrorIs(t, err, tt.wantErr)
+		})
+	}
+}
+
+func TestValidateSecretCandidateRejectsRetainedTypeWithExternalSecretAnnotation(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{
+		Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(),
+		Scheme: scheme.Scheme,
+	}
+	es := &esv1.ExternalSecret{
+		Name:      "test-es",
+		Namespace: "default",
+		Annotations: map[string]string{
+			v1.ServiceAccountNameKey: "service-account",
+		},
+		Spec: esv1.ExternalSecretSpec{
+			Target: esv1.ExternalSecretTarget{
+				CreationPolicy: esv1.CreatePolicyMerge,
+			},
+		},
+	}
+	secret := &v1.Secret{
+		Name:      "test-secret",
+		Namespace: "default",
+		Type:      v1.SecretTypeServiceAccountToken,
+		Data:      map[string][]byte{},
+	}
+
+	require.NoError(t, r.ApplyTemplate(context.Background(), es, secret, nil))
+	require.ErrorIs(t, validateSecretCandidate(secret), errServiceAccountTokenSecret)
+}
 
 func TestApplyTemplateRejectsPathStyleTemplateFromTarget(t *testing.T) {
 	tests := []struct {
@@ -51,7 +127,7 @@ func TestApplyTemplateRejectsPathStyleTemplateFromTarget(t *testing.T) {
 
 			literal := "kubernetes.io/service-account-token"
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-es", Namespace: "default"},
+				Name: "test-es", Namespace: "default",
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
 						Name: "test-secret",
@@ -71,7 +147,7 @@ func TestApplyTemplateRejectsPathStyleTemplateFromTarget(t *testing.T) {
 			}
 
 			secret := &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: "default"},
+				Name: "test-secret", Namespace: "default",
 			}
 
 			err := r.ApplyTemplate(context.Background(), es, secret, map[string][]byte{})
@@ -133,7 +209,7 @@ func TestApplyTemplateRejectsPrivilegedTemplate(t *testing.T) {
 			}
 
 			es := &esv1.ExternalSecret{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-es", Namespace: "default"},
+				Name: "test-es", Namespace: "default",
 				Spec: esv1.ExternalSecretSpec{
 					Target: esv1.ExternalSecretTarget{
 						Name:     "test-secret",
@@ -143,7 +219,7 @@ func TestApplyTemplateRejectsPrivilegedTemplate(t *testing.T) {
 			}
 
 			secret := &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: "default"},
+				Name: "test-secret", Namespace: "default",
 			}
 
 			err := r.ApplyTemplate(context.Background(), es, secret, map[string][]byte{})
@@ -165,7 +241,7 @@ func TestApplyTemplateAllowsWellKnownTemplateFromTargets(t *testing.T) {
 	dataLiteral := "greeting: hello"
 	annotationLiteral := "team: platform"
 	es := &esv1.ExternalSecret{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-es", Namespace: "default"},
+		Name: "test-es", Namespace: "default",
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
 				Name: "test-secret",
@@ -181,7 +257,7 @@ func TestApplyTemplateAllowsWellKnownTemplateFromTargets(t *testing.T) {
 	}
 
 	secret := &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-secret", Namespace: "default"},
+		Name: "test-secret", Namespace: "default",
 	}
 
 	require.NoError(t, r.ApplyTemplate(context.Background(), es, secret, map[string][]byte{}))

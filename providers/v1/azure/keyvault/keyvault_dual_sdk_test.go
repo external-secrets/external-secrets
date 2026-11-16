@@ -21,8 +21,6 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -63,7 +61,7 @@ func TestFeatureFlagRouting(t *testing.T) {
 			provider := &esv1.AzureKVProvider{
 				VaultURL:    new("https://test-vault.vault.azure.net/"),
 				TenantID:    new("test-tenant"),
-				AuthType:    ptr.To(esv1.AzureServicePrincipal),
+				AuthType:    new(esv1.AzureServicePrincipal),
 				UseAzureSDK: tc.useAzureSDK,
 				AuthSecretRef: &esv1.AzureKVAuth{
 					ClientID: &v1.SecretKeySelector{
@@ -95,10 +93,8 @@ func TestFeatureFlagRouting(t *testing.T) {
 func TestClientInitialization(t *testing.T) {
 	// Create test secret with credentials
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-secret",
-			Namespace: "test-namespace",
-		},
+		Name:      "test-secret",
+		Namespace: "test-namespace",
 		Data: map[string][]byte{
 			"client-id":     []byte("test-client-id"),
 			"client-secret": []byte("test-client-secret"),
@@ -132,7 +128,7 @@ func TestClientInitialization(t *testing.T) {
 			provider := &esv1.AzureKVProvider{
 				VaultURL:    new("https://test-vault.vault.azure.net/"),
 				TenantID:    new("test-tenant"),
-				AuthType:    ptr.To(esv1.AzureServicePrincipal),
+				AuthType:    new(esv1.AzureServicePrincipal),
 				UseAzureSDK: tc.useAzureSDK,
 				AuthSecretRef: &esv1.AzureKVAuth{
 					ClientID: &v1.SecretKeySelector{
@@ -147,10 +143,8 @@ func TestClientInitialization(t *testing.T) {
 			}
 
 			store := &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-store",
-					Namespace: "test-namespace",
-				},
+				Name:      "test-store",
+				Namespace: "test-namespace",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						AzureKV: provider,
@@ -210,7 +204,7 @@ func TestConfigurationValidation(t *testing.T) {
 			provider := &esv1.AzureKVProvider{
 				VaultURL:    new("https://test-vault.vault.azure.net/"),
 				TenantID:    new("test-tenant"),
-				AuthType:    ptr.To(esv1.AzureServicePrincipal),
+				AuthType:    new(esv1.AzureServicePrincipal),
 				UseAzureSDK: tc.useAzureSDK,
 				AuthSecretRef: &esv1.AzureKVAuth{
 					ClientID: &v1.SecretKeySelector{
@@ -255,7 +249,7 @@ func TestBackwardCompatibility(t *testing.T) {
 	provider := &esv1.AzureKVProvider{
 		VaultURL: new("https://test-vault.vault.azure.net/"),
 		TenantID: new("test-tenant"),
-		AuthType: ptr.To(esv1.AzureServicePrincipal),
+		AuthType: new(esv1.AzureServicePrincipal),
 		// UseAzureSDK intentionally omitted to test backward compatibility
 		AuthSecretRef: &esv1.AzureKVAuth{
 			ClientID: &v1.SecretKeySelector{
@@ -386,7 +380,7 @@ func TestAzureStackCloudConfiguration(t *testing.T) {
 			provider := &esv1.AzureKVProvider{
 				VaultURL:          new("https://test-vault.vault.azure.net/"),
 				TenantID:          new("test-tenant"),
-				AuthType:          ptr.To(esv1.AzureServicePrincipal),
+				AuthType:          new(esv1.AzureServicePrincipal),
 				UseAzureSDK:       tc.useAzureSDK,
 				EnvironmentType:   tc.envType,
 				CustomCloudConfig: tc.customConfig,

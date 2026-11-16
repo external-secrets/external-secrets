@@ -2,7 +2,7 @@
  * LGTM Command Processor
  *
  * Processes /lgtm comments on pull requests. Checks if the commenter has the
- * required reviewer role(s) based on CODEOWNERS.md, then adds the lgtm label
+ * required reviewer role(s) based on .github/CODEOWNERS, then adds the lgtm label
  * and posts a confirmation comment.
  *
  * @param {object} params
@@ -30,15 +30,15 @@ export default async function run({ core, github, context, fs }) {
   const commenter = context.payload.comment.user.login;
   const prNumber = context.payload.issue.number;
 
-  // Parse CODEOWNERS.md file
+  // Parse the CODEOWNERS file
   let codeownersContent;
   try {
-    codeownersContent = fs.readFileSync('CODEOWNERS.md', 'utf8');
+    codeownersContent = fs.readFileSync('.github/CODEOWNERS', 'utf8');
   } catch (error) {
     return;
   }
 
-  // Extract role mappings from CODEOWNERS.md (including * pattern)
+  // Extract role mappings from CODEOWNERS (including * pattern)
   const codeownerMappings = [];
   let wildcardRoles = [];
   codeownersContent.split('\n').forEach(line => {
