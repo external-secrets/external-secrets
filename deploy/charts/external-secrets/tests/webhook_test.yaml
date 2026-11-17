@@ -610,27 +610,27 @@ tests:
                 seconds: 10
   - it: should use the configured preStop sleep
     set:
-      webhook.preStopSleepSeconds: 5
+      webhook.lifecycle.preStop.sleep.seconds: 5
     templates:
       - webhook-deployment.yaml
     asserts:
       - equal:
           path: spec.template.spec.containers[0].lifecycle.preStop.sleep.seconds
           value: 5
-  - it: should not add a preStop sleep when it is disabled
+  - it: should not add lifecycle hooks when lifecycle is null
     set:
-      webhook.preStopSleepSeconds: 0
+      webhook.lifecycle: null
     templates:
       - webhook-deployment.yaml
     asserts:
       - notExists:
           path: spec.template.spec.containers[0].lifecycle
-  - it: should use the configured lifecycle instead of the default preStop sleep
+  - it: should replace the default preStop sleep with a configured hook
     set:
-      webhook.lifecycle:
-        preStop:
-          exec:
-            command: ["/bin/sleep", "15"]
+      webhook.lifecycle.preStop:
+        sleep: null
+        exec:
+          command: ["/bin/sleep", "15"]
     templates:
       - webhook-deployment.yaml
     asserts:

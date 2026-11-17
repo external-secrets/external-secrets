@@ -309,7 +309,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | webhook.imagePullSecrets | list | `[]` |  |
-| webhook.lifecycle | object | `{}` | Lifecycle hooks of the webhook container. When empty, a preStop hook that sleeps for `webhook.preStopSleepSeconds` is added. |
+| webhook.lifecycle | object | `{"preStop":{"sleep":{"seconds":10}}}` | Lifecycle hooks of the webhook container. The default preStop hook keeps the pod serving until the API server stops sending it admission requests. Set to null to remove it. @schema type: [object, null] |
 | webhook.livenessProbe.enabled | bool | `false` |  |
 | webhook.livenessProbe.failureThreshold | int | `5` |  |
 | webhook.livenessProbe.initialDelaySeconds | int | `10` |  |
@@ -338,7 +338,6 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.podLabels | object | `{}` |  |
 | webhook.podSecurityContext.enabled | bool | `true` |  |
 | webhook.port | int | `10250` | The port the webhook will listen to |
-| webhook.preStopSleepSeconds | int | `10` | Seconds the default preStop hook waits before the webhook container is stopped, so the API server stops sending admission requests to a terminating pod before it closes its port. Only used when `webhook.lifecycle` is empty. Set to 0 to disable it. |
 | webhook.priorityClassName | string | `""` | Pod priority class name. |
 | webhook.readinessProbe.address | string | `""` |  |
 | webhook.readinessProbe.enabled | bool | `true` |  |
