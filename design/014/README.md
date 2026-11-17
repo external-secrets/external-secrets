@@ -54,9 +54,13 @@ ESO provides limited support for providers built and maintained outside the ESO 
 
 Provider maintainers need the freedom to change their APIs. This is not possible today because everything is bundled in ESO. The GA SecretStore CRD cannot be changed in breaking ways.
 
-#### The ESO core team does not want to maintain everything
+#### The ESO core team cannot maintain everything
 
 With approximately 40 providers bundled in ESO, maintaining them has become a burden. We want to shift responsibility to the community for provider maintenance. Issue #6651 paused the acceptance of new in-tree providers until this design ships.
+
+Furthermore, most of the time the core team does not have access to the Provider SaaS offerings and cannot verify their actual functionality, confirm bugs, or perform regression tests (automatic or manual).
+
+Thus, a model where Provider Owners are responsible for the full lifecycle of a provider fits better the model we want to push forward
 
 ## Requirements
 
