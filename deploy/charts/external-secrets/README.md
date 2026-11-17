@@ -376,7 +376,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.startupProbe.initialDelaySeconds | int | `10` | Number of seconds after the container has started before the startup probe is initiated. |
 | webhook.startupProbe.periodSeconds | int | `10` | How often (in seconds) to perform the startup probe. |
 | webhook.strategy | object | `{}` | Set deployment strategy |
-| webhook.terminationGracePeriodSeconds | int | `nil` | Seconds the webhook pod has to shut down, including the preStop hook. Kubernetes defaults to 30 and rejects a preStop sleep longer than this. @schema type: [integer, null] |
+| webhook.terminationGracePeriodSeconds | int | `30` | Seconds the webhook pod has to shut down, including the preStop hook. Kubernetes rejects a preStop sleep longer than this. @schema type: [integer, null] |
 | webhook.tls | object | `{"ciphers":"","curvePreferences":[],"minVersion":""}` | Webhook-specific TLS security profile overrides. When set, these override the global tls.* values for the webhook deployment. |
 | webhook.tls.ciphers | string | `""` | Comma-separated list of TLS cipher suites. If empty, the global tls.ciphers is used. +docs:property |
 | webhook.tls.curvePreferences | list | `[]` | Ordered list of TLS key exchange curves. If empty, the global tls.curvePreferences is used. +docs:property |

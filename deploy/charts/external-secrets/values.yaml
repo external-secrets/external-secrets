@@ -753,10 +753,10 @@ webhook:
       sleep:
         seconds: 10
 
-  # -- (int) Seconds the webhook pod has to shut down, including the preStop hook. Kubernetes defaults to 30 and
-  # rejects a preStop sleep longer than this.
+  # -- (int) Seconds the webhook pod has to shut down, including the preStop hook. Kubernetes rejects a preStop
+  # sleep longer than this.
   # @schema type: [integer, null]
-  terminationGracePeriodSeconds:
+  terminationGracePeriodSeconds: 30
 
 
     ## -- Extra environment variables to add to container.

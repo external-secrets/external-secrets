@@ -640,12 +640,13 @@ tests:
             preStop:
               exec:
                 command: ["/bin/sleep", "15"]
-  - it: should default to terminationGracePeriodSeconds absent
+  - it: should default terminationGracePeriodSeconds to 30
     templates:
       - webhook-deployment.yaml
     asserts:
-      - notExists:
+      - equal:
           path: spec.template.spec.terminationGracePeriodSeconds
+          value: 30
   - it: should set terminationGracePeriodSeconds
     set:
       webhook.terminationGracePeriodSeconds: 60
