@@ -12,6 +12,9 @@ spec:
   {{- else if hasKey .Values.podDisruptionBudget "minAvailable" }}
   minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
   {{- end }}
+  {{- with .Values.podDisruptionBudget.unhealthyPodEvictionPolicy }}
+  unhealthyPodEvictionPolicy: {{ . }}
+  {{- end }}
   selector:
     matchLabels:
       {{- include "external-secrets.selectorLabels" . | nindent 6 }}
