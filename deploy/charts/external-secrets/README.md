@@ -309,7 +309,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | webhook.imagePullSecrets | list | `[]` |  |
-| webhook.lifecycle | object | `{"preStop":{"sleep":{"seconds":10}}}` | Lifecycle hooks of the webhook container. The default preStop hook keeps the pod serving until the API server stops sending it admission requests. Set to null to remove it. @schema type: [object, null] |
+| webhook.lifecycle | object | `{"preStop":{"sleep":{"seconds":10}}}` | Lifecycle hooks of the webhook container. The default preStop hook keeps the pod serving until the API server stops sending it admission requests. Set to null to remove it. Helm merges these values with the default, so to use another preStop handler, also set `preStop.sleep` to null. @schema type: [object, null] |
 | webhook.livenessProbe.enabled | bool | `false` |  |
 | webhook.livenessProbe.failureThreshold | int | `5` |  |
 | webhook.livenessProbe.initialDelaySeconds | int | `10` |  |
@@ -376,7 +376,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.startupProbe.initialDelaySeconds | int | `10` | Number of seconds after the container has started before the startup probe is initiated. |
 | webhook.startupProbe.periodSeconds | int | `10` | How often (in seconds) to perform the startup probe. |
 | webhook.strategy | object | `{}` | Set deployment strategy |
-| webhook.terminationGracePeriodSeconds | int | `nil` | Seconds the webhook pod has to shut down, including the preStop hook. Kubernetes defaults to 30. @schema type: [integer, null] |
+| webhook.terminationGracePeriodSeconds | int | `nil` | Seconds the webhook pod has to shut down, including the preStop hook. Kubernetes defaults to 30 and rejects a preStop sleep longer than this. @schema type: [integer, null] |
 | webhook.tls | object | `{"ciphers":"","curvePreferences":[],"minVersion":""}` | Webhook-specific TLS security profile overrides. When set, these override the global tls.* values for the webhook deployment. |
 | webhook.tls.ciphers | string | `""` | Comma-separated list of TLS cipher suites. If empty, the global tls.ciphers is used. +docs:property |
 | webhook.tls.curvePreferences | list | `[]` | Ordered list of TLS key exchange curves. If empty, the global tls.curvePreferences is used. +docs:property |
