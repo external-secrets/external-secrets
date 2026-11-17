@@ -744,6 +744,19 @@ webhook:
     # -- Number of consecutive failures before the container is restarted. The startup window is initialDelaySeconds + failureThreshold * periodSeconds.
     failureThreshold: 30
 
+  # -- Lifecycle hooks of the webhook container. When empty, a preStop hook that sleeps for
+  # `webhook.preStopSleepSeconds` is added on Kubernetes 1.30 and later.
+  lifecycle: {}
+
+  # -- Seconds the default preStop hook waits before the webhook container is stopped, so the API server stops
+  # sending admission requests to a terminating pod before it closes its port. Only used when `webhook.lifecycle`
+  # is empty, on Kubernetes 1.30 and later. Set to 0 to disable it.
+  preStopSleepSeconds: 10
+
+  # -- (int) Seconds the webhook pod has to shut down, including the preStop hook. Kubernetes defaults to 30.
+  # @schema type: [integer, null]
+  terminationGracePeriodSeconds:
+
 
     ## -- Extra environment variables to add to container.
   extraEnv: []

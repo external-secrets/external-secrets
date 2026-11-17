@@ -52,6 +52,9 @@ spec:
       hostUsers: {{ .Values.webhook.hostUsers }}
       {{- end }}
       {{- end }}
+      {{- if not (kindIs "invalid" .Values.webhook.terminationGracePeriodSeconds) }}
+      terminationGracePeriodSeconds: {{ .Values.webhook.terminationGracePeriodSeconds }}
+      {{- end }}
       {{- with .Values.webhook.podSecurityContext }}
       {{- if and (.enabled) (gt (keys . | len) 1) }}
       securityContext:
@@ -149,6 +152,16 @@ spec:
             initialDelaySeconds: {{ .Values.webhook.startupProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.webhook.startupProbe.periodSeconds }}
             failureThreshold: {{ .Values.webhook.startupProbe.failureThreshold }}
+          {{- end }}
+          {{- if .Values.webhook.lifecycle }}
+          lifecycle:
+            {{- toYaml .Values.webhook.lifecycle | nindent 12 }}
+          {{- else if and (gt (int .Values.webhook.preStopSleepSeconds) 0) (semverCompare ">= 1.30-0" .Capabilities.KubeVersion.Version) }}
+          {{- /* Keeps the pod serving until the API server has stopped sending it admission requests. */}}
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: {{ int .Values.webhook.preStopSleepSeconds }}
           {{- end }}
           {{- with .Values.webhook.extraEnv }}
           env:

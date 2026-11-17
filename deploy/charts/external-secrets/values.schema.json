@@ -1201,6 +1201,9 @@
                 "imagePullSecrets": {
                     "type": "array"
                 },
+                "lifecycle": {
+                    "type": "object"
+                },
                 "livenessProbe": {
                     "type": "object",
                     "properties": {
@@ -1369,6 +1372,9 @@
                 "port": {
                     "type": "integer"
                 },
+                "preStopSleepSeconds": {
+                    "type": "integer"
+                },
                 "priorityClassName": {
                     "type": "string"
                 },
@@ -1520,6 +1526,12 @@
                 },
                 "strategy": {
                     "type": "object"
+                },
+                "terminationGracePeriodSeconds": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
                 },
                 "tls": {
                     "type": "object",

@@ -309,6 +309,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.image.repository | string | `"ghcr.io/external-secrets/external-secrets"` |  |
 | webhook.image.tag | string | `""` | The image tag to use. The default is the chart appVersion. |
 | webhook.imagePullSecrets | list | `[]` |  |
+| webhook.lifecycle | object | `{}` | Lifecycle hooks of the webhook container. When empty, a preStop hook that sleeps for `webhook.preStopSleepSeconds` is added on Kubernetes 1.30 and later. |
 | webhook.livenessProbe.enabled | bool | `false` |  |
 | webhook.livenessProbe.failureThreshold | int | `5` |  |
 | webhook.livenessProbe.initialDelaySeconds | int | `10` |  |
@@ -337,6 +338,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.podLabels | object | `{}` |  |
 | webhook.podSecurityContext.enabled | bool | `true` |  |
 | webhook.port | int | `10250` | The port the webhook will listen to |
+| webhook.preStopSleepSeconds | int | `10` | Seconds the default preStop hook waits before the webhook container is stopped, so the API server stops sending admission requests to a terminating pod before it closes its port. Only used when `webhook.lifecycle` is empty, on Kubernetes 1.30 and later. Set to 0 to disable it. |
 | webhook.priorityClassName | string | `""` | Pod priority class name. |
 | webhook.readinessProbe.address | string | `""` |  |
 | webhook.readinessProbe.enabled | bool | `true` |  |
@@ -375,6 +377,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | webhook.startupProbe.initialDelaySeconds | int | `10` | Number of seconds after the container has started before the startup probe is initiated. |
 | webhook.startupProbe.periodSeconds | int | `10` | How often (in seconds) to perform the startup probe. |
 | webhook.strategy | object | `{}` | Set deployment strategy |
+| webhook.terminationGracePeriodSeconds | int | `nil` | Seconds the webhook pod has to shut down, including the preStop hook. Kubernetes defaults to 30. @schema type: [integer, null] |
 | webhook.tls | object | `{"ciphers":"","curvePreferences":[],"minVersion":""}` | Webhook-specific TLS security profile overrides. When set, these override the global tls.* values for the webhook deployment. |
 | webhook.tls.ciphers | string | `""` | Comma-separated list of TLS cipher suites. If empty, the global tls.ciphers is used. +docs:property |
 | webhook.tls.curvePreferences | list | `[]` | Ordered list of TLS key exchange curves. If empty, the global tls.curvePreferences is used. +docs:property |
