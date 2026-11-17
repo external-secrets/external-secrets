@@ -156,7 +156,7 @@ spec:
           {{- if .Values.webhook.lifecycle }}
           lifecycle:
             {{- toYaml .Values.webhook.lifecycle | nindent 12 }}
-          {{- else if and (gt (int .Values.webhook.preStopSleepSeconds) 0) (semverCompare ">= 1.30-0" .Capabilities.KubeVersion.Version) }}
+          {{- else if gt (int .Values.webhook.preStopSleepSeconds) 0 }}
           {{- /* Keeps the pod serving until the API server has stopped sending it admission requests. */}}
           lifecycle:
             preStop:

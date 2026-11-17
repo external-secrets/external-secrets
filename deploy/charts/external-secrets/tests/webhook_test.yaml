@@ -598,10 +598,7 @@ tests:
             initialDelaySeconds: 5
             periodSeconds: 15
             failureThreshold: 40
-  - it: should add a preStop sleep by default on Kubernetes 1.30 and later
-    capabilities:
-      majorVersion: '1'
-      minorVersion: '30'
+  - it: should add a preStop sleep by default
     templates:
       - webhook-deployment.yaml
     asserts:
@@ -611,21 +608,9 @@ tests:
             preStop:
               sleep:
                 seconds: 10
-  - it: should not add a preStop sleep before Kubernetes 1.30
-    capabilities:
-      majorVersion: '1'
-      minorVersion: '29'
-    templates:
-      - webhook-deployment.yaml
-    asserts:
-      - notExists:
-          path: spec.template.spec.containers[0].lifecycle
   - it: should use the configured preStop sleep
     set:
       webhook.preStopSleepSeconds: 5
-    capabilities:
-      majorVersion: '1'
-      minorVersion: '30'
     templates:
       - webhook-deployment.yaml
     asserts:
@@ -635,9 +620,6 @@ tests:
   - it: should not add a preStop sleep when it is disabled
     set:
       webhook.preStopSleepSeconds: 0
-    capabilities:
-      majorVersion: '1'
-      minorVersion: '30'
     templates:
       - webhook-deployment.yaml
     asserts:
@@ -649,9 +631,6 @@ tests:
         preStop:
           exec:
             command: ["/bin/sleep", "15"]
-    capabilities:
-      majorVersion: '1'
-      minorVersion: '29'
     templates:
       - webhook-deployment.yaml
     asserts:
