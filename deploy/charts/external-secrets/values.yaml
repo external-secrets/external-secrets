@@ -792,6 +792,14 @@ webhook:
       #   cpu: 10m
       #   memory: 32Mi
 
+  # -- Container lifecycle hooks. Useful for adding a preStop hook for graceful shutdown.
+  # @schema type: [object, null]
+  lifecycle: {}
+
+  # -- Override the default terminationGracePeriodSeconds for the webhook pod.
+  # @schema type: [integer, null]
+  terminationGracePeriodSeconds:
+
   # -- Manage the service through which the webhook is reached.
   service:
     # -- Whether the service object should be enabled or not (it is expected to exist).
