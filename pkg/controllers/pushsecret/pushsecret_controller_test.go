@@ -119,14 +119,10 @@ var _ = Describe("PushSecret controller", func() {
 		fakeProvider.Reset()
 
 		Expect(k8sClient.Create(context.Background(), &genv1alpha1.Fake{
-			TypeMeta: metav1.TypeMeta{
-				Kind:       "Fake",
-				APIVersion: "generators.external-secrets.io/v1alpha1",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test",
-				Namespace: PushSecretNamespace,
-			},
+			Kind:       "Fake",
+			APIVersion: "generators.external-secrets.io/v1alpha1",
+			Name:       "test",
+			Namespace:  PushSecretNamespace,
 			Spec: genv1alpha1.FakeSpec{
 				Data: map[string]string{
 					"key": "foo-bar-from-generator",
@@ -136,34 +132,24 @@ var _ = Describe("PushSecret controller", func() {
 
 	AfterEach(func() {
 		k8sClient.Delete(context.Background(), &v1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      PushSecretName,
+			Namespace: PushSecretNamespace,
 		})
 		// give a time for reconciler to remove finalizers before removing SecretStores
 		time.Sleep(2 * time.Second)
 		k8sClient.Delete(context.Background(), &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretStore,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      PushSecretStore,
+			Namespace: PushSecretNamespace,
 		})
 		k8sClient.Delete(context.Background(), &esv1.ClusterSecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: PushSecretStore,
-			},
+			Name: PushSecretStore,
 		})
 		k8sClient.Delete(context.Background(), &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      SecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      SecretName,
+			Namespace: PushSecretNamespace,
 		})
 		Expect(k8sClient.Delete(context.Background(), &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: PushSecretNamespace,
-			},
+			Name: PushSecretNamespace,
 		})).To(Succeed())
 	})
 
@@ -182,10 +168,8 @@ var _ = Describe("PushSecret controller", func() {
 	makeDefaultTestcase := func() *testCase {
 		return &testCase{
 			pushsecret: &v1alpha1.PushSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      PushSecretName,
-					Namespace: PushSecretNamespace,
-				},
+				Name:      PushSecretName,
+				Namespace: PushSecretNamespace,
 				Spec: v1alpha1.PushSecretSpec{
 					SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 						{
@@ -211,22 +195,16 @@ var _ = Describe("PushSecret controller", func() {
 				},
 			},
 			secret: &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      SecretName,
-					Namespace: PushSecretNamespace,
-				},
+				Name:      SecretName,
+				Namespace: PushSecretNamespace,
 				Data: map[string][]byte{
 					defaultKey: []byte(defaultVal),
 				},
 			},
 			store: &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      PushSecretStore,
-					Namespace: PushSecretNamespace,
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Name:      PushSecretStore,
+				Namespace: PushSecretNamespace,
+				Kind:      "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Fake: &esv1.FakeProvider{
@@ -384,7 +362,7 @@ var _ = Describe("PushSecret controller", func() {
 					Type:    v1alpha1.PushSecretReady,
 					Status:  v1.ConditionFalse,
 					Reason:  v1alpha1.ReasonErrored,
-					Message: "set secret failed: could not verify if secret exists in store: don't know",
+					Message: "set secret failed",
 				}
 				return checkCondition(ps.Status, expected)
 			}, time.Second*10, time.Second).Should(BeTrue())
@@ -393,10 +371,8 @@ var _ = Describe("PushSecret controller", func() {
 	}
 	syncSuccessfullyReusingKeys := func(tc *testCase) {
 		tc.pushsecret = &v1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      PushSecretName,
+			Namespace: PushSecretNamespace,
 			Spec: v1alpha1.PushSecretSpec{
 				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 					{
@@ -455,10 +431,8 @@ var _ = Describe("PushSecret controller", func() {
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncSuccessfullyWithTemplate := func(tc *testCase) {
 		tc.pushsecret = &v1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      PushSecretName,
+			Namespace: PushSecretNamespace,
 			Spec: v1alpha1.PushSecretSpec{
 				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 					{
@@ -517,10 +491,8 @@ var _ = Describe("PushSecret controller", func() {
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncAndDeleteSuccessfully := func(tc *testCase) {
 		tc.pushsecret = &v1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      PushSecretName,
+			Namespace: PushSecretNamespace,
 			Spec: v1alpha1.PushSecretSpec{
 				DeletionPolicy: v1alpha1.PushSecretDeletionPolicyDelete,
 				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
@@ -570,10 +542,8 @@ var _ = Describe("PushSecret controller", func() {
 	// if PushSecret deletes a secret with properties, the status map should be cleaned up correctly
 	syncAndDeleteWithProperties := func(tc *testCase) {
 		tc.pushsecret = &v1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      PushSecretName,
+			Namespace: PushSecretNamespace,
 			Spec: v1alpha1.PushSecretSpec{
 				DeletionPolicy: v1alpha1.PushSecretDeletionPolicyDelete,
 				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
@@ -656,13 +626,62 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
+	// if PushSecret switches from properties to a whole secret for the same remote key,
+	// it should not delete the remote key the whole secret has just been pushed to
+	syncAndSwitchPropertiesToWholeSecret := func(tc *testCase) {
+		var deleteCallCount atomic.Int32
+		fakeProvider.WithDeleteSecretFn(func() error {
+			deleteCallCount.Add(1)
+			return nil
+		})
+		syncAndDeleteWithProperties(tc)
+		tc.assert = func(_ *v1alpha1.PushSecret, _ *v1.Secret) bool {
+			updatedPS := &v1alpha1.PushSecret{}
+			psKey := types.NamespacedName{Name: PushSecretName, Namespace: PushSecretNamespace}
+			storeKey := fmt.Sprintf(storePrefixTemplate, PushSecretStore)
+			// Wait for initial sync
+			Eventually(func() bool {
+				err := k8sClient.Get(context.Background(), psKey, updatedPS)
+				if err != nil {
+					return false
+				}
+				_, ok1 := updatedPS.Status.SyncedPushSecrets[storeKey][defaultPath+"/field1"]
+				_, ok2 := updatedPS.Status.SyncedPushSecrets[storeKey][defaultPath+"/field2"]
+				return ok1 && ok2
+			}, time.Second*10, time.Second).Should(BeTrue())
+
+			// Push the whole secret to the same remote key instead
+			updatedPS.Spec.Data = []v1alpha1.PushSecretData{
+				{
+					Match: v1alpha1.PushSecretMatch{
+						RemoteRef: v1alpha1.PushSecretRemoteRef{
+							RemoteKey: defaultPath,
+						},
+					},
+				},
+			}
+			Expect(k8sClient.Update(context.Background(), updatedPS, &client.UpdateOptions{})).Should(Succeed())
+
+			// Verify the status only holds the whole secret
+			Eventually(func() bool {
+				err := k8sClient.Get(context.Background(), psKey, updatedPS)
+				if err != nil {
+					return false
+				}
+				synced := updatedPS.Status.SyncedPushSecrets[storeKey]
+				_, ok := synced[defaultPath]
+				return ok && len(synced) == 1
+			}, time.Second*10, time.Second).Should(BeTrue())
+			Expect(deleteCallCount.Load()).To(BeZero())
+			return true
+		}
+	}
+
 	// if PushSecret's DeletionPolicy is cleared, it should delete successfully
 	syncChangePolicyAndDeleteSuccessfully := func(tc *testCase) {
 		tc.pushsecret = &v1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      PushSecretName,
+			Namespace: PushSecretNamespace,
 			Spec: v1alpha1.PushSecretSpec{
 				DeletionPolicy: v1alpha1.PushSecretDeletionPolicyDelete,
 				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
@@ -714,10 +733,8 @@ var _ = Describe("PushSecret controller", func() {
 			return nil
 		})
 		tc.pushsecret = &v1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      PushSecretName,
+			Namespace: PushSecretNamespace,
 			Spec: v1alpha1.PushSecretSpec{
 				DeletionPolicy: v1alpha1.PushSecretDeletionPolicyDelete,
 				// Short refresh interval so reconciler detects deleted secret quickly
@@ -893,10 +910,8 @@ var _ = Describe("PushSecret controller", func() {
 			return errors.New("Nope")
 		})
 		tc.pushsecret = &v1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      PushSecretName,
+			Namespace: PushSecretNamespace,
 			Spec: v1alpha1.PushSecretSpec{
 				DeletionPolicy: v1alpha1.PushSecretDeletionPolicyDelete,
 				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
@@ -950,13 +965,9 @@ var _ = Describe("PushSecret controller", func() {
 		tc.pushsecret.Spec.DeletionPolicy = v1alpha1.PushSecretDeletionPolicyDelete
 		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
 			secondStore := &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "new-store",
-					Namespace: PushSecretNamespace,
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Name:      "new-store",
+				Namespace: PushSecretNamespace,
+				Kind:      "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Fake: &esv1.FakeProvider{
@@ -986,13 +997,9 @@ var _ = Describe("PushSecret controller", func() {
 		tc.pushsecret.Spec.DeletionPolicy = v1alpha1.PushSecretDeletionPolicyDelete
 		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
 			secondStore := &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "new-store",
-					Namespace: PushSecretNamespace,
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Name:      "new-store",
+				Namespace: PushSecretNamespace,
+				Kind:      "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Fake: &esv1.FakeProvider{
@@ -1028,10 +1035,8 @@ var _ = Describe("PushSecret controller", func() {
 	// if conversion strategy is defined, revert the keys based on the strategy.
 	syncSuccessfullyWithConversionStrategy := func(tc *testCase) {
 		tc.pushsecret = &v1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      PushSecretName,
+			Namespace: PushSecretNamespace,
 			Spec: v1alpha1.PushSecretSpec{
 				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 					{
@@ -1058,10 +1063,8 @@ var _ = Describe("PushSecret controller", func() {
 			},
 		}
 		tc.secret = &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      SecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      SecretName,
+			Namespace: PushSecretNamespace,
 			Data: map[string][]byte{
 				"some-array_U005b_0_U005d_.entity": []byte("value"),
 			},
@@ -1084,10 +1087,8 @@ var _ = Describe("PushSecret controller", func() {
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncMatchingLabels := func(tc *testCase) {
 		tc.pushsecret = &v1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      PushSecretName,
+			Namespace: PushSecretNamespace,
 			Spec: v1alpha1.PushSecretSpec{
 				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 					{
@@ -1118,15 +1119,11 @@ var _ = Describe("PushSecret controller", func() {
 			},
 		}
 		tc.store = &esv1.SecretStore{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "SecretStore",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretStore,
-				Namespace: PushSecretNamespace,
-				Labels: map[string]string{
-					"foo": "bar",
-				},
+			Kind:      "SecretStore",
+			Name:      PushSecretStore,
+			Namespace: PushSecretNamespace,
+			Labels: map[string]string{
+				"foo": "bar",
 			},
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
@@ -1151,12 +1148,8 @@ var _ = Describe("PushSecret controller", func() {
 	}
 	syncWithClusterStore := func(tc *testCase) {
 		tc.store = &esv1.ClusterSecretStore{
-			TypeMeta: metav1.TypeMeta{
-				Kind: "ClusterSecretStore",
-			},
-			ObjectMeta: metav1.ObjectMeta{
-				Name: PushSecretStore,
-			},
+			Kind: "ClusterSecretStore",
+			Name: PushSecretStore,
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					Fake: &esv1.FakeProvider{
@@ -1202,10 +1195,8 @@ var _ = Describe("PushSecret controller", func() {
 	// if target Secret name is not specified it should use the ExternalSecret name.
 	syncWithClusterStoreMatchingLabels := func(tc *testCase) {
 		tc.pushsecret = &v1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      PushSecretName,
+			Namespace: PushSecretNamespace,
 			Spec: v1alpha1.PushSecretSpec{
 				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 					{
@@ -1236,11 +1227,9 @@ var _ = Describe("PushSecret controller", func() {
 			},
 		}
 		tc.store = &esv1.ClusterSecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: PushSecretStore,
-				Labels: map[string]string{
-					"foo": "bar",
-				},
+			Name: PushSecretStore,
+			Labels: map[string]string{
+				"foo": "bar",
 			},
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
@@ -1327,7 +1316,7 @@ var _ = Describe("PushSecret controller", func() {
 				Type:    v1alpha1.PushSecretReady,
 				Status:  v1.ConditionFalse,
 				Reason:  v1alpha1.ReasonErrored,
-				Message: "set secret failed: could not write remote ref key to target secretstore test-store: boom",
+				Message: "set secret failed",
 			}
 			return checkCondition(ps.Status, expected)
 		}
@@ -1342,7 +1331,7 @@ var _ = Describe("PushSecret controller", func() {
 				Type:    v1alpha1.PushSecretReady,
 				Status:  v1.ConditionFalse,
 				Reason:  v1alpha1.ReasonErrored,
-				Message: "set secret failed: could not get secrets client for store test-store: boom",
+				Message: "set secret failed",
 			}
 			return checkCondition(ps.Status, expected)
 		}
@@ -1351,16 +1340,12 @@ var _ = Describe("PushSecret controller", func() {
 	secretStoreDifferentNamespace := func(tc *testCase) {
 		// Create the SecretStore in a different namespace
 		tc.store = &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "other-ns-store",
-				Namespace: OtherNamespace,
-				Labels: map[string]string{
-					"foo": "bar",
-				},
+			Name:      "other-ns-store",
+			Namespace: OtherNamespace,
+			Labels: map[string]string{
+				"foo": "bar",
 			},
-			TypeMeta: metav1.TypeMeta{
-				Kind: "SecretStore",
-			},
+			Kind: "SecretStore",
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					Fake: &esv1.FakeProvider{
@@ -1399,12 +1384,10 @@ var _ = Describe("PushSecret controller", func() {
 	secretDifferentNamespace := func(tc *testCase) {
 		// Create the Secret in a different namespace
 		tc.secret = &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      SecretName,
-				Namespace: OtherNamespace,
-				Labels: map[string]string{
-					"foo": "bar",
-				},
+			Name:      SecretName,
+			Namespace: OtherNamespace,
+			Labels: map[string]string{
+				"foo": "bar",
 			},
 			Data: map[string][]byte{
 				defaultKey: []byte(defaultVal),
@@ -1712,13 +1695,9 @@ var _ = Describe("PushSecret controller", func() {
 		// Create a second store
 		secondStoreName := "second-store"
 		secondStore := &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      secondStoreName,
-				Namespace: PushSecretNamespace,
-			},
-			TypeMeta: metav1.TypeMeta{
-				Kind: "SecretStore",
-			},
+			Name:      secondStoreName,
+			Namespace: PushSecretNamespace,
+			Kind:      "SecretStore",
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					Fake: &esv1.FakeProvider{
@@ -2091,16 +2070,12 @@ var _ = Describe("PushSecret controller", func() {
 
 	failDataToLabelSelectorMatchesNoStore := func(tc *testCase) {
 		tc.store = &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretStore,
-				Namespace: PushSecretNamespace,
-				Labels: map[string]string{
-					"env": "staging",
-				},
+			Name:      PushSecretStore,
+			Namespace: PushSecretNamespace,
+			Labels: map[string]string{
+				"env": "staging",
 			},
-			TypeMeta: metav1.TypeMeta{
-				Kind: "SecretStore",
-			},
+			Kind: "SecretStore",
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					Fake: &esv1.FakeProvider{
@@ -2149,16 +2124,12 @@ var _ = Describe("PushSecret controller", func() {
 	syncWithDataToLabelSelector := func(tc *testCase) {
 		// Add labels to the store
 		tc.store = &esv1.SecretStore{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretStore,
-				Namespace: PushSecretNamespace,
-				Labels: map[string]string{
-					"env": "test",
-				},
+			Name:      PushSecretStore,
+			Namespace: PushSecretNamespace,
+			Labels: map[string]string{
+				"env": "test",
 			},
-			TypeMeta: metav1.TypeMeta{
-				Kind: "SecretStore",
-			},
+			Kind: "SecretStore",
 			Spec: esv1.SecretStoreSpec{
 				Provider: &esv1.SecretStoreProvider{
 					Fake: &esv1.FakeProvider{
@@ -2465,6 +2436,7 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should sync with conversion strategy", syncSuccessfullyWithConversionStrategy),
 		Entry("should delete if DeletionPolicy=Delete", syncAndDeleteSuccessfully),
 		Entry("should delete secrets with properties and update status correctly", syncAndDeleteWithProperties),
+		Entry("should not delete the remote key when switching from properties to a whole secret", syncAndSwitchPropertiesToWholeSecret),
 		Entry("should delete after DeletionPolicy changed from Delete to None", syncChangePolicyAndDeleteSuccessfully),
 		Entry("should cleanup provider secrets when source Secret is deleted", deleteProviderSecretsOnSourceSecretDeleted),
 		Entry("should pass full PushSecretData to provider on delete", deletePassesFullPushSecretData),
@@ -2512,10 +2484,8 @@ var _ = Describe("PushSecret controller", func() {
 		Expect(err).ToNot(HaveOccurred())
 
 		ps := &v1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretName,
-				Namespace: ns,
-			},
+			Name:      PushSecretName,
+			Namespace: ns,
 			Spec: v1alpha1.PushSecretSpec{
 				SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 					{Name: PushSecretStore},
@@ -2577,36 +2547,26 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 
 	AfterEach(func() {
 		k8sClient.Delete(context.Background(), &v1alpha1.PushSecret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      PushSecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      PushSecretName,
+			Namespace: PushSecretNamespace,
 		})
 		// give a time for reconciler to remove finalizers before removing SecretStores
 		time.Sleep(2 * time.Second)
 		for _, psstore := range PushSecretStores {
 			k8sClient.Delete(context.Background(), &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      psstore,
-					Namespace: PushSecretNamespace,
-				},
+				Name:      psstore,
+				Namespace: PushSecretNamespace,
 			})
 			k8sClient.Delete(context.Background(), &esv1.ClusterSecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: psstore,
-				},
+				Name: psstore,
 			})
 		}
 		k8sClient.Delete(context.Background(), &v1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      SecretName,
-				Namespace: PushSecretNamespace,
-			},
+			Name:      SecretName,
+			Namespace: PushSecretNamespace,
 		})
 		Expect(k8sClient.Delete(context.Background(), &v1.Namespace{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: PushSecretNamespace,
-			},
+			Name: PushSecretNamespace,
 		})).To(Succeed())
 	})
 
@@ -2619,10 +2579,8 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 	makeDefaultTestcase := func() *testCase {
 		return &testCase{
 			pushsecret: &v1alpha1.PushSecret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      PushSecretName,
-					Namespace: PushSecretNamespace,
-				},
+				Name:      PushSecretName,
+				Namespace: PushSecretNamespace,
 				Spec: v1alpha1.PushSecretSpec{
 					SecretStoreRefs: []v1alpha1.PushSecretStoreRef{
 						{
@@ -2648,22 +2606,16 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 				},
 			},
 			secret: &v1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      SecretName,
-					Namespace: PushSecretNamespace,
-				},
+				Name:      SecretName,
+				Namespace: PushSecretNamespace,
 				Data: map[string][]byte{
 					defaultKey: []byte(defaultVal),
 				},
 			},
 			managedStore1: &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ManagedPushSecretStore1,
-					Namespace: PushSecretNamespace,
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Name:      ManagedPushSecretStore1,
+				Namespace: PushSecretNamespace,
+				Kind:      "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Fake: &esv1.FakeProvider{
@@ -2673,13 +2625,9 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 				},
 			},
 			managedStore2: &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      ManagedPushSecretStore2,
-					Namespace: PushSecretNamespace,
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Name:      ManagedPushSecretStore2,
+				Namespace: PushSecretNamespace,
+				Kind:      "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Fake: &esv1.FakeProvider{
@@ -2689,13 +2637,9 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 				},
 			},
 			unmanagedStore1: &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      UnmanagedPushSecretStore1,
-					Namespace: PushSecretNamespace,
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Name:      UnmanagedPushSecretStore1,
+				Namespace: PushSecretNamespace,
+				Kind:      "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Fake: &esv1.FakeProvider{
@@ -2706,13 +2650,9 @@ var _ = Describe("PushSecret Controller Un/Managed Stores", func() {
 				},
 			},
 			unmanagedStore2: &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      UnmanagedPushSecretStore2,
-					Namespace: PushSecretNamespace,
-				},
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Name:      UnmanagedPushSecretStore2,
+				Namespace: PushSecretNamespace,
+				Kind:      "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						Fake: &esv1.FakeProvider{
@@ -2984,6 +2924,29 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 		})
 	})
 
+	pushData := func(remoteKey, property string) v1alpha1.PushSecretData {
+		return v1alpha1.PushSecretData{Match: v1alpha1.PushSecretMatch{RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: remoteKey, Property: property}}}
+	}
+
+	DescribeTable("isRemoteKeyStillPushed",
+		func(oldRef v1alpha1.PushSecretData, newEntries []v1alpha1.PushSecretData, want bool) {
+			newData := make(map[string]v1alpha1.PushSecretData, len(newEntries))
+			for _, entry := range newEntries {
+				newData[statusRef(entry)] = entry
+			}
+
+			Expect(isRemoteKeyStillPushed(oldRef, newData)).To(Equal(want))
+		},
+		Entry("should keep a property replaced by a whole secret",
+			pushData("shared", "field1"), []v1alpha1.PushSecretData{pushData("shared", "")}, true),
+		Entry("should keep a whole secret replaced by properties",
+			pushData("shared", ""), []v1alpha1.PushSecretData{pushData("shared", "field1"), pushData("shared", "field2")}, true),
+		Entry("should delete a property removed while another property stays",
+			pushData("shared", "field2"), []v1alpha1.PushSecretData{pushData("shared", "field1")}, false),
+		Entry("should delete a remote key that is no longer pushed",
+			pushData("old", ""), []v1alpha1.PushSecretData{pushData("new", "")}, false),
+	)
+
 	Describe("mergeDataEntries", func() {
 		It("should merge valid entries", func() {
 			secret := &v1.Secret{Data: map[string][]byte{"a": []byte("v1"), "b": []byte("v2")}}
@@ -2998,6 +2961,13 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 
 			Expect(err).ToNot(HaveOccurred())
 			Expect(result).To(HaveLen(2))
+		})
+
+		It("should bound transform rewrites", func() {
+			rewrite, err := compileRewrite(v1alpha1.PushSecretRewrite{Transform: &esv1.ExternalSecretRewriteTransform{Template: `{{ until 35000000 | join " " }}`}})
+			Expect(err).ToNot(HaveOccurred())
+			_, err = rewrite("key")
+			Expect(err).To(MatchError(ContainSubstring("safety limit")))
 		})
 
 		It("should override dataTo with explicit for same source key", func() {

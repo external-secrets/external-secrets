@@ -26,7 +26,6 @@ import (
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	kubeErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	kubeClient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -257,7 +256,7 @@ func TestNewClientSiteIDConfiguration(t *testing.T) {
 	}{
 		"SecretStore uses default": {
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+				Kind: esv1.SecretStoreKind,
 				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{
 					SecretServer: newProvider(nil, false),
 				}},
@@ -266,7 +265,7 @@ func TestNewClientSiteIDConfiguration(t *testing.T) {
 		},
 		"SecretStore uses configured value": {
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+				Kind: esv1.SecretStoreKind,
 				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{
 					SecretServer: newProvider(new(7), false),
 				}},
@@ -275,7 +274,7 @@ func TestNewClientSiteIDConfiguration(t *testing.T) {
 		},
 		"ClusterSecretStore uses configured value": {
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+				Kind: esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{
 					SecretServer: newProvider(new(9), false),
 				}},
@@ -284,7 +283,7 @@ func TestNewClientSiteIDConfiguration(t *testing.T) {
 		},
 		"disabled validation preserves missing value": {
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+				Kind: esv1.SecretStoreKind,
 				Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{
 					SecretServer: newProvider(nil, true),
 				}},
@@ -317,7 +316,7 @@ func TestNewClient(t *testing.T) {
 	tokenValue := generateRandomString()
 
 	clientSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "foo", Namespace: "default"},
+		Name: "foo", Namespace: "default",
 		Data: map[string][]byte{
 			userNameKey: []byte(userNameValue),
 			passwordKey: []byte(passwordValue),
@@ -325,7 +324,7 @@ func TestNewClient(t *testing.T) {
 	}
 
 	tokenSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "token-secret", Namespace: "default"},
+		Name: "token-secret", Namespace: "default",
 		Data: map[string][]byte{
 			tokenKey: []byte(tokenValue),
 		},
@@ -338,7 +337,7 @@ func TestNewClient(t *testing.T) {
 	}
 
 	clientSecretWithDomain := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "with-domain", Namespace: "default"},
+		Name: "with-domain", Namespace: "default",
 		Data: map[string][]byte{
 			userNameKey: []byte(userNameValue),
 			passwordKey: []byte(passwordValue),
@@ -377,7 +376,7 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 	caSecretName := "ca-secret"
 	caSecretKey := "ca.crt"
 	caSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: caSecretName, Namespace: "default"},
+		Name: caSecretName, Namespace: "default",
 		Data: map[string][]byte{
 			caSecretKey: testCABundle,
 		},
@@ -386,7 +385,7 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 	caConfigMapName := "ca-configmap"
 	caConfigMapKey := "ca.crt"
 	caConfigMap := &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{Name: caConfigMapName, Namespace: "default"},
+		Name: caConfigMapName, Namespace: "default",
 		Data: map[string]string{
 			caConfigMapKey: string(testCABundle),
 		},
@@ -406,7 +405,7 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 		},
 		"namespace-dependent cluster secret store": {
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+				Kind: esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						SecretServer: validProvider,
@@ -510,7 +509,7 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 		},
 		"cluster secret store": {
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+				Kind: esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						SecretServer: &esv1.SecretServerProvider{
@@ -525,7 +524,7 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 		},
 		"cluster secret store with domain": {
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+				Kind: esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						SecretServer: &esv1.SecretServerProvider{
@@ -638,7 +637,7 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 		},
 		"cluster secret store with CABundle and CAProvider": {
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{Kind: esv1.ClusterSecretStoreKind},
+				Kind: esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						SecretServer: &esv1.SecretServerProvider{
@@ -665,7 +664,7 @@ QJ85ioEpy00NioqcF0WyMZH80uMsPycfpnl5uF7RkW8u
 			store := tc.store
 			if store == nil {
 				store = &esv1.SecretStore{
-					TypeMeta: metav1.TypeMeta{Kind: esv1.SecretStoreKind},
+					Kind: esv1.SecretStoreKind,
 					Spec: esv1.SecretStoreSpec{
 						Provider: &esv1.SecretStoreProvider{
 							SecretServer: tc.provider,
@@ -734,10 +733,8 @@ func TestValidateStoreSecretRef(t *testing.T) {
 	}{
 		"valid secret ref for SecretStore": {
 			store: &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-store",
-					Namespace: "default",
-				},
+				Name:      "test-store",
+				Namespace: "default",
 			},
 			ref: &esv1.SecretServerProviderRef{
 				SecretRef: &v1.SecretKeySelector{
@@ -749,10 +746,8 @@ func TestValidateStoreSecretRef(t *testing.T) {
 		},
 		"error when secret ref missing name": {
 			store: &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-store",
-					Namespace: "default",
-				},
+				Name:      "test-store",
+				Namespace: "default",
 			},
 			ref: &esv1.SecretServerProviderRef{
 				SecretRef: &v1.SecretKeySelector{
@@ -764,10 +759,8 @@ func TestValidateStoreSecretRef(t *testing.T) {
 		},
 		"error when secret ref missing key": {
 			store: &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-store",
-					Namespace: "default",
-				},
+				Name:      "test-store",
+				Namespace: "default",
 			},
 			ref: &esv1.SecretServerProviderRef{
 				SecretRef: &v1.SecretKeySelector{
@@ -779,10 +772,8 @@ func TestValidateStoreSecretRef(t *testing.T) {
 		},
 		"error when both value and secret ref are set": {
 			store: &esv1.SecretStore{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-store",
-					Namespace: "default",
-				},
+				Name:      "test-store",
+				Namespace: "default",
 			},
 			ref: &esv1.SecretServerProviderRef{
 				SecretRef: &v1.SecretKeySelector{
@@ -817,15 +808,15 @@ func TestLoadConfigSecretReferentValidation(t *testing.T) {
 
 	// A secret in a namespace the store must NOT be allowed to read.
 	stolenSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "stolen", Namespace: otherNamespace},
-		Data:       map[string][]byte{"token": []byte("super-secret")},
+		Name: "stolen", Namespace: otherNamespace,
+		Data: map[string][]byte{"token": []byte("super-secret")},
 	}
 	kube := clientfake.NewClientBuilder().WithObjects(stolenSecret).Build()
 
 	// Namespaced SecretStore living in storeNamespace.
 	store := &esv1.SecretStore{
-		TypeMeta:   metav1.TypeMeta{Kind: esv1.SecretStoreKind},
-		ObjectMeta: metav1.ObjectMeta{Namespace: storeNamespace},
+		Kind:      esv1.SecretStoreKind,
+		Namespace: storeNamespace,
 	}
 
 	// Token ref that tries to reach into the other namespace.

@@ -182,9 +182,9 @@ func extractUUIDFromRef(secretRef string) string {
 	// We'll just take the last part after the last '/'
 	// If there's a trailing slash, the UUID part would be empty, so return empty string
 
-	lastSlash := strings.LastIndex(secretRef, "/")
-	if lastSlash > -1 {
-		return secretRef[lastSlash+1:] // <- will not result in overflow even if it's the last `/`
+	_, uuid, found := strings.CutLast(secretRef, "/")
+	if found {
+		return uuid
 	}
 
 	return ""

@@ -66,9 +66,7 @@ func (c *Client) getJwtFromServiceAccountTokenRequest(ctx context.Context, servi
 		audiences = append(audiences, additionalAud...)
 	}
 	tokenRequest := &authenticationv1.TokenRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: c.namespace,
-		},
+		Namespace: c.namespace,
 		Spec: authenticationv1.TokenRequestSpec{
 			Audiences:         audiences,
 			ExpirationSeconds: &expirationSeconds,

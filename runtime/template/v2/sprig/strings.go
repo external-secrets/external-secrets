@@ -123,8 +123,8 @@ func nindent(spaces int, v string) string {
 	return "\n" + indent(spaces, v)
 }
 
-func replace(old, new, src string) string {
-	return strings.Replace(src, old, new, -1)
+func replace(old, replacement, src string) string {
+	return strings.Replace(src, old, replacement, -1)
 }
 
 func plural(one, many string, count int) string {

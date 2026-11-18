@@ -58,6 +58,13 @@ type AkeylessAuth struct {
 	// +optional
 	KubernetesAuth *AkeylessKubernetesAuth `json:"kubernetesAuth,omitempty"`
 
+	// JWTAuth authenticates with an Akeyless OAuth2.0/JWT auth method by
+	// submitting access-type=jwt and a bearer JWT. Prefer this over stuffing
+	// the JWT into SecretRef.accessTypeParam when using TokenRequest-issued tokens.
+	// When set, SecretRef and ServiceAccountRef on AkeylessAuth are ignored.
+	// +optional
+	JWTAuth *AkeylessJWTAuth `json:"jwtAuth,omitempty"`
+
 	// ServiceAccountRef specifies a Kubernetes ServiceAccount used for azure_ad
 	// authentication on AKS Workload Identity. The operator obtains a federated
 	// identity token from this ServiceAccount via the TokenRequest API instead
@@ -68,12 +75,47 @@ type AkeylessAuth struct {
 
 // AkeylessAuthSecretRef references a Secret that contains the details
 // to authenticate with Akeyless.
-// AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME.
+// AKEYLESS_ACCESS_TYPE_PARAM: AZURE_OBJ_ID OR GCP_AUDIENCE OR ACCESS_KEY OR KUB_CONFIG_NAME OR JWT.
 type AkeylessAuthSecretRef struct {
 	// The SecretAccessID is used for authentication
 	AccessID        esmeta.SecretKeySelector `json:"accessID,omitempty"`
 	AccessType      esmeta.SecretKeySelector `json:"accessType,omitempty"`
 	AccessTypeParam esmeta.SecretKeySelector `json:"accessTypeParam,omitempty"`
+}
+
+// AkeylessJWTAuth authenticates with Akeyless using an OAuth2.0/JWT auth method
+// (API access-type=jwt). Provide either a Secret holding the JWT or a
+// ServiceAccount for TokenRequest-issued tokens (for example Kubernetes OIDC
+// federation against Akeyless). Requires create on serviceaccounts/token when
+// using ServiceAccountRef (Helm: rbac.serviceAccountTokenCreate, default true).
+// +kubebuilder:validation:XValidation:rule="has(self.secretRef) != has(self.serviceAccountRef)",message="exactly one of secretRef or serviceAccountRef must be set"
+// +kubebuilder:validation:XValidation:rule="!has(self.secretRef) || (has(self.secretRef.name) && size(self.secretRef.name) > 0)",message="secretRef.name must be nonempty"
+// +kubebuilder:validation:XValidation:rule="!has(self.serviceAccountRef) || (has(self.serviceAccountRef.name) && size(self.serviceAccountRef.name) > 0)",message="serviceAccountRef.name must be nonempty"
+// +kubebuilder:validation:XValidation:rule="!has(self.serviceAccountRef) || (has(self.serviceAccountRef.audiences) && size(self.serviceAccountRef.audiences) > 0)",message="serviceAccountRef.audiences must be set to the Akeyless auth method audience"
+// +kubebuilder:validation:XValidation:rule="!has(self.expirationSeconds) || has(self.serviceAccountRef)",message="expirationSeconds only applies to serviceAccountRef"
+type AkeylessJWTAuth struct {
+	// the Akeyless OAuth2.0/JWT auth-method access-id
+	// +kubebuilder:validation:MinLength=1
+	AccessID string `json:"accessID"`
+
+	// Optional SecretRef that refers to a key in a Secret resource containing
+	// the JWT used to authenticate with Akeyless.
+	// +optional
+	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
+
+	// Optional ServiceAccountRef requests a token via the TokenRequest API.
+	// audiences is required and must match the Akeyless OAuth2.0/JWT
+	// auth-method audience, so the token is never scoped to the Kubernetes
+	// API server. Mutually exclusive with SecretRef.
+	// +optional
+	ServiceAccountRef *esmeta.ServiceAccountSelector `json:"serviceAccountRef,omitempty"`
+
+	// Optional expiration time in seconds for TokenRequest tokens. Only valid
+	// with ServiceAccountRef. Defaults to 600 (10 minutes). Kubernetes rejects
+	// TokenRequest values below 600.
+	// +optional
+	// +kubebuilder:validation:Minimum=600
+	ExpirationSeconds *int64 `json:"expirationSeconds,omitempty"`
 }
 
 // AkeylessKubernetesAuth configures Kubernetes authentication with Akeyless.

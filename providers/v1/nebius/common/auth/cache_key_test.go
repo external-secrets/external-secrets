@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	tassert "github.com/stretchr/testify/assert"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -192,9 +191,7 @@ func TestCacheKeysAreDistinctAcrossCredentialTypes(t *testing.T) {
 
 func newCacheKeyTestStore(uid string, generation int64) esv1.GenericStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			UID:        types.UID(uid),
-			Generation: generation,
-		},
+		UID:        types.UID(uid),
+		Generation: generation,
 	}
 }

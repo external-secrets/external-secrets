@@ -26,7 +26,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/fields"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -191,7 +190,7 @@ func validateStore(ctx context.Context, namespace, controllerClass string, store
 		}
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, reason, msg)
 		SetExternalSecretCondition(store, *cond, gaugeVecGetter)
-		recorder.Event(store, v1.EventTypeWarning, reason, err.Error())
+		recorder.Event(store, v1.EventTypeWarning, reason, msg)
 		return fmt.Errorf(errStoreClient, err)
 	}
 	validationResult, err := cl.Validate()
@@ -199,12 +198,12 @@ func validateStore(ctx context.Context, namespace, controllerClass string, store
 		if validationResult == esapi.ValidationResultUnknown {
 			cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionTrue, esapi.ReasonValidationUnknown, errValidationUnknownMsg)
 			SetExternalSecretCondition(store, *cond, gaugeVecGetter)
-			recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationUnknown, err.Error())
+			recorder.Event(store, v1.EventTypeWarning, esapi.ReasonValidationUnknown, errValidationUnknownMsg)
 			return errValidationUnknown
 		}
 		cond := NewSecretStoreCondition(esapi.SecretStoreReady, v1.ConditionFalse, esapi.ReasonInvalidProviderConfig, errUnableValidateStore)
 		SetExternalSecretCondition(store, *cond, gaugeVecGetter)
-		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidProviderConfig, err.Error())
+		recorder.Event(store, v1.EventTypeWarning, esapi.ReasonInvalidProviderConfig, errUnableValidateStore)
 		return fmt.Errorf(errValidationFailed, err)
 	}
 
@@ -375,9 +374,7 @@ func findStoresForPushSecret(ctx context.Context, c client.Client, obj client.Ob
 	for _, store := range stores {
 		if shouldReconcileSecretStoreForPushSecret(store, ps) {
 			req := ctrlreconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name: store.GetName(),
-				},
+				Name: store.GetName(),
 			}
 			if !isClusterScoped {
 				req.NamespacedName.Namespace = store.GetNamespace()

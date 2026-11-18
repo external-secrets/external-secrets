@@ -24,7 +24,6 @@ import (
 	"github.com/ngrok/ngrok-api-go/v9"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
@@ -84,9 +83,7 @@ var _ = Describe("client", func() {
 		BeforeEach(func() {
 			ngrokSecretName = "secret-" + fake.GenerateRandomString(10)
 			k8Secret = &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "my-secret",
-				},
+				Name: "my-secret",
 				Data: map[string][]byte{
 					"key": []byte("new value"),
 					"foo": []byte("bar"),

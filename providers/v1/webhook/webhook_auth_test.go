@@ -37,7 +37,6 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -128,12 +127,10 @@ func ntlmRequest(url string, creds mockCreds, t *testing.T) string {
 	// ntlm clustersecretstore takes credentials from a secret,
 	// so we need to mock k8s-client retrieval of secret.
 	mockClient := fake.NewClientBuilder().WithObjects(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: secretNamespace,
-			Name:      secretName,
-			Labels: map[string]string{
-				"external-secrets.io/type": "webhook",
-			},
+		Namespace: secretNamespace,
+		Name:      secretName,
+		Labels: map[string]string{
+			"external-secrets.io/type": "webhook",
 		},
 		Data: map[string][]byte{
 			"userName": []byte(creds.UserName),
@@ -143,13 +140,9 @@ func ntlmRequest(url string, creds mockCreds, t *testing.T) string {
 
 	// create clusteSecretStore
 	ntlmAuthStore := &esv1.ClusterSecretStore{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "ClusterSecretStore",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "webhook-store",
-			Namespace: secretNamespace,
-		},
+		Kind:      "ClusterSecretStore",
+		Name:      "webhook-store",
+		Namespace: secretNamespace,
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Webhook: &esv1.WebhookProvider{
@@ -195,13 +188,9 @@ func basicAuthRequest(url string, creds mockCreds, t *testing.T) string {
 
 	// create ClusterSecretStore
 	basicAuthStore := &esv1.ClusterSecretStore{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "ClusterSecretStore",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "webhook-store",
-			Namespace: "default",
-		},
+		Kind:      "ClusterSecretStore",
+		Name:      "webhook-store",
+		Namespace: "default",
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Webhook: &esv1.WebhookProvider{

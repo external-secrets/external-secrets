@@ -22,7 +22,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"maps"
+	"reflect"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -72,7 +74,7 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	secretExists := err == nil
 	// If the secret exists, we should check if it is managed by external-secrets
 	if secretExists {
-		metadata, err := c.readSecretMetadata(ctx, data.GetRemoteKey())
+		metadata, err := c.readSecretMetadata(ctx, data.GetRemoteKey(), true)
 		if err != nil {
 			return err
 		}
@@ -88,14 +90,13 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		if data.GetProperty() == "" {
 			// Convert incoming value to map for proper JSON comparison
 			var incomingSecretMap map[string]any
-			err = json.Unmarshal(value, &incomingSecretMap)
+			incomingSecretMap, err = decodeSecretValue(value)
 			if err != nil {
-				// Do not wrap the original error with %w as json.Unmarshal errors
-				// may contain sensitive secret data in the error message
 				return errors.New("error unmarshalling incoming secret value: invalid JSON format")
 			}
-			// Compare maps instead of raw bytes to handle JSON field ordering and formatting
-			if maps.Equal(vaultSecret, incomingSecretMap) {
+			// Compare maps instead of raw bytes to handle JSON field ordering and formatting.
+			// Values can be nested objects or arrays, which maps.Equal can't compare (it panics).
+			if reflect.DeepEqual(vaultSecret, incomingSecretMap) {
 				return nil
 			}
 		}
@@ -116,10 +117,9 @@ func (c *client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		// Secret got from vault is already on map[string]string format
 		secretVal[data.GetProperty()] = string(value)
 	} else {
-		err = json.Unmarshal(value, &secretVal)
+		// Decode like the comparison above, so numbers keep their exact value in Vault.
+		secretVal, err = decodeSecretValue(value)
 		if err != nil {
-			// Do not wrap the original error with %w as json.Unmarshal errors
-			// may contain sensitive secret data in the error message
 			return errors.New("error unmarshalling vault secret: invalid JSON format")
 		}
 	}
@@ -174,7 +174,7 @@ func (c *client) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRemo
 	if err != nil {
 		return err
 	}
-	metadata, err := c.readSecretMetadata(ctx, remoteRef.GetRemoteKey())
+	metadata, err := c.readSecretMetadata(ctx, remoteRef.GetRemoteKey(), true)
 	if err != nil {
 		return err
 	}
@@ -269,4 +269,26 @@ func getCurrentVersionFromMetadata(data map[string]any) (int, error) {
 	// This handles edge cases with legacy secrets or incomplete metadata.
 	// Vault KV v2 secrets start at version 1, so this is the safest assumption.
 	return 1, nil
+}
+
+// decodeSecretValue decodes a whole secret value the same way the Vault API client decodes
+// secrets, with numbers as json.Number, so that it can be compared with the secret read from Vault
+// and written without losing precision. Callers must not wrap the returned error, since json
+// decoding errors may contain sensitive secret data.
+func decodeSecretValue(value []byte) (map[string]any, error) {
+	var secretMap map[string]any
+	dec := json.NewDecoder(bytes.NewReader(value))
+	dec.UseNumber()
+	if err := dec.Decode(&secretMap); err != nil {
+		return nil, err
+	}
+	// A whole secret must be a JSON object; null would decode to a nil map.
+	if secretMap == nil {
+		return nil, errors.New("secret value is not a JSON object")
+	}
+	// Like json.Unmarshal, reject anything after the JSON value.
+	if _, err := dec.Token(); !errors.Is(err, io.EOF) {
+		return nil, errors.New("unexpected data after the JSON object")
+	}
+	return secretMap, nil
 }

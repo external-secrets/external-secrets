@@ -183,7 +183,7 @@ func (r *Reconciler) updateConfig(ctx context.Context, cfg *admissionregistratio
 		Name:      r.SecretName,
 		Namespace: r.SecretNamespace,
 	}
-	err := r.Get(context.Background(), secretName, &secret)
+	err := r.Get(ctx, secretName, &secret)
 	if err != nil {
 		return err
 	}

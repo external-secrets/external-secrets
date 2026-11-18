@@ -26,7 +26,6 @@ import (
 	vault "github.com/hashicorp/vault/api"
 	"github.com/spf13/pflag"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -53,10 +52,8 @@ var (
 
 func makeValidSecretStoreWithVersion(v esv1.VaultKVStoreVersion) *esv1.SecretStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vault-store",
-			Namespace: "default",
-		},
+		Name:      "vault-store",
+		Namespace: "default",
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Vault: &esv1.VaultProvider{
@@ -84,10 +81,8 @@ func makeValidSecretStore() *esv1.SecretStore {
 
 func makeValidSecretStoreWithCerts() *esv1.SecretStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vault-store",
-			Namespace: "default",
-		},
+		Name:      "vault-store",
+		Namespace: "default",
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Vault: &esv1.VaultProvider{
@@ -131,13 +126,9 @@ func makeValidSecretStoreWithK8sCerts(isSecret bool) *esv1.SecretStore {
 
 func makeInvalidClusterSecretStoreWithK8sCerts() *esv1.ClusterSecretStore {
 	return &esv1.ClusterSecretStore{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "ClusterSecretStore",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vault-store",
-			Namespace: "default",
-		},
+		Kind:      "ClusterSecretStore",
+		Name:      "vault-store",
+		Namespace: "default",
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Vault: &esv1.VaultProvider{
@@ -166,10 +157,8 @@ func makeInvalidClusterSecretStoreWithK8sCerts() *esv1.ClusterSecretStore {
 
 func makeValidSecretStoreWithIamAuthSecret() *esv1.SecretStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vault-store",
-			Namespace: "default",
-		},
+		Name:      "vault-store",
+		Namespace: "default",
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Vault: &esv1.VaultProvider{
@@ -205,10 +194,8 @@ func makeValidSecretStoreWithIamAuthSecret() *esv1.SecretStore {
 
 func makeValidSecretStoreWithIamAuthControllerPod() *esv1.SecretStore {
 	return &esv1.SecretStore{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vault-store",
-			Namespace: "default",
-		},
+		Name:      "vault-store",
+		Namespace: "default",
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Vault: &esv1.VaultProvider{
@@ -249,9 +236,7 @@ func makeClusterSecretStore(tweaks ...secretStoreTweakFn) *esv1.ClusterSecretSto
 	}
 
 	return &esv1.ClusterSecretStore{
-		TypeMeta: metav1.TypeMeta{
-			Kind: esv1.ClusterSecretStoreKind,
-		},
+		Kind:       esv1.ClusterSecretStoreKind,
 		ObjectMeta: store.ObjectMeta,
 		Spec:       store.Spec,
 	}
@@ -385,10 +370,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				store: makeValidSecretStoreWithCerts(),
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      tlsAuthCerts,
-						Namespace: "default",
-					},
+					Name:      tlsAuthCerts,
+					Namespace: "default",
 					Data: map[string][]byte{
 						tlsKey: secretClientKey,
 						tlsCrt: clientCrt,
@@ -406,10 +389,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				store: makeValidSecretStoreWithK8sCerts(true),
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      vaultCert,
-						Namespace: "default",
-					},
+					Name:      vaultCert,
+					Namespace: "default",
 					Data: map[string][]byte{
 						"cert":  clientCrt,
 						"token": secretData,
@@ -439,11 +420,9 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				store: makeValidSecretStoreWithK8sCerts(true),
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      vaultCert,
-						Namespace: "default",
-					},
-					Data: map[string][]byte{},
+					Name:      vaultCert,
+					Namespace: "default",
+					Data:      map[string][]byte{},
 				}).Build(),
 				newClientFunc: fake.ClientWithLoginMock,
 			},
@@ -457,10 +436,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				store: makeValidSecretStoreWithIamAuthSecret(),
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "vault-iam-creds-secret",
-						Namespace: "default",
-					},
+					Name:      "vault-iam-creds-secret",
+					Namespace: "default",
 					Data: map[string][]byte{
 						"access-key":           []byte("TESTING"),
 						"secret-access-key":    []byte("ABCDEF"),
@@ -480,10 +457,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				store: makeValidSecretStoreWithK8sCerts(false),
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      vaultCert,
-						Namespace: "default",
-					},
+					Name:      vaultCert,
+					Namespace: "default",
 					Data: map[string]string{
 						"cert": string(clientCrt),
 					},
@@ -501,21 +476,17 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				store: makeValidSecretStoreWithK8sCerts(false),
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "example-sa",
-						Namespace: "default",
-					},
+					Name:      "example-sa",
+					Namespace: "default",
 					Secrets: []corev1.ObjectReference{
 						{
 							Name: tokenSecretName,
 						},
 					},
 				}, &corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      vaultCert,
-						Namespace: "default",
-					},
-					Data: map[string]string{},
+					Name:      vaultCert,
+					Namespace: "default",
+					Data:      map[string]string{},
 				}).Build(),
 				newClientFunc: fake.ClientWithLoginMock,
 			},
@@ -529,10 +500,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				store: makeValidSecretStoreWithCerts(),
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      tlsAuthCerts,
-						Namespace: "default",
-					},
+					Name:      tlsAuthCerts,
+					Namespace: "default",
 					Data: map[string][]byte{
 						tlsKey: secretClientKey,
 						tlsCrt: []byte("cert with mistake"),
@@ -550,10 +519,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				store: makeValidSecretStoreWithCerts(),
 				ns:    "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      tlsAuthCerts,
-						Namespace: "default",
-					},
+					Name:      tlsAuthCerts,
+					Namespace: "default",
 					Data: map[string][]byte{
 						tlsKey: []byte("key with mistake"),
 						tlsCrt: clientCrt,
@@ -580,10 +547,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				}),
 				ns: "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      tlsAuthCerts,
-						Namespace: "default",
-					},
+					Name:      tlsAuthCerts,
+					Namespace: "default",
 					Data: map[string][]byte{
 						tlsKey: []byte("key with mistake"),
 						tlsCrt: clientCrt,
@@ -611,10 +576,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				}),
 				ns: "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      tlsAuthCerts,
-						Namespace: "default",
-					},
+					Name:      tlsAuthCerts,
+					Namespace: "default",
 					Data: map[string][]byte{
 						tlsKey: secretClientKey,
 						tlsCrt: clientCrt,
@@ -639,10 +602,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 					}
 				}),
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "vault-token",
-						Namespace: "default",
-					},
+					Name:      "vault-token",
+					Namespace: "default",
 					Data: map[string][]byte{
 						"token": []byte("token"),
 					},
@@ -670,10 +631,8 @@ MIIFkTCCA3mgAwIBAgIUBEUg3m/WqAsWHG4Q/II3IePFfuowDQYJKoZIhvcNAQELBQAwWDELMAkGA1UE
 				}),
 				ns: "default",
 				kube: clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "vault-secret-id",
-						Namespace: "default",
-					},
+					Name:      "vault-secret-id",
+					Namespace: "default",
 					Data: map[string][]byte{
 						"secret-id": []byte("myid"),
 						"approle":   []byte("myrole"),

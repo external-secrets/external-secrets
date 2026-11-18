@@ -51,6 +51,7 @@ const (
 	errInvalidRemoteRefKey                      = "match.remoteRef.remoteKey. Invalid format. Format should match secretName/key got %s"
 	errInvalidSecretType                        = "ESO can only push/delete records of type %s. Secret %s is type %s"
 	errFieldNotFound                            = "secret %s does not contain any custom field with label %s"
+	errKeeperSecurityMissingFolderIDForCreate   = "folderID must be set on the SecretStore to create a new Keeper Security record"
 
 	externalSecretType = "externalSecrets"
 	secretType         = "secret"
@@ -311,6 +312,10 @@ func (c *Client) createSecret(name, key string, value []byte) (string, error) {
 		externalSecretRecord.Custom = append(externalSecretRecord.Custom,
 			ksm.Secret{KeeperRecordField: field, Value: []string{string(value)}},
 		)
+	}
+
+	if c.folderID == "" {
+		return "", errors.New(errKeeperSecurityMissingFolderIDForCreate)
 	}
 
 	uid, err := c.ksmClient.CreateSecretWithRecordData("", c.folderID, externalSecretRecord)

@@ -44,7 +44,7 @@ spec:
       imagePullSecrets:
         {{- toYaml .Values.global.imagePullSecrets | nindent 8 }}
       {{- end }}
-      hostNetwork: {{ .Values.webhook.hostNetwork}}
+      hostNetwork: {{ .Values.webhook.hostNetwork }}
       serviceAccountName: {{ include "external-secrets-webhook.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.webhook.serviceAccount.automount }}
       {{- if (semverCompare ">= 1.33-0" .Capabilities.KubeVersion.Version) }}

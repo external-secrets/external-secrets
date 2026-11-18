@@ -105,15 +105,17 @@ func (g *gitlabBase) getClient(ctx context.Context, provider *esv1.GitlabProvide
 		if err != nil {
 			return nil, fmt.Errorf("failed to read ca bundle: %w", err)
 		}
-		if ok := caCertPool.AppendCertsFromPEM(ca); !ok {
+		if !caCertPool.AppendCertsFromPEM(ca) {
 			return nil, errors.New("failed to append ca bundle")
 		}
 
-		transport := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				RootCAs:    caCertPool,
-				MinVersion: tls.VersionTLS12,
-			},
+		transport, err := esutils.CloneDefaultHTTPTransport()
+		if err != nil {
+			return nil, err
+		}
+		transport.TLSClientConfig = &tls.Config{
+			RootCAs:    caCertPool,
+			MinVersion: tls.VersionTLS12,
 		}
 
 		httpClient := &http.Client{Transport: transport}

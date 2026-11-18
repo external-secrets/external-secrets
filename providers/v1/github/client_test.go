@@ -46,7 +46,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -196,8 +195,8 @@ func TestSecretExists(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			g := Client{
 				provider: test.prov,
-			}
-			g.getSecretFn = test.getSecretFn
+
+				getSecretFn: test.getSecretFn}
 			ok, err := g.SecretExists(context.TODO(), test.remoteRef)
 			assert.Equal(t, test.exists, ok)
 			if test.wantErr == nil {
@@ -315,10 +314,10 @@ func TestPushSecret(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			g := Client{
 				provider: test.prov,
-			}
-			g.getSecretFn = test.getSecretFn
-			g.getPublicKeyFn = test.getPublicKeyFn
-			g.createOrUpdateFn = test.createOrUpdateFn
+
+				getSecretFn:      test.getSecretFn,
+				getPublicKeyFn:   test.getPublicKeyFn,
+				createOrUpdateFn: test.createOrUpdateFn}
 			err := g.PushSecret(context.TODO(), test.secret, test.remoteRef)
 			if test.wantErr == nil {
 				assert.NoError(t, err)
@@ -341,16 +340,16 @@ func TestPushSecretSelectedRepos(t *testing.T) {
 
 	t.Run("selected visibility preserves existing repositories", func(t *testing.T) {
 		var pushed *github.EncryptedSecret
-		g := Client{provider: &esv1.GithubProvider{}}
-		g.getSecretFn = withGetSecretFn(&github.Secret{Name: "foo", Visibility: "selected"}, nil, nil)
-		g.getPublicKeyFn = validKey
-		g.listSelectedReposFn = func(_ context.Context, _ string) (github.SelectedRepoIDs, error) {
-			return github.SelectedRepoIDs{1, 2, 3}, nil
-		}
-		g.createOrUpdateFn = func(_ context.Context, es *github.EncryptedSecret) (*github.Response, error) {
-			pushed = es
-			return nil, nil
-		}
+		g := Client{provider: &esv1.GithubProvider{},
+			getSecretFn:    withGetSecretFn(&github.Secret{Name: "foo", Visibility: "selected"}, nil, nil),
+			getPublicKeyFn: validKey,
+			listSelectedReposFn: func(_ context.Context, _ string) (github.SelectedRepoIDs, error) {
+				return github.SelectedRepoIDs{1, 2, 3}, nil
+			},
+			createOrUpdateFn: func(_ context.Context, es *github.EncryptedSecret) (*github.Response, error) {
+				pushed = es
+				return nil, nil
+			}}
 		require.NoError(t, g.PushSecret(context.TODO(), secret, ref))
 		require.NotNil(t, pushed)
 		assert.Equal(t, "selected", pushed.Visibility)
@@ -358,13 +357,13 @@ func TestPushSecretSelectedRepos(t *testing.T) {
 	})
 
 	t.Run("list selected repos error is propagated", func(t *testing.T) {
-		g := Client{provider: &esv1.GithubProvider{}}
-		g.getSecretFn = withGetSecretFn(&github.Secret{Name: "foo", Visibility: "selected"}, nil, nil)
-		g.getPublicKeyFn = validKey
-		g.listSelectedReposFn = func(_ context.Context, _ string) (github.SelectedRepoIDs, error) {
-			return nil, errors.New("boom")
-		}
-		g.createOrUpdateFn = withCreateOrUpdateSecretFn(nil, nil)
+		g := Client{provider: &esv1.GithubProvider{},
+			getSecretFn:    withGetSecretFn(&github.Secret{Name: "foo", Visibility: "selected"}, nil, nil),
+			getPublicKeyFn: validKey,
+			listSelectedReposFn: func(_ context.Context, _ string) (github.SelectedRepoIDs, error) {
+				return nil, errors.New("boom")
+			},
+			createOrUpdateFn: withCreateOrUpdateSecretFn(nil, nil)}
 		err := g.PushSecret(context.TODO(), secret, ref)
 		assert.ErrorContains(t, err, "failed to list selected repositories")
 	})
@@ -372,17 +371,17 @@ func TestPushSecretSelectedRepos(t *testing.T) {
 	t.Run("non-selected visibility does not set repositories", func(t *testing.T) {
 		var pushed *github.EncryptedSecret
 		called := false
-		g := Client{provider: &esv1.GithubProvider{}}
-		g.getSecretFn = withGetSecretFn(&github.Secret{Name: "foo", Visibility: "all"}, nil, nil)
-		g.getPublicKeyFn = validKey
-		g.listSelectedReposFn = func(_ context.Context, _ string) (github.SelectedRepoIDs, error) {
-			called = true
-			return github.SelectedRepoIDs{9}, nil
-		}
-		g.createOrUpdateFn = func(_ context.Context, es *github.EncryptedSecret) (*github.Response, error) {
-			pushed = es
-			return nil, nil
-		}
+		g := Client{provider: &esv1.GithubProvider{},
+			getSecretFn:    withGetSecretFn(&github.Secret{Name: "foo", Visibility: "all"}, nil, nil),
+			getPublicKeyFn: validKey,
+			listSelectedReposFn: func(_ context.Context, _ string) (github.SelectedRepoIDs, error) {
+				called = true
+				return github.SelectedRepoIDs{9}, nil
+			},
+			createOrUpdateFn: func(_ context.Context, es *github.EncryptedSecret) (*github.Response, error) {
+				pushed = es
+				return nil, nil
+			}}
 		require.NoError(t, g.PushSecret(context.TODO(), secret, ref))
 		require.NotNil(t, pushed)
 		assert.False(t, called)
@@ -507,10 +506,8 @@ func TestAuthWithPrivateKey(t *testing.T) {
 				},
 			},
 			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-secret",
-					Namespace: "default",
-				},
+				Name:      "test-secret",
+				Namespace: "default",
 				Data: map[string][]byte{
 					"private-key": []byte(privateKeyPEM),
 				},
@@ -533,10 +530,8 @@ func TestAuthWithPrivateKey(t *testing.T) {
 				},
 			},
 			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-secret",
-					Namespace: "default",
-				},
+				Name:      "test-secret",
+				Namespace: "default",
 				Data: map[string][]byte{
 					"private-key": []byte(privateKeyPEM),
 				},
@@ -561,10 +556,8 @@ func TestAuthWithPrivateKey(t *testing.T) {
 				},
 			},
 			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-secret",
-					Namespace: "default",
-				},
+				Name:      "test-secret",
+				Namespace: "default",
 				Data: map[string][]byte{
 					"private-key": []byte(privateKeyPEM),
 				},
@@ -588,10 +581,8 @@ func TestAuthWithPrivateKey(t *testing.T) {
 				},
 			},
 			secret: &corev1.Secret{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-secret",
-					Namespace: "default",
-				},
+				Name:      "test-secret",
+				Namespace: "default",
 				Data: map[string][]byte{
 					"private-key": []byte(privateKeyPEM),
 				},

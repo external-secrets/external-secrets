@@ -26,7 +26,6 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	vault "github.com/hashicorp/vault/api"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -39,10 +38,8 @@ func TestSetAuthNamespace(t *testing.T) {
 	store := makeValidSecretStore()
 
 	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "vault-secret",
-			Namespace: "default",
-		},
+		Name:      "vault-secret",
+		Namespace: "default",
 		Data: map[string][]byte{
 			"key": []byte("token"),
 		},

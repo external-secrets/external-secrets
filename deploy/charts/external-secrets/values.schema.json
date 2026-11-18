@@ -558,6 +558,9 @@
                 "extraLabels": {
                     "type": "object"
                 },
+                "namespace": {
+                    "type": "string"
+                },
                 "sidecarLabel": {
                     "type": "string"
                 },
@@ -844,6 +847,14 @@
                 },
                 "create": {
                     "type": "boolean"
+                },
+                "leaderElection": {
+                    "type": "object",
+                    "properties": {
+                        "create": {
+                            "type": "boolean"
+                        }
+                    }
                 },
                 "serviceAccountTokenCreate": {
                     "type": "boolean"

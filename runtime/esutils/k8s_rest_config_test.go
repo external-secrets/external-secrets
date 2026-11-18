@@ -23,7 +23,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -115,10 +114,8 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			fields: fields{
 				namespace: "default",
 				kube: fclient.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foobar",
-						Namespace: "default",
-					},
+					Name:      "foobar",
+					Namespace: "default",
 					Data: map[string][]byte{
 						"cert":  []byte(caCert),
 						"token": []byte("mytoken"),
@@ -147,9 +144,7 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			want: &want{
 				Host:        serverURL,
 				BearerToken: "mytoken",
-				TLSClientConfig: rest.TLSClientConfig{
-					CAData: []byte(caCert),
-				},
+				CAData:      []byte(caCert),
 			},
 			wantErr: false,
 		},
@@ -158,18 +153,14 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			fields: fields{
 				namespace: "default",
 				kube: fclient.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foobar",
-						Namespace: "default",
-					},
+					Name:      "foobar",
+					Namespace: "default",
 					Data: map[string][]byte{
 						"token": []byte("mytoken"),
 					},
 				}, &corev1.ConfigMap{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foobar",
-						Namespace: "default",
-					},
+					Name:      "foobar",
+					Namespace: "default",
 					Data: map[string]string{
 						"cert": "1234",
 					},
@@ -197,9 +188,7 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			want: &want{
 				Host:        serverURL,
 				BearerToken: "mytoken",
-				TLSClientConfig: rest.TLSClientConfig{
-					CAData: []byte("1234"),
-				},
+				CAData:      []byte("1234"),
 			},
 			wantErr: false,
 		},
@@ -208,10 +197,8 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			fields: fields{
 				namespace: "default",
 				kube: fclient.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foobar",
-						Namespace: "default",
-					},
+					Name:      "foobar",
+					Namespace: "default",
 					Data: map[string][]byte{
 						"token": []byte("mytoken"),
 					},
@@ -233,10 +220,8 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			want: &want{
 				Host:        serverURL,
 				BearerToken: "mytoken",
-				TLSClientConfig: rest.TLSClientConfig{
-					Insecure: false,
-					CAData:   nil,
-				},
+				Insecure:    false,
+				CAData:      nil,
 			},
 			wantErr: false,
 		},
@@ -245,10 +230,8 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			fields: fields{
 				namespace: "default",
 				kube: fclient.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foobar",
-						Namespace: "default",
-					},
+					Name:      "foobar",
+					Namespace: "default",
 					Data: map[string][]byte{
 						"token": []byte("mytoken"),
 					},
@@ -272,9 +255,7 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			want: &want{
 				Host:        serverURL,
 				BearerToken: "mytoken",
-				TLSClientConfig: rest.TLSClientConfig{
-					CAData: []byte(caCert),
-				},
+				CAData:      []byte(caCert),
 			},
 			wantErr: false,
 		},
@@ -283,10 +264,8 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			fields: fields{
 				namespace: "default",
 				kube: fclient.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "mycert",
-						Namespace: "default",
-					},
+					Name:      "mycert",
+					Namespace: "default",
 					Data: map[string][]byte{
 						"cert": []byte("my-cert"),
 						"key":  []byte("my-key"),
@@ -312,12 +291,10 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 				},
 			},
 			want: &want{
-				Host: serverURL,
-				TLSClientConfig: rest.TLSClientConfig{
-					CAData:   []byte(caCert),
-					CertData: []byte("my-cert"),
-					KeyData:  []byte("my-key"),
-				},
+				Host:     serverURL,
+				CAData:   []byte(caCert),
+				CertData: []byte("my-cert"),
+				KeyData:  []byte("my-key"),
 			},
 			wantErr: false,
 		},
@@ -326,10 +303,8 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			fields: fields{
 				namespace: "default",
 				kube: fclient.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "my-sa",
-						Namespace: "default",
-					},
+					Name:      "my-sa",
+					Namespace: "default",
 				}).Build(),
 				kubeclientset: utilfake.NewCreateTokenMock().WithToken("my-sa-token"),
 				store: &esv1.KubernetesProvider{
@@ -348,9 +323,7 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			want: &want{
 				Host:        serverURL,
 				BearerToken: "my-sa-token",
-				TLSClientConfig: rest.TLSClientConfig{
-					CAData: []byte(caCert),
-				},
+				CAData:      []byte(caCert),
 			},
 			wantErr: false,
 		},
@@ -359,10 +332,8 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			fields: fields{
 				namespace: "default",
 				kube: fclient.NewClientBuilder().WithObjects(&corev1.ServiceAccount{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "my-sa",
-						Namespace: "default",
-					},
+					Name:      "my-sa",
+					Namespace: "default",
 				}).Build(),
 				kubeclientset: utilfake.NewCreateTokenMock().WithToken("my-sa-token"),
 				store: &esv1.KubernetesProvider{
@@ -481,10 +452,8 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			fields: fields{
 				namespace: "default",
 				kube: fclient.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foobar",
-						Namespace: "default",
-					},
+					Name:      "foobar",
+					Namespace: "default",
 					Data: map[string][]byte{
 						"config": []byte(authTestKubeConfig),
 						"token":  []byte("mytoken"),
@@ -516,10 +485,8 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			fields: fields{
 				namespace: "default",
 				kube: fclient.NewClientBuilder().WithObjects(&corev1.Secret{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "foobar",
-						Namespace: "default",
-					},
+					Name:      "foobar",
+					Namespace: "default",
 					Data: map[string][]byte{
 						"config": []byte(authTestKubeConfig),
 					},
@@ -535,9 +502,7 @@ func TestBuildRESTConfigFromKubernetesConnection(t *testing.T) {
 			want: &want{
 				Host:        "https://api.my-domain.tld",
 				BearerToken: "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJPbmxpbmUgSldUIEJ1aWxkZXIiLCJpYXQiOjE3MTkzOTY4OTksImV4cCI6MTc1MDkzMjg4NywiYXVkIjoid3d3LmV4YW1wbGUuY29tIiwic3ViIjoianJvY2tldEBleGFtcGxlLmNvbSIsIkdpdmVuTmFtZSI6IkpvaG5ueSIsIlN1cm5hbWUiOiJSb2NrZXQiLCJFbWFpbCI6Impyb2NrZXRAZXhhbXBsZS5jb20iLCJSb2xlIjpbIk1hbmFnZXIiLCJQcm9qZWN0IEFkbWluaXN0cmF0b3IiXX0.xXrfIl0akhfjWU_BDl7Ad54SXje0YlJdnugzwh96VmM",
-				TLSClientConfig: rest.TLSClientConfig{
-					CAData: []byte(caCert),
-				},
+				CAData:      []byte(caCert),
 			},
 			wantErr: false,
 		},

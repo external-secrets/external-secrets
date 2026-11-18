@@ -27,7 +27,12 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
+
+const contentTypeHeader = "content-type"
+const applicationJSONContentType = "application/json"
 
 // DopplerClient represents a client for interacting with Doppler's API.
 type DopplerClient struct {
@@ -296,12 +301,12 @@ func (c *DopplerClient) performRequest(path, method string, headers headers, par
 		return nil, newErr(0, err, "unable to form HTTP request")
 	}
 
-	if method == "POST" && req.Header.Get("content-type") == "" {
-		req.Header.Set("content-type", "application/json")
+	if method == "POST" && req.Header.Get(contentTypeHeader) == "" {
+		req.Header.Set(contentTypeHeader, applicationJSONContentType)
 	}
 
 	if req.Header.Get("accept") == "" {
-		req.Header.Set("accept", "application/json")
+		req.Header.Set("accept", applicationJSONContentType)
 	}
 	req.Header.Set("user-agent", c.UserAgent)
 	req.SetBasicAuth(c.DopplerToken, "")
@@ -326,10 +331,13 @@ func (c *DopplerClient) performRequest(path, method string, headers headers, par
 		tlsConfig.InsecureSkipVerify = true
 	}
 
-	httpClient.Transport = &http.Transport{
-		DisableKeepAlives: true,
-		TLSClientConfig:   tlsConfig,
+	transport, err := esutils.CloneDefaultHTTPTransport()
+	if err != nil {
+		return nil, newErr(0, err, "unable to configure http transport")
 	}
+	transport.DisableKeepAlives = true
+	transport.TLSClientConfig = tlsConfig
+	httpClient.Transport = transport
 
 	r, err := httpClient.Do(req)
 	if err != nil {
@@ -348,7 +356,7 @@ func (c *DopplerClient) performRequest(path, method string, headers headers, par
 	success := isSuccess(r.StatusCode)
 
 	if !success {
-		if contentType := r.Header.Get("content-type"); strings.HasPrefix(contentType, "application/json") {
+		if contentType := r.Header.Get(contentTypeHeader); strings.HasPrefix(contentType, applicationJSONContentType) {
 			var errResponse apiErrorResponse
 			err := json.Unmarshal(bodyResponse, &errResponse)
 			if err != nil {

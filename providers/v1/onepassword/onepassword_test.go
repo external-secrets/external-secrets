@@ -27,7 +27,6 @@ import (
 	"github.com/1Password/connect-sdk-go/onepassword"
 	corev1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -499,9 +498,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: nil provider",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: nil,
 				},
@@ -511,9 +508,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: nil OnePassword provider spec",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: nil,
@@ -525,9 +520,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "valid secretStore",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -552,9 +545,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: illegal namespace on SecretStore",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -581,9 +572,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: more than one vault with the same number",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -609,9 +598,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "valid: clusterSecretStore",
 			clusterStore: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "ClusterSecretStore",
-				},
+				Kind: "ClusterSecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -637,9 +624,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: clusterSecretStore without namespace",
 			clusterStore: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "ClusterSecretStore",
-				},
+				Kind: "ClusterSecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -665,9 +650,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: missing connectTokenSecretRef.name",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -692,9 +675,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: missing connectTokenSecretRef.key",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -719,9 +700,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: at least one vault",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -744,9 +723,7 @@ func TestValidateStore(t *testing.T) {
 		{
 			checkNote: "invalid: url",
 			store: &esv1.SecretStore{
-				TypeMeta: metav1.TypeMeta{
-					Kind: "SecretStore",
-				},
+				Kind: "SecretStore",
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						OnePassword: &esv1.OnePasswordProvider{
@@ -2261,7 +2238,7 @@ func TestUpdateFields(t *testing.T) {
 
 	// run the tests
 	for _, tc := range testCases {
-		actualOutput, err := updateFieldValue(tc.inputFields, tc.fieldName, tc.newVal)
+		actualOutput, _, err := updateFieldValue(tc.inputFields, tc.fieldName, tc.newVal)
 		if len(actualOutput) != len(tc.expectedFields) {
 			t.Errorf("%s: length fields did not match: -expected, +got:\n-%#v\n+%#v\n", tc.setupNote, tc.expectedFields, actualOutput)
 			return
@@ -2533,6 +2510,130 @@ func TestProviderOnePasswordPushSecret(t *testing.T) {
 			err := provider.PushSecret(context.Background(), tc.val, tc.ref)
 			if !errors.Is(err, tc.expectedErr) {
 				t.Errorf(errDoesNotMatchMsgF, tc.setupNote, tc.expectedErr, err)
+			}
+		})
+	}
+}
+
+func TestProviderOnePasswordPushSecretSkipsUnchangedUpdate(t *testing.T) {
+	vaultName := "vault1"
+
+	mockClient := fake.NewMockClient()
+	mockClient.MockVaults = map[string][]onepassword.Vault{
+		vaultName: {{ID: vaultName}},
+	}
+	mockClient.MockItems = map[string][]onepassword.Item{
+		vaultName: {{
+			ID:    key1,
+			Title: key1,
+			Vault: onepassword.ItemVault{ID: vaultName},
+		}},
+	}
+	mockClient.MockItemFields = map[string]map[string][]*onepassword.ItemField{
+		vaultName: {
+			key1: {
+				{Label: "tls.crt", Value: "cert", Type: onepassword.FieldTypeConcealed},
+				{Label: "tls.key", Value: "key", Type: onepassword.FieldTypeConcealed},
+			},
+		},
+	}
+
+	updateCalls := 0
+	mockClient.UpdateItemValidateFunc = func(item *onepassword.Item, _ string) (*onepassword.Item, error) {
+		updateCalls++
+		return item, nil
+	}
+
+	provider := &ProviderOnePassword{
+		client: mockClient,
+		vaults: map[string]int{vaultName: 1},
+	}
+	secret := &corev1.Secret{Data: map[string][]byte{
+		"tls.crt": []byte("cert"),
+		"tls.key": []byte("key"),
+	}}
+
+	// same values as already stored: a periodic Replace sync
+	for _, prop := range []string{"tls.crt", "tls.key"} {
+		ref := fakeRef{key: key1, prop: prop, secretKey: prop}
+		if err := provider.PushSecret(context.Background(), secret, ref); err != nil {
+			t.Fatalf("unexpected error pushing %s: %v", prop, err)
+		}
+	}
+
+	if updateCalls != 0 {
+		t.Errorf("expected no UpdateItem calls for unchanged values, got %d", updateCalls)
+	}
+}
+
+func TestProviderOnePasswordPushSecretTagChanges(t *testing.T) {
+	vaultName := "vault1"
+
+	tests := []struct {
+		name         string
+		existingTags []string
+		specTags     []string
+		wantUpdates  int
+	}{
+		{name: "same tags same order", existingTags: []string{"tag1", "tag2"}, specTags: []string{"tag1", "tag2"}, wantUpdates: 0},
+		{name: "same tags different order", existingTags: []string{"tag2", "tag1"}, specTags: []string{"tag1", "tag2"}, wantUpdates: 0},
+		{name: "only tags differ", existingTags: []string{"tag1"}, specTags: []string{"tag1", "tag2"}, wantUpdates: 1},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mockClient := fake.NewMockClient()
+			mockClient.MockVaults = map[string][]onepassword.Vault{
+				vaultName: {{ID: vaultName}},
+			}
+			mockClient.MockItems = map[string][]onepassword.Item{
+				vaultName: {{
+					ID:    key1,
+					Title: key1,
+					Vault: onepassword.ItemVault{ID: vaultName},
+					Tags:  tc.existingTags,
+				}},
+			}
+			mockClient.MockItemFields = map[string]map[string][]*onepassword.ItemField{
+				vaultName: {
+					key1: {{Label: "tls.crt", Value: "cert", Type: onepassword.FieldTypeConcealed}},
+				},
+			}
+
+			updateCalls := 0
+			mockClient.UpdateItemValidateFunc = func(item *onepassword.Item, _ string) (*onepassword.Item, error) {
+				updateCalls++
+				mockClient.MockItems[vaultName][0].Tags = item.Tags
+				return item, nil
+			}
+
+			md := &metadata.PushSecretMetadata[PushSecretMetadataSpec]{
+				APIVersion: metadata.APIVersion,
+				Kind:       metadata.Kind,
+				Spec:       PushSecretMetadataSpec{Tags: tc.specTags},
+			}
+			mdRaw, err := json.Marshal(md)
+			if err != nil {
+				t.Fatalf("marshal metadata: %v", err)
+			}
+
+			provider := &ProviderOnePassword{
+				client: mockClient,
+				vaults: map[string]int{vaultName: 1},
+			}
+			secret := &corev1.Secret{Data: map[string][]byte{"tls.crt": []byte("cert")}}
+			ref := fakeRef{
+				key:       key1,
+				prop:      "tls.crt",
+				secretKey: "tls.crt",
+				metadata:  &apiextensionsv1.JSON{Raw: mdRaw},
+			}
+
+			if err := provider.PushSecret(context.Background(), secret, ref); err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
+			if updateCalls != tc.wantUpdates {
+				t.Errorf("expected %d UpdateItem calls, got %d", tc.wantUpdates, updateCalls)
 			}
 		})
 	}

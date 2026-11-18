@@ -245,13 +245,9 @@ func testGenerate(tc testCase, t *testing.T, client genv1alpha1.Generator, testS
 
 func makeGenerator(url string, args args) *genv1alpha1.Webhook {
 	store := &genv1alpha1.Webhook{
-		TypeMeta: metav1.TypeMeta{
-			Kind: "Webhook",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "wehbook-store",
-			Namespace: "default",
-		},
+		Kind:      "Webhook",
+		Name:      "wehbook-store",
+		Namespace: "default",
 		Spec: genv1alpha1.WebhookSpec{
 			URL:  url + args.URL,
 			Body: args.Body,

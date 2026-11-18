@@ -35,7 +35,6 @@ import (
 	"go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/tools/clientcmd"
 	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kubeclient "sigs.k8s.io/controller-runtime/pkg/client"
@@ -374,10 +373,8 @@ func TestNewClient(t *testing.T) {
 
 func TestLoadConfigSecret_NamespacedStoreCannotCrossNamespace(t *testing.T) {
 	kube := fake.NewClientBuilder().WithObjects(&v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "foo",
-			Name:      "creds",
-		},
+		Namespace: "foo",
+		Name:      "creds",
 		Data: map[string][]byte{
 			"key": []byte("value"),
 		},

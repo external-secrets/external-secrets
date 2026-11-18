@@ -29,7 +29,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	authv1 "k8s.io/api/authentication/v1"
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -191,10 +190,8 @@ func TestNewSession(t *testing.T) {
 			},
 			secrets: []v1.Secret{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "onesecret",
-						Namespace: "foo",
-					},
+					Name:      "onesecret",
+					Namespace: "foo",
 					Data: map[string][]byte{
 						"one": []byte("1111"),
 						"two": []byte("2222"),
@@ -230,11 +227,9 @@ func TestNewSession(t *testing.T) {
 			},
 			secrets: []v1.Secret{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "brokensecret",
-						Namespace: "foo",
-					},
-					Data: map[string][]byte{},
+					Name:      "brokensecret",
+					Namespace: "foo",
+					Data:      map[string][]byte{},
 				},
 			},
 			expectErr: "could not fetch SecretAccessKey secret: cannot find secret data for key: \"two\"",
@@ -266,10 +261,8 @@ func TestNewSession(t *testing.T) {
 			},
 			secrets: []v1.Secret{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "onesecret",
-						Namespace: "evil",
-					},
+					Name:      "onesecret",
+					Namespace: "evil",
 					Data: map[string][]byte{
 						"one": []byte("1111"),
 						"two": []byte("2222"),
@@ -282,10 +275,8 @@ func TestNewSession(t *testing.T) {
 			name:      "ClusterStore should use credentials from a specific namespace",
 			namespace: esNamespaceKey,
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: esv1.ClusterSecretStoreKindAPIVersion,
-					Kind:       esv1.ClusterSecretStoreKind,
-				},
+				APIVersion: esv1.ClusterSecretStoreKindAPIVersion,
+				Kind:       esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						AWS: &esv1.AWSProvider{
@@ -309,10 +300,8 @@ func TestNewSession(t *testing.T) {
 			},
 			secrets: []v1.Secret{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "onesecret",
-						Namespace: platformTeamNsKey,
-					},
+					Name:      "onesecret",
+					Namespace: platformTeamNsKey,
 					Data: map[string][]byte{
 						"one": []byte("1111"),
 						"two": []byte("2222"),
@@ -327,10 +316,8 @@ func TestNewSession(t *testing.T) {
 			name:      "ClusterStore should use credentials from a ExternalSecret namespace (referentAuth)",
 			namespace: esNamespaceKey,
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: esv1.ClusterSecretStoreKindAPIVersion,
-					Kind:       esv1.ClusterSecretStoreKind,
-				},
+				APIVersion: esv1.ClusterSecretStoreKindAPIVersion,
+				Kind:       esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						AWS: &esv1.AWSProvider{
@@ -352,10 +339,8 @@ func TestNewSession(t *testing.T) {
 			},
 			secrets: []v1.Secret{
 				{
-					ObjectMeta: metav1.ObjectMeta{
-						Name:      "onesecret",
-						Namespace: esNamespaceKey,
-					},
+					Name:      "onesecret",
+					Namespace: esNamespaceKey,
 					Data: map[string][]byte{
 						"one": []byte("7777"),
 						"two": []byte("4444"),
@@ -370,12 +355,10 @@ func TestNewSession(t *testing.T) {
 			name:      "jwt auth via cluster secret store",
 			namespace: esNamespaceKey,
 			sa: &v1.ServiceAccount{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      myServiceAccountKey,
-					Namespace: otherNsName,
-					Annotations: map[string]string{
-						roleARNAnnotation: "my-sa-role",
-					},
+				Name:      myServiceAccountKey,
+				Namespace: otherNsName,
+				Annotations: map[string]string{
+					roleARNAnnotation: "my-sa-role",
 				},
 			},
 			jwtProvider: func(name, namespace, roleArn string, _ []string, _ string) (aws.CredentialsProvider, error) {
@@ -394,10 +377,8 @@ func TestNewSession(t *testing.T) {
 				}, nil
 			},
 			store: &esv1.ClusterSecretStore{
-				TypeMeta: metav1.TypeMeta{
-					APIVersion: esv1.ClusterSecretStoreKindAPIVersion,
-					Kind:       esv1.ClusterSecretStoreKind,
-				},
+				APIVersion: esv1.ClusterSecretStoreKindAPIVersion,
+				Kind:       esv1.ClusterSecretStoreKind,
 				Spec: esv1.SecretStoreSpec{
 					Provider: &esv1.SecretStoreProvider{
 						AWS: &esv1.AWSProvider{
@@ -494,10 +475,8 @@ func testRow(t *testing.T, row TestSessionRow) {
 		assert.Nil(t, err)
 	}
 	err := kc.Create(context.Background(), &authv1.TokenRequest{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      myServiceAccountKey,
-			Namespace: otherNsName,
-		},
+		Name:      myServiceAccountKey,
+		Namespace: otherNsName,
 	})
 	assert.Nil(t, err)
 	s, err := New(context.Background(), Opts{
@@ -663,7 +642,7 @@ func TestNewGeneratorSession_CredentialProviderPriority(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 
 	assert.NoError(t, k8sClient.Create(ctx, &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "aws-creds", Namespace: "test-ns"},
+		Name: "aws-creds", Namespace: "test-ns",
 		Data: map[string][]byte{
 			"access-key": []byte("SECRET_KEY_ID"),
 			"secret-key": []byte("SECRET_ACCESS_KEY"),
@@ -671,11 +650,9 @@ func TestNewGeneratorSession_CredentialProviderPriority(t *testing.T) {
 	}))
 
 	assert.NoError(t, k8sClient.Create(ctx, &v1.ServiceAccount{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        "test-sa",
-			Namespace:   "test-ns",
-			Annotations: map[string]string{roleARNAnnotation: "arn:aws:iam::123456789012:role/test-role"},
-		},
+		Name:        "test-sa",
+		Namespace:   "test-ns",
+		Annotations: map[string]string{roleARNAnnotation: "arn:aws:iam::123456789012:role/test-role"},
 	}))
 
 	jwtProviderCalled := false
@@ -719,7 +696,7 @@ func TestNewGeneratorSession_OnlySecretRef(t *testing.T) {
 	k8sClient := clientfake.NewClientBuilder().Build()
 
 	assert.NoError(t, k8sClient.Create(ctx, &v1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "aws-creds", Namespace: "test-ns"},
+		Name: "aws-creds", Namespace: "test-ns",
 		Data: map[string][]byte{
 			"access-key": []byte("SECRET_KEY_ID"),
 			"secret-key": []byte("SECRET_ACCESS_KEY"),

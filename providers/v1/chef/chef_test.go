@@ -26,7 +26,6 @@ import (
 
 	"github.com/go-chef/chef"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	clientfake "sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
@@ -339,7 +338,7 @@ func TestValidateStore(t *testing.T) {
 }
 
 func TestNewClient(t *testing.T) {
-	store := &esv1.SecretStore{TypeMeta: metav1.TypeMeta{Kind: "ClusterSecretStore"},
+	store := &esv1.SecretStore{Kind: "ClusterSecretStore",
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
 				Chef: &esv1.ChefProvider{
@@ -357,13 +356,10 @@ func TestNewClient(t *testing.T) {
 	ctx := context.TODO()
 
 	kube := clientfake.NewClientBuilder().WithObjects(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "creds",
-			Namespace: "default",
-		}, TypeMeta: metav1.TypeMeta{
-			Kind:       kind,
-			APIVersion: apiversion,
-		},
+		Name:       "creds",
+		Namespace:  "default",
+		Kind:       kind,
+		APIVersion: apiversion,
 	}).Build()
 
 	pc := Providerchef{databagService: &fake.ChefMockClient{}}
