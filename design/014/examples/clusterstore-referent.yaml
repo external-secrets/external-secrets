@@ -1,5 +1,5 @@
 apiVersion: external-secrets.io/v1alpha1
-kind: ClusterProviderClass
+kind: ClusterRuntimeConfig
 metadata:
   name: aws
 spec:
@@ -12,14 +12,15 @@ metadata:
   name: aws-prod
 spec:
   runtimeRef:
-    kind: ClusterProviderClass
-    # namespace: optional # Only if using a namespaced Provider Class
+    kind: ClusterRuntimeConfig
+    # namespace: optional # Only if using a namespaced RuntimeConfig
     name: aws
-  providerRef:
-    apiVersion: provider.external-secrets.io/v1alpha1
-    kind: SecretsManager
-    name: aws-prod
-    namespace: referent
+  providerConfig:
+    gvkRef:
+      apiVersion: provider.external-secrets.io/v1alpha1
+      kind: SecretsManager
+      name: aws-prod
+      namespace: referent
 ---
 apiVersion: provider.external-secrets.io/v1alpha1
 kind: SecretsManager

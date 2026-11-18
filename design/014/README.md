@@ -56,7 +56,7 @@ Provider maintainers need the freedom to change their APIs. This is not possible
 
 #### The ESO core team cannot maintain everything
 
-With approximately 40 providers bundled in ESO, maintaining them has become a burden. We want to shift responsibility to the community for provider maintenance. Issue #6651 paused the acceptance of new in-tree providers until this design ships.
+With approximately 40 providers bundled in ESO, we've learned that the best people to maintain a provider are the people who know that provider, its behaviour and its SDK. The ESO core developers cannot be expected to be experts in every provider's SDK. Issue #6651 paused the acceptance of new in-tree providers until this design ships.
 
 Furthermore, most of the time the core team does not have access to the Provider SaaS offerings and cannot verify their actual functionality, confirm bugs, or perform regression tests (automatic or manual).
 
@@ -125,13 +125,17 @@ What #6245/#6710 get right:
 
 - `ExternalSecret` and `PushSecret` are untouched. `SecretStore` stays the
   thing users reference. Migration is an edit to the store.
-- Transport (`ProviderClass.spec.endpoint`) is separated from provider
+- Transport (`RuntimeConfig.spec.endpoint`) is separated from provider
   configuration (the provider's own CRD). This is the Gateway API pattern
   (`GatewayClass` → `Gateway` → `HTTPRoute`) and will be familiar.
-- A namespaced `ProviderClass` and a cluster-scoped `ClusterProviderClass`
-  give tenants their own runtimes without cluster-admin involvement.
-- The provider-owned CRD is a real, schema-validated object. No opaque JSON
-  blob that is validated only at runtime.
+- `RuntimeConfig` and `ClusterRuntimeConfig` are privileged objects owned by
+  whoever installs ESO and its providers; store authors never write them.
+  `ClusterRuntimeConfig` is the normal case. The namespaced `RuntimeConfig`
+  exists only for ESO installs scoped to one namespace (`Role`s only, no
+  `ClusterRole`), which cannot read a cluster-scoped object.
+- The provider configuration is referenced by GVK. That is the only
+  requirement the core places on it: any kind is valid, including a v1
+  `Secret` or `ConfigMap`, and the core does not care which.
 - The server-side adapter wraps the existing `esv1.Provider` implementations,
   so the forty providers do not fork. That is the single most important
   property for actually finishing the migration.
@@ -144,31 +148,32 @@ What must change before any of it merges:
 | --- | --- | --- |
 | `cmd/controller/root.go` registers `apis/provider/fake/v2alpha1` in the core scheme; core RBAC grants `get/list/watch` on `provider.external-secrets.io/fakes`; `pkg/register/generators.go` imports `providers/v2/fake/generator` | Core knows about a specific provider. Every new provider would need a core change and a core RBAC change. Goal 1 is defeated | Core never imports, registers or has RBAC on provider CRDs (D3) |
 | `runtime/clientmanager` imports `providers/v2/adapter/store` and `providers/v2/common/grpc` | Violates design 015 (`runtime` may import `apis` and an allowlist only). Pulls provider modules into every provider's dependency graph | Proto becomes a root-level module; the client adapter lives in `runtime/provider/grpcclient`; the server SDK lives in `providers/v2/sdk` (D4) |
-| One Secret `external-secrets-provider-tls` per namespace holds the CA key, the server cert and the **client** cert; validity 10 years; namespace derived by parsing the address; cert-controller configured with `--provider-service-names` | A provider pod with `secrets get` in its namespace can read ESO's client identity and impersonate the core towards any sibling provider. The rotation story is "never". Discovery by flag list means the chart must know every provider at install time | Per-`ProviderClass` identity, three secrets with distinct readers, 90-day leafs, hot reload, composable transport (`Managed` or `External` mutual TLS, IPC, flagged dev modes), discovery is the `ProviderClass` object itself (D8, D9) |
-| `apis/externalsecrets/v1beta1/*` gains the same fields | `v1beta1` is `served: false` in the shipped CRDs. Pure churn plus conversion risk | `v1` only (D6) |
+| One Secret `external-secrets-provider-tls` per namespace holds the CA key, the server cert and the **client** cert; validity 10 years; namespace derived by parsing the address; cert-controller configured with `--provider-service-names` | A provider pod with `secrets get` in its namespace can read ESO's client identity and impersonate the core towards any sibling provider. The rotation story is "never". Discovery by flag list means the chart must know every provider at install time | Per-`RuntimeConfig` identity, three secrets with distinct readers, 90-day leafs, hot reload, composable transport (`Managed` or `External` mutual TLS, IPC, flagged dev modes), discovery is the `RuntimeConfig` object itself (D8, D9) |
 | Helm `v2.enabled: true` by default; `--store-requeue-interval` default changed from 5m to 30s in the same PR; `+kubebuilder:validation:Format=""` added to unrelated aws/github/vault/grafana fields | Behaviour changes hidden in a "plumbing" PR | Everything behind `--experimental-enable-provider-runtime`, default off; no unrelated changes (D11) |
 | `providers/v2/fake/store` is an adapted copy of `providers/v1/fake` (340 + 629 test lines, about three quarters identical) | Two implementations to keep in sync, the exact thing the adapter pattern avoids | The v2 fake provider imports the v1 fake module (D5) |
 | `providers/v2/fake/main.go` is marked "generated by `providers/v2/hack/generate-provider-main.go`" but the generator is not in the PR | Unbuildable claim | Hand-written `main.go` on top of an `sdk.Run()` helper; a generator only once three or more providers exist ([PROVIDER_AUTOGEN.md](./PROVIDER_AUTOGEN.md)) |
 | Server adapter calls `provider.NewClient()` and `Close()` on every RPC | The provider process is a translation shim, not a runtime. #6245's own spec says "avoid creating and destroying a new backend client on every single RPC" | SDK caches clients per (provider CR UID, generation, credential namespace) (D7) |
-| 395-line connection pool with health-check goroutines, 575-line client with per-call verbose logging | More code than the problem needs; gRPC `ClientConn` already multiplexes | One `ClientConn` per `ProviderClass` generation, in a small cache (D10) |
+| 395-line connection pool with health-check goroutines, 575-line client with per-call verbose logging | More code than the problem needs; gRPC `ClientConn` already multiplexes | One `ClientConn` per `RuntimeConfig` generation, in a small cache (D10) |
 | `GeneratorProvider` gRPC service and adapter exist, but no core path ever calls them (`GeneratorRef` has no runtime indirection) | Dead surface in the first milestone | Generators out of scope for milestone 1; separate design (N2) |
-| `AuthenticationScope` type added to `apis` and unused | API noise | Dropped; scope rules are expressed by `providerRef.namespace` rules in [API.md](./API.md) |
+| `AuthenticationScope` type added to `apis` and unused | API noise | Dropped; scope rules are expressed by `providerConfig.gvkRef.namespace` rules in [API.md](./API.md) |
 
 ## Decisions
 
 - **D1. API shape.** `SecretStore`/`ClusterSecretStore` v1 gain
-  `spec.runtimeRef` and `spec.providerRef`, mutually exclusive with
+  `spec.runtimeRef` and `spec.providerConfig`, mutually exclusive with
   `spec.provider`. `ExternalSecret` and `PushSecret` do not change.
-  `ProviderClass` (namespaced) and `ClusterProviderClass` (cluster) in
-  `external-secrets.io/v1alpha1` describe a provider runtime. Details in
-  [API.md](./API.md).
+  `RuntimeConfig` (namespaced) and `ClusterRuntimeConfig` (cluster) in
+  `external-secrets.io/v1alpha1` describe a provider runtime; #6245 and #6710
+  call them `ProviderClass` and `ClusterProviderClass`. `providerConfig` is a
+  union whose only member is `gvkRef` for now, so other ways to name a
+  configuration can be added later. Details in [API.md](./API.md).
 - **D2. By-reference wire contract.** Requests carry the provider CR
   coordinates and a `RequestContext` (the requesting object, the store it
   resolved through, the caller namespace, labels and annotations), never the CR
   body and never credentials. The provider reads its own CR and the Secrets or
   ServiceAccounts it references. Referent authentication is decided by the core
   and sent as `credential_namespace` and `allow_explicit_credential_namespace`:
-  `providerRef.namespace` only says where the one shared CR lives (required on
+  `providerConfig.gvkRef.namespace` only says where the one shared CR lives (required on
   `ClusterSecretStore`, forbidden on `SecretStore`), and the references inside
   the CR follow v1's rule, so one CR serves many namespaces. The provider is
   the party that rejects an explicit namespace other than the CR's own through
@@ -176,11 +181,11 @@ What must change before any of it merges:
   accepted, as in v1, so inline specs convert unchanged. Rationale in [THREAT_MODEL.md](./THREAT_MODEL.md) T11
   and T16 and in [PROTOCOL.md](./PROTOCOL.md) P1 and P9 ([STALE]: to be updated on follow up PRs).
 - **D3. Core is provider-agnostic.** The core binary does not import, register
-  or hold RBAC for any provider CRD. Its RBAC gains only `providerclasses` and
-  `clusterproviderclasses` (+`/status`). It already holds cluster-wide access to
+  or hold RBAC for any provider CRD. Its RBAC gains only `runtimeconfigs` and
+  `clusterruntimeconfigs` (+`/status`). It already holds cluster-wide access to
   Secrets, because it creates and updates target Secrets in every namespace,
-  and it reads a class's client TLS Secret with that existing access wherever
-  the class places it.
+  and it reads a runtime config's client TLS Secret with that existing access wherever
+  the runtime config places it.
 - **D4. Module layout.** `proto/` is a root-level module with no ESO
   dependencies. The gRPC client adapter lives in `runtime/provider/grpcclient`
   and depends on `apis` and `proto`. The provider SDK (server adapter, mTLS
@@ -192,9 +197,9 @@ What must change before any of it merges:
   reuse the v1 provider spec types where they exist (for example the fake
   provider CR spec is `esv1.FakeProvider`), so `esoctl migrate store` is a
   mechanical transformation.
-- **D6. `v1` only.** `v1beta1` is not served and is not touched. A clean
+- **D6. `v1` only.** This design assumes `v1beta1` is removed before it lands. A clean
   `v2alpha1 SecretStore` without `spec.provider` is introduced only after the
-  `v1` clean subset (`providerRef` + `runtimeRef`) is in use, exactly as the
+  `v1` clean subset (`providerConfig` + `runtimeRef`) is in use, exactly as the
   #6245 authors concluded. No "compatibility mode" that serialises
   `spec.provider` over the wire.
 - **D7. The provider process is a runtime.** The SDK caches backend clients
@@ -210,7 +215,7 @@ What must change before any of it merges:
   deployments for throughput, which the in-tree model cannot offer. Providers
   that need their own CR status run their own small controller; that is
   optional.
-- **D8. Transport is composable per `ProviderClass`.** A class composes an
+- **D8. Transport is composable per `RuntimeConfig`.** A runtime config composes an
   `endpoint` (TCP `address` or Unix `socket` for IPC), a `protocol` (`grpc`;
   `http` reserved), `tls` (on or off; the server certificate from the `Managed`
   cert-controller issuer or an `External` one verified through
@@ -231,12 +236,12 @@ What must change before any of it merges:
 - **D9. No new install dependency by default.** `Managed` mode reuses the
   existing cert-controller deployment, so the default path adds one
   Deployment, one Service, one ServiceAccount and one Role per provider, plus
-  the provider's CRDs and a `ProviderClass`, all shipped by the provider's
+  the provider's CRDs and a `RuntimeConfig`, all shipped by the provider's
   chart. cert-manager is supported through the `External` issuer, not
   required. The IPC composition needs none of this: the provider ships as a
   sidecar of the controller.
-- **D10. Small core plumbing.** One `grpc.ClientConn` per `ProviderClass`
-  generation held in a cache; per-call deadline from the class; retries only
+- **D10. Small core plumbing.** One `grpc.ClientConn` per `RuntimeConfig`
+  generation held in a cache; per-call deadline from the runtime config; retries only
   for idempotent reads on `UNAVAILABLE`. The client manager stays in
   `pkg/controllers/secretstore`; it gains one dispatch branch.
 - **D11. Flag-gated and inert until enabled.** All core behaviour is behind
@@ -269,13 +274,13 @@ What must change before any of it merges:
 
 ### Provider (the out-of-process runtime and its chart)
 
-- **Authentication.** Serve TLS with the certificate of its class: the server
+- **Authentication.** Serve TLS with the certificate of its runtime config: the server
   Secret that cert-controller fills (`Managed`) or one the operator issues
   (`External`), hot-reloaded. Verify the core's client certificate against the
-  class CA when `auth.clientCertificate` is in use; validate the projected
+  runtime config CA when `auth.clientCertificate` is in use; validate the projected
   ServiceAccount token with `TokenReview` when `auth.serviceAccountToken` is in
   use (reserved). Over IPC, accept the container boundary as the identity.
-  Never offer a plaintext network endpoint unless the class says so.
+  Never offer a plaintext network endpoint unless the runtime config says so.
 - **Authorization.** Decide whether a given request may read or write a given
   secret, on the `RequestContext` it receives (requesting object, source store,
   caller namespace, labels and annotations). Keep the rules in its own CRDs, a
@@ -287,7 +292,7 @@ What must change before any of it merges:
   `secrets get` and `serviceaccounts/token create` in the namespaces it serves,
   with the cross-namespace `ClusterRole` as an explicit opt-in for referent
   `ClusterSecretStore`s; the empty server-certificate Secret plus the `Role`
-  that lets cert-controller fill it (`Managed`); the `(Cluster)ProviderClass`;
+  that lets cert-controller fill it (`Managed`); the `(Cluster)RuntimeConfig`;
   optionally a `NetworkPolicy`. Never a rule on `external-secrets.io` or
   `generators.external-secrets.io`, never `list`/`watch` on Secrets
   cluster-wide, never access to the issuer or client Secrets.
@@ -299,25 +304,25 @@ What must change before any of it merges:
   rest; answer `Validate` with `VALID` or `UNKNOWN`; fill `Resolved` on every
   response; cache backend clients per (CR uid, generation, credential
   namespace); serve `Describe` and gRPC health; own its CRD schema and CEL;
-  write status only on its own objects; ship its CRDs, its chart and its class.
+  write status only on its own objects; ship its CRDs, its chart and its runtime config.
   [PROTOCOL.md](./PROTOCOL.md) ([STALE]: to be updated on follow up PRs).
 
 ### Core (controller, cert-controller, chart)
 
-- **Authentication.** Dial each class with that class's own client identity:
+- **Authentication.** Dial each runtime config with that runtime config's own client identity:
   the client certificate cert-controller issued (`Managed`) or the referenced
   one (`External`), or a projected ServiceAccount token (reserved); verify the
-  server against the class CA; refuse unauthenticated, unencrypted or
+  server against the runtime config CA; refuse unauthenticated, unencrypted or
   unverified network compositions unless
   `--experimental-allow-insecure-provider-transport` is set, and report them
   with `Insecure=True`. cert-controller issues and rotates one CA, one server
-  leaf and one client leaf per `Managed` class; the CA key and the client leaf
+  leaf and one client leaf per `Managed` runtime config; the CA key and the client leaf
   never leave the ESO namespace.
 - **Authorization.** Namespace boundaries only, as today:
   `ClusterSecretStore.conditions`; the scope rules of `runtimeRef` and
-  `providerRef` (a `SecretStore` reaches a class and a CR in its own namespace
-  or a cluster class; a `ClusterSecretStore` reaches a `ClusterProviderClass`
-  and a CR in a named namespace); RBAC on the class objects. Compute
+  `providerConfig` (a `SecretStore` reaches a runtime config and a CR in its own namespace
+  or a cluster runtime config; a `ClusterSecretStore` reaches a `ClusterRuntimeConfig`
+  and a CR in a named namespace); RBAC on the runtime config objects. Compute
   `credential_namespace` and `allow_explicit_credential_namespace` per call and
   send them; verify the provider's `Resolved` self-report and stop dispatch to
   a runtime that violates it. Never evaluate provider-side policy.
@@ -330,11 +335,11 @@ What must change before any of it merges:
   ConfigMaps, Secrets and literals, engine v2, merge policy) runs in the core;
   the wire carries rendered bytes for `PushSecret` and raw bytes for reads. A
   provider never sees a template (#7213 is orthogonal).
-- **Lifecycling providers.** Reconcile `(Cluster)ProviderClass`: health,
+- **Lifecycling providers.** Reconcile `(Cluster)RuntimeConfig`: health,
   `Describe` into `status.serves`, `status.capabilities` and
   `status.protocolVersion`, the `Ready` and `Insecure` conditions,
-  `ContractViolation`; keep one connection per class generation; issue
-  certificates for `Managed` classes; gate everything behind
+  `ContractViolation`; keep one connection per runtime config generation; issue
+  certificates for `Managed` runtime configs; gate everything behind
   `--experimental-enable-provider-runtime`. The core does not install, upgrade
   or scale provider workloads; their charts do.
 - **SecretStore features.** Readiness from the `Validate` RPC into
@@ -357,7 +362,7 @@ What must change before any of it merges:
   path dispatches to it in milestone 1. A follow-up design covers it.
 - **N3.** OCI packaging and a package manager (#6632). Provider charts are the
   distribution unit.
-- **N4.** Providers outside the cluster. `ProviderClass.spec.endpoint.address`
+- **N4.** Providers outside the cluster. `RuntimeConfig.spec.endpoint.address`
   may point anywhere, and the `External` issuer makes it work, but the `Managed`
   issuer and the default documentation target in-cluster Services only.
 - **N5.** *(revised 2026-11)* Sidecar providers over a Unix socket were
@@ -373,8 +378,8 @@ What must change before any of it merges:
 
 ## Open questions
 
-- **Q1.** Default class resolution. Should a store with `providerRef` and no
-  `runtimeRef` resolve to the unique `(Cluster)ProviderClass` whose
+- **Q1.** Default runtime config resolution. Should a store with `providerConfig` and no
+  `runtimeRef` resolve to the unique `(Cluster)RuntimeConfig` whose
   `status.serves` contains the referenced kind (like a default
   `StorageClass`)? It removes one field for users at the cost of a lookup in the
   core. Proposed: not in milestone 1; revisit once `status.serves` is populated.

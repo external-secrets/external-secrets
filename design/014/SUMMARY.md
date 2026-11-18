@@ -6,13 +6,13 @@ for that provider. New Core-Related CRDs are added for ESO to know where a provi
 and how to communicate with it.
 
 Minimal manifests for the simple case are in [`examples/`](./examples/): a
-`ClusterProviderClass`, a provider-owned `SecretsManager` configuration and a
+`ClusterRuntimeConfig`, a provider-owned `SecretsManager` configuration and a
 `SecretStore` that points at both. `ExternalSecret` and `PushSecret` do not
 change.
 
-By moving provider configuration to a GVK Reference under `providerRef`, this allows
+By moving provider configuration to a GVK reference under `providerConfig.gvkRef`, this allows
 providers to not even be on the same Kubernetes Cluster as ESO - as long as they can
-translate a `providerRef` GVK into some internal config that might live in memory,
+translate a `providerConfig.gvkRef` GVK into some internal config that might live in memory,
 in a database, in another kubernetes cluster, etc.
 
 ### Today: providers compiled into the controller
@@ -42,8 +42,8 @@ flowchart LR
 ```mermaid
 flowchart LR
   ES["ExternalSecret"] --> CORE["ESO controller"]
-  CORE -- "reads" --> SS["SecretStore<br/>runtimeRef + providerRef"]
-  SS -. "runtimeRef" .-> PC["ClusterProviderClass<br/>endpoint, tls, auth"]
+  CORE -- "reads" --> SS["SecretStore<br/>runtimeRef + providerConfig"]
+  SS -. "runtimeRef" .-> PC["ClusterRuntimeConfig<br/>endpoint, tls, auth"]
   CORE == "gRPC over mTLS<br/>provider_ref + RequestContext" ==> PROV["provider-aws pod"]
   PROV -- "loads" --> CR["SecretsManager CR<br/>(provider-owned CRD)"]
   PROV -- "AWS SDK" --> AWS[("AWS Secrets Manager")]
@@ -65,14 +65,14 @@ sequenceDiagram
   participant Prov as provider-aws pod
   participant AWS as AWS Secrets Manager
 
-  Admin->>K8s: helm install provider-aws: CRD, Deployment, Service, empty server Secret + Role, ClusterProviderClass aws
+  Admin->>K8s: helm install provider-aws: CRD, Deployment, Service, empty server Secret + Role, ClusterRuntimeConfig aws
   Core->>Prov: Health + Describe over mTLS
   Prov-->>Core: serves SecretsManager, capabilities, protocol v1alpha1
-  Core->>K8s: ClusterProviderClass aws status: Ready=True
+  Core->>K8s: ClusterRuntimeConfig aws status: Ready=True
 
   Tenant->>K8s: SecretsManager aws-prod in team-a (region, role, serviceAccountRef app-secrets)
-  Tenant->>K8s: SecretStore aws-prod in team-a (runtimeRef aws, providerRef aws-prod)
-  Core->>K8s: resolve class and scope rules (CEL already accepted the objects)
+  Tenant->>K8s: SecretStore aws-prod in team-a (runtimeRef aws, providerConfig aws-prod)
+  Core->>K8s: resolve runtime config and scope rules (CEL already accepted the objects)
   Core->>Prov: Validate(provider_ref team-a/aws-prod, context credential_namespace=team-a)
   Prov->>K8s: get SecretsManager team-a/aws-prod, token for team-a/app-secrets
   Prov->>AWS: probe credentials

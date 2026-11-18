@@ -111,15 +111,15 @@ spec:
 
 ### *(new)* Option 3: Store-centric runtime split *(implemented by PoC 2/3, #6245 and #6710; adopted)*
 
-`SecretStore` and `ClusterSecretStore` stay the objects that `ExternalSecret` and `PushSecret` reference. The store gains two optional references: *where* the provider runs (`runtimeRef`, a core-owned transport object) and *what* configuration it uses (`providerRef`, a provider-owned CRD). The inline `spec.provider` union remains for in-process providers and is mutually exclusive with the new references.
+`SecretStore` and `ClusterSecretStore` stay the objects that `ExternalSecret` and `PushSecret` reference. The store gains two optional references: *where* the provider runs (`runtimeRef`, a core-owned transport object) and *what* configuration it uses (`providerConfig`, a provider-owned CRD). The inline `spec.provider` union remains for in-process providers and is mutually exclusive with the new references.
 
 **Architecture:**
 ```
 ExternalSecret / PushSecret                      (unchanged)
   └─> secretStoreRef: {kind: SecretStore, name: aws-prod}
         └─> SecretStore aws-prod
-              ├─> spec.runtimeRef  ──> ProviderClass | ClusterProviderClass   (core-owned: endpoint, protocol, tls, auth, timeout)
-              └─> spec.providerRef ──> <provider group>/<Kind> aws-prod       (provider-owned: region, auth, ...)
+              ├─> spec.runtimeRef  ──> RuntimeConfig | ClusterRuntimeConfig   (core-owned: endpoint, protocol, tls, auth, timeout)
+              └─> spec.providerConfig ──> <provider group>/<Kind> aws-prod       (provider-owned: region, auth, ...)
 ```
 
 **Example:**
@@ -131,23 +131,24 @@ metadata:
   namespace: team-a
 spec:
   runtimeRef:
-    name: aws                      # ProviderClass in team-a (kind defaults to the store's scope)
-  providerRef:
-    apiVersion: provider.external-secrets.io/v1alpha1
-    kind: SecretsManager
-    name: aws-prod
+    name: aws                      # RuntimeConfig in team-a (kind defaults to the store's scope)
+  providerConfig:
+    gvkRef:
+      apiVersion: provider.external-secrets.io/v1alpha1
+      kind: SecretsManager
+      name: aws-prod
 ```
 
 **Pros:**
 - `ExternalSecret` and `PushSecret` manifests do not change at all. Migration is an edit to the store.
 - Everything that already lives on stores keeps working for out-of-process providers: `conditions`, `controller`, `refreshInterval`, `retrySettings`, flood gate, PushSecret finalizers, the `status.capabilities` projection.
 - One transport object per provider *deployment*, owned by the platform team; one configuration object per *store*, owned by the store author. Store authors touch two objects, the same count as today's "store + credentials Secret".
-- Namespaced `ProviderClass` lets a tenant run its own provider runtime without cluster-admin involvement; `ClusterProviderClass` covers the shared case.
+- `ClusterRuntimeConfig` is the shared runtime, owned by the platform team. A namespaced `RuntimeConfig` covers ESO installs scoped to a single namespace. Both are privileged; store authors only reference them.
 - The provider-owned CRD is a real schema; the core never interprets its content.
 - It is the Gateway API pattern (`GatewayClass` → `Gateway` → route), so it is recognisable.
 
 **Cons:**
-- Three kinds are involved (store, class, provider CR) instead of one.
+- Three kinds are involved (store, runtime config, provider CR) instead of one.
 - The core keeps the `spec.provider` union in `v1` until a clean `v2alpha1` store exists (see Migration).
 - `runtimeRef` is a field users might wish were implied (perhaps can be solved with a `defaultRuntimeRef` on Provider or a new CRD that matches providerGVKs with runtimeRefs - I don't really like this because it's even more CRs).
 
@@ -164,7 +165,7 @@ ESO Core discovers services by:
 
 ### *(new)* Option 3: The runtime object is the registration *(adopted)*
 
-`ProviderClass.spec.endpoint` (a TCP address, or a Unix socket for IPC) is the dial target (Option 1), and the existence of a `ProviderClass` is what makes a runtime known to ESO: the class controller health-checks it, asks it what it serves (`Describe` RPC) and, with the `Managed` issuer, is what triggers certificate issuance. There is no label on the Service and no flag list on the controller. Label-based discovery (the 2025 recommendation in [mTLS.md](./mTLS.md)) conflated "please manage certificates for this Service" with "this runtime may be used by store X"; the class object expresses both, and RBAC on the class object decides who may register a runtime.
+`RuntimeConfig.spec.endpoint` (a TCP address, or a Unix socket for IPC) is the dial target (Option 1), and the existence of a `RuntimeConfig` is what makes a runtime known to ESO: the runtime config controller health-checks it, asks it what it serves (`Describe` RPC) and, with the `Managed` issuer, is what triggers certificate issuance. There is no label on the Service and no flag list on the controller. Label-based discovery (the 2025 recommendation in [mTLS.md](./mTLS.md)) conflated "please manage certificates for this Service" with "this runtime may be used by store X"; the runtime config object expresses both, and RBAC on the runtime config object decides who may register a runtime.
 
 ## Trade-offs
 
@@ -174,7 +175,7 @@ ESO Core discovers services by:
 | Implementation    | Less boilerplate          | More boilerplate                    | One dispatch branch in the client manager; two small CRDs |
 | Extensibility     | Centralized common fields | Duplicated fields                   | Common fields stay on the store, where they already are |
 | Service Discovery | Explicit                  | Convention-based                    | Explicit, on an RBAC-gated object |
-| Maintenance       | Single controller pattern | Multiple cluster-scoped controllers | Existing store controllers plus one class controller |
+| Maintenance       | Single controller pattern | Multiple cluster-scoped controllers | Existing store controllers plus one runtime config controller |
 | Migration         | Rewrite every ES/PS       | Rewrite every ES/PS                 | Edit stores only; `esoctl migrate store` |
 
 ## API specification
@@ -209,7 +210,7 @@ spec:
 
   # ------------------------------------------------- in-process provider (existing)
   # provider: optional at the schema level (it used to be required).
-  #   CEL: exactly one of spec.provider or spec.providerRef must be set.
+  #   CEL: exactly one of spec.provider or spec.providerConfig must be set.
   #   CEL: spec.runtimeRef must be empty when spec.provider is set.
   #   Semantics unchanged: the provider runs inside the controller.
   # provider:
@@ -217,56 +218,62 @@ spec:
 
   # ---------------------------------------------- out-of-process provider (new)
   # runtimeRef: WHERE the provider process is.
-  #   optional at the schema level; CEL: required when spec.providerRef is set.
+  #   optional at the schema level; CEL: required when spec.providerConfig is set.
   runtimeRef:
-    # kind: optional. Enum: ProviderClass | ClusterProviderClass.
+    # kind: optional. Enum: RuntimeConfig | ClusterRuntimeConfig.
     #   default (applied by the controller at reconcile, not by a webhook):
-    #     SecretStore        -> ProviderClass, resolved in metadata.namespace
-    #     ClusterSecretStore -> ClusterProviderClass
-    #   CEL (ClusterSecretStore root): kind must not be ProviderClass.
-    #   A SecretStore may reference a ClusterProviderClass explicitly (shared runtime).
-    kind: ProviderClass
+    #     SecretStore        -> RuntimeConfig, resolved in metadata.namespace
+    #     ClusterSecretStore -> ClusterRuntimeConfig
+    #   CEL (ClusterSecretStore root): kind must not be RuntimeConfig.
+    #   A SecretStore may reference a ClusterRuntimeConfig explicitly (shared runtime).
+    kind: RuntimeConfig
     # name: required. DNS-1123 subdomain, 1..253 characters.
-    #   controller: the class must exist and be Ready, else Ready=False with
+    #   controller: the runtime config must exist and be Ready, else Ready=False with
     #   reason RuntimeNotFound / RuntimeNotReady.
     name: aws
 
-  # providerRef: WHAT configuration the runtime loads: a provider-owned custom resource.
-  #   The core never reads its content; it forwards these coordinates over the wire.
-  providerRef:
-    # apiVersion: required. <group>/<version> of the provider-owned CRD.
-    #   controller: must be in the class's status.serves once populated,
-    #   else Ready=False with reason ProviderKindNotServed.
-    apiVersion: provider.external-secrets.io/v1alpha1
-    # kind: required.
-    kind: SecretsManager
-    # name: required. DNS-1123 subdomain, 1..253 characters.
-    name: aws-prod
-    # namespace: where the provider CR lives. It says nothing about credentials.
-    #   SecretStore:        FORBIDDEN (CEL on the SecretStore root type); the CR is
-    #                       always in metadata.namespace
-    #   ClusterSecretStore: REQUIRED (CEL on the ClusterSecretStore root type);
-    #                       typically an admin namespace holding ONE shared CR
-    # namespace: external-secrets-system      # ClusterSecretStore only
-    #
-    # Credentials follow the references INSIDE the provider CR, not this field
-    # (PROTOCOL.md P9); the core decides per call and sends credential_namespace:
-    #   no namespace on a reference -> SecretStore: this store's namespace
-    #                                  ClusterSecretStore: the CALLER's (ExternalSecret)
-    #                                  namespace = referent authentication
-        #   explicit namespace          -> honoured only through a ClusterSecretStore;
-    #                                  REJECTED BY THE PROVIDER through a SecretStore
-    #                                  unless it equals the CR's own namespace
-    # so one CR serves every namespace the store's conditions admit.
-    # providerRef validation happens on the ESO controller (CEL + runtime); the
-    # credential-reference rule is enforced by the provider (it alone sees the CR).
+  # providerConfig: WHAT configuration the runtime loads. The core never reads the
+  #   configuration itself; it forwards the reference over the wire.
+  #   A union: exactly one member (MinProperties=1, MaxProperties=1). gvkRef is the
+  #   only member in milestone 1. Other ways to name a configuration (keyRef, uuidRef,
+  #   labelSelector, ...) can be added as new members without changing existing stores.
+  providerConfig:
+    # gvkRef: the configuration is an object named by apiVersion/kind/name, usually a
+    #   provider-owned CRD. Any kind is valid, including v1 Secret or ConfigMap.
+    gvkRef:
+      # apiVersion: required. <group>/<version> of the provider-owned CRD.
+      #   controller: must be in the runtime config's status.serves once populated,
+      #   else Ready=False with reason ProviderKindNotServed.
+      apiVersion: provider.external-secrets.io/v1alpha1
+      # kind: required.
+      kind: SecretsManager
+      # name: required. DNS-1123 subdomain, 1..253 characters.
+      name: aws-prod
+      # namespace: where the provider CR lives. It says nothing about credentials.
+      #   SecretStore:        FORBIDDEN (CEL on the SecretStore root type); the CR is
+      #                       always in metadata.namespace
+      #   ClusterSecretStore: REQUIRED (CEL on the ClusterSecretStore root type);
+      #                       typically an admin namespace holding ONE shared CR
+      # namespace: external-secrets-system      # ClusterSecretStore only
+      #
+      # Credentials follow the references INSIDE the provider CR, not this field
+      # (PROTOCOL.md P9); the core decides per call and sends credential_namespace:
+      #   no namespace on a reference -> SecretStore: this store's namespace
+      #                                  ClusterSecretStore: the CALLER's (ExternalSecret)
+      #                                  namespace = referent authentication
+      #   explicit namespace          -> honoured only through a ClusterSecretStore;
+      #                                  REJECTED BY THE PROVIDER through a SecretStore
+      #                                  unless it equals the CR's own namespace
+      # so one CR serves every namespace the store's conditions admit.
+      # providerConfig validation happens on the ESO controller (CEL + runtime); the
+      # credential-reference rule is enforced by the provider (it alone sees the CR).
 
 status:
-  # unchanged shape. New reason values on the Ready condition for providerRef stores:
+  # unchanged shape. New reason values on the Ready condition for providerConfig stores:
   #   ProviderRuntimeDisabled   controller flag --experimental-enable-provider-runtime is off
   #   RuntimeNotFound           runtimeRef does not resolve
-  #   RuntimeNotReady           the class is not Ready
-  #   ProviderKindNotServed     providerRef kind not in class.status.serves
+  #   RuntimeNotReady           the runtime config is not Ready
+  #   ProviderKindNotServed     providerConfig.gvkRef kind not in RuntimeConfig.status.serves
   #   ProviderUnreachable       Validate RPC failed at transport level
   #   ProviderValidationFailed  Validate RPC returned FAILED_PRECONDITION / PERMISSION_DENIED;
   #                             message carries the provider's text
@@ -277,25 +284,26 @@ status:
   - type: Ready
     status: "True"
     reason: Valid                    # existing reason for a validated store
-    message: "runtime ClusterProviderClass/aws, provider SecretsManager/team-a/aws-prod"
+    message: "runtime ClusterRuntimeConfig/aws, provider SecretsManager/team-a/aws-prod"
 ```
 
 CEL rules (all expressible in CRD schema; no webhook needed):
 
 | Where | Rule | Message |
 | --- | --- | --- |
-| `SecretStoreSpec` | `(has(self.provider) && !has(self.providerRef)) \|\| (!has(self.provider) && has(self.providerRef))` | exactly one of `spec.provider` or `spec.providerRef` must be set |
+| `SecretStoreSpec` | `(has(self.provider) && !has(self.providerConfig)) \|\| (!has(self.provider) && has(self.providerConfig))` | exactly one of `spec.provider` or `spec.providerConfig` must be set |
 | `SecretStoreSpec` | `!(has(self.provider) && has(self.runtimeRef))` | `spec.runtimeRef` must be empty when `spec.provider` is set |
-| `SecretStoreSpec` | `!has(self.providerRef) \|\| has(self.runtimeRef)` | `spec.runtimeRef` is required when `spec.providerRef` is set |
-| `SecretStore` root | `!has(self.spec.providerRef) \|\| !has(self.spec.providerRef.namespace)` | `spec.providerRef.namespace` is not allowed on `SecretStore` |
-| `ClusterSecretStore` root | `!has(self.spec.runtimeRef) \|\| !has(self.spec.runtimeRef.kind) \|\| self.spec.runtimeRef.kind != 'ProviderClass'` | `ClusterSecretStore` may only reference a `ClusterProviderClass` |
-| `ClusterSecretStore` root | `!has(self.spec.providerRef) \|\| has(self.spec.providerRef.namespace)` | `spec.providerRef.namespace` is required on `ClusterSecretStore` |
+| `SecretStoreSpec` | `!has(self.providerConfig) \|\| has(self.runtimeRef)` | `spec.runtimeRef` is required when `spec.providerConfig` is set |
+| `ProviderConfig` | `MinProperties=1`, `MaxProperties=1` (schema, not CEL) | exactly one member of `providerConfig` must be set |
+| `SecretStore` root | `!has(self.spec.providerConfig) \|\| !has(self.spec.providerConfig.gvkRef) \|\| !has(self.spec.providerConfig.gvkRef.namespace)` | `spec.providerConfig.gvkRef.namespace` is not allowed on `SecretStore` |
+| `ClusterSecretStore` root | `!has(self.spec.runtimeRef) \|\| !has(self.spec.runtimeRef.kind) \|\| self.spec.runtimeRef.kind != 'RuntimeConfig'` | `ClusterSecretStore` may only reference a `ClusterRuntimeConfig` |
+| `ClusterSecretStore` root | `!has(self.spec.providerConfig) \|\| !has(self.spec.providerConfig.gvkRef) \|\| has(self.spec.providerConfig.gvkRef.namespace)` | `spec.providerConfig.gvkRef.namespace` is required on `ClusterSecretStore` |
 
-Differences from #6710: `providerRef.namespace` is forbidden on `SecretStore` instead of "must equal metadata.namespace" (CEL cannot read `metadata.namespace`; forbidding the field is both expressible and simpler); no mutating webhook defaulter for `runtimeRef.kind` (the controller applies the scope-matching default deterministically, see [VALIDATION.md](./VALIDATION.md)); no `AuthenticationScope` type; `v1beta1` untouched.
+Differences from #6710: `providerConfig.gvkRef.namespace` is forbidden on `SecretStore` instead of "must equal metadata.namespace" (CEL cannot read `metadata.namespace`; forbidding the field is both expressible and simpler); no mutating webhook defaulter for `runtimeRef.kind` (the controller applies the scope-matching default deterministically, see [VALIDATION.md](./VALIDATION.md)); no `AuthenticationScope` type.
 
-### `ProviderClass` (namespaced) and `ClusterProviderClass` (cluster) (`external-secrets.io/v1alpha1`) *(updated: composable transport)*
+### `RuntimeConfig` (namespaced) and `ClusterRuntimeConfig` (cluster) (`external-secrets.io/v1alpha1`) *(updated: composable transport)*
 
-Both share the same spec and status. A class describes how the core reaches **one provider runtime**. Its transport is composed from four independent axes:
+Both share the same spec and status. A runtime config describes how the core reaches **one provider runtime**. Its transport is composed from four independent axes:
 
 | Axis | Field | Values | Default |
 | --- | --- | --- | --- |
@@ -306,22 +314,22 @@ Both share the same spec and status. A class describes how the core reaches **on
 
 Why composable rather than "mTLS or nothing": a large share of ESO users cannot run the ESO cert-controller or any in-cluster PKI, and some of them bootstrap their PKI *with* ESO (ESO delivers the HMAC keys their internal CA needs to issue anything). A transport that requires certificates issued inside the cluster cannot be the only option for them, and a sidecar over a Unix socket needs none. Making the axes explicit also leaves room for later compositions (a JSON binding, ServiceAccount-token authentication) without another API change.
 
-Annotated reference for `ProviderClass`; the rules that differ for `ClusterProviderClass` follow it:
+Annotated reference for `RuntimeConfig`; the rules that differ for `ClusterRuntimeConfig` follow it:
 
 ```yaml
-# external-secrets.io/v1alpha1 ProviderClass: how the ESO core reaches ONE provider runtime.
-# ClusterProviderClass has the same spec and status; the block after this one lists the
+# external-secrets.io/v1alpha1 RuntimeConfig: how the ESO core reaches ONE provider runtime.
+# ClusterRuntimeConfig has the same spec and status; the block after this one lists the
 # fields whose rules differ.
 #
 # Reading guide for the comments:
 #   required/optional  as the CRD schema enforces it
 #   default            what applies when the field is omitted, and WHO applies it
 #   CEL                a rule enforced by the API server (table under "Transport compositions")
-#   controller         a rule enforced by the class controller and reported in status
+#   controller         a rule enforced by the runtime config controller and reported in status
 #   flag               only accepted when the controller runs with
 #                      --experimental-allow-insecure-provider-transport
 apiVersion: external-secrets.io/v1alpha1
-kind: ProviderClass
+kind: RuntimeConfig
 metadata:
   name: aws
   namespace: team-a                  # namespaced: usable only by SecretStores in team-a
@@ -330,7 +338,7 @@ spec:
   endpoint:
     # address: TCP "host:port". No scheme, no path.
     #   With tls.issuer Managed it must be a Service DNS name
-    #   <service>.<namespace>.svc[.<cluster-domain>]:<port>, and for a ProviderClass the
+    #   <service>.<namespace>.svc[.<cluster-domain>]:<port>, and for a RuntimeConfig the
     #   Service namespace must equal metadata.namespace (controller; the server certificate
     #   Secret is written there). Any other address needs tls.issuer External.
     address: provider-aws.team-a.svc:8443
@@ -356,7 +364,7 @@ spec:
     enabled: true
     # issuer: who issues the SERVER certificate, and therefore which CA ESO trusts.
     #   Enum: Managed | External. default: Managed.
-    #   Managed   the ESO cert-controller issues the class CA and the server leaf (mTLS.md
+    #   Managed   the ESO cert-controller issues the runtime config CA and the server leaf (mTLS.md
     #             Decision 6) and ESO trusts that CA; caBundle, caRef and insecureSkipVerify
     #             are forbidden (CEL)
     #   External  the operator issues it (cert-manager, corporate PKI, a chart-generated
@@ -367,7 +375,7 @@ spec:
     # caRef:                                 # server CA, by reference
     #   kind: ConfigMap                      #   Enum: Secret | ConfigMap
     #   name: corp-root-ca
-    #   namespace: ""                        #   ProviderClass: must be empty (CEL); ClusterProviderClass: required (CEL)
+    #   namespace: ""                        #   RuntimeConfig: must be empty (CEL); ClusterRuntimeConfig: required (CEL)
     #   key: ca.crt                          #   default: ca.crt
     # insecureSkipVerify: false              # development only; flag
     # serverName: optional. SNI and hostname verification override.
@@ -387,15 +395,15 @@ spec:
         #   secretRef  bring your own: a kubernetes.io/tls Secret with tls.crt and tls.key, as
     #              cert-manager writes it (optionally ca.crt)
     #              (CEL: required with tls.issuer External, forbidden with Managed).
-    #              ProviderClass: secretRef.namespace must be empty (CEL);
-    #              ClusterProviderClass: required (CEL).
+    #              RuntimeConfig: secretRef.namespace must be empty (CEL);
+    #              ClusterRuntimeConfig: required (CEL).
     clientCertificate: {}
     # serviceAccountToken: RESERVED. A projected ServiceAccount token of the ESO controller,
     #   sent as request metadata and validated by the provider with TokenReview. Needs no
     #   PKI on the client side. May be combined with clientCertificate.
     #   controller: Ready=False with reason ProtocolNotSupported until implemented.
     # serviceAccountToken:
-    #   audience: external-secrets.io/provider/aws   # default: the class name
+    #   audience: external-secrets.io/provider/aws   # default: the runtime config name
 
   # timeout: optional. Per-call deadline for every RPC to this runtime. default: 30s.
   timeout: 30s
@@ -427,11 +435,11 @@ status:
 ```
 
 ```yaml
-# external-secrets.io/v1alpha1 ClusterProviderClass: identical to ProviderClass (above)
+# external-secrets.io/v1alpha1 ClusterRuntimeConfig: identical to RuntimeConfig (above)
 # except for the rules below. It is a cluster-admin object:
 # a SecretStore in any namespace and every ClusterSecretStore may reference it.
 apiVersion: external-secrets.io/v1alpha1
-kind: ClusterProviderClass
+kind: ClusterRuntimeConfig
 metadata:
   name: aws                          # cluster-scoped, no namespace
 spec:
@@ -443,7 +451,7 @@ spec:
   tls:
     enabled: true
     issuer: External
-    # caRef.namespace: REQUIRED on ClusterProviderClass (CEL on the root type; no class namespace to default to).
+    # caRef.namespace: REQUIRED on ClusterRuntimeConfig (CEL on the root type; no runtime config namespace to default to).
     caRef:
       kind: ConfigMap
       name: corp-root-ca
@@ -451,19 +459,19 @@ spec:
       key: ca.crt
   auth:
     clientCertificate:
-      # secretRef.namespace: REQUIRED on ClusterProviderClass (CEL on the root type).
+      # secretRef.namespace: REQUIRED on ClusterRuntimeConfig (CEL on the root type).
       secretRef:
         name: eso-provider-aws-client
         namespace: external-secrets-system
   timeout: 30s
-# status: identical to ProviderClass.
+# status: identical to RuntimeConfig.
 ```
 
-Printer columns: `Transport`, `Ready`, `Age`. The `Insecure` condition is `True` whenever a development composition is in effect, so `kubectl get providerclasses` shows it.
+Printer columns: `Transport`, `Ready`, `Age`. The `Insecure` condition is `True` whenever a development composition is in effect, so `kubectl get runtimeconfigs` shows it.
 
 #### Transport compositions
 
-The rows are named after the compositions this design set is asked to support. The core accepts exactly these; anything else is rejected by CEL or by the class controller with the reason shown.
+The rows are named after the compositions this design set is asked to support. The core accepts exactly these; anything else is rejected by CEL or by the runtime config controller with the reason shown.
 
 | Name | `endpoint` | `protocol` | `tls` | `auth` | Requires `--experimental-allow-insecure-provider-transport` | Intended for |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -479,14 +487,14 @@ The rows are named after the compositions this design set is asked to support. T
 Rules the table encodes:
 
 - A `socket` endpoint has no network path: TLS is off and `auth` is absent (CEL), and the composition is not flagged insecure. Isolation is the container boundary, not the network.
-- Any `address` composition **without an `auth` mechanism**, **without TLS** (`enabled: false`), or **without server verification** (`insecureSkipVerify`) is development-only: the class controller sets `Ready=False/InsecureTransportNotAllowed` unless it runs with `--experimental-allow-insecure-provider-transport`, and sets `Insecure=True` when it does.
+- Any `address` composition **without an `auth` mechanism**, **without TLS** (`enabled: false`), or **without server verification** (`insecureSkipVerify`) is development-only: the runtime config controller sets `Ready=False/InsecureTransportNotAllowed` unless it runs with `--experimental-allow-insecure-provider-transport`, and sets `Insecure=True` when it does.
 - An explicit empty `auth: {}` is the opt-out of the `clientCertificate` default and the only way to express HTTPS(dev); omitting `auth` means the default.
 - `auth` needs an encrypted transport: no mechanism is accepted with `tls.enabled: false` (CEL).
-- The `Managed` issuer issues the server certificate and, when `auth.clientCertificate` is present without `secretRef`, the client certificate too. A `Managed` client certificate with an `External` server certificate is rejected (CEL): the provider would need ESO's class CA as its client CA next to another server CA, for the saving of one `Certificate` object.
-- `Managed` requires an `address` that is a Service DNS name, and for a namespaced `ProviderClass` a Service in the class's own namespace ([mTLS.md](./mTLS.md)).
+- The `Managed` issuer issues the server certificate and, when `auth.clientCertificate` is present without `secretRef`, the client certificate too. A `Managed` client certificate with an `External` server certificate is rejected (CEL): the provider would need ESO's runtime config CA as its client CA next to another server CA, for the saving of one `Certificate` object.
+- `Managed` requires an `address` that is a Service DNS name, and for a namespaced `RuntimeConfig` a Service in the runtime config's own namespace ([mTLS.md](./mTLS.md)).
 - `serviceAccountToken` is reserved and rejected with `ProtocolNotSupported` until implemented; `protocol: http` likewise.
 
-CEL rules on the class (content-only; the flag check is runtime):
+CEL rules on the runtime config (content-only; the flag check is runtime):
 
 | Rule | Message |
 | --- | --- |
@@ -498,10 +506,10 @@ CEL rules on the class (content-only; the flag check is runtime):
 | `!has(self.tls) \|\| !has(self.tls.issuer) \|\| self.tls.issuer != 'External' \|\| has(self.tls.caBundle) \|\| has(self.tls.caRef) \|\| (has(self.tls.insecureSkipVerify) && self.tls.insecureSkipVerify)` | the `External` issuer needs a way to verify the server |
 | `!has(self.tls) \|\| (has(self.tls.issuer) && self.tls.issuer == 'External') \|\| (!has(self.tls.caBundle) && !has(self.tls.caRef) && !(has(self.tls.insecureSkipVerify) && self.tls.insecureSkipVerify))` | the `Managed` issuer provides the server CA itself |
 | `!has(self.auth) \|\| !has(self.auth.clientCertificate) \|\| (has(self.auth.clientCertificate.secretRef) == (has(self.tls) && has(self.tls.issuer) && self.tls.issuer == 'External'))` | `clientCertificate.secretRef` is required with the `External` issuer and forbidden with `Managed` |
-| `ProviderClass` root: `!has(self.spec.auth) \|\| !has(self.spec.auth.clientCertificate) \|\| !has(self.spec.auth.clientCertificate.secretRef) \|\| !has(self.spec.auth.clientCertificate.secretRef.namespace)` | `clientCertificate.secretRef.namespace` is not allowed on `ProviderClass` |
-| `ClusterProviderClass` root: `!has(self.spec.auth) \|\| !has(self.spec.auth.clientCertificate) \|\| !has(self.spec.auth.clientCertificate.secretRef) \|\| has(self.spec.auth.clientCertificate.secretRef.namespace)` | `clientCertificate.secretRef.namespace` is required on `ClusterProviderClass` |
-| `ProviderClass` root: `!has(self.spec.tls) \|\| !has(self.spec.tls.caRef) \|\| !has(self.spec.tls.caRef.namespace)` | `caRef.namespace` is not allowed on `ProviderClass` |
-| `ClusterProviderClass` root: `!has(self.spec.tls) \|\| !has(self.spec.tls.caRef) \|\| has(self.spec.tls.caRef.namespace)` | `caRef.namespace` is required on `ClusterProviderClass` |
+| `RuntimeConfig` root: `!has(self.spec.auth) \|\| !has(self.spec.auth.clientCertificate) \|\| !has(self.spec.auth.clientCertificate.secretRef) \|\| !has(self.spec.auth.clientCertificate.secretRef.namespace)` | `clientCertificate.secretRef.namespace` is not allowed on `RuntimeConfig` |
+| `ClusterRuntimeConfig` root: `!has(self.spec.auth) \|\| !has(self.spec.auth.clientCertificate) \|\| !has(self.spec.auth.clientCertificate.secretRef) \|\| has(self.spec.auth.clientCertificate.secretRef.namespace)` | `clientCertificate.secretRef.namespace` is required on `ClusterRuntimeConfig` |
+| `RuntimeConfig` root: `!has(self.spec.tls) \|\| !has(self.spec.tls.caRef) \|\| !has(self.spec.tls.caRef.namespace)` | `caRef.namespace` is not allowed on `RuntimeConfig` |
+| `ClusterRuntimeConfig` root: `!has(self.spec.tls) \|\| !has(self.spec.tls.caRef) \|\| has(self.spec.tls.caRef.namespace)` | `caRef.namespace` is required on `ClusterRuntimeConfig` |
 
 #### Examples
 
@@ -509,7 +517,7 @@ Default, managed mutual TLS (what the provider chart renders):
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
-kind: ClusterProviderClass
+kind: ClusterRuntimeConfig
 metadata:
   name: aws
 spec:
@@ -536,7 +544,7 @@ Mutual TLS with an existing PKI (cert-manager issued both certificates):
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
-kind: ClusterProviderClass
+kind: ClusterRuntimeConfig
 metadata:
   name: vault
 spec:
@@ -562,7 +570,7 @@ IPC: the provider runs as a sidecar container of the ESO controller and listens 
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
-kind: ClusterProviderClass
+kind: ClusterRuntimeConfig
 metadata:
   name: aws
 spec:
@@ -587,7 +595,7 @@ HTTPS(dev): the provider has a server certificate (here self-signed by its chart
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
-kind: ProviderClass
+kind: RuntimeConfig
 metadata:
   name: fake
   namespace: dev
@@ -617,7 +625,7 @@ HTTP(dev): cleartext gRPC (h2c) on a kind cluster:
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
-kind: ProviderClass
+kind: RuntimeConfig
 metadata:
   name: fake
   namespace: dev
@@ -634,11 +642,11 @@ status:
     reason: Cleartext
 ```
 
-Reserved, shown for the direction only: ServiceAccount-token authentication over TLS without a client certificate, the no-PKI production composition. The provider chart generates a self-signed serving certificate and publishes its CA; ESO presents a projected token with the class name as audience; the provider validates it with `TokenReview` and authorises the ESO controller's ServiceAccount.
+Reserved, shown for the direction only: ServiceAccount-token authentication over TLS without a client certificate, the no-PKI production composition. The provider chart generates a self-signed serving certificate and publishes its CA; ESO presents a projected token with the runtime config name as audience; the provider validates it with `TokenReview` and authorises the ESO controller's ServiceAccount.
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
-kind: ClusterProviderClass
+kind: ClusterRuntimeConfig
 metadata:
   name: aws
 spec:
@@ -660,10 +668,10 @@ spec:
 
 ### Provider-owned configuration CRDs
 
-Conventions for the object a `providerRef` points at. The group may hold more than configuration kinds: a provider that wants request-level authorization ships its own policy CRD next to its configuration CRD, and the core never reads either ([PROTOCOL.md](./PROTOCOL.md) P8). #6710 placed these types under `apis/provider/<name>/v2alpha1`, which ties their versioning to the core API module and forces the core to depend on them; they belong in the provider's module.
+Conventions for the object a `providerConfig.gvkRef` points at. The group may hold more than configuration kinds: a provider that wants request-level authorization ships its own policy CRD next to its configuration CRD, and the core never reads either ([PROTOCOL.md](./PROTOCOL.md) P8). #6710 placed these types under `apis/provider/<name>/v2alpha1`, which ties their versioning to the core API module and forces the core to depend on them; they belong in the provider's module.
 
 ```yaml
-# Provider-owned configuration CRD: the object a SecretStore's providerRef points at.
+# Provider-owned configuration CRD: the object a SecretStore's providerConfig.gvkRef points at.
 # The ESO core never reads it; the provider runtime loads it by the coordinates it receives.
 #
 # Conventions (not enforced by ESO, enforced by review for ESO-maintained providers):
@@ -671,7 +679,7 @@ Conventions for the object a `providerRef` points at. The group may hold more th
 #             their own group, the core does not care
 #   version   owned by the provider; v1alpha1 for every provider at first
 #   scope     Namespaced. No Cluster<Kind> variant exists: cluster-wide use goes through
-#             ClusterSecretStore + providerRef.namespace
+#             ClusterSecretStore + providerConfig.gvkRef.namespace
 #   spec      for providers that exist in v1, the spec IS the v1 provider spec
 #             (esv1.FakeProvider, esv1.AWSProvider split by service, ...), so a v1 inline
 #             spec.provider.<name> body converts to a provider CR by moving it under spec;
@@ -693,7 +701,7 @@ kind: SecretsManager
 metadata:
   name: aws-prod
   namespace: team-a                  # same namespace as the SecretStore that references it,
-                                     # or providerRef.namespace of the ClusterSecretStore that does
+                                     # or providerConfig.gvkRef.namespace of the ClusterSecretStore that does
 spec:                                # == esv1.AWSProvider minus the `service` discriminator
   region: eu-central-1
   role: arn:aws:iam::123456789012:role/eso-prod
@@ -717,14 +725,14 @@ Note this gives the benefit that this provider above can be given permissions to
 
 ### Resolution and scope rules (what the core enforces at reconcile)
 
-Two namespaces are involved and they are different things: where the provider CR *lives* (`providerRef.namespace`, or the store namespace) and where credential references inside that CR *resolve* (`credential_namespace`, decided by the core per call and sent in `RequestContext`, [PROTOCOL.md](./PROTOCOL.md) P9).
+Two namespaces are involved and they are different things: where the provider CR *lives* (`providerConfig.gvkRef.namespace`, or the store namespace) and where credential references inside that CR *resolve* (`credential_namespace`, decided by the core per call and sent in `RequestContext`, [PROTOCOL.md](./PROTOCOL.md) P9).
 
-| Store kind | `runtimeRef.kind` | Class resolved where | `providerRef.namespace` | Provider CR lives in | Namespace-less credential refs resolve in | Explicit namespace on a credential ref |
+| Store kind | `runtimeRef.kind` | Runtime config resolved where | `providerConfig.gvkRef.namespace` | Provider CR lives in | Namespace-less credential refs resolve in | Explicit namespace on a credential ref |
 | --- | --- | --- | --- | --- | --- | --- |
-| `SecretStore` | omitted or `ProviderClass` | store namespace | forbidden (CEL) | store namespace | store namespace | accepted only if it equals the store namespace; otherwise rejected |
-| `SecretStore` | `ClusterProviderClass` | cluster | forbidden (CEL) | store namespace | store namespace | accepted only if it equals the store namespace; otherwise rejected |
-| `ClusterSecretStore` | omitted or `ClusterProviderClass` | cluster | required (CEL) | that namespace | caller (ES/PS) namespace: referent authentication | honoured |
-| `ClusterSecretStore` | `ProviderClass` | rejected (CEL) | – | – | – | – |
+| `SecretStore` | omitted or `RuntimeConfig` | store namespace | forbidden (CEL) | store namespace | store namespace | accepted only if it equals the store namespace; otherwise rejected |
+| `SecretStore` | `ClusterRuntimeConfig` | cluster | forbidden (CEL) | store namespace | store namespace | accepted only if it equals the store namespace; otherwise rejected |
+| `ClusterSecretStore` | omitted or `ClusterRuntimeConfig` | cluster | required (CEL) | that namespace | caller (ES/PS) namespace: referent authentication | honoured |
+| `ClusterSecretStore` | `RuntimeConfig` | rejected (CEL) | – | – | – | – |
 
 This is v1's referent-authentication rule moved one object down: one `ClusterSecretStore` and one provider CR in an admin namespace serve every tenant namespace, each with its own `Secret` or `ServiceAccount`. A CR whose references all carry explicit namespaces is the non-referent case (one identity for every caller). `conditions` on the `ClusterSecretStore` continue to gate which caller namespaces may use it. The SDK applies `credential_namespace` for the provider; a provider that derives a namespace from anything else fails conformance.
 
@@ -778,12 +786,13 @@ metadata:
   namespace: team-a
 spec:
   runtimeRef:
-    kind: ClusterProviderClass       # the shared runtime; explicit because a SecretStore
-    name: aws                        # defaults to a ProviderClass in its own namespace
-  providerRef:
-    apiVersion: provider.external-secrets.io/v1alpha1
-    kind: SecretsManager
-    name: aws-prod                   # namespace forbidden: always team-a
+    kind: ClusterRuntimeConfig       # the shared runtime; explicit because a SecretStore
+    name: aws                        # defaults to a RuntimeConfig in its own namespace
+  providerConfig:
+    gvkRef:
+      apiVersion: provider.external-secrets.io/v1alpha1
+      kind: SecretsManager
+      name: aws-prod                   # namespace forbidden: always team-a
 ```
 
 On the wire: `provider_ref = {SecretsManager, aws-prod, team-a}`, `context.caller_namespace = team-a`, `context.credential_namespace = team-a`, `allow_explicit_credential_namespace = false`. The provider mints a token for `team-a/app-secrets`.
@@ -810,12 +819,13 @@ metadata:
   name: aws-referent
 spec:
   runtimeRef:
-    name: aws                        # defaults to ClusterProviderClass
-  providerRef:
-    apiVersion: provider.external-secrets.io/v1alpha1
-    kind: SecretsManager
-    name: aws-shared
-    namespace: external-secrets-system   # REQUIRED on ClusterSecretStore: where the CR lives
+    name: aws                        # defaults to ClusterRuntimeConfig
+  providerConfig:
+    gvkRef:
+      apiVersion: provider.external-secrets.io/v1alpha1
+      kind: SecretsManager
+      name: aws-shared
+      namespace: external-secrets-system   # REQUIRED on ClusterSecretStore: where the CR lives
   conditions:
   - namespaceSelector:
       matchLabels:
@@ -871,22 +881,23 @@ metadata:
 spec:
   runtimeRef:
     name: aws
-  providerRef:
-    apiVersion: provider.external-secrets.io/v1alpha1
-    kind: SecretsManager
-    name: aws-platform
-    namespace: external-secrets-system
+  providerConfig:
+    gvkRef:
+      apiVersion: provider.external-secrets.io/v1alpha1
+      kind: SecretsManager
+      name: aws-platform
+      namespace: external-secrets-system
   conditions:
   - namespaces: [team-a, team-b]
 ```
 
 On the wire from team-a: `credential_namespace = team-a` and `allow_explicit_credential_namespace = true`, but the reference carries `namespace: external-secrets-system`, so the provider uses `external-secrets-system/eso-provider-aws` for every caller. This store validates fully (`Ready=True`, `Valid`). Provider RBAC: one `Role` in `external-secrets-system`.
 
-**A tenant-owned runtime** (the tenant installs the provider chart in its namespace):
+**A namespace-scoped ESO install** (ESO and the provider chart are installed in `team-a` with `Role`s only, so they cannot read a cluster-scoped `ClusterRuntimeConfig`):
 
 ```yaml
 apiVersion: external-secrets.io/v1alpha1
-kind: ProviderClass
+kind: RuntimeConfig
 metadata:
   name: aws
   namespace: team-a
@@ -897,7 +908,7 @@ spec:
 
 | Actor | Namespaced store | Referent `ClusterSecretStore` | Non-referent `ClusterSecretStore` |
 | --- | --- | --- | --- |
-| Platform team | `ClusterProviderClass` | class, CR `aws-shared`, the store | class, CR `aws-platform`, the store |
+| Platform team | `ClusterRuntimeConfig` | runtime config, CR `aws-shared`, the store | runtime config, CR `aws-platform`, the store |
 | Tenant | CR `aws-prod`, `SecretStore`, a `ServiceAccount` | one `ServiceAccount` | nothing |
 | Provider RBAC (example; each provider declares the set its backend needs) | `serviceaccounts/token` in served namespaces | cluster-wide `serviceaccounts/token` (opt-in) | one `Role` in `external-secrets-system` |
 
@@ -906,25 +917,25 @@ spec:
 | | v1 inline (today) | Option 3 (this design) | Option 1 (#5527) | Option 2 (direct ref) |
 | --- | --- | --- | --- | --- |
 | Objects a store author writes | `SecretStore` (+ credentials `Secret`) | `SecretStore` + provider CR (+ credentials `Secret`) | `Provider` + provider CR | provider CR |
-| Objects a platform admin writes once per provider | – | `(Cluster)ProviderClass` (shipped by the chart) | `Provider.spec.address` per store | Service labels |
+| Objects a platform admin writes once per provider | – | `(Cluster)RuntimeConfig` (shipped by the chart) | `Provider.spec.address` per store | Service labels |
 | `ExternalSecret`/`PushSecret` changes | – | none | `secretStoreRef.kind` on every one | `secretStoreRef.apiVersion/kind` on every one |
 | `kubectl get secretstore` still shows readiness | yes | yes | no (new kind) | no |
-| Multi-tenancy | `ClusterSecretStore.conditions` | same, plus namespaced classes | re-implemented on `Provider` | per provider |
-| Debugging path | describe store | describe store → describe class → provider logs | describe provider → ... | describe provider CR |
+| Multi-tenancy | `ClusterSecretStore.conditions` | same, plus namespaced runtime configs | re-implemented on `Provider` | per provider |
+| Debugging path | describe store | describe store → describe runtime config → provider logs | describe provider → ... | describe provider CR |
 
 ## *(new)* Install requirements
 
-Default path (`tls.issuer: Managed` with `auth.clientCertificate`), per provider: the provider's Helm chart installs its CRD(s), a `Deployment`, a `Service`, a `ServiceAccount`, a namespaced `Role`/`RoleBinding` (for example: read its own CRs; read Secrets/ServiceAccounts in the namespaces it serves; the exact rules are each provider's to declare; see [THREAT_MODEL.md](./THREAT_MODEL.md)), an empty server-certificate Secret plus a `Role`/`RoleBinding` that allows the ESO cert-controller to fill that one Secret, a `(Cluster)ProviderClass`, and optionally a `NetworkPolicy`. On the ESO side: `providerRuntime.enabled=true` turns on the controller flag, the two class CRDs, RBAC for them, and the cert-controller issuer. No cert-manager, no new operator.
+Default path (`tls.issuer: Managed` with `auth.clientCertificate`), per provider: the provider's Helm chart installs its CRD(s), a `Deployment`, a `Service`, a `ServiceAccount`, a namespaced `Role`/`RoleBinding` (for example: read its own CRs; read Secrets/ServiceAccounts in the namespaces it serves; the exact rules are each provider's to declare; see [THREAT_MODEL.md](./THREAT_MODEL.md)), an empty server-certificate Secret plus a `Role`/`RoleBinding` that allows the ESO cert-controller to fill that one Secret, a `(Cluster)RuntimeConfig`, and optionally a `NetworkPolicy`. On the ESO side: `providerRuntime.enabled=true` turns on the controller flag, the two runtime config CRDs, RBAC for them, and the cert-controller issuer. No cert-manager, no new operator.
 
-cert-manager path (`tls.issuer: External`): the user (or the provider chart, when `certManager.enabled`) creates a server `Certificate` for the provider and a client `Certificate` whose Secret the class references through `auth.clientCertificate.secretRef`. cert-controller does nothing for that class.
+cert-manager path (`tls.issuer: External`): the user (or the provider chart, when `certManager.enabled`) creates a server `Certificate` for the provider and a client `Certificate` whose Secret the runtime config references through `auth.clientCertificate.secretRef`. cert-controller does nothing for that runtime config.
 
-IPC path (`endpoint.socket`): no Service, no certificates, no cert-controller. The provider image is referenced from the ESO chart as a sidecar (`providerRuntime.sidecars`), which also renders the class. Development compositions (`HTTP(dev)`, `HTTPS(dev)`) additionally need the controller flag `--experimental-allow-insecure-provider-transport`; the chart exposes it as `providerRuntime.allowInsecureTransport` and refuses to render it unless `providerRuntime.enabled` is also set.
+IPC path (`endpoint.socket`): no Service, no certificates, no cert-controller. The provider image is referenced from the ESO chart as a sidecar (`providerRuntime.sidecars`), which also renders the runtime config. Development compositions (`HTTP(dev)`, `HTTPS(dev)`) additionally need the controller flag `--experimental-allow-insecure-provider-transport`; the chart exposes it as `providerRuntime.allowInsecureTransport` and refuses to render it unless `providerRuntime.enabled` is also set.
 
 ## *(new)* Migration
 
-1. **Semantic migration inside `v1`.** Users replace `spec.provider.<name>` with `spec.providerRef` + `spec.runtimeRef` and create the provider CR. `esoctl migrate store` reads a v1 store and emits the provider CR and the edited store, keeping names so no `ExternalSecret` changes. Both forms coexist indefinitely; a cluster can run in-process and out-of-process stores side by side.
-2. **Chart-managed classes.** Installing a provider chart creates its `(Cluster)ProviderClass`, so the documented path is "install the provider, point the store at it".
-3. **Clean `v2alpha1` store.** Only after the `v1` clean subset is in use: `external-secrets.io/v2alpha1 SecretStore` without `spec.provider`, `runtimeRef` and `providerRef` required. Introducing it earlier would require lossless conversion between an object with an inline union and one without, which does not exist; the #6245 authors reached the same conclusion. The path there is staged, one release each: the controller first emits deprecation warnings for inline `spec.provider` stores, then stops serving them, then the field is removed from the `v1` CRD, and only then is `v2alpha1` served.
+1. **Semantic migration inside `v1`.** Users replace `spec.provider.<name>` with `spec.providerConfig` + `spec.runtimeRef` and create the provider CR. `esoctl migrate store` reads a v1 store and emits the provider CR and the edited store, keeping names so no `ExternalSecret` changes. Both forms coexist indefinitely; a cluster can run in-process and out-of-process stores side by side.
+2. **Chart-managed runtime configs.** Installing a provider chart creates its `(Cluster)RuntimeConfig`, so the documented path is "install the provider, point the store at it".
+3. **Clean `v2alpha1` store.** Only after the `v1` clean subset is in use: `external-secrets.io/v2alpha1 SecretStore` without `spec.provider`, `runtimeRef` and `providerConfig` required. Introducing it earlier would require lossless conversion between an object with an inline union and one without, which does not exist; the #6245 authors reached the same conclusion. The path there is staged, one release each: the controller first emits deprecation warnings for inline `spec.provider` stores, then stops serving them, then the field is removed from the `v1` CRD, and only then is `v2alpha1` served.
 4. **Deprecation** of in-process providers follows PR #7124 and `DEPRECATING.md`; not part of this design.
 
 Rejected: a "compatibility mode" where a `v1` store keeps `spec.provider` and adds `runtimeRef`, with the core serialising the inline spec over the wire. #6245 implemented and then removed it: it keeps the union in the core forever and it is a by-value contract with the confused-deputy problem described in [THREAT_MODEL.md](./THREAT_MODEL.md) T11.
@@ -939,3 +950,13 @@ Rejected: a "compatibility mode" where a `v1` store keeps `spec.provider` and ad
    **Answer:** they are separate CRDs in separate groups, shipped by the provider chart, with types in the provider module. The core references them by `apiVersion/kind/name` strings only.
 4. Can we provide a middle-ground solution that combines benefits of both approaches?
    **Answer:** Option 3 is that middle ground: the common fields and scoping stay on the store (Option 1's benefit) and the provider owns its schema with no cluster-scoped variants (Option 2's benefit), without touching `ExternalSecret`.
+5. Why does the provider configuration reference live on the `SecretStore` and not on the `RuntimeConfig`?
+   **Answer:** tenancy. `RuntimeConfig` and `ClusterRuntimeConfig` are privileged objects: they say which endpoint the core dials and with which client identity, so only whoever installs ESO and the providers may write them. If the runtime config also named the provider configuration, every store author would need a runtime config of their own, or write access to a shared one. The split follows the two personas: the platform team owns *where* a provider runs (`runtimeRef`), the store author owns *what* it is configured with (`providerConfig`).
+6. Why do provider configuration objects exist at all, instead of one provider deployment per configuration?
+   **Answer:** so that one provider deployment serves every configuration. The runtime config names a deployment, and each store names the configuration that deployment should use for its calls. Without a separate configuration object, every region, account or role would need its own deployment, `Service`, certificates and runtime config.
+7. Why is `providerConfig` a struct with a `gvkRef` member, rather than a plain reference or a string?
+   **Answer:** so the API can grow. A GVK reference is how Kubernetes users already name an object, and it is enough for milestone 1. Providers that keep their configuration elsewhere may later want to name it by key (`keyRef`), by identifier (`uuidRef`) or by selector (`labelSelector`). Each can become a new member of the union without changing existing stores. The core forwards whichever member is set and never interprets it, so the kind behind a `gvkRef` can be anything the provider understands, including a v1 `Secret` or `ConfigMap`.
+8. Why is there a namespaced `RuntimeConfig` at all?
+   **Answer:** for ESO installs scoped to a single namespace. Such an install runs with `Role`s only and cannot read a cluster-scoped object, so a `ClusterRuntimeConfig` would be unusable there. In a cluster-wide install, `ClusterRuntimeConfig` is the normal case. The namespaced variant is no less privileged: it decides what the core dials, including a Unix socket on the controller's file system.
+9. Are generators covered?
+   **Answer:** not in this document. The generator API delta and its wire contract are part of the protocol follow-up.
