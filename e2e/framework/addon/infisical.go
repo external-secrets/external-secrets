@@ -372,6 +372,12 @@ func (l *Infisical) apiCall(method, path, token string, body, out any) error {
 	return json.Unmarshal(data, out)
 }
 
+// IdentityAPICall calls the API as the suite's Universal Auth identity. It is
+// for writes the SDK does not cover, such as secret tags and metadata.
+func (l *Infisical) IdentityAPICall(method, path string, body, out any) error {
+	return l.apiCall(method, path, l.SDKClient.Auth().GetAccessToken(), body, out)
+}
+
 func (l *Infisical) Logs() error {
 	return l.chart.Logs()
 }
