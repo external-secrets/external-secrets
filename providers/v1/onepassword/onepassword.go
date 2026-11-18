@@ -327,7 +327,8 @@ func (provider *ProviderOnePassword) createItem(val []byte, ref esv1.PushSecretD
 // If the label does not exist, a new field is created. If the label exists but
 // the value is different, the value is updated. If the label exists and the
 // value is the same, nothing is done.
-func updateFieldValue(fields []*onepassword.ItemField, label, newVal string) ([]*onepassword.ItemField, error) {
+// The returned bool reports whether the fields were modified.
+func updateFieldValue(fields []*onepassword.ItemField, label, newVal string) ([]*onepassword.ItemField, bool, error) {
 	// This will always iterate over all items.
 	// This is done to ensure that two fields with the same label
 	// exist resulting in undefined behavior.
@@ -338,21 +339,36 @@ func updateFieldValue(fields []*onepassword.ItemField, label, newVal string) ([]
 	for i, item := range fields {
 		if item.Label == label {
 			if found {
-				return nil, ErrExpectedOneField
+				return nil, false, ErrExpectedOneField
 			}
 			found = true
 			index = i
 		}
 	}
 	if !found {
-		return append(fields, generateNewItemField(label, newVal)), nil
+		return append(fields, generateNewItemField(label, newVal)), true, nil
 	}
 
 	if fields[index].Value != newVal {
 		fields[index].Value = newVal
+		return fields, true, nil
 	}
 
-	return fields, nil
+	return fields, false, nil
+}
+
+// tagsEqual reports whether two tag lists contain the same tags, ignoring order.
+func tagsEqual(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	sortedA := slices.Clone(a)
+	sortedB := slices.Clone(b)
+	slices.Sort(sortedA)
+	slices.Sort(sortedB)
+
+	return slices.Equal(sortedA, sortedB)
 }
 
 // generateNewItemField generates a new item field with the given label and value.
@@ -397,20 +413,31 @@ func (provider *ProviderOnePassword) PushSecret(ctx context.Context, secret *cor
 	if err != nil {
 		return fmt.Errorf("failed to parse push secret metadata: %w", err)
 	}
+	var wantTags []string
+	tagsChanged := false
 	if metadata != nil && metadata.Spec.Tags != nil {
+		tagsChanged = !tagsEqual(providerItem.Tags, metadata.Spec.Tags)
 		providerItem.Tags = metadata.Spec.Tags
+		wantTags = metadata.Spec.Tags
 	}
 
-	providerItem.Fields, err = updateFieldValue(providerItem.Fields, label, string(val))
+	var fieldChanged bool
+	providerItem.Fields, fieldChanged, err = updateFieldValue(providerItem.Fields, label, string(val))
 	if err != nil {
 		return fmt.Errorf(errUpdateItem, err)
+	}
+
+	// Nothing to write: skip UpdateItem so we don't create a new item version
+	// on every sync, and so the next data entry for this item can't race a write.
+	if !fieldChanged && !tagsChanged {
+		return nil
 	}
 
 	if _, err = provider.client.UpdateItem(providerItem, providerItem.Vault.ID); err != nil {
 		return fmt.Errorf(errUpdateItem, err)
 	}
 
-	if err := provider.waitForFunc(ctx, provider.waitForLabelToBeUpdated(title, label, val)); err != nil {
+	if err := provider.waitForFunc(ctx, provider.waitForLabelToBeUpdated(title, label, val, wantTags)); err != nil {
 		return fmt.Errorf("failed waiting for label update: %w", err)
 	}
 
@@ -774,11 +801,16 @@ func (provider *ProviderOnePassword) waitForItemToExist(title string) func() err
 	}
 }
 
-func (provider *ProviderOnePassword) waitForLabelToBeUpdated(title, label string, val []byte) func() error {
+func (provider *ProviderOnePassword) waitForLabelToBeUpdated(title, label string, val []byte, tags []string) func() error {
 	return func() error {
 		item, err := provider.findItem(title)
 		if err != nil {
 			return err
+		}
+
+		// when tags were requested, wait until Connect reports them too
+		if tags != nil && !tagsEqual(item.Tags, tags) {
+			return fmt.Errorf("tags on item %s not yet updated", title)
 		}
 
 		for _, field := range item.Fields {
