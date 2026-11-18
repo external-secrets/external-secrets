@@ -76,6 +76,34 @@ func waitPushSecretReady(f *framework.Framework, ps *esv1alpha1.PushSecret) {
 	}, time.Minute*2, time.Second*5).Should(BeTrue())
 }
 
+// requireRefreshesWithVersion waits for n later successful reconciles (Ready,
+// RefreshTime advancing) while the remote version stays at want, so a stalled
+// or failing controller cannot satisfy the check.
+func requireRefreshesWithVersion(f *framework.Framework, prov *infisicalProvider, ps *esv1alpha1.PushSecret, key string, want, n int) {
+	var last metav1.Time
+	seen := 0
+	Eventually(func() (int, error) {
+		got := &esv1alpha1.PushSecret{}
+		Expect(f.CRClient.Get(GinkgoT().Context(), types.NamespacedName{
+			Name: ps.Name, Namespace: ps.Namespace,
+		}, got)).To(Succeed())
+		version, err := prov.remoteSecretVersion(key)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(version).To(Equal(want), "remote version changed for an unchanged value")
+		ready := false
+		for _, c := range got.Status.Conditions {
+			ready = ready || (c.Type == esv1alpha1.PushSecretReady && c.Status == v1.ConditionTrue)
+		}
+		if last.IsZero() {
+			last = got.Status.RefreshTime
+		} else if ready && got.Status.RefreshTime.After(last.Time) {
+			last = got.Status.RefreshTime
+			seen++
+		}
+		return seen, nil
+	}, time.Minute*2, time.Second*2).Should(BeNumerically(">=", n))
+}
+
 // eventuallyRemoteValue waits until the remote secret holds want.
 func eventuallyRemoteValue(prov *infisicalProvider, key, want string) {
 	Eventually(func() (string, error) {
@@ -164,12 +192,11 @@ func pushSecretUpdatesExisting(prov *infisicalProvider) pushCase {
 				Expect(f.CRClient.Update(GinkgoT().Context(), src)).To(Succeed())
 				eventuallyRemoteValue(prov, remoteKey, "v2")
 
-				// Several refresh intervals (5s each) with the same value.
+				// Baseline taken after v2 landed, so an in-flight update
+				// cannot move the version during the check.
 				version, err := prov.remoteSecretVersion(remoteKey)
 				Expect(err).ToNot(HaveOccurred())
-				Consistently(func() (int, error) {
-					return prov.remoteSecretVersion(remoteKey)
-				}, time.Second*30, time.Second*5).Should(Equal(version))
+				requireRefreshesWithVersion(f, prov, ps, remoteKey, version, 2)
 			}
 		}
 	}
