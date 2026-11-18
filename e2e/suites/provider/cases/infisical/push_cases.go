@@ -62,17 +62,19 @@ func pushData(secretKey, remoteKey, property string) esv1alpha1.PushSecretData {
 }
 
 func waitPushSecretReady(f *framework.Framework, ps *esv1alpha1.PushSecret) {
-	Eventually(func() bool {
+	Eventually(func() (bool, error) {
 		got := &esv1alpha1.PushSecret{}
-		Expect(f.CRClient.Get(GinkgoT().Context(), types.NamespacedName{
+		if err := f.CRClient.Get(GinkgoT().Context(), types.NamespacedName{
 			Name: ps.Name, Namespace: ps.Namespace,
-		}, got)).To(Succeed())
+		}, got); err != nil {
+			return false, err
+		}
 		for _, c := range got.Status.Conditions {
 			if c.Type == esv1alpha1.PushSecretReady && c.Status == v1.ConditionTrue {
-				return true
+				return true, nil
 			}
 		}
-		return false
+		return false, nil
 	}, time.Minute*2, time.Second*5).Should(BeTrue())
 }
 
@@ -84,11 +86,16 @@ func requireRefreshesWithVersion(f *framework.Framework, prov *infisicalProvider
 	seen := 0
 	Eventually(func() (int, error) {
 		got := &esv1alpha1.PushSecret{}
-		Expect(f.CRClient.Get(GinkgoT().Context(), types.NamespacedName{
+		if err := f.CRClient.Get(GinkgoT().Context(), types.NamespacedName{
 			Name: ps.Name, Namespace: ps.Namespace,
-		}, got)).To(Succeed())
+		}, got); err != nil {
+			return seen, err
+		}
 		version, err := prov.remoteSecretVersion(key)
-		Expect(err).ToNot(HaveOccurred())
+		if err != nil {
+			return seen, err
+		}
+		// Read errors retry; a changed version fails the spec at once.
 		Expect(version).To(Equal(want), "remote version changed for an unchanged value")
 		ready := false
 		for _, c := range got.Status.Conditions {
