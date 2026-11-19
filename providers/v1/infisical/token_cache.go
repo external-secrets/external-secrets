@@ -17,6 +17,8 @@ limitations under the License.
 package infisical
 
 import (
+	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
@@ -107,8 +109,14 @@ func cachedLogin(
 	return err
 }
 
+var tokenCacheKeySecret = func() []byte {
+	secret := make([]byte, 32)
+	_, _ = rand.Read(secret)
+	return secret
+}()
+
 func tokenCacheKey(parts ...string) string {
-	h := sha256.New()
+	h := hmac.New(sha256.New, tokenCacheKeySecret)
 	for _, part := range parts {
 		h.Write([]byte(part))
 		h.Write([]byte{0})
