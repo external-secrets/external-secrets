@@ -1219,6 +1219,8 @@ func rewriteWithKeyMapping(rewrites []esapi.PushSecretRewrite, data map[string][
 // returns a function that applies it to a key. This avoids re-compiling the
 // same regexp or re-parsing the same template for every key.
 func compileRewrite(op esapi.PushSecretRewrite) (func(string) (string, error), error) {
+	// compileRewrite runs once per rewrite operation, so this is a budget per operation.
+	budget := esutils.MaxRewrittenKeysBytes
 	switch {
 	case op.Regexp != nil:
 		re, err := regexp.Compile(op.Regexp.Source)
@@ -1227,7 +1229,7 @@ func compileRewrite(op esapi.PushSecretRewrite) (func(string) (string, error), e
 		}
 		target := op.Regexp.Target
 		return func(key string) (string, error) {
-			return re.ReplaceAllString(key, target), nil
+			return esutils.ReplaceKeyBounded(re, key, target, &budget)
 		}, nil
 	case op.Transform != nil:
 		tmpl, err := template.New("t").Funcs(estemplate.FuncMap()).Parse(op.Transform.Template)
@@ -1238,6 +1240,9 @@ func compileRewrite(op esapi.PushSecretRewrite) (func(string) (string, error), e
 			result, err := estemplate.ExecuteTemplate(tmpl, map[string]string{"value": key})
 			if err != nil {
 				return "", fmt.Errorf("template exec: %w", err)
+			}
+			if budget -= len(result); budget < 0 {
+				return "", fmt.Errorf("transform rewrite result exceeds %d bytes", esutils.MaxRewrittenKeysBytes)
 			}
 			return string(result), nil
 		}, nil
