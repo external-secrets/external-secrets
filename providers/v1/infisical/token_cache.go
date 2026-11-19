@@ -20,6 +20,7 @@ import (
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"net/http"
@@ -117,9 +118,11 @@ var tokenCacheKeySecret = func() []byte {
 
 func tokenCacheKey(parts ...string) string {
 	h := hmac.New(sha256.New, tokenCacheKeySecret)
+	var length [8]byte
 	for _, part := range parts {
+		binary.BigEndian.PutUint64(length[:], uint64(len(part)))
+		h.Write(length[:])
 		h.Write([]byte(part))
-		h.Write([]byte{0})
 	}
 	return hex.EncodeToString(h.Sum(nil))
 }

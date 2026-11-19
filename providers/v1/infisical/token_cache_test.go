@@ -148,6 +148,11 @@ func TestTokenCacheInvalidateToken(t *testing.T) {
 	assert.False(t, ok)
 }
 
+func TestTokenCacheKeyIsUnambiguous(t *testing.T) {
+	assert.NotEqual(t, tokenCacheKey("a", "b\x00c"), tokenCacheKey("a\x00b", "c"))
+	assert.Equal(t, tokenCacheKey("a", "b"), tokenCacheKey("a", "b"))
+}
+
 // infisicalAuthMock counts logins and revokes and serves one secret. A
 // rejected token gets a 401 on the secret read.
 type infisicalAuthMock struct {
