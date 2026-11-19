@@ -179,7 +179,7 @@ genericTargets:
 # -- Specifies whether an external secret operator deployment be created.
 createOperator: true
 
-# -- if true, HTTP2 will be enabled for the services created by all controllers, curently metrics and webhook.
+# -- if true, HTTP2 will be enabled for the services created by all controllers, currently metrics and webhook.
 enableHTTP2: false
 
 # -- TLS security profile settings applied to all controller, webhook, and certController deployments.
