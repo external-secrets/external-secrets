@@ -316,11 +316,15 @@ curl --unix-socket /var/run/external-secrets/aws.sock \
     { "apiVersion": "provider.external-secrets.io/v1alpha1", "kind": "SecretsManager" },
     { "apiVersion": "provider.external-secrets.io/v1alpha1", "kind": "ParameterStore" }
   ],
-  "capabilities": ["GetSecret", "GetSecretMap", "GetAllSecrets", "PushSecret", "DeleteSecret", "SecretExists"],
-  "generates": [
-    { "apiVersion": "provider.external-secrets.io/v1alpha1", "kind": "ECRAuthorizationToken" }
-  ]
+  "capabilities": ["GetSecret", "GetSecretMap", "GetAllSecrets", "PushSecret", "DeleteSecret", "SecretExists"]
 }
+```
+
+```bash
+curl --unix-socket /var/run/external-secrets/aws.sock \
+  -H 'Content-Type: application/json' -H 'Connect-Timeout-Ms: 30000' \
+  http://localhost/externalsecrets.provider.v1alpha1.GeneratorProvider/Describe -d '{}'
+# {"generates":[{"apiVersion":"provider.external-secrets.io/v1alpha1","kind":"ECRAuthorizationToken"}]}
 ```
 
 ```bash
@@ -334,8 +338,8 @@ curl --unix-socket /var/run/external-secrets/aws.sock \
 
 1. One `POST` route per operation it supports: `Runtime/Describe` and the
    health route always; `Validate`, `Capabilities` and the advertised store
-   operations if it serves store kinds; `Generate` and `Cleanup` if it serves
-   generator kinds. Answer `404` for the rest, which the core reads as
+   operations if it serves store kinds; `GeneratorProvider/Describe`,
+   `Validate`, `Generate` and `Cleanup` if it serves generator kinds. Answer `404` for the rest, which the core reads as
    `Unimplemented`.
 2. JSON decoding that ignores unknown fields, and encoding by the table above
    (`int64` as a string, `bytes` as base64).

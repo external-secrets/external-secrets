@@ -59,8 +59,14 @@ service SecretStoreProvider {
   rpc SecretExists(SecretExistsRequest) returns (SecretExistsResponse);
 }
 
-// GeneratorProvider is served by runtimes that list kinds in Describe.generates.
+// GeneratorProvider is served by runtimes that generate. Its Describe lists the
+// generator kinds; a runtime without generators answers UNIMPLEMENTED.
 service GeneratorProvider {
+  // Configuration.
+  rpc Describe(DescribeGeneratorsRequest) returns (DescribeGeneratorsResponse);
+  rpc Validate(ValidateGeneratorRequest) returns (ValidateGeneratorResponse);
+
+  // Generation.
   rpc Generate(GenerateRequest) returns (GenerateResponse);
   rpc Cleanup(CleanupRequest) returns (CleanupResponse);
 }
@@ -120,7 +126,7 @@ message DescribeResponse {
   repeated string protocol_versions = 3;
   repeated ServedKind serves        = 4;
   repeated string capabilities      = 5;
-  repeated ServedKind generates     = 6;
+  reserved 6; // was generates; now GeneratorProvider.Describe
 }
 message ServedKind {
   string api_version = 1;
@@ -248,6 +254,23 @@ message SecretExistsResponse {
 }
 
 // ----------------------------------------------------------------- generator
+
+message DescribeGeneratorsRequest {}
+message DescribeGeneratorsResponse {
+  repeated ServedKind generates = 1;
+}
+
+message ValidateGeneratorRequest {
+  ProviderConfigReference provider_config = 1;
+  RequestContext          context         = 2;
+}
+message ValidateGeneratorResponse {
+  ValidationResult result   = 1;
+  repeated string warnings  = 2;
+  repeated string outputs   = 3;
+  bool stateful             = 4;
+  Resolved resolved         = 5;
+}
 
 message GenerateRequest {
   ProviderConfigReference provider_config = 1;

@@ -32,7 +32,9 @@ them.
 | **SecretStore** | `Validate`, `Capabilities` | `SecretStore` / `ClusterSecretStore` controller | runtimes with configuration kinds a store can point at |
 | | `GetSecret`, `GetSecretMap`, `GetAllSecrets` | `ExternalSecret` controller | |
 | | `PushSecret`, `DeleteSecret`, `SecretExists` | `PushSecret` controller | |
-| **Generator** | `Generate` | `ExternalSecret` and `PushSecret` controllers | runtimes with configuration kinds a `Generator` or `ClusterGenerator` can point at |
+| **Generator** | `Describe` | runtime config controller | runtimes with configuration kinds a `Generator` or `ClusterGenerator` can point at |
+| | `Validate` | `Generator` / `ClusterGenerator` controller | |
+| | `Generate` | `ExternalSecret` and `PushSecret` controllers | |
 | | `Cleanup` | `GeneratorState` controller | |
 
 A runtime may serve only stores, only generators, or both. The AWS runtime,
@@ -47,9 +49,11 @@ Every operation is unary: one request, then one response or one error.
 - **`Describe`** tells the core what this runtime is:
   - its name and version;
   - the contract versions it speaks;
-  - the configuration kinds stores may use (`serves`) and the kinds generators
-    may use (`generates`);
+  - the configuration kinds stores may use (`serves`);
   - the union of capabilities across the store kinds.
+
+  The kinds generators may use come from the Generator service's own
+  `Describe`, because a store runtime never generates anything.
 
   The runtime config controller calls it on every reconcile and copies the answer into
   the runtime config status. The store and generator controllers then check
@@ -68,8 +72,14 @@ Every operation is unary: one request, then one response or one error.
   The answer is `VALID`, or `UNKNOWN` when there is no caller whose namespace
   the credentials could resolve in. That happens for a `ClusterSecretStore`
   with referent authentication, which v1 also cannot validate. A failure is an
-  error code, never a result value. `Validate` may also return warnings, which
-  the core turns into events on the store.
+  error code, never a result value: a missing or invalid configuration, or a
+  missing referenced Secret or ServiceAccount, is `FailedPrecondition`; a
+  credential or permission the backend or the Kubernetes API refuses is
+  `PermissionDenied` (see "Errors"). Both leave the store `Ready=False` with
+  reason `ProviderValidationFailed` and the provider's message. `Validate` may
+  also return warnings, which the core turns into events on the store.
+  This is also an extension point for any other validation conditions - e.g.
+  authN/authZ denied between ESO and the Provider, etc.
 - **`Capabilities`** lists the operations one configuration supports. This can
   be narrower than the runtime's union in `Describe`: a runtime may serve a
   read-only kind next to a read-write one.
@@ -90,6 +100,21 @@ Every operation is unary: one request, then one response or one error.
 
 ### Generator
 
+- **`Describe`** lists the configuration kinds this runtime can generate from.
+  The runtime config controller calls it after `Runtime.Describe` and copies
+  the answer into the runtime config's `status.generates`. A runtime that does
+  not serve the Generator service answers `Unimplemented`, and
+  `status.generates` stays empty.
+- **`Validate`** checks one generator configuration the way the SecretStore
+  `Validate` checks a store's: the configuration exists and is well formed,
+  its credentials resolve, and the backend accepts them, as far as that can be
+  checked without generating anything. The result, the error codes and the
+  warnings are the same as for stores, including `UNKNOWN` for a referent
+  `ClusterGenerator` with no caller. It also describes what the configuration
+  produces: the keys `Generate` returns (`outputs`, empty when they depend on
+  the backend) and whether its values need `Cleanup` (`stateful`). The
+  `Generator` and `ClusterGenerator` controller calls it and writes the result
+  into the generator's status.
 - **`Generate`** creates new values: a token, a password, a set of short-lived
   credentials. It returns them together with an opaque **state**, which is
   whatever the provider needs later to revoke them. The core stores the state
@@ -115,6 +140,8 @@ generator, for example).
 | `PushSecret` | SecretStore | yes | no | `PushSecret` | if advertised |
 | `DeleteSecret` | SecretStore | yes | no | `DeleteSecret` | if advertised |
 | `SecretExists` | SecretStore | yes | yes | `SecretExists` | if advertised |
+| `Describe` | Generator | no | yes | – | if any kind is generated |
+| `Validate` | Generator | yes | yes | – | if any kind is generated |
 | `Generate` | Generator | yes | no | – | if any kind is generated |
 | `Cleanup` | Generator | yes | yes | – | if any kind is generated |
 
@@ -156,10 +183,16 @@ sequenceDiagram
     P-->>RCC: SERVING
     RCC->>P: Runtime.Describe (newest contract version the core supports)
     alt runtime speaks that version
-        P-->>RCC: name, version, protocolVersions,<br/>serves, generates, capabilities
+        P-->>RCC: name, version, protocolVersions,<br/>serves, capabilities
     else Unimplemented
         RCC->>P: Runtime.Describe (previous version)
         P-->>RCC: ...
+    end
+    RCC->>P: Generator.Describe
+    alt runtime serves generators
+        P-->>RCC: generates
+    else Unimplemented
+        P-->>RCC: no generator kinds
     end
     RCC->>K: status: Ready=True, protocolVersion,<br/>serves, generates, capabilities
 ```
@@ -244,7 +277,9 @@ deletion, the finalizer calls `DeleteSecret` for each entry it pushed.
 
 An `ExternalSecret` in `team-a` uses a `Generator` to get short-lived
 database credentials from Vault. Vault returns a lease with them, and the
-lease is what `Cleanup` revokes.
+lease is what `Cleanup` revokes. The `Generator` controller has already called
+`Generator.Validate` for `db-creds`, so the `Generator` is `Ready=True` with
+`outputs: [username, password]` and `stateful: true`.
 
 ```mermaid
 sequenceDiagram
@@ -258,7 +293,7 @@ sequenceDiagram
     K-->>EC: ExternalSecret team-a/db due for refresh
     EC->>K: get Generator team-a/db-creds
     EC->>K: get the runtime config it points at
-    EC->>EC: runtime config Ready? VaultDynamicSecret in status.generates?
+    EC->>EC: Generator Ready? runtime config Ready?<br/>VaultDynamicSecret in status.generates?
     EC->>P: Generator.Generate(providerConfig, context)
     P->>K: get VaultDynamicSecret team-a/db-creds, credentials in team-a
     P->>B: read database/creds/app
@@ -385,12 +420,12 @@ rejects a context that does not match this table with `InvalidArgument`:
 | --- | --- | --- | --- |
 | `SecretStore` | the store's namespace | the store's namespace | `false` |
 | `ClusterSecretStore` | the store's `providerConfig.gvkRef.namespace` | `CallerNamespace` (empty when validating without a caller) | `true` |
-| `Generator` | the generator's namespace, which is `CallerNamespace` | `CallerNamespace` | `false` |
-| `ClusterGenerator` | the generator's `providerConfig.gvkRef.namespace` | `CallerNamespace` | `false` |
+| `Generator` | the generator's namespace, which is `CallerNamespace` | the generator's namespace | `false` |
+| `ClusterGenerator` | the generator's `providerConfig.gvkRef.namespace` | `CallerNamespace` | `true` |
 
-The two generator rows keep v1's generator behaviour: credentials always resolve
-in the namespace of the `ExternalSecret` or `PushSecret`. A generator provider
-may ignore an explicit namespace on a reference, as v1 does, or refuse it (P9).
+Generators follow the store rows: a `Generator` behaves like a `SecretStore`,
+and a `ClusterGenerator` like a `ClusterSecretStore`, referent authentication
+included (P9).
 
 ### Resolved
 
@@ -425,7 +460,6 @@ type DescribeResponse struct {
 	ProviderVersion  string        // e.g. "v2.16.0"
 	ProtocolVersions []string      // contract versions served, e.g. ["v1alpha1"] (P5)
 	Serves           []*ServedKind // configuration kinds a SecretStore may point at
-	Generates        []*ServedKind // configuration kinds a Generator or ClusterGenerator may point at
 	Capabilities     []string      // union over the Serves kinds
 }
 
@@ -585,6 +619,25 @@ type SecretExistsResponse struct {
 ### Generator
 
 ```go
+type DescribeGeneratorsRequest struct{}
+
+type DescribeGeneratorsResponse struct {
+	Generates []*ServedKind // configuration kinds a Generator or ClusterGenerator may point at
+}
+
+type ValidateGeneratorRequest struct {
+	ProviderConfig *ProviderConfigReference // required
+	Context        *RequestContext          // required; Request is nil; Source is the Generator or ClusterGenerator
+}
+
+type ValidateGeneratorResponse struct {
+	Result   ValidationResult // VALID or UNKNOWN, as for stores
+	Warnings []string         // turned into events on the generator
+	Outputs  []string         // the keys Generate returns for this configuration; empty when they depend on the backend
+	Stateful bool             // true when Generate returns state that Cleanup must revoke
+	Resolved *Resolved
+}
+
 type GenerateRequest struct {
 	ProviderConfig *ProviderConfigReference // required
 	Context     *RequestContext    // required; Source is the Generator or ClusterGenerator
@@ -709,7 +762,7 @@ treated as `Unknown`.
 | `NotFound` | the remote secret does not exist, and for nothing else. A missing configuration is `FailedPrecondition` | store `Ready=False`, `ProviderValidationFailed` | `esv1.NoSecretErr`, so `deletionPolicy` applies |
 | `InvalidArgument` | the request is malformed (empty key, unknown decoding strategy) or its `RequestContext` is inconsistent | store `Ready=False`, `ProviderValidationFailed` | ES `SecretSyncedError` / PS `Errored`, no immediate retry |
 | `FailedPrecondition` | the configuration is missing or invalid, a referenced Secret or ServiceAccount is missing, or an explicit credential namespace is not allowed (`ExplicitNamespaceNotAllowed`) | store `Ready=False`, `ProviderValidationFailed` | ES `SecretSyncedError` / PS `Errored` |
-| `PermissionDenied` | the backend refused the credentials, or the provider's own authorization refused the request (P8; detail `Unauthorized` by convention) | store `Ready=False`, `ProviderValidationFailed` | ES `SecretSyncedError` / PS `Errored`, with the provider's message |
+| `PermissionDenied` | the backend refused the credentials; the provider's own identity was refused while it resolved the configuration or its credentials (for example `Forbidden` from the Kubernetes API on a Secret, a ServiceAccount token or its configuration kind); or the provider's own authorization refused the request (P8; detail `Unauthorized` by convention) | store `Ready=False`, `ProviderValidationFailed` | ES `SecretSyncedError` / PS `Errored`, with the provider's message |
 | `Unauthenticated` | the provider did not accept the core's identity (client certificate or bearer token invalid or absent) | store `Ready=False`, `ProviderAuthenticationFailed`. On `Check` or `Describe`: runtime config `Ready=False`, `AuthenticationFailed` | ES `SecretSyncedError` / PS `Errored`, requeue |
 | `Unimplemented` | the operation is not supported for this configuration | store `Ready=False`, `ProviderValidationFailed` | ES `SecretSyncedError` / PS `Errored`. Should not happen, because the core checks capabilities first |
 | `AlreadyExists` | `PushSecret` found remote state it will not overwrite | – | PS `Errored`, no immediate retry |
@@ -719,6 +772,8 @@ treated as `Unknown`.
 
 For generator calls:
 
+- `Generator.Validate` follows the `Validate` column: read "store" as
+  "`Generator` or `ClusterGenerator`", with the same reasons.
 - A failed `Generate` fails the `ExternalSecret` or `PushSecret` that asked for
   it, as an in-process generator error does today. `NotFound` has no special
   meaning there.
@@ -784,7 +839,8 @@ contract version (P5).
    credential Secret or ServiceAccount token does not outlive its revocation.
 5. Return `NotFound` for a missing remote secret, and for nothing else.
 6. Advertise capabilities honestly and answer `Unimplemented` for the rest.
-   Serve `Describe` and `Check` on every contract version you serve.
+   Serve `Describe` and `Check` on every contract version you serve, and the
+   Generator service's `Describe` and `Validate` if you generate anything.
 7. Make `Cleanup` idempotent, and put everything it needs into `State` except
    credentials, which it resolves again.
 8. Authenticate the core as the runtime config's `auth` says: verify the client
@@ -821,11 +877,13 @@ provider reads. What happens when a provider does not follow them, by bug or
 by design, is answered in layers:
 
 1. **RBAC is the backstop, and the operator sizes it.** A provider can only
-   read what its ServiceAccount may read. By default the provider's chart
+   read what its ServiceAccount may read. For the migration of currently in-tree
+   providers, we can tackle that by making the default the provider's chart
    grants `secrets get` and `serviceaccounts/token create` through a `Role` in
    each namespace it serves (the chart lists them), plus read access to its own
    configuration kinds there. A provider that resolves credentials in a
-   namespace it does not serve gets `Forbidden` from the API server.
+   namespace it does not serve gets `Forbidden` from the API server, and
+   answers `PermissionDenied`.
    The cross-namespace `ClusterRole` needed for referent `ClusterSecretStore`s
    and `ClusterGenerator`s is an explicit opt-in. Granting it is the point at
    which an operator decides to trust that provider with every tenant's
@@ -837,21 +895,22 @@ by design, is answered in layers:
 2. **The SDK makes conformance the easy path.** Providers built on the SDK wrap
    v1 code. The SDK derives the synthetic store kind and the namespace argument
    from `RequestContext`, and the v1 helper `resolvers.SecretKeyRef` applies
-   the rule. Only a provider written from scratch can get it wrong.
+   the rule. Only a provider written from scratch can get it wrong. This is the
+   main machanism our current in-tree providers handle this - by leveraging
+   common SDKs.
 3. **The conformance suite tests the rule, including negative cases.** It
    drives the provider through each binding it claims, against a recording fake
    Kubernetes API, and checks that:
    - references without a namespace resolve in `credentialNamespace`;
-   - an explicit namespace is refused through a `SecretStore`;
-   - through a generator, nothing is read outside `credentialNamespace`, whether
-     the provider ignores or refuses an explicit namespace;
+   - an explicit namespace is refused through a `SecretStore` or a `Generator`,
+     and honoured through a `ClusterSecretStore` or a `ClusterGenerator`;
    - an empty `credentialNamespace` makes `Validate` answer `UNKNOWN`;
    - an inconsistent `RequestContext` is refused;
    - nothing under `external-secrets.io` or `generators.external-secrets.io` is
      ever read.
 
-   Under the governance proposal (PR #7124), a provider is listed as maintained
-   only while it passes.
+   Under the governance proposal (PR #7124), a provider is listed as supported/
+   maintained only while it passes.
 4. **The core checks the self-report.**
    - When `allowExplicitCredentialNamespace` is false, every namespace in
      `Resolved.credentialNamespaces` must equal `credentialNamespace`. When it
@@ -863,8 +922,9 @@ by design, is answered in layers:
    - `providerUid` and `providerGeneration` are logged and put on events. The
      core does not check them, because it never reads the configuration.
 
-   This catches a buggy provider on its first call. A malicious provider can
-   lie, which is why layers 1 and 5 exist.
+   This catches a buggy provider on its first call, and applies floodgating
+   techniques so this provider isn't used until the issue is fixed.
+   A malicious provider can lie, which is why layers 1 and 5 exist.
 5. **Audit.** Each provider runs under its own ServiceAccount, so the
    Kubernetes audit log shows its reads under that identity. The core logs
    `credentialNamespace` with the request id of every call. A provider that
@@ -904,7 +964,7 @@ provider is stateless and needs no Kubernetes access):
   `Secret` in the cluster as credentials, and a provider with Secret read
   access would use it: a confused deputy. By reference, the provider only acts
   on configuration it already holds, under coordinates the core took from an
-  object that passed admission ([THREAT_MODEL.md](./THREAT_MODEL.md) T11).
+  object that passed admission (to be detailed on further documents).
 - By value, the core would need RBAC to read every provider CRD, so every new
   provider would need a core RBAC change (README D3).
 - By value does not remove Kubernetes access from the provider anyway. The
@@ -918,10 +978,10 @@ provider is stateless and needs no Kubernetes access):
   reference, the API server and RBAC already answered that when the object
   was created in that namespace.
 
-For configuration kept outside Kubernetes, the admission half of the T11
-argument no longer holds: only the provider decides who may create
+For configuration kept outside Kubernetes, the admission half of the
+confused-deputy argument above no longer holds: only the provider decides who may create
 configuration under a given namespace. That is the provider's to secure
-(THREAT_MODEL T11).
+(to be detailed on further documents).
 
 ### P2. Four services, unary only
 
@@ -933,8 +993,9 @@ service. Every operation is unary.
 
 Stores and generators are separate services because they are separate objects
 with separate lifecycles (P12). A runtime that only generates passwords should
-not have to answer `Validate`, and a store runtime should not have to answer
-`Generate`.
+not have to answer the SecretStore service, and a store runtime should not
+have to answer `Generate`. That is also why each of the two has its own
+`Validate`, and the Generator service its own `Describe`.
 
 ### P3. Errors are a closed set of codes with an optional detail
 
@@ -1056,13 +1117,21 @@ it can see the references inside its configuration. When
 - A reference whose namespace equals `credentialNamespace` is accepted, as v1
   accepts it, so inline specs convert unchanged.
 
-Generators are the one exception. In v1 they resolve credentials with an empty
-store kind, which ignores a reference's namespace rather than refusing it. A
-generator provider may therefore either refuse a differing namespace as above
-or ignore it and resolve in `credentialNamespace`. What it must never do is
-read outside `credentialNamespace`. This keeps v1 generators working unchanged
-behind the SDK; refusing would mean the SDK walking every generator spec for
-credential selectors.
+Generators follow the same rule. A `Generator` is treated like a
+`SecretStore` and a `ClusterGenerator` like a `ClusterSecretStore`, so a
+`ClusterGenerator` supports referent authentication: references without a
+namespace resolve in the caller's namespace, and an explicit namespace is
+honoured. This departs from v1, where in-process generators resolve
+credentials with an empty store kind and ignore a reference's namespace. The
+out-of-process kinds are new, so no existing manifest changes behaviour.
+
+For v1 generator code wrapped by the SDK, this means one change per
+generator: take the synthetic store kind from the SDK instead of passing
+`resolvers.EmptyStoreKind`, and refuse a differing explicit namespace when
+`allowExplicitCredentialNamespace` is false. Until a wrapped generator does,
+it resolves every reference in `credentialNamespace`. That never reads outside
+the allowed namespace, but it does not yet honour an explicit namespace
+through a `ClusterGenerator`.
 
 The core cannot pre-check this; it surfaces the refusal on the store or the
 `ExternalSecret`. "Contract enforcement" covers providers that do not enforce
@@ -1130,10 +1199,12 @@ VaultDynamicSecret`) is provider-owned, like a store's.
   where it stores an in-process generator's state today. The
   `GeneratorState` controller dispatches `Cleanup` by the kind recorded in the
   state's resource.
-- **No `Validate` for generators in milestone 1.** In-process generators have
-  no status either, and a misconfigured generator surfaces on the
-  `ExternalSecret` that uses it. A `Validate` operation on the Generator
-  service is an additive change if a status is wanted later.
+- **Generators are validated and have a status.** In-process generators have
+  no status, so a misconfigured one only surfaces on the `ExternalSecret` that
+  uses it. The new kinds behave like stores instead: their controller calls
+  `Generator.Validate`, sets `Ready`, and records the configuration's outputs
+  and whether it is stateful, so a broken generator is visible before anything
+  uses it.
 
 ## Changes from the proof of concept
 
@@ -1156,5 +1227,6 @@ follows:
 - Messages are named after what they are (`RemoteRef`, `Find`), not after Go
   types.
 - The generator service is wired: `Generator` and `ClusterGenerator` give it a core code
-  path, `Describe` reports generator kinds, and generator calls carry
+  path, `Generator.Describe` reports generator kinds, `Generator.Validate`
+  gives generators a status, and generator calls carry
   `RequestContext` like store calls.

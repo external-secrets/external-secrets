@@ -181,12 +181,12 @@ What must change before any of it merges:
   the CR follow v1's rule, so one CR serves many namespaces. The provider is
   the party that rejects an explicit namespace other than the CR's own through
   a `SecretStore`, since only it sees the CR; a namespace equal to the CR's is
-  accepted, as in v1, so inline specs convert unchanged. Rationale in [THREAT_MODEL.md](./THREAT_MODEL.md) T11
-  and T16 and in [PROTOCOL.md](./PROTOCOL.md) P1 and P9 ([STALE]: to be updated on follow up PRs).
+  accepted, as in v1, so inline specs convert unchanged. Rationale in
+  [PROTOCOL.md](./PROTOCOL.md) P1 and P9; the threat analysis is to be detailed on further documents.
 - **D3. Core is provider-agnostic.** The core binary does not import, register
   or hold RBAC for any provider CRD. Its RBAC gains only `runtimeconfigs` and
-  `clusterruntimeconfigs` (+`/status`), and `get` on `generators` and
-  `clustergenerators`. It already holds cluster-wide access to
+  `clusterruntimeconfigs` (+`/status`), and `generators` and
+  `clustergenerators` (+`/status`). It already holds cluster-wide access to
   Secrets, because it creates and updates target Secrets in every namespace,
   and it reads a runtime config's client TLS Secret with that existing access wherever
   the runtime config places it.
@@ -264,7 +264,7 @@ What must change before any of it merges:
   RPCs for v2 stores. The ESO controller validates references and policy and is
   the only writer of ESO-owned status. The provider validates its own CR,
   enforces the credential-namespace rule and reports through the RPC response.
-  Full matrix in [VALIDATION.md](./VALIDATION.md) ([STALE]: to be updated on follow up PRs).
+  The full matrix is to be detailed on further documents.
 - **D14. Delivery.** A sequence of PRs of at most 500 hand-written lines each,
   every one leaving `main` releasable, per [ROADMAP.md](./ROADMAP.md) ([STALE]: to be updated on follow up PRs).
   Existing branches are mined, not rebased.
@@ -342,8 +342,8 @@ What must change before any of it merges:
   the wire carries rendered bytes for `PushSecret` and raw bytes for reads. A
   provider never sees a template (#7213 is orthogonal).
 - **Lifecycling providers.** Reconcile `(Cluster)RuntimeConfig`: health,
-  `Describe` into `status.serves`, `status.capabilities` and
-  `status.protocolVersion`, the `Ready` and `Insecure` conditions,
+  `Runtime.Describe` into `status.serves`, `status.capabilities` and
+  `status.protocolVersion`, `Generator.Describe` into `status.generates`, the `Ready` and `Insecure` conditions,
   `ContractViolation`; keep one connection per runtime config generation; issue
   certificates for `Managed` runtime configs; gate everything behind
   `--experimental-enable-provider-runtime`. The core does not install, upgrade
@@ -355,9 +355,10 @@ What must change before any of it merges:
   `ClusterSecretStore` conditions; metrics and events; every status write on
   ESO objects. `ExternalSecret`, `PushSecret`, `ClusterExternalSecret` and
   in-process generators are unchanged and stay in the core.
-- **Generator features.** One core generator for the `Generator` and
-  `ClusterGenerator` kinds that calls the runtime's Generator service; `GeneratorState` storage and
-  garbage collection, unchanged.
+- **Generator features.** Readiness, outputs and statefulness from
+  `Generator.Validate` into the status of `Generator` and `ClusterGenerator`;
+  one core generator for both kinds that calls the runtime's Generator
+  service; `GeneratorState` storage and garbage collection, unchanged.
 
 ## Non-goals
 
@@ -367,9 +368,8 @@ What must change before any of it merges:
   early win and is in the roadmap, but it is additive.
 - **N2.** *(withdrawn 2026-11-17)* Generators are no longer a non-goal. They
   are wired from the start through `Generator` and `ClusterGenerator` ([API.md](./API.md),
-  [PROTOCOL.md](./PROTOCOL.md) P12). What stays out of milestone 1 is a
-  `Validate` operation and a status for generators, which in-process generators
-  do not have either.
+  [PROTOCOL.md](./PROTOCOL.md) P12), with `Validate`, `Describe` and a status,
+  like stores.
 - **N3.** OCI packaging and a package manager (#6632). Provider charts are the
   distribution unit.
 - **N4.** Providers outside the cluster. `RuntimeConfig.spec.endpoint.address`
@@ -413,7 +413,7 @@ What must change before any of it merges:
   or in parallel. Its `ClientFactory` / `StoreValidator` /
   `StoreCapabilitiesReader` split is what the client adapter implements
   on the core side; its "Validation Boundary" section is consistent with
-  [VALIDATION.md](./VALIDATION.md) ([STALE]: to be updated on follow up PRs).
+  this design's validation boundary, to be detailed on further documents.
 - **PR #7124 (governance)** decides *who* maintains a provider; this design
   decides *how* a provider runs. Its "version 2 external by default" policy
   depends on this design shipping.
