@@ -20,11 +20,14 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"slices"
+	"strings"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -79,21 +82,10 @@ func getTargetGVK(es *esv1.ExternalSecret) schema.GroupVersionKind {
 	}
 }
 
-// validateManifestCandidate ensures rendering did not change the declared GVK.
-func validateManifestCandidate(es *esv1.ExternalSecret, obj *unstructured.Unstructured) error {
-	declaredGVK := getTargetGVK(es)
-	renderedGVK := obj.GroupVersionKind()
-
-	if renderedGVK != declaredGVK {
-		return fmt.Errorf(
-			"rendered target GVK %q differs from declared target GVK %q",
-			renderedGVK.String(),
-			declaredGVK.String(),
-		)
-	}
-
-	return nil
-}
+// templatableMetadata are the only target metadata fields a template may contribute. Every
+// other field belongs either to the live object or to the ExternalSecret's own declaration,
+// and addRenderedContent reports any the template tried to set instead of applying them.
+var templatableMetadata = []string{"labels", "annotations"}
 
 // getTargetName returns the name of the target resource.
 func getTargetName(es *esv1.ExternalSecret) string {
@@ -146,7 +138,10 @@ func (r *Reconciler) createGenericResource(ctx context.Context, log logr.Logger,
 	}
 
 	log.Info("creating target resource", "gvk", gvk.String(), "name", getTargetName(es))
-	err = r.Client.Create(ctx, obj)
+	// Claim the fields we write. Without a field owner every ExternalSecret's writes land
+	// under one shared manager, and dropStaleOwnedMetadata could not tell the keys this
+	// ExternalSecret set from another ExternalSecret's or another controller's.
+	err = r.Client.Create(ctx, obj, client.FieldOwner(fqdnFor(es.Name)))
 	if err != nil {
 		return fmt.Errorf("failed to create target resource: %w", err)
 	}
@@ -159,7 +154,7 @@ func (r *Reconciler) updateGenericResource(ctx context.Context, log logr.Logger,
 	gvk := getTargetGVK(es)
 
 	log.Info("updating target resource", "gvk", gvk.String(), "name", getTargetName(es))
-	err := r.Client.Update(ctx, existing)
+	err := r.Client.Update(ctx, existing, client.FieldOwner(fqdnFor(es.Name)))
 	if err != nil {
 		return fmt.Errorf("failed to update target resource: %w", err)
 	}
@@ -191,82 +186,181 @@ func (r *Reconciler) deleteGenericResource(ctx context.Context, log logr.Logger,
 	return nil
 }
 
-// applyTemplateToManifest renders templates for generic resources and returns an unstructured object.
-// If existingObj is provided, templates will be applied to it (for merge behavior).
-// Otherwise, a new object is created.
+// applyTemplateToManifest builds the target from three sources, each the only authority for
+// its own part: the ExternalSecret declares the identity and the labels and annotations it
+// owns, the live object keeps the rest of its metadata, and rendering supplies the content.
 func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte, existingObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	var obj *unstructured.Unstructured
-	if existingObj != nil {
-		// use the existing object for merge behavior if it exists
-		obj = existingObj.DeepCopy()
-	} else {
-		gvk := getTargetGVK(es)
-		obj = &unstructured.Unstructured{}
-		obj.SetGroupVersionKind(gvk)
-		obj.SetName(getTargetName(es))
-		obj.SetNamespace(es.Namespace)
-		switch gvk.Kind {
-		case "ConfigMap", "Secret":
-			obj.Object["data"] = map[string]any{}
-		default:
-			obj.Object["spec"] = map[string]any{}
-		}
-	}
-
-	labels := obj.GetLabels()
-	if labels == nil {
-		labels = make(map[string]string)
-	}
-	annotations := obj.GetAnnotations()
-	if annotations == nil {
-		annotations = make(map[string]string)
-	}
-
-	srcLabels, srcAnnotations := es.ObjectMeta.Labels, es.ObjectMeta.Annotations
-	if es.Spec.Target.Template != nil {
-		srcLabels = es.Spec.Target.Template.Metadata.Labels
-		srcAnnotations = es.Spec.Target.Template.Metadata.Annotations
-	}
-	maps.Copy(labels, srcLabels)
-	maps.Copy(annotations, srcAnnotations)
-
-	labels[esv1.LabelManaged] = esv1.LabelManagedValue
-
-	obj.SetLabels(labels)
-	obj.SetAnnotations(annotations)
-
-	var result *unstructured.Unstructured
-	var err error
-	if es.Spec.Target.Template == nil {
-		result = r.createSimpleManifest(obj, dataMap)
-	} else {
-		result, err = r.renderTemplatedManifest(ctx, es, obj, dataMap)
-	}
+	// Rendering runs on a sandbox that carries the declared kind and the content, and no
+	// metadata at all, so every metadata field that comes back was written by the template.
+	// That is what lets addRenderedContent take the fields policy allows and name the rest
+	// without comparing anything against the live object.
+	rendered, err := r.render(ctx, es, dataMap, existingObj)
 	if err != nil {
 		return nil, err
 	}
 
-	ann := result.GetAnnotations()
-	if ann == nil {
-		ann = make(map[string]string)
+	target := liveOrNewTarget(es, existingObj)
+	if err := dropStaleOwnedMetadata(es, target); err != nil {
+		return nil, err
 	}
+	addDeclaredMetadata(es, target)
+	ignored := addRenderedContent(rendered, target)
 
-	hash, err := genericTargetContentHash(result)
-	if err != nil {
+	if err := r.applyOwnership(es, target); err != nil {
+		return nil, err
+	}
+	if err := addManagedMarkers(target); err != nil {
 		return nil, fmt.Errorf("failed to hash target %q content: %w", es.Spec.Target.Name, err)
 	}
 
-	ann[esv1.AnnotationDataHash] = hash
-	result.SetAnnotations(ann)
-
-	if err := r.applyOwnership(es, result); err != nil {
-		return nil, err
+	if len(ignored) > 0 {
+		r.recorder.Eventf(es, v1.EventTypeWarning, "TemplatedMetadataIgnored",
+			"template wrote target metadata outside labels and annotations, ignored: %s",
+			strings.Join(ignored, ", "))
 	}
-	if err := validateManifestCandidate(es, result); err != nil {
-		return nil, err
+	return target, nil
+}
+
+// render produces the target's content in isolation. The object handed to the template carries
+// the declared kind and, for the Merge policies, the live content to merge into, but no
+// metadata: the caller reads back only the content and the templatable metadata fields, so
+// anything else a template writes has nowhere to land.
+func (r *Reconciler) render(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte, existingObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	field := contentField(es)
+	sandbox := &unstructured.Unstructured{Object: map[string]any{field: map[string]any{}}}
+	sandbox.SetGroupVersionKind(getTargetGVK(es))
+
+	if existingObj != nil && (es.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
+		es.Spec.Target.CreationPolicy == esv1.CreatePolicyCreateOrMerge) {
+		// Copies the content subtree only. DeepCopy would also copy the metadata, which the
+		// sandbox must not carry.
+		if content, ok := existingObj.Object[field].(map[string]any); ok {
+			sandbox.Object[field] = runtime.DeepCopyJSON(content)
+		}
 	}
 
-	return result, nil
+	if es.Spec.Target.Template == nil {
+		return r.createSimpleManifest(sandbox, dataMap), nil
+	}
+	return r.renderTemplatedManifest(ctx, es, sandbox, dataMap)
+}
+
+// contentField is the field rendering writes the secret data into. A "Secret" here is a Secret
+// kind in a custom API group: validateGenericTarget rejects the core one before rendering.
+func contentField(es *esv1.ExternalSecret) string {
+	switch getTargetGVK(es).Kind {
+	case "ConfigMap", "Secret":
+		return "data"
+	default:
+		return "spec"
+	}
+}
+
+// liveOrNewTarget returns the target as it stands before rendering contributes anything: the
+// live object's metadata under the declared identity, or just the identity when the target
+// does not exist yet.
+func liveOrNewTarget(es *esv1.ExternalSecret, existingObj *unstructured.Unstructured) *unstructured.Unstructured {
+	target := &unstructured.Unstructured{Object: map[string]any{}}
+	if existingObj != nil {
+		// Copies the metadata subtree only. DeepCopy would also copy the content, which
+		// rendering is the sole authority for and which for a custom resource is most of the
+		// object.
+		if metadata, ok := existingObj.Object["metadata"].(map[string]any); ok {
+			target.Object["metadata"] = runtime.DeepCopyJSON(metadata)
+		}
+	}
+
+	// Written last so the declared identity wins over anything the live object carried.
+	target.SetGroupVersionKind(getTargetGVK(es))
+	target.SetName(getTargetName(es))
+	target.SetNamespace(es.Namespace)
+	return target
+}
+
+// dropStaleOwnedMetadata removes the labels and annotations this ExternalSecret set on the
+// target before and no longer declares. Without it, carrying the live object's metadata over
+// would make its own keys un-removable: drop one from the template and the live copy puts it
+// straight back. This mirrors setMetadata on the Secret lane.
+//
+// Targets written before ESO declared a field owner have their keys recorded under the
+// client's default manager, so on the first sync after upgrade a key this ExternalSecret has
+// since stopped rendering survives once. Everything written after is attributed.
+func dropStaleOwnedMetadata(es *esv1.ExternalSecret, target *unstructured.Unstructured) error {
+	labels, annotations := target.GetLabels(), target.GetAnnotations()
+	if err := templating.ClearOwnedMetadata(target, es.Name, labels, annotations); err != nil {
+		return err
+	}
+
+	target.SetLabels(labels)
+	target.SetAnnotations(annotations)
+	return nil
+}
+
+// addDeclaredMetadata merges in the labels and annotations the ExternalSecret declares, key by
+// key, so that another controller's keys on the live object survive. A target template's
+// metadata block replaces the ExternalSecret's own labels and annotations as the source rather
+// than adding to them.
+func addDeclaredMetadata(es *esv1.ExternalSecret, target *unstructured.Unstructured) {
+	labels, annotations := es.ObjectMeta.Labels, es.ObjectMeta.Annotations
+	if es.Spec.Target.Template != nil {
+		labels = es.Spec.Target.Template.Metadata.Labels
+		annotations = es.Spec.Target.Template.Metadata.Annotations
+	}
+
+	target.SetLabels(mergedInto(target.GetLabels(), labels))
+	target.SetAnnotations(mergedInto(target.GetAnnotations(), annotations))
+}
+
+// addRenderedContent copies the content and the templatable metadata fields of a rendered
+// object onto the target, and returns the names of the metadata fields it refused, sorted so
+// the report does not depend on Go's map iteration order. The content is every top-level field
+// the template rendered other than apiVersion, kind and metadata, not only spec or data.
+// Rendering is the sole authority for the content; for labels and annotations it wins key by
+// key over what was declared.
+func addRenderedContent(rendered, target *unstructured.Unstructured) []string {
+	for field, value := range rendered.Object {
+		// The identity is the ExternalSecret's to declare, and metadata is handled below.
+		if field != "metadata" && field != "apiVersion" && field != "kind" {
+			target.Object[field] = value
+		}
+	}
+
+	target.SetLabels(mergedInto(target.GetLabels(), rendered.GetLabels()))
+	target.SetAnnotations(mergedInto(target.GetAnnotations(), rendered.GetAnnotations()))
+
+	renderedMetadata, _ := rendered.Object["metadata"].(map[string]any)
+	ignored := make([]string, 0, len(renderedMetadata))
+	for field := range renderedMetadata {
+		if !slices.Contains(templatableMetadata, field) {
+			ignored = append(ignored, field)
+		}
+	}
+	slices.Sort(ignored)
+	return ignored
+}
+
+// addManagedMarkers stamps the label marking the target as ESO-managed and the annotation
+// recording its content hash. It runs last: applyOwnership may add labels of its own, and the
+// hash has to cover the final content.
+func addManagedMarkers(target *unstructured.Unstructured) error {
+	target.SetLabels(mergedInto(target.GetLabels(), map[string]string{esv1.LabelManaged: esv1.LabelManagedValue}))
+
+	hash, err := genericTargetContentHash(target)
+	if err != nil {
+		return err
+	}
+
+	target.SetAnnotations(mergedInto(target.GetAnnotations(), map[string]string{esv1.AnnotationDataHash: hash}))
+	return nil
+}
+
+// mergedInto returns base with over's entries written over it, key by key. Either may be nil,
+// and the result never is, so the unstructured setters always have a map to write.
+func mergedInto(base, over map[string]string) map[string]string {
+	merged := map[string]string{}
+	maps.Copy(merged, base)
+	maps.Copy(merged, over)
+	return merged
 }
 
 // createSimpleManifest creates a simple resource without templates (e.g., ConfigMap with data field).

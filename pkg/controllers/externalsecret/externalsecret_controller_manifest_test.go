@@ -18,6 +18,9 @@ package externalsecret
 
 import (
 	"context"
+	"fmt"
+	"maps"
+	"strings"
 	"testing"
 	"time"
 
@@ -37,61 +40,359 @@ import (
 	runtimecache "sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	fakeclient "sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/pkg/controllers/externalsecret/esmetrics"
+	ctrlmetrics "github.com/external-secrets/external-secrets/pkg/controllers/metrics"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
-func TestValidateManifestCandidate(t *testing.T) {
-	configMapTarget := &esv1.ExternalSecret{Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
-		Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
-	}}}
+func TestApplyTemplateToManifestKeepsTargetIdentity(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}
+
+	// The identity is the ExternalSecret's to declare, so none of these render an error: the
+	// target is built from the declared identity and the rendered attempt is discarded.
+	tests := []struct {
+		name, target, literal string
+		existing              bool
+	}{
+		{"namespace via literal", "metadata.namespace", "victim", false},
+		{"namespace on existing object", "metadata.namespace", "victim", true},
+		{"namespace via metadata map", "metadata", "namespace: victim", true},
+		{"name via literal", "metadata.name", "pwned-by-attacker", false},
+		{"malformed metadata", "metadata", "null", false},
+		{"same identity via metadata map", "metadata", "namespace: attacker\nname: harmless-local-name", false},
+		{"metadata map omits identity", "metadata", "labels:\n  app: test", false},
+		{"metadata labels remain templatable", "metadata.labels", "app: test", false},
+		{"kind via literal", "kind", "Secret", false},
+		{"API version via literal", "apiVersion", "other.io/v1", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			es := &esv1.ExternalSecret{
+				Name: "evil-es", Namespace: "attacker",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "harmless-local-name", CreationPolicy: esv1.CreatePolicyOrphan,
+					Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+					Template: &esv1.ExternalSecretTemplate{EngineVersion: esv1.TemplateEngineV2,
+						TemplateFrom: []esv1.TemplateFrom{{Target: tt.target, Literal: &tt.literal}}},
+				}},
+			}
+			var existing *unstructured.Unstructured
+			if tt.existing {
+				existing = &unstructured.Unstructured{Object: map[string]any{
+					"apiVersion": "v1", "kind": "ConfigMap",
+					"metadata": map[string]any{"name": "harmless-local-name", "namespace": "attacker"},
+					"data":     map[string]any{"key": "old"},
+				}}
+			}
+
+			result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
+			require.NoError(t, err)
+			assert.Equal(t, "attacker", result.GetNamespace())
+			assert.Equal(t, "harmless-local-name", result.GetName())
+			assert.Equal(t, v1.SchemeGroupVersion.WithKind("ConfigMap"), result.GroupVersionKind())
+		})
+	}
+}
+
+func TestApplyTemplateToManifestProtectsMetadata(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}
+
+	// None of these render an error. A template may write anywhere under metadata, and what it
+	// writes outside labels and annotations is discarded rather than refused, so every case
+	// syncs and the assertion that matters is that protected metadata still holds the value
+	// the target had before rendering.
+	tests := []struct {
+		name, target, literal string
+		existing              bool
+	}{
+		{"owner references", "metadata.ownerReferences", "- apiVersion: v1\n  kind: ConfigMap\n  name: victim\n  uid: victim-uid", false},
+		{"finalizers", "metadata.finalizers", "- attacker.io/hold", false},
+		{"uid on create", "metadata.uid", "victim-uid", false},
+		{"creation timestamp on create", "metadata.creationTimestamp", "2025-01-01T00:00:00Z", false},
+		{"uid", "metadata.uid", "victim-uid", true},
+		{"resource version", "metadata.resourceVersion", "1234", true},
+		{"managed fields", "metadata.managedFields", "- manager: spoofed\n  operation: Update\n  apiVersion: v1", true},
+		{"replace retained metadata", "metadata", "name: target\nnamespace: ns", true},
+		{"replace retained metadata with labels", "metadata", "labels:\n  app: test", true},
+		{"change retained uid via metadata map", "metadata", "name: target\nnamespace: ns\nuid: victim-uid", true},
+		{"ordinary annotations", "metadata.annotations", "app.example.com/key: value", true},
+		{"replaced labels map", "metadata.labels", "null", true},
+		{"replaced annotations map", "metadata.annotations", "null", true},
+		{"controller labels and annotation", "metadata", `name: target
+namespace: ns
+labels:
+  reconcile.external-secrets.io/managed: 'false'
+  reconcile.external-secrets.io/created-by: spoofed
+  app: test
+annotations:
+  reconcile.external-secrets.io/data-hash: spoofed
+  app.example.com/key: value`, false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			es := &esv1.ExternalSecret{
+				Name: "es", Namespace: "ns",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "target", CreationPolicy: esv1.CreatePolicyOrphan,
+					Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+					Template: &esv1.ExternalSecretTemplate{EngineVersion: esv1.TemplateEngineV2,
+						TemplateFrom: []esv1.TemplateFrom{{Target: tt.target, Literal: &tt.literal}}},
+				}},
+			}
+			var existing *unstructured.Unstructured
+			if tt.existing {
+				existing = &unstructured.Unstructured{Object: map[string]any{
+					"apiVersion": "v1", "kind": "ConfigMap",
+					"metadata": map[string]any{
+						"name": "target", "namespace": "ns", "uid": "original-uid", "resourceVersion": "1",
+						"creationTimestamp": "2025-01-01T00:00:00Z",
+						"managedFields":     []any{map[string]any{"manager": "kube-apiserver", "operation": "Update", "apiVersion": "v1"}},
+						"ownerReferences":   []any{map[string]any{"apiVersion": "v1", "kind": "ConfigMap", "name": "unrelated", "uid": "unrelated-uid"}},
+						"labels":            map[string]any{"other-controller": "keep"},
+						"annotations":       map[string]any{"other-controller": "keep", "app.example.com/key": "old"},
+					},
+					"data": map[string]any{"key": "old"},
+				}}
+			}
+			result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
+			require.NoError(t, err)
+			assert.Equal(t, esv1.LabelManagedValue, result.GetLabels()[esv1.LabelManaged])
+			assert.Empty(t, result.GetLabels()[esv1.LabelOwner])
+			hash, err := genericTargetContentHash(result)
+			require.NoError(t, err)
+			assert.Equal(t, hash, result.GetAnnotations()[esv1.AnnotationDataHash])
+
+			// On create the target's metadata is only the identity the controller declared.
+			wantMeta := map[string]any{"name": "target", "namespace": "ns"}
+			if tt.existing {
+				wantMeta = existing.Object["metadata"].(map[string]any)
+				assert.Equal(t, "keep", result.GetLabels()["other-controller"])
+				assert.Equal(t, "keep", result.GetAnnotations()["other-controller"])
+			}
+
+			// Compare all of metadata bar labels and annotations rather than a list of keys:
+			// that covers the field each case forges and anything a future fixture adds.
+			wantMeta, gotMeta := maps.Clone(wantMeta), maps.Clone(result.Object["metadata"].(map[string]any))
+			delete(wantMeta, "labels")
+			delete(wantMeta, "annotations")
+			delete(gotMeta, "labels")
+			delete(gotMeta, "annotations")
+			assert.Equal(t, wantMeta, gotMeta)
+			// Keyed off the literal rather than the case name, so a new case that renders
+			// this annotation is checked without being listed here.
+			if strings.Contains(tt.literal, "app.example.com/key: value") {
+				assert.Equal(t, "value", result.GetAnnotations()["app.example.com/key"])
+			}
+		})
+	}
+}
+
+// TestApplyTemplateToManifestConvergesAcrossReconciles pins the regression alekc found in
+// review: a whole-metadata template passed on create and then failed on every reconcile after,
+// because the live object had grown uid, resourceVersion, creationTimestamp and managedFields
+// that the rendered map does not mention. Feeding each result back in as the live object is
+// what exposes it, and no single-pass case can.
+func TestApplyTemplateToManifestConvergesAcrossReconciles(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}
+
+	literal := "name: target\nnamespace: ns\nlabels:\n  app: test"
+	es := &esv1.ExternalSecret{
+		Name: "es", Namespace: "ns",
+		Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+			Name: "target", CreationPolicy: esv1.CreatePolicyOrphan,
+			Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+			Template: &esv1.ExternalSecretTemplate{EngineVersion: esv1.TemplateEngineV2,
+				TemplateFrom: []esv1.TemplateFrom{{Target: "metadata", Literal: &literal}}},
+		}},
+	}
+	dataMap := map[string][]byte{"key": []byte("value")}
+
+	created, err := r.applyTemplateToManifest(context.Background(), es, dataMap, nil)
+	require.NoError(t, err)
+
+	// What the API server hands back after the create: metadata it owns, none of which the
+	// template's map mentions.
+	live := created.DeepCopy()
+	serverOwned := map[string]any{
+		"uid": "server-uid", "resourceVersion": "42", "creationTimestamp": "2025-01-01T00:00:00Z",
+		"managedFields": []any{map[string]any{"manager": "kube-apiserver", "operation": "Update", "apiVersion": "v1"}},
+	}
+	maps.Copy(live.Object["metadata"].(map[string]any), serverOwned)
+
+	for reconcile := range 3 {
+		result, err := r.applyTemplateToManifest(context.Background(), es, dataMap, live)
+		require.NoError(t, err, "reconcile %d", reconcile)
+
+		metadata := result.Object["metadata"].(map[string]any)
+		for field, want := range serverOwned {
+			assert.Equal(t, want, metadata[field], "%s on reconcile %d", field, reconcile)
+		}
+		assert.Equal(t, "test", result.GetLabels()["app"], "reconcile %d", reconcile)
+		assert.Equal(t, "target", result.GetName(), "reconcile %d", reconcile)
+
+		live = result
+	}
+}
+
+func TestApplyTemplateToManifestExistingMetadataAcrossPolicies(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}
+	literal := "labels:\n  app: test\nannotations:\n  app.example.com/key: value"
+	for _, policy := range []esv1.ExternalSecretCreationPolicy{
+		esv1.CreatePolicyMerge, esv1.CreatePolicyCreateOrMerge, esv1.CreatePolicyOrphan, esv1.CreatePolicyOwner,
+	} {
+		t.Run(string(policy), func(t *testing.T) {
+			es := &esv1.ExternalSecret{
+				Name: "es", Namespace: "ns", UID: "es-uid",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "target", CreationPolicy: policy,
+					Manifest: &esv1.ManifestReference{APIVersion: "example.io/v1", Kind: "Widget"},
+					Template: &esv1.ExternalSecretTemplate{EngineVersion: esv1.TemplateEngineV2,
+						TemplateFrom: []esv1.TemplateFrom{
+							{Target: "metadata", Literal: &literal},
+							{Target: "spec.new", Literal: new("key: new")},
+						}},
+				}},
+			}
+			existing := &unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": "example.io/v1", "kind": "Widget",
+				"metadata": map[string]any{
+					"name": "target", "namespace": "ns", "uid": "target-uid", "resourceVersion": "12",
+					"creationTimestamp": "2025-01-01T00:00:00Z",
+					"managedFields":     []any{map[string]any{"manager": "kube-apiserver", "operation": "Update", "apiVersion": "example.io/v1"}},
+					"finalizers":        []any{"unrelated.example.io/cleanup"},
+					"ownerReferences":   []any{map[string]any{"apiVersion": "v1", "kind": "ConfigMap", "name": "unrelated", "uid": "unrelated-uid"}},
+					"labels":            map[string]any{"other-controller": "keep"},
+					"annotations":       map[string]any{"other-controller": "keep"},
+				},
+				"spec": map[string]any{"old": "keep"},
+			}}
+			result, err := r.applyTemplateToManifest(context.Background(), es, nil, existing)
+			require.NoError(t, err)
+			for _, key := range []string{"name", "namespace", "uid", "resourceVersion", "creationTimestamp", "managedFields", "finalizers"} {
+				assert.Equal(t, existing.Object["metadata"].(map[string]any)[key], result.Object["metadata"].(map[string]any)[key], key)
+			}
+			assert.Equal(t, "unrelated", result.GetOwnerReferences()[0].Name)
+			assert.Equal(t, "keep", result.GetLabels()["other-controller"])
+			assert.Equal(t, "test", result.GetLabels()["app"])
+			assert.Equal(t, "keep", result.GetAnnotations()["other-controller"])
+			assert.Equal(t, "value", result.GetAnnotations()["app.example.com/key"])
+			assert.Equal(t, "new", result.Object["spec"].(map[string]any)["new"].(map[string]any)["key"])
+			if policy == esv1.CreatePolicyMerge || policy == esv1.CreatePolicyCreateOrMerge {
+				assert.Equal(t, "keep", result.Object["spec"].(map[string]any)["old"])
+			} else {
+				assert.NotContains(t, result.Object["spec"].(map[string]any), "old")
+			}
+			if policy == esv1.CreatePolicyOwner {
+				require.Len(t, result.GetOwnerReferences(), 2)
+				assert.Equal(t, "es", result.GetOwnerReferences()[1].Name)
+			} else {
+				require.Len(t, result.GetOwnerReferences(), 1)
+			}
+			// Rendering must not mutate the object fetched from the API.
+			assert.Equal(t, "keep", existing.Object["spec"].(map[string]any)["old"])
+		})
+	}
+}
+
+// TestApplyTemplateToManifestOwnershipOfExistingTarget checks ownership against the live
+// target's owner references. Retaining existing metadata is what makes these references
+// visible to applyOwnership in the first place.
+func TestApplyTemplateToManifestOwnershipOfExistingTarget(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+
+	esControllerRef := func(name string) metav1.OwnerReference {
+		return metav1.OwnerReference{
+			APIVersion: esv1.SchemeGroupVersion.String(), Kind: esv1.ExtSecretKind,
+			Name: name, UID: types.UID(name + "-uid"), Controller: new(true),
+		}
+	}
+	unrelatedRef := metav1.OwnerReference{
+		APIVersion: "v1", Kind: "ConfigMap", Name: "unrelated", UID: "unrelated-uid",
+	}
 
 	tests := []struct {
-		name    string
-		es      *esv1.ExternalSecret
-		object  map[string]any
-		wantErr string
+		name     string
+		policy   esv1.ExternalSecretCreationPolicy
+		owners   []metav1.OwnerReference
+		wantErr  error
+		wantRefs []string
 	}{
 		{
-			name: "allows matching non-Secret manifest",
-			es:   configMapTarget,
-			object: map[string]any{
-				"apiVersion": "v1",
-				"kind":       "ConfigMap",
-			},
+			name:    "Owner refuses to replace another ExternalSecret controller",
+			policy:  esv1.CreatePolicyOwner,
+			owners:  []metav1.OwnerReference{esControllerRef("other-es")},
+			wantErr: ErrSecretIsOwned,
 		},
 		{
-			name: "rejects ConfigMap rendered as Secret",
-			es:   configMapTarget,
-			object: map[string]any{
-				"apiVersion": "v1",
-				"kind":       "Secret",
-			},
-			wantErr: `rendered target GVK "/v1, Kind=Secret" differs from declared target GVK "/v1, Kind=ConfigMap"`,
+			name:    "Orphan refuses to write a target owned by another ExternalSecret",
+			policy:  esv1.CreatePolicyOrphan,
+			owners:  []metav1.OwnerReference{esControllerRef("other-es")},
+			wantErr: ErrSecretIsOwned,
 		},
 		{
-			name: "rejects changed API version",
-			es: &esv1.ExternalSecret{Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
-				Manifest: &esv1.ManifestReference{APIVersion: "example.io/v1", Kind: "Target"},
-			}}},
-			object: map[string]any{
-				"apiVersion": "other.io/v1",
-				"kind":       "Target",
-			},
-			wantErr: `rendered target GVK "other.io/v1, Kind=Target" differs from declared target GVK "example.io/v1, Kind=Target"`,
+			name:    "Merge refuses to write a target owned by another ExternalSecret",
+			policy:  esv1.CreatePolicyMerge,
+			owners:  []metav1.OwnerReference{esControllerRef("other-es")},
+			wantErr: ErrSecretIsOwned,
+		},
+		{
+			name:    "Owner refuses to replace a controller of another kind",
+			policy:  esv1.CreatePolicyOwner,
+			owners:  []metav1.OwnerReference{{APIVersion: "apps/v1", Kind: "Deployment", Name: "owner-dep", UID: "dep-uid", Controller: new(true)}},
+			wantErr: ErrSecretSetCtrlRef,
+		},
+		{
+			name:     "Owner adopts a target that only has non-controller references",
+			policy:   esv1.CreatePolicyOwner,
+			owners:   []metav1.OwnerReference{unrelatedRef},
+			wantRefs: []string{"unrelated", "es"},
+		},
+		{
+			name:     "Orphan removes only its own controller reference",
+			policy:   esv1.CreatePolicyOrphan,
+			owners:   []metav1.OwnerReference{unrelatedRef, esControllerRef("es")},
+			wantRefs: []string{"unrelated"},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validateManifestCandidate(tt.es, &unstructured.Unstructured{Object: tt.object})
-			if tt.wantErr != "" {
-				require.EqualError(t, err, tt.wantErr)
+			r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}
+			es := &esv1.ExternalSecret{
+				Name: "es", Namespace: "ns", UID: "es-uid",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "target", CreationPolicy: tt.policy,
+					Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+				}},
+			}
+			existing := &unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": "v1", "kind": "ConfigMap",
+				"metadata": map[string]any{"name": "target", "namespace": "ns", "uid": "target-uid"},
+			}}
+			existing.SetOwnerReferences(tt.owners)
+
+			result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
+			if tt.wantErr != nil {
+				require.ErrorIs(t, err, tt.wantErr)
 				return
 			}
 			require.NoError(t, err)
+
+			names := make([]string, 0, len(result.GetOwnerReferences()))
+			for _, ref := range result.GetOwnerReferences() {
+				names = append(names, ref.Name)
+			}
+			assert.Equal(t, tt.wantRefs, names)
 		})
 	}
 }
@@ -549,7 +850,7 @@ func TestApplyTemplateToManifest_WithMetadata(t *testing.T) {
 func TestApplyTemplateToManifest_AppliesOwnershipWhenCreationPolicyOwner(t *testing.T) {
 	_ = esv1.AddToScheme(scheme.Scheme)
 	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
-	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}
 
 	es := &esv1.ExternalSecret{
 		Name:      "test-es",
@@ -647,7 +948,7 @@ func TestApplyOwnership(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
-			r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+			r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}
 
 			es := &esv1.ExternalSecret{
 				Name:      "test-es",
@@ -682,7 +983,7 @@ func TestApplyOwnership(t *testing.T) {
 func TestApplyTemplateToManifest_NoOwnerRefWhenCreationPolicyOrphan(t *testing.T) {
 	_ = esv1.AddToScheme(scheme.Scheme)
 	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
-	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}
 
 	es := &esv1.ExternalSecret{
 		Name:      "test-es",
@@ -709,7 +1010,7 @@ func TestApplyTemplateToManifest_NoOwnerRefWhenCreationPolicyOrphan(t *testing.T
 func TestApplyTemplateToManifest_PropagatesESLabelsAndAnnotations(t *testing.T) {
 	_ = esv1.AddToScheme(scheme.Scheme)
 	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
-	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}
 
 	es := &esv1.ExternalSecret{
 		Name:      "test-es",
@@ -747,7 +1048,7 @@ func TestApplyTemplateToManifest_PropagatesESLabelsAndAnnotations(t *testing.T) 
 func TestApplyTemplateToManifest_TemplateMetadataWinsOverESLabels(t *testing.T) {
 	_ = esv1.AddToScheme(scheme.Scheme)
 	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
-	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}
 
 	es := &esv1.ExternalSecret{
 		Name:      "test-es",
@@ -786,7 +1087,7 @@ func TestApplyTemplateToManifest_TemplateMetadataWinsOverESLabels(t *testing.T) 
 func TestApplyTemplateToManifest_NoESLabels(t *testing.T) {
 	_ = esv1.AddToScheme(scheme.Scheme)
 	fakeClient := fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build()
-	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme}
+	r := &Reconciler{Client: fakeClient, Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}
 
 	es := &esv1.ExternalSecret{
 		Name:      "test-es",
@@ -1001,7 +1302,8 @@ func TestApplyTemplateToManifest_MergeBehavior(t *testing.T) {
 		Namespace: "default",
 		Spec: esv1.ExternalSecretSpec{
 			Target: esv1.ExternalSecretTarget{
-				Name: "test-slack-config",
+				Name:           "test-slack-config",
+				CreationPolicy: esv1.CreatePolicyMerge,
 				Manifest: &esv1.ManifestReference{
 					APIVersion: "notification.toolkit.fluxcd.io/v1beta1",
 					Kind:       "Provider",
@@ -1249,6 +1551,158 @@ func (noopInformerManager) SetQueue(workqueue.TypedRateLimitingInterface[ctrl.Re
 	return nil
 }
 
+// TestReconcileGenericTargetUsesLiveTarget drives reconcileGenericTarget against a fake
+// API server. The renderer tests above can only prove that applyTemplateToManifest honors
+// the metadata it is handed; this proves the caller actually hands it the live object.
+func TestReconcileGenericTargetUsesLiveTarget(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+
+	const (
+		namespace  = "ns"
+		targetName = "shared-configmap"
+		storeName  = "test-store"
+	)
+
+	newES := func(name string) *esv1.ExternalSecret {
+		return &esv1.ExternalSecret{
+			Name: name, Namespace: namespace, UID: types.UID(name + "-uid"),
+			Spec: esv1.ExternalSecretSpec{
+				RefreshInterval: &metav1.Duration{Duration: time.Hour},
+				SecretStoreRef:  esv1.SecretStoreRef{Name: storeName, Kind: esv1.SecretStoreKind},
+				Data: []esv1.ExternalSecretData{{
+					SecretKey: "key",
+					RemoteRef: esv1.ExternalSecretDataRemoteRef{Key: "remote-key"},
+				}},
+				Target: esv1.ExternalSecretTarget{
+					Name:           targetName,
+					CreationPolicy: esv1.CreatePolicyOwner,
+					Manifest:       &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+				},
+			},
+		}
+	}
+
+	store := &esv1.SecretStore{
+		Name: storeName, Namespace: namespace,
+		Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{
+			AWS: &esv1.AWSProvider{Service: esv1.AWSServiceSecretsManager},
+		}},
+	}
+
+	fakeProvider.Reset()
+	defer fakeProvider.Reset()
+	fakeProvider.WithGetSecret([]byte("value"), nil)
+
+	r := &Reconciler{
+		Client:              fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(store).Build(),
+		Scheme:              scheme.Scheme,
+		Log:                 logr.Discard(),
+		recorder:            record.NewFakeRecorder(100),
+		AllowGenericTargets: true,
+		informerManager:     noopInformerManager{},
+	}
+
+	reconcile := func(t *testing.T, es *esv1.ExternalSecret) {
+		t.Helper()
+		resourceLabels := ctrlmetrics.RefineNonConditionMetricLabels(
+			map[string]string{"name": es.Name, "namespace": es.Namespace})
+		_, err := r.reconcileGenericTarget(context.Background(), es, logr.Discard(), time.Now(),
+			resourceLabels, esmetrics.GetCounterVec(esmetrics.SyncCallsErrorKey))
+		require.NoError(t, err)
+	}
+	liveTarget := func(t *testing.T) *unstructured.Unstructured {
+		t.Helper()
+		target := &unstructured.Unstructured{}
+		target.SetGroupVersionKind(v1.SchemeGroupVersion.WithKind("ConfigMap"))
+		require.NoError(t, r.Get(context.Background(),
+			types.NamespacedName{Name: targetName, Namespace: namespace}, target))
+		return target
+	}
+
+	esA := newES("es-a")
+	reconcile(t, esA)
+
+	target := liveTarget(t)
+	require.Len(t, target.GetOwnerReferences(), 1)
+	assert.Equal(t, "es-a", target.GetOwnerReferences()[0].Name)
+	assert.Equal(t, "value", target.Object["data"].(map[string]any)["key"])
+
+	// another controller adds metadata to the live target out of band
+	target.SetFinalizers([]string{"unrelated.example.io/cleanup"})
+	labels := target.GetLabels()
+	labels["other-controller"] = "keep"
+	target.SetLabels(labels)
+	require.NoError(t, r.Update(context.Background(), target))
+
+	// the next sync of the owning ExternalSecret must not drop that metadata
+	fakeProvider.WithGetSecret([]byte("rotated"), nil)
+	reconcile(t, newES("es-a"))
+
+	target = liveTarget(t)
+	assert.Equal(t, []string{"unrelated.example.io/cleanup"}, target.GetFinalizers())
+	assert.Equal(t, "keep", target.GetLabels()["other-controller"])
+	assert.Equal(t, "rotated", target.Object["data"].(map[string]any)["key"])
+	require.Len(t, target.GetOwnerReferences(), 1)
+	assert.Equal(t, "es-a", target.GetOwnerReferences()[0].Name)
+
+	// a second ExternalSecret must not take over a target owned by the first
+	esB := newES("es-b")
+	reconcile(t, esB)
+
+	require.NotEmpty(t, esB.Status.Conditions)
+	assert.Equal(t, esv1.ConditionReasonSecretOwnedByOther, esB.Status.Conditions[0].Reason)
+	target = liveTarget(t)
+	require.Len(t, target.GetOwnerReferences(), 1)
+	assert.Equal(t, "es-a", target.GetOwnerReferences()[0].Name)
+	assert.Equal(t, "rotated", target.Object["data"].(map[string]any)["key"])
+}
+
+// TestApplyTemplateToManifestKeepsLiveMetadataTypes pins the promise made in
+// docs/guides/ownership-deletion-policy.md: protected metadata is the live object's, whether a
+// template restates it or tries to change it. Numbers are the interesting case, because the
+// live object and the template decode through different paths, so a value taken from the
+// render would arrive as a different Go type even when it looks the same in YAML.
+func TestApplyTemplateToManifestKeepsLiveMetadataTypes(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}
+
+	for _, tt := range []struct {
+		name, literal string
+	}{
+		{"number restated unchanged", "generation: 2"},
+		{"number changed", "generation: 3"},
+		{"string restated unchanged", "uid: target-uid"},
+		{"string changed", "uid: victim-uid"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			es := &esv1.ExternalSecret{
+				Name: "es", Namespace: "ns", UID: "es-uid",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "target", CreationPolicy: esv1.CreatePolicyOrphan,
+					Manifest: &esv1.ManifestReference{APIVersion: "example.io/v1", Kind: "Widget"},
+					Template: &esv1.ExternalSecretTemplate{EngineVersion: esv1.TemplateEngineV2,
+						TemplateFrom: []esv1.TemplateFrom{{Target: "metadata", Literal: &tt.literal}}},
+				}},
+			}
+			existing := &unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": "example.io/v1", "kind": "Widget",
+				"metadata": map[string]any{
+					"name": "target", "namespace": "ns", "uid": "target-uid",
+					"resourceVersion": "12", "generation": int64(2),
+				},
+			}}
+
+			result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
+			require.NoError(t, err)
+
+			// Restated or changed, the live value and its Go type are what survive.
+			metadata := result.Object["metadata"].(map[string]any)
+			assert.Equal(t, int64(2), metadata["generation"])
+			assert.Equal(t, "target-uid", metadata["uid"])
+		})
+	}
+}
+
 // TestReconcileRejectsStoredSecretManifest covers an ExternalSecret that already names a core
 // Secret manifest, which the admission webhook now refuses but cannot retroactively remove.
 // The controller has to refuse it too, and must leave whatever sits at the target name alone
@@ -1340,4 +1794,156 @@ func TestReconcileRejectsStoredSecretManifest(t *testing.T) {
 			assert.Empty(t, target.Labels[esv1.LabelManaged])
 		})
 	}
+}
+
+// managedMetadataEntry builds the managedFields entry the API server records for a write ESO
+// made under its own field owner, naming the label and annotation keys it set.
+func managedMetadataEntry(esName string, labelKeys, annotationKeys []string) metav1.ManagedFieldsEntry {
+	field := func(keys []string) string {
+		out := ""
+		for _, key := range keys {
+			out += fmt.Sprintf(`"f:%s":{},`, key)
+		}
+		return strings.TrimSuffix(out, ",")
+	}
+	raw := fmt.Sprintf(`{"f:metadata":{"f:labels":{%s},"f:annotations":{%s}}}`,
+		field(labelKeys), field(annotationKeys))
+	return metav1.ManagedFieldsEntry{
+		Manager:   fqdnFor(esName),
+		Operation: metav1.ManagedFieldsOperationUpdate,
+		FieldsV1:  &metav1.FieldsV1{Raw: []byte(raw)},
+	}
+}
+
+// TestApplyTemplateToManifestDropsStaleOwnedMetadata covers a key removed from the template.
+// Rendering seeds from the live object so other controllers' metadata survives, which on its
+// own would make this ExternalSecret's own keys permanent: the merge only ever adds.
+func TestApplyTemplateToManifestDropsStaleOwnedMetadata(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+
+	for _, policy := range []esv1.ExternalSecretCreationPolicy{
+		esv1.CreatePolicyOwner, esv1.CreatePolicyOrphan, esv1.CreatePolicyMerge,
+	} {
+		t.Run(string(policy), func(t *testing.T) {
+			r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}
+			es := &esv1.ExternalSecret{
+				Name: "es", Namespace: "ns", UID: "es-uid",
+				Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+					Name: "target", CreationPolicy: policy,
+					Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+					Template: &esv1.ExternalSecretTemplate{
+						EngineVersion: esv1.TemplateEngineV2,
+						Metadata: esv1.ExternalSecretTemplateMetadata{
+							// "stale" and "stale-anno" were rendered last sync, not now
+							Labels:      map[string]string{"kept": "yes"},
+							Annotations: map[string]string{"kept-anno": "yes"},
+						},
+					},
+				}},
+			}
+			existing := &unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": "v1", "kind": "ConfigMap",
+				"metadata": map[string]any{
+					"name": "target", "namespace": "ns", "uid": "target-uid",
+					"labels": map[string]any{
+						"kept": "yes", "stale": "x", "foreign": "someone-else",
+					},
+					"annotations": map[string]any{
+						"kept-anno": "yes", "stale-anno": "x", "foreign-anno": "someone-else",
+					},
+				},
+				"data": map[string]any{"key": "old"},
+			}}
+			existing.SetManagedFields([]metav1.ManagedFieldsEntry{
+				{
+					Manager:   "some-other-controller",
+					Operation: metav1.ManagedFieldsOperationUpdate,
+					FieldsV1: &metav1.FieldsV1{Raw: []byte(
+						`{"f:metadata":{"f:labels":{"f:foreign":{}},"f:annotations":{"f:foreign-anno":{}}}}`)},
+				},
+				managedMetadataEntry("es", []string{"kept", "stale"}, []string{"kept-anno", "stale-anno"}),
+			})
+
+			result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"key": []byte("value")}, existing)
+			require.NoError(t, err)
+
+			labels, annotations := result.GetLabels(), result.GetAnnotations()
+			assert.NotContains(t, labels, "stale", "a label dropped from the template must be removed")
+			assert.NotContains(t, annotations, "stale-anno", "an annotation dropped from the template must be removed")
+			assert.Equal(t, "yes", labels["kept"], "a label still rendered must stay")
+			assert.Equal(t, "yes", annotations["kept-anno"], "an annotation still rendered must stay")
+			assert.Equal(t, "someone-else", labels["foreign"], "another controller's label must be preserved")
+			assert.Equal(t, "someone-else", annotations["foreign-anno"], "another controller's annotation must be preserved")
+		})
+	}
+}
+
+// TestGenericResourceWritesDeclareFieldOwner pins the wiring the test above cannot: it hands
+// applyTemplateToManifest managedFields already attributed to this ExternalSecret, which only
+// happens in a cluster if the writes claim that field owner.
+func TestGenericResourceWritesDeclareFieldOwner(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+
+	captureFieldOwner := func(captured *string) interceptor.Funcs {
+		record := func(opts []string) {
+			if len(opts) > 0 {
+				*captured = opts[0]
+			}
+		}
+		return interceptor.Funcs{
+			Create: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
+				var applied client.CreateOptions
+				for _, opt := range opts {
+					opt.ApplyToCreate(&applied)
+				}
+				record([]string{applied.FieldManager})
+				return c.Create(ctx, obj, opts...)
+			},
+			Update: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
+				var applied client.UpdateOptions
+				for _, opt := range opts {
+					opt.ApplyToUpdate(&applied)
+				}
+				record([]string{applied.FieldManager})
+				return c.Update(ctx, obj, opts...)
+			},
+		}
+	}
+
+	es := &esv1.ExternalSecret{
+		Name: "es", Namespace: "ns", UID: "es-uid",
+		Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+			Name: "target", CreationPolicy: esv1.CreatePolicyOwner,
+			Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+		}},
+	}
+	target := func() *unstructured.Unstructured {
+		return &unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "v1", "kind": "ConfigMap",
+			"metadata": map[string]any{"name": "target", "namespace": "ns"},
+			"data":     map[string]any{"key": "value"},
+		}}
+	}
+
+	t.Run("create", func(t *testing.T) {
+		var captured string
+		r := &Reconciler{
+			Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).
+				WithInterceptorFuncs(captureFieldOwner(&captured)).Build(),
+			Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10),
+		}
+		require.NoError(t, r.createGenericResource(context.Background(), logr.Discard(), es, target()))
+		assert.Equal(t, fqdnFor("es"), captured, "create must claim this ExternalSecret's field owner")
+	})
+
+	t.Run("update", func(t *testing.T) {
+		var captured string
+		r := &Reconciler{
+			Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(target()).
+				WithInterceptorFuncs(captureFieldOwner(&captured)).Build(),
+			Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10),
+		}
+		require.NoError(t, r.updateGenericResource(context.Background(), logr.Discard(), es, target()))
+		assert.Equal(t, fqdnFor("es"), captured, "update must claim this ExternalSecret's field owner")
+	})
 }

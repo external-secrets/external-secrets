@@ -2387,6 +2387,54 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 	}
 
+	// A manifest target keeps the metadata a real API server maintains. The fake client used
+	// by the unit tests accepts an update carrying uid, resourceVersion, creationTimestamp
+	// and managedFields without checking any of them, so only a real API server can show
+	// that sending the retained metadata back is actually accepted.
+	syncManifestTargetKeepsLiveMetadata := func(tc *testCase) {
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1.CreatePolicyOwner
+		tc.externalSecret.Spec.Target.Manifest = &esv1.ManifestReference{
+			APIVersion: "v1",
+			Kind:       "ConfigMap",
+		}
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+
+		tc.checkExternalSecret = func(es *esv1.ExternalSecret) {
+			ctx := context.Background()
+			cmKey := types.NamespacedName{Name: ExternalSecretTargetSecretName, Namespace: ExternalSecretNamespace}
+			cm := &v1.ConfigMap{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, cmKey, cm)
+			}, timeout, interval).Should(Succeed())
+			Expect(cm.Data[targetProp]).To(Equal(secretVal))
+			Expect(cm.OwnerReferences).To(HaveLen(1))
+			Expect(cm.OwnerReferences[0].Name).To(Equal(es.Name))
+
+			By("another controller adding metadata to the live target")
+			cm.Finalizers = append(cm.Finalizers, "unrelated.example.io/cleanup")
+			cm.Labels["other-controller"] = "keep"
+			Expect(k8sClient.Update(ctx, cm)).To(Succeed())
+
+			By("the next sync keeping that metadata while rotating the content")
+			fakeProvider.WithGetSecret([]byte("rotated"), nil)
+			Eventually(func() string {
+				if err := k8sClient.Get(ctx, cmKey, cm); err != nil {
+					return ""
+				}
+				return cm.Data[targetProp]
+			}, timeout, interval).Should(Equal("rotated"))
+			Expect(cm.Finalizers).To(ContainElement("unrelated.example.io/cleanup"))
+			Expect(cm.Labels).To(HaveKeyWithValue("other-controller", "keep"))
+			Expect(cm.OwnerReferences).To(HaveLen(1))
+			Expect(cm.OwnerReferences[0].Name).To(Equal(es.Name))
+
+			By("releasing the finalizer so the target does not linger")
+			cm.Finalizers = nil
+			Expect(k8sClient.Update(ctx, cm)).To(Succeed())
+		}
+	}
+
 	DescribeTable(
 		"When reconciling an ExternalSecret",
 		func(tweaks ...testTweaks) {
@@ -2529,6 +2577,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			useClusterSecretStore,
 			noSecretCreatedWhenNamespaceMatchMultipleNonMatchingConditions,
 		),
+		Entry("manifest target keeps metadata maintained by the API server", syncManifestTargetKeepsLiveMetadata),
 	)
 
 	It("prevents CreateOrMerge from retargeting a service account token Secret", func() {

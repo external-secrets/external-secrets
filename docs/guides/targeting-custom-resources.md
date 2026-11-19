@@ -20,7 +20,7 @@ This feature must be explicitly enabled in your deployment using the `--unsafe-a
     [Ownership and Deletion Policy](ownership-deletion-policy.md) for the migration.
 
 !!! note "Namespaced Resources Only"
-    With this feature you can only target namespaced resources - and resources can only be managed by an ExternalSecret in the same namespace as the resource.
+    With this feature you can only target namespaced resources - and resources can only be managed by an ExternalSecret in the same namespace as the resource. Templates cannot change the resource's namespace, name, `apiVersion` or `kind`: the namespace is the ExternalSecret's, the name is `spec.target.name` (or the ExternalSecret's name when omitted), and `apiVersion` and `kind` are the ones in `spec.target.manifest`. A template that sets any of them is ignored, not rejected; [Validations](ownership-deletion-policy.md#validations) lists which attempts are reported.
 
 !!! note "Performance"
     Using generic targets or custom resources at the moment of this writing is ~20% slower than handling secrets due to certain missing features yet to be implemented.
