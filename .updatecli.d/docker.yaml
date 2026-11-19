@@ -50,32 +50,6 @@ sources:
       versionfilter:
         kind: semver
         pattern: '3.x'
-  golang_version:
-    kind: dockerimage
-    spec:
-      image: golang
-      tagfilter: '^1\.[0-9]+\.[0-9]+$'
-      versionfilter:
-        kind: semver
-        pattern: '1.x'
-  golang_bookworm_digest:
-    kind: dockerdigest
-    spec:
-      image: golang
-      tag: '{{ source "golang_version" }}-bookworm'
-      hidetag: true
-  golang_alpine_digest:
-    kind: dockerdigest
-    spec:
-      image: golang
-      tag: '{{ source "golang_version" }}-alpine'
-      hidetag: true
-  golang_debug_digest:
-    kind: dockerdigest
-    spec:
-      image: golang
-      tag: '{{ source "golang_version" }}'
-      hidetag: true
   distroless_static:
     kind: dockerdigest
     spec:
@@ -161,39 +135,6 @@ targets:
         - hack/api-docs/Dockerfile
         - tilt.dockerfile
       matchpattern: 'alpine@sha256:[a-f0-9]{64}'
-  golang_alpine:
-    #{{- if .scm.enabled }}
-    scmid: default
-    #{{- end }}
-    kind: file
-    sourceid: golang_alpine_digest
-    transformers:
-      - addprefix: 'golang'
-    spec:
-      file: Dockerfile.standalone
-      matchpattern: 'golang@sha256:[a-f0-9]{64}'
-  golang_bookworm:
-    #{{- if .scm.enabled }}
-    scmid: default
-    #{{- end }}
-    kind: file
-    sourceid: golang_bookworm_digest
-    transformers:
-      - addprefix: 'golang'
-    spec:
-      file: e2e/Dockerfile
-      matchpattern: 'golang@sha256:[a-f0-9]{64}'
-  golang:
-    #{{- if .scm.enabled }}
-    scmid: default
-    #{{- end }}
-    kind: file
-    sourceid: golang_debug_digest
-    transformers:
-      - addprefix: 'golang'
-    spec:
-      file: tilt.debug.dockerfile
-      matchpattern: 'golang@sha256:[a-f0-9]{64}'
   distroless_static:
     #{{- if .scm.enabled }}
     scmid: default
@@ -279,42 +220,6 @@ targets:
         - hack/api-docs/Dockerfile
         - tilt.dockerfile
       matchpattern: '# Pinned release: alpine:[^\r\n]+'
-  golang_bookworm_release:
-    #{{- if .scm.enabled }}
-    scmid: default
-    #{{- end }}
-    kind: file
-    sourceid: golang_version
-    transformers:
-      - addprefix: '# Pinned release: golang:'
-      - addsuffix: '-bookworm (Go; tracking 1.x on Debian Bookworm)'
-    spec:
-      file: e2e/Dockerfile
-      matchpattern: '# Pinned release: golang:[^\r\n]+'
-  golang_alpine_release:
-    #{{- if .scm.enabled }}
-    scmid: default
-    #{{- end }}
-    kind: file
-    sourceid: golang_version
-    transformers:
-      - addprefix: '# Pinned release: golang:'
-      - addsuffix: '-alpine (Go; tracking 1.x on Alpine)'
-    spec:
-      file: Dockerfile.standalone
-      matchpattern: '# Pinned release: golang:[^\r\n]+'
-  golang_debug_release:
-    #{{- if .scm.enabled }}
-    scmid: default
-    #{{- end }}
-    kind: file
-    sourceid: golang_version
-    transformers:
-      - addprefix: '# Pinned release: golang:'
-      - addsuffix: ' (Go; tracking 1.x)'
-    spec:
-      file: tilt.debug.dockerfile
-      matchpattern: '# Pinned release: golang:[^\r\n]+'
   distroless_static_release:
     #{{- if .scm.enabled }}
     scmid: default

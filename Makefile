@@ -112,7 +112,7 @@ update-deps: updatecli ## Update dependencies; use UPDATECLI_KIND=<kind> to limi
 update-deps-gomodules: UPDATECLI_KIND=gomodules
 update-deps-gomodules: update-deps ## Update Go dependencies in every module.
 update-deps-golang: UPDATECLI_KIND=golang
-update-deps-golang: update-deps ## Update the Go version in every module.
+update-deps-golang: update-deps ## Update the Go version in every module and Go container image.
 update-deps-github-actions: UPDATECLI_KIND=github-actions
 update-deps-github-actions: update-deps ## Update GitHub Actions only.
 update-deps-containers: UPDATECLI_KIND=docker

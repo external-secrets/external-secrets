@@ -118,8 +118,9 @@ make update-deps-gomodules UPDATECLI_ACTION=diff
 ### containers management
 
 The container pipeline keeps its image inventory and upstream tag policies in
-`.updatecli.d/docker.yaml`. Go container track stable version tags and write
-tag-only references. Other direct image references track `latest` in their
+`.updatecli.d/docker.yaml`. Go container images are the exception: they are
+bumped by `.updatecli.d/golang.yaml` (`make update-deps-golang`), from the same
+Go release as the toolchain. Other direct image references track `latest` in their
 existing repositories and write digest-only pins (`image@sha256:...`); UBI 9
 and distroless Debian 12 therefore stay on those distro lines.
 
