@@ -954,6 +954,13 @@ Rejected: a "compatibility mode" where a `v1` store keeps `spec.provider` and ad
    **Answer:** tenancy. `RuntimeConfig` and `ClusterRuntimeConfig` are privileged objects: they say which endpoint the core dials and with which client identity, so only whoever installs ESO and the providers may write them. If the runtime config also named the provider configuration, every store author would need a runtime config of their own, or write access to a shared one. The split follows the two personas: the platform team owns *where* a provider runs (`runtimeRef`), the store author owns *what* it is configured with (`providerConfig`).
 6. Why do provider configuration objects exist at all, instead of one provider deployment per configuration?
    **Answer:** so that one provider deployment serves every configuration. The runtime config names a deployment, and each store names the configuration that deployment should use for its calls. Without a separate configuration object, every region, account or role would need its own deployment, `Service`, certificates and runtime config.
+ 
+Let's consider multiple cases:
+
+1) The deployer of the runtime does not want its users to request a config for "teamA" or "teamB" -> It's possible, just use the deployer-provided `runtimeA` or `runtimeB`.
+2) If the deployer of runtime does want to deploy a runtime with multiple profiles/configs (`teamA-profile` and `teamB-profile`), it wants to allow team A to request `teamA-profile` (but not `teamB-profile`). With this model, as team A has access to write a `teamA` `SecretStore` in the namespace(s) known for teamA, then the platform admin can validate whether Team A's `SecretStore` refering to a config is valid. If the GVK is namespace based, a ns check might be enough! But all that validation is left to the admin, and the behaviour is self-service.
+
+Without runtimeRef containing config, we are _tying_ the RBAC to case 1 only.
 7. Why is `providerConfig` a struct with a `gvkRef` member, rather than a plain reference or a string?
    **Answer:** so the API can grow. A GVK reference is how Kubernetes users already name an object, and it is enough for milestone 1. Providers that keep their configuration elsewhere may later want to name it by key (`keyRef`), by identifier (`uuidRef`) or by selector (`labelSelector`). Each can become a new member of the union without changing existing stores. The core forwards whichever member is set and never interprets it, so the kind behind a `gvkRef` can be anything the provider understands, including a v1 `Secret` or `ConfigMap`.
 8. Why is there a namespaced `RuntimeConfig` at all?
