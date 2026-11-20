@@ -276,7 +276,7 @@ message GenerateRequest {
   ProviderConfigReference provider_config = 1;
   RequestContext context         = 2;
   // uid of the GeneratorState the core wrote before the call; the same on every
-  // retry. Set for stateful generators only.
+  // retry. Always set.
   string operation_id            = 3;
 }
 message GenerateResponse {

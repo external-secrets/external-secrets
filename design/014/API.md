@@ -833,8 +833,9 @@ status:
   # outputs: the keys Generate returns for this configuration. Empty when they
   #   depend on the backend.
   outputs: [username, password]
-  # stateful: true when Generate returns state that Cleanup must revoke, so the
-  #   core keeps a GeneratorState for every generation.
+  # stateful: true when Generate returns state that Cleanup must revoke.
+  #   Informational: the core writes a GeneratorState before every Generate
+  #   regardless, because the configuration can change between validations.
   stateful: true
 ```
 
@@ -940,8 +941,8 @@ What the core does with them:
 - `GeneratorState.spec.resource` records the `Generator` or `ClusterGenerator`
   as it was at `Generate` time, and `GeneratorState.spec.state` records the
   provider's opaque state. `Cleanup` is sent to the runtime and configuration
-  recorded there. For a `stateful` generator the core writes the
-  `GeneratorState` before calling `Generate` and uses its uid as the operation
+  recorded there. The core writes the `GeneratorState` before every
+  `Generate` and uses its uid as the operation
   id, so a lost response can be retried or cleaned up without minting twice
   ([PROTOCOL.md](./PROTOCOL.md) "Generating and cleaning up"). The one schema
   change is that `GeneratorState.spec.state` becomes optional.

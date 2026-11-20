@@ -428,8 +428,8 @@ even after that configuration is edited or deleted, as long as the referenced
 credentials still exist. That is v1's guarantee. If `Cleanup` fails, the `GeneratorState` stays and the controller
 retries, as it does in v1.
 
-**Lost responses.** For a `stateful` generator, the core writes the
-`GeneratorState` *before* it calls `Generate`, and sends the object's
+**Lost responses.** For every `Generate`, the core writes the
+`GeneratorState` *before* the call, and sends the object's
 `metadata.uid` as `operationId`. The id is durable: it survives a lost
 response, a timeout and a core restart.
 
@@ -442,8 +442,17 @@ response, a timeout and a core restart.
   example, the `ExternalSecret` was deleted), the core calls `Cleanup` with its
   `operationId` and an empty `state`. The provider revokes whatever it created
   under that id, or answers success if it created nothing.
-- A generator that is not `stateful` has nothing to revoke. The core writes no
-  `GeneratorState` for it and sends no `operationId`.
+- A `Generate` that outlives its call deadline must not create anything
+  afterwards. The provider abandons it when the deadline passes, and once
+  `Cleanup` has succeeded for an `operationId`, a later `Generate` with that id
+  creates nothing and fails with `FailedPrecondition`. Together with the
+  `ExternalSecret` reconcile being serialized per object and the garbage
+  collection grace period (`--generator-gc-grace-period`), this keeps a late
+  `Generate` from creating a lease after its own cleanup.
+- When `Generate` returns an empty `State`, there is nothing to revoke, and the
+  core deletes the `GeneratorState` it wrote. The core does not skip the write
+  for a generator whose `status.stateful` is false, because the configuration
+  can change between two validations; `stateful` is informational.
 
 ## Data model
 
@@ -775,9 +784,8 @@ type GenerateRequest struct {
 	Context     *RequestContext    // required; Source is the Generator or ClusterGenerator
 
 	// OperationId identifies this generation across retries: the uid of the
-	// GeneratorState the core wrote before the call. Set for stateful
-	// generators, empty otherwise. A repeat with the same id must not leave a
-	// second live generation behind.
+	// GeneratorState the core wrote before the call. Always set. A repeat with
+	// the same id must not leave a second live generation behind.
 	OperationId string
 }
 
@@ -967,7 +975,9 @@ contract version (P5).
 
 1. Resolve `providerConfig` to the configuration it names, wherever you keep it
    (P1). Fail with `FailedPrecondition` if it does not exist or does not pass
-   your own validation. Treat its namespace as a tenant boundary.
+   your own validation. Treat its namespace as a tenant boundary. `Cleanup` is
+   the exception: it works from `State` and must not require the configuration
+   to still exist (obligation 7).
 2. Resolve credential references without a namespace in
    `context.credentialNamespace`. Honour a reference's own namespace only when
    `context.allowExplicitCredentialNamespace` is true, or when it equals
@@ -994,8 +1004,14 @@ contract version (P5).
    values, and `Cleanup` resolves them again in `credentialNamespace`. Make `Generate` idempotent on
    `operationId`: a repeat must not leave two live generations, and `Cleanup`
    with that id and an empty `State` must revoke what was created under it.
-   Tag what you create with the id where the backend allows it; otherwise keep
-   the mapping in storage that survives a provider restart.
+   Stop a `Generate` when its call deadline passes, and create nothing for a
+   `Generate` whose `operationId` has already been cleaned up. The guarantee is
+   only as strong as the backend. Tag what you create with the id where the
+   backend allows it, so that a retry or `Cleanup` can find it. A mapping kept
+   on the provider side cannot close the gap between creating a value and
+   recording it, so where the backend cannot tag, give what you create a
+   bounded lifetime (a lease TTL, an expiring token) so that an orphan expires,
+   and say so in your documentation.
 8. Authenticate the core as the runtime config's `auth` says: verify the client
    certificate, validate the bearer token (reserved), or rely on the container
    boundary over IPC. Hot-reload server certificates.
