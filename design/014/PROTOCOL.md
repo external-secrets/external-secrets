@@ -153,6 +153,96 @@ capability gives `ReadOnly`, any write capability gives `WriteOnly`, and both
 give `ReadWrite`. The core ignores capability strings it does not know, so new
 ones can be added later.
 
+## Authentication
+
+Before a provider runs any operation, both sides know who they are talking to.
+This happens the same way whichever binding carries the call: a binding only
+decides how the bytes, and the reserved bearer token, travel. What is used
+comes from the runtime config's composition (`endpoint`, `tls`, `auth`,
+[API.md](./API.md) "Transport compositions"). How certificates are issued and
+rotated is to be detailed on further documents.
+
+Authentication answers two questions, in this order.
+
+**1. Is this the runtime the runtime config names?** The core checks the
+server.
+
+- With `tls.enabled`, the server certificate must chain to the CA the runtime
+  config names: the runtime config's own managed CA with `issuer: Managed`, or
+  `caBundle` / `caRef` with `issuer: External`. It must also match
+  `tls.serverName`, which defaults to the host part of `endpoint.address`.
+- Over a socket there is no TLS. The core trusts whatever listens on
+  `endpoint.socket`, which is why a socket is only accepted on a
+  `ClusterRuntimeConfig`.
+- `insecureSkipVerify` skips this check. It is a development-only composition.
+
+**2. Is this caller the ESO core?** The provider checks the client, as the
+runtime config's `auth` says:
+
+| `auth` | Checked | What the provider verifies |
+| --- | --- | --- |
+| `clientCertificate` | once per connection, in the TLS handshake | the client certificate chains to the client CA it was given for this runtime config: the runtime config's managed CA, or the operator's |
+| `serviceAccountToken` *(reserved)* | on every call, before the operation runs | the bearer token in the call metadata, with a `TokenReview`: authenticated, issued for the runtime config's audience (default: its name), and belonging to the ESO controller's ServiceAccount |
+| none, over a socket (IPC) | – | nothing: the container boundary is the identity |
+| none, over an address (`HTTP(dev)`, `HTTPS(dev)`) | – | nothing. Only accepted with `--experimental-allow-insecure-provider-transport`, and the runtime config reports `Insecure=True` |
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant C as ESO core (client for one runtime config)
+    participant P as Provider runtime
+    participant K as Kubernetes API
+
+    C->>C: resolve runtimeRef: endpoint, tls, auth
+    alt address with TLS
+        C->>P: TLS handshake
+        P-->>C: server certificate
+        C->>C: chains to the runtime config's CA? matches serverName?
+        opt auth.clientCertificate
+            C->>P: client certificate
+            P->>P: chains to the client CA for this runtime config?
+        end
+    else socket (IPC)
+        C->>P: connect to endpoint.socket (no TLS, no client identity)
+    end
+    Note over C,P: the connection is reused for every call to this runtime config
+    C->>P: operation (+ bearer token if auth.serviceAccountToken)
+    opt auth.serviceAccountToken (reserved)
+        P->>K: TokenReview(token, audience)
+        K-->>P: ESO controller ServiceAccount
+    end
+    alt caller authenticated
+        P->>P: authorize on RequestContext (P8), then run the operation
+        P-->>C: response
+    else identity missing or invalid
+        P-->>C: Unauthenticated
+    end
+```
+
+Rules both sides follow:
+
+- **Authenticate before dispatch.** A provider never runs an operation, and
+  never reads its configuration, for a caller it has not authenticated. A
+  missing or invalid bearer token gets `Unauthenticated`.
+- **A rejected handshake is an authentication failure.** When the provider
+  rejects the client certificate in the handshake, no code comes back. The core
+  classifies that handshake failure as `Unauthenticated`, so the outcome is the
+  same as for a rejected token (see "Errors"). When the core cannot verify the
+  server, it does not send the call, and the runtime config is `Ready=False`
+  with reason `TLSConfigFailed`.
+- **One handshake per connection.** The core keeps one connection per runtime
+  config and re-dials it when anything that changes the identity changes, and
+  at least every hour, so rotated certificates take effect. Each binding gives
+  the details.
+- **Authentication is not authorization.** It tells a provider that the call
+  comes from the ESO core, and nothing more. Whether this request may touch this
+  secret is decided on `RequestContext` (P8).
+
+| Failure | Runtime config (`Check`, `Describe`) | Store or generator (`Validate`) | `ExternalSecret` / `PushSecret` |
+| --- | --- | --- | --- |
+| the core cannot verify the server | `Ready=False`, `TLSConfigFailed` | `Ready=False`, `RuntimeNotReady` | `SecretSyncedError` / `Errored` |
+| the provider rejects the core (`Unauthenticated`) | `Ready=False`, `AuthenticationFailed` | `Ready=False`, `ProviderAuthenticationFailed` | `SecretSyncedError` / `Errored`, requeue |
+
 ## Flows
 
 The diagrams below use the running example of this design: the AWS provider
@@ -179,6 +269,11 @@ sequenceDiagram
     CertC->>K: write server certificate into the provider's Secret
     K-->>RCC: ClusterRuntimeConfig created
     RCC->>RCC: build a client from endpoint, protocol, tls, auth
+    RCC->>P: TLS handshake (see Authentication)
+    P-->>RCC: server certificate
+    RCC->>RCC: chains to the runtime config's CA? matches serverName?
+    RCC->>P: client certificate
+    P->>P: chains to the client CA for this runtime config?
     RCC->>P: Health.Check
     P-->>RCC: SERVING
     RCC->>P: Runtime.Describe (newest contract version the core supports)
@@ -199,7 +294,10 @@ sequenceDiagram
 
 If `Check` fails, the runtime config is `Ready=False` with reason `Unreachable`. If no
 contract version overlaps, the reason is `IncompatibleProtocol`. If the runtime
-rejects the core's client certificate, the reason is `AuthenticationFailed`.
+rejects the core's client certificate, the reason is `AuthenticationFailed`; if
+the core cannot verify the runtime's server certificate, it is `TLSConfigFailed`.
+The connection built here is the one every later call to this runtime config
+reuses.
 
 ### A store becoming ready
 
@@ -219,7 +317,9 @@ sequenceDiagram
     K-->>SC: SecretStore team-a/aws-prod changed
     SC->>K: get ClusterRuntimeConfig "aws"
     SC->>SC: runtime config Ready? SecretsManager in status.serves?
+    Note over SC,P: over the runtime config's authenticated connection (see Authentication)
     SC->>P: SecretStore.Validate(providerConfig, context)
+    P->>P: caller authenticated as the ESO core?
     P->>K: get SecretsManager team-a/aws-prod
     P->>K: get Secret team-a/aws-creds (credentialNamespace: team-a)
     P->>B: verify credentials
@@ -252,8 +352,9 @@ sequenceDiagram
     EC->>K: get ClusterSecretStore "aws-shared"
     EC->>EC: store Ready? conditions admit team-b?<br/>GetSecret advertised?
     EC->>EC: build RequestContext:<br/>credentialNamespace = team-b,<br/>annotations filtered to provider.external-secrets.io/
+    Note over EC,P: over the runtime config's authenticated connection (see Authentication)
     EC->>P: SecretStore.GetSecret(providerConfig, context, remoteRef)<br/>+ request id, deadline 30s
-    P->>P: context consistent? authorize (optional)
+    P->>P: caller authenticated as the ESO core?<br/>context consistent? authorize (optional)
     P->>K: get SecretsManager external-secrets-system/aws-shared (cached)
     P->>K: get Secret team-b/aws-creds
     P->>B: GetSecretValue /team-b/prod/db/password
@@ -294,7 +395,9 @@ sequenceDiagram
     EC->>K: get Generator team-a/db-creds
     EC->>K: get the runtime config it points at
     EC->>EC: Generator Ready? runtime config Ready?<br/>VaultDynamicSecret in status.generates?
+    Note over EC,P: over the runtime config's authenticated connection (see Authentication)
     EC->>P: Generator.Generate(providerConfig, context)
+    P->>P: caller authenticated as the ESO core?<br/>context consistent? authorize (optional)
     P->>K: get VaultDynamicSecret team-a/db-creds, credentials in team-a
     P->>B: read database/creds/app
     B-->>P: username, password, lease id
@@ -304,6 +407,7 @@ sequenceDiagram
     Note over EC,GC: on the next rotation, or when the ExternalSecret is deleted,<br/>the old GeneratorState gets a garbage-collection deadline
     K-->>GC: GeneratorState past its deadline
     GC->>P: Generator.Cleanup(providerConfig, context, state)
+    P->>P: caller authenticated as the ESO core?
     P->>B: revoke lease
     P-->>GC: ok
     GC->>K: delete GeneratorState
@@ -1124,6 +1228,10 @@ namespace resolve in the caller's namespace, and an explicit namespace is
 honoured. This departs from v1, where in-process generators resolve
 credentials with an empty store kind and ignore a reference's namespace. The
 out-of-process kinds are new, so no existing manifest changes behaviour.
+As with a `ClusterSecretStore`, the core first checks the `ClusterGenerator`'s
+`spec.conditions` against the caller namespace, so a caller the conditions
+refuse never reaches the provider ([API.md](./API.md) "Generator and
+ClusterGenerator").
 
 For v1 generator code wrapped by the SDK, this means one change per
 generator: take the synthetic store kind from the SDK instead of passing

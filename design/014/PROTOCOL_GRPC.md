@@ -357,7 +357,8 @@ not part of the contract (P11).
 
 - **Network endpoints.** The core dials `https://<endpoint.address>` with HTTP/2
   (ALPN `h2`). TLS, server verification and client certificates come from the
-  runtime config composition ([API.md](./API.md), [mTLS.md](./mTLS.md)). The server name for SNI and
+  runtime config composition ([API.md](./API.md)), and are checked as
+  [PROTOCOL.md](./PROTOCOL.md) "Authentication" describes. The server name for SNI and
   verification is `tls.serverName`, or the host part of the address.
 - **IPC.** HTTP/2 without TLS (h2c) over the Unix socket at `endpoint.socket`
   (a `ClusterRuntimeConfig` only), with `:authority: localhost`. Providers must
@@ -368,7 +369,7 @@ not part of the contract (P11).
   dial: the runtime config generation, the negotiated contract version, the
   `resourceVersion` of the client certificate Secret, and that of the `caRef`
   object, if any. A connection older than one hour is re-dialed, so rotated
-  certificates take effect ([mTLS.md](./mTLS.md)). The connection is never shared across runtime configs, even when
+  certificates take effect ([PROTOCOL.md](./PROTOCOL.md) "Authentication"). The connection is never shared across runtime configs, even when
   addresses coincide, because identities differ (ADAPTER.md).
 
 ## Health

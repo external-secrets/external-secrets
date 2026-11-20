@@ -358,7 +358,10 @@ What must change before any of it merges:
 - **Generator features.** Readiness, outputs and statefulness from
   `Generator.Validate` into the status of `Generator` and `ClusterGenerator`;
   one core generator for both kinds that calls the runtime's Generator
-  service; `GeneratorState` storage and garbage collection, unchanged.
+  service; `GeneratorState` storage and garbage collection, unchanged. The
+  store features apply to generators too: `ClusterGenerator` `conditions`
+  (namespace selectors), flood gate, the `controller` class,
+  `refreshInterval` and `retrySettings`.
 
 ## Non-goals
 

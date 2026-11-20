@@ -783,6 +783,16 @@ metadata:
   name: db-creds
   namespace: team-a
 spec:
+  # ------------------------------------------ same fields and semantics as the stores
+  controller: ""                     # optional; same controller-class filter as SecretStore
+  refreshInterval: 1h                # optional; how often the controller re-runs Validate
+  retrySettings: {}                  # optional; retries for Validate, Generate and Cleanup calls
+  conditions: []                     # optional, ClusterGenerator only (not in the Generator
+                                     # schema); same type as ClusterSecretStore.spec.conditions:
+                                     # namespaceSelector, namespaces, namespaceRegexes gate
+                                     # which caller namespaces may use the generator
+
+  # ------------------------------------------------------ out-of-process generator
   # runtimeRef: required. Same shape and default as SecretStore.spec.runtimeRef.
   #   kind: Generator        -> RuntimeConfig (default, resolved in metadata.namespace)
   #                             or ClusterRuntimeConfig
@@ -865,6 +875,28 @@ These are the store rules: a `Generator` behaves like a `SecretStore` and a
 included. In-process generators keep v1's behaviour, which ignores a
 reference's namespace ([PROTOCOL.md](./PROTOCOL.md) P9).
 
+The parity goes beyond scope. A `ClusterGenerator` has the store features of a
+`ClusterSecretStore`, enforced by the same core code:
+
+- **Namespace gating.** `spec.conditions` (`namespaceSelector`, `namespaces`,
+  `namespaceRegexes`) decides which namespaces' `ExternalSecret`s and
+  `PushSecret`s may reference the `ClusterGenerator`. The core checks it before
+  any call, so a refused namespace never reaches the runtime. In-process
+  `ClusterGenerator`s have no such gate today; this is the main reason a
+  platform team can share a generator across tenants.
+- **Flood gate.** With `--enable-flood-gate` (the default), an
+  `ExternalSecret` or `PushSecret` whose generator is not `Ready` is not
+  reconciled, exactly as for a store that is not `Ready`. A generator whose
+  status is `ValidationUnknown` passes, as an unknown store does today.
+- **Controller class.** `spec.controller` selects which ESO deployment
+  reconciles the generator and serves calls through it.
+- **Refresh and retries.** `spec.refreshInterval` drives re-validation and
+  `spec.retrySettings` applies to calls to the runtime, both with the store
+  defaults.
+
+A namespaced `Generator` has the same features minus `conditions`, the way a
+`SecretStore` has no `conditions`.
+
 CEL rules:
 
 | Where | Rule | Message |
@@ -891,9 +923,11 @@ existing `generators.external-secrets.io/v1alpha1` `ClusterGenerator` union:
 What the core does with them:
 
 - A `Generator` / `ClusterGenerator` controller calls `Generator.Validate` on
-  create, on update and periodically, and writes `status`. The
+  create, on update and every `spec.refreshInterval`, and writes `status`. The
   `ExternalSecret` and `PushSecret` controllers treat a generator that is not
-  `Ready` the way they treat a store that is not `Ready`.
+  `Ready` the way they treat a store that is not `Ready` (flood gate), and
+  check a `ClusterGenerator`'s `conditions` the way they check a
+  `ClusterSecretStore`'s.
 - `pkg/register/generators.go` registers one core generator for each of the two
   kinds. Its `Generate` and `Cleanup` resolve the runtime config and call the
   runtime. The rest of the generator machinery stays as it is: the

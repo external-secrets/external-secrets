@@ -166,7 +166,7 @@ core asks for a version the runtime does not serve.
   `User-Agent` or on anything the core's HTTP library adds.
 - **Network endpoints.** `https://<endpoint.address>`, with TLS, server
   verification and client certificates from the runtime config composition, exactly as
-  for gRPC ([mTLS.md](./mTLS.md)). In `HTTP(dev)` the scheme is `http://`.
+  for gRPC ([PROTOCOL.md](./PROTOCOL.md) "Authentication"). In `HTTP(dev)` the scheme is `http://`.
 - **IPC.** HTTP over the Unix socket at `endpoint.socket` (a
   `ClusterRuntimeConfig` only), with `Host: localhost`.
 - **Connection reuse.** One `http.Client` per runtime config, built on
