@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/PaesslerAG/jsonpath"
 	corev1 "k8s.io/api/core/v1"
@@ -52,7 +51,6 @@ type WebHook struct {
 	wh        webhook.Webhook
 	store     esv1.GenericStore
 	storeKind string
-	url       string
 }
 
 // Capabilities return the provider-supported capabilities (ReadOnly, WriteOnly, ReadWrite).
@@ -80,7 +78,6 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	if err != nil {
 		return nil, err
 	}
-	whClient.url = provider.URL
 
 	whClient.wh.HTTP, err = whClient.wh.GetHTTPClient(ctx, provider)
 	if err != nil {
@@ -314,14 +311,12 @@ func (w *WebHook) Close(_ context.Context) error {
 	return nil
 }
 
-// Validate checks if the webhook provider is configured correctly.
+// Validate implements esv1.SecretsClient.
+// NOTE: URL, headers, and body are Go templates filled at sync time with ExternalSecret
+// remoteRef data and optional store secrets (or auth.ntlm). A SecretStore-level live probe
+// cannot render that request, so this is a no-op after successful client construction.
+// Reachability and auth failures surface on the ExternalSecret or PushSecret instead.
 func (w *WebHook) Validate() (esv1.ValidationResult, error) {
-	timeout := 15 * time.Second
-	url := w.url
-
-	if err := esutils.NetworkValidate(url, timeout); err != nil {
-		return esv1.ValidationResultError, err
-	}
 	return esv1.ValidationResultReady, nil
 }
 
