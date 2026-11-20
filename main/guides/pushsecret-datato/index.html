@@ -5710,6 +5710,10 @@ pushing. Applied before <code>match</code> and <code>rewrite</code>:</p>
 <td>Reconciliation fails with the offending source key named</td>
 </tr>
 <tr>
+<td>One rewrite produces, or could produce, more than 1 MiB of keys in total</td>
+<td>Reconciliation fails before the keys are built</td>
+</tr>
+<tr>
 <td>Two entries produce the same remote key</td>
 <td>Reconciliation fails listing all conflicting sources</td>
 </tr>
