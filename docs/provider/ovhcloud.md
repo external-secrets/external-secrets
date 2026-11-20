@@ -30,6 +30,7 @@ spec:
     ovh:
       server: <kms-endpoint> # for example: "https://eu-west-rbx.okms.ovh.net"
       okmsid: <okms-id> # for example: "734b9b45-8b1a-469c-b140-b10bd6540017" 
+      okmsTimeout: 30 # optional: timeout in seconds for requests to the KMS (default: 30)
       auth:
         token:
           tokenSecretRef:

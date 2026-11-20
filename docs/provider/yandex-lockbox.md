@@ -38,6 +38,10 @@ spec:
           name: yc-auth
           key: authorized-key
 
+    # Optionally, to use a non-default Yandex.Cloud API endpoint (for example a private installation):
+    #
+    # apiEndpoint: api.cloud.yandex.net:443 # place "apiEndpoint:" on the same level as "auth:"
+    #
     # Optionally, to enable fetching secrets by name:
     #
     # fetching: # place "fetching:" on the same level as "auth:"
