@@ -22,4 +22,8 @@ const (
 	CallIBMSMGetSecret           = "GetSecret"
 	CallIBMSMListSecrets         = "ListSecrets"
 	CallIBMSMGetSecretByNameType = "GetSecretByNameType"
+	CallIBMSMCreateSecret        = "CreateSecret"
+	CallIBMSMCreateSecretVersion = "CreateSecretVersion"
+	CallIBMSMDeleteSecret        = "DeleteSecret"
+	CallIBMSMListSecretGroups    = "ListSecretGroups"
 )

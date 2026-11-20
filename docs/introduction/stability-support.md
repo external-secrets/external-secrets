@@ -144,7 +144,7 @@ The following table show the support for features across different providers.
 | Generic Webhook                  |              |              |                      |                         |                  |             |              x              |
 | Hashicorp Vault                  |      x       |      x       |          x           |            x            |        x         |      x      |              x              |
 | Keeper Security                  |      x       |              |                      |                         |        x         |      x      |                             |
-| IBM Cloud Secrets Manager        |      x       |              |          x           |                         |        x         |             |                             |
+| IBM Cloud Secrets Manager        |      x       |              |          x           |                         |        x         |      x      |              x              |
 | Infisical                        |      x       |              |                      |            x            |        x         |      x      |              x              |
 | Ngrok                            |              |              |                      |                         |        x         |      x      |                             |
 | Kubernetes                       |      x       |      x       |          x           |            x            |        x         |      x      |              x              |

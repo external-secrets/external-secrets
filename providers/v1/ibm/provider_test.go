@@ -690,6 +690,16 @@ func TestIBMSecretManagerGetSecret(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("missing secrets return NoSecretErr", func(t *testing.T) {
+		ibm := &providerIBM{IBMClient: fakesm.NewInMemoryClient(nil)}
+		for _, key := range []string{"default/arbitrary/missing", "kv/" + secretUUID} {
+			_, err := ibm.GetSecret(t.Context(), esv1.ExternalSecretDataRemoteRef{Key: key})
+			if !errors.Is(err, esv1.NoSecretErr) {
+				t.Errorf("GetSecret(%s): expected NoSecretErr, got %v", key, err)
+			}
+		}
+	})
 }
 
 func TestGetSecretMap(t *testing.T) {
@@ -1388,6 +1398,14 @@ func TestGetSecretMap(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("missing secrets return NoSecretErr", func(t *testing.T) {
+		ibm := &providerIBM{IBMClient: fakesm.NewInMemoryClient(nil)}
+		_, err := ibm.GetSecretMap(t.Context(), esv1.ExternalSecretDataRemoteRef{Key: "default/kv/missing"})
+		if !errors.Is(err, esv1.NoSecretErr) {
+			t.Errorf("expected NoSecretErr, got %v", err)
+		}
+	})
 }
 
 func TestValidRetryInput(t *testing.T) {
@@ -1443,3 +1461,4 @@ func ErrorContains(out error, want string) bool {
 	}
 	return strings.Contains(out.Error(), want)
 }
+
