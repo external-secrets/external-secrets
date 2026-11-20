@@ -116,10 +116,17 @@ func (g *Generator) generate(ctx context.Context, cloudsmithSpec *apiextensions.
 		return nil, nil, err
 	}
 
-	return map[string][]byte{
-		"auth":   []byte(b64.StdEncoding.EncodeToString([]byte("token:" + accessToken))),
-		"expiry": []byte(exp),
-	}, nil, nil
+	return buildSecretData(accessToken, exp), nil, nil
+}
+
+func buildSecretData(accessToken, expiry string) map[string][]byte {
+	data := map[string][]byte{
+		"username": []byte("token"),
+		"password": []byte(accessToken),
+		"expiry":   []byte(expiry),
+	}
+	data["auth"] = []byte(b64.StdEncoding.EncodeToString(bytes.Join([][]byte{data["username"], data["password"]}, []byte(":"))))
+	return data
 }
 
 func (g *Generator) exchangeTokenWithCloudsmith(ctx context.Context, oidcToken, orgSlug, serviceSlug, apiURL string) (string, error) {
