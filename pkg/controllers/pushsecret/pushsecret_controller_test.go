@@ -2866,6 +2866,27 @@ var _ = Describe("mergeDataEntries unit tests", func() {
 			Expect(err).To(MatchError(ContainSubstring("safety limit")))
 		})
 
+		It("should bound regexp rewrites", func() {
+			// 24 rules that double a 1-byte key would build 2^24 bytes = 16 MiB.
+			rewrites := make([]v1alpha1.PushSecretRewrite, 24)
+			for i := range rewrites {
+				rewrites[i].Regexp = &esv1.ExternalSecretRewriteRegexp{Source: "^.*$", Target: "$0$0"}
+			}
+			_, err := rewriteWithKeyMapping(rewrites, map[string][]byte{"k": nil})
+			Expect(err).To(MatchError(ContainSubstring("may exceed")))
+		})
+
+		It("should bound the total of transform rewrites", func() {
+			// 5000 keys x 250 bytes = 1250000 bytes > 1 MiB.
+			many := make(map[string][]byte, 5000)
+			for i := range 5000 {
+				many[fmt.Sprintf("%0250d", i)] = nil
+			}
+			rewrites := []v1alpha1.PushSecretRewrite{{Transform: &esv1.ExternalSecretRewriteTransform{Template: "{{ .value }}"}}}
+			_, err := rewriteWithKeyMapping(rewrites, many)
+			Expect(err).To(MatchError(ContainSubstring("exceeds")))
+		})
+
 		It("should override dataTo with explicit for same source key", func() {
 			secret := &v1.Secret{Data: map[string][]byte{"key": []byte("v1")}}
 			dataTo := []v1alpha1.PushSecretData{
