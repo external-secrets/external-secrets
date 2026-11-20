@@ -57,6 +57,12 @@ func (a *MockFactory) Kubernetes(role, jwt, mount string) (api.AuthMethod, error
 	return mockAuth{}, nil
 }
 
+// JWT implements [Factory].
+func (a *MockFactory) JWT(role, jwt, mount string) (api.AuthMethod, error) {
+	a.callf("JWT(%q, %q, %q)", role, jwt, mount)
+	return mockAuth{}, nil
+}
+
 // GetCalls returns a list of all calls made to the mock (serialized as string), e.g.:
 //
 //	UserPass("user", "password", "mount")
