@@ -18,7 +18,6 @@ package bitwarden
 
 import (
 	"context"
-	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -150,7 +149,7 @@ func newHTTPSClient(ctx context.Context, c client.Client, storeKind, namespace s
 	if err != nil {
 		return nil, err
 	}
-	transport.TLSClientConfig = &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12}
+	transport.TLSClientConfig.RootCAs = pool
 
 	return &http.Client{Transport: transport, Timeout: time.Second * 10}, nil
 }

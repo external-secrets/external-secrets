@@ -19,7 +19,6 @@ package auth
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io"
@@ -129,7 +128,7 @@ func (s *SenhaseguraIsoSession) GetIsoToken(clientID, clientSecret, systemURL st
 		return "", err
 	}
 	//nolint
-	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: ignoreSslCertificate}
+	tr.TLSClientConfig.InsecureSkipVerify = ignoreSslCertificate
 
 	client := &http.Client{Transport: tr}
 
