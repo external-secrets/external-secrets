@@ -61,6 +61,7 @@ import (
 	gopkcs12 "software.sslmate.com/src/go-pkcs12"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/metadata"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
@@ -162,6 +163,8 @@ type PushSecretMetadataSpec struct {
 	ExpirationDate string            `json:"expirationDate,omitempty"`
 	ContentType    string            `json:"contentType,omitempty"`
 	Tags           map[string]string `json:"tags,omitempty"`
+	// PasswordSecretRef supplies a PKCS#12 import password from the source Secret's namespace.
+	PasswordSecretRef *esmeta.SecretKeySelector `json:"passwordSecretRef,omitempty"`
 }
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
@@ -486,15 +489,15 @@ func (a *Azure) SecretExists(ctx context.Context, remoteRef esv1.PushSecretRemot
 	return true, nil
 }
 
-func getCertificateFromValue(value []byte) (*x509.Certificate, error) {
+func getCertificateFromValue(value []byte, password string) (*x509.Certificate, error) {
 	// 1st: try decode pkcs12
-	_, localCert, err := gopkcs12.Decode(value, "")
+	_, localCert, err := gopkcs12.Decode(value, password)
 	if err == nil {
 		return localCert, nil
 	}
 
 	// 2nd: try decode pkcs12 with chain
-	_, localCert, _, err = gopkcs12.DecodeChain(value, "")
+	_, localCert, _, err = gopkcs12.DecodeChain(value, password)
 	if err == nil {
 		return localCert, nil
 	}
@@ -632,9 +635,9 @@ func (a *Azure) setKeyVaultSecret(ctx context.Context, secretName string, value 
 	return nil
 }
 
-func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, value []byte, tags map[string]string) error {
+func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, value []byte, password string, tags map[string]string) error {
 	val := b64.StdEncoding.EncodeToString(value)
-	localCert, err := getCertificateFromValue(value)
+	localCert, err := getCertificateFromValue(value, password)
 	if err != nil {
 		return fmt.Errorf("value from secret is not a valid certificate: %w", err)
 	}
@@ -656,6 +659,9 @@ func (a *Azure) setKeyVaultCertificate(ctx context.Context, secretName string, v
 		Tags: map[string]*string{
 			managedBy: new(managerLabel),
 		},
+	}
+	if password != "" {
+		params.Password = &password
 	}
 
 	for k, v := range tags {
@@ -788,6 +794,16 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 	}
 
 	objectType, secretName := getObjType(esv1.ExternalSecretDataRemoteRef{Key: data.GetRemoteKey()})
+	var password string
+	if metadata != nil && metadata.Spec.PasswordSecretRef != nil {
+		if objectType != objectTypeCert {
+			return errors.New("passwordSecretRef is only supported for certificates")
+		}
+		password, err = a.resolveCertificatePassword(ctx, secret.Namespace, metadata.Spec.PasswordSecretRef)
+		if err != nil {
+			return fmt.Errorf("failed to resolve certificate password: %w", err)
+		}
+	}
 	switch objectType {
 	case defaultObjType:
 		if a.useNewSDK() {
@@ -796,9 +812,9 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 		return a.setKeyVaultSecret(ctx, secretName, value, expires, contentType, tags)
 	case objectTypeCert:
 		if a.useNewSDK() {
-			return a.setKeyVaultCertificateWithNewSDK(ctx, secretName, value, tags)
+			return a.setKeyVaultCertificateWithNewSDK(ctx, secretName, value, password, tags)
 		}
-		return a.setKeyVaultCertificate(ctx, secretName, value, tags)
+		return a.setKeyVaultCertificate(ctx, secretName, value, password, tags)
 	case objectTypeKey:
 		if a.useNewSDK() {
 			return a.setKeyVaultKeyWithNewSDK(ctx, secretName, value, tags)
@@ -807,6 +823,18 @@ func (a *Azure) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1
 	default:
 		return fmt.Errorf("secret type %v not supported", objectType)
 	}
+}
+
+func (a *Azure) resolveCertificatePassword(ctx context.Context, namespace string, ref *esmeta.SecretKeySelector) (string, error) {
+	if ref.Name == "" || ref.Key == "" {
+		return "", errors.New("passwordSecretRef name and key are required")
+	}
+	// Unlike store authentication, per-PushSecret metadata must not grant access
+	// to credentials in other namespaces, even when using a ClusterSecretStore.
+	if ref.Namespace != nil && *ref.Namespace != namespace {
+		return "", errors.New("passwordSecretRef must refer to a Secret in the same namespace as the source Secret")
+	}
+	return resolvers.SecretKeyRef(ctx, a.crClient, resolvers.EmptyStoreKind, namespace, ref)
 }
 
 // GetAllSecrets implements store.Client.GetAllSecrets Interface.
