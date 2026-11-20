@@ -150,6 +150,18 @@ func TestWebhookFeatureRejectsInvalidResponseSize(t *testing.T) {
 	}
 }
 
+func TestExecuteTemplateIsBounded(t *testing.T) {
+	_, err := ExecuteTemplate(`{{ range until 10000 }}`+strings.Repeat("x", 1000)+`{{ end }}`, nil)
+	if err == nil {
+		t.Fatal("ExecuteTemplate() error = nil, want output limit error")
+	}
+
+	out, err := ExecuteTemplateString(`{{ .a.b }}`, map[string]map[string]string{"a": {"b": "ok"}})
+	if err != nil || out != "ok" {
+		t.Errorf("ExecuteTemplateString() = %q, %v; want \"ok\", nil", out, err)
+	}
+}
+
 func restoreResponseBodySize(t *testing.T) {
 	t.Helper()
 	original := maxResponseBodySize.Load()
