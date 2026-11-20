@@ -18,13 +18,16 @@ package externalsecret
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -52,6 +55,13 @@ func (r *Reconciler) validateGenericTarget(log logr.Logger, es *esv1.ExternalSec
 		return fmt.Errorf("target.manifest.kind is required")
 	}
 
+	// Same check the admission webhook runs, applied before any provider retrieval,
+	// rendering or write, so objects stored before the ban and ExternalSecrets admitted
+	// without the webhook are refused here instead of reaching the generic write path.
+	if err := esv1.ValidateManifestTarget(&es.Spec); err != nil {
+		return err
+	}
+
 	log.Info("Warning: Using generic target. Make sure access policies and encryption are properly configured.",
 		"apiVersion", manifest.APIVersion,
 		"kind", manifest.Kind,
@@ -72,11 +82,18 @@ func getTargetGVK(es *esv1.ExternalSecret) schema.GroupVersionKind {
 	}
 }
 
-// validateManifestSecretCandidate ensures rendering did not change the declared GVK
-// and applies the final Secret policy to explicit core/v1 Secret targets.
-func validateManifestSecretCandidate(es *esv1.ExternalSecret, obj *unstructured.Unstructured) error {
+// errProtectedMetadata covers every way rendering can change metadata outside labels and
+// annotations, including name and namespace. Naming the offending key would make the
+// message depend on Go's randomized map iteration order when a template changes several.
+var errProtectedMetadata = errors.New("rendered target changed protected metadata")
+
+// normalizeAndValidateManifestCandidate ensures rendering changed only the declared target's
+// content, labels and annotations. It also restores protected metadata that the template
+// omitted, so it mutates target. The restore has to stay between the two loops: a changed
+// value must be rejected before a missing one is filled back in.
+func normalizeAndValidateManifestCandidate(es *esv1.ExternalSecret, target *unstructured.Unstructured, originalMetadata map[string]any) error {
 	declaredGVK := getTargetGVK(es)
-	renderedGVK := obj.GroupVersionKind()
+	renderedGVK := target.GroupVersionKind()
 
 	if renderedGVK != declaredGVK {
 		return fmt.Errorf(
@@ -86,19 +103,35 @@ func validateManifestSecretCandidate(es *esv1.ExternalSecret, obj *unstructured.
 		)
 	}
 
-	if declaredGVK != v1.SchemeGroupVersion.WithKind("Secret") {
-		return nil
+	renderedMetadata, ok := target.Object["metadata"].(map[string]any)
+	if !ok {
+		return errProtectedMetadata
 	}
-
-	secretType, _, err := unstructured.NestedString(obj.Object, "type")
-	if err != nil {
-		return fmt.Errorf("invalid Secret type: %w", err)
+	for key, rendered := range renderedMetadata {
+		if key == "labels" || key == "annotations" {
+			continue
+		}
+		original, ok := originalMetadata[key]
+		if !ok || !reflect.DeepEqual(original, rendered) {
+			return errProtectedMetadata
+		}
 	}
-
-	secret := &v1.Secret{Type: v1.SecretType(secretType)}
-	secret.SetAnnotations(obj.GetAnnotations())
-
-	return validateSecretCandidate(secret)
+	// A whole-map template can omit server-managed metadata; restore only missing keys.
+	for key, value := range originalMetadata {
+		if key == "labels" || key == "annotations" {
+			continue
+		}
+		if _, ok := renderedMetadata[key]; !ok {
+			renderedMetadata[key] = value
+		}
+	}
+	// Unreachable today: the loops above leave every protected key equal to the original,
+	// and the original identity is the declared one. Kept as a guard on that invariant,
+	// which is what stops a template from retargeting another namespace's object.
+	if target.GetNamespace() != es.Namespace || target.GetName() != getTargetName(es) {
+		return errors.New("rendered target namespace/name differs from declared target")
+	}
+	return nil
 }
 
 // getTargetName returns the name of the target resource.
@@ -152,7 +185,10 @@ func (r *Reconciler) createGenericResource(ctx context.Context, log logr.Logger,
 	}
 
 	log.Info("creating target resource", "gvk", gvk.String(), "name", getTargetName(es))
-	err = r.Client.Create(ctx, obj)
+	// Claim the fields we write. Without a field owner every ExternalSecret's writes land
+	// under one shared manager, and the metadata cleanup below could not tell the keys this
+	// ExternalSecret set from another ExternalSecret's or another controller's.
+	err = r.Client.Create(ctx, obj, client.FieldOwner(fqdnFor(es.Name)))
 	if err != nil {
 		return fmt.Errorf("failed to create target resource: %w", err)
 	}
@@ -165,7 +201,7 @@ func (r *Reconciler) updateGenericResource(ctx context.Context, log logr.Logger,
 	gvk := getTargetGVK(es)
 
 	log.Info("updating target resource", "gvk", gvk.String(), "name", getTargetName(es))
-	err := r.Client.Update(ctx, existing)
+	err := r.Client.Update(ctx, existing, client.FieldOwner(fqdnFor(es.Name)))
 	if err != nil {
 		return fmt.Errorf("failed to update target resource: %w", err)
 	}
@@ -174,7 +210,9 @@ func (r *Reconciler) updateGenericResource(ctx context.Context, log logr.Logger,
 	return nil
 }
 
-// deleteGenericResource deletes a generic resource.
+// deleteGenericResource deletes the generic target, but only if this ExternalSecret controls
+// it. It returns ErrTargetNotControlled when the live target belongs to someone else, so a
+// caller can tell a refusal apart from an API failure.
 func (r *Reconciler) deleteGenericResource(ctx context.Context, log logr.Logger, es *esv1.ExternalSecret) error {
 	if !r.AllowGenericTargets || !isGenericTarget(es) {
 		return nil
@@ -182,13 +220,22 @@ func (r *Reconciler) deleteGenericResource(ctx context.Context, log logr.Logger,
 
 	gvk := getTargetGVK(es)
 
-	obj := &unstructured.Unstructured{}
-	obj.SetGroupVersionKind(gvk)
-	obj.SetNamespace(es.Namespace)
-	obj.SetName(getTargetName(es))
+	// Fetch the target instead of deleting an object built from the declared name alone: the
+	// controller owner reference that authorizes this deletion only exists on the live object.
+	existing, err := r.getGenericResource(ctx, log, es)
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil
+		}
+		return err
+	}
+
+	if !isControlledByExternalSecret(es, existing) {
+		return fmt.Errorf("%w: %s %s", ErrTargetNotControlled, gvk.Kind, getTargetName(es))
+	}
 
 	log.Info("deleting target resource", "gvk", gvk.String(), "name", getTargetName(es))
-	err := r.Client.Delete(ctx, obj)
+	err = r.deleteCheckedTarget(ctx, existing)
 	if err != nil && !apierrors.IsNotFound(err) {
 		return fmt.Errorf("failed to delete target resource: %w", err)
 	}
@@ -198,12 +245,11 @@ func (r *Reconciler) deleteGenericResource(ctx context.Context, log logr.Logger,
 }
 
 // applyTemplateToManifest renders templates for generic resources and returns an unstructured object.
-// If existingObj is provided, templates will be applied to it (for merge behavior).
-// Otherwise, a new object is created.
+// Existing metadata is retained for updates; Merge policies also retain existing content.
 func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte, existingObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
 	var obj *unstructured.Unstructured
-	if existingObj != nil {
-		// use the existing object for merge behavior if it exists
+	if existingObj != nil && (es.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
+		es.Spec.Target.CreationPolicy == esv1.CreatePolicyCreateOrMerge) {
 		obj = existingObj.DeepCopy()
 	} else {
 		gvk := getTargetGVK(es)
@@ -211,6 +257,13 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		obj.SetGroupVersionKind(gvk)
 		obj.SetName(getTargetName(es))
 		obj.SetNamespace(es.Namespace)
+		// Copy the metadata subtree only. DeepCopy would also copy the content this
+		// branch is about to discard, which for a custom resource is most of the object.
+		if existingObj != nil {
+			if existingMetadata, ok := existingObj.Object["metadata"].(map[string]any); ok {
+				obj.Object["metadata"] = runtime.DeepCopyJSON(existingMetadata)
+			}
+		}
 		switch gvk.Kind {
 		case "ConfigMap", "Secret":
 			obj.Object["data"] = map[string]any{}
@@ -228,6 +281,21 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		annotations = make(map[string]string)
 	}
 
+	// Keep the original metadata for validation; only labels and annotations are templatable.
+	existingMetadata := obj.DeepCopy().Object["metadata"].(map[string]any)
+
+	// Seeding from the live object keeps other controllers' labels and annotations, but it
+	// would also make this ExternalSecret's own keys un-removable: drop one from the template
+	// and the live copy puts it straight back. Clear the keys it owns so the merge below
+	// re-adds only what it still renders. This mirrors setMetadata on the Secret lane.
+	//
+	// Targets written before ESO declared a field owner have their keys recorded under the
+	// client's default manager, so on the first sync after upgrade a key this ExternalSecret
+	// has since stopped rendering survives once. Everything written after is attributed.
+	if err := templating.ClearOwnedMetadata(obj, es.Name, labels, annotations); err != nil {
+		return nil, err
+	}
+
 	srcLabels, srcAnnotations := es.ObjectMeta.Labels, es.ObjectMeta.Annotations
 	if es.Spec.Target.Template != nil {
 		srcLabels = es.Spec.Target.Template.Metadata.Labels
@@ -236,10 +304,10 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 	maps.Copy(labels, srcLabels)
 	maps.Copy(annotations, srcAnnotations)
 
-	labels[esv1.LabelManaged] = esv1.LabelManagedValue
-
 	obj.SetLabels(labels)
 	obj.SetAnnotations(annotations)
+	labels = maps.Clone(labels)
+	annotations = maps.Clone(annotations)
 
 	var result *unstructured.Unstructured
 	var err error
@@ -252,26 +320,28 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 		return nil, err
 	}
 
-	ann := result.GetAnnotations()
-	if ann == nil {
-		ann = make(map[string]string)
+	// A template may replace metadata maps; preserve existing keys unless the template overrides them.
+	maps.Copy(labels, result.GetLabels())
+	result.SetLabels(labels)
+	maps.Copy(annotations, result.GetAnnotations())
+	result.SetAnnotations(annotations)
+
+	if err := normalizeAndValidateManifestCandidate(es, result, existingMetadata); err != nil {
+		return nil, err
+	}
+	if err := r.applyOwnership(es, result); err != nil {
+		return nil, err
 	}
 
+	labels = result.GetLabels()
+	labels[esv1.LabelManaged] = esv1.LabelManagedValue
+	result.SetLabels(labels)
 	hash, err := genericTargetContentHash(result)
 	if err != nil {
 		return nil, fmt.Errorf("failed to hash target %q content: %w", es.Spec.Target.Name, err)
 	}
-
-	ann[esv1.AnnotationDataHash] = hash
-	result.SetAnnotations(ann)
-
-	if err := r.applyOwnership(es, result); err != nil {
-		return nil, err
-	}
-	if err := validateManifestSecretCandidate(es, result); err != nil {
-		return nil, err
-	}
-
+	annotations[esv1.AnnotationDataHash] = hash
+	result.SetAnnotations(annotations)
 	return result, nil
 }
 

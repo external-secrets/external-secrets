@@ -26,6 +26,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/onsi/gomega/format"
@@ -36,7 +37,10 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	genv1alpha1 "github.com/external-secrets/external-secrets/apis/generators/v1alpha1"
@@ -2387,6 +2391,54 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		}
 	}
 
+	// A manifest target keeps the metadata a real API server maintains. The fake client used
+	// by the unit tests accepts an update carrying uid, resourceVersion, creationTimestamp
+	// and managedFields without checking any of them, so only a real API server can show
+	// that sending the retained metadata back is actually accepted.
+	syncManifestTargetKeepsLiveMetadata := func(tc *testCase) {
+		tc.externalSecret.Spec.RefreshInterval = &metav1.Duration{Duration: time.Second}
+		tc.externalSecret.Spec.Target.CreationPolicy = esv1.CreatePolicyOwner
+		tc.externalSecret.Spec.Target.Manifest = &esv1.ManifestReference{
+			APIVersion: "v1",
+			Kind:       "ConfigMap",
+		}
+		fakeProvider.WithGetSecret([]byte(secretVal), nil)
+
+		tc.checkExternalSecret = func(es *esv1.ExternalSecret) {
+			ctx := context.Background()
+			cmKey := types.NamespacedName{Name: ExternalSecretTargetSecretName, Namespace: ExternalSecretNamespace}
+			cm := &v1.ConfigMap{}
+			Eventually(func() error {
+				return k8sClient.Get(ctx, cmKey, cm)
+			}, timeout, interval).Should(Succeed())
+			Expect(cm.Data[targetProp]).To(Equal(secretVal))
+			Expect(cm.OwnerReferences).To(HaveLen(1))
+			Expect(cm.OwnerReferences[0].Name).To(Equal(es.Name))
+
+			By("another controller adding metadata to the live target")
+			cm.Finalizers = append(cm.Finalizers, "unrelated.example.io/cleanup")
+			cm.Labels["other-controller"] = "keep"
+			Expect(k8sClient.Update(ctx, cm)).To(Succeed())
+
+			By("the next sync keeping that metadata while rotating the content")
+			fakeProvider.WithGetSecret([]byte("rotated"), nil)
+			Eventually(func() string {
+				if err := k8sClient.Get(ctx, cmKey, cm); err != nil {
+					return ""
+				}
+				return cm.Data[targetProp]
+			}, timeout, interval).Should(Equal("rotated"))
+			Expect(cm.Finalizers).To(ContainElement("unrelated.example.io/cleanup"))
+			Expect(cm.Labels).To(HaveKeyWithValue("other-controller", "keep"))
+			Expect(cm.OwnerReferences).To(HaveLen(1))
+			Expect(cm.OwnerReferences[0].Name).To(Equal(es.Name))
+
+			By("releasing the finalizer so the target does not linger")
+			cm.Finalizers = nil
+			Expect(k8sClient.Update(ctx, cm)).To(Succeed())
+		}
+	}
+
 	DescribeTable(
 		"When reconciling an ExternalSecret",
 		func(tweaks ...testTweaks) {
@@ -2529,6 +2581,7 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 			useClusterSecretStore,
 			noSecretCreatedWhenNamespaceMatchMultipleNonMatchingConditions,
 		),
+		Entry("manifest target keeps metadata maintained by the API server", syncManifestTargetKeepsLiveMetadata),
 	)
 
 	It("prevents CreateOrMerge from retargeting a service account token Secret", func() {
@@ -2585,6 +2638,95 @@ var _ = Describe("ExternalSecret controller", Serial, func() {
 		Expect(persistedSecret.Type).To(Equal(v1.SecretTypeServiceAccountToken))
 		Expect(persistedSecret.Annotations).To(HaveKeyWithValue(v1.ServiceAccountNameKey, "current-workload"))
 	})
+
+	// Only a real API server enforces delete preconditions; the fake client ignores them.
+	DescribeTable("refuses to delete a target changed after the ownership check", func(replaceTarget bool) {
+		ctx := context.Background()
+		const (
+			racedESName  = "raced-es"
+			racedTarget  = "raced-configmap"
+			replacedBy   = "someone-else"
+			replacedData = "data-we-must-not-delete"
+		)
+		targetKey := types.NamespacedName{Name: racedTarget, Namespace: ExternalSecretNamespace}
+
+		es := &esv1.ExternalSecret{
+			Name: racedESName, Namespace: ExternalSecretNamespace,
+			Spec: esv1.ExternalSecretSpec{
+				Target: esv1.ExternalSecretTarget{
+					Name:           racedTarget,
+					CreationPolicy: esv1.CreatePolicyOwner,
+					DeletionPolicy: esv1.DeletionPolicyDelete,
+					Manifest:       &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+				},
+			},
+		}
+
+		By("creating a target this ExternalSecret controls")
+		owned := &v1.ConfigMap{
+			Name: racedTarget, Namespace: ExternalSecretNamespace,
+			Data: map[string]string{"owner": racedESName},
+		}
+		owned.OwnerReferences = []metav1.OwnerReference{{
+			APIVersion: esv1.SchemeGroupVersion.String(), Kind: esv1.ExtSecretKind,
+			Name: racedESName, UID: "a-stale-external-secret-uid", Controller: new(true),
+		}}
+		Expect(k8sClient.Create(ctx, owned)).To(Succeed())
+
+		By("changing the target between the ownership read and the delete")
+		realClient, err := client.NewWithWatch(cfg, client.Options{Scheme: scheme.Scheme})
+		Expect(err).ToNot(HaveOccurred())
+
+		swapped := false
+		racingClient := interceptor.NewClient(realClient, interceptor.Funcs{
+			Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+				if err := c.Get(ctx, key, obj, opts...); err != nil {
+					return err
+				}
+				if key.Name != racedTarget || swapped {
+					return nil
+				}
+				swapped = true
+				changed := &v1.ConfigMap{
+					Name: racedTarget, Namespace: ExternalSecretNamespace,
+					Data: map[string]string{"owner": replacedBy, "keep": replacedData},
+				}
+				if replaceTarget {
+					Expect(c.Delete(ctx, &v1.ConfigMap{Name: racedTarget, Namespace: ExternalSecretNamespace})).To(Succeed())
+					Expect(c.Create(ctx, changed)).To(Succeed())
+				} else {
+					changed.UID = obj.GetUID()
+					changed.ResourceVersion = obj.GetResourceVersion()
+					Expect(c.Update(ctx, changed)).To(Succeed())
+				}
+				return nil
+			},
+		})
+
+		r := &Reconciler{
+			Client: racingClient, Scheme: scheme.Scheme,
+			recorder: record.NewFakeRecorder(10), AllowGenericTargets: true,
+		}
+		err = r.deleteGenericResource(ctx, logr.Discard(), es)
+
+		By("reporting the conflict the API server raised rather than deleting")
+		Expect(swapped).To(BeTrue(), "the race was never triggered, so nothing was tested")
+		Expect(err).To(HaveOccurred())
+		Expect(apierrors.IsConflict(err)).To(BeTrue(), "expected a delete precondition conflict, got: %v", err)
+
+		By("leaving the replacement untouched")
+		survivor := &v1.ConfigMap{}
+		Expect(k8sClient.Get(ctx, targetKey, survivor)).To(Succeed())
+		Expect(survivor.Data).To(HaveKeyWithValue("owner", replacedBy))
+		Expect(survivor.Data).To(HaveKeyWithValue("keep", replacedData))
+		Expect(survivor.OwnerReferences).To(BeEmpty())
+		if !replaceTarget {
+			Expect(survivor.UID).To(Equal(owned.UID), "ownership changed without replacing the target")
+		}
+	},
+		Entry("target was replaced", true),
+		Entry("ownership changed without replacing the target", false),
+	)
 
 	// Regression coverage for issue #6640: refreshPolicy CreatedOnce tracks its
 	// "once" on the ExternalSecret's own status, not on whether the target Secret

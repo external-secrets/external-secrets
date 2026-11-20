@@ -11,8 +11,16 @@ External Secrets Operator can create and manage resources beyond Kubernetes Secr
 
 This feature must be explicitly enabled in your deployment using the `--unsafe-allow-generic-targets` flag.
 
+!!! warning "Not for Secrets"
+    `spec.target.manifest` cannot name the core `v1` `Secret` kind; both the admission webhook
+    and the controller reject it. To sync into a Secret, leave `spec.target.manifest` unset and
+    use the default Secret target, which applies the Secret-specific validations this path does
+    not. A `Secret` kind in a custom API group is a different resource and remains supported.
+    This is a breaking change: see
+    [Ownership and Deletion Policy](ownership-deletion-policy.md) for the migration.
+
 !!! note "Namespaced Resources Only"
-    With this feature you can only target namespaced resources - and resources can only be managed by an ExternalSecret in the same namespace as the resource.
+    With this feature you can only target namespaced resources - and resources can only be managed by an ExternalSecret in the same namespace as the resource. Templates cannot change the rendered resource's namespace or name; the name must match `spec.target.name` (or the ExternalSecret name when omitted).
 
 !!! note "Performance"
     Using generic targets or custom resources at the moment of this writing is ~20% slower than handling secrets due to certain missing features yet to be implemented.
@@ -100,8 +108,7 @@ Intermediate maps and arrays are created if they don't exist yet, and existing s
 
 ## Drift Detection
 
-The operator automatically detects and corrects manual changes to managed custom resources. If you modify a ConfigMap or custom resource that is managed by an ExternalSecret, the operator will restore it to the desired state immediately.
-This is achieved with informers watching the relevant GVK of the Resource.
+The operator detects manual changes to a target ConfigMap or custom resource using an informer for that resource's GVK. Whether it corrects the change immediately or waits for a refresh depends on `spec.target.creationPolicy`; see the [behavior matrix](ownership-deletion-policy.md#behavior-matrix).
 
 ## Metadata and Labels
 
@@ -111,7 +118,7 @@ You can add labels and annotations to your target resources using the template m
 {% include 'manifest-labeled-configmap.yaml' %}
 ```
 
-The operator automatically adds the `externalsecrets.external-secrets.io/managed: "true"` label to track which resources it manages.
+The operator automatically adds labels to track which resources it manages (See also [behavior matrix](ownership-deletion-policy.md))
 
 ## RBAC Requirements
 
