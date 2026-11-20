@@ -253,6 +253,19 @@ The operator will fetch the IBM Secret Manager secret and inject it as a `Kind=S
 kubectl get secret secret-to-be-created -n <namespace> | -o jsonpath='{.data.test}' | base64 -d
 ```
 
+### Pushing secrets
+
+`PushSecret` can create and update `arbitrary` and `kv` secrets. The API key or trusted profile used by the store needs the `Writer` service role on the Secrets Manager instance. Set `remoteKey` to `<SECRET_GROUP_NAME>/<SECRET_TYPE>/<SECRET_NAME>`; use `default` as the group name for the default secret group. The named secret group must already exist, because the `Writer` role cannot create secret groups. A secret ID can be used instead of a name to update a secret that already exists, but not to create one.
+
+```yaml
+{% include 'ibm-push-secret.yaml' %}
+```
+
+* `arbitrary`: the value of `secretKey` becomes the payload. Without a `secretKey`, the whole Kubernetes secret is pushed as a JSON object. `property` is not supported.
+* `kv`: with a `property`, the value is stored under that key and other keys in the secret are kept, so several PushSecrets can write to one secret. Without a `property`, the value must be a JSON object and replaces the whole secret; without a `secretKey` as well, the whole Kubernetes secret is pushed.
+
+A new secret version is only created when the value changes. Secrets created by ESO carry the custom metadata `managed-by: external-secrets`. ESO will not update a secret without it, and `deletionPolicy: Delete` leaves such a secret alone. When deleting a `kv` property, ESO removes that key and only deletes the secret once its last key is gone.
+
 ### Populating the Kubernetes secret with metadata from IBM Secrets Manager Provider
 ESO can add metadata while creating or updating a Kubernetes secret to be reflected in its labels or annotations. The metadata could be any of the fields that are supported and returned in the response by IBM Secrets Manager. Optional metadata fields, such as a private certificate's `issuer`, are omitted from the provider data map when IBM Secrets Manager does not return them.
 
