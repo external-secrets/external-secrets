@@ -155,7 +155,26 @@ The DVLS provider supports pushing secrets back to DVLS:
 {% include 'dvls-push-secret.yaml' %}
 ```
 
-**Note:** Push secret updates an existing entry's password field. The entry must already exist in DVLS.
+**Note:** Push writes one field of the entry the `remoteKey` addresses: the one its `property` names, or the password when it names none. If that entry does not exist it is created as a `Credential/Default` entry holding only that field; with only the password set, an `ExternalSecret` that sets no `property` reads it back as `password`. A `remoteKey` written as a UUID names one specific existing entry and is never created, and neither is one whose entry name or any folder in its path is a UUID: such a key is refused rather than turned into a folder named after an id. On a store without `vault`, the entry is created in the vault the key's first segment names, so `payments/prod/db-password` creates `prod\db-password` in `payments`. The vault itself must already exist, and a `<vault-uuid>/<entry-uuid>` key still names one existing entry, so a push to a missing one keeps failing as before.
+
+**Note:** A `remoteKey` may name folders, as in `prod/db/postgres-password`. DVLS keeps folders as entries of their own, so any level of that path the vault does not hold yet is created before the entry is, from the root down. Existing folders are reused; only the missing levels are added. A misspelled path therefore leaves the folders it named behind: `deletionPolicy` removes the entry a `PushSecret` created but never its folders, so they have to be cleaned up in DVLS by hand.
+
+**Note:** Creating an entry or a folder needs the application identity to hold **Add** permission on the target folder. Without it a push to a remote key the vault does not have fails with a permission error from the server, while pushes to entries that already exist keep working.
+
+**Note:** Looking an entry up and creating it are two separate calls, so two `PushSecret`s that push to the same missing `remoteKey` at the same moment can both create it. The key then matches two entries and fails with `found 2 credential entries` until one of them is deleted in DVLS. The items of one `PushSecret` are pushed one after another and never race, and neither do separate `PushSecret`s while the controller runs a single worker (`--concurrent=1`, the default). With more workers, push each new `remoteKey` from a single `PushSecret`.
+
+### Pushing a Username and Password
+
+A push that sets `property` to `username`, `password` or `domain` writes that field of a `Credential/Default` entry, and a missing entry is created as one. To store a username and a password together, push each as its own item to the same `remoteKey`:
+
+```yaml
+{% include 'dvls-push-secret-username-password.yaml' %}
+```
+
+- Only the named field changes; the entry's other fields keep their values. An update sends only that field, so items that push different fields of one entry do not undo each other, even with more than one worker.
+- With `updatePolicy: IfNotExists`, each field is checked on its own, so a field the entry does not hold yet is still written after another item has created the entry. An item that sets no `property` checks the password, so it can share a `remoteKey` with items that name the username or domain.
+- `deletionPolicy: Delete` clears only the fields the `PushSecret` pushed, the password for an item that sets no `property`, and deletes the entry once none are left. On an entry of another subtype, an item that sets no `property` deletes the whole entry, as it always has. That deletes the whole entry, its notes and history included, even when the `PushSecret` did not create it, so use it only on entries the `PushSecret` owns.
+- `username` and `domain` exist only on `Credential/Default` entries: pushing them to an entry of another subtype fails rather than overwriting its password. Any other `property` is refused on push. Older versions ignored the property and wrote the value to the password, so on delete any other `property` counts as the password: a `PushSecret` written for an older version can still be deleted, and removes the password it pushed. The same holds for `username` and `domain` on an entry of another subtype, since such an entry has neither. On a `Credential/Default` entry, an item that an older version pushed as `username` or `domain` cannot be told apart from a current one, so deleting it clears that field and leaves the password it wrote; remove that password in DVLS by hand if no other item pushes it.
 
 ## Limitations
 
