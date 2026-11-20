@@ -190,7 +190,7 @@ message GetSecretMapResponse {
 }
 
 message Find {
-  string path                = 1;
+  optional string path       = 1; // unset and "" differ, as v1's *string does
   FindName name              = 2;
   map<string, string> tags   = 3;
   string conversion_strategy = 4;
@@ -275,6 +275,9 @@ message ValidateGeneratorResponse {
 message GenerateRequest {
   ProviderConfigReference provider_config = 1;
   RequestContext context         = 2;
+  // uid of the GeneratorState the core wrote before the call; the same on every
+  // retry. Set for stateful generators only.
+  string operation_id            = 3;
 }
 message GenerateResponse {
   map<string, bytes> data = 1;
@@ -286,7 +289,8 @@ message GenerateResponse {
 message CleanupRequest {
   ProviderConfigReference provider_config = 1;
   RequestContext context         = 2;
-  bytes state                    = 3;
+  bytes state                    = 3; // empty when the Generate response was never recorded
+  string operation_id            = 4; // as sent to Generate
 }
 message CleanupResponse {
   Resolved resolved = 1;
@@ -334,6 +338,11 @@ detail types.
 Transport-level failures (connection refused, TLS handshake failure, the call
 deadline expiring) come back from the gRPC client as `UNAVAILABLE` or
 `DEADLINE_EXCEEDED`, and are handled as the contract says for those codes.
+The one exception is a handshake the provider rejects because of the client
+certificate (a TLS alert from the server such as `bad_certificate`,
+`certificate_required` or `unknown_ca`). The core's client classifies it as
+`UNAUTHENTICATED`, as [PROTOCOL.md](./PROTOCOL.md) "Authentication" requires,
+so a rejected identity is never reported as an unreachable provider.
 
 ## Metadata, deadline, size
 
@@ -490,19 +499,23 @@ context {
   caller_namespace: "team-a"
   credential_namespace: "team-a"
 }
+operation_id: "5d1c9e2a-..."   # uid of the GeneratorState written before the call
 ```
 
 ```textproto
 # GenerateResponse
 data { key: "username" value: "v-app-8f2k" }
 data { key: "password" value: "..." }
-state: "{\"leaseId\":\"database/creds/app/9c1e...\"}"
+state: "{\"address\":\"https://vault.internal:8200\",\"authRef\":\"team-a/vault-approle\",\"leaseId\":\"database/creds/app/9c1e...\"}"
 resolved { credential_namespaces: "team-a"
            provider_uid: "..." provider_generation: 3 }
 ```
 
-The `CleanupRequest` carries the same `provider_config` and `context`, as recorded
-in the `GeneratorState`, plus `state` byte for byte. A lease that has already
+The `CleanupRequest` carries the `provider_config` recorded in the
+`GeneratorState`, a `context` rebuilt from it (without request labels or
+annotations), the same `operation_id`, plus `state` byte for byte.
+`state` is empty when the `Generate` response was never recorded; the provider
+then revokes what it created under `operation_id`. A lease that has already
 expired is not an error: `Cleanup` answers success.
 
 ### Debugging with grpcurl
@@ -512,7 +525,7 @@ grpcurl \
   -import-path proto -proto provider/v1alpha1/provider.proto \
   -cacert ca.crt -cert tls.crt -key tls.key \
   -H 'x-eso-request-id: debug-1' -max-time 30 \
-  -d '{"providerConfig":{"gvkRef":{"apiVersion":"provider.external-secrets.io/v1alpha1","kind":"SecretsManager","namespace":"team-a","name":"aws-prod"}},"context":{"source":{"apiVersion":"external-secrets.io/v1","kind":"SecretStore","namespace":"team-a","name":"aws-prod"},"credentialNamespace":"team-a"},"remoteRef":{"key":"/team-a/prod/db/password"}}' \
+  -d '{"providerConfig":{"gvkRef":{"apiVersion":"provider.external-secrets.io/v1alpha1","kind":"SecretsManager","namespace":"team-a","name":"aws-prod"}},"context":{"request":{"apiVersion":"external-secrets.io/v1","kind":"ExternalSecret","namespace":"team-a","name":"db","uid":"<externalsecret-uid>","generation":"1"},"source":{"apiVersion":"external-secrets.io/v1","kind":"SecretStore","namespace":"team-a","name":"aws-prod","uid":"<secretstore-uid>","generation":"1"},"callerNamespace":"team-a","credentialNamespace":"team-a"},"remoteRef":{"key":"/team-a/prod/db/password"}}' \
   provider-aws.external-secrets-system.svc:8443 \
   externalsecrets.provider.v1alpha1.SecretStoreProvider/GetSecret
 ```

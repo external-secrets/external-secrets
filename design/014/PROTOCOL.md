@@ -226,7 +226,8 @@ Rules both sides follow:
   missing or invalid bearer token gets `Unauthenticated`.
 - **A rejected handshake is an authentication failure.** When the provider
   rejects the client certificate in the handshake, no code comes back. The core
-  classifies that handshake failure as `Unauthenticated`, so the outcome is the
+  classifies that handshake failure (a TLS alert from the server such as
+  `bad_certificate`, `certificate_required` or `unknown_ca`) as `Unauthenticated`, so the outcome is the
   same as for a rejected token (see "Errors"). When the core cannot verify the
   server, it does not send the call, and the runtime config is `Ready=False`
   with reason `TLSConfigFailed`.
@@ -395,29 +396,54 @@ sequenceDiagram
     EC->>K: get Generator team-a/db-creds
     EC->>K: get the runtime config it points at
     EC->>EC: Generator Ready? runtime config Ready?<br/>VaultDynamicSecret in status.generates?
+    EC->>K: create GeneratorState (resource, no state yet)<br/>its uid is the operation id
     Note over EC,P: over the runtime config's authenticated connection (see Authentication)
-    EC->>P: Generator.Generate(providerConfig, context)
+    EC->>P: Generator.Generate(providerConfig, context, operationId)
     P->>P: caller authenticated as the ESO core?<br/>context consistent? authorize (optional)
     P->>K: get VaultDynamicSecret team-a/db-creds, credentials in team-a
     P->>B: read database/creds/app
     B-->>P: username, password, lease id
-    P-->>EC: data{username, password}, state{leaseId}, resolved
-    EC->>K: create GeneratorState (resource, state)
+    P-->>EC: data{username, password},<br/>state{vault address, auth reference, leaseId}, resolved
+    EC->>K: update GeneratorState (state)
     EC->>K: create or update Secret team-a/db
     Note over EC,GC: on the next rotation, or when the ExternalSecret is deleted,<br/>the old GeneratorState gets a garbage-collection deadline
     K-->>GC: GeneratorState past its deadline
-    GC->>P: Generator.Cleanup(providerConfig, context, state)
+    GC->>P: Generator.Cleanup(providerConfig, context, operationId, state)
     P->>P: caller authenticated as the ESO core?
     P->>B: revoke lease
     P-->>GC: ok
     GC->>K: delete GeneratorState
 ```
 
-`Cleanup` uses the `providerConfig` stored in the `GeneratorState` when the
-values were generated, not the current one. Values are therefore revoked by the
-configuration that created them, even if the `Generator` has since been
-edited. If `Cleanup` fails, the `GeneratorState` stays and the controller
+`Cleanup` is sent the `providerConfig` recorded in the `GeneratorState` at
+`Generate` time, not the `Generator`'s current one. That reference only says
+where the configuration lives. In v1 the recorded generator manifest *is* the
+configuration, so the `GeneratorState` snapshot is enough to clean up. Here the
+configuration is a provider-owned object that the core never reads, so the
+snapshot must come from the provider: `State` carries the configuration fields
+`Cleanup` needs (for Vault: the server address, the auth reference and the
+lease id), with credential *references* but never credential values
+(obligation 7). Values are then revoked by the configuration that created them,
+even after that configuration is edited or deleted, as long as the referenced
+credentials still exist. That is v1's guarantee. If `Cleanup` fails, the `GeneratorState` stays and the controller
 retries, as it does in v1.
+
+**Lost responses.** For a `stateful` generator, the core writes the
+`GeneratorState` *before* it calls `Generate`, and sends the object's
+`metadata.uid` as `operationId`. The id is durable: it survives a lost
+response, a timeout and a core restart.
+
+- A `Generate` that fails, for example with `Unavailable` or
+  `DeadlineExceeded`, leaves the `GeneratorState` without state. The next
+  reconcile finds it and calls `Generate` again with the same `operationId`.
+  The provider must not leave a second live generation behind for that id
+  (obligation 7).
+- When a `GeneratorState` that still has no state is garbage-collected (for
+  example, the `ExternalSecret` was deleted), the core calls `Cleanup` with its
+  `operationId` and an empty `state`. The provider revokes whatever it created
+  under that id, or answers success if it created nothing.
+- A generator that is not `stateful` has nothing to revoke. The core writes no
+  `GeneratorState` for it and sends no `operationId`.
 
 ## Data model
 
@@ -480,7 +506,8 @@ type RequestContext struct {
 	// or a PushSecret. A ClusterExternalSecret appears as the ExternalSecret it
 	// created. Nil for Validate and Capabilities, which have no caller. For
 	// Cleanup, it is the owner recorded in the GeneratorState, which may no longer
-	// exist.
+	// exist. Only that reference is recorded, so on Cleanup RequestLabels and
+	// RequestAnnotations are empty: a provider must not authorize Cleanup on them.
 	Request *ObjectReference
 
 	// Source is the object the request resolved through: a SecretStore,
@@ -524,10 +551,11 @@ rejects a context that does not match this table with `InvalidArgument`:
 | --- | --- | --- | --- |
 | `SecretStore` | the store's namespace | the store's namespace | `false` |
 | `ClusterSecretStore` | the store's `providerConfig.gvkRef.namespace` | `CallerNamespace` (empty when validating without a caller) | `true` |
-| `Generator` | the generator's namespace, which is `CallerNamespace` | the generator's namespace | `false` |
-| `ClusterGenerator` | the generator's `providerConfig.gvkRef.namespace` | `CallerNamespace` | `true` |
+| `Generator` | the generator's namespace (equal to `CallerNamespace` when there is a caller) | the generator's namespace | `false` |
+| `ClusterGenerator` | the generator's `providerConfig.gvkRef.namespace` | `CallerNamespace` (empty when validating without a caller) | `true` |
 
-Generators follow the store rows: a `Generator` behaves like a `SecretStore`,
+`Validate` has no caller, so `CallerNamespace` is empty and no column is
+compared with it. Generators follow the store rows: a `Generator` behaves like a `SecretStore`,
 and a `ClusterGenerator` like a `ClusterSecretStore`, referent authentication
 included (P9).
 
@@ -648,7 +676,7 @@ type GetSecretMapResponse struct {
 
 // Find mirrors ExternalSecret.spec.dataFrom[].find.
 type Find struct {
-	Path               string
+	Path               *string // nil and "" differ, as in v1's ExternalSecretFind.Path
 	Name               *FindName
 	Tags               map[string]string
 	ConversionStrategy string
@@ -745,6 +773,12 @@ type ValidateGeneratorResponse struct {
 type GenerateRequest struct {
 	ProviderConfig *ProviderConfigReference // required
 	Context     *RequestContext    // required; Source is the Generator or ClusterGenerator
+
+	// OperationId identifies this generation across retries: the uid of the
+	// GeneratorState the core wrote before the call. Set for stateful
+	// generators, empty otherwise. A repeat with the same id must not leave a
+	// second live generation behind.
+	OperationId string
 }
 
 type GenerateResponse struct {
@@ -752,8 +786,10 @@ type GenerateResponse struct {
 
 	// State is opaque to the core. The core stores it in the GeneratorState and
 	// sends it back unchanged on Cleanup. Empty means there is nothing to clean
-	// up, and Cleanup is never called. It is stored in a Kubernetes object, so
-	// keep it small: an id and an expiry, never the generated secret.
+	// up; the core then deletes the GeneratorState it wrote for the call, and
+	// Cleanup is never called for it. It is stored in a Kubernetes object, so
+	// keep it small: an id, an expiry and the configuration fields Cleanup
+	// needs (obligation 7), never the generated secret or a credential.
 	State []byte
 
 	Resolved *Resolved
@@ -761,8 +797,9 @@ type GenerateResponse struct {
 
 type CleanupRequest struct {
 	ProviderConfig *ProviderConfigReference // required; as recorded at Generate time
-	Context     *RequestContext    // required; as recorded at Generate time
-	State       []byte             // required; exactly what Generate returned
+	Context     *RequestContext    // required; rebuilt from the GeneratorState, without request labels or annotations
+	OperationId string             // as sent to Generate
+	State       []byte             // exactly what Generate returned; empty when its response was never recorded
 }
 
 type CleanupResponse struct {
@@ -880,7 +917,8 @@ For generator calls:
   "`Generator` or `ClusterGenerator`", with the same reasons.
 - A failed `Generate` fails the `ExternalSecret` or `PushSecret` that asked for
   it, as an in-process generator error does today. `NotFound` has no special
-  meaning there.
+  meaning there. The `GeneratorState` written for the call stays without
+  state, and the next reconcile retries with the same `operationId`.
 - A failed `Cleanup` leaves the `GeneratorState` in place, and the controller
   retries it as in v1.
 
@@ -938,15 +976,26 @@ contract version (P5).
    too, as long as nothing is read outside `context.credentialNamespace`.
 3. Reject a `RequestContext` that does not match the table in "Request
    context" with `InvalidArgument`.
-4. Cache backend clients per (`providerUid`, `providerGeneration`, credential
-   namespace). Invalidate on change, and bound their lifetime so that a rotated
+4. Cache backend clients per (`providerUid`, `providerGeneration`,
+   `credentialNamespace`, `allowExplicitCredentialNamespace`). The last member
+   matters: a `SecretStore` and a `ClusterSecretStore` can point at the same
+   configuration with the same credential namespace, but only the cluster
+   store may have built its client from credentials in another namespace.
+   Check the credential-namespace rule on a cache hit as well. Invalidate on change, and bound their lifetime so that a rotated
    credential Secret or ServiceAccount token does not outlive its revocation.
 5. Return `NotFound` for a missing remote secret, and for nothing else.
 6. Advertise capabilities honestly and answer `Unimplemented` for the rest.
    Serve `Describe` and `Check` on every contract version you serve, and the
    Generator service's `Describe` and `Validate` if you generate anything.
-7. Make `Cleanup` idempotent, and put everything it needs into `State` except
-   credentials, which it resolves again.
+7. Make `Cleanup` idempotent, and make `State` a snapshot of everything it
+   needs: the backend identifiers and the configuration fields, so that
+   `Cleanup` still works after the configuration is edited or deleted.
+   Credentials are the exception: `State` holds their references, never their
+   values, and `Cleanup` resolves them again in `credentialNamespace`. Make `Generate` idempotent on
+   `operationId`: a repeat must not leave two live generations, and `Cleanup`
+   with that id and an empty `State` must revoke what was created under it.
+   Tag what you create with the id where the backend allows it; otherwise keep
+   the mapping in storage that survives a provider restart.
 8. Authenticate the core as the runtime config's `auth` says: verify the client
    certificate, validate the bearer token (reserved), or rely on the container
    boundary over IPC. Hot-reload server certificates.
@@ -1021,8 +1070,17 @@ by design, is answered in layers:
      is true, any value is accepted.
    - A mismatch, or a missing `Resolved`, marks the **runtime config** `Ready=False`
      with reason `ContractViolation`, emits a warning event on the object
-     that made the call, and stops calls to that runtime until the runtime config
-     reconciles healthy again.
+     that made the call, and stops calls to that runtime.
+   - Only the runtime config controller lifts that gate. It reconciles a
+     healthy runtime config slowly (once a day by default). After a violation it
+     requeues with exponential backoff instead, capped at that interval, and
+     each requeue reopens the gate for one call. A correct `Resolved` clears
+     `ContractViolation` and resets the backoff; another violation closes the
+     gate again and doubles the delay. A healthy `Check` or `Describe` never
+     lifts it on its own, because neither returns a `Resolved`. The gate backs
+     off rather than latching until an operator steps in, because a violation
+     can be transient: a response corrupted or cut short on the network looks
+     the same as a missing `Resolved`.
    - `providerUid` and `providerGeneration` are logged and put on events. The
      core does not check them, because it never reads the configuration.
 
@@ -1155,8 +1213,9 @@ Negotiation:
 The core retries an operation marked as retried in "Properties of each
 operation" when it gets `Unavailable`, with a short exponential backoff bounded
 by the call deadline. `PushSecret`, `DeleteSecret` and `Generate` are not
-retried by the client; their reconcilers requeue them as they do today.
-Retrying `Generate` blindly would mint credentials that nobody cleans up.
+retried by the client; their reconcilers requeue them as they do today. A
+requeued `Generate` carries the same `operationId`, so a response lost in
+transit does not mint a second set of credentials that nobody cleans up.
 
 ### P8. Authentication is the transport's, authorization is the provider's
 
@@ -1303,8 +1362,11 @@ VaultDynamicSecret`) is provider-owned, like a store's.
   pattern. `generators.external-secrets.io` stays the home of in-process
   generators. `ClusterGenerator` now exists in both groups;
   `generatorRef.apiVersion` tells them apart.
-- **`GeneratorState` is unchanged.** The core stores the opaque state exactly
-  where it stores an in-process generator's state today. The
+- **`GeneratorState` changes in one place.** The core stores the opaque state
+  exactly where it stores an in-process generator's state today, but writes
+  the object before `Generate` so that its uid can serve as the operation id.
+  `spec.state` therefore becomes optional: empty means no response has been
+  recorded yet. The
   `GeneratorState` controller dispatches `Cleanup` by the kind recorded in the
   state's resource.
 - **Generators are validated and have a status.** In-process generators have

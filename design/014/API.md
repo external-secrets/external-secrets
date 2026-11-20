@@ -427,7 +427,8 @@ status:
   #                         not accepted
   #   ContractViolation     a response's Resolved self-report broke the credential-namespace
   #                         rule (PROTOCOL.md "Contract enforcement"); dispatch to this
-  #                         runtime stops until the runtime config reconciles healthy again
+  #                         runtime stops, and the controller reopens it one call at a time
+  #                         with exponential backoff until a call reports a correct Resolved
   - type: Ready
     status: "True"
     reason: Healthy
@@ -937,7 +938,11 @@ What the core does with them:
 - `GeneratorState.spec.resource` records the `Generator` or `ClusterGenerator`
   as it was at `Generate` time, and `GeneratorState.spec.state` records the
   provider's opaque state. `Cleanup` is sent to the runtime and configuration
-  recorded there.
+  recorded there. For a `stateful` generator the core writes the
+  `GeneratorState` before calling `Generate` and uses its uid as the operation
+  id, so a lost response can be retried or cleaned up without minting twice
+  ([PROTOCOL.md](./PROTOCOL.md) "Generating and cleaning up"). The one schema
+  change is that `GeneratorState.spec.state` becomes optional.
 - It is behind the same flag, `--experimental-enable-provider-runtime`. With
   the flag off, a `generatorRef` to either kind fails with
   `ProviderRuntimeDisabled` in the message.

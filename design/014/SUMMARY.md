@@ -81,7 +81,7 @@ sequenceDiagram
 
   Dev->>K8s: ExternalSecret db in team-a (secretStoreRef aws-prod)
   Core->>Prov: GetSecret(key /team-a/prod/db, provider_config, context request=ExternalSecret db, caller_namespace=team-a)
-  Prov->>Prov: optional authorization on RequestContext, cached client for (CR uid, generation, team-a)
+  Prov->>Prov: optional authorization on RequestContext, cached client for (CR uid, generation, team-a, explicit=false)
   Prov->>AWS: GetSecretValue
   AWS-->>Prov: value
   Prov-->>Core: value, Resolved

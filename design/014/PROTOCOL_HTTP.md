@@ -87,6 +87,10 @@ Rules:
 - A field with its default value (empty string, `0`, `false`, empty list or
   map, absent message) may be omitted, and an omitted field means the default.
   `null` also means the default.
+- The exception is a field declared `optional` in the proto (`Find.path`):
+  absent or `null` means unset, and `""` means the empty string. v1 providers
+  treat the two differently (Vault and Parameter Store), so the SDK keeps the
+  difference.
 - **Unknown fields must be ignored** by both sides. This is what makes additive
   changes within a version safe (P5). In Go, `protojson.UnmarshalOptions{DiscardUnknown: true}`,
   which `connect-go` already sets.
@@ -150,6 +154,12 @@ framework default) is mapped from its status code, as Connect specifies:
 A `404` from a path the provider does not route therefore becomes
 `Unimplemented`. That is exactly what version negotiation (P5) expects when the
 core asks for a version the runtime does not serve.
+
+A call that gets no HTTP response at all (connection refused, a TLS handshake
+failure, the deadline expiring) is `Unavailable` or `DeadlineExceeded`. The
+exception is a handshake the provider rejects because of the client
+certificate, which the core classifies as `Unauthenticated`
+([PROTOCOL.md](./PROTOCOL.md) "Authentication").
 
 ## Headers, deadline, connections
 
