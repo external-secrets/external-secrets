@@ -428,6 +428,13 @@ Finally, reference this secret in the `SecretStore` manifest:
 
 In the case of a `ClusterSecretStore`, you additionally have to specify the service account's `namespace` under `auth.secretRef.secretAccessKeySecretRef`.
 
+#### Keys from Google Cloud Dedicated and other non-default universes
+
+Service account keys issued in a non-default universe (for example Google Cloud Dedicated / sovereign clouds) carry a `universe_domain` field other than `googleapis.com`.
+For such keys the OAuth 2.0 token exchange against the key's `token_uri` is not available in every universe, so the provider does not use it. Instead, it signs a JWT locally with the key's private key and uses it directly as the access token (a "self-signed JWT"), the same behavior as Google's own client libraries for non-default universes. No configuration is needed: the provider decides based on the `universe_domain` field of the key.
+
+Keys without a `universe_domain` field, or with `universe_domain: googleapis.com` (all keys from standard Google Cloud), keep using the OAuth 2.0 token exchange exactly as before.
+
 ## Using PushSecret with an existing Google Secret Manager secret
 
 There are some use cases where you want to use PushSecret for an existing Google Secret Manager Secret that already has labels defined. For example when the creation of the secret is managed by another controller like Kubernetes Config Connector (KCC) and the updating of the secret is managed by ESO.
