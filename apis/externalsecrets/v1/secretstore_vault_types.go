@@ -217,8 +217,7 @@ type VaultKubernetesAuth struct {
 
 	// Optional secret field containing a Kubernetes ServiceAccount JWT used
 	// for authenticating with Vault. If a name is specified without a key,
-	// `token` is the default. If one is not specified, the one bound to
-	// the controller will be used.
+	// `token` is the default. One of ServiceAccountRef or SecretRef is required.
 	// +optional
 	SecretRef *esmeta.SecretKeySelector `json:"secretRef,omitempty"`
 

@@ -932,6 +932,14 @@
         "scopedRBAC": {
             "type": "boolean"
         },
+        "security": {
+            "type": "object",
+            "properties": {
+                "unsafeAllowSecretStoreHostAccess": {
+                    "type": "boolean"
+                }
+            }
+        },
         "securityContext": {
             "type": "object",
             "properties": {

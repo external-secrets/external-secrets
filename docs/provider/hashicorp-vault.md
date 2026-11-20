@@ -317,13 +317,13 @@ A static token is stored in a `Kind=Secret` and is used to authenticate with vau
 
 #### Kubernetes authentication
 
-[Kubernetes-native authentication](https://www.vaultproject.io/docs/auth/kubernetes) has three
-options of obtaining credentials for vault:
+[Kubernetes-native authentication](https://www.vaultproject.io/docs/auth/kubernetes) has two
+options for obtaining credentials for Vault:
 
-1.  by using a service account jwt referenced in `serviceAccountRef`
-2.  by using the jwt from a `Kind=Secret` referenced by the `secretRef`
-3.  by using transient credentials from the mounted service account token within the
-    external-secrets operator
+1. by requesting a service account JWT for the `serviceAccountRef`
+2. by using the JWT from a `Kind=Secret` referenced by `secretRef`
+
+One of `serviceAccountRef` or `secretRef` must be configured. The controller's mounted service account token is never used implicitly.
 
 Vault validates the service account token by using the TokenReview API. ⚠️ You have to bind the `system:auth-delegator` ClusterRole to the service account that is used for authentication. Please follow the [Vault documentation](https://developer.hashicorp.com/vault/docs/auth/kubernetes#configuring-kubernetes).
 

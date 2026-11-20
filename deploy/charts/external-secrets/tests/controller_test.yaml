@@ -510,4 +510,11 @@ tests:
       - contains:
           path: spec.template.spec.containers[0].args
           content: "--store-requeue-interval=30s"
+  - it: should pass unsafe host access to the controller when enabled
+    set:
+      security.unsafeAllowSecretStoreHostAccess: true
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].args
+          content: "--unsafe-allow-secretstore-host-access=true"
 

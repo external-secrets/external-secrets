@@ -26,11 +26,13 @@ import (
 	typedcorev1 "k8s.io/client-go/kubernetes/typed/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/feature"
 )
 
 const errUnableCreateK8sSAToken = "cannot create service account token: %q"
@@ -61,7 +63,7 @@ func BuildRESTConfigFromKubernetesConnection(
 		if err != nil {
 			return nil, err
 		}
-		return clientcmd.RESTConfigFromKubeConfig(cfg)
+		return restConfigFromKubeConfig(cfg, feature.HostAccessAllowed(storeKind))
 	}
 
 	if auth == nil {
@@ -96,6 +98,67 @@ func BuildRESTConfigFromKubernetesConnection(
 		return nil, err
 	}
 	return cfg, nil
+}
+
+func restConfigFromKubeConfig(data []byte, allowHostFiles bool) (*rest.Config, error) {
+	cfg, err := clientcmd.Load(data)
+	if err != nil {
+		return nil, err
+	}
+	if err := validateKubeConfigHostAccess(cfg, allowHostFiles); err != nil {
+		return nil, err
+	}
+
+	restCfg, err := clientcmd.NewNonInteractiveClientConfig(*cfg, cfg.CurrentContext, &clientcmd.ConfigOverrides{}, nil).ClientConfig()
+	if err != nil {
+		return nil, err
+	}
+	if !allowHostFiles && (restCfg.BearerTokenFile != "" || restCfg.CAFile != "" || restCfg.CertFile != "" || restCfg.KeyFile != "" || restCfg.ExecProvider != nil || restCfg.AuthProvider != nil) {
+		return nil, errors.New("kubeconfig produced a forbidden controller-host credential source")
+	}
+	return restCfg, nil
+}
+
+func validateKubeConfigHostAccess(cfg *clientcmdapi.Config, allowHostFiles bool) error {
+	for name, cluster := range cfg.Clusters {
+		if cluster != nil && cluster.CertificateAuthority != "" && !allowHostFiles {
+			return fmt.Errorf(
+				"kubeconfig cluster %q uses a certificate-authority file; controller-host files are only supported by ClusterSecretStore or when explicitly enabled by the operator",
+				name,
+			)
+		}
+	}
+	for name, authInfo := range cfg.AuthInfos {
+		if authInfo == nil {
+			continue
+		}
+		if authInfo.Exec != nil {
+			return fmt.Errorf("kubeconfig user %q uses forbidden exec authentication", name)
+		}
+		if authInfo.AuthProvider != nil {
+			return fmt.Errorf("kubeconfig user %q uses forbidden auth-provider authentication", name)
+		}
+		if !allowHostFiles {
+			switch {
+			case authInfo.TokenFile != "":
+				return fmt.Errorf(
+					"kubeconfig user %q uses a token file; controller-host files are only supported by ClusterSecretStore or when explicitly enabled by the operator",
+					name,
+				)
+			case authInfo.ClientCertificate != "":
+				return fmt.Errorf(
+					"kubeconfig user %q uses a client-certificate file; controller-host files are only supported by ClusterSecretStore or when explicitly enabled by the operator",
+					name,
+				)
+			case authInfo.ClientKey != "":
+				return fmt.Errorf(
+					"kubeconfig user %q uses a client-key file; controller-host files are only supported by ClusterSecretStore or when explicitly enabled by the operator",
+					name,
+				)
+			}
+		}
+	}
+	return nil
 }
 
 // applyInlineAuth validates that exactly one auth method is set and populates cfg accordingly.

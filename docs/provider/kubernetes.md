@@ -134,6 +134,8 @@ spec:
 
 It's possible to authenticate against the Kubernetes API using client certificates, a bearer token or service account. The operator enforces that exactly one authentication method is used. You can not use the service account that is mounted inside the operator, this is by design to avoid reading secrets across namespaces.
 
+When using `authRef` with a kubeconfig Secret, inline token and certificate data are supported for namespaced stores. Kubeconfig file fields require `ClusterSecretStore` or the administrator-controlled `security.unsafeAllowSecretStoreHostAccess` setting. Kubeconfig `exec` and `auth-provider` authentication are prohibited.
+
 **NOTE:** `SelfSubjectRulesReview` permission is required in order to validation work properly. Please use the following role as reference:
 
 ```yaml
