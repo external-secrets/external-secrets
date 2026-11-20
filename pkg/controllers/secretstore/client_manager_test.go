@@ -18,6 +18,9 @@ package secretstore
 
 import (
 	"context"
+	"fmt"
+	"regexp"
+	"sync"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -33,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	"github.com/external-secrets/external-secrets/runtime/cache"
 )
 
 func TestManagerGet(t *testing.T) {
@@ -435,6 +439,139 @@ func TestShouldProcessSecret(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+// resetNamespaceRegexCache swaps in an empty cache for the test, so results do not depend on run order.
+func resetNamespaceRegexCache(t *testing.T) {
+	t.Helper()
+	orig := namespaceRegexCache
+	namespaceRegexCache = cache.Must[*regexp.Regexp](namespaceRegexCacheSize, nil)
+	t.Cleanup(func() { namespaceRegexCache = orig })
+}
+
+func TestMatchNamespaceRegex(t *testing.T) {
+	resetNamespaceRegexCache(t)
+
+	patterns := []string{`test-*`, `^test-a$`, `^prod-[a-z]+$`, `nope`, `(`, `[a-`, `a{2,1}`, ``}
+	namespaces := []string{"test-a", "test-b", "prod-x", "other", ""}
+
+	// The first pass compiles, the second pass is served from the cache.
+	// compiled holds the regexp each valid pattern had after its first call, so a later
+	// call that recompiles instead of hitting the cache is caught by pointer equality.
+	compiled := map[string]*regexp.Regexp{}
+	for pass := range 2 {
+		for _, pattern := range patterns {
+			for _, ns := range namespaces {
+				want, wantErr := regexp.MatchString(pattern, ns)
+				got, err := matchNamespaceRegex(pattern, ns)
+				assert.Equal(t, want, got, "pass %d pattern %q namespace %q", pass, pattern, ns)
+				re, found := namespaceRegexCache.Get("", cache.Key{Name: pattern})
+				if wantErr != nil {
+					assert.EqualError(t, err, wantErr.Error(), "pass %d pattern %q", pass, pattern)
+					assert.False(t, found, "invalid pattern %q must not be cached", pattern)
+					continue
+				}
+				assert.NoError(t, err, "pass %d pattern %q", pass, pattern)
+				require.True(t, found, "pass %d pattern %q must be cached after a call", pass, pattern)
+				if first, seen := compiled[pattern]; seen {
+					assert.Same(t, first, re, "pass %d pattern %q namespace %q: cached regexp was replaced", pass, pattern, ns)
+				}
+				compiled[pattern] = re
+			}
+		}
+	}
+}
+
+func TestShouldProcessSecretUsesRegexCache(t *testing.T) {
+	resetNamespaceRegexCache(t)
+
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(esv1.AddToScheme(scheme))
+
+	pattern := `^test-a$`
+	namespace := &corev1.Namespace{Name: "test-a"}
+	store := &esv1.ClusterSecretStore{
+		Kind: esv1.ClusterSecretStoreKind,
+		Spec: esv1.SecretStoreSpec{
+			Conditions: []esv1.ClusterSecretStoreCondition{{NamespaceRegexes: []string{pattern}}},
+		},
+	}
+	mgr := &Manager{
+		log:    logr.Discard(),
+		client: fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(namespace).Build(),
+	}
+
+	require.False(t, namespaceRegexCache.Contains(cache.Key{Name: pattern}))
+	got, err := mgr.shouldProcessSecret(store, namespace.Name)
+	require.NoError(t, err)
+	assert.True(t, got)
+	assert.True(t, namespaceRegexCache.Contains(cache.Key{Name: pattern}), "shouldProcessSecret must compile namespaceRegexes through the cache")
+}
+
+func TestShouldProcessSecretInvalidRegex(t *testing.T) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(esv1.AddToScheme(scheme))
+
+	namespace := &corev1.Namespace{Name: "test-a"}
+	store := &esv1.ClusterSecretStore{
+		Kind: esv1.ClusterSecretStoreKind,
+		Spec: esv1.SecretStoreSpec{
+			Conditions: []esv1.ClusterSecretStoreCondition{{NamespaceRegexes: []string{`nope`, `(`}}},
+		},
+	}
+	mgr := &Manager{
+		log:    logr.Discard(),
+		client: fakeclient.NewClientBuilder().WithScheme(scheme).WithObjects(namespace).Build(),
+	}
+
+	_, matchErr := regexp.MatchString(`(`, namespace.Name)
+	want := fmt.Sprintf("failed to compile regex %v: %v", `(`, matchErr)
+	for range 2 {
+		got, err := mgr.shouldProcessSecret(store, namespace.Name)
+		require.EqualError(t, err, want)
+		assert.False(t, got)
+	}
+}
+
+func TestNamespaceRegexCacheEvictsOldestPattern(t *testing.T) {
+	resetNamespaceRegexCache(t)
+
+	require.NoError(t, SetNamespaceRegexCacheSize(2))
+	require.EqualError(t, SetNamespaceRegexCacheSize(0), "invalid --namespace-regex-cache-size 0: unable to create lru: must provide a positive size")
+	require.EqualError(t, SetNamespaceRegexCacheSize(-1), "invalid --namespace-regex-cache-size -1: unable to create lru: must provide a positive size")
+
+	first := cache.Key{Name: "^ns-0$"}
+	second := cache.Key{Name: "^ns-1$"}
+	var last cache.Key
+	for i := range 3 {
+		last = cache.Key{Name: fmt.Sprintf("^ns-%d$", i)}
+		got, err := matchNamespaceRegex(last.Name, fmt.Sprintf("ns-%d", i))
+		require.NoError(t, err)
+		assert.True(t, got)
+	}
+
+	assert.False(t, namespaceRegexCache.Contains(first), "oldest pattern must be evicted once the bound is exceeded")
+	assert.True(t, namespaceRegexCache.Contains(second), "only the oldest pattern must be evicted")
+	assert.True(t, namespaceRegexCache.Contains(last), "latest pattern must be cached")
+}
+
+func TestMatchNamespaceRegexConcurrent(t *testing.T) {
+	resetNamespaceRegexCache(t)
+
+	var wg sync.WaitGroup
+	for range 4 {
+		wg.Go(func() {
+			for i := range 2 * namespaceRegexCacheSize {
+				pattern := fmt.Sprintf("^ns-%d$", i)
+				got, err := matchNamespaceRegex(pattern, fmt.Sprintf("ns-%d", i))
+				assert.NoError(t, err)
+				assert.True(t, got)
+			}
+		})
+	}
+	wg.Wait()
 }
 
 type WrapProvider struct {
