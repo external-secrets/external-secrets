@@ -21,7 +21,7 @@ interactions:
         proto: HTTP/1.1
         proto_major: 1
         proto_minor: 1
-        content_length: 336
+        content_length: 434
         body: |-
             {
               "auth": null,
@@ -48,7 +48,7 @@ interactions:
             Cache-Control:
                 - no-store
             Content-Length:
-                - "336"
+                - "434"
             Content-Type:
                 - application/json
             Strict-Transport-Security:
@@ -75,7 +75,7 @@ interactions:
         proto: HTTP/1.1
         proto_major: 1
         proto_minor: 1
-        content_length: 511
+        content_length: 647
         body: |-
             {
               "auth": {
@@ -112,7 +112,7 @@ interactions:
             Cache-Control:
                 - no-store
             Content-Length:
-                - "511"
+                - "647"
             Content-Type:
                 - application/json
             Strict-Transport-Security:
@@ -140,7 +140,7 @@ interactions:
         proto: HTTP/1.1
         proto_major: 1
         proto_minor: 1
-        content_length: 336
+        content_length: 434
         body: |-
             {
               "auth": null,
@@ -167,7 +167,7 @@ interactions:
             Cache-Control:
                 - no-store
             Content-Length:
-                - "336"
+                - "434"
             Content-Type:
                 - application/json
             Strict-Transport-Security:
