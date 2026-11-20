@@ -171,7 +171,7 @@ func (p *Provider) DeleteSecret(ctx context.Context, remoteRef esv1.PushSecretRe
 			SecretPath:  secretPath,
 			SecretKey:   name,
 		})
-		metrics.ObserveAPICall(constants.ProviderName, deleteSecretV3, derr)
+		p.observeAPICall(deleteSecretV3, derr)
 		return derr
 	})
 	if err != nil {
@@ -242,7 +242,7 @@ func (p *Provider) fetchExisting(secretPath, name string) (string, bool, error) 
 		SecretPath:             secretPath,
 		ExpandSecretReferences: p.apiScope.ExpandSecretReferences,
 	})
-	metrics.ObserveAPICall(constants.ProviderName, getSecretByKeyV3, err)
+	p.observeAPICall(getSecretByKeyV3, err)
 	if err != nil {
 		if isNotFoundError(err) {
 			return "", false, nil
@@ -263,7 +263,7 @@ func (p *Provider) createSecret(projectID, secretPath, name, value string) error
 		SecretValue:           value,
 		SkipMultiLineEncoding: true,
 	})
-	metrics.ObserveAPICall(constants.ProviderName, createSecretV3, err)
+	p.observeAPICall(createSecretV3, err)
 	if err != nil {
 		return fmt.Errorf("failed to create secret %q: %w", name, err)
 	}
@@ -281,7 +281,7 @@ func (p *Provider) updateSecret(projectID, secretPath, name, value string) error
 		NewSecretValue:           value,
 		NewSkipMultilineEncoding: true,
 	})
-	metrics.ObserveAPICall(constants.ProviderName, updateSecretV3, err)
+	p.observeAPICall(updateSecretV3, err)
 	if err != nil {
 		return fmt.Errorf("failed to update secret %q: %w", name, err)
 	}
@@ -410,6 +410,9 @@ func (p *Provider) lookupProjectID(ctx context.Context, client *http.Client, tok
 	}
 	defer func() { _ = resp.Body.Close() }()
 
+	if resp.StatusCode == http.StatusUnauthorized {
+		accessTokenCache.invalidateToken(token)
+	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", false, err
