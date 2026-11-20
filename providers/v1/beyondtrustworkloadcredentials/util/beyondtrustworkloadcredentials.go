@@ -56,14 +56,9 @@ type KVListItem struct {
 	Versions []VersionInfo   `json:"versions,omitempty"`
 }
 
-// GeneratedSecret represents a dynamically generated secret response.
-type GeneratedSecret struct {
-	AccessKeyID     string `json:"accessKeyId"`
-	SecretAccessKey string `json:"secretAccessKey"`
-	SessionToken    string `json:"sessionToken,omitempty"`
-	LeaseID         string `json:"leaseId"`
-	Expiration      string `json:"expiration"`
-}
+// GeneratedSecret is the secret object of a dynamically generated secret response, keyed by field name.
+// Its shape depends on the dynamic secret definition, e.g. accessKeyId and secretAccessKey for AWS.
+type GeneratedSecret map[string]any
 
 // Client defines the interface for a BeyondtrustWorkloadCredentials client with methods for secret operations.
 type Client interface {
@@ -72,5 +67,5 @@ type Client interface {
 	CheckSession(ctx context.Context) error
 	GetSecret(ctx context.Context, name string, folderPath *string) (*KV, error)
 	GetSecrets(ctx context.Context, folderPath *string, recursive bool) ([]KVListItem, error)
-	GenerateDynamicSecret(ctx context.Context, name string, folderPath *string) (*GeneratedSecret, error)
+	GenerateDynamicSecret(ctx context.Context, name string, folderPath *string) (GeneratedSecret, error)
 }

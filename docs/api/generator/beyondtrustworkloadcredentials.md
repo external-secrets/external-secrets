@@ -38,7 +38,7 @@ spec:
 ```
 ### Generated Secret Fields
 
-The generator maps the AWS-style fields returned by the BeyondTrust Workload Credentials dynamic-secret endpoint. The target Kubernetes secret always receives `accessKeyId`, `secretAccessKey`, `leaseId`, and `expiration`, plus `sessionToken` when the response includes one:
+The generator writes every field returned by the BeyondTrust Workload Credentials dynamic-secret endpoint to its own key in the target Kubernetes secret. String values are stored as-is, other values (numbers, booleans, objects, arrays) are stored as JSON, and `null` values are skipped. For an AWS dynamic secret, the target Kubernetes secret receives:
 
 ```yaml
 stringData:
@@ -49,7 +49,7 @@ stringData:
   expiration: 2025-12-29T22:35:29Z
 ```
 
-Only these fields are populated. Dynamic-secret definitions that return a different shape are not yet mapped to additional keys.
+A dynamic secret that returns other fields, such as `username` and `password`, gets those keys instead.
 
 ### Credential Refresh and Expiration
 **Important:** External Secrets Operator does NOT automatically handle credential expiration/TTL from BeyondTrust Workload Credentials. The refresh is controlled solely by the `refreshInterval` specified in the ExternalSecret spec.

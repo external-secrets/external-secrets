@@ -19,10 +19,12 @@ limitations under the License.
 package httpclient
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -270,7 +272,7 @@ func (c *Client) GetSecrets(ctx context.Context, folderPath *string, recursive b
 }
 
 // GenerateDynamicSecret calls the dynamic secret generation endpoint.
-func (c *Client) GenerateDynamicSecret(ctx context.Context, secretName string, folderPath *string) (*btwcutil.GeneratedSecret, error) {
+func (c *Client) GenerateDynamicSecret(ctx context.Context, secretName string, folderPath *string) (btwcutil.GeneratedSecret, error) {
 	path := formatPath(folderPath)
 
 	endpoint := fmt.Sprintf("%s/dynamic/%s/generate", c.baseURL.String(), url.PathEscape(secretName))
@@ -302,10 +304,20 @@ func (c *Client) GenerateDynamicSecret(ctx context.Context, secretName string, f
 		var wrapped struct {
 			Secret btwcutil.GeneratedSecret `json:"secret"`
 		}
-		if err := json.Unmarshal(body, &wrapped); err != nil {
+		// UseNumber keeps numbers as their original literal, so large integers are not rounded through float64.
+		decoder := json.NewDecoder(bytes.NewReader(body))
+		decoder.UseNumber()
+		if err := decoder.Decode(&wrapped); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal generated secret response: %w", err)
 		}
-		return &wrapped.Secret, nil
+		// Decode stops after the first JSON value, so reject anything after it like json.Unmarshal does.
+		if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
+			return nil, fmt.Errorf("failed to unmarshal generated secret response: unexpected data after the JSON object")
+		}
+		if len(wrapped.Secret) == 0 {
+			return nil, fmt.Errorf("generated secret response contains no secret")
+		}
+		return wrapped.Secret, nil
 	}
 
 	return nil, parseError(body, resp.StatusCode, path)
