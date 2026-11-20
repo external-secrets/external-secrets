@@ -802,6 +802,44 @@ func TestPushSecret(t *testing.T) {
 			},
 		},
 		{
+			desc: "regional secrets with a regional cmekKeyName do not fail the global-location validation",
+			args: args{
+				store: &esv1.GCPSMProvider{ProjectID: smtc.projectID, Location: "us-east1"},
+				mock:  &fakesm.MockSMClient{}, // the mock should NOT be shared between test cases
+				Metadata: &apiextensionsv1.JSON{
+					Raw: []byte(`{
+						"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+						"kind": "PushSecretMetadata",
+						"spec": {
+							"cmekKeyName": "projects/default/locations/us-east1/keyRings/my-keyring/cryptoKeys/my-key"
+						}
+					}`),
+				},
+				GetSecretMockReturn: fakesm.SecretMockReturn{Secret: nil, Err: notFoundError},
+				CreateSecretMockReturn: fakesm.SecretMockReturn{Secret: &secretmanagerpb.Secret{
+					Name: "projects/default/secrets/bangg",
+					Labels: map[string]string{
+						managedBy: externalSecrets,
+					},
+				}, Err: nil},
+				AccessSecretVersionMockReturn: fakesm.AccessSecretVersionMockReturn{Res: &res, Err: nil},
+				AddSecretVersionMockReturn:    fakesm.AddSecretVersionMockReturn{SecretVersion: &secretVersion, Err: nil},
+			},
+			want: want{
+				err: nil,
+				req: func(m *fakesm.MockSMClient) error {
+					req, ok := m.CreateSecretCalledWithN[0]
+					if !ok {
+						return errors.New(errCallNotFoundAtIndex0)
+					}
+					if req.Secret.Replication != nil {
+						return errors.New("expected no replication - found something")
+					}
+					return nil
+				},
+			},
+		},
+		{
 			desc: "SetSecret successfully pushes a secret with topics",
 			args: args{
 				Metadata: &apiextensionsv1.JSON{
