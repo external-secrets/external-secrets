@@ -93,7 +93,7 @@ The supported auth-methods and their parameters are:
 
 | accessType     | accessTypeParam                    |
 | -------------- | ---------------------------------- |
-| `aws_iam`      | -                                  |
+| `aws_iam`      | - (optionally `serviceAccountRef`) |
 | `gcp`          | The GCP audience                   |
 | `azure_ad`     | Azure object ID (optional)         |
 | `api_key`      | The access key                     |
@@ -101,13 +101,39 @@ The supported auth-methods and their parameters are:
 | `k8s`          | The k8s configuration name         |
 | `jwt`          | The bearer JWT                     |
 
-For `azure_ad` on AKS Workload Identity, set `authSecretRef.serviceAccountRef` to a ServiceAccount annotated with `azure.workload.identity/client-id` and `azure.workload.identity/tenant-id`. This field is only used when `accessType` is `azure_ad`; other access types ignore it.
+For `azure_ad` on AKS Workload Identity, set `authSecretRef.serviceAccountRef` to a ServiceAccount annotated with `azure.workload.identity/client-id` and `azure.workload.identity/tenant-id`. This field is only used when `accessType` is `azure_ad` or `aws_iam`; other access types ignore it.
 
 ```yaml
 {% include 'akeyless-secret-store-azure-ad-wi.yaml' %}
 ```
 
 For `ClusterSecretStore`, set `serviceAccountRef.namespace` when the ServiceAccount is not in the same namespace as the consuming `ExternalSecret`; otherwise the ServiceAccount is resolved from that namespace. Sovereign Azure clouds (US Government, China) are supported when `AZURE_ENVIRONMENT` or `AZURE_CLOUD` is set accordingly, matching the non-WI `GetCloudId` path.
+
+#### aws_iam on EKS with IAM Roles for Service Accounts (IRSA)
+
+By default, `aws_iam` authenticates with the AWS identity of the ESO controller pod, so every SecretStore appears in Akeyless as the same IAM role. To give each SecretStore its own identity, set `authSecretRef.serviceAccountRef` to a ServiceAccount annotated with `eks.amazonaws.com/role-arn`. ESO then:
+
+1. Requests a token for that ServiceAccount via the TokenRequest API, with audience `sts.amazonaws.com` (or the value of the `eks.amazonaws.com/audience` annotation).
+2. Calls `AssumeRoleWithWebIdentity` for the annotated role.
+3. Uses the resulting temporary credentials to authenticate to the Akeyless AWS IAM auth method.
+
+```yaml
+{% include 'akeyless-secret-store-aws-iam-irsa.yaml' %}
+```
+
+Requirements:
+
+- The IAM role's trust policy must allow `sts:AssumeRoleWithWebIdentity` from the cluster's OIDC provider for the subject `system:serviceaccount:<namespace>:<serviceaccount>`.
+- The Akeyless AWS IAM auth method referenced by `accessID` must be bound to that role (for example with `bound-role-name` or `bound-arn`).
+- The ESO controller needs `get` on `serviceaccounts` (to read the role annotation) and `create` on `serviceaccounts/token`. The Helm chart grants both by default (`create` is controlled by `rbac.serviceAccountTokenCreate: true`); a custom role must grant both.
+- STS is called in the controller's `AWS_REGION`. If it is not set, ESO uses the default region of the role's partition: `us-east-1` for `aws`, `us-gov-west-1` for `aws-us-gov` and `cn-north-1` for `aws-cn`. For any other partition, set `AWS_REGION` on the ESO controller.
+
+The STS session name is `eso-akeyless-<namespace>-<serviceaccount>`. Names longer than the STS limit of 64 characters are shortened and end in a hash of the namespace and ServiceAccount. Shorter names are not hashed, so different namespace and ServiceAccount pairs can produce the same session name (for example `a-b`/`c` and `a`/`b-c`). Use the role ARN together with the session name to attribute events when ServiceAccounts share a role.
+
+!!! note "Upgrading"
+    Before this release, `serviceAccountRef` was ignored for `aws_iam`. A store that already sets `serviceAccountRef` together with `accessType: aws_iam` will now authenticate as that ServiceAccount's IAM role instead of the controller's. Remove `serviceAccountRef` from such stores before upgrading if you want to keep the controller identity.
+
+A `SecretStore` can only reference a ServiceAccount in its own namespace. For a `ClusterSecretStore`, set `serviceAccountRef.namespace`; otherwise the ServiceAccount is resolved from the namespace of the consuming `ExternalSecret`. If `serviceAccountRef` is not set, the controller pod identity is used as before. EKS Pod Identity associations are not used on this path because they are not exposed through the ServiceAccount.
 
 For more information see [Akeyless Authentication Methods](https://docs.akeyless.io/docs/access-and-authentication-methods)
 
