@@ -151,7 +151,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	if useCache {
-		oidcClientCache.Add(store.GetObjectMeta().ResourceVersion, key, client)
+		oidcClientCache.ContainsOrAdd(store.GetObjectMeta().ResourceVersion, key, client)
 	}
 
 	return client, nil
