@@ -180,6 +180,55 @@ The provider inserts the secret to be retrieved in the object named `remoteRef`.
 In addition, secrets can be added as named objects, for example to use in authorization headers.
 Each secret has a `name` property which determines the name of the object in the templating engine.
 
+#### Requesting ExternalSecret metadata
+
+During resolution of an `ExternalSecret`, templates can access its
+`metadata.name`, `metadata.namespace`, and `metadata.labels` through
+`externalSecret`. This is the requesting resource, not the generated Kubernetes
+Secret or the remote secret. Namespace labels, annotations, and secret values are
+not included.
+
+Store administrators explicitly choose which metadata to send. Nothing is
+automatically added to requests:
+
+```yaml
+{% raw %}
+spec:
+  provider:
+    webhook:
+      headers:
+        X-ExternalSecret-Name: '{{ .externalSecret.name }}'
+        X-ExternalSecret-Namespace: '{{ .externalSecret.namespace }}'
+        X-Application: '{{ index .externalSecret.labels "example.com/application" }}'
+{%- endraw %}
+```
+
+Metadata is available for both `spec.data` and `spec.dataFrom.extract`, as well as
+a Webhook generator invoked by an `ExternalSecret`. Values used in URL templates
+are URL-escaped; headers and bodies receive their original values. JSON bodies
+must use appropriate JSON encoding, such as `toJson`.
+
+The labels map is empty when the resource has no labels. Looking up an absent
+label with `index` returns an empty string. Backends must reject missing values
+when their policies require a label.
+
+Without an associated `ExternalSecret`, `externalSecret` is nil; accessing its
+fields fails template evaluation. Optional use can be guarded with
+`{% raw %}{{ with .externalSecret }}...{{ end }}{% endraw %}`.
+The metadata is not exposed for `PushSecret` operations. Store validation does
+not have a requesting resource and does not render this metadata.
+
+For backward compatibility, a secret alias named `externalSecret` takes
+precedence over the new metadata object. Rename that alias before using
+requesting-resource metadata.
+
+!!! warning
+    Metadata is supplementary policy input, not authentication or proof of
+    workload identity. A user who can edit an `ExternalSecret` may also change
+    its labels. Authenticate webhook requests independently and validate labels
+    against backend-controlled information or enforce appropriate admission
+    policies before relying on them for authorization.
+
 ### All Parameters
 
 ```yaml

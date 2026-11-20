@@ -33,7 +33,50 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
+
+func TestWebhookExternalSecretMetadataJSONPath(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"payload":{"password":"value"}}`))
+	}))
+	defer server.Close()
+
+	store := &esv1.SecretStore{
+		Spec: esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{
+			Webhook: &esv1.WebhookProvider{
+				URL:    server.URL,
+				Result: esv1.WebhookResult{JSONPath: `$.{{ index .externalSecret.labels "example.com/field" }}`},
+			},
+		}},
+	}
+	ctx := esutils.WithExternalSecretMetadata(context.Background(), &esv1.ExternalSecret{
+		Name: "payments", Namespace: "apps",
+		Labels: map[string]string{"example.com/field": "payload"},
+	})
+	client, err := NewProvider().NewClient(ctx, store, nil, "apps")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := client.Close(ctx); err != nil {
+			t.Error(err)
+		}
+	})
+	ref := esv1.ExternalSecretDataRemoteRef{Key: "key"}
+	t.Run("single secret", func(t *testing.T) {
+		got, err := client.GetSecret(ctx, ref)
+		if err != nil || string(got) != `{"password":"value"}` {
+			t.Fatalf("GetSecret() = %q, error = %v, want selected payload", got, err)
+		}
+	})
+	t.Run("secret map", func(t *testing.T) {
+		got, err := client.GetSecretMap(ctx, ref)
+		if err != nil || string(got["password"]) != "value" {
+			t.Fatalf("GetSecretMap() = %v, error = %v, want selected payload", got, err)
+		}
+	})
+}
 
 type testCase struct {
 	Case string `json:"case,omitempty"`
