@@ -598,3 +598,70 @@ tests:
             initialDelaySeconds: 5
             periodSeconds: 15
             failureThreshold: 40
+  - it: should add a preStop sleep by default
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle
+          value:
+            preStop:
+              sleep:
+                seconds: 10
+  - it: should use the configured preStop sleep
+    set:
+      webhook.lifecycle.preStop.sleep.seconds: 5
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle.preStop.sleep.seconds
+          value: 5
+  - it: should not add lifecycle hooks when lifecycle is null
+    set:
+      webhook.lifecycle: null
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - notExists:
+          path: spec.template.spec.containers[0].lifecycle
+  - it: should replace the default preStop sleep with a configured hook
+    set:
+      webhook.lifecycle.preStop:
+        sleep: null
+        exec:
+          command: ["/bin/sleep", "15"]
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.containers[0].lifecycle
+          value:
+            preStop:
+              exec:
+                command: ["/bin/sleep", "15"]
+  - it: should default terminationGracePeriodSeconds to 30
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 30
+  - it: should set terminationGracePeriodSeconds
+    set:
+      webhook.terminationGracePeriodSeconds: 60
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 60
+  - it: should set terminationGracePeriodSeconds to 0
+    set:
+      webhook.terminationGracePeriodSeconds: 0
+    templates:
+      - webhook-deployment.yaml
+    asserts:
+      - equal:
+          path: spec.template.spec.terminationGracePeriodSeconds
+          value: 0
