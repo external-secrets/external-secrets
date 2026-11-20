@@ -775,6 +775,33 @@ func TestProvider_CustomCA(t *testing.T) {
 	}
 }
 
+func TestProvider_Headers(t *testing.T) {
+	RegisterTestingT(t)
+
+	kube, provider := setupProvider(t, &corev1.Secret{
+		Name:      "bao-token",
+		Namespace: "default",
+		Data: map[string][]byte{
+			"token": []byte("root"),
+		},
+	})
+	store := makeValidSecretStoreWithVersion(esv1.OpenBaoKVStoreV2)
+	store.Spec.Provider.OpenBao.Headers = map[string]string{
+		"X-Custom-Header":  "custom-value",
+		"X-Another-Header": "another-value",
+	}
+
+	client, err := provider.NewClient(t.Context(), store, kube, "default")
+	Expect(err).NotTo(HaveOccurred())
+	Expect(client).NotTo(BeNil())
+	t.Cleanup(func() {
+		client.Close(t.Context())
+	})
+
+	_, err = client.GetSecret(t.Context(), esv1.ExternalSecretDataRemoteRef{Key: "foo"})
+	Expect(err).NotTo(HaveOccurred())
+}
+
 func setupClient(t *testing.T, v esv1.OpenBaoKVStoreVersion) esv1.SecretsClient {
 	kube, provider := setupProvider(t, &corev1.Secret{
 		Name:      "bao-token",
