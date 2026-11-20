@@ -44,7 +44,7 @@ flowchart LR
   ES["ExternalSecret"] --> CORE["ESO controller"]
   CORE -- "reads" --> SS["SecretStore<br/>runtimeRef + providerConfig"]
   SS -. "runtimeRef" .-> PC["ClusterRuntimeConfig<br/>endpoint, tls, auth"]
-  CORE == "gRPC over mTLS<br/>provider_ref + RequestContext" ==> PROV["provider-aws pod"]
+  CORE == "gRPC over mTLS<br/>provider_config + RequestContext" ==> PROV["provider-aws pod"]
   PROV -- "loads" --> CR["SecretsManager CR<br/>(provider-owned CRD)"]
   PROV -- "AWS SDK" --> AWS[("AWS Secrets Manager")]
   AWS -- "values" --> PROV
@@ -73,15 +73,15 @@ sequenceDiagram
   Tenant->>K8s: SecretsManager aws-prod in team-a (region, role, serviceAccountRef app-secrets)
   Tenant->>K8s: SecretStore aws-prod in team-a (runtimeRef aws, providerConfig aws-prod)
   Core->>K8s: resolve runtime config and scope rules (CEL already accepted the objects)
-  Core->>Prov: Validate(provider_ref team-a/aws-prod, context credential_namespace=team-a)
+  Core->>Prov: Validate(provider_config team-a/aws-prod, context credential_namespace=team-a)
   Prov->>K8s: get SecretsManager team-a/aws-prod, token for team-a/app-secrets
   Prov->>AWS: probe credentials
   Prov-->>Core: VALID, Resolved credential_namespaces=[team-a]
   Core->>K8s: SecretStore aws-prod status: Ready=True, capabilities ReadWrite
 
   Dev->>K8s: ExternalSecret db in team-a (secretStoreRef aws-prod)
-  Core->>Prov: GetSecret(key /team-a/prod/db, provider_ref, context request=ExternalSecret db, caller_namespace=team-a)
-  Prov->>Prov: optional authorization on RequestContext, cached client for (CR uid, generation, team-a)
+  Core->>Prov: GetSecret(key /team-a/prod/db, provider_config, context request=ExternalSecret db, caller_namespace=team-a)
+  Prov->>Prov: optional authorization on RequestContext, cached client for (CR uid, generation, team-a, explicit=false)
   Prov->>AWS: GetSecretValue
   AWS-->>Prov: value
   Prov-->>Core: value, Resolved
