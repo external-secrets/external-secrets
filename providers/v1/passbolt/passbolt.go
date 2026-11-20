@@ -118,8 +118,9 @@ func (provider *ProviderPassbolt) NewClient(ctx context.Context, store esv1.Gene
 		log.V(1).Info("prefetch caches failed (non-fatal)", "error", err)
 	}
 
-	provider.client = client
-	return provider, nil
+	// The registered provider is shared by every caller, so each client gets its own
+	// instance: Close must only log out the session it was created with.
+	return &ProviderPassbolt{client: client}, nil
 }
 
 // SecretExists checks if a secret exists in Passbolt.
