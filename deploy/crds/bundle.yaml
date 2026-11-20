@@ -3632,8 +3632,10 @@ spec:
                         auth:
                           description: |-
                             Auth configures how the Operator authenticates with the BeyondTrust Workload Credentials API.
-                            Currently supports API key authentication via Kubernetes secret reference.
+                            Supports API key authentication via Kubernetes secret reference, or OIDC via a Kubernetes ServiceAccount token.
                             For authentication setup, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             apikey:
                               description: |-
@@ -3673,8 +3675,49 @@ spec:
                               required:
                                 - token
                               type: object
-                          required:
-                            - apikey
+                            oidc:
+                              description: OIDC configures workload identity authentication using a Kubernetes ServiceAccount token.
+                              properties:
+                                serviceAccountRef:
+                                  description: |-
+                                    ServiceAccountRef specifies the Kubernetes ServiceAccount for which a token is requested
+                                    with the TokenRequest API. If no audiences are set, the token audience defaults to the site ID.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                                serviceName:
+                                  description: |-
+                                    ServiceName is the service name specified when creating the OIDC issuer registration
+                                    in BeyondTrust Pathfinder Platform. It is sent in the X-BT-Service-Name header.
+                                  pattern: ^[A-Za-z0-9_-]+$
+                                  type: string
+                              required:
+                                - serviceAccountRef
+                                - serviceName
+                              type: object
                           type: object
                         caBundle:
                           description: |-
@@ -17404,8 +17447,10 @@ spec:
                         auth:
                           description: |-
                             Auth configures how the Operator authenticates with the BeyondTrust Workload Credentials API.
-                            Currently supports API key authentication via Kubernetes secret reference.
+                            Supports API key authentication via Kubernetes secret reference, or OIDC via a Kubernetes ServiceAccount token.
                             For authentication setup, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
+                          maxProperties: 1
+                          minProperties: 1
                           properties:
                             apikey:
                               description: |-
@@ -17445,8 +17490,49 @@ spec:
                               required:
                                 - token
                               type: object
-                          required:
-                            - apikey
+                            oidc:
+                              description: OIDC configures workload identity authentication using a Kubernetes ServiceAccount token.
+                              properties:
+                                serviceAccountRef:
+                                  description: |-
+                                    ServiceAccountRef specifies the Kubernetes ServiceAccount for which a token is requested
+                                    with the TokenRequest API. If no audiences are set, the token audience defaults to the site ID.
+                                  properties:
+                                    audiences:
+                                      description: |-
+                                        Audience specifies the `aud` claim for the service account token
+                                        Some providers automatically extend the audience field based on well-known annotations for workload
+                                        identity (e.g. IRSA or GCP Workload Identity)
+                                      items:
+                                        type: string
+                                      type: array
+                                    name:
+                                      description: The name of the ServiceAccount resource being referred to.
+                                      maxLength: 253
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                      type: string
+                                    namespace:
+                                      description: |-
+                                        Namespace of the resource being referred to.
+                                        Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                      maxLength: 63
+                                      minLength: 1
+                                      pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                      type: string
+                                  required:
+                                    - name
+                                  type: object
+                                serviceName:
+                                  description: |-
+                                    ServiceName is the service name specified when creating the OIDC issuer registration
+                                    in BeyondTrust Pathfinder Platform. It is sent in the X-BT-Service-Name header.
+                                  pattern: ^[A-Za-z0-9_-]+$
+                                  type: string
+                              required:
+                                - serviceAccountRef
+                                - serviceName
+                              type: object
                           type: object
                         caBundle:
                           description: |-
@@ -28091,8 +28177,10 @@ spec:
                     auth:
                       description: |-
                         Auth configures how the Operator authenticates with the BeyondTrust Workload Credentials API.
-                        Currently supports API key authentication via Kubernetes secret reference.
+                        Supports API key authentication via Kubernetes secret reference, or OIDC via a Kubernetes ServiceAccount token.
                         For authentication setup, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
+                      maxProperties: 1
+                      minProperties: 1
                       properties:
                         apikey:
                           description: |-
@@ -28132,8 +28220,49 @@ spec:
                           required:
                             - token
                           type: object
-                      required:
-                        - apikey
+                        oidc:
+                          description: OIDC configures workload identity authentication using a Kubernetes ServiceAccount token.
+                          properties:
+                            serviceAccountRef:
+                              description: |-
+                                ServiceAccountRef specifies the Kubernetes ServiceAccount for which a token is requested
+                                with the TokenRequest API. If no audiences are set, the token audience defaults to the site ID.
+                              properties:
+                                audiences:
+                                  description: |-
+                                    Audience specifies the `aud` claim for the service account token
+                                    Some providers automatically extend the audience field based on well-known annotations for workload
+                                    identity (e.g. IRSA or GCP Workload Identity)
+                                  items:
+                                    type: string
+                                  type: array
+                                name:
+                                  description: The name of the ServiceAccount resource being referred to.
+                                  maxLength: 253
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                  type: string
+                                namespace:
+                                  description: |-
+                                    Namespace of the resource being referred to.
+                                    Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                  maxLength: 63
+                                  minLength: 1
+                                  pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                  type: string
+                              required:
+                                - name
+                              type: object
+                            serviceName:
+                              description: |-
+                                ServiceName is the service name specified when creating the OIDC issuer registration
+                                in BeyondTrust Pathfinder Platform. It is sent in the X-BT-Service-Name header.
+                              pattern: ^[A-Za-z0-9_-]+$
+                              type: string
+                          required:
+                            - serviceAccountRef
+                            - serviceName
+                          type: object
                       type: object
                     caBundle:
                       description: |-
@@ -28553,8 +28682,10 @@ spec:
                             auth:
                               description: |-
                                 Auth configures how the Operator authenticates with the BeyondTrust Workload Credentials API.
-                                Currently supports API key authentication via Kubernetes secret reference.
+                                Supports API key authentication via Kubernetes secret reference, or OIDC via a Kubernetes ServiceAccount token.
                                 For authentication setup, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
+                              maxProperties: 1
+                              minProperties: 1
                               properties:
                                 apikey:
                                   description: |-
@@ -28594,8 +28725,49 @@ spec:
                                   required:
                                     - token
                                   type: object
-                              required:
-                                - apikey
+                                oidc:
+                                  description: OIDC configures workload identity authentication using a Kubernetes ServiceAccount token.
+                                  properties:
+                                    serviceAccountRef:
+                                      description: |-
+                                        ServiceAccountRef specifies the Kubernetes ServiceAccount for which a token is requested
+                                        with the TokenRequest API. If no audiences are set, the token audience defaults to the site ID.
+                                      properties:
+                                        audiences:
+                                          description: |-
+                                            Audience specifies the `aud` claim for the service account token
+                                            Some providers automatically extend the audience field based on well-known annotations for workload
+                                            identity (e.g. IRSA or GCP Workload Identity)
+                                          items:
+                                            type: string
+                                          type: array
+                                        name:
+                                          description: The name of the ServiceAccount resource being referred to.
+                                          maxLength: 253
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                                          type: string
+                                        namespace:
+                                          description: |-
+                                            Namespace of the resource being referred to.
+                                            Ignored if referent is not cluster-scoped, otherwise defaults to the namespace of the referent.
+                                          maxLength: 63
+                                          minLength: 1
+                                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                                          type: string
+                                      required:
+                                        - name
+                                      type: object
+                                    serviceName:
+                                      description: |-
+                                        ServiceName is the service name specified when creating the OIDC issuer registration
+                                        in BeyondTrust Pathfinder Platform. It is sent in the X-BT-Service-Name header.
+                                      pattern: ^[A-Za-z0-9_-]+$
+                                      type: string
+                                  required:
+                                    - serviceAccountRef
+                                    - serviceName
+                                  type: object
                               type: object
                             caBundle:
                               description: |-

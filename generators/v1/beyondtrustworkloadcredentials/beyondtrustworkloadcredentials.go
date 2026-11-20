@@ -38,7 +38,7 @@ import (
 type Generator struct {
 	// NewBeyondtrustWorkloadCredentialsClient is a factory function to create a BeyondtrustWorkloadCredentials client.
 	// If nil, defaults to httpclient.NewBeyondtrustWorkloadCredentialsClient.
-	NewBeyondtrustWorkloadCredentialsClient func(server, token string) (btwcutil.Client, error)
+	NewBeyondtrustWorkloadCredentialsClient func(server, token, serviceName string) (btwcutil.Client, error)
 }
 
 const (

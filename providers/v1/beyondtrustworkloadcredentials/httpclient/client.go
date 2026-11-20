@@ -41,6 +41,9 @@ const (
 	apiVersionHeader = "bt-wlc-api-version"
 	apiVersion       = "2026-04-28"
 
+	// Header naming the calling service for tokens minted by an external OIDC issuer.
+	serviceNameHeader = "X-BT-Service-Name"
+
 	// Default timeout for HTTP requests.
 	defaultTimeout = 30 * time.Second
 
@@ -50,13 +53,15 @@ const (
 
 // Client represents a client for interacting with BeyondTrust Workload Credentials API.
 type Client struct {
-	httpClient *http.Client
-	baseURL    *url.URL
-	token      string
+	httpClient  *http.Client
+	baseURL     *url.URL
+	token       string
+	serviceName string
 }
 
 // NewClient creates a new BeyondTrust Workload Credentials HTTP client.
-func NewClient(serverURL, token string) (*Client, error) {
+// serviceName is sent in the X-BT-Service-Name header when non-empty (OIDC authentication).
+func NewClient(serverURL, token, serviceName string) (*Client, error) {
 	if err := validateServerURL(serverURL); err != nil {
 		return nil, err
 	}
@@ -70,13 +75,14 @@ func NewClient(serverURL, token string) (*Client, error) {
 		httpClient: &http.Client{
 			Timeout: defaultTimeout,
 		},
-		baseURL: parsedURL,
-		token:   token,
+		baseURL:     parsedURL,
+		token:       token,
+		serviceName: serviceName,
 	}, nil
 }
 
 // NewClientWithCustomCA creates a client using the provided PEM-encoded CA bundle.
-func NewClientWithCustomCA(serverURL, token string, caBundlePEM []byte) (*Client, error) {
+func NewClientWithCustomCA(serverURL, token, serviceName string, caBundlePEM []byte) (*Client, error) {
 	if err := validateServerURL(serverURL); err != nil {
 		return nil, err
 	}
@@ -105,9 +111,10 @@ func NewClientWithCustomCA(serverURL, token string, caBundlePEM []byte) (*Client
 	}
 
 	return &Client{
-		httpClient: httpClient,
-		baseURL:    parsedURL,
-		token:      token,
+		httpClient:  httpClient,
+		baseURL:     parsedURL,
+		token:       token,
+		serviceName: serviceName,
 	}, nil
 }
 
@@ -317,6 +324,9 @@ func (c *Client) setHeaders(req *http.Request) {
 	req.Header.Set(apiVersionHeader, apiVersion)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	if c.serviceName != "" {
+		req.Header.Set(serviceNameHeader, c.serviceName)
+	}
 }
 
 // validateServerURL checks if the provided server URL is valid.
@@ -399,11 +409,11 @@ func parseError(body []byte, statusCode int, path string) error {
 var _ btwcutil.Client = (*Client)(nil)
 
 // NewBeyondtrustWorkloadCredentialsClient is a wrapper for backward compatibility.
-func NewBeyondtrustWorkloadCredentialsClient(server, token string) (btwcutil.Client, error) {
-	return NewClient(server, token)
+func NewBeyondtrustWorkloadCredentialsClient(server, token, serviceName string) (btwcutil.Client, error) {
+	return NewClient(server, token, serviceName)
 }
 
 // NewBeyondtrustWorkloadCredentialsClientWithCustomCA is a wrapper for backward compatibility.
-func NewBeyondtrustWorkloadCredentialsClientWithCustomCA(server, token string, caBundlePEM []byte) (btwcutil.Client, error) {
-	return NewClientWithCustomCA(server, token, caBundlePEM)
+func NewBeyondtrustWorkloadCredentialsClientWithCustomCA(server, token, serviceName string, caBundlePEM []byte) (btwcutil.Client, error) {
+	return NewClientWithCustomCA(server, token, serviceName, caBundlePEM)
 }

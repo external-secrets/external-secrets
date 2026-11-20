@@ -34,6 +34,21 @@ spec:
       apiUrl: "https://example.com"
       siteId: "12345678-1234-4234-8234-123456789012"`
 
+	// validDynamicSecretSpecOIDC is a valid spec using OIDC (ServiceAccount token) authentication.
+	validDynamicSecretSpecOIDC = `apiVersion: generators.external-secrets.io/v1alpha1
+kind: BeyondtrustWorkloadCredentialsDynamicSecret
+spec:
+  provider:
+    folderPath: "test/aws-dynamic"
+    auth:
+      oidc:
+        serviceName: "eso-cluster"
+        serviceAccountRef:
+          name: "eso-wlc"
+    server:
+      apiUrl: "https://example.com"
+      siteId: "12345678-1234-4234-8234-123456789012"`
+
 	// validDynamicSecretSpecNoFolder is a spec with a secret at root level (no folder prefix).
 	validDynamicSecretSpecNoFolder = `apiVersion: generators.external-secrets.io/v1alpha1
 kind: BeyondtrustWorkloadCredentialsDynamicSecret

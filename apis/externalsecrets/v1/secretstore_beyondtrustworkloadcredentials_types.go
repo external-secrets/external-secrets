@@ -21,7 +21,6 @@ import (
 )
 
 // BeyondtrustWorkloadCredentialsAuthSecretRef defines a reference to a secret containing credentials for the BeyondTrust Workload Credentials provider.
-// The nested structure supports multiple authentication methods (currently only API token is supported).
 // For more information on authentication, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
 type BeyondtrustWorkloadCredentialsAuthSecretRef struct {
 	// Token references the Kubernetes secret containing the BeyondTrust Workload Credentials API token.
@@ -31,13 +30,36 @@ type BeyondtrustWorkloadCredentialsAuthSecretRef struct {
 	Token esmeta.SecretKeySelector `json:"token"`
 }
 
+// BeyondtrustWorkloadCredentialsOIDCAuth configures OIDC (workload identity) authentication for BeyondTrust Workload Credentials.
+// A Kubernetes ServiceAccount token is requested via the TokenRequest API and presented as a Bearer token,
+// along with the service name registered for the cluster's OIDC issuer in BeyondTrust Pathfinder Platform.
+type BeyondtrustWorkloadCredentialsOIDCAuth struct {
+	// ServiceName is the service name specified when creating the OIDC issuer registration
+	// in BeyondTrust Pathfinder Platform. It is sent in the X-BT-Service-Name header.
+	// +required
+	// +kubebuilder:validation:Pattern=`^[A-Za-z0-9_-]+$`
+	ServiceName string `json:"serviceName"`
+
+	// ServiceAccountRef specifies the Kubernetes ServiceAccount for which a token is requested
+	// with the TokenRequest API. If no audiences are set, the token audience defaults to the site ID.
+	// +required
+	ServiceAccountRef esmeta.ServiceAccountSelector `json:"serviceAccountRef"`
+}
+
 // BeyondtrustWorkloadCredentialsAuth defines the authentication method for the BeyondTrust Workload Credentials provider.
-// Currently supports API key authentication via Kubernetes secret reference.
+// Exactly one of API key or OIDC authentication must be set.
 // For authentication documentation, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type BeyondtrustWorkloadCredentialsAuth struct {
 	// APIKey configures API token authentication for BeyondTrust Workload Credentials.
 	// The token is retrieved from a Kubernetes secret and used as a Bearer token for API requests.
-	APIKey BeyondtrustWorkloadCredentialsAuthSecretRef `json:"apikey"`
+	// +optional
+	APIKey *BeyondtrustWorkloadCredentialsAuthSecretRef `json:"apikey,omitempty"`
+
+	// OIDC configures workload identity authentication using a Kubernetes ServiceAccount token.
+	// +optional
+	OIDC *BeyondtrustWorkloadCredentialsOIDCAuth `json:"oidc,omitempty"`
 }
 
 // BeyondtrustWorkloadCredentialsServer defines connection configuration for BeyondTrust Workload Credentials.
@@ -65,7 +87,7 @@ type BeyondtrustWorkloadCredentialsServer struct {
 // For complete documentation, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api
 type BeyondtrustWorkloadCredentialsProvider struct {
 	// Auth configures how the Operator authenticates with the BeyondTrust Workload Credentials API.
-	// Currently supports API key authentication via Kubernetes secret reference.
+	// Supports API key authentication via Kubernetes secret reference, or OIDC via a Kubernetes ServiceAccount token.
 	// For authentication setup, see: https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication
 	// +required
 	Auth *BeyondtrustWorkloadCredentialsAuth `json:"auth"`
