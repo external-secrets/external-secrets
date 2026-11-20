@@ -1,0 +1,37 @@
+apiVersion: external-secrets.io/v1alpha1
+kind: ClusterRuntimeConfig
+metadata:
+  name: aws
+spec:
+  endpoint:
+    address: provider-aws.external-secrets-system.svc:8443
+---
+apiVersion: external-secrets.io/v1
+kind: ClusterSecretStore
+metadata:
+  name: aws-prod
+spec:
+  runtimeRef:
+    kind: ClusterRuntimeConfig
+    # namespace: optional # Only if using a namespaced RuntimeConfig
+    name: aws
+  providerConfig:
+    gvkRef:
+      apiVersion: provider.external-secrets.io/v1alpha1
+      kind: SecretsManager
+      name: aws-prod
+      namespace: referent
+---
+apiVersion: provider.external-secrets.io/v1alpha1
+kind: SecretsManager
+metadata:
+  name: aws-prod
+  namespace: referent
+spec:
+  region: eu-central-1
+  role: arn:aws:iam::123456789012:role/team-a-prod
+  auth:
+    jwt:
+      serviceAccountRef:
+        name: app-secrets
+        # No Namespace - will use the callers namespace
