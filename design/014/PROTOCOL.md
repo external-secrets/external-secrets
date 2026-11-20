@@ -1288,9 +1288,10 @@ honoured. This departs from v1, where in-process generators resolve
 credentials with an empty store kind and ignore a reference's namespace. The
 out-of-process kinds are new, so no existing manifest changes behaviour.
 As with a `ClusterSecretStore`, the core first checks the `ClusterGenerator`'s
-`spec.conditions` against the caller namespace, so a caller the conditions
-refuse never reaches the provider ([API.md](./API.md) "Generator and
-ClusterGenerator").
+`spec.conditions` against the caller namespace before `Generate`, so a caller
+the conditions refuse never gets new values ([API.md](./API.md) "Generator and
+ClusterGenerator"). `Cleanup` is exempt, so that values generated before a
+namespace was excluded are still revoked.
 
 For v1 generator code wrapped by the SDK, this means one change per
 generator: take the synthetic store kind from the SDK instead of passing

@@ -882,7 +882,9 @@ The parity goes beyond scope. A `ClusterGenerator` has the store features of a
 - **Namespace gating.** `spec.conditions` (`namespaceSelector`, `namespaces`,
   `namespaceRegexes`) decides which namespaces' `ExternalSecret`s and
   `PushSecret`s may reference the `ClusterGenerator`. The core checks it before
-  any call, so a refused namespace never reaches the runtime. In-process
+  `Generate`, so a refused namespace never gets new values. `Cleanup` of an
+  existing `GeneratorState` is exempt: values generated before a namespace was
+  removed from `conditions` must still be revoked. In-process
   `ClusterGenerator`s have no such gate today; this is the main reason a
   platform team can share a generator across tenants.
 - **Flood gate.** With `--enable-flood-gate` (the default), an
