@@ -122,6 +122,7 @@ type PushSecretSpec struct {
 }
 
 // PushSecretSecret defines a Secret that will be used as a source for pushing to providers.
+// +kubebuilder:validation:XValidation:rule="has(self.name) != has(self.selector)",message="exactly one of name or selector must be set"
 type PushSecretSecret struct {
 	// Name of the Secret.
 	// The Secret must exist in the same namespace as the PushSecret manifest.
@@ -132,7 +133,10 @@ type PushSecretSecret struct {
 	Name string `json:"name,omitempty"`
 
 	// Selector chooses secrets using a labelSelector.
+	// It must not be empty: an empty selector resolves to labels.Everything(),
+	// which would push every Secret in the namespace to the provider.
 	// +optional
+	// +kubebuilder:validation:XValidation:rule="has(self.matchLabels) && size(self.matchLabels) > 0 || has(self.matchExpressions) && size(self.matchExpressions) > 0",message="selector must set matchLabels or matchExpressions"
 	Selector *metav1.LabelSelector `json:"selector,omitempty"`
 }
 
