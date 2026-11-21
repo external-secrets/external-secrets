@@ -985,10 +985,10 @@ github.com/x448/float16 v0.8.4/go.mod h1:14CWIYCyZA/cWjXOioeEpHeN/83MdbZDRQHoFcY
 github.com/xdg-go/pbkdf2 v1.0.0/go.mod h1:jrpuAogTd400dnrH08LKmI/xc1MbPOebTwRqcT5RDeI=
 github.com/xdg-go/scram v1.0.2/go.mod h1:1WAq6h33pAW+iRreB34OORO2Nf7qel3VV3fjBj+hCSs=
 github.com/xdg-go/stringprep v1.0.2/go.mod h1:8F9zXuvzgwmyT5DUm4GUfZGDdT3W+LCvS6+da4O5kxM=
-github.com/yandex-cloud/go-genproto v0.139.0 h1:iX8zDdEPNnpWPGVU3laKhDS+0J6JHppIpycgh5Z+0rM=
-github.com/yandex-cloud/go-genproto v0.139.0/go.mod h1:0LDD/IZLIUIV4iPH+YcF+jysO3jkSvADFGm4dCAuwQo=
-github.com/yandex-cloud/go-sdk v0.48.0 h1:K0n4GXUvYl0f60lOFkHCS02hHb4d43b+0Y0UagEyfFo=
-github.com/yandex-cloud/go-sdk v0.48.0/go.mod h1:zab9fM8ZpRLdp+KyDnDpg35hWdacpRWsKg2m+O1W+ks=
+github.com/yandex-cloud/go-genproto v0.131.0 h1:NH6ildMvdXJtb5rSwyvxLotFaUHAseEKPJJn10xHDZo=
+github.com/yandex-cloud/go-genproto v0.131.0/go.mod h1:0LDD/IZLIUIV4iPH+YcF+jysO3jkSvADFGm4dCAuwQo=
+github.com/yandex-cloud/go-sdk v0.41.0 h1:bMrNxO8at9r32gnnl14aA2TGcRynGRRXVUsBsI7GcAE=
+github.com/yandex-cloud/go-sdk v0.41.0/go.mod h1:Wd/Yx/oMNWQVoxGHdM5YeNcUBZZSOrIOUDsf0clnBPk=
 github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 h1:ilQV1hzziu+LLM3zUTJ0trRztfwgjqKnBWNtSRkbmwM=
 github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78/go.mod h1:aL8wCCfTfSfmXjznFBSZNN13rSJjlIOI1fUNAtF7rmI=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

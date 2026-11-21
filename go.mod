@@ -389,8 +389,8 @@ require (
 	github.com/volcengine/volc-sdk-golang v1.0.259 // indirect
 	github.com/volcengine/volcengine-go-sdk v1.2.65 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	github.com/yandex-cloud/go-genproto v0.139.0 // indirect
-	github.com/yandex-cloud/go-sdk v0.48.0 // indirect
+	github.com/yandex-cloud/go-genproto v0.131.0 // indirect
+	github.com/yandex-cloud/go-sdk v0.41.0 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	github.com/zalando/go-keyring v0.2.8 // indirect
 	gitlab.com/gitlab-org/api/client-go v1.46.0 // indirect

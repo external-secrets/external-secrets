@@ -9,8 +9,8 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/google/uuid v1.6.0
 	github.com/stretchr/testify v1.12.1
-	github.com/yandex-cloud/go-genproto v0.139.0
-	github.com/yandex-cloud/go-sdk v0.48.0
+	github.com/yandex-cloud/go-genproto v0.131.0
+	github.com/yandex-cloud/go-sdk v0.41.0
 	google.golang.org/grpc v1.85.0
 	k8s.io/api v0.37.2
 	sigs.k8s.io/controller-runtime v0.25.3
