@@ -324,8 +324,8 @@ func validateWorkloadIdentityMethod(p *esv1.AzureKVProvider) error {
 		if p.AuthType == nil || *p.AuthType != esv1.AzureWorkloadIdentity {
 			return errors.New("IdentityBinding requires authType: WorkloadIdentity")
 		}
-		if p.ServiceAccountRef != nil {
-			return errors.New("IdentityBinding does not support serviceAccountRef; it uses the controller pods' service account")
+		if p.ServiceAccountRef != nil && len(p.ServiceAccountRef.Audiences) != 0 {
+			return errors.New("IdentityBinding does not support custom serviceAccountRef audiences")
 		}
 		return nil
 	default:

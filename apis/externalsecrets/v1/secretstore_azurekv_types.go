@@ -86,7 +86,7 @@ type AzureCustomCloudConfig struct {
 // AzureKVProvider configures a store to sync secrets using Azure KV.
 // +kubebuilder:validation:XValidation=rule:"!has(self.WorkloadIdentityMethod) || self.WorkloadIdentityMethod != 'IdentityBinding' || (has(self.useAzureSDK) && self.useAzureSDK", message:"IdentityBinding requires useAzureSDK: true"
 // +kubebuilder:validation:XValidation=rule:"!has(self.WorkloadIdentityMethod) || self.WorkloadIdentityMethod != 'IdentityBinding' || (has(self.authType) && self.authType == 'WorkloadIdentity')", message:"IdentityBinding requires authType: WorkloadIdentity"
-// +kubebuilder:validation:XValidation=rule:"!has(self.WorkloadIdentityMethod) || self.WorkloadIdentityMethod != 'IdentityBinding' || !has(self.serviceAccountRef)", message:"IdentityBinding does not support serviceAccountRef; it use the controller pods's service account"
+// +kubebuilder:validation:XValidation=rule:"!has(self.WorkloadIdentityMethod) || self.WorkloadIdentityMethod != 'IdentityBinding' || !has(self.serviceAccountRef) || !has(self.serviceAccountRef.audiences) || size(self.serviceAccountRef.audiences) == 0", message:"IdentityBinding does not support custom serviceAccountRef audiences"
 type AzureKVProvider struct {
 	// Auth type defines how to authenticate to the keyvault service.
 	// Valid values are:
@@ -98,7 +98,8 @@ type AzureKVProvider struct {
 	AuthType *AzureAuthType `json:"authType,omitempty"`
 
 	// WorkloadIdentityMethod selects a standard Workload Identity or Identity Binding.
-	// Identity Binding uses the controller pod's service account and requires useAzureSDK.
+	// Identity Binding requires useAzureSDK. It uses serviceAccountRef when set, otherwise it uses
+	// the controller pod's service account.
 	// +optional
 	// +kubebuilder:default=WorkloadIdentity
 	WorkloadIdentityMethod AzureWorkloadIdentityMethod `json:"workloadIdentityMethod,omitempty"`
