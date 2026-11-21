@@ -12,12 +12,9 @@ env:
   # Common versions
   KIND_VERSION: 'v0.30.0'
   KIND_IMAGE: 'kindest/node:v1.33.4'
-  # SHA under test on the fork path. Two dispatchers populate it: an explicit
-  # `/ok-to-test sha=<sha>` comment (ok-to-test.yml) or a PR review whose body
-  # carries /ok-to-test (ok-to-test-review.yml, pinned to the reviewed
-  # commit_id). A bare comment leaves it empty and guard-fork rejects the run
-  # rather than testing the PR head or main. Also empty on the trusted
-  # pull_request path, where the checkout falls back to github.sha.
+  # SHA under test on the fork path, sent by eso-bot: the comment's sha=, the
+  # reviewed commit, or the head at a bare comment's time (see process.md).
+  # Empty on the trusted pull_request path, where checkout uses github.sha.
   TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha }}
   AWS_REGION: "eu-central-1"
 
@@ -74,11 +71,8 @@ jobs:
       ORACLE_COMPARTMENT_OCID: ${{ secrets.ORACLE_COMPARTMENT_OCID }}
       ORACLE_ENCRYPTION_KEY_OCID: ${{ secrets.ORACLE_ENCRYPTION_KEY_OCID }}
 
-  # A /ok-to-test *comment* must carry an explicit sha=. A bare comment has no
-  # trustworthy pinned commit (the dispatch would otherwise read the live PR
-  # head, which a later push can move), so reject it here instead of testing the
-  # wrong code. Reviews carry commit_id and arrive already pinned via
-  # ok-to-test-review.yml, so this guard never fires for them.
+  # eso-bot always sends a pinned 40-hex commit; this guard refuses any dispatch
+  # without one rather than testing the PR head or main.
   guard-fork:
     if: github.event_name == 'repository_dispatch'
     runs-on: ubuntu-latest
@@ -90,10 +84,8 @@ jobs:
       with:
         egress-policy: audit
 
-    # Require a full 40-char commit SHA. This rejects a bare /ok-to-test (empty
-    # TARGET_SHA) and a malformed sha= (e.g. a branch name like `main`, a short
-    # SHA, or a flag), so the checkout ref is always a pinned commit. The review
-    # path supplies review.commit_id, which is always a full SHA.
+    # Require a full 40-char commit SHA, so the checkout ref is always a pinned
+    # commit and never a branch name, a short SHA or an empty value.
     - name: Validate the target sha
       id: check
       run: |
@@ -125,15 +117,15 @@ jobs:
         token: ${{ steps.create_token.outputs.token }}
         issue-number: ${{ github.event.client_payload.pull_request.number }}
         body: |
-            [Bot] - :warning: A `/ok-to-test` comment needs an explicit full commit SHA: `/ok-to-test sha=<40-char-sha>`. Alternatively submit a PR review (Approve or Comment) whose body contains `/ok-to-test` to test the exact commit you reviewed.
+            [Bot] - :warning: This e2e dispatch carried no full commit SHA, so it was not run. Comment `/ok-to-test sha=<40-char-sha>` to retry.
 
     - name: Fail without a valid target sha
       if: steps.check.outputs.valid == 'false'
       run: |
-        echo "::error::/ok-to-test needs sha=<full 40-char commit SHA>; refusing to fall back to the PR head or main"
+        echo "::error::dispatch has no full 40-char commit SHA; refusing to fall back to the PR head or main"
         exit 1
 
-  # Repo owner approved a fork PR via /ok-to-test (comment with sha= or review).
+  # A maintainer approved a fork PR via /ok-to-test (comment or review).
   integration-fork:
     permissions:
       id-token: write # for oidc auth with aws/gcp/azure

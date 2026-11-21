@@ -138,13 +138,17 @@ many legs exist.
 ## Trusted vs fork runs
 
 - **Same-repo PR** (`integration-trusted`): runs automatically with secrets.
-- **Fork PR**: a maintainer comments `/ok-to-test sha=<40-char-sha>` (or submits
-  a review whose body contains `/ok-to-test`, which pins the reviewed commit).
-  `guard-fork` rejects a bare command without a pinned SHA; `integration-fork`
-  then runs. Note that the fork path runs the workflow from `main`, not from the
-  PR branch.
-- **Managed** (`e2e-managed.yml`): `/ok-to-test-managed`, one job per cloud
-  provider, `GINKGO_LABELS="<provider> && managed"`.
+- **Fork PR**: a maintainer comments `/ok-to-test [sha=<40-char-sha>]` or
+  submits a review whose first line is `/ok-to-test`. The eso-bot GitHub App
+  checks write access, pins a commit (the `sha=`, the reviewed commit, or the
+  head at comment time) and sends an `ok-to-test-command` dispatch with it in
+  `slash_command.args.named.sha`. `guard-fork` rejects a dispatch without a
+  full SHA; `integration-fork` then runs. Note that the fork path runs the
+  workflow from `main`, not from the PR branch.
+- **Managed** (`e2e-managed.yml`): `/ok-to-test-managed provider=<aws|gcp|azure>
+  [sha=...]`, one job per cloud provider, `GINKGO_LABELS="<provider> &&
+  managed"`. It checks out the pinned commit, not the PR merge ref, and refuses
+  a dispatch without a full SHA or a known provider.
 
 ## Local usage
 
