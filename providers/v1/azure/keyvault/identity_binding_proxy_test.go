@@ -26,6 +26,7 @@ import (
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
+	"github.com/Azure/azure-sdk-for-go/sdk/azcore/azidentity"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	authv1 "k8s.io/api/authentication/v1"
@@ -109,6 +110,9 @@ func TestBuildMountedWorkloadIdentityCredential(t *testing.T) {
 	t.Setenv("AZURE_TENANT_ID", "controller-test-tenant")
 	t.Setenv("AZURE_FEDERATED_TOKEN_FILE", filepath.Join(t.TempDir(), "controller-token"))
 	t.Setenv(azureKubernetesTokenProxy, "")
+	t.Setenv(azureKubernetesCAData, "")
+	t.Setenv(azureKubernetesCAFile, "")
+	t.Setenv(azureKubernetesSNIName, "")
 	az := &Azure{provider: &esv1.AzureKVProvider{}}
 
 	_, err := buildWorkloadIdentityCredential(t.Context(), az, cloud.AzurePublic)
@@ -117,6 +121,11 @@ func TestBuildMountedWorkloadIdentityCredential(t *testing.T) {
 	az.provider.WorkloadIdentityMethod = esv1.AzureWorkloadIdentityMethodIdentityBinding
 	_, err = buildWorkloadIdentityCredential(t.Context(), az, cloud.AzurePublic)
 	require.ErrorContains(t, err, azureKubernetesTokenProxy)
+
+	t.Setenv(azureKubernetesTokenProxy, "https://proxy.example.com")
+	credential, err := buildWorkloadIdentityCredential(t.Context(), az, cloud.AzurePublic)
+	require.NoError(t, err)
+	require.IsType(t, &azidentity.WorkloadIdentityCredential{}, credential)
 }
 
 func TestIdentityBindingProxyRejectsInvalidConfiguration(t *testing.T) {

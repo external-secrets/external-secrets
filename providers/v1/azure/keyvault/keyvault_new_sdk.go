@@ -532,7 +532,7 @@ func buildWorkloadIdentityCredential(ctx context.Context, az *Azure, cloudConfig
 	// If no serviceAccountRef is provided, use environment variables (webhook mode)
 	if az.provider.ServiceAccountRef == nil {
 		if enableAzureProxy && os.Getenv(azureKubernetesTokenProxy) == "" {
-			return nil, errors.New("IdentityBinding requires AZURE_FEDERATED_TOKEN_PROXY in the controller pod, check AKS workload identity webhook configuration")
+			return nil, fmt.Errorf("IdentityBinding requires %s in the controller pod, check AKS workload identity webhook configuration", azureKubernetesTokenProxy)
 		}
 		opts := &azidentity.WorkloadIdentityCredentialOptions{
 			ClientOptions:    clientOpts,

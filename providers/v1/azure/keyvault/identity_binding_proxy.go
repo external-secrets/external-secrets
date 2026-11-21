@@ -59,7 +59,10 @@ func newIdentityBindingProxy() (*identityBindingProxy, error) {
 		endpoint.User != nil || endpoint.ForceQuery || endpoint.RawQuery != "" || endpoint.Fragment != "" {
 		return nil, fmt.Errorf("%s must be an HTTPS URL without credentials, a query, or a fragment", azureKubernetesTokenProxy)
 	}
-
+	if endpoint.Path == "" {
+		endpoint.Path = "/"
+	}
+	
 	p := &identityBindingProxy{
 		endpoint: endpoint,
 		sniName:  os.Getenv(azureKubernetesSNIName),
