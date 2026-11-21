@@ -36,6 +36,15 @@ const (
 	AzureWorkloadIdentity AzureAuthType = "WorkloadIdentity"
 )
 
+// AzureWorkloadIdentityMethod selects how a aworkload deintity token is exchanged.
+// +kubebuilder:validation:Enum=WorkloadIdentity;IdentityBinding
+type AzureWorkloadIdentityMethod string
+
+const (
+	AzureWorkloadIdentityMethodDefault         AzureWorkloadIdentityMethod = "WorkloadIdentity"
+	AzureWorkloadIdentityMethodIdentityBinding AzureWorkloadIdentityMethod = "IdentityBinding"
+)
+
 // AzureEnvironmentType specifies the Azure cloud environment endpoints to use for
 // connecting and authenticating with Azure. By default, it points to the public cloud AAD endpoint.
 // The following endpoints are available, also see here: https://github.com/Azure/go-autorest/blob/main/autorest/azure/environments.go#L152
@@ -75,6 +84,9 @@ type AzureCustomCloudConfig struct {
 }
 
 // AzureKVProvider configures a store to sync secrets using Azure KV.
+// +kubebuilder:validation:XValidation=rule:"!has(self.WorkloadIdentityMethod) || self.WorkloadIdentityMethod != 'IdentityBinding' || (has(self.useAzureSDK) && self.useAzureSDK", message:"IdentityBinding requires useAzureSDK: true"
+// +kubebuilder:validation:XValidation=rule:"!has(self.WorkloadIdentityMethod) || self.WorkloadIdentityMethod != 'IdentityBinding' || (has(self.authType) && self.authType == 'WorkloadIdentity')", message:"IdentityBinding requires authType: WorkloadIdentity"
+// +kubebuilder:validation:XValidation=rule:"!has(self.WorkloadIdentityMethod) || self.WorkloadIdentityMethod != 'IdentityBinding' || !has(self.serviceAccountRef)", message:"IdentityBinding does not support serviceAccountRef; it use the controller pods's service account"
 type AzureKVProvider struct {
 	// Auth type defines how to authenticate to the keyvault service.
 	// Valid values are:
@@ -84,6 +96,12 @@ type AzureKVProvider struct {
 	// +optional
 	// +kubebuilder:default=ServicePrincipal
 	AuthType *AzureAuthType `json:"authType,omitempty"`
+
+	// WorkloadIdentityMethod selects a standard Workload Identity or Identity Binding.
+	// Identity Binding uses the controller pod's service account and requires useAzureSDK.
+	// +optional
+	// +kubebuilder:default=WorkloadIdentity
+	WorkloadIdentityMethod AzureWorkloadIdentityMethod `json:"workloadIdentityMethod,omitempty"`
 
 	// Vault Url from which the secrets to be fetched from.
 	VaultURL *string `json:"vaultUrl"`

@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"os"
 	"regexp"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
@@ -529,8 +530,13 @@ func buildWorkloadIdentityCredential(ctx context.Context, az *Azure, cloudConfig
 
 	// If no serviceAccountRef is provided, use environment variables (webhook mode)
 	if az.provider.ServiceAccountRef == nil {
+		enableAzureProxy := az.provider.WorkloadIdentityMethod == esv1.AzureWorkloadIdentityMethodIdentityBinding
+		if enableAzureProxy && os.Getenv("AZURE_FEDERATED_TOKEN_PROXY") == "" {
+			return nil, errors.New("IdentityBinding requires AZURE_FEDERATED_TOKEN_PROXY in the controller pod, check AKS workload identity webhook configuration")
+		}
 		opts := &azidentity.WorkloadIdentityCredentialOptions{
 			ClientOptions: clientOpts,
+			EnableAzurePro:xy: enableAzureProxy,
 		}
 		return azidentity.NewWorkloadIdentityCredential(opts)
 	}
