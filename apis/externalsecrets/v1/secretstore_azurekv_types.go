@@ -84,9 +84,9 @@ type AzureCustomCloudConfig struct {
 }
 
 // AzureKVProvider configures a store to sync secrets using Azure KV.
-// +kubebuilder:validation:XValidation=rule:"!has(self.WorkloadIdentityMethod) || self.WorkloadIdentityMethod != 'IdentityBinding' || (has(self.useAzureSDK) && self.useAzureSDK", message:"IdentityBinding requires useAzureSDK: true"
-// +kubebuilder:validation:XValidation=rule:"!has(self.WorkloadIdentityMethod) || self.WorkloadIdentityMethod != 'IdentityBinding' || (has(self.authType) && self.authType == 'WorkloadIdentity')", message:"IdentityBinding requires authType: WorkloadIdentity"
-// +kubebuilder:validation:XValidation=rule:"!has(self.WorkloadIdentityMethod) || self.WorkloadIdentityMethod != 'IdentityBinding' || !has(self.serviceAccountRef) || !has(self.serviceAccountRef.audiences) || size(self.serviceAccountRef.audiences) == 0", message:"IdentityBinding does not support custom serviceAccountRef audiences"
+// +kubebuilder:validation:XValidation:rule="!has(self.workloadIdentityMethod) || self.workloadIdentityMethod != 'IdentityBinding' || (has(self.useAzureSDK) && self.useAzureSDK)",message="IdentityBinding requires useAzureSDK: true"
+// +kubebuilder:validation:XValidation:rule="!has(self.workloadIdentityMethod) || self.workloadIdentityMethod != 'IdentityBinding' || (has(self.authType) && self.authType == 'WorkloadIdentity')",message="IdentityBinding requires authType: WorkloadIdentity"
+// +kubebuilder:validation:XValidation:rule="!has(self.workloadIdentityMethod) || self.workloadIdentityMethod != 'IdentityBinding' || !has(self.serviceAccountRef) || !has(self.serviceAccountRef.audiences) || size(self.serviceAccountRef.audiences) == 0",message="IdentityBinding does not support custom serviceAccountRef audiences"
 type AzureKVProvider struct {
 	// Auth type defines how to authenticate to the keyvault service.
 	// Valid values are:
