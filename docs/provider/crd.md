@@ -47,7 +47,7 @@ spec:
 Notes:
 
 - `auth` accepts `serviceAccount`, `token`, or `cert`, the same options as the Kubernetes provider.
-- `authRef` can be used instead of `auth` when the connection details (a kubeconfig) come from a Secret. In that case `server` is optional because the kubeconfig already carries the API address.
+- `authRef` can be used instead of `auth` when the connection details (a kubeconfig) come from a Secret. In that case `server` is optional because the kubeconfig already carries the API address. Inline token and certificate data are supported for namespaced stores. Kubeconfig file fields require `ClusterSecretStore` or the administrator-controlled `security.unsafeAllowSecretStoreHostAccess` setting. Kubeconfig `exec` and `auth-provider` authentication are prohibited.
 
 ### SecretStore / ClusterSecretStore configuration
 

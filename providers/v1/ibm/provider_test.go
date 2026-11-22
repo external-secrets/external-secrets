@@ -35,6 +35,7 @@ import (
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	v1 "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakesm "github.com/external-secrets/external-secrets/providers/v1/ibm/fake"
+	"github.com/external-secrets/external-secrets/runtime/feature"
 )
 
 const (
@@ -184,7 +185,8 @@ func TestValidateStore(t *testing.T) {
 		t.Errorf("KeySelector test failed: expected namespace not allowed, got %v", err)
 	}
 
-	// add container auth test
+	// Container auth reads a file from the operator pod and must not be
+	// configurable through a namespaced SecretStore.
 	store = &esv1.SecretStore{
 		Spec: esv1.SecretStoreSpec{
 			Provider: &esv1.SecretStoreProvider{
@@ -193,7 +195,7 @@ func TestValidateStore(t *testing.T) {
 					Auth: esv1.IBMAuth{
 						ContainerAuth: &esv1.IBMAuthContainerAuth{
 							Profile:       "Trusted IAM Profile",
-							TokenLocation: "/a/path/to/nowhere/that/should/exist",
+							TokenLocation: "/var/run/secrets/kubernetes.io/serviceaccount/token",
 						},
 					},
 				},
@@ -201,6 +203,27 @@ func TestValidateStore(t *testing.T) {
 		},
 	}
 	_, err = p.ValidateStore(store)
+	if err == nil || err.Error() != errContainerAuthClusterStore {
+		t.Errorf("expected %q, got %v", errContainerAuthClusterStore, err)
+	}
+	_, err = p.NewClient(context.Background(), store, nil, "default")
+	if err == nil || err.Error() != errContainerAuthClusterStore {
+		t.Errorf("expected runtime check to return %q, got %v", errContainerAuthClusterStore, err)
+	}
+
+	feature.SetUnsafeAllowSecretStoreHostAccess(true)
+	t.Cleanup(func() { feature.SetUnsafeAllowSecretStoreHostAccess(false) })
+	store.Spec.Provider.IBM.Auth.ContainerAuth.TokenLocation = "/a/path/to/nowhere/that/should/exist"
+	_, err = p.ValidateStore(store)
+	if !ErrorContains(err, "cannot read container auth token") {
+		t.Errorf("expected unsafe flag to permit namespaced container auth, got %v", err)
+	}
+	feature.SetUnsafeAllowSecretStoreHostAccess(false)
+
+	// ClusterSecretStore remains able to use a cluster-admin-mounted token.
+	store.Spec.Provider.IBM.Auth.ContainerAuth.TokenLocation = "/a/path/to/nowhere/that/should/exist"
+	clusterStore := &esv1.ClusterSecretStore{Spec: store.Spec}
+	_, err = p.ValidateStore(clusterStore)
 	expected := "cannot read container auth token"
 	if !ErrorContains(err, expected) {
 		t.Errorf("ProfileSelector test failed: %s, expected: '%s'", err.Error(), expected)

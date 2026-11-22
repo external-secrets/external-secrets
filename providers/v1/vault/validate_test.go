@@ -157,6 +157,15 @@ func TestValidateStore(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "invalid kubernetes auth without token source",
+			args: args{
+				auth: esv1.VaultAuth{
+					Kubernetes: &esv1.VaultKubernetesAuth{},
+				},
+			},
+			wantErr: true,
+		},
+		{
 			name: "invalid ldap secret",
 			args: args{
 				auth: esv1.VaultAuth{

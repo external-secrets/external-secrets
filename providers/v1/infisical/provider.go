@@ -34,6 +34,7 @@ import (
 	"github.com/external-secrets/external-secrets/providers/v1/infisical/constants"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
+	"github.com/external-secrets/external-secrets/runtime/feature"
 	"github.com/external-secrets/external-secrets/runtime/metrics"
 )
 
@@ -472,6 +473,9 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	}
 
 	infisicalSpec := storeSpec.Provider.Infisical
+	if err := validateHostAccessAuth(store, infisicalSpec); err != nil {
+		return nil, err
+	}
 
 	// Fetch CA certificate if configured
 	var caCertificate string
@@ -634,12 +638,25 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	if err := validateUniversalAuth(store, infisicalStoreSpec); err != nil {
 		return nil, err
 	}
+	if err := validateHostAccessAuth(store, infisicalStoreSpec); err != nil {
+		return nil, err
+	}
 
 	if err := validateKubernetesAuth(store, infisicalStoreSpec); err != nil {
 		return nil, err
 	}
 
 	return nil, nil
+}
+
+func validateHostAccessAuth(store esv1.GenericStore, spec *esv1.InfisicalProvider) error {
+	if spec.Auth.KubernetesAuthCredentials == nil && spec.Auth.GcpIamAuthCredentials == nil {
+		return nil
+	}
+	if feature.HostAccessAllowed(store.GetKind()) {
+		return nil
+	}
+	return errors.New("Infisical file-based authentication is only supported for ClusterSecretStore or when explicitly enabled by the operator")
 }
 
 func validateSecretsScope(spec *esv1.InfisicalProvider) error {

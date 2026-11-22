@@ -84,6 +84,9 @@ spec:
           {{- if .Values.enableHTTP2 }}
           - --enable-http2=true
           {{- end }}
+          {{- if .Values.security.unsafeAllowSecretStoreHostAccess }}
+          - --unsafe-allow-secretstore-host-access=true
+          {{- end }}
           {{- if (.Values.webhook.tls.minVersion | default .Values.tls.minVersion) }}
           - --tls-min-version={{ .Values.webhook.tls.minVersion | default .Values.tls.minVersion }}
           {{- end }}
