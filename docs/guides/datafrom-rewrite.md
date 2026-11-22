@@ -35,6 +35,7 @@ Specifying a key in the `priority` list which is not found in the source secret 
 2. If a given set of keys do not match any Rewrite operation, there will be no error. Rather, the original keys will be used.
 3. In Regexp operations, if a `source` is not a compilable `regexp` expression, an error will be produced and the external secret will go into a error state.
 4. In Merge operations, if secrets are not valid JSON, an error will be produced and the external secret will go into an error state.
+5. The keys produced by one Regexp or Transform operation are limited to 1 MiB in total. A Regexp operation is refused before it runs when an upper bound of its result (computed from the lengths of the key and of the `target`) passes that limit; an error will be produced and the external secret will go into an error state.
 
 ## Examples
 ### Removing a common path from find operations
