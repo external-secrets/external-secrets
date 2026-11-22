@@ -4202,6 +4202,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#authenticating-as-a-serviceaccount" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authenticating as a ServiceAccount
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -5823,6 +5834,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#authenticating-as-a-serviceaccount" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Authenticating as a ServiceAccount
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -6577,6 +6599,30 @@
 <span class="w">        </span><span class="nt">projectSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
 <span class="w">        </span><span class="nt">environmentSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
 </code></pre></div>
+<h3 id="authenticating-as-a-serviceaccount">Authenticating as a ServiceAccount</h3>
+<p>By default, the operator authenticates with its own service account token. Set <code>serviceAccountRef</code> to authenticate as a different ServiceAccount instead. The operator requests a short-lived token for it through the Kubernetes TokenRequest API, so one operator can serve many machine identities. <code>serviceAccountRef</code> takes precedence over <code>serviceAccountTokenPath</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">infisical</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w">  </span><span class="nt">provider</span><span class="p">:</span>
+<span class="w">    </span><span class="nt">infisical</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">auth</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">kubernetesAuthCredentials</span><span class="p">:</span>
+<span class="w">          </span><span class="nt">identityId</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">kubernetes-auth-credentials</span>
+<span class="w">            </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">identityId</span>
+<span class="w">          </span><span class="nt">serviceAccountRef</span><span class="p">:</span>
+<span class="w">            </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-app</span>
+<span class="w">            </span><span class="c1"># Optional: audiences to request for the token</span>
+<span class="w">            </span><span class="c1"># audiences:</span>
+<span class="w">            </span><span class="c1">#   - infisical</span>
+<span class="w">      </span><span class="nt">secretsScope</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">projectSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-project</span>
+<span class="w">        </span><span class="nt">environmentSlug</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dev</span>
+</code></pre></div>
+<p>For a <code>SecretStore</code>, the ServiceAccount must be in the same namespace as the <code>ExternalSecret</code>. For a <code>ClusterSecretStore</code>, <code>serviceAccountRef.namespace</code> is required.</p>
 <hr />
 <h2 id="aws-iam-auth">AWS IAM Auth</h2>
 <p><a href="https://infisical.com/docs/documentation/platform/identities/aws-auth">AWS Auth</a> is an AWS-native authentication method for IAM principals like EC2 instances, Lambda functions, or EKS pods to authenticate with Infisical.</p>
@@ -7237,7 +7283,7 @@
 </div>
 <hr />
 <h2 id="validation-and-auth-method-precedence">Validation and Auth Method Precedence</h2>
-<p><code>ValidateStore</code> only performs field-level validation for the <code>universalAuthCredentials</code> block. All other authentication methods (Kubernetes, AWS, Azure, GCP, JWT, LDAP, OCI, Token) are not statically validated -- missing required fields are caught at runtime when the provider first attempts to authenticate.</p>
+<p><code>ValidateStore</code> only performs field-level validation for the <code>universalAuthCredentials</code> block and the <code>kubernetesAuthCredentials.serviceAccountRef</code> namespace. All other authentication methods (Kubernetes, AWS, Azure, GCP, JWT, LDAP, OCI, Token) are not statically validated -- missing required fields are caught at runtime when the provider first attempts to authenticate.</p>
 <p>If multiple authentication blocks are set simultaneously, the provider selects the first one it finds in this order: <code>universalAuthCredentials</code> &gt; <code>azureAuthCredentials</code> &gt; <code>gcpIdTokenAuthCredentials</code> &gt; <code>gcpIamAuthCredentials</code> &gt; <code>jwtAuthCredentials</code> &gt; <code>ldapAuthCredentials</code> &gt; <code>ociAuthCredentials</code> &gt; <code>kubernetesAuthCredentials</code> &gt; <code>awsAuthCredentials</code> &gt; <code>tokenAuthCredentials</code>. Only one auth block should be set per store.</p>
 
 
