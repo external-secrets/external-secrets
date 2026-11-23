@@ -17,8 +17,11 @@ limitations under the License.
 package esutils
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -84,4 +87,43 @@ func TestCloneDefaultHTTPTransport(t *testing.T) {
 			}
 		})
 	}
+}
+
+// A default transport that has already served HTTPS requests carries "h2" in its
+// TLS config. The clone must not offer h2 while only speaking HTTP/1.1.
+func TestCloneDefaultHTTPTransportAgainstHTTP2Server(t *testing.T) {
+	srv := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte("ok"))
+	}))
+	srv.EnableHTTP2 = true
+	srv.StartTLS()
+	t.Cleanup(srv.Close)
+
+	pool := x509.NewCertPool()
+	pool.AddCert(srv.Certificate())
+
+	// Stand in for a default transport that already made a request, which is what
+	// adds "h2" to its TLS config.
+	used := &http.Transport{
+		ForceAttemptHTTP2: true,
+		TLSClientConfig:   &tls.Config{RootCAs: pool, MinVersion: tls.VersionTLS12},
+	}
+	resp, err := (&http.Client{Transport: used}).Get(srv.URL)
+	require.NoError(t, err)
+	require.Equal(t, 2, resp.ProtoMajor)
+	require.NoError(t, resp.Body.Close())
+	require.Contains(t, used.TLSClientConfig.NextProtos, "h2")
+
+	original := http.DefaultTransport
+	http.DefaultTransport = used
+	t.Cleanup(func() { http.DefaultTransport = original })
+
+	transport, err := CloneDefaultHTTPTransport()
+	require.NoError(t, err)
+	require.NotContains(t, transport.TLSClientConfig.NextProtos, "h2")
+
+	resp, err = (&http.Client{Transport: transport}).Get(srv.URL)
+	require.NoError(t, err)
+	require.Equal(t, 1, resp.ProtoMajor)
+	require.NoError(t, resp.Body.Close())
 }

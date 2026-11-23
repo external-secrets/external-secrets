@@ -26,8 +26,10 @@ var ErrUnexpectedDefaultTransport = errors.New("unexpected default http transpor
 
 // CloneDefaultHTTPTransport returns a copy of http.DefaultTransport for outbound HTTP clients.
 // It preserves default settings such as ProxyFromEnvironment and connection pooling.
-// ForceAttemptHTTP2 is disabled to match &http.Transport{}, which providers used before cloning
-// the default transport.
+// HTTP/2 is disabled to match &http.Transport{}, which providers used before cloning
+// the default transport: ForceAttemptHTTP2 is cleared and any "h2" ALPN protocol the default
+// transport already added to its TLS config is dropped, otherwise a server that selects h2
+// would be spoken to in HTTP/1.1.
 // Returns ErrUnexpectedDefaultTransport if the global default transport is not an *http.Transport.
 func CloneDefaultHTTPTransport() (*http.Transport, error) {
 	t, ok := http.DefaultTransport.(*http.Transport)
@@ -36,5 +38,8 @@ func CloneDefaultHTTPTransport() (*http.Transport, error) {
 	}
 	transport := t.Clone()
 	transport.ForceAttemptHTTP2 = false
+	if transport.TLSClientConfig != nil {
+		transport.TLSClientConfig.NextProtos = nil
+	}
 	return transport, nil
 }
