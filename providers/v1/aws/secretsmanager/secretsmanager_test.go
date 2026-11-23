@@ -2869,3 +2869,54 @@ func (f *FakeCredProvider) Retrieve(ctx context.Context) (aws.Credentials, error
 func (f *FakeCredProvider) IsExpired() bool {
 	return true
 }
+
+func TestManageRegionReplicationRetriesFailedReplicas(t *testing.T) {
+	metadata := &apiextensionsv1.JSON{Raw: []byte(`{
+		"apiVersion": "kubernetes.external-secrets.io/v1alpha1",
+		"kind": "PushSecretMetadata",
+		"spec": {"replicationLocations": ["eu-north-1", "eu-central-1"]}
+	}`)}
+	tests := map[string]struct {
+		existing    []types.ReplicationStatusType
+		wantAdded   []string
+		wantRemoved []string
+	}{
+		"a desired failed replica is replicated again": {
+			existing: []types.ReplicationStatusType{
+				{Region: aws.String("eu-north-1"), Status: types.StatusTypeInSync},
+				{Region: aws.String("eu-central-1"), Status: types.StatusTypeFailed},
+			},
+			wantAdded: []string{"eu-central-1"},
+		},
+		"an undesired failed replica is removed and not replicated again": {
+			existing: []types.ReplicationStatusType{
+				{Region: aws.String("eu-north-1"), Status: types.StatusTypeInSync},
+				{Region: aws.String("eu-central-1"), Status: types.StatusTypeInProgress},
+				{Region: aws.String("sa-east-1"), Status: types.StatusTypeFailed},
+			},
+			wantRemoved: []string{"sa-east-1"},
+		},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			var added, removed []string
+			sm := SecretsManager{client: &fakesm.Client{
+				ReplicateSecretToRegionsFn: fakesm.NewReplicateSecretToRegionsFn(&awssm.ReplicateSecretToRegionsOutput{}, nil,
+					func(got *awssm.ReplicateSecretToRegionsInput) {
+						for _, r := range got.AddReplicaRegions {
+							added = append(added, aws.ToString(r.Region))
+						}
+					}),
+				RemoveRegionsFromReplicationFn: fakesm.NewRemoveRegionsFromReplicationFn(&awssm.RemoveRegionsFromReplicationOutput{}, nil,
+					func(got *awssm.RemoveRegionsFromReplicationInput) {
+						removed = append(removed, got.RemoveReplicaRegions...)
+					}),
+			}}
+
+			err := sm.manageRegionReplication(context.Background(), metadata, aws.String(testARN), nil, tc.existing)
+			require.NoError(t, err)
+			assert.ElementsMatch(t, tc.wantAdded, added)
+			assert.ElementsMatch(t, tc.wantRemoved, removed)
+		})
+	}
+}

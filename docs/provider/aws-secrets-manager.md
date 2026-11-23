@@ -240,6 +240,7 @@ data:
 When this field is set, _ESO_ manages replication as part of the PushSecret reconciliation loop and treats the list as the desired state:
 
 - Regions present in `replicationLocations` but not yet configured in AWS will be added.
+- Regions whose replica failed (status `Failed`) are replicated again, because AWS does not retry a failed replica.
 - Regions already configured in AWS but not listed in `replicationLocations` will be removed.
 - If `replicationLocations` is omitted entirely, ESO does not manage replication for that secret.
 - Invalid/unsupported region values or missing permissions will cause the AWS replication call to fail.

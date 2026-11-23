@@ -1036,7 +1036,9 @@ func (sm *SecretsManager) manageRegionReplication(ctx context.Context, metadata 
 		}
 	}
 
-	requiresNewRegionReplication, regionsToReplicate := sm.getReplicationRegionsToBeAdded(meta.Spec.ReplicationLocations, existingReplicationRegions)
+	// A failed replica stays listed until it is removed, and AWS does not retry it, so it is replicated again.
+	replicatedRegions := buildReplicatedRegionsSlice(existingReplicationStatusType)
+	requiresNewRegionReplication, regionsToReplicate := sm.getReplicationRegionsToBeAdded(meta.Spec.ReplicationLocations, replicatedRegions)
 	if requiresNewRegionReplication {
 		if err := sm.replicateExistingSecretToRegions(ctx, secretARN, kmsKeyID, regionsToReplicate); err != nil {
 			return err
@@ -1085,6 +1087,18 @@ func (sm *SecretsManager) getReplicationRegionsToBeAdded(desiredReplicationRegio
 func buildExistingReplicationRegionsSlice(existingReplicationRegions []types.ReplicationStatusType) []string {
 	replicationRegions := make([]string, 0, len(existingReplicationRegions))
 	for _, replicationStatusType := range existingReplicationRegions {
+		replicationRegions = append(replicationRegions, aws.ToString(replicationStatusType.Region))
+	}
+	return replicationRegions
+}
+
+// buildReplicatedRegionsSlice returns the regions of the replicas that have not failed.
+func buildReplicatedRegionsSlice(existingReplicationRegions []types.ReplicationStatusType) []string {
+	replicationRegions := make([]string, 0, len(existingReplicationRegions))
+	for _, replicationStatusType := range existingReplicationRegions {
+		if replicationStatusType.Status == types.StatusTypeFailed {
+			continue
+		}
 		replicationRegions = append(replicationRegions, aws.ToString(replicationStatusType.Region))
 	}
 	return replicationRegions
