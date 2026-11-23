@@ -5518,8 +5518,15 @@
 <p>SecretStore resource specifies how to access Akeyless. This resource is namespaced.</p>
 <p><strong>NOTE:</strong> Make sure the Akeyless provider is listed in the Kind=SecretStore.
 If you use a customer fragment, define the value of akeylessGWApiURL as the URL of your Akeyless Gateway in the following format: https://your.akeyless.gw:8080/v2.</p>
+<p>For non-global SaaS tenants, set <code>akeylessGWApiURL</code> (or the <code>AKEYLESS_URL</code> environment variable on the operator, matching the Akeyless CLI) to the tenant URL, for example <code>https://vault.eu.akeyless.io</code> or <code>https://api.eu.akeyless.io</code>. Vault/UAM hosts are mapped to the matching <code>api.*</code> endpoint so authentication and secret fetches use the same tenant.</p>
 <p>When using an Akeyless Gateway, you can set <code>ignoreCache: true</code> on the SecretStore to bypass the Gateway cache and fetch the latest secret value from Akeyless SaaS on every sync. This matches the <code>ignore_cache</code> option in the Akeyless Kubernetes Secrets Injector. Use this only when you need fresh values on each reconcile: it increases load on the Gateway and upstream Akeyless API compared to serving cached responses.</p>
-<p><strong>NOTE:</strong> <code>ignoreCache</code> affects Gateway-side caching only. ESO still reuses the provider client between reconciles when the SecretStore spec is unchanged.</p>
+<p><strong>NOTE:</strong> <code>ignoreCache</code> also disables ESO's in-process item-type cache (described below), so every sync looks up the item type. It does not disable token reuse. ESO still reuses the provider client between reconciles when the SecretStore spec is unchanged.</p>
+<p>ESO caches two things in memory for each provider client, which is created per SecretStore and namespace and replaced when the SecretStore spec changes:</p>
+<ul>
+<li><strong>Akeyless token:</strong> reused until the expiry returned by Akeyless authentication, minus 30 seconds. If no expiry is returned, the token is reused for about 4 minutes. If a request made with a cached token fails with HTTP 401 or 403, ESO discards the token and retries the request once with a fresh one.</li>
+<li><strong>Item type</strong> (static, dynamic, rotated or certificate): cached for 10 minutes, for up to 1024 items. If a read with a cached type fails, ESO looks up the item again in the same sync, so deleted items and items recreated as a different type are handled immediately.</li>
+</ul>
+<p>To set the operator-wide <code>AKEYLESS_URL</code> environment variable with the Helm chart, use <code>extraEnv</code>.</p>
 <p>Akeyless provides several Authentication Methods:</p>
 <h3 id="authentication-with-kubernetes">Authentication with Kubernetes</h3>
 <p>Options for obtaining Kubernetes credentials include:</p>
