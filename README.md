@@ -73,8 +73,8 @@ This project was kicked off by ![GoDaddy](assets/Godaddylogo_2020.png)
 
 It was also maintained and developed by the following companies:
 
-![External Secrets inc.](./pictures/ESI_Logo.svg)
-![Pento](./pictures/pento_logo.png)
+![External Secrets inc.](./docs/pictures/ESI_Logo.svg)
+![Pento](./docs/pictures/pento_logo.png)
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fexternal-secrets%2Fexternal-secrets.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fexternal-secrets%2Fexternal-secrets?ref=badge_large)

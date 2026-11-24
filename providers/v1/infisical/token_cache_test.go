@@ -293,3 +293,40 @@ func TestNewClientWithoutTokenCache(t *testing.T) {
 	assert.Equal(t, int32(2), mock.logins.Load())
 	assert.Equal(t, int32(2), mock.revokes.Load())
 }
+
+func TestKubernetesAuthWithServiceAccountRefReusesCachedToken(t *testing.T) {
+	withTokenCache(t)
+	var logins atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		n := logins.Add(1)
+		writeJSON(w, http.StatusOK, map[string]any{"accessToken": fmt.Sprintf("token-%d", n), "expiresIn": 3600})
+	}))
+	t.Cleanup(srv.Close)
+
+	kube := fake.NewClientBuilder().WithObjects(
+		&corev1.ServiceAccount{Name: "app", Namespace: "default"},
+		&corev1.ServiceAccount{Name: "other", Namespace: "default"},
+		&corev1.Secret{Name: "creds", Namespace: "default", Data: map[string][]byte{"identityId": []byte("identity-id")}},
+	).Build()
+	login := func(saName string) {
+		spec := &esv1.InfisicalProvider{
+			HostAPI: srv.URL,
+			Auth: esv1.InfisicalAuth{
+				KubernetesAuthCredentials: &esv1.KubernetesAuthCredentials{
+					IdentityID:        esv1meta.SecretKeySelector{Name: "creds", Key: "identityId"},
+					ServiceAccountRef: &esv1meta.ServiceAccountSelector{Name: saName},
+				},
+			},
+		}
+		store := &esv1.SecretStore{Kind: esv1.SecretStoreKind, Namespace: "default"}
+		sdkClient := infisicalSdk.NewInfisicalClient(context.Background(), infisicalSdk.Config{SiteUrl: srv.URL, AutoTokenRefresh: new(false)})
+		_, err := performKubernetesAuthLogin(context.Background(), store, spec, sdkClient, kube, "default")
+		require.NoError(t, err)
+	}
+
+	login("app")
+	login("app")
+	assert.Equal(t, int32(1), logins.Load())
+	login("other")
+	assert.Equal(t, int32(2), logins.Load())
+}
