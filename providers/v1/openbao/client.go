@@ -338,7 +338,7 @@ func (c *client) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRemot
 
 			data = make(map[string]any, len(res.CustomMetadata)+3)
 			data["created_time"] = res.CreatedTime.Format(time.RFC3339Nano)
-			data["current_version"] = res.CurrentVersion
+			data["current_version"] = strconv.Itoa(res.CurrentVersion)
 			data["delete_version_after"] = res.DeleteVersionAfter.String()
 			maps.Copy(data, res.CustomMetadata)
 		} else if ref.Version != "" {

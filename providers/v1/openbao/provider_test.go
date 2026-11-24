@@ -239,9 +239,17 @@ func TestProvider_KVv2(t *testing.T) {
 		Expect(data).To(MatchJSON(`{
 			"bar": "meta",
 			"created_time": "2099-09-09T09:09:09.09Z",
-			"current_version": 2,
+			"current_version": "2",
 			"delete_version_after": "0s"
 		}`))
+
+		data, err = client.GetSecret(t.Context(), esv1.ExternalSecretDataRemoteRef{
+			Key:            "foo",
+			MetadataPolicy: esv1.ExternalSecretMetadataPolicyFetch,
+			Property:       "current_version",
+		})
+		Expect(err).NotTo(HaveOccurred())
+		Expect(data).To(BeEquivalentTo(`2`))
 	})
 
 	t.Run("GetSecret_NoCustomMetadata", func(t *testing.T) {
@@ -255,7 +263,7 @@ func TestProvider_KVv2(t *testing.T) {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(data).To(MatchJSON(`{
 			"created_time": "2099-09-09T09:09:09.09Z",
-			"current_version": 1,
+			"current_version": "1",
 			"delete_version_after": "0s"
 		}`))
 	})
