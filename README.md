@@ -17,7 +17,7 @@ secret management systems like [AWS Secrets
 Manager](https://aws.amazon.com/secrets-manager/), [HashiCorp
 Vault](https://www.vaultproject.io/), [Google Secrets
 Manager](https://cloud.google.com/secret-manager), [Azure Key
-Vault](https://azure.microsoft.com/en-us/services/key-vault/), [IBM Cloud Secrets Manager](https://www.ibm.com/cloud/secrets-manager), [Akeyless](https://akeyless.io), [CyberArk Secrets Manager](https://www.cyberark.com/products/secrets-management/), [Pulumi ESC](https://www.pulumi.com/product/esc/) and many more. The
+Vault](https://azure.microsoft.com/en-us/services/key-vault/), [IBM Cloud Secrets Manager](https://www.ibm.com/cloud/secrets-manager), [Akeyless](https://akeyless.io), [CyberArk Secrets Manager](https://www.cyberark.com/products/secrets-management/), [OVHcloud Secret Manager](https://www.ovhcloud.com/en/identity-security-operations/secret-manager/), [Pulumi ESC](https://www.pulumi.com/product/esc/) and many more. The
 operator reads information from external APIs and automatically injects the
 values into a [Kubernetes
 Secret](https://kubernetes.io/docs/concepts/configuration/secret/).
@@ -73,8 +73,8 @@ This project was kicked off by ![GoDaddy](assets/Godaddylogo_2020.png)
 
 It was also maintained and developed by the following companies:
 
-![External Secrets inc.](./pictures/ESI_Logo.svg)
-![Pento](./pictures/pento_logo.png)
+![External Secrets inc.](./docs/pictures/ESI_Logo.svg)
+![Pento](./docs/pictures/pento_logo.png)
 
 ## License
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fexternal-secrets%2Fexternal-secrets.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fexternal-secrets%2Fexternal-secrets?ref=badge_large)
