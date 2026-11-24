@@ -538,6 +538,32 @@ var _ = Describe("PushSecret controller", func() {
 		}
 	}
 
+	// a PushSecret with a deletionTimestamp must not be synced again.
+	noSyncWhenDeletionTimestampIsSet := func(tc *testCase) {
+		tc.pushsecret.Finalizers = []string{"example.com/hold"}
+		tc.assert = func(ps *v1alpha1.PushSecret, _ *v1.Secret) bool {
+			Eventually(func() bool {
+				_, ok := fakeProvider.GetPushSecretData()[defaultPath]
+				return ok
+			}, time.Second*10, time.Second).Should(BeTrue())
+			fakeProvider.Reset()
+
+			Expect(k8sClient.Delete(context.Background(), ps)).To(Succeed())
+			Consistently(fakeProvider.GetPushSecretData, time.Second*3, interval).Should(BeEmpty())
+
+			Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(ps), ps)).To(Succeed())
+			ps.Finalizers = nil
+			Expect(k8sClient.Update(context.Background(), ps)).To(Succeed())
+			return true
+		}
+	}
+
+	// same as above, but with DeletionPolicy=Delete
+	noSyncWhenDeletionTimestampIsSetWithDeletePolicy := func(tc *testCase) {
+		noSyncWhenDeletionTimestampIsSet(tc)
+		tc.pushsecret.Spec.DeletionPolicy = v1alpha1.PushSecretDeletionPolicyDelete
+	}
+
 	// if PushSecret deletes a secret with properties, the status map should be cleaned up correctly
 	syncAndDeleteWithProperties := func(tc *testCase) {
 		tc.pushsecret = &v1alpha1.PushSecret{
@@ -2333,6 +2359,8 @@ var _ = Describe("PushSecret controller", func() {
 		Entry("should sync with template reusing keys", syncSuccessfullyReusingKeys),
 		Entry("should sync with conversion strategy", syncSuccessfullyWithConversionStrategy),
 		Entry("should delete if DeletionPolicy=Delete", syncAndDeleteSuccessfully),
+		Entry("should not sync when deletionTimestamp is set", noSyncWhenDeletionTimestampIsSet),
+		Entry("should not sync when deletionTimestamp is set with DeletionPolicy=Delete", noSyncWhenDeletionTimestampIsSetWithDeletePolicy),
 		Entry("should delete secrets with properties and update status correctly", syncAndDeleteWithProperties),
 		Entry("should not delete the remote key when switching from properties to a whole secret", syncAndSwitchPropertiesToWholeSecret),
 		Entry("should delete after DeletionPolicy changed from Delete to None", syncChangePolicyAndDeleteSuccessfully),
