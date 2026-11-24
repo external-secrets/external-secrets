@@ -1335,14 +1335,7 @@ func newGetSecretMockServer(t *testing.T, mock getSecretMock) *httptest.Server {
 		case "/Auth/Signout":
 			writeBody(t, w, ``)
 		case "/ManagedAccounts":
-			if mock.managedAccountCalls != nil {
-				mock.managedAccountCalls.Add(1)
-			}
-			if mock.missingManaged {
-				http.Error(w, "managed account not found", http.StatusNotFound)
-				return
-			}
-			writeBody(t, w, `{"SystemId":1,"AccountId":10}`)
+			mock.writeManagedAccount(t, w)
 		case "/Requests":
 			if mock.noSchedule {
 				http.Error(w, `"Could not find a schedule to use with this release request."`, http.StatusBadRequest)
@@ -1358,19 +1351,38 @@ func newGetSecretMockServer(t *testing.T, mock getSecretMock) *httptest.Server {
 			}
 			writeBody(t, w, ``)
 		case secretsSafeSecretsPath:
-			switch {
-			case mock.missingSecret:
-				writeBody(t, w, `[]`)
-			case mock.fileSecret:
-				// No handler serves the file download, so it returns 404.
-				writeBody(t, w, `[{"SecretType": "FILE", "Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "api-key"}]`)
-			default:
-				writeBody(t, w, `[{"SecretType": "CREDENTIAL", "Password": "secret_password","Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "api-key"}]`)
-			}
+			mock.writeSecretsSafeSecrets(t, w)
 		default:
 			http.Error(w, "not found", http.StatusNotFound)
 		}
 	}))
+}
+
+// writeManagedAccount answers the managed account lookup.
+func (mock getSecretMock) writeManagedAccount(t *testing.T, w http.ResponseWriter) {
+	t.Helper()
+	if mock.managedAccountCalls != nil {
+		mock.managedAccountCalls.Add(1)
+	}
+	if mock.missingManaged {
+		http.Error(w, "managed account not found", http.StatusNotFound)
+		return
+	}
+	writeBody(t, w, `{"SystemId":1,"AccountId":10}`)
+}
+
+// writeSecretsSafeSecrets answers the Secrets Safe secret search.
+func (mock getSecretMock) writeSecretsSafeSecrets(t *testing.T, w http.ResponseWriter) {
+	t.Helper()
+	switch {
+	case mock.missingSecret:
+		writeBody(t, w, `[]`)
+	case mock.fileSecret:
+		// No handler serves the file download, so it returns 404.
+		writeBody(t, w, `[{"SecretType": "FILE", "Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "api-key"}]`)
+	default:
+		writeBody(t, w, `[{"SecretType": "CREDENTIAL", "Password": "secret_password","Id": "01ca9cf3-0751-4a90-4856-08dcf22d7472","Title": "api-key"}]`)
+	}
 }
 
 func TestGetSecret(t *testing.T) {
