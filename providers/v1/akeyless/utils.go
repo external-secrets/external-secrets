@@ -20,8 +20,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -45,6 +47,13 @@ const (
 	errGetKubeSANoToken             = "cannot find token in secrets bound to service account: %q"
 	errGetKubeSATokenRequest        = "cannot request Kubernetes service account token for service account %q: %w"
 	errInvalidKubeSA                = "invalid Auth.Kubernetes.ServiceAccountRef: %w"
+
+	// Matches the Akeyless CLI / Gateway env used to select a non-global tenant
+	// (for example https://vault.eu.akeyless.io).
+	akeylessURLEnv = "AKEYLESS_URL"
+
+	akeylessSaaSDomain    = ".akeyless.io"
+	akeylessFedRampDomain = ".secondfront.com"
 )
 
 // GetAKeylessProvider does the necessary nil checks and returns the akeyless provider or an error.
@@ -70,9 +79,87 @@ func ignoreCacheEnabled(prov *esv1.AkeylessProvider) bool {
 	return prov != nil && prov.IgnoreCache != nil && *prov.IgnoreCache
 }
 
-func getV2Url(path string) string {
-	// add check if not v2
-	rebody := sendReq(path)
+// resolveAkeylessAPIURL picks the API base used for Auth and every secret
+// operation. Preference: SecretStore akeylessGWApiURL, then AKEYLESS_URL, then
+// the global SaaS API. Vault/UAM hosts are mapped to their api.* counterparts
+// so Auth and GetSecretValue always share the same tenant endpoint. probe is
+// used to detect SaaS API roots on other hosts (see getV2Url).
+func resolveAkeylessAPIURL(configured string, probe func(string) string) string {
+	raw := strings.TrimSpace(configured)
+	if raw == "" {
+		raw = strings.TrimSpace(os.Getenv(akeylessURLEnv))
+	}
+	if raw == "" {
+		return defaultAPIUrl
+	}
+	return normalizeAkeylessAPIURL(raw, probe)
+}
+
+func normalizeAkeylessAPIURL(raw string, probe func(string) string) string {
+	if !strings.Contains(raw, "://") {
+		raw = "https://" + raw
+	}
+	u, err := url.Parse(raw)
+	if err != nil || u.Host == "" {
+		return raw
+	}
+
+	host := mapAkeylessVaultHostToAPI(u.Hostname())
+	u.Host = formatURLHost(host, u.Port())
+
+	if isAkeylessSaaSAPIHost(host) {
+		u.Path = ""
+		u.RawQuery = ""
+		u.Fragment = ""
+		return strings.TrimSuffix(u.String(), "/")
+	}
+
+	return getV2Url(u.String(), probe)
+}
+
+// mapAkeylessVaultHostToAPI rewrites only known Akeyless SaaS UAM hosts
+// (*.akeyless.io and FedRAMP *.secondfront.com). Customer gateways such as
+// vault.mycorp.com are left unchanged.
+func mapAkeylessVaultHostToAPI(host string) string {
+	h := strings.ToLower(host)
+	switch {
+	case strings.HasSuffix(h, akeylessSaaSDomain) && strings.HasPrefix(h, "vault."):
+		return "api." + strings.TrimPrefix(h, "vault.")
+	case strings.HasSuffix(h, akeylessFedRampDomain) && strings.HasPrefix(h, "vault-akeyless."):
+		return "api-akeyless." + strings.TrimPrefix(h, "vault-akeyless.")
+	default:
+		return host
+	}
+}
+
+func isAkeylessSaaSAPIHost(host string) bool {
+	h := strings.ToLower(host)
+	switch {
+	case strings.HasSuffix(h, akeylessSaaSDomain) && strings.HasPrefix(h, "api."):
+		return true
+	case strings.HasSuffix(h, akeylessFedRampDomain) && strings.HasPrefix(h, "api-akeyless."):
+		return true
+	default:
+		return false
+	}
+}
+
+// formatURLHost restores IPv6 brackets that url.Hostname() strips.
+func formatURLHost(host, port string) string {
+	if port != "" {
+		return net.JoinHostPort(host, port)
+	}
+	if strings.Contains(host, ":") {
+		return "[" + host + "]"
+	}
+	return host
+}
+
+// getV2Url returns gateway URLs that do not end in /v2 as scheme://host/v2,
+// dropping any other path or query, as the provider always has.
+func getV2Url(path string, probe func(string) string) string {
+	// SaaS API roots answer POST / with "unknown command"; leave them alone.
+	rebody := probe(path)
 	if strings.Contains(rebody, "unknown command") {
 		return path
 	}
@@ -80,24 +167,15 @@ func getV2Url(path string) string {
 	if strings.HasSuffix(path, "/v2") {
 		return path
 	}
-	url, err := url.Parse(path)
+	u, err := url.Parse(path)
 	if err != nil {
 		return path
 	}
-	if strings.HasSuffix(url.Host, "/v2") {
-		return path
-	}
-	url.Host += "/v2"
-	p := url.Scheme + "://" + url.Host
-	if url.Port() != "" {
-		p = p + ":" + url.Port()
-	}
-
-	return p
+	return u.Scheme + "://" + u.Host + "/v2"
 }
 
-func sendReq(url string) string {
-	req, err := http.NewRequest("POST", url, http.NoBody)
+func defaultProbeAkeylessURL(target string) string {
+	req, err := http.NewRequest(http.MethodPost, target, http.NoBody) //nolint:gosec // G704: target is the configured Akeyless API URL, which the client calls anyway
 	if err != nil {
 		return ""
 	}
@@ -106,7 +184,7 @@ func sendReq(url string) string {
 	client := &http.Client{
 		Timeout: 10 * time.Second,
 	}
-	resp, err := client.Do(req)
+	resp, err := client.Do(req) //nolint:gosec // G704: see NewRequest above
 	if err != nil {
 		return ""
 	}

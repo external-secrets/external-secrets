@@ -18,6 +18,8 @@ package infisical
 
 import (
 	"context"
+	"net/http"
+	"net/url"
 	"path"
 	"strings"
 	"sync"
@@ -47,6 +49,9 @@ const (
 	// resolves bare keys against it; a case that needs a folder seeds an
 	// absolute key instead.
 	scopePath = "/"
+	// infisicalTagsKey is the find.tags key whose value lists Infisical tag
+	// slugs. It must match the provider's reserved key.
+	infisicalTagsKey = "infisical.com/tags"
 )
 
 type infisicalProvider struct {
@@ -59,6 +64,8 @@ type infisicalProvider struct {
 	// on deleting a missing secret.
 	mu      sync.Mutex
 	created map[string]bool
+	// tagIDs caches the project tags created for the current spec, by slug.
+	tagIDs map[string]string
 }
 
 func newInfisicalProvider(f *framework.Framework, a *addon.Infisical) *infisicalProvider {
@@ -69,6 +76,7 @@ func newInfisicalProvider(f *framework.Framework, a *addon.Infisical) *infisical
 	BeforeEach(func() {
 		prov.mu.Lock()
 		prov.created = map[string]bool{}
+		prov.tagIDs = map[string]string{}
 		prov.mu.Unlock()
 	})
 	return prov
@@ -79,19 +87,75 @@ func newInfisicalProvider(f *framework.Framework, a *addon.Infisical) *infisical
 func (s *infisicalProvider) CreateSecret(key string, val framework.SecretEntry) {
 	secretPath, name := secretAddress(scopePath, key)
 	s.ensureFolder(secretPath)
-	_, err := s.addon.SDKClient.Secrets().Create(infisicalSdk.CreateSecretOptions{
-		ProjectID:             s.addon.ProjectID,
-		Environment:           s.addon.EnvironmentSlug,
-		SecretPath:            secretPath,
-		SecretKey:             name,
-		SecretValue:           val.Value,
-		SkipMultiLineEncoding: true,
-	})
-	Expect(err).ToNot(HaveOccurred())
+	if len(val.Tags) > 0 {
+		s.createTaggedSecret(secretPath, name, val)
+	} else {
+		_, err := s.addon.SDKClient.Secrets().Create(infisicalSdk.CreateSecretOptions{
+			ProjectID:             s.addon.ProjectID,
+			Environment:           s.addon.EnvironmentSlug,
+			SecretPath:            secretPath,
+			SecretKey:             name,
+			SecretValue:           val.Value,
+			SkipMultiLineEncoding: true,
+		})
+		Expect(err).ToNot(HaveOccurred())
+	}
 
 	s.mu.Lock()
 	s.created[key] = true
 	s.mu.Unlock()
+}
+
+// createTaggedSecret seeds a secret with tags and metadata, which the SDK
+// cannot set. val.Tags has the same shape as find.tags: the infisicalTagsKey
+// entry lists tag slugs, and every other entry is a metadata key and value.
+func (s *infisicalProvider) createTaggedSecret(secretPath, name string, val framework.SecretEntry) {
+	tagIDs := []string{}
+	metadata := []map[string]string{}
+	for k, v := range val.Tags {
+		if k != infisicalTagsKey {
+			metadata = append(metadata, map[string]string{"key": k, "value": v})
+			continue
+		}
+		for slug := range strings.SplitSeq(v, ",") {
+			tagIDs = append(tagIDs, s.tagID(strings.TrimSpace(slug)))
+		}
+	}
+
+	err := s.addon.IdentityAPICall(http.MethodPost, "/api/v3/secrets/raw/"+url.PathEscape(name), map[string]any{
+		"workspaceId":           s.addon.ProjectID,
+		"environment":           s.addon.EnvironmentSlug,
+		"secretPath":            secretPath,
+		"secretValue":           val.Value,
+		"skipMultilineEncoding": true,
+		"tagIds":                tagIDs,
+		"secretMetadata":        metadata,
+	}, nil)
+	Expect(err).ToNot(HaveOccurred())
+}
+
+// tagID returns the ID of the project tag with this slug. It creates the tag
+// the first time a spec uses the slug.
+func (s *infisicalProvider) tagID(slug string) string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if id, ok := s.tagIDs[slug]; ok {
+		return id
+	}
+
+	var created struct {
+		Tag struct {
+			ID string `json:"id"`
+		} `json:"tag"`
+	}
+	err := s.addon.IdentityAPICall(http.MethodPost, "/api/v1/projects/"+s.addon.ProjectID+"/tags", map[string]any{
+		"slug":  slug,
+		"color": "#000000",
+	}, &created)
+	Expect(err).ToNot(HaveOccurred())
+
+	s.tagIDs[slug] = created.Tag.ID
+	return created.Tag.ID
 }
 
 func (s *infisicalProvider) DeleteSecret(key string) {
