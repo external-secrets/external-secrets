@@ -39,9 +39,35 @@ helm install external-secrets external-secrets/external-secrets \
   --set 'crds.annotations.helm\.sh/resource-policy=keep'
 ```
 
-The annotation must be present on the CRDs *before* you uninstall, so set it
-when you install or upgrade the release — adding it afterwards is too late
-if the release is already gone.
+The annotation only counts when it is part of the release, so set it
+through the chart values when you install or upgrade. Helm builds the list
+of resources to delete from its stored release manifest, so annotating the
+live CRDs afterwards (for example with `kubectl annotate`) does **not**
+protect them — the stored manifest does not carry that annotation.
+
+Before uninstalling, you can verify the annotation is in the release
+manifest:
+
+```console
+helm get manifest <release-name> -n <namespace>
+```
+
+Check that each CRD in the output carries
+`helm.sh/resource-policy: keep`.
+
+Helm decides what to delete from the release manifest it stored at install
+or upgrade time, not from the CRDs currently live in the cluster. Annotating
+the live CRDs afterwards (for example with `kubectl annotate`) does **not**
+protect them: if the stored manifest lacks the annotation, the CRDs are
+still deleted on uninstall. Set the annotation through the chart values
+above, then verify it landed in the stored manifest before you uninstall:
+
+```console
+helm get manifest <release> -n <namespace>
+```
+
+Confirm that every CRD in the output carries
+`helm.sh/resource-policy: keep`.
 
 With the annotation in place, `helm uninstall` removes the operator but
 leaves the CRDs, their custom resources, and the synced `Secret` objects in
