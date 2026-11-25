@@ -92,9 +92,11 @@ New items are created with the `Server` category by default. Set `category` in t
 another kind of item, for example a `Login` that 1Password can autofill. The category is only applied when the item is
 created: 1Password does not allow changing the category of an existing item. `Document` is not supported.
 
-For `Login` items, push to the `username` and `password` properties to fill the built-in fields, and set `websites`
-so 1Password suggests the item on these websites. Like `tags`, `websites` are set on the whole item and the last write
-wins if entries targeting the same item differ.
+For `Login` items, push to the `username` and `password` properties to fill the built-in fields. These fields always use
+the `text` and `concealed` field types required by 1Password, whatever the `fieldType`. Set `websites` so 1Password
+suggests the item on these websites. Websites are only supported on `Login` and `Password` items: the push fails if
+`websites` is set for another category. Like `tags`, `websites` are set on the whole item and the last write wins if
+entries targeting the same item differ.
 
 ```yaml
   data:
@@ -108,7 +110,6 @@ wins if entries targeting the same item differ.
         kind: PushSecretMetadata
         spec:
           category: Login
-          fieldType: text
           websites: ["https://my-app.example.com"]
     - match:
         secretKey: password

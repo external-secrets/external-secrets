@@ -601,11 +601,12 @@ func (p *SecretsClient) createItem(ctx context.Context, val []byte, ref esv1.Pus
 		fieldType = resolveFieldType(mdata.Spec.FieldType)
 	}
 
-	params, err := newItemCreateParams(p.targetID, ref.GetRemoteKey(), []onepassword.ItemField{
-		generateNewItemField(label, string(val), fieldType),
-	}, mdata)
+	params, err := newItemCreateParams(p.targetID, ref.GetRemoteKey(), mdata)
 	if err != nil {
 		return fmt.Errorf(errMsgParsePushMeta, err)
+	}
+	params.Fields = []onepassword.ItemField{
+		generateNewItemField(label, string(val), itemFieldType(params.Category, label, fieldType)),
 	}
 
 	createdItem, err := p.client.Items().Create(ctx, params)
@@ -720,9 +721,13 @@ func resolveItemCategory(raw string) (onepassword.ItemCategory, error) {
 }
 
 // toWebsites converts URLs into 1Password websites, autofilled anywhere on the website like the 1Password apps do by default.
-func toWebsites(urls []string) []onepassword.Website {
+// The SDK only supports websites on Login and Password items, so an error is returned for any other category.
+func toWebsites(category onepassword.ItemCategory, urls []string) ([]onepassword.Website, error) {
 	if urls == nil {
-		return nil
+		return nil, nil
+	}
+	if category != onepassword.ItemCategoryLogin && category != onepassword.ItemCategoryPassword {
+		return nil, fmt.Errorf("websites are only supported on Login and Password items, not on %s items", category)
 	}
 	websites := make([]onepassword.Website, 0, len(urls))
 	for _, u := range urls {
@@ -732,21 +737,34 @@ func toWebsites(urls []string) []onepassword.Website {
 			AutofillBehavior: onepassword.AutofillBehaviorAnywhereOnWebsite,
 		})
 	}
-	return websites
+	return websites, nil
 }
 
-// newItemCreateParams builds the parameters to create an item, applying the item-level
+// itemFieldType returns the field type 1Password requires for the built-in username (Text) and password (Concealed)
+// fields of Login items, and the configured field type for any other field.
+func itemFieldType(category onepassword.ItemCategory, title string, fieldType onepassword.ItemFieldType) onepassword.ItemFieldType {
+	if category != onepassword.ItemCategoryLogin {
+		return fieldType
+	}
+	switch title {
+	case "username":
+		return onepassword.ItemFieldTypeText
+	case "password":
+		return onepassword.ItemFieldTypeConcealed
+	}
+	return fieldType
+}
+
+// newItemCreateParams builds the parameters to create an item without fields, applying the item-level
 // settings (category, tags and websites) from the push metadata.
 func newItemCreateParams(
 	vaultID, title string,
-	fields []onepassword.ItemField,
 	mdata *metadata.PushSecretMetadata[PushSecretMetadataSpec],
 ) (onepassword.ItemCreateParams, error) {
 	params := onepassword.ItemCreateParams{
 		Category: onepassword.ItemCategoryServer,
 		VaultID:  vaultID,
 		Title:    title,
-		Fields:   fields,
 	}
 	if mdata == nil {
 		return params, nil
@@ -757,7 +775,10 @@ func newItemCreateParams(
 	}
 	params.Category = category
 	params.Tags = mdata.Spec.Tags
-	params.Websites = toWebsites(mdata.Spec.Websites)
+	params.Websites, err = toWebsites(category, mdata.Spec.Websites)
+	if err != nil {
+		return onepassword.ItemCreateParams{}, err
+	}
 	return params, nil
 }
 
@@ -818,7 +839,9 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 		providerItem.Tags = mdata.Spec.Tags
 	}
 	if mdata != nil && mdata.Spec.Websites != nil {
-		providerItem.Websites = toWebsites(mdata.Spec.Websites)
+		if providerItem.Websites, err = toWebsites(providerItem.Category, mdata.Spec.Websites); err != nil {
+			return fmt.Errorf(errMsgParsePushMeta, err)
+		}
 	}
 
 	fieldType := onepassword.ItemFieldTypeConcealed
@@ -826,7 +849,12 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 		fieldType = resolveFieldType(mdata.Spec.FieldType)
 	}
 
-	providerItem.Fields, err = updateFieldValue(providerItem.Fields, label, string(val), fieldType)
+	providerItem.Fields, err = updateFieldValue(
+		providerItem.Fields,
+		label,
+		string(val),
+		itemFieldType(providerItem.Category, label, fieldType),
+	)
 	if err != nil {
 		return fmt.Errorf("failed to update field with label: %s: %w", label, err)
 	}
@@ -850,13 +878,13 @@ func (p *SecretsClient) createAllKeysItem(
 	fieldType onepassword.ItemFieldType,
 	mdata *metadata.PushSecretMetadata[PushSecretMetadataSpec],
 ) error {
-	fields := make([]onepassword.ItemField, 0, len(secret.Data))
-	for k, v := range secret.Data {
-		fields = append(fields, generateNewItemField(k, string(v), fieldType))
-	}
-	params, err := newItemCreateParams(p.targetID, title, fields, mdata)
+	params, err := newItemCreateParams(p.targetID, title, mdata)
 	if err != nil {
 		return fmt.Errorf(errMsgParsePushMeta, err)
+	}
+	params.Fields = make([]onepassword.ItemField, 0, len(secret.Data))
+	for k, v := range secret.Data {
+		params.Fields = append(params.Fields, generateNewItemField(k, string(v), itemFieldType(params.Category, k, fieldType)))
 	}
 	createdItem, err := p.client.Items().Create(ctx, params)
 	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsCreate, err)
@@ -899,19 +927,21 @@ func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, 
 		providerItem.Tags = tags
 	}
 	if mdata != nil && mdata.Spec.Websites != nil {
-		providerItem.Websites = toWebsites(mdata.Spec.Websites)
+		if providerItem.Websites, err = toWebsites(providerItem.Category, mdata.Spec.Websites); err != nil {
+			return fmt.Errorf(errMsgParsePushMeta, err)
+		}
 	}
 	kept := make([]onepassword.ItemField, 0, len(providerItem.Fields))
 	for _, f := range providerItem.Fields {
 		if v, ok := secret.Data[f.Title]; ok {
 			f.Value = string(v)
-			f.FieldType = fieldType
+			f.FieldType = itemFieldType(providerItem.Category, f.Title, fieldType)
 			kept = append(kept, f)
 		}
 	}
 	for k, v := range secret.Data {
 		if countFieldsWithLabel(k, kept) == 0 {
-			kept = append(kept, generateNewItemField(k, string(v), fieldType))
+			kept = append(kept, generateNewItemField(k, string(v), itemFieldType(providerItem.Category, k, fieldType)))
 		}
 	}
 	providerItem.Fields = kept

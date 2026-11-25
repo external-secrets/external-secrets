@@ -1687,7 +1687,7 @@ func TestPushSecretItemCategoryAndWebsites(t *testing.T) {
 	})
 
 	t.Run("updates websites but keeps category of existing item", func(t *testing.T) {
-		existing := onepassword.Item{ID: "item-id", Title: "item", VaultID: "vault-id", Category: onepassword.ItemCategoryServer}
+		existing := onepassword.Item{ID: "item-id", Title: "item", VaultID: "vault-id", Category: onepassword.ItemCategoryPassword}
 		fl := &fakeLister{
 			listAllResult: []onepassword.ItemOverview{{ID: existing.ID, Title: existing.Title, VaultID: existing.VaultID}},
 			getResult:     existing,
@@ -1695,9 +1695,61 @@ func TestPushSecretItemCategoryAndWebsites(t *testing.T) {
 		require.NoError(t, newClient(fl).PushSecret(t.Context(), secret, ref("password", loginMeta)))
 		assert.False(t, fl.createCalled)
 		require.True(t, fl.putCalled)
-		assert.Equal(t, onepassword.ItemCategoryServer, fl.putItem.Category)
+		assert.Equal(t, onepassword.ItemCategoryPassword, fl.putItem.Category)
 		assert.Equal(t, wantWebsites, fl.putItem.Websites)
 	})
+
+	t.Run("rejects websites on create for categories without websites", func(t *testing.T) {
+		fl := &fakeLister{}
+		meta := `{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"websites":["https://example.com"]}}`
+		err := newClient(fl).PushSecret(t.Context(), secret, ref("password", meta))
+		require.ErrorContains(t, err, "websites are only supported on Login and Password items")
+		assert.False(t, fl.createCalled)
+	})
+
+	t.Run("rejects websites on update of an item without websites", func(t *testing.T) {
+		existing := onepassword.Item{ID: "item-id", Title: "item", VaultID: "vault-id", Category: onepassword.ItemCategoryServer}
+		fl := &fakeLister{
+			listAllResult: []onepassword.ItemOverview{{ID: existing.ID, Title: existing.Title, VaultID: existing.VaultID}},
+			getResult:     existing,
+		}
+		err := newClient(fl).PushSecret(t.Context(), secret, ref("", loginMeta))
+		require.ErrorContains(t, err, "websites are only supported on Login and Password items")
+		assert.False(t, fl.putCalled)
+	})
+
+	t.Run("uses built-in field types for all-keys Login items", func(t *testing.T) {
+		fl := &fakeLister{}
+		loginSecret := &corev1.Secret{Data: map[string][]byte{"username": []byte("u"), "password": []byte("p"), "token": []byte("t")}}
+		require.NoError(t, newClient(fl).PushSecret(t.Context(), loginSecret, ref("", loginMeta)))
+		require.True(t, fl.createCalled)
+		got := map[string]onepassword.ItemFieldType{}
+		for _, f := range fl.createdParams.Fields {
+			got[f.Title] = f.FieldType
+		}
+		assert.Equal(t, map[string]onepassword.ItemFieldType{
+			"username": onepassword.ItemFieldTypeText,
+			"password": onepassword.ItemFieldTypeConcealed,
+			"token":    onepassword.ItemFieldTypeConcealed,
+		}, got)
+	})
+
+	t.Run("uses built-in field type for a single username key of a Login item", func(t *testing.T) {
+		fl := &fakeLister{}
+		loginSecret := &corev1.Secret{Data: map[string][]byte{"username": []byte("u")}}
+		require.NoError(t, newClient(fl).PushSecret(t.Context(), loginSecret, ref("username", loginMeta)))
+		require.True(t, fl.createCalled)
+		assert.Equal(t, onepassword.ItemFieldTypeText, fl.createdFieldType)
+	})
+}
+
+func TestItemFieldType(t *testing.T) {
+	login, server := onepassword.ItemCategoryLogin, onepassword.ItemCategoryServer
+	url := onepassword.ItemFieldTypeURL
+	assert.Equal(t, onepassword.ItemFieldTypeText, itemFieldType(login, "username", url))
+	assert.Equal(t, onepassword.ItemFieldTypeConcealed, itemFieldType(login, "password", url))
+	assert.Equal(t, url, itemFieldType(login, "other", url))
+	assert.Equal(t, url, itemFieldType(server, "username", url))
 }
 
 func TestGenerateNewItemFieldHasNonEmptyID(t *testing.T) {
