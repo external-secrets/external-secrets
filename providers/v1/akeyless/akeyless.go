@@ -30,6 +30,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/akeylesslabs/akeyless-go/v4"
@@ -78,12 +79,17 @@ type akeylessBase struct {
 	akeylessGwAPIURL string
 	ignoreCache      bool
 	RestAPI          *akeyless.V2ApiService
+	itemTypes        *itemTypeCache
 }
 
 // Akeyless represents a client for the Akeyless Vault service.
 type Akeyless struct {
 	Client akeylessVaultInterface
 	url    string
+
+	tokenMu     sync.Mutex
+	cachedToken string
+	tokenExpiry time.Time
 }
 
 type akeylessVaultInterface interface {
@@ -150,6 +156,10 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 			return nil, errors.New(errInvalidAkeylessURL)
 		}
 	}
+	if akeylessSpec.Auth.KubernetesAuth != nil && akeylessSpec.Auth.JWTAuth != nil {
+		return nil, errors.New(errMultipleAkeylessAuthMethods)
+	}
+
 	if akeylessSpec.Auth.KubernetesAuth != nil {
 		if akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef != nil {
 			if err := esutils.ValidateReferentServiceAccountSelector(store, *akeylessSpec.Auth.KubernetesAuth.ServiceAccountRef); err != nil {
@@ -171,6 +181,54 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 			return nil, errors.New("missing kubernetes config name")
 		}
 		return nil, nil
+	}
+
+	if akeylessSpec.Auth.JWTAuth != nil {
+		jwtAuth := akeylessSpec.Auth.JWTAuth
+		if jwtAuth.AccessID == "" {
+			return nil, errors.New(errMissingJWTAccessID)
+		}
+		hasSecret := jwtAuth.SecretRef != nil
+		hasSA := jwtAuth.ServiceAccountRef != nil
+		switch {
+		case hasSecret && hasSA:
+			return nil, errors.New(errJWTAuthBothTokenSources)
+		case !hasSecret && !hasSA:
+			return nil, errors.New(errJWTAuthTokenSource)
+		case hasSecret:
+			if jwtAuth.SecretRef.Name == "" {
+				return nil, errors.New(errJWTAuthMissingSecretName)
+			}
+			if err := esutils.ValidateReferentSecretSelector(store, *jwtAuth.SecretRef); err != nil {
+				return nil, fmt.Errorf("invalid Auth.JWTAuth.SecretRef: %w", err)
+			}
+		case hasSA:
+			if jwtAuth.ServiceAccountRef.Name == "" {
+				return nil, errors.New(errJWTAuthMissingSAName)
+			}
+			if err := esutils.ValidateReferentServiceAccountSelector(store, *jwtAuth.ServiceAccountRef); err != nil {
+				return nil, fmt.Errorf("invalid Auth.JWTAuth.ServiceAccountRef: %w", err)
+			}
+			if len(jwtAuth.ServiceAccountRef.Audiences) == 0 {
+				return nil, errors.New(errJWTAuthMissingAudiences)
+			}
+		}
+		if jwtAuth.ExpirationSeconds != nil {
+			if !hasSA {
+				return nil, errors.New(errJWTAuthExpirationWithoutSA)
+			}
+			if *jwtAuth.ExpirationSeconds < defaultJWTTokenTTL {
+				return nil, fmt.Errorf("Auth.JWTAuth.ExpirationSeconds must be at least %d", defaultJWTTokenTTL)
+			}
+		}
+		var warnings admission.Warnings
+		if akeylessSpec.Auth.SecretRef.AccessID.Name != "" {
+			warnings = append(warnings, warnJWTAuthIgnoresSecretRef)
+		}
+		if akeylessSpec.Auth.ServiceAccountRef != nil {
+			warnings = append(warnings, warnJWTAuthIgnoresSA)
+		}
+		return warnings, nil
 	}
 
 	accessID := akeylessSpec.Auth.SecretRef.AccessID
@@ -216,16 +274,18 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 		namespace: namespace,
 		corev1:    corev1,
 		storeKind: store.GetObjectKind().GroupVersionKind().Kind,
+		itemTypes: newItemTypeCache(),
 	}
 
 	spec, err := GetAKeylessProvider(store)
 	if err != nil {
 		return nil, err
 	}
-	akeylessGwAPIURL := defaultAPIUrl
-	if spec != nil && spec.AkeylessGWApiURL != nil && *spec.AkeylessGWApiURL != "" {
-		akeylessGwAPIURL = getV2Url(*spec.AkeylessGWApiURL)
+	configuredURL := ""
+	if spec != nil && spec.AkeylessGWApiURL != nil {
+		configuredURL = *spec.AkeylessGWApiURL
 	}
+	akeylessGwAPIURL := resolveAkeylessAPIURL(configuredURL, defaultProbeAkeylessURL)
 
 	if spec.Auth == nil {
 		return nil, errors.New("missing Auth in store config")
@@ -251,17 +311,6 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	return &Akeyless{Client: akl, url: akeylessGwAPIURL}, nil
 }
 
-func (a *Akeyless) contextWithToken(ctx context.Context) (context.Context, error) {
-	if ctx.Value(aKeylessToken) != nil {
-		return ctx, nil
-	}
-	token, err := a.Client.TokenFromSecretRef(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return context.WithValue(ctx, aKeylessToken, token), nil
-}
-
 // Close closes the Akeyless client connection.
 func (a *Akeyless) Close(_ context.Context) error {
 	return nil
@@ -285,10 +334,6 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRem
 	if esutils.IsNil(a.Client) {
 		return nil, errors.New(errUninitalizedAkeylessProvider)
 	}
-	ctx, err := a.contextWithToken(ctx)
-	if err != nil {
-		return nil, err
-	}
 	version := int32(0)
 	if ref.Version != "" {
 		i, err := strconv.ParseInt(ref.Version, 10, 32)
@@ -296,7 +341,9 @@ func (a *Akeyless) GetSecret(ctx context.Context, ref esv1.ExternalSecretDataRem
 			version = int32(i)
 		}
 	}
-	value, err := a.Client.GetSecretByType(ctx, ref.Key, version)
+	value, err := withToken(ctx, a, func(ctx context.Context) (string, error) {
+		return a.Client.GetSecretByType(ctx, ref.Key, version)
+	})
 	if errors.Is(err, ErrItemNotExists) {
 		return nil, esv1.NoSecretErr
 	}
@@ -332,10 +379,6 @@ func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFin
 	if esutils.IsNil(a.Client) {
 		return nil, errors.New(errUninitalizedAkeylessProvider)
 	}
-	ctx, err := a.contextWithToken(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	searchPath := ""
 	if ref.Path != nil {
@@ -347,14 +390,15 @@ func (a *Akeyless) GetAllSecrets(ctx context.Context, ref esv1.ExternalSecretFin
 			searchPath += "/"
 		}
 	}
-	if ref.Name != nil {
-		return a.findSecretsFromName(ctx, searchPath, *ref.Name)
-	}
-	if len(ref.Tags) > 0 {
-		return a.getSecrets(ctx, searchPath, ref.Tags)
-	}
-
-	return nil, errors.New("unexpected find operator")
+	return withToken(ctx, a, func(ctx context.Context) (map[string][]byte, error) {
+		if ref.Name != nil {
+			return a.findSecretsFromName(ctx, searchPath, *ref.Name)
+		}
+		if len(ref.Tags) > 0 {
+			return a.getSecrets(ctx, searchPath, ref.Tags)
+		}
+		return nil, errors.New("unexpected find operator")
+	})
 }
 
 func (a *Akeyless) getSecrets(ctx context.Context, searchPath string, tags map[string]string) (map[string][]byte, error) {
@@ -472,10 +516,13 @@ func (a *Akeyless) PushSecret(ctx context.Context, secret *corev1.Secret, psd es
 	if esutils.IsNil(a.Client) {
 		return errors.New(errUninitalizedAkeylessProvider)
 	}
-	ctx, err := a.contextWithToken(ctx)
-	if err != nil {
-		return err
-	}
+	_, err := withToken(ctx, a, func(ctx context.Context) (struct{}, error) {
+		return struct{}{}, a.pushSecret(ctx, secret, psd)
+	})
+	return err
+}
+
+func (a *Akeyless) pushSecret(ctx context.Context, secret *corev1.Secret, psd esv1.PushSecretData) error {
 	secretRemote, err := a.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: psd.GetRemoteKey()})
 	isNotExists := errors.Is(err, esv1.NoSecretErr)
 	if err != nil && !isNotExists {
@@ -518,10 +565,13 @@ func (a *Akeyless) DeleteSecret(ctx context.Context, psr esv1.PushSecretRemoteRe
 	if esutils.IsNil(a.Client) {
 		return errors.New(errUninitalizedAkeylessProvider)
 	}
-	ctx, err := a.contextWithToken(ctx)
-	if err != nil {
-		return err
-	}
+	_, err := withToken(ctx, a, func(ctx context.Context) (struct{}, error) {
+		return struct{}{}, a.deleteSecret(ctx, psr)
+	})
+	return err
+}
+
+func (a *Akeyless) deleteSecret(ctx context.Context, psr esv1.PushSecretRemoteRef) error {
 	item, err := a.Client.DescribeItem(ctx, psr.GetRemoteKey())
 	if err != nil {
 		return err
