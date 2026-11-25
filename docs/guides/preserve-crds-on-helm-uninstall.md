@@ -55,20 +55,6 @@ helm get manifest <release-name> -n <namespace>
 Check that each CRD in the output carries
 `helm.sh/resource-policy: keep`.
 
-Helm decides what to delete from the release manifest it stored at install
-or upgrade time, not from the CRDs currently live in the cluster. Annotating
-the live CRDs afterwards (for example with `kubectl annotate`) does **not**
-protect them: if the stored manifest lacks the annotation, the CRDs are
-still deleted on uninstall. Set the annotation through the chart values
-above, then verify it landed in the stored manifest before you uninstall:
-
-```console
-helm get manifest <release> -n <namespace>
-```
-
-Confirm that every CRD in the output carries
-`helm.sh/resource-policy: keep`.
-
 With the annotation in place, `helm uninstall` removes the operator but
 leaves the CRDs, their custom resources, and the synced `Secret` objects in
 the cluster.

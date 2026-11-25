@@ -69,6 +69,9 @@ crds:
   createClusterPushSecret: true
   # -- If true, create CRDs for Push Secret. If set to false you must also set processPushSecret: false.
   createPushSecret: true
+  # -- Annotations to add to the CRDs. Set `helm.sh/resource-policy: keep` to preserve the CRDs
+  # (and the custom resources they hold) when the release is uninstalled. The annotation must be
+  # set here, at install or upgrade time — see the "Preserving CRDs on Helm Uninstall" guide.
   annotations: {}
   conversion:
     # -- Conversion is disabled by default as we stopped supporting v1alpha1.
