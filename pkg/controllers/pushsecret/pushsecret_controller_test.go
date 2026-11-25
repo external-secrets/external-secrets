@@ -549,6 +549,14 @@ var _ = Describe("PushSecret controller", func() {
 			fakeProvider.Reset()
 
 			Expect(k8sClient.Delete(context.Background(), ps)).To(Succeed())
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(ps), ps)).To(Succeed())
+				g.Expect(ps.DeletionTimestamp).NotTo(BeNil())
+				g.Expect(ps.Finalizers).To(ConsistOf("example.com/hold"))
+			}, time.Second*10, interval).Should(Succeed())
+
+			ps.Annotations = map[string]string{"test/trigger": "reconcile"}
+			Expect(k8sClient.Update(context.Background(), ps)).To(Succeed())
 			Consistently(fakeProvider.GetPushSecretData, time.Second*3, interval).Should(BeEmpty())
 
 			Expect(k8sClient.Get(context.Background(), client.ObjectKeyFromObject(ps), ps)).To(Succeed())
