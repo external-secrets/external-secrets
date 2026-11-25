@@ -113,6 +113,9 @@ func pemToPkcs12(cert, key string) (string, error) {
 
 func pemToPkcs12Pass(cert, key, pass string) (string, error) {
 	certPem, _ := pem.Decode([]byte(cert))
+	if certPem == nil {
+		return "", errors.New(errDecodePEM)
+	}
 
 	parsedCert, err := x509.ParseCertificate(certPem.Bytes)
 	if err != nil {
@@ -128,6 +131,9 @@ func fullPemToPkcs12(cert, key string) (string, error) {
 
 func fullPemToPkcs12Pass(cert, key, pass string) (string, error) {
 	certPem, rest := pem.Decode([]byte(cert))
+	if certPem == nil {
+		return "", errors.New(errDecodePEM)
+	}
 
 	parsedCert, err := x509.ParseCertificate(certPem.Bytes)
 	if err != nil {
@@ -144,6 +150,9 @@ func fullPemToPkcs12Pass(cert, key, pass string) (string, error) {
 
 func certsKeyToPkcs12(cert *x509.Certificate, key string, caCerts []*x509.Certificate, password string) (string, error) {
 	keyPem, _ := pem.Decode([]byte(key))
+	if keyPem == nil {
+		return "", errors.New(errDecodePEM)
+	}
 	parsedKey, err := parsePrivateKey(keyPem.Bytes)
 	if err != nil {
 		return "", err
@@ -181,6 +190,9 @@ func parseCaCerts(certs []byte) ([]*x509.Certificate, error) {
 	for len(rest) > 0 {
 		caPem, restBytes := pem.Decode(rest)
 		rest = restBytes
+		if caPem == nil {
+			return nil, errors.New(errDecodePEM)
+		}
 
 		caCert, err := x509.ParseCertificate(caPem.Bytes)
 		if err != nil {
