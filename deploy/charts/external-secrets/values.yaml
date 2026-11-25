@@ -71,7 +71,7 @@ crds:
   createPushSecret: true
   # -- Annotations to add to the CRDs. Set `helm.sh/resource-policy: keep` to preserve the CRDs
   # (and the custom resources they hold) when the release is uninstalled. The annotation must be
-  # set here, at install or upgrade time — see the "Preserving CRDs on Helm Uninstall" guide.
+  # set here, at install or upgrade time — see the [Preserving CRDs on Helm Uninstall](https://external-secrets.io/latest/guides/preserve-crds-on-helm-uninstall/) guide.
   annotations: {}
   conversion:
     # -- Conversion is disabled by default as we stopped supporting v1alpha1.
