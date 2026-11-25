@@ -1603,6 +1603,103 @@ func TestUpdateFieldValueChangesFieldType(t *testing.T) {
 	assert.Equal(t, "secret", updated[0].Value)
 }
 
+func TestResolveItemCategory(t *testing.T) {
+	tests := []struct {
+		input    string
+		expected onepassword.ItemCategory
+		wantErr  bool
+	}{
+		{"", onepassword.ItemCategoryServer, false},
+		{"Login", onepassword.ItemCategoryLogin, false},
+		{"login", onepassword.ItemCategoryLogin, false},
+		{"PASSWORD", onepassword.ItemCategoryPassword, false},
+		{"apiCredentials", onepassword.ItemCategoryAPICredentials, false},
+		{"Server", onepassword.ItemCategoryServer, false},
+		{"Document", "", true},
+		{"Unsupported", "", true},
+		{"unknown", "", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.input, func(t *testing.T) {
+			got, err := resolveItemCategory(tt.input)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, got)
+		})
+	}
+}
+
+func TestPushSecretItemCategoryAndWebsites(t *testing.T) {
+	fc := &fakeClient{listAllResult: []onepassword.VaultOverview{{ID: "vault-id", Title: "vault"}}}
+	loginMeta := `{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"category":"Login","websites":["https://example.com"]}}`
+	wantWebsites := []onepassword.Website{
+		{URL: "https://example.com", Label: "website", AutofillBehavior: onepassword.AutofillBehaviorAnywhereOnWebsite},
+	}
+
+	newClient := func(fl *fakeLister) *SecretsClient {
+		return &SecretsClient{client: &onepassword.Client{SecretsAPI: fc, VaultsAPI: fc, ItemsAPI: fl}, targetID: "vault-id"}
+	}
+	ref := func(secretKey, meta string) v1alpha1.PushSecretData {
+		d := v1alpha1.PushSecretData{Match: v1alpha1.PushSecretMatch{
+			SecretKey: secretKey,
+			RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "item", Property: secretKey},
+		}}
+		if meta != "" {
+			d.Metadata = &apiextensionsv1.JSON{Raw: []byte(meta)}
+		}
+		return d
+	}
+	secret := &corev1.Secret{Data: map[string][]byte{"password": []byte("value")}}
+
+	t.Run("defaults to Server category without websites", func(t *testing.T) {
+		fl := &fakeLister{}
+		require.NoError(t, newClient(fl).PushSecret(t.Context(), secret, ref("password", "")))
+		require.True(t, fl.createCalled)
+		assert.Equal(t, onepassword.ItemCategoryServer, fl.createdParams.Category)
+		assert.Nil(t, fl.createdParams.Websites)
+	})
+
+	t.Run("creates item with category and websites from metadata", func(t *testing.T) {
+		fl := &fakeLister{}
+		require.NoError(t, newClient(fl).PushSecret(t.Context(), secret, ref("password", loginMeta)))
+		require.True(t, fl.createCalled)
+		assert.Equal(t, onepassword.ItemCategoryLogin, fl.createdParams.Category)
+		assert.Equal(t, wantWebsites, fl.createdParams.Websites)
+	})
+
+	t.Run("creates all-keys item with category and websites from metadata", func(t *testing.T) {
+		fl := &fakeLister{}
+		require.NoError(t, newClient(fl).PushSecret(t.Context(), secret, ref("", loginMeta)))
+		require.True(t, fl.createCalled)
+		assert.Equal(t, onepassword.ItemCategoryLogin, fl.createdParams.Category)
+		assert.Equal(t, wantWebsites, fl.createdParams.Websites)
+	})
+
+	t.Run("rejects unsupported category", func(t *testing.T) {
+		fl := &fakeLister{}
+		meta := `{"apiVersion":"kubernetes.external-secrets.io/v1alpha1","kind":"PushSecretMetadata","spec":{"category":"Document"}}`
+		err := newClient(fl).PushSecret(t.Context(), secret, ref("password", meta))
+		require.ErrorContains(t, err, "unsupported item category")
+		assert.False(t, fl.createCalled)
+	})
+
+	t.Run("updates websites but keeps category of existing item", func(t *testing.T) {
+		existing := onepassword.Item{ID: "item-id", Title: "item", VaultID: "vault-id", Category: onepassword.ItemCategoryServer}
+		fl := &fakeLister{
+			listAllResult: []onepassword.ItemOverview{{ID: existing.ID, Title: existing.Title, VaultID: existing.VaultID}},
+			getResult:     existing,
+		}
+		require.NoError(t, newClient(fl).PushSecret(t.Context(), secret, ref("password", loginMeta)))
+		assert.False(t, fl.createCalled)
+		require.True(t, fl.putCalled)
+		assert.Equal(t, onepassword.ItemCategoryServer, fl.putItem.Category)
+		assert.Equal(t, wantWebsites, fl.putItem.Websites)
+	})
+}
+
 func TestGenerateNewItemFieldHasNonEmptyID(t *testing.T) {
 	// Regression test: fields created without an ID cause "duplicate field ids" errors
 	// when two PushSecret data entries target the same 1Password item.

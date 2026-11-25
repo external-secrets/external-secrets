@@ -69,6 +69,10 @@ func isNativeID(s string) bool {
 type PushSecretMetadataSpec struct {
 	Tags      []string `json:"tags,omitempty"`
 	FieldType string   `json:"fieldType,omitempty"`
+	// Category of the 1Password item, only applied when the item is created. Defaults to Server.
+	Category string `json:"category,omitempty"`
+	// Websites (URLs) of the 1Password item, used by 1Password to suggest and autofill the item.
+	Websites []string `json:"websites,omitempty"`
 }
 
 // GetSecret returns a single secret from 1Password provider.
@@ -592,25 +596,19 @@ func (p *SecretsClient) createItem(ctx context.Context, val []byte, ref esv1.Pus
 		label = defaultFieldLabel
 	}
 
-	var tags []string
-	if mdata != nil && mdata.Spec.Tags != nil {
-		tags = mdata.Spec.Tags
-	}
-
 	fieldType := onepassword.ItemFieldTypeConcealed
 	if mdata != nil {
 		fieldType = resolveFieldType(mdata.Spec.FieldType)
 	}
 
-	createdItem, err := p.client.Items().Create(ctx, onepassword.ItemCreateParams{
-		Category: onepassword.ItemCategoryServer,
-		VaultID:  p.targetID,
-		Title:    ref.GetRemoteKey(),
-		Fields: []onepassword.ItemField{
-			generateNewItemField(label, string(val), fieldType),
-		},
-		Tags: tags,
-	})
+	params, err := newItemCreateParams(p.targetID, ref.GetRemoteKey(), []onepassword.ItemField{
+		generateNewItemField(label, string(val), fieldType),
+	}, mdata)
+	if err != nil {
+		return fmt.Errorf(errMsgParsePushMeta, err)
+	}
+
+	createdItem, err := p.client.Items().Create(ctx, params)
 	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsCreate, err)
 	if err != nil {
 		return errors.New(errMsgCreateItem)
@@ -680,6 +678,89 @@ func resolveFieldType(raw string) onepassword.ItemFieldType {
 	return onepassword.ItemFieldTypeConcealed
 }
 
+// creatableItemCategories lists the 1Password item categories that can be created from fields.
+// Document needs a file and Unsupported is not a real category.
+var creatableItemCategories = []onepassword.ItemCategory{
+	onepassword.ItemCategoryLogin,
+	onepassword.ItemCategorySecureNote,
+	onepassword.ItemCategoryCreditCard,
+	onepassword.ItemCategoryCryptoWallet,
+	onepassword.ItemCategoryIdentity,
+	onepassword.ItemCategoryPassword,
+	onepassword.ItemCategoryAPICredentials,
+	onepassword.ItemCategoryBankAccount,
+	onepassword.ItemCategoryDatabase,
+	onepassword.ItemCategoryDriverLicense,
+	onepassword.ItemCategoryEmail,
+	onepassword.ItemCategoryMedicalRecord,
+	onepassword.ItemCategoryMembership,
+	onepassword.ItemCategoryOutdoorLicense,
+	onepassword.ItemCategoryPassport,
+	onepassword.ItemCategoryRewards,
+	onepassword.ItemCategoryRouter,
+	onepassword.ItemCategoryServer,
+	onepassword.ItemCategorySSHKey,
+	onepassword.ItemCategorySocialSecurityNumber,
+	onepassword.ItemCategorySoftwareLicense,
+	onepassword.ItemCategoryPerson,
+}
+
+// resolveItemCategory maps a 1Password item category name (e.g. Login, Password, ApiCredentials) to the SDK constant.
+// Case-insensitive. Defaults to Server when empty, which was the only category before this setting existed.
+func resolveItemCategory(raw string) (onepassword.ItemCategory, error) {
+	if raw == "" {
+		return onepassword.ItemCategoryServer, nil
+	}
+	for _, c := range creatableItemCategories {
+		if strings.EqualFold(raw, string(c)) {
+			return c, nil
+		}
+	}
+	return "", fmt.Errorf("unsupported item category %q", raw)
+}
+
+// toWebsites converts URLs into 1Password websites, autofilled anywhere on the website like the 1Password apps do by default.
+func toWebsites(urls []string) []onepassword.Website {
+	if urls == nil {
+		return nil
+	}
+	websites := make([]onepassword.Website, 0, len(urls))
+	for _, u := range urls {
+		websites = append(websites, onepassword.Website{
+			URL:              u,
+			Label:            "website",
+			AutofillBehavior: onepassword.AutofillBehaviorAnywhereOnWebsite,
+		})
+	}
+	return websites
+}
+
+// newItemCreateParams builds the parameters to create an item, applying the item-level
+// settings (category, tags and websites) from the push metadata.
+func newItemCreateParams(
+	vaultID, title string,
+	fields []onepassword.ItemField,
+	mdata *metadata.PushSecretMetadata[PushSecretMetadataSpec],
+) (onepassword.ItemCreateParams, error) {
+	params := onepassword.ItemCreateParams{
+		Category: onepassword.ItemCategoryServer,
+		VaultID:  vaultID,
+		Title:    title,
+		Fields:   fields,
+	}
+	if mdata == nil {
+		return params, nil
+	}
+	category, err := resolveItemCategory(mdata.Spec.Category)
+	if err != nil {
+		return onepassword.ItemCreateParams{}, err
+	}
+	params.Category = category
+	params.Tags = mdata.Spec.Tags
+	params.Websites = toWebsites(mdata.Spec.Websites)
+	return params, nil
+}
+
 // normalizeItemFields clears empty section IDs because the 1Password SDK rejects items with a SectionID pointer to "" when the section is missing.
 func normalizeItemFields(fields []onepassword.ItemField) []onepassword.ItemField {
 	for i := range fields {
@@ -736,6 +817,9 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 	if mdata != nil && mdata.Spec.Tags != nil {
 		providerItem.Tags = mdata.Spec.Tags
 	}
+	if mdata != nil && mdata.Spec.Websites != nil {
+		providerItem.Websites = toWebsites(mdata.Spec.Websites)
+	}
 
 	fieldType := onepassword.ItemFieldTypeConcealed
 	if mdata != nil {
@@ -759,18 +843,22 @@ func (p *SecretsClient) PushSecret(ctx context.Context, secret *corev1.Secret, r
 }
 
 // createAllKeysItem creates a new item with all keys from secret.Data.
-func (p *SecretsClient) createAllKeysItem(ctx context.Context, secret *corev1.Secret, title string, tags []string, fieldType onepassword.ItemFieldType) error {
+func (p *SecretsClient) createAllKeysItem(
+	ctx context.Context,
+	secret *corev1.Secret,
+	title string,
+	fieldType onepassword.ItemFieldType,
+	mdata *metadata.PushSecretMetadata[PushSecretMetadataSpec],
+) error {
 	fields := make([]onepassword.ItemField, 0, len(secret.Data))
 	for k, v := range secret.Data {
 		fields = append(fields, generateNewItemField(k, string(v), fieldType))
 	}
-	createdItem, err := p.client.Items().Create(ctx, onepassword.ItemCreateParams{
-		Category: onepassword.ItemCategoryServer,
-		VaultID:  p.targetID,
-		Title:    title,
-		Fields:   fields,
-		Tags:     tags,
-	})
+	params, err := newItemCreateParams(p.targetID, title, fields, mdata)
+	if err != nil {
+		return fmt.Errorf(errMsgParsePushMeta, err)
+	}
+	createdItem, err := p.client.Items().Create(ctx, params)
 	metrics.ObserveAPICall(ProviderOnePasswordSDK, CallOnePasswordSDKItemsCreate, err)
 	if err != nil {
 		return errors.New(errMsgCreateItem)
@@ -800,7 +888,7 @@ func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, 
 	providerItem, err := p.findItem(ctx, title)
 
 	if errors.Is(err, ErrKeyNotFound) {
-		return p.createAllKeysItem(ctx, secret, title, tags, fieldType)
+		return p.createAllKeysItem(ctx, secret, title, fieldType, mdata)
 	}
 	if err != nil {
 		return fmt.Errorf("failed to find item: %w", err)
@@ -809,6 +897,9 @@ func (p *SecretsClient) pushAllKeys(ctx context.Context, secret *corev1.Secret, 
 	providerItem.Fields = normalizeItemFields(providerItem.Fields)
 	if tags != nil {
 		providerItem.Tags = tags
+	}
+	if mdata != nil && mdata.Spec.Websites != nil {
+		providerItem.Websites = toWebsites(mdata.Spec.Websites)
 	}
 	kept := make([]onepassword.ItemField, 0, len(providerItem.Fields))
 	for _, f := range providerItem.Fields {
