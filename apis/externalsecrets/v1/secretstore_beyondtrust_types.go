@@ -52,6 +52,7 @@ type BeyondtrustServer struct {
 	// +optional - The recommended version is 3.1. If no version is specified, the default API version 3.0 will be used
 	APIVersion string `json:"apiVersion,omitempty"`
 	// The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
+	// ALL = each remoteRef.key selects its type with a "managed:" or "secret:" prefix. Required; any other value is rejected.
 	RetrievalType string `json:"retrievalType,omitempty"`
 	// A character that separates the folder names.
 	Separator string `json:"separator,omitempty"`

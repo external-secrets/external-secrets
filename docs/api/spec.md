@@ -1807,7 +1807,8 @@ string
 </em>
 </td>
 <td>
-<p>The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.</p>
+<p>The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
+ALL = each remoteRef.key selects its type with a &ldquo;managed:&rdquo; or &ldquo;secret:&rdquo; prefix. Required; any other value is rejected.</p>
 </td>
 </tr>
 <tr>
@@ -8391,6 +8392,21 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef authenticates as this ServiceAccount, using a token from the TokenRequest API.
+Takes precedence over serviceAccountTokenPath.</p>
 </td>
 </tr>
 </tbody>

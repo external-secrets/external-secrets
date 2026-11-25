@@ -405,6 +405,7 @@ dataTo:
 |---|---|
 | Invalid regexp in `match` | PushSecret enters error state; check `.status.conditions` |
 | Rewrite produces empty key | Reconciliation fails with the offending source key named |
+| One rewrite produces, or could produce, more than 1 MiB of keys in total | Reconciliation fails before the keys are built |
 | Two entries produce the same remote key | Reconciliation fails listing all conflicting sources |
 | `match` matches no keys | Not an error; info log, PushSecret stays Ready |
 | `storeRef` not in `secretStoreRefs` | Validation error on apply |
