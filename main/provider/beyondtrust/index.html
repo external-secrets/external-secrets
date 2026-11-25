@@ -3204,6 +3204,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#using-managed-accounts-and-secrets-from-one-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using managed accounts and secrets from one store
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#get-the-k8s-secret" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5206,6 +5217,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#using-managed-accounts-and-secrets-from-one-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using managed accounts and secrets from one store
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#get-the-k8s-secret" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -5339,7 +5361,7 @@ You can also use a <code>ClusterSecretStore</code> allowing you to reference sec
 <span class="w">    </span><span class="nt">beyondtrust</span><span class="p">:</span>
 <span class="w">      </span><span class="nt">server</span><span class="p">:</span>
 <span class="w">        </span><span class="nt">apiUrl</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://example.com/BeyondTrust/api/public/v3/</span>
-<span class="w">        </span><span class="nt">retrievalType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MANAGED_ACCOUNT</span><span class="w">  </span><span class="c1"># or SECRET</span>
+<span class="w">        </span><span class="nt">retrievalType</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MANAGED_ACCOUNT</span><span class="w">  </span><span class="c1"># required: MANAGED_ACCOUNT, SECRET, or ALL (see below)</span>
 <span class="w">        </span><span class="nt">separator</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;/&quot;</span><span class="w"> </span><span class="c1"># folder separator used to split remoteRef.key paths; defaults to &quot;/&quot;</span>
 <span class="w">        </span><span class="nt">decrypt</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span><span class="w"> </span><span class="c1"># SECRET retrievalType only: when false the password field is omitted; defaults to true</span>
 <span class="w">        </span><span class="nt">verifyCA</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
@@ -5389,6 +5411,81 @@ You can also use a <code>ClusterExternalSecret</code> allowing you to reference 
 <span class="w">   </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretKey</span>
 <span class="w">     </span><span class="nt">remoteRef</span><span class="p">:</span>
 <span class="w">       </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">system01/managed_account01</span>
+</code></pre></div>
+<h2 id="using-managed-accounts-and-secrets-from-one-store">Using managed accounts and secrets from one store</h2>
+<p>Set <code>retrievalType: ALL</code> on the store to resolve both Password Safe managed accounts and Secrets Safe secrets through a single <code>SecretStore</code>. Each <code>remoteRef.key</code> then chooses its retrieval type with a prefix:</p>
+<ul>
+<li><code>managed:&lt;system&gt;/&lt;account&gt;</code> retrieves a managed account.</li>
+<li><code>secret:&lt;folder path&gt;/&lt;title&gt;</code> retrieves a Secrets Safe secret.</li>
+</ul>
+<p><code>retrievalType</code> is required and controls how each key is read:</p>
+<table>
+<thead>
+<tr>
+<th>Store <code>retrievalType</code></th>
+<th>How each <code>remoteRef.key</code> is read</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ALL</code></td>
+<td>Must start with <code>managed:</code> or <code>secret:</code>. A key without a prefix fails.</td>
+</tr>
+<tr>
+<td><code>MANAGED_ACCOUNT</code></td>
+<td>Always a managed account. A <code>managed:</code> prefix is removed; a <code>secret:</code> prefix fails.</td>
+</tr>
+<tr>
+<td><code>SECRET</code></td>
+<td>Always a Secrets Safe secret. A <code>secret:</code> prefix is removed; a <code>managed:</code> prefix fails.</td>
+</tr>
+<tr>
+<td>Empty or any other value</td>
+<td>The store is rejected.</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>NOTE: Upgrading: earlier versions treated an empty or unrecognized <code>retrievalType</code> as <code>MANAGED_ACCOUNT</code>. After upgrading, such stores are rejected with <code>invalid retrievalType</code>, and their ExternalSecrets stop syncing. Before upgrading, set <code>retrievalType: MANAGED_ACCOUNT</code> on every BeyondTrust <code>SecretStore</code> and <code>ClusterSecretStore</code> that does not set it.</p>
+<p>NOTE: A missing secret or managed account is reported as not found, so <code>deletionPolicy: Delete</code> and <code>Merge</code> apply. Password Safe only returns the secrets and managed accounts the API user can access, so losing access to one looks the same as deleting it. Under <code>Delete</code>, a permission change in BeyondTrust can therefore remove keys from the Kubernetes Secret, or the whole Secret, with only a Normal event. Use the default <code>deletionPolicy: Retain</code> if that is not acceptable.</p>
+</blockquote>
+<p>An <code>ALL</code> store that retrieves managed accounts needs the client <code>certificate</code> and <code>certificateKey</code>, the same as a <code>MANAGED_ACCOUNT</code> store.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">external-secrets.io/v1</span>
+<span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ExternalSecret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+<span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">beyondtrust-external-secret-mixed</span>
+<span class="nt">spec</span><span class="p">:</span>
+<span class="w"> </span><span class="nt">refreshInterval</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">1h0m0s</span>
+<span class="w"> </span><span class="nt">secretStoreRef</span><span class="p">:</span>
+<span class="w">   </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">   </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstore-beyondtrust</span><span class="w"> </span><span class="c1"># store with retrievalType: ALL</span>
+<span class="w"> </span><span class="nt">target</span><span class="p">:</span>
+<span class="w">   </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my-beyondtrust-mixed-secret</span>
+<span class="w">   </span><span class="nt">creationPolicy</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Owner</span>
+<span class="w"> </span><span class="nt">data</span><span class="p">:</span>
+<span class="w">   </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db-password</span>
+<span class="w">     </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">       </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">managed:system01/managed_account01</span><span class="w"> </span><span class="c1"># Password Safe managed account</span>
+<span class="w">   </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-key</span>
+<span class="w">     </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">       </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secret:app/folder/api-key</span><span class="w"> </span><span class="c1"># Secrets Safe secret</span>
+</code></pre></div>
+<p>On ESO versions without <code>retrievalType: ALL</code>, create one store per retrieval type and select a store for each entry with <code>data[].sourceRef.storeRef</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">data</span><span class="p">:</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">db-password</span>
+<span class="w">    </span><span class="nt">sourceRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">storeRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstore-beyondtrust-managed</span><span class="w"> </span><span class="c1"># retrievalType: MANAGED_ACCOUNT</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">system01/managed_account01</span>
+<span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">secretKey</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">api-key</span>
+<span class="w">    </span><span class="nt">sourceRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">storeRef</span><span class="p">:</span>
+<span class="w">        </span><span class="nt">kind</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SecretStore</span>
+<span class="w">        </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">secretstore-beyondtrust-secrets</span><span class="w"> </span><span class="c1"># retrievalType: SECRET</span>
+<span class="w">    </span><span class="nt">remoteRef</span><span class="p">:</span>
+<span class="w">      </span><span class="nt">key</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">app/folder/api-key</span>
 </code></pre></div>
 <h2 id="get-the-k8s-secret">Get the K8s secret</h2>
 <div class="highlight"><pre><span></span><code><span class="c1"># WARNING: this command will reveal the stored secret in plain text</span>
