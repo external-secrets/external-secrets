@@ -58,27 +58,7 @@ Flux adopted it in 2.10 for the same reason. ESO closed an earlier SPIFFE/SPIRE 
 
 Two identities are involved, and they never mix: the controller's own SVID opens the channel to the broker, and the store's SVID is what the backend sees.
 
-```mermaid
-flowchart LR
-  subgraph RT["SPIFFE runtime (SPIRE)"]
-    WA["Workload API<br/>socket via CSI driver"]
-    BA["Broker API<br/>decides the store ID"]
-  end
-  subgraph ESO["ESO controller (core)"]
-    XS["X509Source<br/>controller own SVID, rotated"]
-    BC["Broker client and cache<br/>one connection, JWT cache"]
-    PR["Provider (Vault)<br/>asks only for audiences"]
-  end
-  SS["SecretStore object<br/>referenced by name, UID"]
-  V["Vault<br/>JWT auth"]
-  WA -- "own X509-SVID" --> XS
-  XS -- "mTLS client cert" --> BC
-  PR -- "JWT(audiences)" --> BC
-  BC -- "FetchJWTSVID" --> BA
-  BA -- "JWT-SVID" --> BC
-  BA -- "verifies" --> SS
-  PR -- "JWT login" --> V
-```
+![SPIFFE Broker API integration, high-level design](./spiffe-broker-api-hld.svg)
 
 Providers never reach the SPIFFE runtime. They ask core for a token, and core is the only party that holds a connection to the Broker API.
 

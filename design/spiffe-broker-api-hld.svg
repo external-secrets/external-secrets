@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 424" width="760" height="424" role="img" aria-label="Controller SVID opens the channel; the store JWT reaches the backend" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <title>Controller SVID opens the channel; the store JWT reaches the backend</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#8c8a80"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="760" height="424" fill="#ffffff"/>
+  <text x="24" y="28" font-size="15" font-weight="600" fill="#1f1e1d">Controller SVID opens the channel; the store JWT reaches the backend</text>
+
+  <!-- zones -->
+  <rect x="24" y="52" width="200" height="216" rx="8" fill="#f0efec" stroke="#dddbd3"/>
+  <text x="40" y="73" font-weight="600" fill="#1f1e1d">SPIFFE runtime (SPIRE)</text>
+  <rect x="320" y="52" width="240" height="328" rx="8" fill="#f0efec" stroke="#dddbd3"/>
+  <text x="336" y="73" font-weight="600" fill="#1f1e1d">ESO controller (core)</text>
+
+  <!-- connectors -->
+  <g fill="none" stroke="#8c8a80" stroke-width="1.25">
+    <path d="M208 112H336" marker-end="url(#arrow)"/>
+    <path d="M336 216H208" marker-end="url(#arrow)"/>
+    <path d="M208 234H336" marker-end="url(#arrow)"/>
+    <path d="M440 140V196" marker-end="url(#arrow)"/>
+    <path d="M440 308V252" marker-end="url(#arrow)"/>
+    <path d="M544 336H632" marker-end="url(#arrow)"/>
+    <path d="M124 252V308" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- boxes -->
+  <rect x="40" y="84" width="168" height="56" rx="8" fill="#f0efec" stroke="#8c8a80" stroke-width="1.25"/>
+  <text x="52" y="108" font-weight="600" fill="#1f1e1d">Workload API</text>
+  <text x="52" y="124" font-size="11.5" fill="#5f5d57">socket via CSI driver</text>
+
+  <rect x="40" y="196" width="168" height="56" rx="8" fill="#f0efec" stroke="#8c8a80" stroke-width="1.25"/>
+  <text x="52" y="220" font-weight="600" fill="#1f1e1d">Broker API</text>
+  <text x="52" y="236" font-size="11.5" fill="#5f5d57">decides the store ID</text>
+
+  <rect x="40" y="308" width="168" height="56" rx="8" fill="#ffffff" stroke="#8c8a80" stroke-width="1.25"/>
+  <text x="52" y="332" font-weight="600" fill="#1f1e1d">SecretStore object</text>
+  <text x="52" y="348" font-size="11.5" fill="#5f5d57">referenced by name, UID</text>
+
+  <rect x="336" y="84" width="208" height="56" rx="8" fill="#f0efec" stroke="#8c8a80" stroke-width="1.25"/>
+  <text x="348" y="108" font-weight="600" fill="#1f1e1d">X509Source</text>
+  <text x="348" y="124" font-size="11.5" fill="#5f5d57">controller own SVID, rotated</text>
+
+  <rect x="336" y="196" width="208" height="56" rx="8" fill="#dbe6f4" stroke="#2f7ad6" stroke-width="2"/>
+  <text x="348" y="220" font-weight="600" fill="#1f1e1d">Broker client and cache</text>
+  <text x="348" y="236" font-size="11.5" fill="#5f5d57">one connection, JWT cache</text>
+
+  <rect x="336" y="308" width="208" height="56" rx="8" fill="#f0efec" stroke="#8c8a80" stroke-width="1.25"/>
+  <text x="348" y="332" font-weight="600" fill="#1f1e1d">Provider (Vault)</text>
+  <text x="348" y="348" font-size="11.5" fill="#5f5d57">asks only for audiences</text>
+
+  <rect x="632" y="308" width="104" height="56" rx="8" fill="#ffffff" stroke="#8c8a80" stroke-width="1.25"/>
+  <text x="644" y="332" font-weight="600" fill="#1f1e1d">Vault</text>
+  <text x="644" y="348" font-size="11.5" fill="#5f5d57">JWT auth</text>
+
+  <!-- edge labels -->
+  <g font-size="11.5" fill="#5f5d57">
+    <text x="272" y="104" text-anchor="middle">own X509-SVID</text>
+    <text x="272" y="208" text-anchor="middle">FetchJWTSVID</text>
+    <text x="272" y="250" text-anchor="middle">JWT-SVID</text>
+    <text x="450" y="172">mTLS client cert</text>
+    <text x="450" y="284">JWT(audiences)</text>
+    <text x="596" y="328" text-anchor="middle">JWT login</text>
+    <text x="134" y="292">verifies</text>
+    <text x="24" y="404">Highlighted: the only component that talks to the Broker API.</text>
+  </g>
+</svg>
