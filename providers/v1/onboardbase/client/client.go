@@ -23,6 +23,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -164,8 +165,9 @@ func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode, apiHost string
 		VerifyTLS:           true,
 		UserAgent:           "onboardbase-external-secrets",
 		httpClient: &http.Client{
-			Timeout:   HTTPTimeoutDuration,
-			Transport: httpTransport,
+			Timeout:       HTTPTimeoutDuration,
+			Transport:     httpTransport,
+			CheckRedirect: sameHostHTTPSRedirect,
 		},
 	}
 
@@ -181,6 +183,19 @@ func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode, apiHost string
 	}
 
 	return client, nil
+}
+
+// sameHostHTTPSRedirect only follows redirects that stay on https and on the same host.
+// net/http copies custom headers to the redirect target, so following any other redirect
+// would send the API key to another host or over cleartext.
+func sameHostHTTPSRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	if req.URL.Scheme != "https" || req.URL.Host != via[0].URL.Host {
+		return fmt.Errorf("refusing redirect to %s, only same host https redirects are followed", req.URL.Redacted())
+	}
+	return nil
 }
 
 // BaseURL returns the base URL of the Onboardbase API.

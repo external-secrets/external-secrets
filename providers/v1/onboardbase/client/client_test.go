@@ -65,3 +65,53 @@ func TestNewOnboardbaseClientRejectsCleartextAPIHost(t *testing.T) {
 		t.Errorf("error = %q, want it to mention that apiHost must use https", err)
 	}
 }
+
+func TestSameHostHTTPSRedirect(t *testing.T) {
+	first, _ := http.NewRequest(http.MethodGet, "https://onboardbase.example.com/api/v1/team/members", http.NoBody)
+	tests := []struct {
+		name    string
+		target  string
+		allowed bool
+	}{
+		{"same host https", "https://onboardbase.example.com/api/v2/team/members", true},
+		{"other host", "https://attacker.example.com/api/v1/team/members", false},
+		{"same host cleartext", "http://onboardbase.example.com/api/v1/team/members", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req, _ := http.NewRequest(http.MethodGet, tt.target, http.NoBody)
+			err := sameHostHTTPSRedirect(req, []*http.Request{first})
+			if tt.allowed && err != nil {
+				t.Errorf("redirect to %s refused: %v", tt.target, err)
+			}
+			if !tt.allowed && err == nil {
+				t.Errorf("redirect to %s followed, want it refused", tt.target)
+			}
+		})
+	}
+}
+
+func TestClientDoesNotSendAPIKeyOnCrossHostRedirect(t *testing.T) {
+	var leaked string
+	other := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		leaked = r.Header.Get("api_key")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{}`))
+	}))
+	defer other.Close()
+	server := httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, other.URL+r.URL.Path, http.StatusFound)
+	}))
+	defer server.Close()
+
+	c, err := NewOnboardbaseClient("secret-key", "passcode", server.URL+"/api/v1/")
+	if err != nil {
+		t.Fatalf("NewOnboardbaseClient: %v", err)
+	}
+	// trust the test server certificate but keep the client redirect policy
+	c.httpClient.Transport = server.Client().Transport
+	_ = c.Authenticate()
+	if leaked != "" {
+		t.Errorf("api_key %q reached the redirect target on another host", leaked)
+	}
+}
