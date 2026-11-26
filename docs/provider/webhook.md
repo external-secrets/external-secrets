@@ -159,6 +159,9 @@ data:
   password: dGVzdA== # "test"
 ```
 
+Custom certificate authorities configured with `caBundle` or `caProvider` are used with
+NTLM authentication as well.
+
 ### HTTP response limit
 
 Successful response bodies are limited to 10 MiB. A larger response fails reconciliation
