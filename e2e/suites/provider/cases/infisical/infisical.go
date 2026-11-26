@@ -89,6 +89,11 @@ var _ = Describe("[infisical]", Label("infisical"), Ordered, func() {
 		framework.TableFuncWithPushSecret(f, prov, fakeSecretClient),
 		framework.Compose(withUniversalAuth, f, pushSecretValue(prov), useUniversalAuthForPush(prov)),
 		framework.Compose(withUniversalAuth, f, pushSecretDeletesOnPolicy(prov), useUniversalAuthForPush(prov)),
+		framework.Compose(withUniversalAuth, f, pushSecretWithProperty(prov), useUniversalAuthForPush(prov)),
+		framework.Compose(withUniversalAuth, f, pushSecretWholeSecret(prov), useUniversalAuthForPush(prov)),
+		framework.Compose(withUniversalAuth, f, pushSecretUpdatesExisting(prov), useUniversalAuthForPush(prov)),
+		framework.Compose(withUniversalAuth, f, pushSecretIfNotExists(prov), useUniversalAuthForPush(prov)),
+		framework.Compose(withUniversalAuthCluster, f, pushSecretViaClusterStore(prov), useUniversalAuthClusterStoreForPush(prov)),
 	)
 })
 
@@ -158,6 +163,17 @@ func useUniversalAuthClusterStore(prov *infisicalProvider) func(*framework.TestC
 		prov.CreateUniversalAuthClusterStore()
 		tc.ExternalSecret.Spec.SecretStoreRef.Name = clusterStoreName(tc.Framework)
 		tc.ExternalSecret.Spec.SecretStoreRef.Kind = esv1.ClusterSecretStoreKind
+	}
+}
+
+// useUniversalAuthClusterStoreForPush creates the Universal Auth
+// ClusterSecretStore and points the test's PushSecret at it.
+func useUniversalAuthClusterStoreForPush(prov *infisicalProvider) func(*framework.TestCase) {
+	return func(tc *framework.TestCase) {
+		prov.CreateUniversalAuthClusterStore()
+		tc.PushSecret.Spec.SecretStoreRefs = []esv1alpha1.PushSecretStoreRef{
+			{Name: clusterStoreName(tc.Framework), Kind: esv1.ClusterSecretStoreKind},
+		}
 	}
 }
 
