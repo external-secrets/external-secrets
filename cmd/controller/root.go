@@ -277,12 +277,13 @@ var rootCmd = &cobra.Command{
 		if enablePushSecretReconciler {
 			psmetrics.SetUpMetrics()
 			if err = (&pushsecret.Reconciler{
-				Client:          mgr.GetClient(),
-				Log:             ctrl.Log.WithName("controllers").WithName("PushSecret"),
-				Scheme:          mgr.GetScheme(),
-				ControllerClass: controllerClass,
-				RestConfig:      mgr.GetConfig(),
-				RequeueInterval: time.Hour,
+				Client:                    mgr.GetClient(),
+				Log:                       ctrl.Log.WithName("controllers").WithName("PushSecret"),
+				Scheme:                    mgr.GetScheme(),
+				ControllerClass:           controllerClass,
+				ClusterSecretStoreEnabled: enableClusterStoreReconciler,
+				RestConfig:                mgr.GetConfig(),
+				RequeueInterval:           time.Hour,
 			}).SetupWithManager(cmd.Context(), mgr, ctrlcommon.BuildControllerOptions(concurrent)); err != nil {
 				setupLog.Error(err, errCreateController, "controller", "PushSecret")
 				os.Exit(1)

@@ -20,7 +20,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
+	"regexp"
+	"strings"
 	"testing"
 	"time"
 
@@ -628,6 +631,64 @@ func TestRewrite(t *testing.T) {
 				t.Errorf("RewriteMap() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestRewriteTransformLimits(t *testing.T) {
+	_, err := RewriteTransform(esv1.ExternalSecretRewriteTransform{Template: `{{ until 35000000 | join " " }}`}, map[string][]byte{"key": []byte("value")})
+	assert.ErrorContains(t, err, "safety limit")
+}
+
+func TestRewriteBounds(t *testing.T) {
+	// 24 rules that double a 1-byte key would build 2^24 bytes = 16 MiB.
+	chain := make([]esv1.ExternalSecretRewrite, 24)
+	for i := range chain {
+		chain[i].Regexp = &esv1.ExternalSecretRewriteRegexp{Source: "^.*$", Target: "$0$0"}
+	}
+	_, err := RewriteMap(chain, map[string][]byte{"k": nil})
+	assert.ErrorContains(t, err, "may exceed")
+
+	// One rule: 100000 references x a 100-byte key would build 10 MB.
+	_, err = RewriteRegexp(
+		esv1.ExternalSecretRewriteRegexp{Source: "^.*$", Target: strings.Repeat("$0", 100000)},
+		map[string][]byte{strings.Repeat("k", 100): nil},
+	)
+	assert.ErrorContains(t, err, "may exceed")
+
+	// Ordinary keys, too many of them: 5000 keys x 250 bytes = 1250000 bytes > 1 MiB.
+	many := make(map[string][]byte, 5000)
+	for i := range 5000 {
+		many[fmt.Sprintf("%0250d", i)] = nil
+	}
+	_, err = RewriteRegexp(esv1.ExternalSecretRewriteRegexp{Source: "^a", Target: "b"}, many)
+	assert.ErrorContains(t, err, "may exceed")
+	_, err = RewriteTransform(esv1.ExternalSecretRewriteTransform{Template: "{{ .value }}"}, many)
+	assert.ErrorContains(t, err, "exceeds")
+}
+
+func TestReplaceKeyBoundedIsABound(t *testing.T) {
+	for _, tt := range []struct{ source, target, key string }{
+		{"x*", "-", "abc"},      // an empty match at every position
+		{"x*", "$0$0", "xxaxx"}, // empty and non-empty matches
+		{"(a)(b)", "$2$1$$", "ababab"},
+		{"(?P<name>a+)", "${name}${name}", "aaaa"},
+		{"a", "bbbb", "aaaa"},     // a target without "$"
+		{".", "$0$0$0", "abcdef"}, // every byte matched and copied 3 times
+		{"", "$", ""},             // a malformed reference on an empty key
+	} {
+		re := regexp.MustCompile(tt.source)
+		want := re.ReplaceAllString(tt.key, tt.target)
+
+		// A budget one byte short of the result must be refused: the bound is never below the result.
+		budget := len(want) - 1
+		_, err := ReplaceKeyBounded(re, tt.key, tt.target, &budget)
+		assert.Error(t, err, "%q -> %q on %q", tt.source, tt.target, tt.key)
+
+		budget = MaxRewrittenKeysBytes
+		got, err := ReplaceKeyBounded(re, tt.key, tt.target, &budget)
+		assert.NoError(t, err)
+		assert.Equal(t, want, got)
+		assert.Equal(t, MaxRewrittenKeysBytes-len(want), budget)
 	}
 }
 

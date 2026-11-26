@@ -30,7 +30,7 @@ import (
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 )
 
-func TestNewDVLSClient_CrossNamespaceSecurityConstraint(t *testing.T) {
+func TestNewStoreClients_CrossNamespaceSecurityConstraint(t *testing.T) {
 	otherNamespace := "other-namespace"
 
 	tests := []struct {
@@ -104,12 +104,11 @@ func TestNewDVLSClient_CrossNamespaceSecurityConstraint(t *testing.T) {
 				},
 			}
 
-			credClient, vaultID, err := NewDVLSClient(context.Background(), kube, tt.storeKind, tt.namespace, provider)
+			clients, err := newStoreClients(context.Background(), kube, tt.storeKind, tt.namespace, provider)
 
 			if tt.expectError {
 				require.Error(t, err)
-				require.Nil(t, credClient)
-				require.Empty(t, vaultID)
+				require.Nil(t, clients)
 				if tt.errorMsg != "" {
 					assert.Contains(t, err.Error(), tt.errorMsg)
 				}

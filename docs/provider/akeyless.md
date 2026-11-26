@@ -9,9 +9,18 @@ SecretStore resource specifies how to access Akeyless. This resource is namespac
 **NOTE:** Make sure the Akeyless provider is listed in the Kind=SecretStore.
 If you use a customer fragment, define the value of akeylessGWApiURL as the URL of your Akeyless Gateway in the following format: https://your.akeyless.gw:8080/v2.
 
+For non-global SaaS tenants, set `akeylessGWApiURL` (or the `AKEYLESS_URL` environment variable on the operator, matching the Akeyless CLI) to the tenant URL, for example `https://vault.eu.akeyless.io` or `https://api.eu.akeyless.io`. Vault/UAM hosts are mapped to the matching `api.*` endpoint so authentication and secret fetches use the same tenant.
+
 When using an Akeyless Gateway, you can set `ignoreCache: true` on the SecretStore to bypass the Gateway cache and fetch the latest secret value from Akeyless SaaS on every sync. This matches the `ignore_cache` option in the Akeyless Kubernetes Secrets Injector. Use this only when you need fresh values on each reconcile: it increases load on the Gateway and upstream Akeyless API compared to serving cached responses.
 
-**NOTE:** `ignoreCache` affects Gateway-side caching only. ESO still reuses the provider client between reconciles when the SecretStore spec is unchanged.
+**NOTE:** `ignoreCache` also disables ESO's in-process item-type cache (described below), so every sync looks up the item type. It does not disable token reuse. ESO still reuses the provider client between reconciles when the SecretStore spec is unchanged.
+
+ESO caches two things in memory for each provider client, which is created per SecretStore and namespace and replaced when the SecretStore spec changes:
+
+- **Akeyless token:** reused until the expiry returned by Akeyless authentication, minus 30 seconds. If no expiry is returned, the token is reused for about 4 minutes. If a request made with a cached token fails with HTTP 401 or 403, ESO discards the token and retries the request once with a fresh one.
+- **Item type** (static, dynamic, rotated or certificate): cached for 10 minutes, for up to 1024 items. If a read with a cached type fails, ESO looks up the item again in the same sync, so deleted items and items recreated as a different type are handled immediately.
+
+To set the operator-wide `AKEYLESS_URL` environment variable with the Helm chart, use `extraEnv`.
 
 Akeyless provides several Authentication Methods:
 
@@ -31,6 +40,59 @@ Options for obtaining Kubernetes credentials include:
 
 **NOTE:** In case of a `ClusterSecretStore`, be sure to provide `namespace` for `serviceAccountRef` and `secretRef` according to the namespaces where the secrets reside.
 
+### Authentication with OAuth2.0/JWT
+
+Use an [Akeyless OAuth2.0/JWT](https://docs.akeyless.io/docs/auth-with-oauth-jwt) auth method. The provider calls Akeyless `Auth` with `access-type=jwt` and the bearer JWT.
+
+Preferred SecretStore shape is `authSecretRef.jwtAuth`:
+
+```yaml
+{% include 'akeyless-secret-store-jwt-auth.yaml' %}
+```
+
+JWT material:
+
+```yaml
+{% include 'akeyless-credentials-jwt-secret.yaml' %}
+```
+
+`jwtAuth.serviceAccountRef` uses the TokenRequest API (`create` on `serviceaccounts/token`). The Helm chart grants this when `rbac.serviceAccountTokenCreate` is `true` (the default). `serviceAccountRef.audiences` is required and must match the audience configured on the Akeyless OAuth2.0/JWT auth method. This keeps the token from being scoped to the Kubernetes API server, so it cannot be replayed against the cluster API.
+
+When `jwtAuth` is set, it takes precedence: `authSecretRef.secretRef` and `authSecretRef.serviceAccountRef` are ignored, and ESO returns a warning if they are also set.
+
+#### Akeyless setup for ServiceAccount tokens
+
+For `serviceAccountRef`, the Akeyless auth method must trust your cluster's ServiceAccount token issuer:
+
+1. Export the cluster JWKS and note the issuer. Refresh the JWKS in Akeyless when the cluster signing keys rotate.
+
+    ```bash
+    kubectl get --raw /openid/v1/jwks > cluster-jwks.json
+    kubectl get --raw /.well-known/openid-configuration  # "issuer" field
+    ```
+
+2. Create an OAuth2.0/JWT auth method that trusts that JWKS, with `sub` as the unique identifier and the same audience you set in `serviceAccountRef.audiences`:
+
+    ```bash
+    akeyless auth-method create oauth2 \
+      --name /k8s/cluster-oidc \
+      --jwks-json-file ./cluster-jwks.json \
+      --issuer <issuer-from-openid-configuration> \
+      --unique-identifier sub \
+      --audience akeyless.io
+    ```
+
+    If the cluster JWKS is publicly reachable, you can use `--jwks-uri` instead of `--jwks-json-file`.
+
+3. Scope access per ServiceAccount with role associations on the `sub` claim:
+
+    ```bash
+    akeyless assoc-role-am --role-name <role> --am-name /k8s/cluster-oidc \
+      --sub-claims sub=system:serviceaccount:<namespace>:<serviceaccount>
+    ```
+
+Alternatively, store `accessType=jwt` and put the JWT in `accessTypeParam` via the generic credentials Secret below.
+
 ### Authentication with Cloud-Identity or Api-Access-Key
 
 Akeyless providers require an access-id, access-type and access-type-param
@@ -46,6 +108,7 @@ The supported auth-methods and their parameters are:
 | `api_key`      | The access key                     |
 | `access_key`   | The access key (alias for api_key) |
 | `k8s`          | The k8s configuration name         |
+| `jwt`          | The bearer JWT                     |
 
 For `azure_ad` on AKS Workload Identity, set `authSecretRef.serviceAccountRef` to a ServiceAccount annotated with `azure.workload.identity/client-id` and `azure.workload.identity/tenant-id`. This field is only used when `accessType` is `azure_ad`; other access types ignore it.
 

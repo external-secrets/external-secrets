@@ -94,7 +94,7 @@ func (c *FluxHelmRelease) Install() error {
 				Spec: fluxhelm.HelmChartTemplateSpec{
 					Version: c.HelmRevision,
 					Chart:   c.HelmChart,
-					SourceRef: fluxhelm.CrossNamespaceObjectReference{
+					SourceRef: &fluxhelm.CrossNamespaceObjectReference{
 						Kind:      "HelmRepository",
 						Name:      c.Name,
 						Namespace: fluxNamespace,

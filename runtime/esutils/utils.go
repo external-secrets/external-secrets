@@ -202,10 +202,43 @@ func RewriteRegexp(operation esv1.ExternalSecretRewriteRegexp, in map[string][]b
 	if err != nil {
 		return nil, fmt.Errorf("regexp failed with failed to compile: %w", err)
 	}
+	budget := MaxRewrittenKeysBytes
 	for key, value := range in {
-		newKey := re.ReplaceAllString(key, operation.Target)
+		newKey, err := ReplaceKeyBounded(re, key, operation.Target, &budget)
+		if err != nil {
+			return nil, err
+		}
 		out[newKey] = value
 	}
+	return out, nil
+}
+
+// MaxRewrittenKeysBytes is the total size of the keys that one rewrite
+// operation may produce: the size limit of a Kubernetes Secret (1 MiB).
+const MaxRewrittenKeysBytes = corev1.MaxSecretSize
+
+// ReplaceKeyBounded is re.ReplaceAllString(key, target), refused when the
+// result could exceed what is left of budget. It takes the result out of budget.
+//
+// It refuses before building, from an upper bound of the result:
+//
+//	len(key)                    the parts of the key that no match covers
+//	(len(key)+1) * len(target)  the target's own text, once per match; a key of n
+//	                            bytes has at most n+1 matches (empty ones included)
+//	count("$") * len(key)       each "$" in the target copies a part of its match;
+//	                            matches do not overlap, so over all matches one "$"
+//	                            copies at most len(key) bytes
+//
+// It is arithmetic on lengths, not a parser for the replacement syntax. It
+// over-estimates, which is the safe direction.
+func ReplaceKeyBounded(re *regexp.Regexp, key, target string, budget *int) (string, error) {
+	// shortcut: the products assume a 64-bit int (amd64, arm64, ppc64le), use int64 if a 32-bit build is added.
+	worst := len(key) + (len(key)+1)*len(target) + strings.Count(target, "$")*len(key)
+	if worst > *budget {
+		return "", fmt.Errorf("regexp rewrite result may exceed %d bytes", MaxRewrittenKeysBytes)
+	}
+	out := re.ReplaceAllString(key, target)
+	*budget -= len(out)
 	return out, nil
 }
 
@@ -218,12 +251,16 @@ func RewriteTransform(operation esv1.ExternalSecretRewriteTransform, in map[stri
 		return nil, fmt.Errorf("transform failed with failed to parse template: %w", err)
 	}
 
+	budget := MaxRewrittenKeysBytes
 	for key, value := range in {
-		var buf bytes.Buffer
-		if err := tmpl.Execute(&buf, map[string]string{"value": key}); err != nil {
+		result, err := estemplate.ExecuteTemplate(tmpl, map[string]string{"value": key})
+		if err != nil {
 			return nil, fmt.Errorf("transform failed with failed to execute template for key %q: %w", key, err)
 		}
-		out[buf.String()] = value
+		if budget -= len(result); budget < 0 {
+			return nil, fmt.Errorf("transform rewrite result exceeds %d bytes", MaxRewrittenKeysBytes)
+		}
+		out[string(result)] = value
 	}
 
 	return out, nil

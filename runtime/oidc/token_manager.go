@@ -35,6 +35,7 @@ import (
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
+	"github.com/external-secrets/external-secrets/runtime/esutils"
 )
 
 // Token TTL and buffer constants for OIDC token management.
@@ -251,12 +252,10 @@ func postJSONRequestInternal(ctx context.Context, url string, requestBody any, p
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
 
-	// Clone the default transport if possible, otherwise create a new one
-	var transport *http.Transport
-	if t, ok := http.DefaultTransport.(*http.Transport); ok {
-		transport = t.Clone()
-	} else {
-		transport = &http.Transport{}
+	// CloneDefaultHTTPTransport preserves ProxyFromEnvironment from the default transport.
+	transport, err := esutils.CloneDefaultHTTPTransport()
+	if err != nil {
+		return nil, fmt.Errorf("failed to clone default HTTP transport: %w", err)
 	}
 	transport.TLSClientConfig = &tls.Config{
 		MinVersion: tls.VersionTLS12,

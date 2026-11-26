@@ -304,6 +304,10 @@ func (r *Reconciler) createSimpleManifest(obj *unstructured.Unstructured, dataMa
 
 // renderTemplatedManifest renders templates for a custom resource.
 func (r *Reconciler) renderTemplatedManifest(ctx context.Context, es *esv1.ExternalSecret, obj *unstructured.Unstructured, dataMap map[string][]byte) (*unstructured.Unstructured, error) {
+	log := r.Log.WithValues("ExternalSecret", client.ObjectKeyFromObject(es))
+	log.V(1).Info("template render started")
+	defer log.V(1).Info("template render finished")
+
 	execute, err := template.EngineForVersion(es.Spec.Target.Template.EngineVersion)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get template engine: %w", err)
