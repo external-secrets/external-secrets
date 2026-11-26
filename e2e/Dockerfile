@@ -1,5 +1,5 @@
-# Pinned release: golang:1.27.3-bookworm (Go; tracking 1.x on Debian Bookworm)
-FROM golang@sha256:972b4110ba0f47539a975c31e52c64765e1ff19f2d74469ae4a595c6676e80a5 AS builder
+# Pinned release: golang:1.27.4-bookworm (Go; tracking 1.x on Debian Bookworm)
+FROM golang@sha256:4fa7c968ba93f1635670522dbb01a2c78150443e1385746924566079f36570ea AS builder
 RUN go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.6
 
 # Pinned release: alpine:3.24.3 (Alpine; tracking 3.x)
