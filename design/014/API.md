@@ -359,6 +359,17 @@ spec:
   #         controller: Ready=False with reason ProtocolNotSupported until implemented
   protocol: grpc
 
+  # protocolVersion: optional. Pins the contract version (PROTOCOL.md P5), e.g. v1alpha1.
+  #   unset (default): the controller negotiates: newest version the core supports,
+  #         then the previous one, and writes the result to status.protocolVersion.
+  #   set:  no negotiation. The controller calls Describe on this version only and
+  #         every call uses it. If the core does not support the version, or the
+  #         runtime answers Unimplemented or does not list it, Ready=False with reason
+  #         IncompatibleProtocol; the controller never falls back to another version.
+  #   Pattern ^v[0-9]+((alpha|beta)[0-9]+)?$, not an enum, so that an older core does not
+  #   reject the object; support is checked by the controller.
+  # protocolVersion: v1alpha1
+
   # tls: optional. The transport. default (controller):
   #   endpoint.address -> {enabled: true, issuer: Managed}
   #   endpoint.socket  -> {enabled: false}
@@ -437,18 +448,19 @@ status:
   - type: Insecure
     status: "False"
     reason: MutualTLS
-  # Filled from Runtime.Describe (PROTOCOL.md); generates from Generator.Describe.
+  # Filled from Runtime.Describe (PROTOCOL.md).
+  # protocolVersion: the version every call uses: spec.protocolVersion when pinned,
+  #   the negotiated one otherwise.
   protocolVersion: v1alpha1
-  capabilities: [GetSecret, GetSecretMap, GetAllSecrets, PushSecret, DeleteSecret, SecretExists]
-  # serves: kinds a SecretStore's providerConfig may name.
+  # capabilities: union over the served kinds. Generate means some kind can back a generator.
+  capabilities: [GetSecret, GetSecretMap, GetAllSecrets, PushSecret, DeleteSecret, SecretExists, Generate]
+  # serves: kinds a store's or a generator's providerConfig may name. Which operations
+  #   each one supports comes from Capabilities, per configuration.
   serves:
   - apiVersion: provider.external-secrets.io/v1alpha1
     kind: SecretsManager
   - apiVersion: provider.external-secrets.io/v1alpha1
     kind: ParameterStore
-  # generates: kinds a Generator's or ClusterGenerator's providerConfig may name, as
-  #   Generator.Describe lists them. Empty for a runtime without generators.
-  generates:
   - apiVersion: provider.external-secrets.io/v1alpha1
     kind: ECRAuthorizationToken
 ```
@@ -764,68 +776,64 @@ This is v1's referent-authentication rule moved one object down: one `ClusterSec
 Unchanged fields, new reasons on the `Ready` condition for out-of-process stores: `ProviderRuntimeDisabled` (flag off), `RuntimeNotFound`, `RuntimeNotReady`, `ProviderKindNotServed`, `ProviderUnreachable`, `ProviderAuthenticationFailed` (the provider rejected the core's identity), `ProviderValidationFailed`, `ValidationUnknown` (a `ClusterSecretStore` whose provider CR has credential references without a namespace cannot be validated without a caller; this is today's behaviour for referent authentication and keeps the store usable). `status.capabilities` is projected from the provider's capability strings.
 
 
-### `Generator` (namespaced) and `ClusterGenerator` (cluster) (`external-secrets.io/v1`) *(new)*
+### Out-of-process generators (`generators.external-secrets.io/v1alpha1`) *(new)*
 
-Out-of-process generators are wired from the start, with two new kinds in the
-same group and version as the stores. A `Generator` is to generators what a
-`SecretStore` with `providerConfig` is to stores: a pointer to a runtime and to
-a provider-owned configuration, and nothing else. `ClusterGenerator` is its
-cluster-scoped twin, the way `ClusterSecretStore` is to `SecretStore`. Because
-they are different kinds from the stores, the core knows it must call the
-Generator service rather than the SecretStore service
-([PROTOCOL.md](./PROTOCOL.md) P12).
+There is no new generator kind. Every existing generator kind
+(`Password`, `ECRAuthorizationToken`, `VaultDynamicSecret`, ...) gains two
+optional fields, `runtimeRef` and `providerConfig`, with the same types and
+rules as on a `SecretStore`. A generator that sets them is served by a
+provider runtime through the `Generate` and `Cleanup` operations of the one
+provider interface ([PROTOCOL.md](./PROTOCOL.md) P2, P12). One that keeps its inline fields runs in process exactly as today.
+
+The point is that no `ExternalSecret` or `PushSecret` changes. They keep
+referencing the generator by `generatorRef`; moving it out of process edits
+only the generator object.
+
 
 ```yaml
-# external-secrets.io/v1 Generator: a generator served by a provider runtime.
-# ClusterGenerator has the same spec; the rules that differ are called out per field.
-apiVersion: external-secrets.io/v1
-kind: Generator                      # or ClusterGenerator (cluster-scoped, no namespace)
+# generators.external-secrets.io/v1alpha1 VaultDynamicSecret, moved out of process.
+# Every generator kind gets the same two fields at spec.runtimeRef and
+# spec.providerConfig, ClusterGenerator included (below): the same place as on a store.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: VaultDynamicSecret
 metadata:
   name: db-creds
   namespace: team-a
 spec:
-  # ------------------------------------------ same fields and semantics as the stores
-  controller: ""                     # optional; same controller-class filter as SecretStore
-  refreshInterval: 1h                # optional; how often the controller re-runs Validate
-  retrySettings: {}                  # optional; retries for Validate, Generate and Cleanup calls
-  conditions: []                     # optional, ClusterGenerator only (not in the Generator
-                                     # schema); same type as ClusterSecretStore.spec.conditions:
-                                     # namespaceSelector, namespaces, namespaceRegexes gate
-                                     # which caller namespaces may use the generator
+  # --------------------------------------------- inline (in-process) fields
+  # path, method, provider, ...: unchanged. CEL: all of them must be empty when
+  #   providerConfig is set. Fields that are required today become optional in the
+  #   schema and required by CEL when providerConfig is absent, so every manifest
+  #   that is valid today stays valid.
 
-  # ------------------------------------------------------ out-of-process generator
-  # runtimeRef: required. Same shape and default as SecretStore.spec.runtimeRef.
-  #   kind: Generator        -> RuntimeConfig (default, resolved in metadata.namespace)
-  #                             or ClusterRuntimeConfig
-  #         ClusterGenerator -> ClusterRuntimeConfig (default); CEL: RuntimeConfig
-  #                             is not allowed
-  #   at call time: the runtime config must exist and be Ready, else the
-  #   ExternalSecret or PushSecret fails (SecretSyncedError / Errored) with
-  #   RuntimeNotFound or RuntimeNotReady in the message.
+  # -------------------------------------------------- out-of-process (new)
+  # runtimeRef: optional. Same type, default and rules as SecretStore.spec.runtimeRef.
+  #   CEL: set if and only if providerConfig is set.
+  #   kind: RuntimeConfig (default, resolved in metadata.namespace) | ClusterRuntimeConfig
   runtimeRef:
     kind: ClusterRuntimeConfig
     name: vault
-  # providerConfig: required. The same union as on SecretStore; gvkRef is the only
+  # providerConfig: optional. The same union as on SecretStore; gvkRef is the only
   #   member in milestone 1.
   providerConfig:
     gvkRef:
       # apiVersion, kind, name: required.
-      #   at call time: kind must be in the runtime config's status.generates, else
-      #   ProviderKindNotServed in the message.
+      #   kind must be in the runtime config's status.serves, else ProviderKindNotServed.
+      #   The core does not compare it with this object's kind.
       apiVersion: provider.external-secrets.io/v1alpha1
       kind: VaultDynamicSecret
       name: db-creds
-      # namespace: where the configuration lives.
-      #   Generator:        FORBIDDEN (CEL); the configuration is in metadata.namespace
-      #   ClusterGenerator: REQUIRED (CEL)
-      # namespace: external-secrets-system      # ClusterGenerator only
+      # namespace: FORBIDDEN (CEL on every namespaced generator root); the
+      #   configuration is in metadata.namespace.
 status:
-  # Written by the Generator / ClusterGenerator controller from Generator.Validate.
-  # Ready reasons are the store reasons (see "Status on the store"):
-  #   ProviderRuntimeDisabled, RuntimeNotFound, RuntimeNotReady, ProviderKindNotServed,
-  #   ProviderUnreachable, ProviderAuthenticationFailed, ProviderValidationFailed,
-  #   ValidationUnknown (a ClusterGenerator whose configuration has credential
-  #   references without a namespace: nothing to validate without a caller).
+  # New on every generator kind, ClusterGenerator included. Written by the generator
+  # controller. With providerConfig, from Validate. Ready reasons are
+  # the store reasons (see "Status on the store"): ProviderRuntimeDisabled,
+  # RuntimeNotFound, RuntimeNotReady, ProviderKindNotServed, ProviderUnreachable,
+  # ProviderAuthenticationFailed, ProviderValidationFailed, and ValidationUnknown for a
+  # ClusterGenerator, whose credentials resolve in the caller's namespace.
+  # With inline fields: no Ready condition (nothing is validated, as today), and
+  # Deprecated=True once a provider serves this kind (see "Deprecating inline generators").
   conditions:
   - type: Ready
     status: "True"
@@ -839,13 +847,42 @@ status:
   stateful: true
 ```
 
-Unlike in-process generators, which have no status, a `Generator` reports
-whether it works before anything uses it.
+`ClusterGenerator` gets them, but does not get fully-featured cluster-scoped approach (e.g. no namespace restriction). The idea is to not implement every single feature from a ClusterSecretStore into the existing ClusterGenerator, and instead just provide a way for users to migrate away without changing the `ExternalSecret/PushSecret` manifests.
 
-`ExternalSecret` and `PushSecret` use them through the `generatorRef` they
-already have. The only API change on their side is one more value,
-`Generator`, in the `GeneratorRef.Kind` enum; `ClusterGenerator` is already
-in it. `generatorRef.apiVersion` tells the two `ClusterGenerator` kinds apart.
+```yaml
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ClusterGenerator
+metadata:
+  name: db-creds
+spec:
+  kind: VaultDynamicSecret               # unchanged: which generator this is
+  # generator: the inline union. Optional in the schema from now on.
+  #   CEL: exactly one of spec.generator or spec.providerConfig.
+  # ------------------------------------------------- out-of-process (new)
+  # Same fields, same place as on a SecretStore / ClusterSecretStore.
+  runtimeRef:
+    kind: ClusterRuntimeConfig           # default here; CEL: RuntimeConfig is not allowed
+    name: vault
+  providerConfig:
+    gvkRef:
+      apiVersion: provider.external-secrets.io/v1alpha1
+      kind: VaultDynamicSecret
+      name: db-creds
+      namespace: external-secrets-system # CEL: required on ClusterGenerator
+```
+
+Because `ClusterGenerator` embeds the per-kind spec types in its union, the
+two fields also appear inside every member
+(`spec.generator.vaultDynamicSecretSpec.providerConfig`, ...). That is a side
+effect of reusing the types, not a second way to configure it: CEL forbids
+them there, and `spec.runtimeRef` / `spec.providerConfig` is the only path.
+
+It keeps v1's `ClusterGenerator` semantics: credential references resolve in
+the namespace of the calling `ExternalSecret` or `PushSecret`, and an explicit
+namespace on a reference is never honoured. Serving that needs the provider's
+opt-in cross-namespace `ClusterRole`, as a referent `ClusterSecretStore` does.
+
+The `ExternalSecret` is the one it was before the migration:
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -860,99 +897,102 @@ spec:
   dataFrom:
   - sourceRef:
       generatorRef:
-        apiVersion: external-secrets.io/v1
-        kind: Generator                # or ClusterGenerator
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: VaultDynamicSecret
         name: db-creds
 ```
 
-Scope rules, mirroring the store table above:
+Scope rules. They apply only to generators that set `providerConfig`; inline
+generators keep v1's rules.
 
 | Generator | `runtimeRef.kind` | `providerConfig.gvkRef.namespace` | Configuration lives in | Credential references resolve in | Explicit namespace on a credential reference |
 | --- | --- | --- | --- | --- | --- |
-| `Generator` | omitted or `RuntimeConfig` (generator namespace), or `ClusterRuntimeConfig` | forbidden (CEL) | generator namespace, which is the caller's | generator namespace | accepted only if it equals the generator namespace; otherwise rejected by the provider |
-| `ClusterGenerator` | omitted or `ClusterRuntimeConfig`; `RuntimeConfig` rejected (CEL) | required (CEL) | that namespace | caller namespace: referent authentication | honoured |
+| namespaced kind | omitted or `RuntimeConfig` (generator namespace), or `ClusterRuntimeConfig` | forbidden (CEL) | generator namespace, which is the caller's | generator namespace | accepted only if it equals the generator namespace; otherwise refused or ignored by the provider, never read |
+| `ClusterGenerator` | omitted or `ClusterRuntimeConfig`; `RuntimeConfig` rejected (CEL) | required (CEL) | that namespace | caller namespace, as in v1 | accepted only if it equals the caller namespace; otherwise refused or ignored by the provider, never read |
 
-These are the store rules: a `Generator` behaves like a `SecretStore` and a
-`ClusterGenerator` like a `ClusterSecretStore`, referent authentication
-included. In-process generators keep v1's behaviour, which ignores a
-reference's namespace ([PROTOCOL.md](./PROTOCOL.md) P9).
+**Flood gate.** With `--enable-flood-gate` (the default), an `ExternalSecret`
+or `PushSecret` whose out-of-process generator is not `Ready` is not
+reconciled, exactly as for a store.
 
-The parity goes beyond scope. A `ClusterGenerator` has the store features of a
-`ClusterSecretStore`, enforced by the same core code:
+Store fields that do not belong to a generator object (`controller`,
+`refreshInterval`, `retrySettings`) are not added. The generator controller
+re-validates on the store's default interval, and calls to the runtime use the
+store's default retries.
 
-- **Namespace gating.** `spec.conditions` (`namespaceSelector`, `namespaces`,
-  `namespaceRegexes`) decides which namespaces' `ExternalSecret`s and
-  `PushSecret`s may reference the `ClusterGenerator`. The core checks it before
-  `Generate`, so a refused namespace never gets new values. `Cleanup` of an
-  existing `GeneratorState` is exempt: values generated before a namespace was
-  removed from `conditions` must still be revoked. In-process
-  `ClusterGenerator`s have no such gate today; this is the main reason a
-  platform team can share a generator across tenants.
-- **Flood gate.** With `--enable-flood-gate` (the default), an
-  `ExternalSecret` or `PushSecret` whose generator is not `Ready` is not
-  reconciled, exactly as for a store that is not `Ready`. A generator whose
-  status is `ValidationUnknown` passes, as an unknown store does today.
-- **Controller class.** `spec.controller` selects which ESO deployment
-  reconciles the generator and serves calls through it.
-- **Refresh and retries.** `spec.refreshInterval` drives re-validation and
-  `spec.retrySettings` applies to calls to the runtime, both with the store
-  defaults.
-
-A namespaced `Generator` has the same features minus `conditions`, the way a
-`SecretStore` has no `conditions`.
-
-CEL rules:
+CEL rules, generated by one marker per generator type so that all kinds stay
+alike:
 
 | Where | Rule | Message |
 | --- | --- | --- |
-| `GeneratorSpec` | `MinProperties=1`, `MaxProperties=1` on `providerConfig` (schema, not CEL) | exactly one member of `providerConfig` must be set |
-| `Generator` root | `!has(self.spec.providerConfig.gvkRef) \|\| !has(self.spec.providerConfig.gvkRef.namespace)` | `spec.providerConfig.gvkRef.namespace` is not allowed on `Generator` |
-| `ClusterGenerator` root | `!has(self.spec.providerConfig.gvkRef) \|\| has(self.spec.providerConfig.gvkRef.namespace)` | `spec.providerConfig.gvkRef.namespace` is required on `ClusterGenerator` |
-| `ClusterGenerator` root | `!has(self.spec.runtimeRef.kind) \|\| self.spec.runtimeRef.kind != 'RuntimeConfig'` | `ClusterGenerator` may only reference a `ClusterRuntimeConfig` |
+| every generator spec type | `has(self.runtimeRef) == has(self.providerConfig)` | `runtimeRef` and `providerConfig` must be set together |
+| every generator spec type | `!has(self.providerConfig) \|\| (<no inline field is set>)`, with the kind's inline fields listed | inline fields must be empty when `providerConfig` is set |
+| every generator spec type | `has(self.providerConfig) \|\| (<the kind's formerly required fields are set>)` | the old schema-required fields, now required by CEL |
+| `providerConfig` | `MinProperties=1`, `MaxProperties=1` (schema, not CEL) | exactly one member of `providerConfig` must be set |
+| every namespaced generator root | `!has(self.spec.providerConfig) \|\| !has(self.spec.providerConfig.gvkRef.namespace)` | `providerConfig.gvkRef.namespace` is not allowed on a generator |
+| `ClusterGeneratorSpec` | `has(self.generator) != has(self.providerConfig)` | exactly one of `spec.generator` or `spec.providerConfig` must be set |
+| `ClusterGeneratorSpec` | `has(self.runtimeRef) == has(self.providerConfig)` | `runtimeRef` and `providerConfig` must be set together |
+| `ClusterGenerator` root | `!has(self.spec.providerConfig) \|\| has(self.spec.providerConfig.gvkRef.namespace)` | `spec.providerConfig.gvkRef.namespace` is required on `ClusterGenerator` |
+| `ClusterGenerator` root | `!has(self.spec.runtimeRef) \|\| !has(self.spec.runtimeRef.kind) \|\| self.spec.runtimeRef.kind != 'RuntimeConfig'` | `ClusterGenerator` may only reference a `ClusterRuntimeConfig` |
+| `ClusterGenerator` root, one rule per union member | `!has(self.spec.generator.<member>.runtimeRef) && !has(self.spec.generator.<member>.providerConfig)` | use `spec.runtimeRef` and `spec.providerConfig` on a `ClusterGenerator` |
 
-Why new kinds in `external-secrets.io/v1`, and not a new member of the
-existing `generators.external-secrets.io/v1alpha1` `ClusterGenerator` union:
+What the core does:
 
-- The spec is the same two fields as an out-of-process store, so the kinds sit
-  next to `SecretStore`/`ClusterSecretStore` and share their types, defaults
-  and CEL rules.
-- The namespaced/cluster pair follows the store pattern users already know,
-  instead of a union member inside an umbrella kind.
-- `generators.external-secrets.io` stays the home of in-process generators and
-  is left as it is.
-- The cost: `ClusterGenerator` exists in both groups. `generatorRef.apiVersion`
-  disambiguates them, and the generator resolver must dispatch on
-  `apiVersion` as well as `kind`.
+- **One generic generator controller** reconciles every generator kind,
+  `ClusterGenerator` included (one watch per kind, one code path). For an
+  out-of-process generator it calls `Validate` on create, on
+  update and on the default interval, and writes `status`. For an inline one it writes nothing until deprecation
+  starts. The `ExternalSecret` and `PushSecret` controllers apply the flood
+  gate.
+- **Dispatch on the spec, not the kind.** `pkg/register/generators.go` keeps
+  every in-tree generator. When the resolved spec has `providerConfig`, the
+  resolver hands the call to one core generator that calls the runtime instead
+  of the in-tree code. A `ClusterGenerator` with `spec.providerConfig` is
+  dispatched the same way, before `clusterGeneratorToVirtual` (which only
+  applies to the inline union), and its `RequestContext.source` names the
+  `ClusterGenerator`.
+- **`GeneratorState`.** `spec.resource` records the generator as it was at
+  `Generate` time, and `spec.state` records the provider's opaque state.
+  `Cleanup` is sent to the runtime and configuration recorded there. The core
+  writes the `GeneratorState` before every out-of-process `Generate` and uses
+  its uid as the operation id, so a lost response can be retried or cleaned up
+  without minting twice ([PROTOCOL.md](./PROTOCOL.md) "Generating and cleaning
+  up"). The one schema change is that `GeneratorState.spec.state` becomes
+  optional.
+- **Behind the same flag**, `--experimental-enable-provider-runtime`. With the
+  flag off, a generator that sets `providerConfig` is admitted but fails every
+  call with `ProviderRuntimeDisabled`, and reports it in its status.
+- **RBAC.** The core gains `update` on the `/status` of every generator kind;
+  it already reads them. Providers get no RBAC on `generators.external-secrets.io`:
+  the request carries what they need.
 
-What the core does with them:
+#### Deprecating inline generators
 
-- A `Generator` / `ClusterGenerator` controller calls `Generator.Validate` on
-  create, on update and every `spec.refreshInterval`, and writes `status`. The
-  `ExternalSecret` and `PushSecret` controllers treat a generator that is not
-  `Ready` the way they treat a store that is not `Ready` (flood gate), and
-  check a `ClusterGenerator`'s `conditions` the way they check a
-  `ClusterSecretStore`'s.
-- `pkg/register/generators.go` registers one core generator for each of the two
-  kinds. Its `Generate` and `Cleanup` resolve the runtime config and call the
-  runtime. The rest of the generator machinery stays as it is: the
-  `GeneratorState` objects and their garbage collection. A `ClusterGenerator`
-  call needs no `clusterGeneratorToVirtual` step: its `RequestContext.source`
-  names the `ClusterGenerator` itself.
-- `GeneratorState.spec.resource` records the `Generator` or `ClusterGenerator`
-  as it was at `Generate` time, and `GeneratorState.spec.state` records the
-  provider's opaque state. `Cleanup` is sent to the runtime and configuration
-  recorded there. The core writes the `GeneratorState` before every
-  `Generate` and uses its uid as the operation
-  id, so a lost response can be retried or cleaned up without minting twice
-  ([PROTOCOL.md](./PROTOCOL.md) "Generating and cleaning up"). The one schema
-  change is that `GeneratorState.spec.state` becomes optional.
-- It is behind the same flag, `--experimental-enable-provider-runtime`. With
-  the flag off, a `generatorRef` to either kind fails with
-  `ProviderRuntimeDisabled` in the message.
-- The core's ClusterRole gains `get`, `list` and `watch` on `generators` and
-  `clustergenerators` in `external-secrets.io`, and `update` on their
-  `/status`. Providers get no RBAC on `external-secrets.io`: the
-  request carries what they need.
+The migration path is the store's, applied to generators:
+
+1. **Opt in.** With the flag on, a user installs the provider and runs
+   `esoctl migrate generator <kind>/<name>`. It writes the provider
+   configuration and edits the generator to `runtimeRef` + `providerConfig`,
+   keeping its name, so nothing that references it changes. Inline and
+   out-of-process generators run side by side.
+2. **Warn.** Once a provider chart for a kind is published, the generator
+   controller sets `Deprecated=True` on every inline generator of that kind and
+   emits a warning event naming the provider to install and the `esoctl`
+   command to run. Nothing else changes; the generator keeps working in
+   process. A `ClusterGenerator` is warned the same way, by its `spec.kind`,
+   and `esoctl migrate generator` converts it too: it moves the inline member
+   out to a provider configuration and sets `spec.runtimeRef` and
+   `spec.providerConfig`.
+3. **Move to `SecretStore`.** When the v1 store API is deprecated ("Migration",
+   step 3), generators move to `SecretStore`: a store whose configuration
+   advertises `Generate` can be used to generate. `ExternalSecret`
+   and `PushSecret` manifests then have to change to reference the store, and
+   the release notes and the `Deprecated` condition announce it ahead of time.
+   The wire contract does not change; only `RequestContext.source` becomes the
+   store. `ClusterGenerator` users move to a `ClusterSecretStore` at this step,
+   which brings the store rules with it: referent authentication and
+   `conditions`.
+
+Deprecation strategy for the whole Provider V2 move will be discussed on future documents.
 
 ### Examples
 
@@ -1146,6 +1186,7 @@ IPC path (`endpoint.socket`): no Service, no certificates, no cert-controller. T
 ## *(new)* Migration
 
 1. **Semantic migration inside `v1`.** Users replace `spec.provider.<name>` with `spec.providerConfig` + `spec.runtimeRef` and create the provider CR. `esoctl migrate store` reads a v1 store and emits the provider CR and the edited store, keeping names so no `ExternalSecret` changes. Both forms coexist indefinitely; a cluster can run in-process and out-of-process stores side by side.
+   Generators follow the same path without touching any `ExternalSecret`: `esoctl migrate generator` edits the generator object itself (see "Deprecating inline generators").
 2. **Chart-managed runtime configs.** Installing a provider chart creates its `(Cluster)RuntimeConfig`, so the documented path is "install the provider, point the store at it".
 3. **Clean `v2alpha1` store.** Only after the `v1` clean subset is in use: `external-secrets.io/v2alpha1 SecretStore` without `spec.provider`, `runtimeRef` and `providerConfig` required. Introducing it earlier would require lossless conversion between an object with an inline union and one without, which does not exist; the #6245 authors reached the same conclusion. The path there is staged, one release each: the controller first emits deprecation warnings for inline `spec.provider` stores, then stops serving them, then the field is removed from the `v1` CRD, and only then is `v2alpha1` served.
 4. **Deprecation** of in-process providers follows PR #7124 and `DEPRECATING.md`; not part of this design.
@@ -1179,4 +1220,4 @@ Without runtimeRef containing config, we are _tying_ the RBAC to case 1 only.
 8. Why is there a namespaced `RuntimeConfig` at all?
    **Answer:** for ESO installs scoped to a single namespace. Such an install runs with `Role`s only and cannot read a cluster-scoped object, so a `ClusterRuntimeConfig` would be unusable there. In a cluster-wide install, `ClusterRuntimeConfig` is the normal case. The namespaced variant is no less privileged: it decides what the core dials, including a Unix socket on the controller's file system.
 9. Are generators covered?
-   **Answer:** yes. `Generator` and `ClusterGenerator` in `external-secrets.io/v1` hold only a `runtimeRef` and a `providerConfig` (see "Generator and ClusterGenerator" above). Their wire contract is the Generator service in [PROTOCOL.md](./PROTOCOL.md) P12.
+   **Answer:** yes, without a new kind. Every existing generator kind, `ClusterGenerator` included, gains `runtimeRef` and `providerConfig`, so existing `ExternalSecret` and `PushSecret` manifests keep working while the generator moves out of process (see "Out-of-process generators" above). When the v1 store API is deprecated, generators move to `SecretStore` and `ClusterSecretStore`, and manifests change then. On the wire, generation is the `Generate` and `Cleanup` operations of the one provider interface ([PROTOCOL.md](./PROTOCOL.md) P2, P12).

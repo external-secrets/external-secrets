@@ -48,7 +48,7 @@ construction (P10).
 | Contract concept | HTTP encoding |
 | --- | --- |
 | contract version `v1alpha1` | path segment `externalsecrets.provider.v1alpha1` |
-| operation address | `POST /externalsecrets.provider.v1alpha1.<Service>/<Operation>`, with `<Service>` one of `Runtime`, `SecretStoreProvider`, `GeneratorProvider` |
+| operation address | `POST /externalsecrets.provider.v1alpha1.<Service>/<Operation>`, with `<Service>` one of `Runtime`, `SecretStoreProvider` |
 | health `Check` | `POST /grpc.health.v1.Health/Check` |
 | messages | proto3 JSON (rules below), `Content-Type: application/json` |
 | success | `200 OK`, body is the response message |
@@ -324,17 +324,11 @@ curl --unix-socket /var/run/external-secrets/aws.sock \
   "protocolVersions": ["v1alpha1"],
   "serves": [
     { "apiVersion": "provider.external-secrets.io/v1alpha1", "kind": "SecretsManager" },
-    { "apiVersion": "provider.external-secrets.io/v1alpha1", "kind": "ParameterStore" }
+    { "apiVersion": "provider.external-secrets.io/v1alpha1", "kind": "ParameterStore" },
+    { "apiVersion": "provider.external-secrets.io/v1alpha1", "kind": "ECRAuthorizationToken" }
   ],
-  "capabilities": ["GetSecret", "GetSecretMap", "GetAllSecrets", "PushSecret", "DeleteSecret", "SecretExists"]
+  "capabilities": ["GetSecret", "GetSecretMap", "GetAllSecrets", "PushSecret", "DeleteSecret", "SecretExists", "Generate"]
 }
-```
-
-```bash
-curl --unix-socket /var/run/external-secrets/aws.sock \
-  -H 'Content-Type: application/json' -H 'Connect-Timeout-Ms: 30000' \
-  http://localhost/externalsecrets.provider.v1alpha1.GeneratorProvider/Describe -d '{}'
-# {"generates":[{"apiVersion":"provider.external-secrets.io/v1alpha1","kind":"ECRAuthorizationToken"}]}
 ```
 
 ```bash
@@ -347,9 +341,9 @@ curl --unix-socket /var/run/external-secrets/aws.sock \
 ## What a hand-written provider implements
 
 1. One `POST` route per operation it supports: `Runtime/Describe` and the
-   health route always; `Validate`, `Capabilities` and the advertised store
-   operations if it serves store kinds; `GeneratorProvider/Describe`,
-   `Validate`, `Generate` and `Cleanup` if it serves generator kinds. Answer `404` for the rest, which the core reads as
+   health route always; `Validate`, `Capabilities` and every operation it
+   advertises if it serves any kind, plus `Cleanup` when it advertises
+   `Generate`. Answer `404` for the rest, which the core reads as
    `Unimplemented`.
 2. JSON decoding that ignores unknown fields, and encoding by the table above
    (`int64` as a string, `bytes` as base64).

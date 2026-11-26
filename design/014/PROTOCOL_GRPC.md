@@ -11,8 +11,7 @@ contract; where the two disagree, PROTOCOL.md is right.
 | --- | --- |
 | contract version `v1alpha1` | protobuf package `externalsecrets.provider.v1alpha1` |
 | Runtime service | `externalsecrets.provider.v1alpha1.Runtime` |
-| SecretStore service | `externalsecrets.provider.v1alpha1.SecretStoreProvider` |
-| Generator service | `externalsecrets.provider.v1alpha1.GeneratorProvider` |
+| SecretStore service (reads, writes and generation) | `externalsecrets.provider.v1alpha1.SecretStoreProvider` |
 | Health service | standard `grpc.health.v1.Health`, `Check` with an empty `service` |
 | operation address | `/externalsecrets.provider.v1alpha1.<Service>/<Operation>`, one unary RPC per operation |
 | messages | protobuf binary, from `proto/provider/v1alpha1/provider.proto` |
@@ -42,7 +41,9 @@ service Runtime {
   rpc Describe(DescribeRequest) returns (DescribeResponse);
 }
 
-// SecretStoreProvider is served by runtimes that list kinds in Describe.serves.
+// SecretStoreProvider is the one provider interface: reads, writes and
+// generation. Served by runtimes that list kinds in Describe.serves; each
+// configuration advertises the operations it supports through Capabilities.
 service SecretStoreProvider {
   // Configuration.
   rpc Validate(ValidateRequest) returns (ValidateResponse);
@@ -57,23 +58,15 @@ service SecretStoreProvider {
   rpc PushSecret(PushSecretRequest) returns (PushSecretResponse);
   rpc DeleteSecret(DeleteSecretRequest) returns (DeleteSecretResponse);
   rpc SecretExists(SecretExistsRequest) returns (SecretExistsResponse);
-}
 
-// GeneratorProvider is served by runtimes that generate. Its Describe lists the
-// generator kinds; a runtime without generators answers UNIMPLEMENTED.
-service GeneratorProvider {
-  // Configuration.
-  rpc Describe(DescribeGeneratorsRequest) returns (DescribeGeneratorsResponse);
-  rpc Validate(ValidateGeneratorRequest) returns (ValidateGeneratorResponse);
-
-  // Generation.
+  // Generation. Cleanup is served whenever Generate is advertised.
   rpc Generate(GenerateRequest) returns (GenerateResponse);
   rpc Cleanup(CleanupRequest) returns (CleanupResponse);
 }
 
 // ---------------------------------------------------------------- addressing
 
-// ProviderConfigReference mirrors SecretStore/Generator spec.providerConfig:
+// ProviderConfigReference mirrors spec.providerConfig on a store or generator:
 // exactly one member is set. New members (key_ref, uuid_ref, label_selector)
 // are added as new oneof cases.
 message ProviderConfigReference {
@@ -126,7 +119,7 @@ message DescribeResponse {
   repeated string protocol_versions = 3;
   repeated ServedKind serves        = 4;
   repeated string capabilities      = 5;
-  reserved 6; // was generates; now GeneratorProvider.Describe
+  reserved 6; // was generates; generation is now the Generate capability
 }
 message ServedKind {
   string api_version = 1;
@@ -141,6 +134,9 @@ message ValidateResponse {
   ValidationResult result  = 1;
   repeated string warnings = 2;
   Resolved resolved        = 3;
+  // Set only for a configuration that advertises Generate.
+  repeated string outputs  = 4;
+  bool stateful            = 5;
 }
 // UNSPECIFIED is never a valid answer: the core treats it as INTERNAL, so a
 // provider that forgets to set the field does not report a store as valid.
@@ -253,24 +249,7 @@ message SecretExistsResponse {
   Resolved resolved = 2;
 }
 
-// ----------------------------------------------------------------- generator
-
-message DescribeGeneratorsRequest {}
-message DescribeGeneratorsResponse {
-  repeated ServedKind generates = 1;
-}
-
-message ValidateGeneratorRequest {
-  ProviderConfigReference provider_config = 1;
-  RequestContext          context         = 2;
-}
-message ValidateGeneratorResponse {
-  ValidationResult result   = 1;
-  repeated string warnings  = 2;
-  repeated string outputs   = 3;
-  bool stateful             = 4;
-  Resolved resolved         = 5;
-}
+// ---------------------------------------------------------------- generation
 
 message GenerateRequest {
   ProviderConfigReference provider_config = 1;
@@ -308,8 +287,9 @@ message ProviderError {
 
 Field numbers are part of the contract. They never change and are never
 reused within a version. Fields that exist in the PoC proto keep their
-numbers. The PoC's separate `generator.proto` is folded into this file, so
-that one package, and one negotiated version, covers all services.
+numbers. The PoC's separate `generator.proto` is folded into this file: its
+`Generate` and `Cleanup` are RPCs of `SecretStoreProvider`, so there is one
+provider service and one negotiated version.
 
 ## Errors
 
@@ -488,13 +468,13 @@ message.
 The Vault example from PROTOCOL.md "Generating and cleaning up".
 
 ```textproto
-# GenerateRequest, to /externalsecrets.provider.v1alpha1.GeneratorProvider/Generate
+# GenerateRequest, to /externalsecrets.provider.v1alpha1.SecretStoreProvider/Generate
 provider_config { gvk_ref { api_version: "provider.external-secrets.io/v1alpha1" kind: "VaultDynamicSecret"
                          namespace: "team-a" name: "db-creds" } }
 context {
   request { api_version: "external-secrets.io/v1" kind: "ExternalSecret" namespace: "team-a"
             name: "db" uid: "..." generation: 1 }
-  source  { api_version: "external-secrets.io/v1" kind: "Generator"
+  source  { api_version: "generators.external-secrets.io/v1alpha1" kind: "VaultDynamicSecret"
             namespace: "team-a" name: "db-creds" uid: "..." generation: 1 }
   caller_namespace: "team-a"
   credential_namespace: "team-a"
