@@ -65,13 +65,27 @@ Every operation is unary: one request, then one response or one error.
   - its name and version;
   - the contract versions it speaks;
   - the configuration kinds it serves (`serves`), for stores and generators
-    alike;
-  - the union of capabilities across those kinds.
+    alike. These are GVKs the runtime understands, not necessarily CRDs: a
+    `gvkRef` may name a `Secret` or a `ConfigMap`;
+  - its maintenance status: `MAINTAINED`, `NOT_MAINTAINED` or `DEPRECATED`, as
+    v1's `esv1.MaintenanceStatus`.
 
-  The runtime config controller calls it on every reconcile and copies the
-  answer into the runtime config status. The store and generator controllers
-  then check `providerConfig.gvkRef.kind` against that status without calling
-  the runtime again.
+  Only the runtime config controller calls it: on every change to the runtime
+  config, and every `spec.refreshInterval` otherwise (default: the store
+  requeue interval, 5m). It copies the answer into the runtime config status,
+  so a provider upgrade that changes what the runtime serves shows up within
+  one interval. Every other controller (store,
+  generator, `ExternalSecret`, `PushSecret`) reads that status and never calls
+  `Describe`: a configuration whose kind is not in `status.serves` is refused
+  without a call, with reason `ProviderConfigNotServed`. `Describe` carries no
+  capabilities: those belong to one configuration and come from
+  `Capabilities`.
+
+  A runtime that reports `NOT_MAINTAINED` or `DEPRECATED` gets the same Warning
+  events v1 emits for an unmaintained provider (`StoreUnmaintained`,
+  `StoreDeprecated`), on every store and generator that uses it, and the
+  runtime config shows the status in `status.maintenance`. An unset status is
+  treated as no claim: nothing is emitted.
 - **`Check`** answers one question: can this runtime serve calls right now?
   The answer is `SERVING` or `NOT_SERVING`. It is the standard gRPC health
   check, so off-the-shelf libraries implement it.
@@ -102,10 +116,10 @@ Every operation is unary: one request, then one response or one error.
   produces: the keys `Generate` returns (`outputs`, empty when they depend on
   the backend) and whether its values need `Cleanup` (`stateful`). The
   generator controller writes both into the generator's status.
-- **`Capabilities`** lists the operations one configuration supports. This can
-  be narrower than the runtime's union in `Describe`: a runtime may serve a
-  read-only kind next to a read-write one, and a generate-only kind next to
-  both.
+- **`Capabilities`** lists the operations one configuration supports. It is
+  the only source of capabilities: a runtime may serve a read-only kind next
+  to a read-write one, and a generate-only kind next to both, and credentials
+  can narrow what one configuration may do.
 
 ### Reads and writes
 
@@ -135,7 +149,29 @@ Every operation is unary: one request, then one response or one error.
   owner is deleted. Cleaning up something that is already gone succeeds.
 
 A configuration that advertises `Generate` must also serve `Cleanup`; there is
-no separate capability for it. A runtime that returns an empty state is never
+no separate capability for it.
+
+**What may go in `State`.** The core stores `State` verbatim in
+`GeneratorState.spec.state`, which is not a Secret: anyone who can read
+`GeneratorState` objects in that namespace can read it, it shows in `kubectl
+get -o yaml` and in backups, and it is not covered by Secret encryption at rest.
+It also crosses the wire twice, on `Generate` and on `Cleanup`, protected only
+by the runtime config's transport. Providers therefore treat it as readable
+metadata:
+
+- **Allowed:** identifiers that let `Cleanup` find what was created (lease id,
+  token id, user name, certificate serial number), expiry times, the backend
+  endpoint, and references to credentials (Secret name and key), never their
+  values.
+- **Never:** the generated values, a private key, a password, a token, or any
+  credential, even short-lived. Knowing a certificate's serial number must not
+  be the same as holding its key.
+- **When `Cleanup` truly needs a secret** (a backend that can only revoke with
+  the token it issued), the provider keeps it in its own store, or encrypts it
+  with a key only the provider holds, and puts the reference or the ciphertext
+  in `State`.
+
+The conformance suite checks that no generated value appears in `State`. A runtime that returns an empty state is never
 asked to clean up (a password generator, for example).
 
 ### Properties of each operation
@@ -155,8 +191,11 @@ asked to clean up (a password generator, for example).
 | `Generate` | SecretStore | yes | no | `Generate` | if advertised |
 | `Cleanup` | SecretStore | yes | yes | (`Generate`) | if `Generate` is advertised |
 
-The core calls an operation only when the configuration's `Capabilities`
-advertise it. When it refuses, the `ExternalSecret` or `PushSecret` reports
+The core calls an operation only when the configuration's kind is in the
+runtime config's `status.serves` and its `Capabilities` advertise the
+operation. Both checks happen when the `ExternalSecret` or `PushSecret` is
+reconciled, from status the core already has, so a call that cannot succeed is
+dropped and never sent. When it refuses, the `ExternalSecret` or `PushSecret` reports
 `store does not support <Operation>` and no call is made. The read and write
 capability strings project onto the store's existing `status.capabilities`:
 any read capability gives `ReadOnly`, any write capability gives `WriteOnly`,
@@ -243,7 +282,8 @@ Rules both sides follow:
   with reason `TLSConfigFailed`.
 - **One handshake per connection.** The core keeps one connection per runtime
   config and re-dials it when anything that changes the identity changes, and
-  at least every hour, so rotated certificates take effect. Each binding gives
+  whenever it is older than the runtime config's `spec.maxConnectionAge`
+  (default 1h), so rotated certificates take effect. Each binding gives
   the details.
 - **Authentication is not authorization.** It tells a provider that the call
   comes from the ESO core, and nothing more. Whether this request may touch this
@@ -289,17 +329,19 @@ sequenceDiagram
     P-->>RCC: SERVING
     RCC->>P: Runtime.Describe (spec.protocolVersion if pinned,<br/>else the newest version the core supports)
     alt runtime speaks that version
-        P-->>RCC: name, version, protocolVersions,<br/>serves, capabilities
+        P-->>RCC: name, version, protocolVersions,<br/>serves, maintenance
     else Unimplemented, not pinned
         RCC->>P: Runtime.Describe (previous version)
         P-->>RCC: ...
     else Unimplemented, pinned
         RCC->>K: status: Ready=False, IncompatibleProtocol
     end
-    RCC->>K: status: Ready=True, protocolVersion,<br/>serves, capabilities
+    RCC->>K: status: Ready=True, protocolVersion,<br/>serves, maintenance
 ```
 
-If `Check` fails, the runtime config is `Ready=False` with reason `Unreachable`. If no
+The controller repeats the health check and `Describe` every
+`spec.refreshInterval`, and on every change to the runtime config. If `Check`
+fails, the runtime config is `Ready=False` with reason `Unreachable`. If no
 contract version overlaps, or a pinned version is not served, the reason is
 `IncompatibleProtocol`. If the runtime
 rejects the core's client certificate, the reason is `AuthenticationFailed`; if
@@ -324,7 +366,7 @@ sequenceDiagram
     Tenant->>K: SecretsManager "aws-prod" (provider configuration)<br/>SecretStore "aws-prod" (runtimeRef, providerConfig)
     K-->>SC: SecretStore team-a/aws-prod changed
     SC->>K: get ClusterRuntimeConfig "aws"
-    SC->>SC: runtime config Ready? SecretsManager in status.serves?
+    SC->>SC: from the runtime config's status (no call):<br/>Ready? SecretsManager in serves?
     Note over SC,P: over the runtime config's authenticated connection (see Authentication)
     SC->>P: SecretStore.Validate(providerConfig, context)
     P->>P: caller authenticated as the ESO core?
@@ -358,7 +400,7 @@ sequenceDiagram
 
     K-->>EC: ExternalSecret team-b/app-config due for refresh
     EC->>K: get ClusterSecretStore "aws-shared"
-    EC->>EC: store Ready? conditions admit team-b?<br/>GetSecret advertised?
+    EC->>EC: store Ready? conditions admit team-b?<br/>runtime config Ready, SecretsManager in serves?<br/>GetSecret advertised?
     EC->>EC: build RequestContext:<br/>credentialNamespace = team-b,<br/>annotations filtered to provider.external-secrets.io/
     Note over EC,P: over the runtime config's authenticated connection (see Authentication)
     EC->>P: SecretStore.GetSecret(providerConfig, context, remoteRef)<br/>+ request id, deadline 30s
@@ -406,7 +448,7 @@ sequenceDiagram
     EC->>K: get VaultDynamicSecret team-a/db-creds<br/>(generators.external-secrets.io)
     EC->>EC: providerConfig set: out of process
     EC->>K: get the runtime config it points at
-    EC->>EC: generator Ready? runtime config Ready?<br/>config kind in status.serves?
+    EC->>EC: generator Ready? from the runtime config's status:<br/>Ready? config kind in serves? Generate advertised?
     EC->>K: create GeneratorState (resource, no state yet)<br/>its uid is the operation id
     Note over EC,P: over the runtime config's authenticated connection (see Authentication)
     EC->>P: SecretStore.Generate(providerConfig, context, operationId)
@@ -615,9 +657,18 @@ type DescribeResponse struct {
 	ProviderName     string        // e.g. "aws"
 	ProviderVersion  string        // e.g. "v2.16.0"
 	ProtocolVersions []string      // contract versions served, e.g. ["v1alpha1"] (P5)
-	Serves           []*ServedKind // configuration kinds a store or generator may point at
-	Capabilities     []string      // union over the Serves kinds, Generate included
+	Serves           []*ServedKind     // configuration GVKs a store or generator may point at
+	Maintenance      MaintenanceStatus // MAINTAINED, NOT_MAINTAINED or DEPRECATED; unset is no claim
 }
+
+type MaintenanceStatus int32
+
+const (
+	MaintenanceStatusUnspecified   MaintenanceStatus = 0
+	MaintenanceStatusMaintained    MaintenanceStatus = 1
+	MaintenanceStatusNotMaintained MaintenanceStatus = 2
+	MaintenanceStatusDeprecated    MaintenanceStatus = 3
+)
 
 type ServedKind struct {
 	ApiVersion string
@@ -1267,7 +1318,7 @@ operations on the SecretStore service, each gated by a new capability string,
 exactly as `Generate` is. The ESO object that uses the feature decides which
 operation the core calls; `Capabilities` decides whether it may. No new
 service, no new `Describe`, no new runtime config status list: the new strings
-appear in `status.capabilities` like the existing ones.
+come back from `Capabilities` like the existing ones.
 
 Before adding operations, check whether the feature fits the existing ones.
 A database-user broker does: it mints short-lived credentials, so it is a

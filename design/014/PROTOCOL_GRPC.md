@@ -118,8 +118,16 @@ message DescribeResponse {
   string provider_version           = 2;
   repeated string protocol_versions = 3;
   repeated ServedKind serves        = 4;
-  repeated string capabilities      = 5;
+  reserved 5; // was capabilities; capabilities are per configuration (Capabilities)
   reserved 6; // was generates; generation is now the Generate capability
+  MaintenanceStatus maintenance     = 7;
+}
+// UNSPECIFIED means the runtime makes no claim; the core emits nothing for it.
+enum MaintenanceStatus {
+  MAINTENANCE_STATUS_UNSPECIFIED    = 0;
+  MAINTENANCE_STATUS_MAINTAINED     = 1;
+  MAINTENANCE_STATUS_NOT_MAINTAINED = 2;
+  MAINTENANCE_STATUS_DEPRECATED     = 3;
 }
 message ServedKind {
   string api_version = 1;
@@ -357,7 +365,8 @@ not part of the contract (P11).
   (connect-go over `net/http`, ADAPTER.md), keyed by everything that changes the
   dial: the runtime config generation, the negotiated contract version, the
   `resourceVersion` of the client certificate Secret, and that of the `caRef`
-  object, if any. A connection older than one hour is re-dialed, so rotated
+  object, if any. A connection older than the runtime config's `spec.maxConnectionAge`
+  (default 1h) is re-dialed, so rotated
   certificates take effect ([PROTOCOL.md](./PROTOCOL.md) "Authentication"). The connection is never shared across runtime configs, even when
   addresses coincide, because identities differ (ADAPTER.md).
 

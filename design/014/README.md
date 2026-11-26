@@ -347,9 +347,11 @@ What must change before any of it merges:
   ConfigMaps, Secrets and literals, engine v2, merge policy) runs in the core;
   the wire carries rendered bytes for `PushSecret` and raw bytes for reads. A
   provider never sees a template (#7213 is orthogonal).
-- **Lifecycling providers.** Reconcile `(Cluster)RuntimeConfig`: health,
-  `Runtime.Describe` into `status.serves`, `status.capabilities` and
-  `status.protocolVersion`, the `Ready` and `Insecure` conditions,
+- **Lifecycling providers.** Reconcile `(Cluster)RuntimeConfig` on change and
+  every `spec.refreshInterval`: health,
+  `Runtime.Describe` into `status.serves`, `status.maintenance` and
+  `status.protocolVersion`, v1's unmaintained and deprecated Warning events on
+  the stores and generators that use the runtime, the `Ready` and `Insecure` conditions,
   `ContractViolation`; keep one connection per runtime config generation; issue
   certificates for `Managed` runtime configs; gate everything behind
   `--experimental-enable-provider-runtime`. The core does not install, upgrade

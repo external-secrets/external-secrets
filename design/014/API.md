@@ -243,7 +243,8 @@ spec:
     gvkRef:
       # apiVersion: required. <group>/<version> of the provider-owned CRD.
       #   controller: must be in the runtime config's status.serves once populated,
-      #   else Ready=False with reason ProviderKindNotServed.
+      #   else Ready=False with reason ProviderConfigNotServed. Read from the runtime
+      #   config's status; the store controller never calls Describe.
       apiVersion: provider.external-secrets.io/v1alpha1
       # kind: required.
       kind: SecretsManager
@@ -273,7 +274,7 @@ status:
   #   ProviderRuntimeDisabled   controller flag --experimental-enable-provider-runtime is off
   #   RuntimeNotFound           runtimeRef does not resolve
   #   RuntimeNotReady           the runtime config is not Ready
-  #   ProviderKindNotServed     providerConfig.gvkRef kind not in RuntimeConfig.status.serves
+  #   ProviderConfigNotServed   providerConfig.gvkRef kind not in RuntimeConfig.status.serves
   #   ProviderUnreachable       Validate RPC failed at transport level
   #   ProviderAuthenticationFailed  the provider rejected the core's identity (Unauthenticated):
   #                             client certificate or ServiceAccount token not accepted
@@ -424,6 +425,18 @@ spec:
   # timeout: optional. Per-call deadline for every RPC to this runtime. default: 30s.
   timeout: 30s
 
+  # refreshInterval: optional. How often the controller reconciles this runtime config
+  #   without a spec change: health check, then Describe, then status (serves,
+  #   maintenance, protocolVersion). A spec change reconciles immediately, as today.
+  #   A metav1.Duration ("5m", "1h"); 0 or unset uses the controller's
+  #   --store-requeue-interval (default 5m), the same default as stores.
+  refreshInterval: 5m
+
+  # maxConnectionAge: optional. The core re-dials its connection to this runtime once
+  #   the connection is older than this, so rotated certificates and credentials take
+  #   effect even when nothing else changed. default: 1h. CEL: at least 1m.
+  maxConnectionAge: 1h
+
 status:
   observedGeneration: 3
   # transport: effective composition after defaults, also shown as a printer column.
@@ -452,10 +465,15 @@ status:
   # protocolVersion: the version every call uses: spec.protocolVersion when pinned,
   #   the negotiated one otherwise.
   protocolVersion: v1alpha1
-  # capabilities: union over the served kinds. Generate means some kind can back a generator.
-  capabilities: [GetSecret, GetSecretMap, GetAllSecrets, PushSecret, DeleteSecret, SecretExists, Generate]
-  # serves: kinds a store's or a generator's providerConfig may name. Which operations
-  #   each one supports comes from Capabilities, per configuration.
+  # maintenance: the provider's maintenance status from Describe: Maintained |
+  #   NotMaintained | Deprecated; empty when the runtime makes no claim. NotMaintained
+  #   and Deprecated also raise v1's StoreUnmaintained / StoreDeprecated Warning events
+  #   on every store and generator that uses this runtime.
+  maintenance: Maintained
+  # serves: GVKs a store's or a generator's providerConfig may name (not necessarily
+  #   CRDs). Stores, generators, ExternalSecrets and PushSecrets check it here, without
+  #   calling the runtime. Which operations a configuration supports is not listed
+  #   here: it comes from Capabilities, per configuration, onto the store's status.
   serves:
   - apiVersion: provider.external-secrets.io/v1alpha1
     kind: SecretsManager
@@ -565,7 +583,7 @@ status:
     status: "True"
     reason: Healthy
   protocolVersion: v1alpha1
-  capabilities: [GetSecret, GetSecretMap, GetAllSecrets, PushSecret, DeleteSecret, SecretExists]
+  maintenance: Maintained
   serves:
   - apiVersion: provider.external-secrets.io/v1alpha1
     kind: SecretsManager
@@ -773,7 +791,7 @@ This is v1's referent-authentication rule moved one object down: one `ClusterSec
 
 ### Status on the store
 
-Unchanged fields, new reasons on the `Ready` condition for out-of-process stores: `ProviderRuntimeDisabled` (flag off), `RuntimeNotFound`, `RuntimeNotReady`, `ProviderKindNotServed`, `ProviderUnreachable`, `ProviderAuthenticationFailed` (the provider rejected the core's identity), `ProviderValidationFailed`, `ValidationUnknown` (a `ClusterSecretStore` whose provider CR has credential references without a namespace cannot be validated without a caller; this is today's behaviour for referent authentication and keeps the store usable). `status.capabilities` is projected from the provider's capability strings.
+Unchanged fields, new reasons on the `Ready` condition for out-of-process stores: `ProviderRuntimeDisabled` (flag off), `RuntimeNotFound`, `RuntimeNotReady`, `ProviderConfigNotServed`, `ProviderUnreachable`, `ProviderAuthenticationFailed` (the provider rejected the core's identity), `ProviderValidationFailed`, `ValidationUnknown` (a `ClusterSecretStore` whose provider CR has credential references without a namespace cannot be validated without a caller; this is today's behaviour for referent authentication and keeps the store usable). `status.capabilities` is projected from the provider's capability strings.
 
 
 ### Out-of-process generators (`generators.external-secrets.io/v1alpha1`) *(new)*
@@ -818,7 +836,7 @@ spec:
   providerConfig:
     gvkRef:
       # apiVersion, kind, name: required.
-      #   kind must be in the runtime config's status.serves, else ProviderKindNotServed.
+      #   kind must be in the runtime config's status.serves, else ProviderConfigNotServed.
       #   The core does not compare it with this object's kind.
       apiVersion: provider.external-secrets.io/v1alpha1
       kind: VaultDynamicSecret
@@ -829,7 +847,7 @@ status:
   # New on every generator kind, ClusterGenerator included. Written by the generator
   # controller. With providerConfig, from Validate. Ready reasons are
   # the store reasons (see "Status on the store"): ProviderRuntimeDisabled,
-  # RuntimeNotFound, RuntimeNotReady, ProviderKindNotServed, ProviderUnreachable,
+  # RuntimeNotFound, RuntimeNotReady, ProviderConfigNotServed, ProviderUnreachable,
   # ProviderAuthenticationFailed, ProviderValidationFailed, and ValidationUnknown for a
   # ClusterGenerator, whose credentials resolve in the caller's namespace.
   # With inline fields: no Ready condition (nothing is validated, as today), and

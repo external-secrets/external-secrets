@@ -327,7 +327,7 @@ curl --unix-socket /var/run/external-secrets/aws.sock \
     { "apiVersion": "provider.external-secrets.io/v1alpha1", "kind": "ParameterStore" },
     { "apiVersion": "provider.external-secrets.io/v1alpha1", "kind": "ECRAuthorizationToken" }
   ],
-  "capabilities": ["GetSecret", "GetSecretMap", "GetAllSecrets", "PushSecret", "DeleteSecret", "SecretExists", "Generate"]
+  "maintenance": "MAINTENANCE_STATUS_MAINTAINED"
 }
 ```
 
