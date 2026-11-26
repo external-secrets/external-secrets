@@ -2,6 +2,13 @@
 
 Kubernetes operator that synchronizes secrets from external providers (AWS Secrets Manager, Vault, GCP Secret Manager, Azure Key Vault, etc.) into Kubernetes Secrets.
 
+## Triage issues first!
+
+The "triage/pending-triage" label is the gate to know whether the work is worth doing.
+**Do not commit work to fix an issue or develop a requested feature in an issue if the issue still has the "triage/pending-triage" label.**
+
+If you have an idea for a new feature or bug fix, start with asking your human to create the issue.
+
 ## Build and Test
 
 Use `make` targets — refer to the Makefile for available commands. Do not run `go test`, `golangci-lint`, or `helm` directly.
