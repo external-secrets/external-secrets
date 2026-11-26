@@ -36,52 +36,38 @@ func FuzzPKCS12KeyPass(f *testing.F) {
 	f.Add("1234", string(withpass))
 	f.Add("wrong-password", string(nopass))
 
-	f.Fuzz(func(t *testing.T, pass string, input string) {
+	f.Fuzz(func(t *testing.T, pass, input string) {
 		out, err := pkcs12keyPass(pass, input)
-		if err != nil {
-			return
-		}
-
-		if out == "" {
+		if err == nil && out == "" {
 			t.Fatalf("empty result without mistake: pass=%q, len(input)=%d", pass, len(input))
 		}
 
 		out, err = pkcs12key(input)
-		if err != nil {
-			return
-		}
-
-		if out == "" {
+		if err == nil && out == "" {
 			t.Fatalf("empty result without mistake: len(input)=%d", len(input))
 		}
 
 		out, err = pkcs12certPass(pass, input)
-
-		if err != nil {
-			return
-		}
-
-		if out == "" {
+		if err == nil && out == "" {
 			t.Fatalf("empty result without mistake: pass=%q, len(input)=%d", pass, len(input))
 		}
 
 		out, err = pkcs12cert(input)
-		if err != nil {
-			return
-		}
-
-		if out == "" {
+		if err == nil && out == "" {
 			t.Fatalf("empty result without mistake: len(input)=%d", len(input))
 		}
+	})
+}
 
-		out, err = pemToPkcs12(pass, input)
+func FuzzPEMToPKCS12(f *testing.F) {
+	f.Add(certData, keyData)
+	f.Add("", keyData)
+	f.Add(certData, "")
 
-		if err != nil {
-			return
-		}
-
-		if out == "" {
-			t.Fatalf("empty result without mistake: pass=%q, len(input)=%d", pass, len(input))
+	f.Fuzz(func(t *testing.T, cert, key string) {
+		out, err := pemToPkcs12(cert, key)
+		if err == nil && out == "" {
+			t.Fatalf("empty result without mistake: len(cert)=%d, len(key)=%d", len(cert), len(key))
 		}
 	})
 }
