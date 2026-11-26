@@ -25,6 +25,7 @@ import (
 
 	infisicalSdk "github.com/infisical/go-sdk"
 	sdkErrors "github.com/infisical/go-sdk/packages/errors"
+	"github.com/infisical/go-sdk/packages/models"
 	//nolint
 	. "github.com/onsi/ginkgo/v2"
 	//nolint
@@ -196,20 +197,34 @@ func isInfisicalNotFound(err error) bool {
 	return errors.As(err, &apiErr) && apiErr.StatusCode == http.StatusNotFound
 }
 
-// remoteSecretValue reads a secret from the e2e project by slug via the addon
+// remoteSecret reads a secret from the e2e project by slug via the addon
 // SDK; it returns an error when the secret is absent.
-func (s *infisicalProvider) remoteSecretValue(key string) (string, error) {
+func (s *infisicalProvider) remoteSecret(key string) (models.Secret, error) {
 	secretPath, name := secretAddress(scopePath, key)
-	secret, err := s.addon.SDKClient.Secrets().Retrieve(infisicalSdk.RetrieveSecretOptions{
+	return s.addon.SDKClient.Secrets().Retrieve(infisicalSdk.RetrieveSecretOptions{
 		ProjectSlug: s.addon.ProjectSlug,
 		Environment: s.addon.EnvironmentSlug,
 		SecretKey:   name,
 		SecretPath:  secretPath,
 	})
+}
+
+// remoteSecretValue returns the value of the remote secret, or an error.
+func (s *infisicalProvider) remoteSecretValue(key string) (string, error) {
+	secret, err := s.remoteSecret(key)
 	if err != nil {
 		return "", err
 	}
 	return secret.SecretValue, nil
+}
+
+// remoteSecretVersion returns the version counter of the remote secret.
+func (s *infisicalProvider) remoteSecretVersion(key string) (int, error) {
+	secret, err := s.remoteSecret(key)
+	if err != nil {
+		return 0, err
+	}
+	return secret.Version, nil
 }
 
 // deleteRemote best-effort removes a secret from the shared e2e project via the
