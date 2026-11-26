@@ -1,5 +1,7 @@
 # Design: SPIFFE Broker API integration in External Secrets Operator
 
+Nov 26, 2026 · @JP
+
 ```yaml
 ---
 title: SPIFFE Broker API Integration
@@ -55,6 +57,28 @@ Flux adopted it in 2.10 for the same reason. ESO closed an earlier SPIFFE/SPIRE 
 ### High-level design
 
 Two identities are involved, and they never mix: the controller's own SVID opens the channel to the broker, and the store's SVID is what the backend sees.
+
+```mermaid
+flowchart LR
+  subgraph RT["SPIFFE runtime (SPIRE)"]
+    WA["Workload API<br/>socket via CSI driver"]
+    BA["Broker API<br/>decides the store ID"]
+  end
+  subgraph ESO["ESO controller (core)"]
+    XS["X509Source<br/>controller own SVID, rotated"]
+    BC["Broker client and cache<br/>one connection, JWT cache"]
+    PR["Provider (Vault)<br/>asks only for audiences"]
+  end
+  SS["SecretStore object<br/>referenced by name, UID"]
+  V["Vault<br/>JWT auth"]
+  WA -- "own X509-SVID" --> XS
+  XS -- "mTLS client cert" --> BC
+  PR -- "JWT(audiences)" --> BC
+  BC -- "FetchJWTSVID" --> BA
+  BA -- "JWT-SVID" --> BC
+  BA -- "verifies" --> SS
+  PR -- "JWT login" --> V
+```
 
 Providers never reach the SPIFFE runtime. They ask core for a token, and core is the only party that holds a connection to the Broker API.
 
@@ -136,7 +160,7 @@ auth:
 
 **Validation.** Each site gets a one-of rule: exactly one of `secretRef`, the ServiceAccount option, or `spiffe`.
 
-**Status** (proposed, phase 2). The store publishes the SPIFFE ID it was last issued, so users can see the result of the runtime's decision:
+**Status** (proposed, phase 3). The store publishes the SPIFFE ID it was last issued, so users can see the result of the runtime's decision:
 
 ```yaml
 status:
@@ -282,14 +306,15 @@ if jwtAuth.SecretRef != nil {
 
 ### Phasing
 
-Each phase ships on its own and leaves the previous one working. Nothing in phases 1 and 2 depends on v2.
+Each phase ships on its own and leaves the previous one working. Nothing in phases 1 to 3 depends on v2.
 
 | Phase | Scope | Exit gate |
 | --- | --- | --- |
 | 0. Groundwork | Design accepted. An e2e environment with SPIRE and its experimental Broker API. Confirm how SPIRE registers and authorizes `secretstores` and `clustersecretstores` references | A JWT-SVID fetched for a SecretStore in a kind cluster, outside ESO |
 | 1. Alpha: Vault and OpenBao | `runtime/identity`, `pkg/spiffe`, flags, client manager binding, `spiffe` on Vault and OpenBao JWT auth, Helm values, docs. Behind an alpha feature flag | e2e green for SecretStore and ClusterSecretStore against Vault JWT auth; no new dependency in any provider module |
-| 2. More providers | AWS `auth.jwt.spiffe` after the fallback check below. Then other JWT-federation providers one at a time. `status.identity.spiffeID`. Metrics | Each provider has its own e2e case and one-of validation |
-| 3. Aligned with v2 | Core stays the only broker client. Tokens reach out-of-process provider runtimes in the request, not through a context value. Optionally move ServiceAccount token minting behind the same interface | Decided in the v2 design, not here |
+| 2. More providers | AWS `auth.jwt.spiffe` after the fallback check below. Then other JWT-federation providers one at a time. Metrics | Each provider has its own e2e case and one-of validation |
+| 3. Store status | status.identity.spiffeID: each store publishes the SPIFFE ID it was last issued | Issued ID visible on SecretStore and ClusterSecretStore, covered by e2e |
+| 4. Aligned with v2 | Core stays the only broker client. Tokens reach out-of-process provider runtimes in the request, not through a context value. Optionally move ServiceAccount token minting behind the same interface | Decided in the v2 design, not here |
 | Deferred | X509-SVIDs for stores, generators, a provider-initiated minting callback | Separate proposals |
 
 **Why the interface survives v2.** In process, the handle travels in the context. Out of process, a context value cannot cross the boundary, so core fetches the token and sends it with the request. Providers see the same shape either way: a token for their store with the audiences they asked for. Only the transport changes.
@@ -319,7 +344,7 @@ The largest risk is that the controller becomes a broker: it can ask for the ide
 | New hard dependency at startup | With flags set, a Workload API outage blocks controller start | Bounded wait and a clear error. The feature stays opt-in |
 | Broker outage at runtime | Stores using `spiffe` cannot refresh once cached tokens expire | Cache covers short outages. Retries with backoff. Metrics and a store condition make it visible |
 | Context value as a dependency carrier | Less explicit than a parameter, and it does not cross a process boundary | Chosen to avoid changing about 40 `NewClient` implementations. Revisit at the next provider API version |
-| Identity is invisible in the spec | A store author cannot tell from the manifest which SPIFFE ID they get | Publish the issued ID in store status (phase 2) |
+| Identity is invisible in the spec | A store author cannot tell from the manifest which SPIFFE ID they get | Publish the issued ID in store status (phase 3) |
 | Dependency growth in core | go-spiffe and gRPC are added to the core module | Confined to core. Provider modules gain nothing |
 | Registration cardinality | One SPIFFE registration per store, managed by the platform team | Stores are the subject, not ExternalSecrets, which keeps the count low. Templated registrations are a runtime feature |
 
@@ -407,7 +432,7 @@ These were settled in the design discussion on 26 November 2026 and are the basi
 - [ ] Audit core for every path that builds provider clients, so each binds the handle.
 - [ ] Decide the feature flag name and how it fits `design/014-feature-flag-consolidation.md`.
 - [ ] Decide the Helm values shape for the socket volume, env and flags.
-- [ ] Confirm the status field name and whether it lands in phase 1 or 2.
+- [ ] Confirm the status field name; it lands in phase 3.
 - [ ] Build the e2e environment: kind, SPIRE with the Broker API enabled, Vault with JWT auth trusting SPIRE's JWT bundle.
 - [ ] Write the operator guide: registration for the controller, broker authorization, least-privilege setup.
 - [ ] Carry decisions 13 and 16 into the v2 design so the token transport is defined there.
