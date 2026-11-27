@@ -29,10 +29,10 @@ Multi-module repo: `apis/`, `runtime/`, `e2e/`, and each `providers/v1/*/` have 
 - Provider docs `{% include %}` reusable YAML snippets from `docs/snippets/` (`macros` plugin). AWS authentication is documented once on the standalone `docs/provider/aws-access.md` page; the per-service pages (`aws-secrets-manager.md`, `aws-parameter-store.md`) link to it rather than transcluding it.
 - CRD tests use snapshot testing. Run `make test.crds.update` to update snapshots after CRD changes.
 - `make update-deps` updates dependencies across all modules at once.
-- Add a `git notes add HEAD` entry on every non-trivial commit. Record key design decisions, trade-offs, and gotchas. Queryable via `git notes show <sha>`.
+- Every non-trivial commit gets a `git notes add HEAD` entry, added by the contributor after they commit. Record key design decisions, trade-offs, and gotchas. Queryable via `git notes show <sha>`.
 - If you discover a non-obvious pattern while implementing, add it here before the PR is merged. Keep entries general — applicable across the codebase, not specific to one provider or feature.
 - Never edit `zz_generated.*` files by hand. They are owned by controller-gen. Modify the source types and run `make generate` (included in `make reviewable`).
-- After everything is committed - **ALWAYS RUN `make check-diff`** - this is the first step where PRs fall apart that LLMs forget - there are a lot of generated code outside of the main `make reviewable` spec like helm chart tests, docs, etc.
+- After the contributor has committed everything - **ALWAYS RUN `make check-diff`** (it fails on any uncommitted file) - this is the first step where PRs fall apart that LLMs forget - there are a lot of generated code outside of the main `make reviewable` spec like helm chart tests, docs, etc.
 - The `go` directive in every `go.mod` is the minimum Go version consumers must use, so keep it at a `.0` patch (`go 1.27.0`). To build with a newer Go release (e.g. for a CVE fix), bump `toolchain` in the root `go.mod` only; `actions/setup-go` reads it, and importers ignore it. `make update-deps` bumps it to the latest patch of the same minor; Dependabot cannot. `make lint` enforces this via `hack/check-go-directive.sh`.
 - 
 
@@ -253,10 +253,26 @@ Agents may:
 
 in order to assist humans.
 
+## Commits, pull requests and issues
+
+- **Commits:** the contributor creates and signs off every commit themselves. Do not run `git commit`, and do not draft
+  commit messages. Commits with an AI `Co-Authored-By` trailer, or any other evidence they were generated with AI, are
+  denied. AI disclosure belongs in the pull request's "AI Assistance disclosure" section, not in commits.
+- **Pull request descriptions:** the description is the only part of a pull request an agent may write. Write it to a
+  local file for the contributor to paste. It must follow `.github/pull_request_template.md`, keeping every section
+  heading and filling in "AI Assistance disclosure". Pull requests that do not follow the template are closed
+  automatically (`.github/workflows/pr-template-conformance.yml`).
+- **Issues and other people:** agents must never interact with other humans through issues, pull requests, reviews or
+  discussions. Do not post, and do not draft comments, replies or issues for someone else to post. A human approving or
+  sending an agent-written message is not enough: every interaction must be the contributor's own words, and they are
+  responsible for it.
+
 ## Blocked actions
 
 Agents must not:
 
+- create commits,
+- draft commit messages, or comments, replies, reviews or issues meant for other people,
 - create pull requests,
 - push branches,
 - publish releases,

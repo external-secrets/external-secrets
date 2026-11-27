@@ -27,6 +27,18 @@ For pull requests, include:
 
 For issues and discussions, disclose AI assistance if an LLM helped draft, structure, summarize, or rewrite the content.
 
+## Commits
+
+You must create and sign off your commits yourself. Commits with an AI `Co-Authored-By` trailer, or any other evidence that they were generated with AI, will be denied. Disclose AI assistance in the pull request description, not in commits.
+
+## Pull Request Descriptions
+
+AI tools may be used to write pull request descriptions, and pull request descriptions only. The description must follow our [pull request template](https://github.com/external-secrets/external-secrets/blob/main/.github/pull_request_template.md), including the AI assistance disclosure section. Pull requests that do not follow the template are closed automatically.
+
+## Talking to People
+
+AI tools and bots must not interact with other people through issues, pull requests, reviews, or discussions. A human is always responsible for the interaction, in their own words. Approving or sending a message an AI wrote for you is not enough.
+
 ## Human Ownership
 
 You must understand your contribution well enough to explain it without using an AI tool.
@@ -59,7 +71,7 @@ Before submitting, check the existing codebase conventions (check other provider
 
 ## Issues and Discussions
 
-AI-assisted issues and discussions are allowed, but **they must be human-reviewed and edited if needed before submission**.
+AI-assisted issues and discussions are allowed, but **they must be written by a human, in their own words**. See [Talking to People](#talking-to-people).
 
 A good issue should describe a real bug, use case, regression, limitation, or design problem, with the code base version and a full context.
 The context is required for maintainers to evaluate the issue without having to reconstruct the problem from generic AI-generated text.
