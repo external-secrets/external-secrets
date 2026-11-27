@@ -18,9 +18,11 @@ package keepersecurity
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	ksm "github.com/keeper-security/secrets-manager-go/core"
@@ -142,6 +144,346 @@ func TestClientDeleteSecret(t *testing.T) {
 				t.Errorf("DeleteSecret() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestClientDeleteSecretTargets(t *testing.T) {
+	newRecord := func() *ksm.Record {
+		return &ksm.Record{Uid: "record-uid", RecordDict: map[string]any{
+			"type": externalSecretType,
+			"fields": []any{
+				map[string]any{"type": LoginType, "label": "login", "value": []any{"admin"}},
+				map[string]any{"type": LoginType, "label": "username", "value": []any{"alice"}},
+			},
+			"custom": []any{
+				map[string]any{"type": secretType, "label": "token", "value": []any{"token-value"}},
+			},
+		}}
+	}
+
+	t.Run("whole record", func(t *testing.T) {
+		deleted := false
+		client := &Client{ksmClient: &fake.MockKeeperClient{
+			GetSecretsByTitleFn: func(string) ([]*ksm.Record, error) { return []*ksm.Record{newRecord()}, nil },
+			DeleteSecretsFn: func([]string) (map[string]string, error) {
+				deleted = true
+				return nil, nil
+			},
+		}}
+		if err := client.DeleteSecret(context.Background(), &v1alpha1.PushSecretRemoteRef{RemoteKey: record0}); err != nil {
+			t.Fatal(err)
+		}
+		if !deleted {
+			t.Fatal("expected whole-record deletion")
+		}
+	})
+
+	t.Run("property field preserves sibling label", func(t *testing.T) {
+		var saved *ksm.Record
+		client := &Client{ksmClient: &fake.MockKeeperClient{
+			GetSecretsByTitleFn: func(string) ([]*ksm.Record, error) { return []*ksm.Record{newRecord()}, nil },
+			SaveFn: func(record *ksm.Record) error {
+				saved = record
+				return nil
+			},
+		}}
+		if err := client.DeleteSecret(context.Background(), &v1alpha1.PushSecretRemoteRef{RemoteKey: record0, Property: "username"}); err != nil {
+			t.Fatal(err)
+		}
+		if saved == nil || len(saved.GetFieldsByLabel("username")) != 0 || len(saved.GetFieldsByLabel("login")) != 1 {
+			t.Fatal("expected username deletion to preserve login")
+		}
+		if strings.Contains(saved.RawJson, "username") {
+			t.Fatal("expected saved JSON to omit the removed field")
+		}
+	})
+
+	t.Run("property field deletes an empty record", func(t *testing.T) {
+		record := &ksm.Record{Uid: "record-uid", RecordDict: map[string]any{
+			"type":   externalSecretType,
+			"fields": []any{map[string]any{"type": LoginType, "label": "", "value": []any{"alice"}}},
+		}}
+		deleted := false
+		client := &Client{ksmClient: &fake.MockKeeperClient{
+			GetSecretsByTitleFn: func(string) ([]*ksm.Record, error) { return []*ksm.Record{record}, nil },
+			DeleteSecretsFn: func([]string) (map[string]string, error) {
+				deleted = true
+				return nil, nil
+			},
+		}}
+		if err := client.DeleteSecret(context.Background(), &v1alpha1.PushSecretRemoteRef{RemoteKey: record0, Property: "login"}); err != nil {
+			t.Fatal(err)
+		}
+		if !deleted {
+			t.Fatal("expected deletion of the last managed field to delete the record")
+		}
+	})
+
+	t.Run("property field with multiple unlabelled standard fields removes only the matching type", func(t *testing.T) {
+		record := &ksm.Record{Uid: "record-uid", RecordDict: map[string]any{
+			"type": externalSecretType,
+			"fields": []any{
+				map[string]any{"type": PasswordType, "label": "", "value": []any{"secret"}},
+				map[string]any{"type": LoginType, "label": "", "value": []any{"alice"}},
+			},
+		}}
+		var saved *ksm.Record
+		client := &Client{ksmClient: &fake.MockKeeperClient{
+			GetSecretsByTitleFn: func(string) ([]*ksm.Record, error) { return []*ksm.Record{record}, nil },
+			SaveFn: func(r *ksm.Record) error {
+				saved = r
+				return nil
+			},
+		}}
+		if err := client.DeleteSecret(context.Background(), &v1alpha1.PushSecretRemoteRef{RemoteKey: record0, Property: "login"}); err != nil {
+			t.Fatal(err)
+		}
+		if saved == nil || len(saved.GetFieldsByType(LoginType)) != 0 || len(saved.GetFieldsByType(PasswordType)) != 1 {
+			t.Fatal("expected deleting the unlabelled login field to leave the unlabelled password field untouched")
+		}
+	})
+
+	t.Run("record of another type with the same title is left untouched", func(t *testing.T) {
+		for _, ref := range []*v1alpha1.PushSecretRemoteRef{
+			{RemoteKey: record0},
+			{RemoteKey: record0, Property: "username"},
+			{RemoteKey: record0 + "/token"},
+		} {
+			record := newRecord()
+			record.RecordDict["type"] = LoginType
+			client := &Client{ksmClient: &fake.MockKeeperClient{
+				GetSecretsByTitleFn: func(string) ([]*ksm.Record, error) { return []*ksm.Record{record}, nil },
+				DeleteSecretsFn: func([]string) (map[string]string, error) {
+					t.Fatalf("DeleteSecret(%#v) deleted a %s record", ref, LoginType)
+					return nil, nil
+				},
+				SaveFn: func(*ksm.Record) error {
+					t.Fatalf("DeleteSecret(%#v) modified a %s record", ref, LoginType)
+					return nil
+				},
+			}}
+			if err := client.DeleteSecret(context.Background(), ref); err != nil {
+				t.Fatalf("DeleteSecret(%#v) error = %v", ref, err)
+			}
+		}
+	})
+
+	t.Run("legacy custom field deletes an empty record", func(t *testing.T) {
+		record := &ksm.Record{Uid: "record-uid", RecordDict: map[string]any{
+			"type":   externalSecretType,
+			"custom": []any{map[string]any{"type": secretType, "label": "token", "value": []any{"value"}}},
+		}}
+		deleted := false
+		client := &Client{ksmClient: &fake.MockKeeperClient{
+			GetSecretsByTitleFn: func(string) ([]*ksm.Record, error) { return []*ksm.Record{record}, nil },
+			DeleteSecretsFn: func([]string) (map[string]string, error) {
+				deleted = true
+				return nil, nil
+			},
+		}}
+		if err := client.DeleteSecret(context.Background(), &v1alpha1.PushSecretRemoteRef{RemoteKey: record0 + "/token"}); err != nil {
+			t.Fatal(err)
+		}
+		if !deleted {
+			t.Fatal("expected deletion of the last legacy custom field to delete the record")
+		}
+	})
+}
+
+func TestClientSecretExists(t *testing.T) {
+	newRecord := func() *ksm.Record {
+		return &ksm.Record{RecordDict: map[string]any{
+			"type":   externalSecretType,
+			"fields": []any{map[string]any{"type": LoginType, "label": "login", "value": []any{"alice"}}},
+			"custom": []any{map[string]any{"type": secretType, "label": "token", "value": []any{"value"}}},
+		}}
+	}
+	for _, tt := range []struct {
+		name string
+		ref  *v1alpha1.PushSecretRemoteRef
+		want bool
+	}{
+		{name: "whole record", ref: &v1alpha1.PushSecretRemoteRef{RemoteKey: record0}, want: true},
+		{name: "property", ref: &v1alpha1.PushSecretRemoteRef{RemoteKey: record0, Property: "token"}, want: true},
+		{name: "legacy", ref: &v1alpha1.PushSecretRemoteRef{RemoteKey: record0 + "/login"}, want: true},
+		{name: "missing field", ref: &v1alpha1.PushSecretRemoteRef{RemoteKey: record0, Property: "username"}, want: false},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			client := &Client{ksmClient: &fake.MockKeeperClient{
+				GetSecretsByTitleFn: func(string) ([]*ksm.Record, error) { return []*ksm.Record{newRecord()}, nil },
+			}}
+			got, err := client.SecretExists(context.Background(), tt.ref)
+			if err != nil || got != tt.want {
+				t.Fatalf("SecretExists() = %v, %v; want %v, nil", got, err, tt.want)
+			}
+		})
+	}
+}
+
+func TestClientUpdateSecret(t *testing.T) {
+	newRecord := func() *ksm.Record {
+		return &ksm.Record{RecordDict: map[string]any{
+			"type":  externalSecretType,
+			"notes": "preserve",
+			"fields": []any{
+				map[string]any{"type": LoginType, "label": "login", "value": []any{"old-login"}},
+				map[string]any{"type": LoginType, "label": "username", "value": []any{"old-username"}},
+			},
+			"custom": []any{map[string]any{"type": secretType, "label": "stale", "value": []any{"old"}}},
+		}}
+	}
+	client := &Client{ksmClient: &fake.MockKeeperClient{SaveFn: func(*ksm.Record) error { return nil }}}
+
+	t.Run("whole record replaces stale fields", func(t *testing.T) {
+		record := newRecord()
+		desired := &Secret{Fields: []Field{{Type: LoginType, Label: "username", Value: []any{"new"}}}, Custom: []CustomField{{Type: secretType, Label: "token", Value: []any{"new-token"}}}}
+		if err := client.updateSecret(record, desired, true); err != nil {
+			t.Fatal(err)
+		}
+		if keeperRecordHasField(record, "login") || keeperRecordHasField(record, "stale") || !keeperRecordHasField(record, "username") || !keeperRecordHasField(record, "token") {
+			t.Fatal("whole-record replacement did not reconcile fields")
+		}
+		if record.RecordDict["notes"] != "preserve" || strings.Contains(record.RawJson, "stale") {
+			t.Fatal("whole-record replacement did not preserve metadata or refresh JSON")
+		}
+	})
+
+	t.Run("targeted update adds differently labeled standard field", func(t *testing.T) {
+		record := &ksm.Record{RecordDict: map[string]any{"type": externalSecretType, "fields": []any{map[string]any{"type": LoginType, "label": "login", "value": []any{"old"}}}}}
+		if err := client.updateSecret(record, &Secret{Fields: []Field{{Type: LoginType, Label: "username", Value: []any{"new"}}}}, false); err != nil {
+			t.Fatal(err)
+		}
+		if len(record.GetFieldsByLabel("login")) != 1 || len(record.GetFieldsByLabel("username")) != 1 {
+			t.Fatal("targeted update overwrote a differently labeled field")
+		}
+	})
+
+	t.Run("legacy update preserves the default login field", func(t *testing.T) {
+		record := &ksm.Record{RecordDict: map[string]any{"type": externalSecretType, "fields": []any{map[string]any{"type": LoginType, "value": []any{"old"}}}}}
+		if err := client.updateSecret(record, &Secret{Fields: []Field{{Type: LoginType, Value: []any{"new"}}}}, false); err != nil {
+			t.Fatal(err)
+		}
+		fields := record.GetFieldsByType(LoginType)
+		if len(fields) != 1 || fields[0]["label"] != nil || fields[0]["value"].([]any)[0] != "new" {
+			t.Fatalf("legacy update did not update the default login field: %#v", fields)
+		}
+	})
+}
+
+func TestClientPushSecretSerializesRecordCreate(t *testing.T) {
+	var recordJSON string
+	client := &Client{
+		folderID: folderID,
+		ksmClient: &fake.MockKeeperClient{
+			GetSecretsByTitleFn: func(string) ([]*ksm.Record, error) { return nil, nil },
+			CreateSecretWithRecordDataFn: func(_, _ string, record *ksm.RecordCreate) (string, error) {
+				recordJSON = record.ToJson()
+				return "record-uid", nil
+			},
+		},
+	}
+
+	secret := &corev1.Secret{Data: map[string][]byte{
+		"login":     []byte("alice"),
+		"api-token": []byte("token-value"),
+	}}
+	data := &v1alpha1.PushSecretData{Match: v1alpha1.PushSecretMatch{
+		RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "record"},
+	}}
+	if err := client.PushSecret(context.Background(), secret, data); err != nil {
+		t.Fatal(err)
+	}
+
+	var created map[string]any
+	if err := json.Unmarshal([]byte(recordJSON), &created); err != nil {
+		t.Fatalf("RecordCreate.ToJson() returned invalid JSON: %v", err)
+	}
+	fields := created["fields"].([]any)
+	custom := created["custom"].([]any)
+	if len(fields) != 1 || fields[0].(map[string]any)["label"] != "login" || fields[0].(map[string]any)["value"].([]any)[0] != "alice" {
+		t.Fatalf("unexpected serialized standard fields: %#v", fields)
+	}
+	if len(custom) != 1 || custom[0].(map[string]any)["label"] != "api-token" || custom[0].(map[string]any)["value"].([]any)[0] != "token-value" {
+		t.Fatalf("unexpected serialized custom fields: %#v", custom)
+	}
+}
+
+func TestBuildPropertyRecordStoresPlainValues(t *testing.T) {
+	secret := &corev1.Secret{Data: map[string][]byte{"user": []byte("bob"), "pass": []byte("hunter2")}}
+	data := &v1alpha1.PushSecretData{Match: v1alpha1.PushSecretMatch{
+		RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: record0, Property: "creds"},
+	}}
+
+	record, err := buildPropertyRecord(secret, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(record.Custom) != 1 || record.Custom[0].Label != "creds" {
+		t.Fatalf("unexpected custom fields: %#v", record.Custom)
+	}
+	var got map[string]string
+	if err := json.Unmarshal([]byte(record.Custom[0].Value[0].(string)), &got); err != nil {
+		t.Fatal(err)
+	}
+	if want := map[string]string{"user": "bob", "pass": "hunter2"}; !reflect.DeepEqual(got, want) {
+		t.Fatalf("property value = %v; want %v", got, want)
+	}
+}
+
+func TestBuildPropertyRecordRejectsNonUTF8Values(t *testing.T) {
+	secret := &corev1.Secret{Data: map[string][]byte{"user": []byte("bob"), "blob": {0xff, 0xfe, 0x00}}}
+	data := &v1alpha1.PushSecretData{Match: v1alpha1.PushSecretMatch{
+		RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: record0, Property: "creds"},
+	}}
+
+	if _, err := buildPropertyRecord(secret, data); err == nil || !strings.Contains(err.Error(), `"blob"`) {
+		t.Fatalf("expected non-UTF-8 error naming key blob, got %v", err)
+	}
+}
+
+func TestBuildSecretFieldOrderIsStable(t *testing.T) {
+	data := map[string][]byte{}
+	for _, key := range []string{"zeta", "password", "alpha", "url", "mid", "login", "beta"} {
+		data[key] = []byte(key)
+	}
+	wantFields := []string{"login", "password", "url"}
+	wantCustom := []string{"alpha", "beta", "mid", "zeta"}
+
+	for range 20 {
+		record := buildSecret(record0, data)
+		gotFields := make([]string, 0, len(record.Fields))
+		gotCustom := make([]string, 0, len(record.Custom))
+		for _, field := range record.Fields {
+			gotFields = append(gotFields, field.Label)
+		}
+		for _, field := range record.Custom {
+			gotCustom = append(gotCustom, field.Label)
+		}
+		if !reflect.DeepEqual(gotFields, wantFields) || !reflect.DeepEqual(gotCustom, wantCustom) {
+			t.Fatalf("field order = %v %v; want %v %v", gotFields, gotCustom, wantFields, wantCustom)
+		}
+	}
+}
+
+func TestLegacyPushSecretCompatibility(t *testing.T) {
+	client := &Client{}
+	secret := &corev1.Secret{Data: map[string][]byte{"username": []byte("alice")}}
+	data := &v1alpha1.PushSecretData{Match: v1alpha1.PushSecretMatch{
+		SecretKey: "username",
+		RemoteRef: v1alpha1.PushSecretRemoteRef{RemoteKey: "legacy/username"},
+	}}
+
+	record, err := client.buildLegacyRecord(secret, data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(record.Fields) != 1 || record.Fields[0].Type != LoginType || record.Fields[0].Label != "" {
+		t.Fatalf("legacy username must map to the default login field: %#v", record.Fields)
+	}
+
+	target := resolvePushTarget(data.Match.RemoteRef)
+	if target.fieldKey != LoginType {
+		t.Fatalf("legacy username target = %#v; want default login", target)
 	}
 }
 
