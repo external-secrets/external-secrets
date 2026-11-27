@@ -24,15 +24,25 @@ import (
 	"regexp"
 	"strings"
 
+	authenticationv1 "k8s.io/api/authentication/v1"
+	corev1 "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
+	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	"github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/httpclient"
 	btwcutil "github.com/external-secrets/external-secrets/providers/v1/beyondtrustworkloadcredentials/util"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
 )
+
+// serviceAccountTokenExpirationSeconds is the lifetime requested for OIDC ServiceAccount tokens (the TokenRequest minimum).
+// A fresh token is requested every time a client is constructed.
+const serviceAccountTokenExpirationSeconds = 600
+
+// serviceNamePattern matches the service names accepted by BeyondTrust Workload Credentials.
+var serviceNamePattern = regexp.MustCompile(`^[A-Za-z0-9_-]+$`)
 
 var (
 	// ErrNoStore is returned when the BeyondtrustWorkloadCredentials SecretStore is missing or invalid.
@@ -43,6 +53,14 @@ var (
 	ErrNoTokenName = errors.New("missing or invalid BeyondtrustWorkloadCredentials API Token name in BeyondtrustWorkloadCredentials SecretStore")
 	// ErrNoTokenKey is returned when the API Token key is missing or invalid.
 	ErrNoTokenKey = errors.New("missing or invalid BeyondtrustWorkloadCredentials API Token key in BeyondtrustWorkloadCredentials SecretStore")
+	// ErrNoAuth is returned when the auth block does not set exactly one authentication method.
+	ErrNoAuth = errors.New("exactly one of apikey or oidc must be set in BeyondtrustWorkloadCredentials SecretStore auth")
+	// ErrNoServiceName is returned when the OIDC service name is missing.
+	ErrNoServiceName = errors.New("missing BeyondtrustWorkloadCredentials OIDC service name in BeyondtrustWorkloadCredentials SecretStore")
+	// ErrInvalidServiceName is returned when the OIDC service name has an invalid format.
+	ErrInvalidServiceName = errors.New("invalid BeyondtrustWorkloadCredentials OIDC service name: use letters, digits, hyphens, and underscores only")
+	// ErrNoServiceAccount is returned when the OIDC ServiceAccount name is missing.
+	ErrNoServiceAccount = errors.New("missing BeyondtrustWorkloadCredentials OIDC service account name in BeyondtrustWorkloadCredentials SecretStore")
 	// ErrNoServer is returned when the BeyondtrustWorkloadCredentials Server is missing or invalid.
 	ErrNoServer = errors.New("missing or invalid BeyondtrustWorkloadCredentials Server in BeyondtrustWorkloadCredentials SecretStore")
 	// ErrNoAPIURL is returned when the Server API URL is missing or invalid.
@@ -55,7 +73,7 @@ var (
 type Provider struct {
 	// NewBeyondtrustWorkloadCredentialsClient is a function that returns a new BeyondTrust Secrets client.
 	// This is used for testing to inject a fake client.
-	NewBeyondtrustWorkloadCredentialsClient func(server, token string) (btwcutil.Client, error)
+	NewBeyondtrustWorkloadCredentialsClient func(server, token, serviceName string) (btwcutil.Client, error)
 }
 
 // https://github.com/external-secrets/external-secrets/issues/644
@@ -73,13 +91,13 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 	storeKind := store.GetKind()
 
 	// fetch server values from spec
-	serverURL, apiKey, err := fetchServerValuesFromSpec(ctx, BeyondtrustWorkloadCredentialsStoreSpec, kube, namespace, storeKind)
+	serverURL, token, serviceName, err := fetchServerValuesFromSpec(ctx, BeyondtrustWorkloadCredentialsStoreSpec, kube, namespace, storeKind)
 	if err != nil {
 		return nil, err
 	}
 
 	// create BeyondtrustWorkloadCredentials client
-	BeyondtrustWorkloadCredentialsClient, err := p.newClient(ctx, serverURL, apiKey, BeyondtrustWorkloadCredentialsStoreSpec, kube, namespace, storeKind)
+	BeyondtrustWorkloadCredentialsClient, err := p.newClient(ctx, serverURL, token, serviceName, BeyondtrustWorkloadCredentialsStoreSpec, kube, namespace, storeKind)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create BeyondtrustWorkloadCredentials client: %w", err)
 	}
@@ -95,7 +113,7 @@ func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube 
 // newClient is a shared helper creates the appropriate BeyondtrustWorkloadCredentials client based on the provided spec.
 func (p *Provider) newClient(
 	ctx context.Context,
-	serverURL, apiKey string,
+	serverURL, token, serviceName string,
 	btSpec *esv1.BeyondtrustWorkloadCredentialsProvider,
 	kube kclient.Client,
 	namespace, storeKind string,
@@ -117,12 +135,12 @@ func (p *Provider) newClient(
 	}
 
 	if len(caCert) > 0 {
-		return httpclient.NewBeyondtrustWorkloadCredentialsClientWithCustomCA(serverURL, apiKey, caCert)
+		return httpclient.NewBeyondtrustWorkloadCredentialsClientWithCustomCA(serverURL, token, serviceName, caCert)
 	}
 	if p.NewBeyondtrustWorkloadCredentialsClient != nil {
-		return p.NewBeyondtrustWorkloadCredentialsClient(serverURL, apiKey)
+		return p.NewBeyondtrustWorkloadCredentialsClient(serverURL, token, serviceName)
 	}
-	return httpclient.NewBeyondtrustWorkloadCredentialsClient(serverURL, apiKey)
+	return httpclient.NewBeyondtrustWorkloadCredentialsClient(serverURL, token, serviceName)
 }
 
 // NewGeneratorClient creates a new BeyondtrustWorkloadCredentials client for the generator controller.
@@ -131,12 +149,12 @@ func (p *Provider) NewGeneratorClient(ctx context.Context, kube kclient.Client, 
 		return nil, ErrNoStore
 	}
 
-	serverURL, apiKey, err := fetchServerValuesFromSpec(ctx, btSpec, kube, namespace, "")
+	serverURL, token, serviceName, err := fetchServerValuesFromSpec(ctx, btSpec, kube, namespace, "")
 	if err != nil {
 		return nil, err
 	}
 
-	client, err := p.newClient(ctx, serverURL, apiKey, btSpec, kube, namespace, "")
+	client, err := p.newClient(ctx, serverURL, token, serviceName, btSpec, kube, namespace, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to create BeyondtrustWorkloadCredentials client: %w", err)
 	}
@@ -156,16 +174,30 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 
 	BeyondtrustWorkloadCredentialsStoreSpec := storeSpec.Provider.BeyondtrustWorkloadCredentials
 
-	// validate token selector
-	if BeyondtrustWorkloadCredentialsStoreSpec.Auth == nil {
-		return nil, ErrNoAPIKey
+	// validate auth: exactly one method must be set
+	auth := BeyondtrustWorkloadCredentialsStoreSpec.Auth
+	if auth == nil || (auth.APIKey == nil) == (auth.OIDC == nil) {
+		return nil, ErrNoAuth
 	}
-	tokenRef := BeyondtrustWorkloadCredentialsStoreSpec.Auth.APIKey.Token
-	if err := esutils.ValidateSecretSelector(store, tokenRef); err != nil {
-		return nil, err
-	}
-	if tokenRef.Name == "" {
-		return nil, ErrNoTokenName
+	if auth.APIKey != nil {
+		tokenRef := auth.APIKey.Token
+		if err := esutils.ValidateSecretSelector(store, tokenRef); err != nil {
+			return nil, err
+		}
+		if tokenRef.Name == "" {
+			return nil, ErrNoTokenName
+		}
+	} else {
+		if err := validateServiceName(auth.OIDC.ServiceName); err != nil {
+			return nil, err
+		}
+		saRef := auth.OIDC.ServiceAccountRef
+		if err := esutils.ValidateServiceAccountSelector(store, saRef); err != nil {
+			return nil, err
+		}
+		if saRef.Name == "" {
+			return nil, ErrNoServiceAccount
+		}
 	}
 
 	// validate server config is present and contains required fields
@@ -198,23 +230,76 @@ func (p *Provider) Capabilities() esv1.SecretStoreCapabilities {
 	return esv1.SecretStoreReadOnly
 }
 
-func loadAPIKeyFromSpec(ctx context.Context, spec *esv1.BeyondtrustWorkloadCredentialsProvider, kube kclient.Client, namespace, storeKind string) (string, error) {
+// loadCredentialsFromSpec returns the Bearer token and, for OIDC authentication, the service name to present.
+func loadCredentialsFromSpec(ctx context.Context, spec *esv1.BeyondtrustWorkloadCredentialsProvider, kube kclient.Client, namespace, storeKind, siteID string) (string, string, error) {
 	if spec == nil {
-		return "", ErrNoStore
+		return "", "", ErrNoStore
 	}
-	if spec.Auth == nil {
-		return "", ErrNoAPIKey
+	if spec.Auth == nil || (spec.Auth.APIKey == nil) == (spec.Auth.OIDC == nil) {
+		return "", "", ErrNoAuth
+	}
+
+	if spec.Auth.OIDC != nil {
+		oidc := spec.Auth.OIDC
+		if err := validateServiceName(oidc.ServiceName); err != nil {
+			return "", "", err
+		}
+		token, err := fetchServiceAccountToken(ctx, kube, storeKind, namespace, oidc.ServiceAccountRef, siteID)
+		if err != nil {
+			return "", "", err
+		}
+		return token, oidc.ServiceName, nil
 	}
 
 	tokenRef := spec.Auth.APIKey.Token
 	if tokenRef.Name == "" {
-		return "", ErrNoTokenName
+		return "", "", ErrNoTokenName
 	}
 	if tokenRef.Key == "" {
-		return "", ErrNoTokenKey
+		return "", "", ErrNoTokenKey
 	}
 
-	return resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &tokenRef)
+	apiKey, err := resolvers.SecretKeyRef(ctx, kube, storeKind, namespace, &tokenRef)
+	if err != nil {
+		return "", "", err
+	}
+	return apiKey, "", nil
+}
+
+// fetchServiceAccountToken requests a short-lived token for the referenced ServiceAccount via the TokenRequest API.
+// The ServiceAccount lives in the ExternalSecret namespace; a ClusterSecretStore may override it.
+// The token audience defaults to the site ID, which is what BeyondTrust Workload Credentials expects.
+func fetchServiceAccountToken(ctx context.Context, kube kclient.Client, storeKind, namespace string, saRef esmeta.ServiceAccountSelector, siteID string) (string, error) {
+	if saRef.Name == "" {
+		return "", ErrNoServiceAccount
+	}
+
+	saNamespace := namespace
+	if storeKind == esv1.ClusterSecretStoreKind && saRef.Namespace != nil {
+		saNamespace = *saRef.Namespace
+	}
+
+	audiences := saRef.Audiences
+	if len(audiences) == 0 {
+		audiences = []string{siteID}
+	}
+
+	expirationSeconds := int64(serviceAccountTokenExpirationSeconds)
+	tokenRequest := &authenticationv1.TokenRequest{
+		Spec: authenticationv1.TokenRequestSpec{
+			Audiences:         audiences,
+			ExpirationSeconds: &expirationSeconds,
+		},
+	}
+	sa := &corev1.ServiceAccount{
+		Name:      saRef.Name,
+		Namespace: saNamespace,
+	}
+	if err := kube.SubResource("token").Create(ctx, sa, tokenRequest); err != nil {
+		return "", fmt.Errorf("failed to create token for service account %s/%s: %w", saNamespace, saRef.Name, err)
+	}
+
+	return tokenRequest.Status.Token, nil
 }
 
 func loadURLFromSpec(spec *esv1.BeyondtrustWorkloadCredentialsProvider) (string, string, error) {
@@ -246,22 +331,24 @@ func loadURLFromSpec(spec *esv1.BeyondtrustWorkloadCredentialsProvider) (string,
 	return spec.Server.APIURL, spec.Server.SiteID, nil
 }
 
-func fetchServerValuesFromSpec(ctx context.Context, spec *esv1.BeyondtrustWorkloadCredentialsProvider, kube kclient.Client, namespace, storeKind string) (string, string, error) {
+// fetchServerValuesFromSpec returns the site server URL, the Bearer token, and the service name (OIDC only).
+func fetchServerValuesFromSpec(ctx context.Context, spec *esv1.BeyondtrustWorkloadCredentialsProvider, kube kclient.Client, namespace, storeKind string) (string, string, string, error) {
 	if spec == nil {
-		return "", "", ErrNoStore
+		return "", "", "", ErrNoStore
 	}
 
-	apiKey, err := loadAPIKeyFromSpec(ctx, spec, kube, namespace, storeKind)
-	if err != nil {
-		return "", "", fmt.Errorf("failed to load credentials: %w", err)
-	}
-
+	// The site ID is loaded first because it is the default OIDC token audience.
 	baseURL, siteID, err := loadURLFromSpec(spec)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to load server URL configuration: %w", err)
+		return "", "", "", fmt.Errorf("failed to load server URL configuration: %w", err)
 	}
 
-	return siteServerURL(baseURL, siteID), apiKey, nil
+	token, serviceName, err := loadCredentialsFromSpec(ctx, spec, kube, namespace, storeKind, siteID)
+	if err != nil {
+		return "", "", "", fmt.Errorf("failed to load credentials: %w", err)
+	}
+
+	return siteServerURL(baseURL, siteID), token, serviceName, nil
 }
 
 // siteServerURL is the root of the site's Workload Credentials API: {apiUrl}/{siteId}/wlc.
@@ -339,5 +426,16 @@ func validateSiteID(siteID string) error {
 		return fmt.Errorf("siteId must be a valid UUID format, got %q", siteID)
 	}
 
+	return nil
+}
+
+// validateServiceName validates the OIDC service name format.
+func validateServiceName(serviceName string) error {
+	if serviceName == "" {
+		return ErrNoServiceName
+	}
+	if !serviceNamePattern.MatchString(serviceName) {
+		return ErrInvalidServiceName
+	}
 	return nil
 }

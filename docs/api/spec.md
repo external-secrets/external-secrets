@@ -1865,7 +1865,7 @@ int
 </p>
 <p>
 <p>BeyondtrustWorkloadCredentialsAuth defines the authentication method for the BeyondTrust Workload Credentials provider.
-Currently supports API key authentication via Kubernetes secret reference.
+Exactly one of API key or OIDC authentication must be set.
 For authentication documentation, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication">https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication</a></p>
 </p>
 <table>
@@ -1886,8 +1886,23 @@ BeyondtrustWorkloadCredentialsAuthSecretRef
 </em>
 </td>
 <td>
+<em>(Optional)</em>
 <p>APIKey configures API token authentication for BeyondTrust Workload Credentials.
 The token is retrieved from a Kubernetes secret and used as a Bearer token for API requests.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>oidc</code></br>
+<em>
+<a href="#external-secrets.io/v1.BeyondtrustWorkloadCredentialsOIDCAuth">
+BeyondtrustWorkloadCredentialsOIDCAuth
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>OIDC configures workload identity authentication using a Kubernetes ServiceAccount token.</p>
 </td>
 </tr>
 </tbody>
@@ -1900,7 +1915,6 @@ The token is retrieved from a Kubernetes secret and used as a Bearer token for A
 </p>
 <p>
 <p>BeyondtrustWorkloadCredentialsAuthSecretRef defines a reference to a secret containing credentials for the BeyondTrust Workload Credentials provider.
-The nested structure supports multiple authentication methods (currently only API token is supported).
 For more information on authentication, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication">https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication</a></p>
 </p>
 <table>
@@ -1925,6 +1939,53 @@ External Secrets meta/v1.SecretKeySelector
 The secret should contain the API key used to authenticate with BeyondTrust Workload Credentials.
 Create an API token in your BeyondTrust Workload Credentials console and store it in a Kubernetes secret.
 For details on creating API tokens, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication">https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication</a></p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id="external-secrets.io/v1.BeyondtrustWorkloadCredentialsOIDCAuth">BeyondtrustWorkloadCredentialsOIDCAuth
+</h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.BeyondtrustWorkloadCredentialsAuth">BeyondtrustWorkloadCredentialsAuth</a>)
+</p>
+<p>
+<p>BeyondtrustWorkloadCredentialsOIDCAuth configures OIDC (workload identity) authentication for BeyondTrust Workload Credentials.
+A Kubernetes ServiceAccount token is requested via the TokenRequest API and presented as a Bearer token,
+along with the service name registered for the cluster&rsquo;s OIDC issuer in BeyondTrust Pathfinder Platform.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<code>serviceName</code></br>
+<em>
+string
+</em>
+</td>
+<td>
+<p>ServiceName is the service name specified when creating the OIDC issuer registration
+in BeyondTrust Pathfinder Platform. It is sent in the X-BT-Service-Name header.</p>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<p>ServiceAccountRef specifies the Kubernetes ServiceAccount for which a token is requested
+with the TokenRequest API. If no audiences are set, the token audience defaults to the site ID.</p>
 </td>
 </tr>
 </tbody>
@@ -1961,7 +2022,7 @@ BeyondtrustWorkloadCredentialsAuth
 </td>
 <td>
 <p>Auth configures how the Operator authenticates with the BeyondTrust Workload Credentials API.
-Currently supports API key authentication via Kubernetes secret reference.
+Supports API key authentication via Kubernetes secret reference, or OIDC via a Kubernetes ServiceAccount token.
 For authentication setup, see: <a href="https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication">https://docs.beyondtrust.com/bt-docs/docs/secrets-api#authentication</a></p>
 </td>
 </tr>

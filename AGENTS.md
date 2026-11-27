@@ -63,6 +63,9 @@ Build tags live in `pkg/register/<name>.go`.
 - `runtime/esutils.ValidateSecretSelector` / `ValidateReferentSecretSelector` / `ValidateServiceAccountSelector` for spec validation.
 - `runtime/esutils/metadata` for parsing `PushSecretMetadata` into a typed spec.
 - `runtime/metrics.ObserveAPICall` for provider API metrics. Keep provider and call label constants in the provider package.
+- ServiceAccount tokens (OIDC/workload identity): prefer `kube.SubResource("token").Create(ctx, sa, tokenRequest)` on the
+  controller-runtime client the provider is handed. `esutils.FetchServiceAccountToken` builds its own in-cluster config,
+  so it ignores store scoping and cannot be faked; the controller-runtime fake client and `interceptor.Funcs` support the `token` subresource.
 
 ### `SecretsClient` contract
 

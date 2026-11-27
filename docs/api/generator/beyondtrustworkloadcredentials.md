@@ -134,7 +134,7 @@ spec:
 
 ### Authentication
 
-The generator uses the same authentication mechanism as the BeyondTrust Workload Credentials provider (API key authentication):
+The generator uses the same authentication mechanisms as the BeyondTrust Workload Credentials provider. With API key authentication:
 
 ```yaml
 apiVersion: generators.external-secrets.io/v1alpha1
@@ -156,6 +156,18 @@ Create the API token secret:
 kubectl create secret generic api-token \
   --from-literal=token=<YOUR_API_TOKEN> \
   -n external-secrets
+```
+
+To use OIDC (workload identity) instead of an API key, set `auth.oidc`. The ServiceAccount must be in the generator's namespace. See [OIDC (Workload Identity)](../../provider/beyondtrustworkloadcredentials.md#oidc-workload-identity) for setup.
+
+```yaml
+spec:
+  provider:
+    auth:
+      oidc:
+        serviceName: <SERVICE_NAME>
+        serviceAccountRef:
+          name: eso-wlc
 ```
 
 ### Certificate Trust
