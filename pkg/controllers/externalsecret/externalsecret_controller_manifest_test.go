@@ -243,6 +243,61 @@ func TestApplyTemplateToManifestConvergesAcrossReconciles(t *testing.T) {
 	}
 }
 
+// TestApplyTemplateToManifestMergeKeepsLiveFields pins what a Merge leaves alone. The target
+// is written as a full update, so a live field the result does not carry is removed from the
+// cluster: under the Merge policies every live field outside the metadata has to survive, not
+// only the content field. Owner and Orphan replace the content with what is rendered.
+func TestApplyTemplateToManifestMergeKeepsLiveFields(t *testing.T) {
+	_ = esv1.AddToScheme(scheme.Scheme)
+	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}
+	for _, tt := range []struct {
+		policy esv1.ExternalSecretCreationPolicy
+		keeps  bool
+	}{
+		{esv1.CreatePolicyMerge, true},
+		{esv1.CreatePolicyCreateOrMerge, true},
+		{esv1.CreatePolicyOwner, false},
+		{esv1.CreatePolicyOrphan, false},
+	} {
+		for _, templated := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s templated=%v", tt.policy, templated), func(t *testing.T) {
+				es := &esv1.ExternalSecret{
+					Name: "es", Namespace: "ns", UID: "es-uid",
+					Spec: esv1.ExternalSecretSpec{Target: esv1.ExternalSecretTarget{
+						Name: "target", CreationPolicy: tt.policy,
+						Manifest: &esv1.ManifestReference{APIVersion: "v1", Kind: "ConfigMap"},
+					}},
+				}
+				if templated {
+					es.Spec.Target.Template = &esv1.ExternalSecretTemplate{
+						EngineVersion: esv1.TemplateEngineV2,
+						Data:          map[string]string{"new": "{{ .k }}"},
+					}
+				}
+				existing := &unstructured.Unstructured{Object: map[string]any{
+					"apiVersion": "v1", "kind": "ConfigMap",
+					"metadata":   map[string]any{"name": "target", "namespace": "ns", "uid": "target-uid", "resourceVersion": "12"},
+					"data":       map[string]any{"old": "keep"},
+					"binaryData": map[string]any{"blob": "AAEC"},
+					"immutable":  false,
+				}}
+
+				result, err := r.applyTemplateToManifest(context.Background(), es, map[string][]byte{"k": []byte("v")}, existing)
+				require.NoError(t, err)
+
+				if tt.keeps {
+					assert.Equal(t, existing.Object["binaryData"], result.Object["binaryData"])
+					assert.Equal(t, false, result.Object["immutable"])
+				} else {
+					assert.NotContains(t, result.Object, "binaryData")
+					assert.NotContains(t, result.Object, "immutable")
+				}
+				assert.Equal(t, map[string]any{"blob": "AAEC"}, existing.Object["binaryData"], "the live object must not be modified")
+			})
+		}
+	}
+}
+
 func TestApplyTemplateToManifestExistingMetadataAcrossPolicies(t *testing.T) {
 	_ = esv1.AddToScheme(scheme.Scheme)
 	r := &Reconciler{Client: fakeclient.NewClientBuilder().WithScheme(scheme.Scheme).Build(), Scheme: scheme.Scheme, recorder: record.NewFakeRecorder(10)}

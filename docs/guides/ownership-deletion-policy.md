@@ -221,7 +221,10 @@ Each part of a target has a single source: the ExternalSecret declares the ident
 labels and annotations it owns, the live object keeps the rest of its metadata, and templating
 supplies the content (on a manifest target, every top-level field other than `apiVersion`,
 `kind` and `metadata`). Templating therefore contributes the content plus `metadata.labels` and
-`metadata.annotations`, and nothing else is read back from it.
+`metadata.annotations`, and nothing else is read back from it. On a manifest target with
+`creationPolicy` `Merge` or `CreateOrMerge`, the template is merged into the live object, so
+live fields it does not render are kept (a ConfigMap's `binaryData`, for example); with
+`Owner` or `Orphan` the content is replaced by what is rendered.
 
 On a manifest target, a template is free to write elsewhere under `metadata`, but the result is
 discarded rather than written, and the sync still succeeds. The ExternalSecret gets a

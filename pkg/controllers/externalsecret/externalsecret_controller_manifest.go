@@ -233,22 +233,30 @@ func (r *Reconciler) applyTemplateToManifest(ctx context.Context, es *esv1.Exter
 }
 
 // render produces the target's content in isolation. The object handed to the template carries
-// the declared kind and, for the Merge policies, the live content to merge into, but no
+// the declared kind and, for the Merge policies, every live field to merge into, but no
 // metadata: the caller reads back only the content and the templatable metadata fields, so
 // anything else a template writes has nowhere to land.
 func (r *Reconciler) render(ctx context.Context, es *esv1.ExternalSecret, dataMap map[string][]byte, existingObj *unstructured.Unstructured) (*unstructured.Unstructured, error) {
-	field := contentField(es)
-	sandbox := &unstructured.Unstructured{Object: map[string]any{field: map[string]any{}}}
-	sandbox.SetGroupVersionKind(getTargetGVK(es))
+	sandbox := &unstructured.Unstructured{Object: map[string]any{}}
 
 	if existingObj != nil && (es.Spec.Target.CreationPolicy == esv1.CreatePolicyMerge ||
 		es.Spec.Target.CreationPolicy == esv1.CreatePolicyCreateOrMerge) {
-		// Copies the content subtree only. DeepCopy would also copy the metadata, which the
-		// sandbox must not carry.
-		if content, ok := existingObj.Object[field].(map[string]any); ok {
-			sandbox.Object[field] = runtime.DeepCopyJSON(content)
+		// A Merge only changes what it renders, and the target is sent as a full update, so
+		// every live field has to come along (a ConfigMap's binaryData, say), not only the
+		// content field. The metadata is the one part left out: the sandbox must not carry it.
+		for name, value := range existingObj.Object {
+			if name != "metadata" {
+				sandbox.Object[name] = runtime.DeepCopyJSONValue(value)
+			}
 		}
 	}
+
+	// Rendering writes into the content field, so it has to be a map whatever the live object held.
+	field := contentField(es)
+	if _, ok := sandbox.Object[field].(map[string]any); !ok {
+		sandbox.Object[field] = map[string]any{}
+	}
+	sandbox.SetGroupVersionKind(getTargetGVK(es))
 
 	if es.Spec.Target.Template == nil {
 		return r.createSimpleManifest(sandbox, dataMap), nil
