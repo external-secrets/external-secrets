@@ -47,6 +47,7 @@ func (r *realVaultClient) List(ctx context.Context) ([]dvls.Vault, error) {
 // storeClients holds the service clients and resolved vault for a DVLS store.
 type storeClients struct {
 	cred        credentialClient
+	folder      folderClient
 	vaults      vaultGetter
 	vaultID     string
 	pinnedVault bool
@@ -75,6 +76,7 @@ func newStoreClients(ctx context.Context, kube kclient.Client, storeKind, namesp
 
 	clients := &storeClients{
 		cred:   &realCredentialClient{cred: client.Entries.Credential},
+		folder: &realFolderClient{folder: client.Entries.Folder},
 		vaults: &realVaultClient{vaults: client.Vaults},
 	}
 
