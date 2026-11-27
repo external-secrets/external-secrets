@@ -32,8 +32,6 @@ metadata:
 spec:
   provider:
     previder:
-      # Optional. Secret Vault API base URL, defaults to https://vault.previder.io
-      # baseUri: https://vault.previder.io
       auth:
         secretRef:
           accessToken:
