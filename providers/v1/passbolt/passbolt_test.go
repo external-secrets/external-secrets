@@ -24,14 +24,20 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/json"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"math/big"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
+	"sync"
 	"testing"
 	"time"
 
 	g "github.com/onsi/gomega"
+	"github.com/passbolt/go-passbolt/api"
 	"github.com/passbolt/go-passbolt/helper"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -376,4 +382,183 @@ func TestBuildHTTPClient(t *testing.T) {
 			g.Expect(transport.MaxIdleConns).To(g.Equal(defaultTransport.MaxIdleConns))
 		})
 	}
+}
+
+// testUserKey is a throwaway PGP key without a passphrase, generated for these tests only.
+const testUserKey = `-----BEGIN PGP PRIVATE KEY BLOCK-----
+
+xVgEavMlaxYJKwYBBAHaRw8BAQdAWtdhwTBScc8ad0p5/sZGqG5PGRprqq00hRw7
+DfwaYKkAAP91yvKmkQ3mfbyyegQCeFvWoURPkNkUesRVtuoMdYsWexDvzR9lc28t
+dGVzdCA8ZXNvLXRlc3RAZXhhbXBsZS5jb20+wr8EExYIAHEFgmrzJWsDCwkHCRBF
+jfmODfSNeTUUAAAAAAAcABBzYWx0QG5vdGF0aW9ucy5vcGVucGdwanMub3JnhAtt
+8J2qaj5LaaYfg4186AIVCAMWAAICGQECmwMCHgEWIQSpzvX15mv7P/VErdtFjfmO
+DfSNeQAA8bIA/jSVESaJNAPu3zn5XZZp9l6WDFD2ZZ7PtVpU6/cyYTOeAP9lwDwv
+aYp2GJdUJPYzwxtoNhxfbKKULZDdFV2b6EQgCMddBGrzJWsSCisGAQQBl1UBBQEB
+B0CMON3mdjLgin6+sbGDikZTsxL/DXTg+APmMkF0YccQdwMBCgkAAP9fKLsDTvk3
+YCva5TxcTPHkXq/3Skhmcxvp8vnmdNp9oBJ0wq4EGBYIAGAFgmrzJWsJEEWN+Y4N
+9I15NRQAAAAAABwAEHNhbHRAbm90YXRpb25zLm9wZW5wZ3Bqcy5vcmfX/0OUHGpX
+AzZF4YX1oWBhApsMFiEEqc719eZr+z/1RK3bRY35jg30jXkAALaYAQCCb0Xinodo
+X6TsWFlYymjnEBEFyhSbQ4PiPxfy+RPihAD/Th0QjiOie1KzAqZqJKTdUmvrHBK8
+mEd6Nw+2Y+8I+QQ=
+=kGfk
+-----END PGP PRIVATE KEY BLOCK-----`
+
+// fakePassbolt serves what NewClient, GetSecret and Close need from a Passbolt server:
+// the two-stage GPGAuth login, the session check and the logout. It knows no resources.
+type fakePassbolt struct {
+	*httptest.Server
+
+	mu         sync.Mutex
+	user       *api.Client     // encrypts the login challenge to the test user
+	challenges map[string]bool // tokens handed out in stage 1
+	sessions   map[string]bool // values of the session cookie that are logged in
+	logins     int
+}
+
+func newFakePassbolt(t *testing.T) *fakePassbolt {
+	t.Helper()
+	user, err := api.NewClient(nil, "", "http://passbolt.test", testUserKey, "")
+	if err != nil {
+		t.Fatalf("load test key: %v", err)
+	}
+	f := &fakePassbolt{user: user, challenges: map[string]bool{}, sessions: map[string]bool{}}
+	f.Server = httptest.NewServer(http.HandlerFunc(f.handle))
+	t.Cleanup(f.Close)
+	return f
+}
+
+func (f *fakePassbolt) handle(w http.ResponseWriter, r *http.Request) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+
+	session := ""
+	if c, err := r.Cookie("passbolt_session"); err == nil && f.sessions[c.Value] {
+		session = c.Value
+	}
+
+	switch r.Method + " " + r.URL.Path {
+	case "POST /auth/login.json":
+		f.login(w, r)
+	case "POST /auth/logout.json":
+		if session == "" {
+			f.respond(w, http.StatusForbidden, nil)
+			return
+		}
+		delete(f.sessions, session)
+		f.respond(w, http.StatusOK, nil)
+	case "GET /auth/is-authenticated.json", "GET /users/me.json", "GET /settings.json":
+		if session == "" {
+			f.respond(w, http.StatusUnauthorized, nil)
+			return
+		}
+		http.SetCookie(w, &http.Cookie{Name: "csrfToken", Value: "csrf"})
+		f.respond(w, http.StatusOK, map[string]any{"id": "user", "passbolt": map[string]any{"plugins": map[string]any{}}})
+	default:
+		f.respond(w, http.StatusNotFound, nil)
+	}
+}
+
+func (f *fakePassbolt) login(w http.ResponseWriter, r *http.Request) {
+	var req api.Login
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Auth == nil {
+		f.respond(w, http.StatusBadRequest, nil)
+		return
+	}
+
+	if req.Auth.Token == "" {
+		challenge := fmt.Sprintf("gpgauthv1.3.0|36|00000000-0000-0000-0000-%012d|gpgauthv1.3.0", len(f.challenges))
+		encrypted, err := f.user.EncryptMessage(challenge)
+		if err != nil {
+			f.respond(w, http.StatusInternalServerError, nil)
+			return
+		}
+		f.challenges[challenge] = true
+		w.Header().Set("X-GPGAuth-User-Auth-Token", url.QueryEscape(encrypted))
+		f.respond(w, http.StatusOK, nil)
+		return
+	}
+
+	if !f.challenges[req.Auth.Token] {
+		f.respond(w, http.StatusUnauthorized, nil)
+		return
+	}
+	delete(f.challenges, req.Auth.Token)
+	f.logins++
+	session := fmt.Sprintf("session-%d", f.logins)
+	f.sessions[session] = true
+	http.SetCookie(w, &http.Cookie{Name: "passbolt_session", Value: session})
+	f.respond(w, http.StatusOK, nil)
+}
+
+// respond writes the envelope every Passbolt API response comes in.
+func (f *fakePassbolt) respond(w http.ResponseWriter, code int, body any) {
+	status := "success"
+	if code != http.StatusOK {
+		status = "error"
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	_ = json.NewEncoder(w).Encode(map[string]any{
+		"header": map[string]any{"status": status, "code": code, "message": http.StatusText(code)},
+		"body":   body,
+	})
+}
+
+func (f *fakePassbolt) state() (logins, openSessions int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	return f.logins, len(f.sessions)
+}
+
+// The registered provider is one instance for the whole process. The SecretStore
+// controller and the ExternalSecret reconciles call NewClient on it side by side, so
+// closing one client must not log out the session of another.
+func TestNewClientReturnsIndependentClients(t *testing.T) {
+	g.RegisterTestingT(t)
+	ctx := context.Background()
+	server := newFakePassbolt(t)
+
+	scheme := runtime.NewScheme()
+	g.Expect(corev1.AddToScheme(scheme)).To(g.Succeed())
+	kube := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&corev1.Secret{
+		Name: "passbolt", Namespace: "ns",
+		Data: map[string][]byte{"privateKey": []byte(testUserKey), "password": []byte("unused")},
+	}).Build()
+	store := &esv1.SecretStore{
+		Name: "passbolt", Namespace: "ns",
+		Spec: esv1.SecretStoreSpec{
+			Provider: &esv1.SecretStoreProvider{
+				Passbolt: &esv1.PassboltProvider{
+					Host: server.URL,
+					Auth: &esv1.PassboltAuth{
+						PasswordSecretRef:   &esmeta.SecretKeySelector{Name: "passbolt", Key: "password"},
+						PrivateKeySecretRef: &esmeta.SecretKeySelector{Name: "passbolt", Key: "privateKey"},
+					},
+				},
+			},
+		},
+	}
+
+	provider := NewProvider()
+	first, err := provider.NewClient(ctx, store, kube, "ns")
+	g.Expect(err).ToNot(g.HaveOccurred())
+	second, err := provider.NewClient(ctx, store, kube, "ns")
+	g.Expect(err).ToNot(g.HaveOccurred())
+
+	g.Expect(first.Close(ctx)).To(g.Succeed())
+
+	// The second client still uses the session it logged in with: its request reaches
+	// the server, which answers that it has no such resource, and no new login happens.
+	_, err = second.GetSecret(ctx, esv1.ExternalSecretDataRemoteRef{Key: "5d9f4f6f-0b9e-4f3a-9a52-8f0a3b6f0c11"})
+	var apiErr *api.APIError
+	g.Expect(errors.As(err, &apiErr)).To(g.BeTrue(), "unexpected error: %v", err)
+	g.Expect(apiErr.StatusCode).To(g.Equal(http.StatusNotFound))
+	logins, openSessions := server.state()
+	g.Expect(logins).To(g.Equal(2))
+	g.Expect(openSessions).To(g.Equal(1))
+
+	// Each client logs out its own session, so none is left behind.
+	g.Expect(second.Close(ctx)).To(g.Succeed())
+	_, openSessions = server.state()
+	g.Expect(openSessions).To(g.BeZero())
 }
