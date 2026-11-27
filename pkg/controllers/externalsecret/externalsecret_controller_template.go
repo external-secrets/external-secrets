@@ -152,21 +152,10 @@ func setMetadata(secret *v1.Secret, es *esv1.ExternalSecret) error {
 		secret.Annotations = make(map[string]string)
 	}
 
-	// remove any existing labels managed by this external secret
-	// this is to ensure that we don't have any stale labels
-	labelKeys, err := templating.GetManagedLabelKeys(secret, es.Name)
-	if err != nil {
+	// remove any existing labels and annotations managed by this external secret,
+	// so stale ones do not survive being dropped from the template
+	if err := templating.ClearOwnedMetadata(secret, es.Name, secret.Labels, secret.Annotations); err != nil {
 		return err
-	}
-	for _, key := range labelKeys {
-		delete(secret.ObjectMeta.Labels, key)
-	}
-	annotationKeys, err := templating.GetManagedAnnotationKeys(secret, es.Name)
-	if err != nil {
-		return err
-	}
-	for _, key := range annotationKeys {
-		delete(secret.ObjectMeta.Annotations, key)
 	}
 
 	// if no template is defined, copy labels and annotations from the ExternalSecret

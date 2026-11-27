@@ -42,6 +42,17 @@ The External Secret Operator creates secret and sets the `ownerReference` field 
 !!! note "Secrets with `ownerReference` field not found"
     If the secret exists and the ownerReference field is not found, the controller treats this secret as orphaned. It will take ownership of this secret by adding an `ownerReference` field and updating it.
 
+Under `Owner`, each sync also cleans up Secrets this ExternalSecret created earlier under
+another name, which is what is left behind when `spec.target.name` changes. ESO looks for
+Secrets in the namespace that carry its `reconcile.external-secrets.io/created-by` label, and
+deletes one only if it also has a controller owner reference to the current ExternalSecret
+(the same check, and the same pinned delete, as for [`deletionPolicy=Delete`](#delete)). The
+label alone is not enough: a Secret that carries it without that reference (a copy of an
+ESO-managed Secret, or one somebody labeled by hand) is left in place. This cleanup runs
+before the current target is written. If a previous Secret was modified after ESO read it,
+the API server refuses the delete with a conflict, the sync is reported as failed, and both
+the cleanup and the write of the current target happen on the retry.
+
 ### Orphan
 Whenever triggered via `RefreshPolicy` conditions, the operator creates/updates
 the target Secret according to the provider available information.
@@ -96,8 +107,27 @@ If a secret gets deleted on the provider side and is not accessible
 anymore this is not considered an error and the ExternalSecret
 does not go into SecretSyncedError status. This is also true for new
 ExternalSecrets mapping to non-existing secrets in the provider.
-`deletionPolicy=Delete` only takes effect with `creationPolicy=Owner`; the operator
-refuses to delete a Secret it does not own and reports a `SecretSyncedError` otherwise.
+`deletionPolicy=Delete` only takes effect with `creationPolicy=Owner`, and setting
+`creationPolicy=Owner` alone does not prove ownership. Before deleting an existing target
+(Secret or manifest), ESO reads it and looks in its `metadata.ownerReferences` for a
+controller reference (`controller: true`) to the current ExternalSecret. The reference is
+matched on what identifies the ExternalSecret (API group, kind and name) and not on what
+changes when it is recreated or served under another version (UID, API version). An
+ExternalSecret that was deleted and recreated under the same name therefore still deletes
+the target it owns, without having to update the owner reference first.
+
+A target that fails this check (no controller reference, a controller reference to a
+different ExternalSecret, or a controller of another kind) is never deleted. What happens
+next depends on when the check ran. During a sync, ESO leaves the target alone, reports a
+failed sync and retries it like any other failed sync (with backoff), so syncing recovers when
+provider data appears; the failed attempt does not advance the last successful refresh time.
+During ExternalSecret deletion, ESO logs the refusal and lets finalization finish, so an
+unrelated target can never block it.
+
+The delete itself is tied to the object that was checked (its UID and its resource
+version). If the target is replaced or modified after the ownership check, the API server
+answers with a conflict and ESO retries, rather than deleting an object whose current
+ownership was not checked.
 
 ### Merge
 Merge removes keys in the secret, but not the secret itself.
@@ -158,3 +188,143 @@ Modifiers that cut across every row:
   data, which is only detected on a re-sync. So under `CreatedOnce` a provider-side
   deletion is never detected, under `OnChange` only on an `ExternalSecret` change, and
   under `Periodic` at the next interval.
+
+### Target behavior on sync: Normalizations and Validations.
+
+The table above describes *when* a sync happens. This table describes *what happens* on a sync with provider data available.
+An unset `spec.target.manifest` produces a Kubernetes Secret. Manifest values produce the declared resource type.
+
+!!! warning "Breaking change: `kind: Secret` manifests are rejected"
+    A manifest with `apiVersion: v1` (or `/v1`) and `kind: Secret` is now rejected, by the
+    admission webhook and by the controller. A Secret is the default target and that path
+    carries Secret-specific protections the generic path does not, so the same resource must
+    not be reachable both ways.
+    A `kind: Secret` in a custom API group is a different resource and stays supported.
+
+    To migrate, remove `spec.target.manifest`, then:
+
+    * Remove `b64enc` (or any manual base64) from `template.data`.
+    * If `template.type` is set and differs from the live Secret's type, delete the Secret first. A Secret's type cannot change, so the update would be refused.
+    * Expect `target.immutable`, `template.metadata.finalizers` and `mergePolicy` to take effect.
+    * `templateFrom` may only target `Data`, `Labels` and `Annotations`; a nested `templateFrom` target `metadata.x` that a manifest accepted is not valid for a Secret.
+
+
+### Admission
+
+All admission policies, like "When defined, `spec.target.manifest` needs both kind and apiVersion to be set" are defined in our API reference documentation.
+
+### Validations
+
+Checks done before write. These are not admission validations.
+
+Each part of a target has a single source: the ExternalSecret declares the identity and the
+labels and annotations it owns, the live object keeps the rest of its metadata, and templating
+supplies the content (on a manifest target, every top-level field other than `apiVersion`,
+`kind` and `metadata`). Templating therefore contributes the content plus `metadata.labels` and
+`metadata.annotations`, and nothing else is read back from it. On a manifest target with
+`creationPolicy` `Merge` or `CreateOrMerge`, the template is merged into the live object, so
+live fields it does not render are kept (a ConfigMap's `binaryData`, for example); with
+`Owner` or `Orphan` the content is replaced by what is rendered.
+
+On a manifest target, a template is free to write elsewhere under `metadata`, but the result is
+discarded rather than written, and the sync still succeeds. The ExternalSecret gets a
+`TemplatedMetadataIgnored` warning event naming the fields that were dropped, so the attempt is
+reported without the target or the sync being held back. The event is repeated on every sync
+for as long as the template writes those fields. A Secret target does not get that far: its
+`templateFrom` can only target `Data`, `Labels` or `Annotations` (see below).
+
+On all targets (Secret, ConfigMap, or CRDs):
+
+- Target metadata outside annotations and labels cannot be set by a template. This covers `uid`,
+  `resourceVersion`, `creationTimestamp`, `deletionTimestamp`, `generation`, `managedFields`,
+  `ownerReferences` and `finalizers`, whether named individually or inside a whole `metadata`
+  map. It makes no difference whether the rendered value matches the stored one.
+- Exception: Secrets can adjust finalizers, through `spec.target.template.metadata.finalizers`
+  rather than through `templateFrom`. That field has no effect on a manifest target.
+- Every target's `metadata.namespace` is the ExternalSecret's `metadata.namespace`.
+- Every target's `metadata.name` is the ExternalSecret's `spec.target.name` (or its
+  `metadata.name` when omitted).
+- Every target's `apiVersion` and `kind` are the `spec.target.manifest.apiVersion` and
+  `spec.target.manifest.kind` (or `v1`/`Secret` when `spec.target.manifest` is not set).
+  A template that renders another `apiVersion` or `kind` is ignored as well, but silently:
+  the event above lists metadata fields only, so neither a failed sync nor an event reports
+  it. The target is written with the declared `apiVersion` and `kind`.
+- The current ExternalSecret is matched by API group, kind and name, not UID. Non-controller
+  owner references are preserved.
+- Every target's `metadata.ownerReferences` list item is checked for the owning controller. It
+  is forbidden to write if the target has a controller owner reference to another
+  ExternalSecret (No two ES owning the secret). This one does fail the sync.
+
+Extra validations of Secrets compared to other resources:
+
+- `templateFrom` can only target `Data`, `Labels`, or `Annotations`;
+- `templateFrom` cannot target `Annotations` on secret type `kubernetes.io/service-account-token`;
+- Cannot have the type `bootstrap.kubernetes.io/token`;
+- Cannot have type `kubernetes.io/service-account-token` with `kubernetes.io/service-account.name` present;
+
+Extra validations of Manifests compared to Secret resources:
+
+- `spec.target.manifest` must not name the core `v1` `Secret` kind. `apiVersion: v1` and
+  `apiVersion: /v1` both resolve to the core group and are both rejected; a `Secret` kind in
+  any other API group is allowed.
+
+Extra validations based on `spec.target.creationPolicy`:
+
+- Owner: Rejects the write if a controller of another kind owns the target
+
+  notes:
+
+  - This does not prevent multiple ExternalSecrets from merging different fields into the same target, as [field ownership](#field-ownership) is separate from owner references.
+  - The current ExternalSecret is matched by API group, kind and name, not UID
+
+Data merging also depends on `spec.target.template.mergePolicy`.
+If a valid target does not need a refresh, ESO may skip rendering and the per-sync validations above entirely.
+
+### Normalizations
+
+Normalizations are not like validations. Any attempt to template/modify these will automatically be overridden by ESO.
+
+For objects to be written, ESO normalizes the following metadata in the target object:
+
+- `reconcile.external-secrets.io/managed` label
+- `reconcile.external-secrets.io/data-hash` annotation (computed from target content)
+These reserved keys are not user-controlled. They are ALWAYS present if ESO writes the object.
+
+Similarly, for non-Secret targets, ESO keeps the live values of the protected metadata fields, whatever a template renders for them, before applying the creation policy below. This includes:
+
+- `uid`, `resourceVersion`, `creationTimestamp` (generated by kubernetes);
+- `managedFields`;
+- `deletionTimestamp`, `deletionGracePeriodSeconds`, `generation` (maintained by kubernetes);
+- existing finalizers and owner references (including non-controller/outside ESO owner references/finalizers).
+
+ESO adapts the following metadata in the target object based on the `spec.target.creationPolicy`:
+
+- When Owner: `reconcile.external-secrets.io/created-by` label is set to ESO's hash of the ExternalSecret's namespace/name
+- When Owner: the current ExternalSecret is set as the target's controller owner in `metadata.ownerReferences`
+- When Orphan/Merge/CreateOrMerge: `reconcile.external-secrets.io/created-by` label is removed
+- When Orphan/Merge/CreateOrMerge: the current ES's controller owner reference is removed IF present (other owner references untouched).
+- When None: Skipped (no write)
+
+### Field ownership
+
+Every write ESO makes to a target declares a Kubernetes [field manager](https://kubernetes.io/docs/reference/using-api/server-side-apply/#field-management) derived from the ExternalSecret's name, for Secrets and for `spec.target.manifest` targets alike:
+
+- `externalsecrets.external-secrets.io/<name>`
+- `externalsecrets.external-secrets.io/sha3/<hash>` when the first form would exceed 63 characters, which happens once the ExternalSecret's name is longer than 27 characters
+
+Kubernetes records that name in the target's `metadata.managedFields`, per field. ESO reads it back on the next sync to answer one question: which labels and annotations did *this* ExternalSecret set last time?
+
+That is what makes removing them possible. Rendering starts from the live object so that metadata written by other controllers survives, and a plain merge can only add or overwrite keys. So before merging, ESO deletes the label and annotation keys `managedFields` attributes to it, then re-adds only what it renders now:
+
+- Remove a key from `spec.target.template.metadata.labels` or `.annotations` (or from the ExternalSecret's own labels and annotations when there is no template) and it is removed from the target on the next sync.
+- Keys owned by another controller, or by another ExternalSecret writing the same target, are never touched. This is why several ExternalSecrets can contribute metadata to one target under `Orphan`, `Merge` or `CreateOrMerge`.
+- The reserved keys in [Normalizations](#normalizations) are rewritten on every sync regardless.
+
+!!! note "Behavior change"
+
+    Earlier versions left these keys behind in two cases, so a label or annotation removed from an ExternalSecret stayed on the target until someone edited it by hand:
+
+    - Secrets, when the ExternalSecret's name was longer than 27 characters. The write used the hashed manager name while the read looked for the plain one, so no keys were ever attributed.
+    - `spec.target.manifest` targets, in all cases. Those writes did not declare a field manager at all.
+
+    Both now behave as described above. After upgrading, a key that was *already* orphaned on a manifest target survives one further sync: it was recorded under the client's default manager, so ESO cannot attribute it until it rewrites the target once. If you have been relying on a leftover key, add it to the template explicitly.
