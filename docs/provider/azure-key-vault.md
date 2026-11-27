@@ -129,6 +129,21 @@ The following example demonstrates using the secretRef field to directly deliver
 {% include 'azkv-workload-identity-secretref.yaml' %}
 ```
 
+##### Identity Binding
+
+[Identity binding](https://learn.microsoft.com/en-us/azure/aks/identity-bindings) is an AKS alternative to the standard Workload Identity federation that addresses the [limit of 20 federated identity credentials](https://learn.microsoft.com/en-us/azure/aks/identity-bindings-concepts) per user-assigned managed identity. Instead of creating a federated identity credential for every `<namespace, service-account>` pair, you bind the managed identity to the controller's service account at the cluster level. The controller pod then exchanges tokens through an AKS-managed proxy.
+
+To use identity binding, set `workloadIdentityMethod: IdentityBinding`. This requires:
+
+- `authType: WorkloadIdentity`
+- `useAzureSDK: true`
+
+Identity binding cannot be combined with `serviceAccountRef`; the operator authenticates with the identity bound to its own pod, so every `SecretStore` and `ClusterSecretStore` using identity binding resolves to that same identity. Multi-tenancy across namespaces is therefore not supported with identity binding yet. You must also configure identity binding for the External Secrets Operator deployment in AKS and ensure the required environment variables (for example `AZURE_KUBERNETES_TOKEN_PROXY`) are injected into the controller pod.
+
+```yaml
+{% include 'azkv-workload-identity-identity-binding.yaml' %}
+```
+
 ### Custom Cloud Configuration
 
 External Secrets Operator supports custom cloud endpoints for Azure Stack Hub, Azure Stack Edge, and other scenarios where the default cloud endpoints don't match your environment. This feature requires using the new Azure SDK.

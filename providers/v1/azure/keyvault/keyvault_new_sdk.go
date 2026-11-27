@@ -574,11 +574,14 @@ func buildWorkloadIdentityCredential(ctx context.Context, az *Azure, cloudConfig
 		return nil, errors.New(errMissingTenant)
 	}
 
-	audiences := []string{AzureDefaultAudience}
-	audiences = append(audiences, az.provider.ServiceAccountRef.Audiences...)
-
-	// Fetch tokens dynamically without writing assertions to disk.
+	// Use ClientAssertionCredential to avoid filesystem access in read-only environments
+	// This provides a callback function that fetches tokens dynamically
 	getAssertion := func(ctx context.Context) (string, error) {
+		audiences := []string{AzureDefaultAudience}
+		if len(az.provider.ServiceAccountRef.Audiences) > 0 {
+			audiences = append(audiences, az.provider.ServiceAccountRef.Audiences...)
+		}
+
 		token, err := FetchSAToken(ctx, ns, az.provider.ServiceAccountRef.Name, audiences, az.kubeClient)
 		if err != nil {
 			return "", fmt.Errorf("failed to fetch service account token: %w", err)

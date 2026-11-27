@@ -1,0 +1,14 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: azure-store
+spec:
+  provider:
+    azurekv:
+      authType: WorkloadIdentity
+      useAzureSDK: true
+      workloadIdentityMethod: IdentityBinding
+      vaultUrl: "https://xx-xxxx-xx.vault.azure.net"
+      # Note: serviceAccountRef cannot be used together with IdentityBinding.
+      # The identity is bound to the controller pod's service account at the
+      # AKS cluster level, so the operator uses the identity of its own pod.
