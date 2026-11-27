@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"sync"
 
@@ -33,6 +34,13 @@ import (
 const (
 	errFailedToGetEntry = "failed to get entry: %w"
 	errVaultNotFound    = "vault %q was not found or has been deleted: %w"
+)
+
+// The fields of a Credential/Default entry a push can name as its property.
+const (
+	fieldUsername = "username"
+	fieldPassword = "password"
+	fieldDomain   = "domain"
 )
 
 var errNotImplemented = errors.New("not implemented")
@@ -61,13 +69,17 @@ var _ esv1.SecretsClient = &Client{}
 // repeated GetEntries calls during a single reconciliation. vaultIndex does the same
 // for vault names. Neither is persisted: each reconciliation creates a new Client via
 // NewClient, so stale entries (e.g. deleted or renamed) are naturally discarded.
+// folderCache records the folder paths a push has already found or created, for the
+// same lifetime.
 type Client struct {
 	cred        credentialClient
+	folder      folderClient
 	vaults      vaultGetter
 	vaultID     string
 	pinnedVault bool
 	mu          sync.RWMutex
 	nameCache   map[string]string
+	folderCache map[string]struct{}
 	indexMu     sync.Mutex
 	vaultIndex  map[string]string
 }
@@ -75,8 +87,17 @@ type Client struct {
 type credentialClient interface {
 	GetByID(ctx context.Context, vaultID, entryID string) (dvls.Entry, error)
 	GetEntries(ctx context.Context, vaultID string, opts dvls.GetEntriesOptions) ([]dvls.Entry, error)
+	New(ctx context.Context, entry dvls.Entry) (string, error)
 	Update(ctx context.Context, entry dvls.Entry) (dvls.Entry, error)
 	DeleteByID(ctx context.Context, vaultID, entryID string) error
+}
+
+// folderClient covers the folder entries a push has to create, since DVLS
+// keeps folders as entries of their own rather than as a path string on the
+// entry that lives in them.
+type folderClient interface {
+	GetEntries(ctx context.Context, vaultID string, opts dvls.GetEntriesOptions) ([]dvls.Entry, error)
+	New(ctx context.Context, entry dvls.Entry) (string, error)
 }
 
 type vaultGetter interface {
@@ -97,6 +118,10 @@ func (r *realCredentialClient) GetEntries(ctx context.Context, vaultID string, o
 	return r.cred.GetEntriesWithContext(ctx, vaultID, opts)
 }
 
+func (r *realCredentialClient) New(ctx context.Context, entry dvls.Entry) (string, error) {
+	return r.cred.NewWithContext(ctx, entry)
+}
+
 func (r *realCredentialClient) Update(ctx context.Context, entry dvls.Entry) (dvls.Entry, error) {
 	return r.cred.UpdateWithContext(ctx, entry)
 }
@@ -105,15 +130,29 @@ func (r *realCredentialClient) DeleteByID(ctx context.Context, vaultID, entryID 
 	return r.cred.DeleteByIdWithContext(ctx, vaultID, entryID)
 }
 
+type realFolderClient struct {
+	folder *dvls.EntryFolderService
+}
+
+func (r *realFolderClient) GetEntries(ctx context.Context, vaultID string, opts dvls.GetEntriesOptions) ([]dvls.Entry, error) {
+	return r.folder.GetEntriesWithContext(ctx, vaultID, opts)
+}
+
+func (r *realFolderClient) New(ctx context.Context, entry dvls.Entry) (string, error) {
+	return r.folder.NewWithContext(ctx, entry)
+}
+
 // NewClient creates a new DVLS secrets client. When pinnedVault is true the store
 // configured a vault and vaultID holds it; otherwise the vault comes from the key.
-func NewClient(cred credentialClient, vaults vaultGetter, vaultID string, pinnedVault bool) *Client {
+func NewClient(cred credentialClient, folder folderClient, vaults vaultGetter, vaultID string, pinnedVault bool) *Client {
 	return &Client{
 		cred:        cred,
+		folder:      folder,
 		vaults:      vaults,
 		vaultID:     vaultID,
 		pinnedVault: pinnedVault,
 		nameCache:   make(map[string]string),
+		folderCache: make(map[string]struct{}),
 	}
 }
 
@@ -191,21 +230,31 @@ func (c *Client) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (ma
 	return nil, errNotImplemented
 }
 
-// PushSecret updates an existing entry's password field.
+// PushSecret writes the value to the field of the entry the remote key
+// addresses, creating that entry when it does not exist yet. The property
+// names the field; with no property the value goes to the password.
 func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv1.PushSecretData) error {
 	if secret == nil {
 		return errors.New("secret is required for DVLS push")
 	}
-	vaultID, entryID, err := c.resolveRef(ctx, data.GetRemoteKey())
-	if isNotFoundError(err) {
-		return fmt.Errorf("entry %q not found: entry must exist before pushing secrets", data.GetRemoteKey())
-	}
+
+	value, err := extractPushValue(secret, data)
 	if err != nil {
 		return err
 	}
 
-	value, err := extractPushValue(secret, data)
+	field, err := pushField(data.GetProperty())
 	if err != nil {
+		return err
+	}
+
+	// resolveRef reports a missing entry only once the vault is resolved, so
+	// vaultID is set on that path and the entry can be created in it.
+	vaultID, entryID, err := c.resolveRef(ctx, data.GetRemoteKey())
+	switch {
+	case isNotFoundError(err):
+		return c.createEntry(ctx, vaultID, c.entryRef(data.GetRemoteKey()), data.GetProperty(), value)
+	case err != nil:
 		return err
 	}
 
@@ -217,15 +266,23 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 		if vaultErr := c.confirmVault(ctx, vaultID); vaultErr != nil {
 			return vaultErr
 		}
-		return fmt.Errorf("entry %s not found in vault %s: entry must exist before pushing secrets", entryID, vaultID)
+		// The reference resolved to an id the vault no longer has, so the name
+		// cache is stale. Drop it and create the entry the key asks for.
+		ref := c.entryRef(data.GetRemoteKey())
+		c.mu.Lock()
+		delete(c.nameCache, entryCacheKey(vaultID, ref))
+		c.mu.Unlock()
+		return c.createEntry(ctx, vaultID, ref, data.GetProperty(), value)
 	}
 	if err != nil {
 		return fmt.Errorf(errFailedToGetEntry, err)
 	}
 
-	// SetCredentialSecret only updates the password/secret field.
-	if err := existingEntry.SetCredentialSecret(string(value)); err != nil {
+	if err := setCredentialField(&existingEntry, field, string(value)); err != nil {
 		return err
+	}
+	if isDefaultCredential(existingEntry) {
+		existingEntry.Data = fieldUpdate(field, string(value))
 	}
 
 	_, err = c.cred.Update(ctx, existingEntry)
@@ -235,13 +292,200 @@ func (c *Client) PushSecret(ctx context.Context, secret *corev1.Secret, data esv
 	return nil
 }
 
-// DeleteSecret deletes a secret from DVLS.
+// createEntry creates the credential entry a push addressed but that the vault
+// does not hold yet. entryRef is the part of the remote key that names the
+// entry within its vault: the entry's name and, optionally, the folder path it
+// belongs under, because DVLS addresses an entry by name within a path rather
+// than by the whole string.
+//
+// The entry is created as a Credential/Default, the username and password
+// subtype, holding only the field this push writes; the other fields are left
+// for the pushes that name them. With only the password set it reads back
+// exactly as an AccessCode entry would, since empty fields are left out, so a
+// value pushed here is readable by an ExternalSecret that sets no property.
+// Any folder the path names is created first, so that the entry lands in a
+// tree that exists.
+//
+// An entry referenced by UUID is never created: the UUID names one specific
+// entry, which no longer exists, so there is nothing to create it as. That
+// covers the "<vault-uuid>/<entry-uuid>" keys of a store without a vault too.
+func (c *Client) createEntry(ctx context.Context, vaultID, entryRef, property string, value []byte) error {
+	field, err := pushField(property)
+	if err != nil {
+		return err
+	}
+	if vaultID == "" {
+		return fmt.Errorf("cannot create entry %q: no vault to create it in", entryRef)
+	}
+	if isUUID(entryRef) {
+		return fmt.Errorf("entry %s not found in vault %s: entry must exist before pushing secrets", entryRef, vaultID)
+	}
+
+	name, path := parseEntryRef(entryRef)
+	if name == "" {
+		return errors.New("entry name cannot be empty")
+	}
+	// A UUID anywhere in the reference is an id, not a name to create: a legacy
+	// "<vault-uuid>/<entry-uuid>" key on a store that sets a vault would
+	// otherwise become a folder named after the vault with the entry inside it,
+	// and the push would report success while the real entry stopped updating.
+	for _, segment := range append(strings.Split(path, `\`), name) {
+		if isUUID(strings.TrimSpace(segment)) {
+			return fmt.Errorf("cannot create entry %q: %q is a UUID, which names an existing vault or entry "+
+				"rather than a folder or entry to create; on a store that sets a vault, "+
+				"reference an existing entry by its UUID alone", entryRef, segment)
+		}
+	}
+
+	if err := c.ensureFolderPath(ctx, vaultID, path); err != nil {
+		return err
+	}
+
+	entry := dvls.Entry{
+		VaultId: vaultID,
+		Name:    name,
+		Path:    path,
+		Type:    dvls.EntryCredentialType,
+		SubType: dvls.EntryCredentialSubTypeDefault,
+	}
+	// The subtype must be set first: setCredentialField builds the data struct
+	// that matches it.
+	if err := setCredentialField(&entry, field, string(value)); err != nil {
+		return err
+	}
+
+	id, err := c.cred.New(ctx, entry)
+	if err != nil {
+		return fmt.Errorf("failed to create entry %q: %w", entryRef, err)
+	}
+
+	c.mu.Lock()
+	c.nameCache[entryCacheKey(vaultID, entryRef)] = id
+	c.mu.Unlock()
+	return nil
+}
+
+// ensureFolderPath creates every folder the path names that the vault does not
+// hold yet. DVLS keeps a folder as an entry of its own and an entry's path is
+// only a reference to it, so creating an entry under a path whose folders are
+// missing would place it in a tree that is not there. The path is walked from
+// the root because each level has to name the parent it sits under.
+func (c *Client) ensureFolderPath(ctx context.Context, vaultID, path string) error {
+	if path == "" {
+		return nil
+	}
+	if c.folder == nil {
+		return fmt.Errorf("cannot create folder path %q: the client has no folder access", path)
+	}
+
+	// Every segment is checked before any folder is created, so an invalid key
+	// leaves nothing behind in the vault.
+	segments := strings.Split(path, `\`)
+	if slices.Contains(segments, "") {
+		return fmt.Errorf("invalid folder path %q: a path segment cannot be empty", path)
+	}
+
+	var parent string
+	for _, segment := range segments {
+		current := segment
+		if parent != "" {
+			current = parent + `\` + segment
+		}
+		if err := c.ensureFolder(ctx, vaultID, segment, parent, current); err != nil {
+			return err
+		}
+		parent = current
+	}
+	return nil
+}
+
+// ensureFolder creates the single folder named name directly under parent,
+// unless it is already there. fullPath is where that folder ends up, used for
+// the cache key and for error messages.
+func (c *Client) ensureFolder(ctx context.Context, vaultID, name, parent, fullPath string) error {
+	cacheKey := vaultID + "/" + fullPath
+	c.mu.RLock()
+	_, known := c.folderCache[cacheKey]
+	c.mu.RUnlock()
+	if known {
+		return nil
+	}
+
+	opts := dvls.GetEntriesOptions{Name: &name}
+	if parent != "" {
+		opts.Path = &parent
+	}
+
+	entries, err := c.folder.GetEntries(ctx, vaultID, opts)
+	if err != nil {
+		// A missing folder yields an empty list, so a not-found here is about the vault.
+		if isNotFoundError(err) || isVaultNotFoundError(err) {
+			return &vaultError{vaultRef: vaultID, err: err}
+		}
+		return fmt.Errorf("failed to look up folder %q: %w", fullPath, err)
+	}
+
+	// Neither filter narrows the result to exactly this folder: the path filter
+	// also matches everything nested below it, so the match has to be checked.
+	if !hasFolder(entries, name, fullPath) {
+		folder := dvls.Entry{
+			VaultId: vaultID,
+			Name:    name,
+			Path:    parent,
+			Type:    dvls.EntryFolderType,
+			SubType: dvls.EntryFolderSubTypeFolder,
+			Data:    &dvls.EntryFolderData{},
+		}
+		if _, err := c.folder.New(ctx, folder); err != nil {
+			return fmt.Errorf("failed to create folder %q: %w", fullPath, err)
+		}
+	}
+
+	c.mu.Lock()
+	c.folderCache[cacheKey] = struct{}{}
+	c.mu.Unlock()
+	return nil
+}
+
+// hasFolder reports whether these entries contain the folder itself rather than
+// something merely near it. The server is asymmetric about Path: creating a
+// folder expects Path to name the parent it goes under, but reading one back
+// returns the folder's own full path, so a folder "db" created under "prod"
+// comes back with Path "prod\\db". Matching on the parent would therefore never
+// hit, and every push would try to create folders that are already there.
+func hasFolder(entries []dvls.Entry, name, fullPath string) bool {
+	for _, e := range entries {
+		if e.Name == name && e.Path == fullPath {
+			return true
+		}
+	}
+	return false
+}
+
+// DeleteSecret deletes a secret from DVLS. Only the field the item pushed is
+// cleared, the password when it names no property, and the entry itself is
+// deleted once no field is left. An entry of another subtype than a username
+// and password is deleted whole by an item with no property, as it always was.
 func (c *Client) DeleteSecret(ctx context.Context, ref esv1.PushSecretRemoteRef) error {
+	// A push of a property this provider cannot push is refused, and only items
+	// that synced are deleted, so such an item was pushed by an older version.
+	// That version ignored the property and wrote the password, so the password
+	// is what it deletes. Failing here instead would leave the PushSecret stuck
+	// in Terminating under deletionPolicy Delete.
+	property := ref.GetProperty()
+	if _, err := pushField(property); err != nil {
+		property = ""
+	}
+
 	vaultID, entryID, err := c.resolveRef(ctx, ref.GetRemoteKey())
 	if isNotFoundError(err) {
 		return nil
 	}
 	if err != nil {
+		return err
+	}
+	last, err := c.clearField(ctx, vaultID, entryID, property)
+	if err != nil || !last {
 		return err
 	}
 	if err := c.cred.DeleteByID(ctx, vaultID, entryID); err != nil {
@@ -267,7 +511,7 @@ func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 		return false, err
 	}
 
-	_, err = c.cred.GetByID(ctx, vaultID, entryID)
+	entry, err := c.cred.GetByID(ctx, vaultID, entryID)
 	if isNotFoundError(err) {
 		if vaultErr := c.confirmVault(ctx, vaultID); vaultErr != nil {
 			return false, vaultErr
@@ -277,7 +521,94 @@ func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	if err != nil {
 		return false, err
 	}
-	return true, nil
+	// A push writes one field, so the question is about that field, not the
+	// entry. With updatePolicy IfNotExists the controller checks each pushed item
+	// on its own, so the item that creates the entry must not make the others on
+	// it skip their fields. That holds for an item with no property too: it
+	// writes the password, so on a username and password entry the password is
+	// what it checks. Other subtypes keep the entry-level answer they have always
+	// had, since their fields are not named password (an API key, say) and
+	// IfNotExists would otherwise start writing to entries it used to leave alone.
+	if ref.GetProperty() == "" && !isDefaultCredential(entry) {
+		return true, nil
+	}
+	field, err := pushField(ref.GetProperty())
+	if err != nil {
+		return false, err
+	}
+	fields, err := entryToSecretMap(entry)
+	if err != nil {
+		return false, err
+	}
+	_, ok := fields[field]
+	return ok, nil
+}
+
+// clearField clears the field a property names from the entry, and reports
+// whether the entry should be deleted instead because no other field would be
+// left, in which case it changes nothing and leaves deleting the entry to the
+// caller. An entry that is already gone, or a field already cleared from an
+// entry that holds others, has nothing left to clear.
+func (c *Client) clearField(ctx context.Context, vaultID, entryID, property string) (last bool, err error) {
+	field, err := pushField(property)
+	if err != nil {
+		return false, err
+	}
+
+	entry, err := c.cred.GetByID(ctx, vaultID, entryID)
+	if isNotFoundError(err) {
+		// Only nothing left to clear once the vault is known to be reachable.
+		if vaultErr := c.confirmVault(ctx, vaultID); vaultErr != nil {
+			return false, vaultErr
+		}
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf(errFailedToGetEntry, err)
+	}
+	// Only a username and password entry has fields to clear one by one. Other
+	// subtypes keep what an item with no property has always done to them, as
+	// SecretExists does.
+	if property == "" && !isDefaultCredential(entry) {
+		return true, nil
+	}
+	// Username and domain exist only on a username and password entry, and a
+	// push of them to any other subtype is refused, so such an item on one was
+	// synced by an older version, which wrote its value to the password. On a
+	// username and password entry that cannot be told apart from a current push
+	// of the field, so there only the named field is cleared.
+	if field != fieldPassword && !isDefaultCredential(entry) {
+		field = fieldPassword
+	}
+
+	fields, err := entryToSecretMap(entry)
+	if err != nil {
+		return false, err
+	}
+	others := 0
+	for k := range fields {
+		// entry-id and entry-name describe the entry rather than being fields of it.
+		if k != field && k != "entry-id" && k != "entry-name" {
+			others++
+		}
+	}
+	if others == 0 {
+		return true, nil
+	}
+	if _, ok := fields[field]; !ok {
+		return false, nil
+	}
+
+	if err := setCredentialField(&entry, field, ""); err != nil {
+		return false, err
+	}
+	if isDefaultCredential(entry) {
+		entry.Data = fieldUpdate(field, "")
+	}
+	if _, err := c.cred.Update(ctx, entry); err != nil {
+		return false, fmt.Errorf("failed to update entry: %w", err)
+	}
+	return false, nil
 }
 
 // Validate checks if the client is properly configured.
@@ -320,6 +651,20 @@ func (c *Client) resolveRef(ctx context.Context, key string) (vaultID, entryID s
 	}
 	entryID, err = c.resolveEntryRef(ctx, vaultID, entryRef)
 	return vaultID, entryID, err
+}
+
+// entryRef returns the part of a key that names the entry within its vault:
+// the whole key when the store pins a vault, and what follows the vault
+// reference otherwise. It is only called once resolveRef has accepted the key,
+// so splitting it again cannot fail. The reference is trimmed as resolving it
+// was: a key that resolves as " <uuid>" must also be created as one, or the
+// UUID check is bypassed and each reconcile creates another entry.
+func (c *Client) entryRef(key string) string {
+	if c.pinnedVault {
+		return strings.TrimSpace(key)
+	}
+	_, ref, _ := splitVaultRef(key)
+	return ref
 }
 
 // confirmVault reports whether a 404 from the entry endpoint really means the entry is gone.
@@ -406,7 +751,7 @@ func (c *Client) resolveEntryRef(ctx context.Context, vaultID, key string) (entr
 	}
 
 	// Return cached result if available. Scoped by vault: one client can serve several.
-	cacheKey := vaultID + "/" + key
+	cacheKey := entryCacheKey(vaultID, key)
 	c.mu.RLock()
 	id, ok := c.nameCache[cacheKey]
 	c.mu.RUnlock()
@@ -449,6 +794,13 @@ func (c *Client) resolveEntryRef(ctx context.Context, vaultID, key string) (entr
 		}
 		return "", fmt.Errorf("found %d credential entries named %q; use the entry UUID to select one:\n%s", len(entries), entryName, strings.Join(details, "\n"))
 	}
+}
+
+// entryCacheKey is the nameCache key for an entry reference within a vault. A
+// push that creates an entry records it under the same key that resolving the
+// reference looks up, so a later push in the same reconcile finds it.
+func entryCacheKey(vaultID, key string) string {
+	return vaultID + "/" + strings.TrimSpace(key)
 }
 
 // splitVaultRef splits "<vault-ref>/<entry-ref>" on the first separator. Both forward
@@ -534,6 +886,63 @@ func entryToSecretMap(entry dvls.Entry) (map[string][]byte, error) {
 	}
 
 	return result, nil
+}
+
+// isDefaultCredential reports whether the entry is a Credential/Default, the
+// subtype that holds a username, a password and a domain.
+func isDefaultCredential(entry dvls.Entry) bool {
+	return entry.GetType() == dvls.EntryCredentialType && entry.SubType == dvls.EntryCredentialSubTypeDefault
+}
+
+// fieldUpdate is the data of an update that writes one field of a
+// Credential/Default entry, and sends nothing else. DVLS keeps every data field
+// an update leaves out, so the entry's other fields stay as they are on the
+// server rather than as they were when the entry was read: two pushes to
+// different fields of one entry cannot undo each other. An empty value is sent
+// too, which is how a field is cleared; go-dvls would leave it out.
+func fieldUpdate(field, value string) map[string]string {
+	return map[string]string{field: value}
+}
+
+// pushField maps a push's property to the credential field it writes. No
+// property writes the password, as this provider always has; anything but the
+// three fields of a username and password is refused, rather than written to
+// the password as if it had not been named.
+func pushField(property string) (string, error) {
+	switch property {
+	case "":
+		return fieldPassword, nil
+	case fieldUsername, fieldPassword, fieldDomain:
+		return property, nil
+	}
+	return "", fmt.Errorf("property %q cannot be pushed: DVLS takes %q, %q or %q", property, fieldUsername, fieldPassword, fieldDomain)
+}
+
+// setCredentialField writes one field of a credential entry. The password goes
+// through go-dvls, which knows where each subtype keeps it. Username and domain
+// exist only on a Credential/Default entry, so any other subtype is refused
+// rather than having the value land in its password.
+func setCredentialField(entry *dvls.Entry, field, value string) error {
+	if field == fieldPassword {
+		return entry.SetCredentialSecret(value)
+	}
+	if !isDefaultCredential(*entry) {
+		return fmt.Errorf("entry %q is %s/%s, which has no %s field: only %s/%s entries have one",
+			entry.Name, entry.GetType(), entry.SubType, field, dvls.EntryCredentialType, dvls.EntryCredentialSubTypeDefault)
+	}
+
+	data, ok := entry.GetCredentialDefaultData()
+	if !ok {
+		data = &dvls.EntryCredentialDefaultData{}
+		entry.Data = data
+	}
+	switch field {
+	case fieldUsername:
+		data.Username = value
+	case fieldDomain:
+		data.Domain = value
+	}
+	return nil
 }
 
 func extractPushValue(secret *corev1.Secret, data esv1.PushSecretData) ([]byte, error) {
