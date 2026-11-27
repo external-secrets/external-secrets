@@ -31,7 +31,6 @@ import (
 	sm "github.com/IBM/secrets-manager-go-sdk/v2/secretsmanagerv2"
 	"github.com/google/uuid"
 	"github.com/tidwall/gjson"
-	corev1 "k8s.io/api/core/v1"
 	kclient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -77,6 +76,10 @@ var (
 type SecretManagerClient interface {
 	GetSecretWithContext(ctx context.Context, getSecretOptions *sm.GetSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
 	GetSecretByNameTypeWithContext(ctx context.Context, getSecretByNameTypeOptions *sm.GetSecretByNameTypeOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
+	CreateSecretWithContext(ctx context.Context, createSecretOptions *sm.CreateSecretOptions) (result sm.SecretIntf, response *core.DetailedResponse, err error)
+	CreateSecretVersionWithContext(ctx context.Context, createSecretVersionOptions *sm.CreateSecretVersionOptions) (result sm.SecretVersionIntf, response *core.DetailedResponse, err error)
+	DeleteSecretWithContext(ctx context.Context, deleteSecretOptions *sm.DeleteSecretOptions) (response *core.DetailedResponse, err error)
+	ListSecretGroupsWithContext(ctx context.Context, listSecretGroupsOptions *sm.ListSecretGroupsOptions) (result *sm.SecretGroupCollection, response *core.DetailedResponse, err error)
 }
 
 type providerIBM struct {
@@ -98,19 +101,6 @@ func (c *client) setAuth(ctx context.Context) error {
 	}
 	c.credentials = []byte(apiKey)
 	return nil
-}
-
-func (ibm *providerIBM) DeleteSecret(_ context.Context, _ esv1.PushSecretRemoteRef) error {
-	return errors.New(errNotImplemented)
-}
-
-func (ibm *providerIBM) SecretExists(_ context.Context, _ esv1.PushSecretRemoteRef) (bool, error) {
-	return false, errors.New(errNotImplemented)
-}
-
-// PushSecret not implemented.
-func (ibm *providerIBM) PushSecret(_ context.Context, _ *corev1.Secret, _ esv1.PushSecretData) error {
-	return errors.New(errNotImplemented)
 }
 
 // GetAllSecrets empty.
@@ -400,7 +390,7 @@ func getSecretData(ibm *providerIBM, secretName *string, secretType, secretGroup
 		// follow the new mechanism by calling GetSecretByNameTypeWithContext
 		ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 		defer cancel()
-		response, _, err := ibm.IBMClient.GetSecretByNameTypeWithContext(
+		response, resp, err := ibm.IBMClient.GetSecretByNameTypeWithContext(
 			ctx,
 			&sm.GetSecretByNameTypeOptions{
 				Name:            secretName,
@@ -408,6 +398,9 @@ func getSecretData(ibm *providerIBM, secretName *string, secretType, secretGroup
 				SecretType:      &secretType,
 			})
 		metrics.ObserveAPICall(ProviderIBMSM, CallIBMSMGetSecretByNameType, err)
+		if isNotFound(resp) {
+			return nil, esv1.NoSecretErr
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -416,12 +409,15 @@ func getSecretData(ibm *providerIBM, secretName *string, secretType, secretGroup
 
 	ctx, cancel := context.WithTimeout(context.Background(), contextTimeout)
 	defer cancel()
-	response, _, err := ibm.IBMClient.GetSecretWithContext(
+	response, resp, err := ibm.IBMClient.GetSecretWithContext(
 		ctx,
 		&sm.GetSecretOptions{
 			ID: secretName,
 		})
 	metrics.ObserveAPICall(ProviderIBMSM, CallIBMSMGetSecret, err)
+	if isNotFound(resp) {
+		return nil, esv1.NoSecretErr
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -650,7 +646,7 @@ func (ibm *providerIBM) ValidateStore(store esv1.GenericStore) (admission.Warnin
 
 // Capabilities return the provider supported capabilities (ReadOnly, WriteOnly, ReadWrite).
 func (ibm *providerIBM) Capabilities() esv1.SecretStoreCapabilities {
-	return esv1.SecretStoreReadOnly
+	return esv1.SecretStoreReadWrite
 }
 
 func (ibm *providerIBM) NewClient(ctx context.Context, store esv1.GenericStore, kube kclient.Client, namespace string) (esv1.SecretsClient, error) {
