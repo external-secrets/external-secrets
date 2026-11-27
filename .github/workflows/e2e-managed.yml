@@ -8,7 +8,6 @@ permissions:
   contents: read
 
 env:
-  DOCKER_BUILDX_VERSION: 'v0.4.2'
   GHCR_USERNAME: ${{ github.actor }}
   USE_GKE_GCLOUD_AUTH_PLUGIN: true
   GCP_GKE_CLUSTER: e2e
