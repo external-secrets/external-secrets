@@ -760,7 +760,9 @@ func (r *Reconciler) getRequeueResult(externalSecret *esv1.ExternalSecret) ctrl.
 		return ctrl.Result{}
 	}
 
-	// Failed syncs wait a full interval without advancing the last successful refresh time.
+	// if the last refresh time is not set, requeue after the refresh interval
+	// note, this should not happen, as we only call this function on ExternalSecrets
+	// that have been reconciled at least once
 	if externalSecret.Status.RefreshTime.IsZero() {
 		return ctrl.Result{RequeueAfter: refreshInterval}
 	}

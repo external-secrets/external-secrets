@@ -429,8 +429,9 @@ func TestProviderEmptyDeletionAuthorization(t *testing.T) {
 	}
 }
 
-// TestProviderEmptyDeletionRequeuesAndRecovers keeps polling without adopting an unowned
-// target until provider data exists, even if the last successful refresh is overdue.
+// TestProviderEmptyDeletionRequeuesAndRecovers keeps retrying without adopting an unowned
+// target until provider data exists. The last successful refresh is overdue, so the retry
+// goes through the rate limiter like any other failed sync.
 func TestProviderEmptyDeletionRequeuesAndRecovers(t *testing.T) {
 	_ = esv1.AddToScheme(scheme.Scheme)
 	fakeProvider.Reset()
@@ -466,7 +467,7 @@ func TestProviderEmptyDeletionRequeuesAndRecovers(t *testing.T) {
 
 			result, err := r.Reconcile(context.Background(), request)
 			require.NoError(t, err)
-			assert.Equal(t, ctrl.Result{RequeueAfter: time.Hour}, result, "retry normally, not immediately or never")
+			assert.Equal(t, ctrl.Result{Requeue: true}, result, "a refused delete must be retried with backoff, not dropped")
 
 			synced := &esv1.ExternalSecret{}
 			require.NoError(t, fakeClient.Get(context.Background(), client.ObjectKeyFromObject(es), synced))

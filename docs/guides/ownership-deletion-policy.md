@@ -119,7 +119,7 @@ the target it owns, without having to update the owner reference first.
 A target that fails this check (no controller reference, a controller reference to a
 different ExternalSecret, or a controller of another kind) is never deleted. What happens
 next depends on when the check ran. During a sync, ESO leaves the target alone, reports a
-failed sync and keeps polling at the configured refresh interval, so syncing recovers when
+failed sync and retries it like any other failed sync (with backoff), so syncing recovers when
 provider data appears; the failed attempt does not advance the last successful refresh time.
 During ExternalSecret deletion, ESO logs the refusal and lets finalization finish, so an
 unrelated target can never block it.
