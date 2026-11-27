@@ -44,5 +44,14 @@ func (authMethodFactory) Kubernetes(role, jwt, mount string) (api.AuthMethod, er
 	return kubernetes.NewKubernetesAuth(role, kubernetes.WithServiceAccountToken(jwt), kubernetes.WithMountPath(mount))
 }
 
+// JWT implements [Factory].
+func (authMethodFactory) JWT(role, jwtToken, mount string) (api.AuthMethod, error) {
+	return jwtAuth{
+		role:  role,
+		token: jwtToken,
+		mount: mount,
+	}, nil
+}
+
 // DefaultAuthMethodFactory implements [Factory].
 var DefaultAuthMethodFactory Factory = authMethodFactory{}

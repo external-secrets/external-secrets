@@ -1,0 +1,40 @@
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: openbao-backend
+  namespace: example
+spec:
+  provider:
+    openbao:
+      server: "https://openbao.acme.org"
+      path: "secret"
+      version: "v2"
+      auth:
+        jwt:
+          path: "jwt"
+          role: "openbao-jwt-role"
+          secretRef:
+            name: "my-secret"
+            key: "jwt-token"
+---
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: openbao-backend
+  namespace: example
+spec:
+  provider:
+    openbao:
+      server: "https://openbao.acme.org"
+      path: "secret"
+      version: "v2"
+      auth:
+        jwt:
+          path: "jwt"
+          role: "openbao-jwt-role"
+          kubernetesServiceAccountToken:
+            serviceAccountRef:
+              name: "my-sa"
+            audiences:
+            - openbao
+            expirationSeconds: 600
