@@ -3,7 +3,7 @@ FROM golang@sha256:4fa7c968ba93f1635670522dbb01a2c78150443e1385746924566079f3657
 RUN go install github.com/onsi/ginkgo/v2/ginkgo@v2.1.6
 
 # Pinned release: alpine:3.24.3 (Alpine; tracking 3.x)
-FROM alpine@sha256:be2656061b536c1883c4034790e21d0a09c5aaaf51968b89368a3c0371ea2c9a
+FROM alpine@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf
 RUN apk add -U --no-cache \
     ca-certificates \
     bash \
