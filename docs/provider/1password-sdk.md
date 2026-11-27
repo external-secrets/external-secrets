@@ -86,6 +86,44 @@ To sync the entire secret into a single 1Password item, the following configurat
 {% include '1passwordsdk-push-secret-all-keys.yaml' %}
 ```
 
+#### Item category and websites
+
+New items are created with the `Server` category by default. Set `category` in the `PushSecretMetadata` to create
+another kind of item, for example a `Login` that 1Password can autofill. The category is only applied when the item is
+created: 1Password does not allow changing the category of an existing item. `Document` is not supported.
+
+For `Login` items, push to the `username` and `password` properties to fill the built-in fields. These fields always use
+the `text` and `concealed` field types required by 1Password, whatever the `fieldType`. Set `websites` so 1Password
+suggests the item on these websites. Websites are only supported on `Login` and `Password` items: the push fails if
+`websites` is set for another category. Like `tags`, `websites` are set on the whole item and the last write wins if
+entries targeting the same item differ.
+
+```yaml
+  data:
+    - match:
+        secretKey: username
+        remoteRef:
+          remoteKey: my-app
+          property: username
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          category: Login
+          websites: ["https://my-app.example.com"]
+    - match:
+        secretKey: password
+        remoteRef:
+          remoteKey: my-app
+          property: password
+      metadata:
+        apiVersion: kubernetes.external-secrets.io/v1alpha1
+        kind: PushSecretMetadata
+        spec:
+          category: Login
+          websites: ["https://my-app.example.com"]
+```
+
 ### Environments
 
 1Password has added [Environments](https://developer.1password.com/docs/environments) functionality as a BETA feature.
