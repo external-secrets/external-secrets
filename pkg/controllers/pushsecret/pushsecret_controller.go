@@ -252,6 +252,11 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	default:
 	}
 
+	// do not push secrets for a PushSecret that is being deleted
+	if !ps.ObjectMeta.DeletionTimestamp.IsZero() {
+		return ctrl.Result{}, nil
+	}
+
 	timeSinceLastRefresh := 0 * time.Second
 	if !ps.Status.RefreshTime.IsZero() {
 		timeSinceLastRefresh = time.Since(ps.Status.RefreshTime.Time)

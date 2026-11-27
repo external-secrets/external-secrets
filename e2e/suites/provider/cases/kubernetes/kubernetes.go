@@ -50,6 +50,12 @@ var _ = Describe("[kubernetes] ", Label("kubernetes"), func() {
 		framework.Compose(referentAuth, f, common.JSONDataWithProperty, withReferentStore),
 		framework.Compose(referentAuth, f, common.JSONDataWithoutTargetName, withReferentStore),
 	)
+
+	DescribeTable("push secret",
+		framework.TableFuncWithPushSecret(f, prov, nil),
+		Entry(regressionNoPushWhileDeletingPolicyNone(f)),
+		Entry(regressionNoPushWhileDeletingPolicyDelete(f)),
+	)
 })
 
 func withReferentStore(tc *framework.TestCase) {
