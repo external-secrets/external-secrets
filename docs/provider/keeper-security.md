@@ -42,6 +42,7 @@ Be sure the `keepersecurity` provider is listed in the `Kind=SecretStore`
 ### Behavior
 * How a Record is equated to an ExternalSecret:
     * `remoteRef.key` is equated to a Record's ID
+        * with `getByTitleFallback: true` on the store, a key that matches no record ID is then looked up by record title; the title must be unique, otherwise the lookup fails
     * `remoteRef.property` is equated to one of the following options:
         * Fields: Record's field's Label (if present), otherwise [Record's field's Type](https://docs.keeper.io/secrets-manager/secrets-manager/about/field-record-types)
         * CustomFields: Record's field's Label
