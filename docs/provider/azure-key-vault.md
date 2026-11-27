@@ -44,6 +44,7 @@ ESO supports multiple authentication methods to connect to Azure Key Vault:
 - Service Principal
 - Managed Identity (AAD Pod Identity)
 - Workload Identity
+  - Identity Binding
 
 Regardless of which authentication method is used to authenticate to Azure Key Vault, the identity which is assigned to External Secrets Operator needs to have proper permissions to access the Key Vault. Both [RBAC](https://learn.microsoft.com/en-us/azure/key-vault/general/rbac-guide) and legacy [Access Policy](https://learn.microsoft.com/en-us/azure/key-vault/general/assign-access-policy) based Key Vaults are supported.
 
