@@ -27,7 +27,7 @@ import (
 type BeyondtrustWorkloadCredentialsClient struct {
 	getSecret             func(ctx context.Context, name string, folderPath *string) (*btwcutil.KV, error)
 	getSecrets            func(ctx context.Context, folderPath *string, recursive bool) ([]btwcutil.KVListItem, error)
-	generateDynamicSecret func(ctx context.Context, name string, folderPath *string) (*btwcutil.GeneratedSecret, error)
+	generateDynamicSecret func(ctx context.Context, name string, folderPath *string) (btwcutil.GeneratedSecret, error)
 	getCalls              int
 }
 
@@ -62,7 +62,7 @@ func (c *BeyondtrustWorkloadCredentialsClient) GetSecrets(ctx context.Context, f
 	return c.getSecrets(ctx, folderPath, recursive)
 }
 
-func (c *BeyondtrustWorkloadCredentialsClient) GenerateDynamicSecret(ctx context.Context, name string, folderPath *string) (*btwcutil.GeneratedSecret, error) {
+func (c *BeyondtrustWorkloadCredentialsClient) GenerateDynamicSecret(ctx context.Context, name string, folderPath *string) (btwcutil.GeneratedSecret, error) {
 	if c.generateDynamicSecret == nil {
 		return nil, errors.New("GenerateDynamicSecret not implemented in fake")
 	}
@@ -168,7 +168,7 @@ func (c *BeyondtrustWorkloadCredentialsClient) WithMultiValues(
 	}
 }
 
-func (c *BeyondtrustWorkloadCredentialsClient) WithGenerateDynamicSecret(fn func(ctx context.Context, name string, folderPath *string) (*btwcutil.GeneratedSecret, error)) {
+func (c *BeyondtrustWorkloadCredentialsClient) WithGenerateDynamicSecret(fn func(ctx context.Context, name string, folderPath *string) (btwcutil.GeneratedSecret, error)) {
 	if c == nil {
 		return
 	}

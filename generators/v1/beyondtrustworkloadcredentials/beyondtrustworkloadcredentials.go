@@ -86,7 +86,10 @@ func (g *Generator) Generate(ctx context.Context, jsonSpec *apiextensions.JSON, 
 		return nil, nil, fmt.Errorf("generated secret is nil")
 	}
 
-	out := convertToByteMap(generatedSecret)
+	out, err := convertToByteMap(generatedSecret)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	// prepare provider state
 	state := &struct {
@@ -147,25 +150,25 @@ func parsePath(fullPath string) (*string, string) {
 	return folderPath, secretName
 }
 
-// Convert generatedSecret to map[string][]byte.
-func convertToByteMap(generatedSecret *btwcutil.GeneratedSecret) map[string][]byte {
-	out := make(map[string][]byte)
-
-	// Defensive nil check
-	if generatedSecret == nil {
-		return out
+// Convert generatedSecret to map[string][]byte, one key per field the dynamic secret returned.
+// String values are kept as-is, other values are marshaled to JSON to preserve their structure, and null values are skipped.
+func convertToByteMap(generatedSecret btwcutil.GeneratedSecret) (map[string][]byte, error) {
+	out := make(map[string][]byte, len(generatedSecret))
+	for k, v := range generatedSecret {
+		switch val := v.(type) {
+		case nil:
+			continue
+		case string:
+			out[k] = []byte(val)
+		default:
+			b, err := json.Marshal(val)
+			if err != nil {
+				return nil, fmt.Errorf("failed to marshal generated secret value for key %q: %w", k, err)
+			}
+			out[k] = b
+		}
 	}
-
-	out["accessKeyId"] = []byte(generatedSecret.AccessKeyID)
-	out["secretAccessKey"] = []byte(generatedSecret.SecretAccessKey)
-	out["leaseId"] = []byte(generatedSecret.LeaseID)
-	out["expiration"] = []byte(generatedSecret.Expiration)
-
-	if generatedSecret.SessionToken != "" {
-		out["sessionToken"] = []byte(generatedSecret.SessionToken)
-	}
-
-	return out
+	return out, nil
 }
 
 // NewGenerator creates a new BeyondtrustWorkloadCredentials generator instance.
