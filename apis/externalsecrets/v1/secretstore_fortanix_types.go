@@ -25,6 +25,17 @@ type FortanixProvider struct {
 
 	// APIKey is the API token to access SDKMS Applications.
 	APIKey *FortanixProviderSecretRef `json:"apiKey,omitempty"`
+
+	// CABundle is a PEM-encoded CA certificate bundle used to validate
+	// the Fortanix server's TLS certificate. Mutually exclusive with CAProvider.
+	// +optional
+	CABundle []byte `json:"caBundle,omitempty"`
+
+	// CAProvider is a reference to a Secret or ConfigMap that contains a CA certificate.
+	// The certificate is used to validate the Fortanix server's TLS certificate.
+	// Mutually exclusive with CABundle.
+	// +optional
+	CAProvider *CAProvider `json:"caProvider,omitempty"`
 }
 
 // FortanixProviderSecretRef is a secret reference containing the SDKMS API Key.
