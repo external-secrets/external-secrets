@@ -100,6 +100,7 @@ var (
 	enableFloodGate                       bool
 	enableGeneratorState                  bool
 	enableExtendedMetricLabels            bool
+	useDeprecatedStatusCondition          bool
 	storeRequeueInterval                  time.Duration
 	serviceName, serviceNamespace         string
 	secretName, secretNamespace           string
@@ -137,6 +138,7 @@ var rootCmd = &cobra.Command{
 		setupLogger()
 
 		ctrlmetrics.SetUpLabelNames(enableExtendedMetricLabels)
+		ctrlmetrics.SetUseDeprecatedStatusCondition(useDeprecatedStatusCondition)
 		esmetrics.SetUpMetrics()
 		config := ctrl.GetConfigOrDie()
 		config.QPS = clientQPS
@@ -401,6 +403,8 @@ func init() {
 		"ordered list of TLS key exchange curves for the metrics server "+
 			"(for example X25519,CurveP256, or decimal tls.CurveID values supported by this Go toolchain). "+
 			"If omitted, Go defaults are used.")
+	rootCmd.Flags().
+		BoolVar(&useDeprecatedStatusCondition, "use-deprecated-status-condition", false, "Emit the legacy dual status_condition series (status=True and status=False) for the Ready condition. Deprecated migration fallback for dashboards/alerts; slated for removal in v3.")
 	rootCmd.Flags().BoolVar(&enableHTTP2, "enable-http2", false,
 		"If set, HTTP/2 will be enabled for the metrics server")
 	rootCmd.Flags().

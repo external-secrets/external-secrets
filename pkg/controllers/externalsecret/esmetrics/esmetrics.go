@@ -88,6 +88,13 @@ func SetUpMetrics() {
 
 // UpdateExternalSecretCondition is a function that updates the condition of an external secret.
 func UpdateExternalSecretCondition(es *esv1.ExternalSecret, condition *esv1.ExternalSecretStatusCondition, value float64) {
+	// Legacy dual-emit fallback, gated by --use-deprecated-status-condition.
+	// Deprecated: removal slated for v3, see esmetrics_deprecated.go.
+	if ctrlmetrics.UseDeprecatedStatusCondition() {
+		updateExternalSecretConditionDeprecated(es, condition, value)
+		return
+	}
+
 	esInfo := make(map[string]string)
 	esInfo["name"] = es.Name
 	esInfo["namespace"] = es.Namespace
@@ -114,7 +121,7 @@ func UpdateExternalSecretCondition(es *esv1.ExternalSecret, condition *esv1.Exte
 		delete(baseLabels, "status")
 
 	case esv1.ExternalSecretReady:
-		// Remove condition=Deleted metrics when the object gets ready.
+		// Remove condition=Deleted metrics when the object is in Ready state.
 		baseLabels["condition"] = string(esv1.ExternalSecretDeleted)
 		baseLabels["status"] = string(v1.ConditionFalse)
 		externalSecretCondition.DeletePartialMatch(baseLabels)
@@ -124,42 +131,39 @@ func UpdateExternalSecretCondition(es *esv1.ExternalSecret, condition *esv1.Exte
 		delete(baseLabels, "condition")
 		delete(baseLabels, "status")
 
-		// Toggle opposite Status to 0, but first delete any stale metrics with old labels
+		// Delete stale Ready metrics: status=True (legacy dual-emit) and status=False
+		// (labels may change between reconciles, e.g. helm chart annotations).
+		baseLabels["condition"] = string(esv1.ExternalSecretReady)
+		baseLabels["status"] = string(v1.ConditionTrue)
+		externalSecretCondition.DeletePartialMatch(baseLabels)
+		baseLabels["status"] = string(v1.ConditionFalse)
+		externalSecretCondition.DeletePartialMatch(baseLabels)
+		delete(baseLabels, "condition")
+		delete(baseLabels, "status")
+
+		// Emit only status=False for the Ready condition: cert-manager
+		// single-series convention. ConditionFalse -> value (not ready),
+		// ConditionTrue -> 0.0 (ready), ConditionUnknown -> emit nothing.
+		var notReadyValue float64
 		switch condition.Status {
 		case v1.ConditionFalse:
-			// delete any existing metrics with status True (regardless of other labels)
-			// condition is fixed to ExternalSecretReady because other statuses were already handled above.
-			baseLabels["condition"] = string(esv1.ExternalSecretReady)
-			baseLabels["status"] = string(v1.ConditionTrue)
-			externalSecretCondition.DeletePartialMatch(baseLabels)
-			delete(baseLabels, "condition")
-			delete(baseLabels, "status")
-
-			// Set the metric with current labels
-			externalSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
-				map[string]string{
-					"condition": string(esv1.ExternalSecretReady),
-					"status":    string(v1.ConditionTrue),
-				})).Set(0)
+			notReadyValue = value
 		case v1.ConditionTrue:
-			// delete any existing metrics with status False (regardless of other labels)
-			baseLabels["condition"] = string(esv1.ExternalSecretReady)
-			baseLabels["status"] = string(v1.ConditionFalse)
-			externalSecretCondition.DeletePartialMatch(baseLabels)
-			delete(baseLabels, "condition")
-			delete(baseLabels, "status")
-
-			// finally, set the metric with current labels
-			externalSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
-				map[string]string{
-					"condition": string(esv1.ExternalSecretReady),
-					"status":    string(v1.ConditionFalse),
-				})).Set(0)
+			notReadyValue = 0.0
 		case v1.ConditionUnknown:
-			break
+			// Neither ready nor not-ready: emit no Ready series. The stale
+			// True/False series were already deleted above.
+			return
 		default:
-			break
+			// Defensive: unexpected status, do not emit a Ready series.
+			return
 		}
+		externalSecretCondition.With(ctrlmetrics.RefineLabels(conditionLabels,
+			map[string]string{
+				"condition": string(esv1.ExternalSecretReady),
+				"status":    string(v1.ConditionFalse),
+			})).Set(notReadyValue)
+		return
 
 	default:
 		break
