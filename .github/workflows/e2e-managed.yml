@@ -32,12 +32,23 @@ jobs:
         with:
           egress-policy: audit
 
+      # eso-bot sends the commit the maintainer approved as named.sha. Refuse
+      # anything else before a job with cloud credentials checks code out.
+      - name: Validate the dispatch
+        env:
+          PROVIDER: ${{ github.event.client_payload.slash_command.args.named.provider }}
+          TARGET_SHA: ${{ github.event.client_payload.slash_command.args.named.sha }}
+        run: |
+          [[ "$TARGET_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::named.sha is not a 40-hex commit"; exit 1; }
+          [[ "$PROVIDER" =~ ^(aws|gcp|azure)$ ]] || { echo "::error::unknown provider"; exit 1; }
+
       - name: Create status check
         id: create_check
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
           PROVIDER: ${{ github.event.client_payload.slash_command.args.named.provider }}
-          HEAD_SHA: ${{ github.event.client_payload.pull_request.head.sha }}
+          # The check goes on the commit under test, maybe not the PR head.
+          HEAD_SHA: ${{ github.event.client_payload.slash_command.args.named.sha }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -89,7 +100,7 @@ jobs:
       - name: Fork based /ok-to-test-managed checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
+          ref: ${{ github.event.client_payload.slash_command.args.named.sha }}
           persist-credentials: false
 
       - name: Setup Go
@@ -176,7 +187,7 @@ jobs:
       - name: Fork based /ok-to-test-managed checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
+          ref: ${{ github.event.client_payload.slash_command.args.named.sha }}
           persist-credentials: false
 
       - name: Setup Go
@@ -271,7 +282,7 @@ jobs:
       - name: Fork based /ok-to-test-managed checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: 'refs/pull/${{ github.event.client_payload.pull_request.number }}/merge'
+          ref: ${{ github.event.client_payload.slash_command.args.named.sha }}
           persist-credentials: false
 
       - name: Setup Go

@@ -71,15 +71,18 @@ of code in this project.
 ### Triggering e2e tests
 
 We have an extensive set of e2e tests that test the integration with *real* cloud provider APIs.
-Maintainers must trigger these kind of tests manually for PRs that come from forked repositories. These tests run inside a `kind` cluster in the GitHub Actions runner:
+Maintainers must trigger these kind of tests manually for PRs that come from forked repositories. These tests run inside a `kind` cluster in the GitHub Actions runner. The eso-bot GitHub App reads the command, checks that you have write access, and starts the run:
 
 ```
+/ok-to-test
 /ok-to-test sha=<full_commit_hash>
 ```
 Examples:
 ```
 /ok-to-test sha=b8ca0040200a7a05d57048d86a972fdf833b8c9b
 ```
+
+The command must be alone on the first line of the comment. A bare `/ok-to-test` tests the head the PR had when you commented. eso-bot refuses it, with a reply, when someone without write access pushed to the fork in the 10 minutes before your comment, or when it cannot tell which commit was the head; give `sha=` in that case. `/ok-to-test` as the first line of an approving or commenting review tests the commit you reviewed. On a comment, eso-bot reacts with 👀 when it reads the command and 🚀 once the run is dispatched.
 
 #### Executing e2e tests locally
 
@@ -113,14 +116,14 @@ These tests are time intensive (~20-45min) and must be triggered manually by
 a maintainer when a particular provider or authentication mechanism was changed:
 
 ```
-/ok-to-test-managed sha=xxxxxx provider=aws
+/ok-to-test-managed provider=aws
 # or
-/ok-to-test-managed sha=xxxxxx provider=gcp
+/ok-to-test-managed provider=gcp sha=<full_commit_hash>
 # or
-/ok-to-test-managed sha=xxxxxx provider=azure
+/ok-to-test-managed provider=azure
 ```
 
-Both tests can run in parallel. Once started they add a dynamic GitHub check `integration-managed-(gcp|aws|azure)` to the PR that triggered the test.
+`sha=` is optional, with the same rules as `/ok-to-test`. Both tests can run in parallel. Once started they add a dynamic GitHub check `e2e-managed-(gcp|aws|azure)` on the commit under test, so a check for an older `sha=` does not show on the PR's current head.
 
 
 ### Executing Managed Kubernetes e2e tests locally
