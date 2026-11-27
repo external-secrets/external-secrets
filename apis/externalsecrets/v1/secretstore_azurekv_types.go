@@ -36,7 +36,7 @@ const (
 	AzureWorkloadIdentity AzureAuthType = "WorkloadIdentity"
 )
 
-// AzureWorkloadIdentityMethod selects how a aworkload deintity token is exchanged.
+// AzureWorkloadIdentityMethod selects how a workload identity token is exchanged.
 // +kubebuilder:validation:Enum=WorkloadIdentity;IdentityBinding
 type AzureWorkloadIdentityMethod string
 
@@ -86,7 +86,7 @@ type AzureCustomCloudConfig struct {
 // AzureKVProvider configures a store to sync secrets using Azure KV.
 // +kubebuilder:validation:XValidation:rule="!has(self.workloadIdentityMethod) || self.workloadIdentityMethod != 'IdentityBinding' || (has(self.useAzureSDK) && self.useAzureSDK)",message="IdentityBinding requires useAzureSDK: true"
 // +kubebuilder:validation:XValidation:rule="!has(self.workloadIdentityMethod) || self.workloadIdentityMethod != 'IdentityBinding' || (has(self.authType) && self.authType == 'WorkloadIdentity')",message="IdentityBinding requires authType: WorkloadIdentity"
-// +kubebuilder:validation:XValidation:rule="!has(self.workloadIdentityMethod) || self.workloadIdentityMethod != 'IdentityBinding' || !has(self.serviceAccountRef) || !has(self.serviceAccountRef.audiences) || size(self.serviceAccountRef.audiences) == 0",message="IdentityBinding does not support custom serviceAccountRef audiences"
+// +kubebuilder:validation:XValidation:rule="!has(self.workloadIdentityMethod) || self.workloadIdentityMethod != 'IdentityBinding' || !has(self.serviceAccountRef)",message="IdentityBinding does not support serviceAccountRef"
 type AzureKVProvider struct {
 	// Auth type defines how to authenticate to the keyvault service.
 	// Valid values are:
@@ -97,9 +97,11 @@ type AzureKVProvider struct {
 	// +kubebuilder:default=ServicePrincipal
 	AuthType *AzureAuthType `json:"authType,omitempty"`
 
-	// WorkloadIdentityMethod selects a standard Workload Identity or Identity Binding.
-	// Identity Binding requires useAzureSDK. It uses serviceAccountRef when set, otherwise it uses
-	// the controller pod's service account.
+	// WorkloadIdentityMethod selects how a workload identity token is exchanged.
+	// Supported values are "WorkloadIdentity" (default) and "IdentityBinding".
+	// IdentityBinding requires authType: WorkloadIdentity and useAzureSDK: true,
+	// and cannot be combined with serviceAccountRef. It relies on the
+	// AKS identity binding configuration being injected into the controller pod.
 	// +optional
 	// +kubebuilder:default=WorkloadIdentity
 	WorkloadIdentityMethod AzureWorkloadIdentityMethod `json:"workloadIdentityMethod,omitempty"`

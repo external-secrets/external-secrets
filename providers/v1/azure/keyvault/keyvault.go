@@ -80,6 +80,10 @@ const (
 	// AzureDefaultAudience is the default audience used for Azure AD token exchange.
 	AzureDefaultAudience = "api://AzureADTokenExchange"
 
+	// azureKubernetesTokenProxyEnv is the environment variable injected by the AKS
+	// identity binding configuration that points to the cluster's token proxy.
+	azureKubernetesTokenProxyEnv = "AZURE_KUBERNETES_TOKEN_PROXY"
+
 	// AnnotationClientID is the annotation key for Azure Workload Identity client ID.
 	AnnotationClientID = "azure.workload.identity/client-id"
 
@@ -324,8 +328,8 @@ func validateWorkloadIdentityMethod(p *esv1.AzureKVProvider) error {
 		if p.AuthType == nil || *p.AuthType != esv1.AzureWorkloadIdentity {
 			return errors.New("IdentityBinding requires authType: WorkloadIdentity")
 		}
-		if p.ServiceAccountRef != nil && len(p.ServiceAccountRef.Audiences) != 0 {
-			return errors.New("IdentityBinding does not support custom serviceAccountRef audiences")
+		if p.ServiceAccountRef != nil {
+			return errors.New("IdentityBinding does not support serviceAccountRef")
 		}
 		return nil
 	default:
