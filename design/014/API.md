@@ -243,7 +243,8 @@ spec:
     gvkRef:
       # apiVersion: required. <group>/<version> of the provider-owned CRD.
       #   controller: must be in the runtime config's status.serves once populated,
-      #   else Ready=False with reason ProviderKindNotServed.
+      #   else Ready=False with reason ProviderConfigNotServed. Read from the runtime
+      #   config's status; the store controller never calls Describe.
       apiVersion: provider.external-secrets.io/v1alpha1
       # kind: required.
       kind: SecretsManager
@@ -273,8 +274,10 @@ status:
   #   ProviderRuntimeDisabled   controller flag --experimental-enable-provider-runtime is off
   #   RuntimeNotFound           runtimeRef does not resolve
   #   RuntimeNotReady           the runtime config is not Ready
-  #   ProviderKindNotServed     providerConfig.gvkRef kind not in RuntimeConfig.status.serves
+  #   ProviderConfigNotServed   providerConfig.gvkRef kind not in RuntimeConfig.status.serves
   #   ProviderUnreachable       Validate RPC failed at transport level
+  #   ProviderAuthenticationFailed  the provider rejected the core's identity (Unauthenticated):
+  #                             client certificate or ServiceAccount token not accepted
   #   ProviderValidationFailed  Validate RPC returned FAILED_PRECONDITION / PERMISSION_DENIED;
   #                             message carries the provider's text
   #   ValidationUnknown         ClusterSecretStore whose provider CR has credential references
@@ -299,7 +302,7 @@ CEL rules (all expressible in CRD schema; no webhook needed):
 | `ClusterSecretStore` root | `!has(self.spec.runtimeRef) \|\| !has(self.spec.runtimeRef.kind) \|\| self.spec.runtimeRef.kind != 'RuntimeConfig'` | `ClusterSecretStore` may only reference a `ClusterRuntimeConfig` |
 | `ClusterSecretStore` root | `!has(self.spec.providerConfig) \|\| !has(self.spec.providerConfig.gvkRef) \|\| has(self.spec.providerConfig.gvkRef.namespace)` | `spec.providerConfig.gvkRef.namespace` is required on `ClusterSecretStore` |
 
-Differences from #6710: `providerConfig.gvkRef.namespace` is forbidden on `SecretStore` instead of "must equal metadata.namespace" (CEL cannot read `metadata.namespace`; forbidding the field is both expressible and simpler); no mutating webhook defaulter for `runtimeRef.kind` (the controller applies the scope-matching default deterministically, see [VALIDATION.md](./VALIDATION.md)); no `AuthenticationScope` type.
+Differences from #6710: `providerConfig.gvkRef.namespace` is forbidden on `SecretStore` instead of "must equal metadata.namespace" (CEL cannot read `metadata.namespace`; forbidding the field is both expressible and simpler); no mutating webhook defaulter for `runtimeRef.kind` (the controller applies the scope-matching default deterministically, to be detailed on further documents); no `AuthenticationScope` type.
 
 ### `RuntimeConfig` (namespaced) and `ClusterRuntimeConfig` (cluster) (`external-secrets.io/v1alpha1`) *(updated: composable transport)*
 
@@ -346,6 +349,9 @@ spec:
     #   (IPC composition: the provider runs as a sidecar container, the socket lives on a
     #   volume shared with the controller). CEL: TLS off and no auth. Not flagged
     #   insecure: there is no network path.
+    #   CEL (RuntimeConfig root): forbidden on a namespaced RuntimeConfig. A socket targets
+    #   the controller pod itself and nothing authenticates its other end, so only a
+    #   cluster administrator may create one, through a ClusterRuntimeConfig.
     # socket: /var/run/external-secrets/aws.sock
 
   # protocol: optional. Enum: grpc | http. default: grpc (CRD default).
@@ -353,6 +359,17 @@ spec:
   #   http  reserved: JSON binding of the same services (Connect-compatible);
   #         controller: Ready=False with reason ProtocolNotSupported until implemented
   protocol: grpc
+
+  # protocolVersion: optional. Pins the contract version (PROTOCOL.md P5), e.g. v1alpha1.
+  #   unset (default): the controller negotiates: newest version the core supports,
+  #         then the previous one, and writes the result to status.protocolVersion.
+  #   set:  no negotiation. The controller calls Describe on this version only and
+  #         every call uses it. If the core does not support the version, or the
+  #         runtime answers Unimplemented or does not list it, Ready=False with reason
+  #         IncompatibleProtocol; the controller never falls back to another version.
+  #   Pattern ^v[0-9]+((alpha|beta)[0-9]+)?$, not an enum, so that an older core does not
+  #   reject the object; support is checked by the controller.
+  # protocolVersion: v1alpha1
 
   # tls: optional. The transport. default (controller):
   #   endpoint.address -> {enabled: true, issuer: Managed}
@@ -408,6 +425,18 @@ spec:
   # timeout: optional. Per-call deadline for every RPC to this runtime. default: 30s.
   timeout: 30s
 
+  # refreshInterval: optional. How often the controller reconciles this runtime config
+  #   without a spec change: health check, then Describe, then status (serves,
+  #   maintenance, protocolVersion). A spec change reconciles immediately, as today.
+  #   A metav1.Duration ("5m", "1h"); 0 or unset uses the controller's
+  #   --store-requeue-interval (default 5m), the same default as stores.
+  refreshInterval: 5m
+
+  # maxConnectionAge: optional. The core re-dials its connection to this runtime once
+  #   the connection is older than this, so rotated certificates and credentials take
+  #   effect even when nothing else changed. default: 1h. CEL: at least 1m.
+  maxConnectionAge: 1h
+
 status:
   observedGeneration: 3
   # transport: effective composition after defaults, also shown as a printer column.
@@ -415,7 +444,15 @@ status:
   transport: grpc+mtls
   conditions:
   # Ready reasons: Healthy | Unreachable | TLSConfigFailed | IncompatibleProtocol |
-  #   ManagedCertificatesPending | InsecureTransportNotAllowed | ProtocolNotSupported
+  #   ManagedCertificatesPending | InsecureTransportNotAllowed | ProtocolNotSupported |
+  #   AuthenticationFailed | ContractViolation
+  #   AuthenticationFailed  the provider rejected the core's identity (Unauthenticated) on
+  #                         health or Describe: client certificate or ServiceAccount token
+  #                         not accepted
+  #   ContractViolation     a response's Resolved self-report broke the credential-namespace
+  #                         rule (PROTOCOL.md "Contract enforcement"); dispatch to this
+  #                         runtime stops, and the controller reopens it one call at a time
+  #                         with exponential backoff until a call reports a correct Resolved
   - type: Ready
     status: "True"
     reason: Healthy
@@ -424,14 +461,26 @@ status:
   - type: Insecure
     status: "False"
     reason: MutualTLS
-  # Filled from the Describe RPC (PROTOCOL.md).
+  # Filled from Runtime.Describe (PROTOCOL.md).
+  # protocolVersion: the version every call uses: spec.protocolVersion when pinned,
+  #   the negotiated one otherwise.
   protocolVersion: v1alpha1
-  capabilities: [GetSecret, GetSecretMap, GetAllSecrets, PushSecret, DeleteSecret, SecretExists]
+  # maintenance: the provider's maintenance status from Describe: Maintained |
+  #   NotMaintained | Deprecated; empty when the runtime makes no claim. NotMaintained
+  #   and Deprecated also raise v1's StoreUnmaintained / StoreDeprecated Warning events
+  #   on every store and generator that uses this runtime.
+  maintenance: Maintained
+  # serves: GVKs a store's or a generator's providerConfig may name (not necessarily
+  #   CRDs). Stores, generators, ExternalSecrets and PushSecrets check it here, without
+  #   calling the runtime. Which operations a configuration supports is not listed
+  #   here: it comes from Capabilities, per configuration, onto the store's status.
   serves:
   - apiVersion: provider.external-secrets.io/v1alpha1
     kind: SecretsManager
   - apiVersion: provider.external-secrets.io/v1alpha1
     kind: ParameterStore
+  - apiVersion: provider.external-secrets.io/v1alpha1
+    kind: ECRAuthorizationToken
 ```
 
 ```yaml
@@ -477,7 +526,7 @@ The rows are named after the compositions this design set is asked to support. T
 | --- | --- | --- | --- | --- | --- | --- |
 | **HTTPS+MTLS, managed** (default) | `address` | `grpc` | `enabled`, `issuer: Managed` | `clientCertificate: {}`, issued by the same issuer | no | in-cluster production with no external PKI |
 | **HTTPS+MTLS, external PKI** | `address` | `grpc` | `enabled`, `issuer: External`, `caBundle` or `caRef` | `clientCertificate.secretRef` (cert-manager, corporate PKI) | no | clusters that already run a PKI |
-| **IPC** | `socket` | `grpc` | `enabled: false` | none (the container boundary) | no | clusters that cannot run any PKI; providers shipped as sidecars |
+| **IPC** (`ClusterRuntimeConfig` only) | `socket` | `grpc` | `enabled: false` | none (the container boundary) | no | clusters that cannot run any PKI; providers shipped as sidecars |
 | **HTTPS(dev)** | `address` | `grpc` | `enabled`, `issuer: External` with `caBundle`, `caRef` or `insecureSkipVerify` | `auth: {}` (explicit opt-out of the default) | **yes** | development; a TLS endpoint without client authentication is readable by any pod that can reach it |
 | **HTTP(dev)** | `address` | `grpc` | `enabled: false` (HTTP/2 cleartext, h2c) | none | **yes** | local development, kind clusters |
 | **GRPC** | the wire protocol of all rows above; `protocol: grpc` is the default and the only value implemented in milestone 1 | | | | | |
@@ -487,6 +536,7 @@ The rows are named after the compositions this design set is asked to support. T
 Rules the table encodes:
 
 - A `socket` endpoint has no network path: TLS is off and `auth` is absent (CEL), and the composition is not flagged insecure. Isolation is the container boundary, not the network.
+- A `socket` endpoint is only accepted on a `ClusterRuntimeConfig` (CEL). The socket lives inside the ESO controller pod, and the core trusts whatever listens on it, so pointing the core at one is a cluster-administrator decision. Namespaced `RuntimeConfig`es are the exception for tenants who run their own runtime over the network, not a way into the controller pod (to be detailed on further documents).
 - Any `address` composition **without an `auth` mechanism**, **without TLS** (`enabled: false`), or **without server verification** (`insecureSkipVerify`) is development-only: the runtime config controller sets `Ready=False/InsecureTransportNotAllowed` unless it runs with `--experimental-allow-insecure-provider-transport`, and sets `Insecure=True` when it does.
 - An explicit empty `auth: {}` is the opt-out of the `clientCertificate` default and the only way to express HTTPS(dev); omitting `auth` means the default.
 - `auth` needs an encrypted transport: no mechanism is accepted with `tls.enabled: false` (CEL).
@@ -509,6 +559,7 @@ CEL rules on the runtime config (content-only; the flag check is runtime):
 | `RuntimeConfig` root: `!has(self.spec.auth) \|\| !has(self.spec.auth.clientCertificate) \|\| !has(self.spec.auth.clientCertificate.secretRef) \|\| !has(self.spec.auth.clientCertificate.secretRef.namespace)` | `clientCertificate.secretRef.namespace` is not allowed on `RuntimeConfig` |
 | `ClusterRuntimeConfig` root: `!has(self.spec.auth) \|\| !has(self.spec.auth.clientCertificate) \|\| !has(self.spec.auth.clientCertificate.secretRef) \|\| has(self.spec.auth.clientCertificate.secretRef.namespace)` | `clientCertificate.secretRef.namespace` is required on `ClusterRuntimeConfig` |
 | `RuntimeConfig` root: `!has(self.spec.tls) \|\| !has(self.spec.tls.caRef) \|\| !has(self.spec.tls.caRef.namespace)` | `caRef.namespace` is not allowed on `RuntimeConfig` |
+| `RuntimeConfig` root: `!has(self.spec.endpoint.socket)` | `endpoint.socket` is only allowed on `ClusterRuntimeConfig` |
 | `ClusterRuntimeConfig` root: `!has(self.spec.tls) \|\| !has(self.spec.tls.caRef) \|\| has(self.spec.tls.caRef.namespace)` | `caRef.namespace` is required on `ClusterRuntimeConfig` |
 
 #### Examples
@@ -532,7 +583,7 @@ status:
     status: "True"
     reason: Healthy
   protocolVersion: v1alpha1
-  capabilities: [GetSecret, GetSecretMap, GetAllSecrets, PushSecret, DeleteSecret, SecretExists]
+  maintenance: Maintained
   serves:
   - apiVersion: provider.external-secrets.io/v1alpha1
     kind: SecretsManager
@@ -610,7 +661,7 @@ spec:
       name: provider-fake-serving-cert
       key: ca.crt
     # or, for a throwaway environment: insecureSkipVerify: true
-    auth: {}            # explicit empty auth opts out of the clientCertificate default: nothing authenticates ESO
+  auth: {}              # explicit empty auth opts out of the clientCertificate default: nothing authenticates ESO
 status:
   transport: grpc+tls
   conditions:
@@ -740,7 +791,226 @@ This is v1's referent-authentication rule moved one object down: one `ClusterSec
 
 ### Status on the store
 
-Unchanged fields, new reasons on the `Ready` condition for out-of-process stores: `ProviderRuntimeDisabled` (flag off), `RuntimeNotFound`, `RuntimeNotReady`, `ProviderKindNotServed`, `ProviderUnreachable`, `ProviderValidationFailed`, `ValidationUnknown` (a `ClusterSecretStore` whose provider CR has credential references without a namespace cannot be validated without a caller; this is today's behaviour for referent authentication and keeps the store usable). `status.capabilities` is projected from the provider's capability strings.
+Unchanged fields, new reasons on the `Ready` condition for out-of-process stores: `ProviderRuntimeDisabled` (flag off), `RuntimeNotFound`, `RuntimeNotReady`, `ProviderConfigNotServed`, `ProviderUnreachable`, `ProviderAuthenticationFailed` (the provider rejected the core's identity), `ProviderValidationFailed`, `ValidationUnknown` (a `ClusterSecretStore` whose provider CR has credential references without a namespace cannot be validated without a caller; this is today's behaviour for referent authentication and keeps the store usable). `status.capabilities` is projected from the provider's capability strings.
+
+
+### Out-of-process generators (`generators.external-secrets.io/v1alpha1`) *(new)*
+
+There is no new generator kind. Every existing generator kind
+(`Password`, `ECRAuthorizationToken`, `VaultDynamicSecret`, ...) gains two
+optional fields, `runtimeRef` and `providerConfig`, with the same types and
+rules as on a `SecretStore`. A generator that sets them is served by a
+provider runtime through the `Generate` and `Cleanup` operations of the one
+provider interface ([PROTOCOL.md](./PROTOCOL.md) P2, P12). One that keeps its inline fields runs in process exactly as today.
+
+The point is that no `ExternalSecret` or `PushSecret` changes. They keep
+referencing the generator by `generatorRef`; moving it out of process edits
+only the generator object.
+
+
+```yaml
+# generators.external-secrets.io/v1alpha1 VaultDynamicSecret, moved out of process.
+# Every generator kind gets the same two fields at spec.runtimeRef and
+# spec.providerConfig, ClusterGenerator included (below): the same place as on a store.
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: VaultDynamicSecret
+metadata:
+  name: db-creds
+  namespace: team-a
+spec:
+  # --------------------------------------------- inline (in-process) fields
+  # path, method, provider, ...: unchanged. CEL: all of them must be empty when
+  #   providerConfig is set. Fields that are required today become optional in the
+  #   schema and required by CEL when providerConfig is absent, so every manifest
+  #   that is valid today stays valid.
+
+  # -------------------------------------------------- out-of-process (new)
+  # runtimeRef: optional. Same type, default and rules as SecretStore.spec.runtimeRef.
+  #   CEL: set if and only if providerConfig is set.
+  #   kind: RuntimeConfig (default, resolved in metadata.namespace) | ClusterRuntimeConfig
+  runtimeRef:
+    kind: ClusterRuntimeConfig
+    name: vault
+  # providerConfig: optional. The same union as on SecretStore; gvkRef is the only
+  #   member in milestone 1.
+  providerConfig:
+    gvkRef:
+      # apiVersion, kind, name: required.
+      #   kind must be in the runtime config's status.serves, else ProviderConfigNotServed.
+      #   The core does not compare it with this object's kind.
+      apiVersion: provider.external-secrets.io/v1alpha1
+      kind: VaultDynamicSecret
+      name: db-creds
+      # namespace: FORBIDDEN (CEL on every namespaced generator root); the
+      #   configuration is in metadata.namespace.
+status:
+  # New on every generator kind, ClusterGenerator included. Written by the generator
+  # controller. With providerConfig, from Validate. Ready reasons are
+  # the store reasons (see "Status on the store"): ProviderRuntimeDisabled,
+  # RuntimeNotFound, RuntimeNotReady, ProviderConfigNotServed, ProviderUnreachable,
+  # ProviderAuthenticationFailed, ProviderValidationFailed, and ValidationUnknown for a
+  # ClusterGenerator, whose credentials resolve in the caller's namespace.
+  # With inline fields: no Ready condition (nothing is validated, as today), and
+  # Deprecated=True once a provider serves this kind (see "Deprecating inline generators").
+  conditions:
+  - type: Ready
+    status: "True"
+    reason: Valid
+  # outputs: the keys Generate returns for this configuration. Empty when they
+  #   depend on the backend.
+  outputs: [username, password]
+  # stateful: true when Generate returns state that Cleanup must revoke.
+  #   Informational: the core writes a GeneratorState before every Generate
+  #   regardless, because the configuration can change between validations.
+  stateful: true
+```
+
+`ClusterGenerator` gets them, but does not get fully-featured cluster-scoped approach (e.g. no namespace restriction). The idea is to not implement every single feature from a ClusterSecretStore into the existing ClusterGenerator, and instead just provide a way for users to migrate away without changing the `ExternalSecret/PushSecret` manifests.
+
+```yaml
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: ClusterGenerator
+metadata:
+  name: db-creds
+spec:
+  kind: VaultDynamicSecret               # unchanged: which generator this is
+  # generator: the inline union. Optional in the schema from now on.
+  #   CEL: exactly one of spec.generator or spec.providerConfig.
+  # ------------------------------------------------- out-of-process (new)
+  # Same fields, same place as on a SecretStore / ClusterSecretStore.
+  runtimeRef:
+    kind: ClusterRuntimeConfig           # default here; CEL: RuntimeConfig is not allowed
+    name: vault
+  providerConfig:
+    gvkRef:
+      apiVersion: provider.external-secrets.io/v1alpha1
+      kind: VaultDynamicSecret
+      name: db-creds
+      namespace: external-secrets-system # CEL: required on ClusterGenerator
+```
+
+Because `ClusterGenerator` embeds the per-kind spec types in its union, the
+two fields also appear inside every member
+(`spec.generator.vaultDynamicSecretSpec.providerConfig`, ...). That is a side
+effect of reusing the types, not a second way to configure it: CEL forbids
+them there, and `spec.runtimeRef` / `spec.providerConfig` is the only path.
+
+It keeps v1's `ClusterGenerator` semantics: credential references resolve in
+the namespace of the calling `ExternalSecret` or `PushSecret`, and an explicit
+namespace on a reference is never honoured. Serving that needs the provider's
+opt-in cross-namespace `ClusterRole`, as a referent `ClusterSecretStore` does.
+
+The `ExternalSecret` is the one it was before the migration:
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: ExternalSecret
+metadata:
+  name: db
+  namespace: team-a
+spec:
+  refreshInterval: 1h
+  target:
+    name: db
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: VaultDynamicSecret
+        name: db-creds
+```
+
+Scope rules. They apply only to generators that set `providerConfig`; inline
+generators keep v1's rules.
+
+| Generator | `runtimeRef.kind` | `providerConfig.gvkRef.namespace` | Configuration lives in | Credential references resolve in | Explicit namespace on a credential reference |
+| --- | --- | --- | --- | --- | --- |
+| namespaced kind | omitted or `RuntimeConfig` (generator namespace), or `ClusterRuntimeConfig` | forbidden (CEL) | generator namespace, which is the caller's | generator namespace | accepted only if it equals the generator namespace; otherwise refused or ignored by the provider, never read |
+| `ClusterGenerator` | omitted or `ClusterRuntimeConfig`; `RuntimeConfig` rejected (CEL) | required (CEL) | that namespace | caller namespace, as in v1 | accepted only if it equals the caller namespace; otherwise refused or ignored by the provider, never read |
+
+**Flood gate.** With `--enable-flood-gate` (the default), an `ExternalSecret`
+or `PushSecret` whose out-of-process generator is not `Ready` is not
+reconciled, exactly as for a store.
+
+Store fields that do not belong to a generator object (`controller`,
+`refreshInterval`, `retrySettings`) are not added. The generator controller
+re-validates on the store's default interval, and calls to the runtime use the
+store's default retries.
+
+CEL rules, generated by one marker per generator type so that all kinds stay
+alike:
+
+| Where | Rule | Message |
+| --- | --- | --- |
+| every generator spec type | `has(self.runtimeRef) == has(self.providerConfig)` | `runtimeRef` and `providerConfig` must be set together |
+| every generator spec type | `!has(self.providerConfig) \|\| (<no inline field is set>)`, with the kind's inline fields listed | inline fields must be empty when `providerConfig` is set |
+| every generator spec type | `has(self.providerConfig) \|\| (<the kind's formerly required fields are set>)` | the old schema-required fields, now required by CEL |
+| `providerConfig` | `MinProperties=1`, `MaxProperties=1` (schema, not CEL) | exactly one member of `providerConfig` must be set |
+| every namespaced generator root | `!has(self.spec.providerConfig) \|\| !has(self.spec.providerConfig.gvkRef.namespace)` | `providerConfig.gvkRef.namespace` is not allowed on a generator |
+| `ClusterGeneratorSpec` | `has(self.generator) != has(self.providerConfig)` | exactly one of `spec.generator` or `spec.providerConfig` must be set |
+| `ClusterGeneratorSpec` | `has(self.runtimeRef) == has(self.providerConfig)` | `runtimeRef` and `providerConfig` must be set together |
+| `ClusterGenerator` root | `!has(self.spec.providerConfig) \|\| has(self.spec.providerConfig.gvkRef.namespace)` | `spec.providerConfig.gvkRef.namespace` is required on `ClusterGenerator` |
+| `ClusterGenerator` root | `!has(self.spec.runtimeRef) \|\| !has(self.spec.runtimeRef.kind) \|\| self.spec.runtimeRef.kind != 'RuntimeConfig'` | `ClusterGenerator` may only reference a `ClusterRuntimeConfig` |
+| `ClusterGenerator` root, one rule per union member | `!has(self.spec.generator.<member>.runtimeRef) && !has(self.spec.generator.<member>.providerConfig)` | use `spec.runtimeRef` and `spec.providerConfig` on a `ClusterGenerator` |
+
+What the core does:
+
+- **One generic generator controller** reconciles every generator kind,
+  `ClusterGenerator` included (one watch per kind, one code path). For an
+  out-of-process generator it calls `Validate` on create, on
+  update and on the default interval, and writes `status`. For an inline one it writes nothing until deprecation
+  starts. The `ExternalSecret` and `PushSecret` controllers apply the flood
+  gate.
+- **Dispatch on the spec, not the kind.** `pkg/register/generators.go` keeps
+  every in-tree generator. When the resolved spec has `providerConfig`, the
+  resolver hands the call to one core generator that calls the runtime instead
+  of the in-tree code. A `ClusterGenerator` with `spec.providerConfig` is
+  dispatched the same way, before `clusterGeneratorToVirtual` (which only
+  applies to the inline union), and its `RequestContext.source` names the
+  `ClusterGenerator`.
+- **`GeneratorState`.** `spec.resource` records the generator as it was at
+  `Generate` time, and `spec.state` records the provider's opaque state.
+  `Cleanup` is sent to the runtime and configuration recorded there. The core
+  writes the `GeneratorState` before every out-of-process `Generate` and uses
+  its uid as the operation id, so a lost response can be retried or cleaned up
+  without minting twice ([PROTOCOL.md](./PROTOCOL.md) "Generating and cleaning
+  up"). The one schema change is that `GeneratorState.spec.state` becomes
+  optional.
+- **Behind the same flag**, `--experimental-enable-provider-runtime`. With the
+  flag off, a generator that sets `providerConfig` is admitted but fails every
+  call with `ProviderRuntimeDisabled`, and reports it in its status.
+- **RBAC.** The core gains `update` on the `/status` of every generator kind;
+  it already reads them. Providers get no RBAC on `generators.external-secrets.io`:
+  the request carries what they need.
+
+#### Deprecating inline generators
+
+The migration path is the store's, applied to generators:
+
+1. **Opt in.** With the flag on, a user installs the provider and runs
+   `esoctl migrate generator <kind>/<name>`. It writes the provider
+   configuration and edits the generator to `runtimeRef` + `providerConfig`,
+   keeping its name, so nothing that references it changes. Inline and
+   out-of-process generators run side by side.
+2. **Warn.** Once a provider chart for a kind is published, the generator
+   controller sets `Deprecated=True` on every inline generator of that kind and
+   emits a warning event naming the provider to install and the `esoctl`
+   command to run. Nothing else changes; the generator keeps working in
+   process. A `ClusterGenerator` is warned the same way, by its `spec.kind`,
+   and `esoctl migrate generator` converts it too: it moves the inline member
+   out to a provider configuration and sets `spec.runtimeRef` and
+   `spec.providerConfig`.
+3. **Move to `SecretStore`.** When the v1 store API is deprecated ("Migration",
+   step 3), generators move to `SecretStore`: a store whose configuration
+   advertises `Generate` can be used to generate. `ExternalSecret`
+   and `PushSecret` manifests then have to change to reference the store, and
+   the release notes and the `Deprecated` condition announce it ahead of time.
+   The wire contract does not change; only `RequestContext.source` becomes the
+   store. `ClusterGenerator` users move to a `ClusterSecretStore` at this step,
+   which brings the store rules with it: referent authentication and
+   `conditions`.
+
+Deprecation strategy for the whole Provider V2 move will be discussed on future documents.
 
 ### Examples
 
@@ -795,7 +1065,7 @@ spec:
       name: aws-prod                   # namespace forbidden: always team-a
 ```
 
-On the wire: `provider_ref = {SecretsManager, aws-prod, team-a}`, `context.caller_namespace = team-a`, `context.credential_namespace = team-a`, `allow_explicit_credential_namespace = false`. The provider mints a token for `team-a/app-secrets`.
+On the wire: `provider_config = {SecretsManager, aws-prod, team-a}`, `context.caller_namespace = team-a`, `context.credential_namespace = team-a`, `allow_explicit_credential_namespace = false`. The provider mints a token for `team-a/app-secrets`.
 
 **A referent `ClusterSecretStore`: one store, one CR, each tenant's own identity.**
 
@@ -855,7 +1125,7 @@ spec:
       key: /team-b/prod/db
 ```
 
-On the wire for team-b: `provider_ref = {SecretsManager, aws-shared, external-secrets-system}`, `context.caller_namespace = team-b`, `context.credential_namespace = team-b`, `allow_explicit_credential_namespace = true`. The provider loads the one CR and mints a token for `team-b/app-secrets`. Three hundred namespaces, one CR, one store. The store reports `Ready=True` with reason `ValidationUnknown`, as a referent `ClusterSecretStore` does today. Provider RBAC: `serviceaccounts/token` across the served namespaces (the chart's opt-in `ClusterRole`).
+On the wire for team-b: `provider_config = {SecretsManager, aws-shared, external-secrets-system}`, `context.caller_namespace = team-b`, `context.credential_namespace = team-b`, `allow_explicit_credential_namespace = true`. The provider loads the one CR and mints a token for `team-b/app-secrets`. Three hundred namespaces, one CR, one store. The store reports `Ready=True` with reason `ValidationUnknown`, as a referent `ClusterSecretStore` does today. Provider RBAC: `serviceaccounts/token` across the served namespaces (the chart's opt-in `ClusterRole`).
 
 **A non-referent `ClusterSecretStore`: one identity for every caller.**
 
@@ -925,7 +1195,7 @@ spec:
 
 ## *(new)* Install requirements
 
-Default path (`tls.issuer: Managed` with `auth.clientCertificate`), per provider: the provider's Helm chart installs its CRD(s), a `Deployment`, a `Service`, a `ServiceAccount`, a namespaced `Role`/`RoleBinding` (for example: read its own CRs; read Secrets/ServiceAccounts in the namespaces it serves; the exact rules are each provider's to declare; see [THREAT_MODEL.md](./THREAT_MODEL.md)), an empty server-certificate Secret plus a `Role`/`RoleBinding` that allows the ESO cert-controller to fill that one Secret, a `(Cluster)RuntimeConfig`, and optionally a `NetworkPolicy`. On the ESO side: `providerRuntime.enabled=true` turns on the controller flag, the two runtime config CRDs, RBAC for them, and the cert-controller issuer. No cert-manager, no new operator.
+Default path (`tls.issuer: Managed` with `auth.clientCertificate`), per provider: the provider's Helm chart installs its CRD(s), a `Deployment`, a `Service`, a `ServiceAccount`, a namespaced `Role`/`RoleBinding` (for example: read its own CRs; read Secrets/ServiceAccounts in the namespaces it serves; the exact rules are each provider's to declare, to be detailed on further documents), an empty server-certificate Secret plus a `Role`/`RoleBinding` that allows the ESO cert-controller to fill that one Secret, a `(Cluster)RuntimeConfig`, and optionally a `NetworkPolicy`. On the ESO side: `providerRuntime.enabled=true` turns on the controller flag, the two runtime config CRDs, RBAC for them, and the cert-controller issuer. No cert-manager, no new operator.
 
 cert-manager path (`tls.issuer: External`): the user (or the provider chart, when `certManager.enabled`) creates a server `Certificate` for the provider and a client `Certificate` whose Secret the runtime config references through `auth.clientCertificate.secretRef`. cert-controller does nothing for that runtime config.
 
@@ -934,18 +1204,19 @@ IPC path (`endpoint.socket`): no Service, no certificates, no cert-controller. T
 ## *(new)* Migration
 
 1. **Semantic migration inside `v1`.** Users replace `spec.provider.<name>` with `spec.providerConfig` + `spec.runtimeRef` and create the provider CR. `esoctl migrate store` reads a v1 store and emits the provider CR and the edited store, keeping names so no `ExternalSecret` changes. Both forms coexist indefinitely; a cluster can run in-process and out-of-process stores side by side.
+   Generators follow the same path without touching any `ExternalSecret`: `esoctl migrate generator` edits the generator object itself (see "Deprecating inline generators").
 2. **Chart-managed runtime configs.** Installing a provider chart creates its `(Cluster)RuntimeConfig`, so the documented path is "install the provider, point the store at it".
 3. **Clean `v2alpha1` store.** Only after the `v1` clean subset is in use: `external-secrets.io/v2alpha1 SecretStore` without `spec.provider`, `runtimeRef` and `providerConfig` required. Introducing it earlier would require lossless conversion between an object with an inline union and one without, which does not exist; the #6245 authors reached the same conclusion. The path there is staged, one release each: the controller first emits deprecation warnings for inline `spec.provider` stores, then stops serving them, then the field is removed from the `v1` CRD, and only then is `v2alpha1` served.
 4. **Deprecation** of in-process providers follows PR #7124 and `DEPRECATING.md`; not part of this design.
 
-Rejected: a "compatibility mode" where a `v1` store keeps `spec.provider` and adds `runtimeRef`, with the core serialising the inline spec over the wire. #6245 implemented and then removed it: it keeps the union in the core forever and it is a by-value contract with the confused-deputy problem described in [THREAT_MODEL.md](./THREAT_MODEL.md) T11.
+Rejected: a "compatibility mode" where a `v1` store keeps `spec.provider` and adds `runtimeRef`, with the core serialising the inline spec over the wire. #6245 implemented and then removed it: it keeps the union in the core forever and it is a by-value contract with the confused-deputy problem (to be detailed on further documents).
 
 ## Open Questions *(updated with answers)*
 
 1. How do we handle provider authentication? Should it be configured on the outer layer or provider-specific CR?
    **Answer:** on the provider CR. Authentication is provider-specific (IRSA, Workload Identity, token, ...), so its schema belongs to the provider. The core contributes only the namespace resolution rules above and passes the resolved namespace in `RequestContext`.
 2. What happens when a provider needs to expose custom status conditions?
-   **Answer:** on its own CR, written by its own (optional) controller. The core never writes provider CR status and the provider never writes ESO status ([VALIDATION.md](./VALIDATION.md)). The store's `Ready` condition carries the provider's `Validate` result message.
+   **Answer:** on its own CR, written by its own (optional) controller. The core never writes provider CR status and the provider never writes ESO status (to be detailed on further documents). The store's `Ready` condition carries the provider's `Validate` result message.
 3. How do we version provider-specific APIs independently from ESO Core?
    **Answer:** they are separate CRDs in separate groups, shipped by the provider chart, with types in the provider module. The core references them by `apiVersion/kind/name` strings only.
 4. Can we provide a middle-ground solution that combines benefits of both approaches?
@@ -954,16 +1225,17 @@ Rejected: a "compatibility mode" where a `v1` store keeps `spec.provider` and ad
    **Answer:** tenancy. `RuntimeConfig` and `ClusterRuntimeConfig` are privileged objects: they say which endpoint the core dials and with which client identity, so only whoever installs ESO and the providers may write them. If the runtime config also named the provider configuration, every store author would need a runtime config of their own, or write access to a shared one. The split follows the two personas: the platform team owns *where* a provider runs (`runtimeRef`), the store author owns *what* it is configured with (`providerConfig`).
 6. Why do provider configuration objects exist at all, instead of one provider deployment per configuration?
    **Answer:** so that one provider deployment serves every configuration. The runtime config names a deployment, and each store names the configuration that deployment should use for its calls. Without a separate configuration object, every region, account or role would need its own deployment, `Service`, certificates and runtime config.
- 
+
 Let's consider multiple cases:
 
 1) The deployer of the runtime does not want its users to request a config for "teamA" or "teamB" -> It's possible, just use the deployer-provided `runtimeA` or `runtimeB`.
 2) If the deployer of runtime does want to deploy a runtime with multiple profiles/configs (`teamA-profile` and `teamB-profile`), it wants to allow team A to request `teamA-profile` (but not `teamB-profile`). With this model, as team A has access to write a `teamA` `SecretStore` in the namespace(s) known for teamA, then the platform admin can validate whether Team A's `SecretStore` refering to a config is valid. If the GVK is namespace based, a ns check might be enough! But all that validation is left to the admin, and the behaviour is self-service.
 
 Without runtimeRef containing config, we are _tying_ the RBAC to case 1 only.
+
 7. Why is `providerConfig` a struct with a `gvkRef` member, rather than a plain reference or a string?
    **Answer:** so the API can grow. A GVK reference is how Kubernetes users already name an object, and it is enough for milestone 1. Providers that keep their configuration elsewhere may later want to name it by key (`keyRef`), by identifier (`uuidRef`) or by selector (`labelSelector`). Each can become a new member of the union without changing existing stores. The core forwards whichever member is set and never interprets it, so the kind behind a `gvkRef` can be anything the provider understands, including a v1 `Secret` or `ConfigMap`.
 8. Why is there a namespaced `RuntimeConfig` at all?
    **Answer:** for ESO installs scoped to a single namespace. Such an install runs with `Role`s only and cannot read a cluster-scoped object, so a `ClusterRuntimeConfig` would be unusable there. In a cluster-wide install, `ClusterRuntimeConfig` is the normal case. The namespaced variant is no less privileged: it decides what the core dials, including a Unix socket on the controller's file system.
 9. Are generators covered?
-   **Answer:** not in this document. The generator API delta and its wire contract are part of the protocol follow-up.
+   **Answer:** yes, without a new kind. Every existing generator kind, `ClusterGenerator` included, gains `runtimeRef` and `providerConfig`, so existing `ExternalSecret` and `PushSecret` manifests keep working while the generator moves out of process (see "Out-of-process generators" above). When the v1 store API is deprecated, generators move to `SecretStore` and `ClusterSecretStore`, and manifests change then. On the wire, generation is the `Generate` and `Cleanup` operations of the one provider interface ([PROTOCOL.md](./PROTOCOL.md) P2, P12).
