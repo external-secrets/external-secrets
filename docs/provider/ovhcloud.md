@@ -11,8 +11,114 @@ This guide demonstrates:
 This guide assumes:
 
 - External Secrets Operator is already installed
-- You have access to OVHcloud Secret Manager
-- Required credentials are already created
+- You have an OKMS domain
+
+### <u>Authentication</u>
+
+The OVH provider talks to the OKMS *data plane*, the regional REST API exposed by your OKMS domain
+(for example `https://eu-west-rbx.okms.ovh.net`). It supports the two data plane authentication methods that can
+be carried by a Kubernetes Secret: a **token** (bearer) and an **access certificate** (mTLS). Both are described
+below. Either one needs the correct access rights on the OKMS domain, granted through [IAM permissions](#iam-permissions).
+
+#### Retrieve your endpoint and OKMS ID
+
+Both are shown in the **General information** tab of your OKMS domain dashboard, and can be listed with the
+[OVHcloud CLI](https://github.com/ovh/ovhcloud-cli):
+
+```bash
+$ ovhcloud okms list
+┌──────────────────────────────────────┬─────────────┐
+│ id                                   │ region      │
+├──────────────────────────────────────┼─────────────┤
+│ 734b9b45-8b1a-469c-b140-b10bd6540017 │ eu-west-rbx │
+└──────────────────────────────────────┴─────────────┘
+```
+
+The `id` column is the `okmsid` field, and the region gives the `server` endpoint: `https://<region>.okms.ovh.net`.
+
+#### Token authentication
+
+The token is any bearer token accepted by the OKMS data plane. The recommended one is a
+**Personal Access Token (PAT)** created on a local user, since it is long-lived.
+
+Create it with the [OVHcloud CLI](https://github.com/ovh/ovhcloud-cli):
+
+```bash
+ovhcloud iam user token create <user> \
+  --name pat-secretmanager-734b9b45-8b1a-469c-b140-b10bd6540017 \
+  --description "PAT secret manager for domain 734b9b45-8b1a-469c-b140-b10bd6540017"
+```
+
+or through the `POST /me/identity/user/{user}/token` API call. The `token` value is returned once and never prompted
+again, so store it right away.
+
+Then store the token in a Kubernetes Secret:
+
+```bash
+kubectl create secret generic ovh-token -n my-namespace --from-literal=token="<token>"
+```
+
+!!! note
+     The token is resolved from the Kubernetes Secret on every reconciliation, so rotating the credential only
+     requires updating the Secret.
+
+#### mTLS authentication
+
+mTLS uses an [OKMS access certificate](https://docs.ovhcloud.com/en/guides/manage-and-operate/kms/okms-certificate-management),
+created from the OKMS domain dashboard or the OVHcloud API, either by letting OVHcloud generate the private key or by
+providing your own CSR. It yields a certificate and a private key in PEM format.
+
+Store them in a Kubernetes Secret:
+
+```bash
+kubectl create secret tls ovh-mtls -n my-namespace --cert=ID_certificate.pem --key=ID_privatekey.pem
+```
+
+#### IAM permissions
+
+Access rights are attached to an identity, not to the credential itself. For a token that identity is the local user or
+service account the token was created on; for an access certificate it is every entry of the certificate `identityURNs`
+list. The identity must be a member of a group with the ADMIN role, or be granted an
+[IAM policy](https://docs.ovhcloud.com/en/guides/account-and-service-management/account-information/iam-policy-ui)
+on the OKMS domain with at least the following actions:
+
+- `okms:apiovh:secret/get`
+- `okms:apikms:secret/get`
+- `okms:apikms:secret/version/getData`
+- `okms:apikms:secret/create`
+
+Listing a secret is a distinct right from reading its content, so both `secret/get` and `secret/version/getData` are
+required for an `ExternalSecret` to resolve. `secret/create` is only needed for `PushSecret`; add the matching
+`secret/update` and `secret/delete` actions if the operator must overwrite or remove secrets (for example a
+`PushSecret` with `deletionPolicy: Delete`). The full action list is documented in
+[OKMS authentication methods](https://docs.ovhcloud.com/en/guides/manage-and-operate/kms/okms-authentication-methods).
+
+The policy designates the OKMS domain by its resource URN, `urn:v1:eu:resource:okms:<okmsid>`. Create it from the
+OVHcloud Control Panel, or with a `POST /v2/iam/policy`
+[API call](https://docs.ovhcloud.com/en/guides/account-and-service-management/account-information/iam-policies-api).
+Token and mTLS take the same policy; only `identities` changes, listing either the user or service account owning the
+token, or the identities declared on the access certificate:
+
+```json
+{
+  "name": "external-secrets-okms",
+  "description": "External Secrets Operator access to the OKMS Secret Manager",
+  "identities": [
+    "urn:v1:eu:identity:user:xx1111-ovh/external-secrets"
+  ],
+  "resources": [
+    { "urn": "urn:v1:eu:resource:okms:734b9b45-8b1a-469c-b140-b10bd6540017" }
+  ],
+  "permissions": {
+    "allow": [
+      { "action": "okms:apiovh:secret/get" },
+      { "action": "okms:apikms:secret/get" },
+      { "action": "okms:apikms:secret/version/getData" },
+      { "action": "okms:apikms:secret/create" }
+    ]
+  }
+}
+```
 
 ### <u>SecretStore</u>
 
@@ -24,7 +130,7 @@ apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secret-store-ovh
-  namespace: default
+  namespace: my-namespace
 spec:
   provider:
     ovh:
@@ -40,6 +146,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: ovh-token
+  namespace: my-namespace
 data:
   token: BASE64-TOKEN-VALUE-PLACEHOLDER
 ```
@@ -49,7 +156,7 @@ apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secret-store-ovh
-  namespace: default
+  namespace: my-namespace
 spec:
   provider:
     ovh:
@@ -68,12 +175,25 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: ovh-mtls
-  namespace: default
+  namespace: my-namespace
 type: kubernetes.io/tls
 data:
   tls.crt: BASE64_CERT_PLACEHOLDER # "client certificate value"
   tls.key: BASE64_KEY_PLACEHOLDER  # "client key value"
 ```
+
+Authentication fields:
+
+| Field                  | Description                                                                          | Required         |
+|------------------------|--------------------------------------------------------------------------------------|------------------|
+| `token.tokenSecretRef` | Reference to the Secret key holding the bearer token                                 | Yes, for `token` |
+| `mtls.certSecretRef`   | Reference to the Secret key holding the client certificate (PEM)                     | Yes, for `mtls`  |
+| `mtls.keySecretRef`    | Reference to the Secret key holding the client private key (PEM)                      | Yes, for `mtls`  |
+| `mtls.caBundle`        | Base64-encoded CA bundle used to validate the OKMS server certificate                | No               |
+| `mtls.caProvider`      | Reference to a `Secret` or `ConfigMap` holding that CA bundle, instead of inlining it | No               |
+
+!!! note
+     Exactly one of `token` and `mtls` must be set.
 
 !!! note
      A `ClusterSecretStore` configuration is the same except you must provide the `namespace` for `tokenSecretRef`, `certSecretRef` and `keySecretRef` according to your chosen authentication method.  
@@ -104,7 +224,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: external-secret-ovh
-  namespace: default
+  namespace: my-namespace
 spec:
   secretStoreRef:
     name: secret-store-ovh
@@ -133,7 +253,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: external-secret-ovh
-  namespace: default
+  namespace: my-namespace
 spec:
   secretStoreRef:
     name: secret-store-ovh
@@ -167,7 +287,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: external-secret-ovh
-  namespace: default
+  namespace: my-namespace
 spec:
   secretStoreRef:
     name: secret-store-ovh
@@ -200,7 +320,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: external-secret-ovh
-  namespace: default
+  namespace: my-namespace
 spec:
   secretStoreRef:
     name: secret-store-ovh
@@ -225,7 +345,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: external-secret-ovh
-  namespace: default
+  namespace: my-namespace
 spec:
   secretStoreRef:
     name: secret-store-ovh
@@ -250,7 +370,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: external-secret-ovh
-  namespace: default
+  namespace: my-namespace
 spec:
   secretStoreRef:
     name: secret-store-ovh
@@ -289,7 +409,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: external-secret-ovh
-  namespace: default
+  namespace: my-namespace
 spec:
   secretStoreRef:
     name: secret-store-ovh
@@ -316,7 +436,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: external-secret-ovh
-  namespace: default
+  namespace: my-namespace
 spec:
   secretStoreRef:
     name: secret-store-ovh
@@ -346,7 +466,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: external-secret-ovh
-  namespace: default
+  namespace: my-namespace
 spec:
   secretStoreRef:
     name: secret-store-ovh
@@ -379,7 +499,7 @@ apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secret-store-ovh
-  namespace: default
+  namespace: my-namespace
 spec:
   provider:
     ovh:
@@ -396,6 +516,7 @@ apiVersion: v1
 kind: Secret
 metadata:
   name: ovh-token
+  namespace: my-namespace
 data:
   token: BASE64_TOKEN_PLACEHOLDER # "token value"
 ```
@@ -406,6 +527,7 @@ apiVersion: generators.external-secrets.io/v1alpha1
 kind: Password
 metadata:
   name: my-password-generator
+  namespace: my-namespace
 spec:
   length: 32
   digits: 5
@@ -418,6 +540,7 @@ apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
 metadata:
   name: push-secret-ovh
+  namespace: my-namespace
 spec:
   refreshInterval: 6h0m0s
   secretStoreRefs:
@@ -443,7 +566,7 @@ apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secret-store-vault
-  namespace: default
+  namespace: my-namespace
 spec:
   provider:
     vault:
@@ -459,7 +582,7 @@ apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: external-secret-vault
-  namespace: default
+  namespace: my-namespace
 spec:
   secretStoreRef:
     name: secret-store-vault
@@ -476,7 +599,7 @@ apiVersion: external-secrets.io/v1
 kind: SecretStore
 metadata:
   name: secret-store-ovh
-  namespace: default
+  namespace: my-namespace
 spec:
   provider:
     ovh:
@@ -492,6 +615,7 @@ apiVersion: external-secrets.io/v1alpha1
 kind: PushSecret
 metadata:
   name: push-secret-ovh
+  namespace: my-namespace
 spec:
   secretStoreRefs:
     - name: secret-store-ovh
