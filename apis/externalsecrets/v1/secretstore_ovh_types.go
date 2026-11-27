@@ -34,17 +34,23 @@ type OvhProvider struct {
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:default=30
 	OkmsTimeout *uint32 `json:"okmsTimeout,omitempty"`
-	// Authentication method (mtls or token).
+	// Authentication method (mtls, token or oauth2).
 	// +required
 	Auth OvhAuth `json:"auth"`
 }
 
-// OvhAuth tells the controller how to authenticate to OVHcloud's Secret Manager, either using mTLS or a token.
+// OvhAuth tells the controller how to authenticate to OVHcloud's Secret Manager, using mTLS, a token or OAuth2.
+// Exactly one method must be set: the markers below make the API server say so, rather than leaving
+// it to the provider to discover at reconcile time.
+// +kubebuilder:validation:MinProperties=1
+// +kubebuilder:validation:MaxProperties=1
 type OvhAuth struct {
 	// +optional
 	ClientMTLS *OvhClientMTLS `json:"mtls,omitempty"`
 	// +optional
 	ClientToken *OvhClientToken `json:"token,omitempty"`
+	// +optional
+	ClientOAuth2 *OvhClientOAuth2 `json:"oauth2,omitempty"`
 }
 
 // OvhClientMTLS defines the configuration required to authenticate to OVHcloud's Secret Manager using mTLS.
@@ -63,4 +69,23 @@ type OvhClientMTLS struct {
 type OvhClientToken struct {
 	// +required
 	ClientTokenSecret esmeta.SecretKeySelector `json:"tokenSecretRef"`
+}
+
+// OvhClientOAuth2 defines the configuration required to authenticate to OVHcloud's Secret Manager
+// using an OVHcloud service account.
+//
+// A service account is the identity OVHcloud intends for machines: it yields an OAuth2 client id
+// and client secret, and no browser step is involved in creating one. The access token it is
+// exchanged for is short lived, and the client refreshes it on its own.
+type OvhClientOAuth2 struct {
+	// +required
+	ClientID esmeta.SecretKeySelector `json:"clientIDSecretRef"`
+	// +required
+	ClientSecret esmeta.SecretKeySelector `json:"clientSecretSecretRef"`
+	// TokenURL is the OVHcloud OAuth2 token endpoint. It differs per region, and defaults to the
+	// European one. The Canadian endpoint is https://ca.ovh.com/auth/oauth2/token and the US one
+	// is https://us.ovhcloud.com/auth/oauth2/token.
+	// +optional
+	// +kubebuilder:default="https://www.ovh.com/auth/oauth2/token"
+	TokenURL string `json:"tokenURL,omitempty"`
 }
