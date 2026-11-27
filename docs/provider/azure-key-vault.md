@@ -282,13 +282,35 @@ The first step is to generate a valid private key. Supported formats include `PR
 
 #### Pushing to a Certificate
 
-The P12 format (also known as PKCS12 or PFX) is recommended format for importing certificates to Azure Key Vault. The P12 file must contain both the certificate and the private key. Make sure to use PKCS8 format for the private key, as Azure Key Vault [does not support PKCS1 format](https://learn.microsoft.com/en-us/rest/api/keyvault/certificates/import-certificate/import-certificate?view=rest-keyvault-certificates-2025-07-01). Additionally, only password-less P12 files are supported.
+The P12 format (also known as PKCS12 or PFX) is recommended format for importing certificates to Azure Key Vault. The P12 file must contain both the certificate and the private key. Make sure to use PKCS8 format for the private key, as Azure Key Vault [does not support PKCS1 format](https://learn.microsoft.com/en-us/rest/api/keyvault/certificates/import-certificate/import-certificate?view=rest-keyvault-certificates-2025-07-01). Both password-less and password-protected P12 files are supported.
 
 Provided you have a Kubernetes Secret with a P12 certificate, you can push it to Azure Key Vault by creating a `PushSecret` with the following configuration. The operator will read the P12 file from the Kubernetes Secret and import it into Azure Key Vault as a certificate.
 
 ```yaml
 {% include 'azkv-pushsecret-certificate-p12.yaml' %}
 ```
+
+For a password-protected P12 file, set `spec.data[].metadata.spec.passwordSecretRef`
+to the Kubernetes Secret containing its import password. The reference requires
+`name` and `key`. The password Secret must be in the same namespace as the source
+Secret and PushSecret, including when using a ClusterSecretStore; omit `namespace`
+or set it to that same namespace. The password is read on each push and supplied
+to both the local P12 decoder and the Azure Key Vault import API. Do not put the
+password itself in the PushSecret metadata.
+
+The following example assumes `source-certificate` contains the encrypted file
+under `cert.p12` and `certificate-password` contains its password under `password`:
+
+```yaml
+{% include 'azkv-pushsecret-certificate-p12-password.yaml' %}
+```
+
+Without `passwordSecretRef`, the import continues to use an empty password.
+Missing Secrets, missing keys, invalid references, and incorrect P12 passwords
+fail the push. The reference is only supported for `cert/` targets, not `secret/`
+or `key/` targets. This configuration works with both Azure SDK implementations.
+Updating the password Secret alone does not trigger an immediate push; the new
+value is read the next time the PushSecret reconciles.
 
 Provided you have a Kubernetes Secret with the certificate and private key in PEM format, you can use the following configuration to transform it into a P12 file and push it to Azure Key Vault. The operator will read the certificate and private key from the Kubernetes Secret, convert them into a P12 file using template functions, and import it into Azure Key Vault as a certificate.
 
