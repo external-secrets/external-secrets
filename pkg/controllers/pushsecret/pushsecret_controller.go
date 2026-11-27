@@ -181,7 +181,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	start := time.Now()
 
 	pushSecretReconcileDuration := psmetrics.GetGaugeVec(psmetrics.PushSecretReconcileDurationKey)
-	defer func() { pushSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start))) }()
+	// metricsRemoved stops the deferred duration update from recreating the
+	// series of a PushSecret that no longer exists.
+	metricsRemoved := false
+	defer func() {
+		if metricsRemoved {
+			return
+		}
+		pushSecretReconcileDuration.With(resourceLabels).Set(float64(time.Since(start)))
+	}()
 
 	var ps esapi.PushSecret
 	mgr := secretstore.NewManager(r.Client, r.ControllerClass, false)
@@ -191,6 +199,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	if err := r.Get(ctx, req.NamespacedName, &ps); err != nil {
 		if apierrors.IsNotFound(err) {
+			psmetrics.RemoveMetrics(req.Namespace, req.Name)
+			metricsRemoved = true
 			return ctrl.Result{}, nil
 		}
 
