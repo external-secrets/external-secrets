@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
 	crclient "sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/pkg/controllers/clusterexternalsecret/cesmetrics"
@@ -845,6 +846,85 @@ var _ = Describe("ClusterExternalSecret controller", func() {
 })
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyz")
+
+// A namespace left with the finalizer of a ClusterExternalSecret that no longer
+// needs it hangs in Terminating when deleted.
+var _ = Describe("ClusterExternalSecret namespace finalizer", func() {
+	// The error is returned so that a failed read cannot pass for a removed finalizer.
+	hasFinalizer := func(ctx context.Context, namespace, cesName string) func() (bool, error) {
+		return func() (bool, error) {
+			var ns v1.Namespace
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: namespace}, &ns)
+			return controllerutil.ContainsFinalizer(&ns, (&Reconciler{}).buildCESFinalizer(cesName)), err
+		}
+	}
+
+	newClusterExternalSecret := func(namespace string) *esv1.ClusterExternalSecret {
+		return &esv1.ClusterExternalSecret{
+			Name: fmt.Sprintf("test-ces-%s", randString(10)),
+			Spec: esv1.ClusterExternalSecretSpec{
+				RefreshInterval: &metav1.Duration{Duration: 100 * time.Millisecond},
+				NamespaceSelectors: []*metav1.LabelSelector{
+					{MatchLabels: map[string]string{noLongerMatchLabelKey: namespace}},
+				},
+				ExternalSecretSpec: esv1.ExternalSecretSpec{
+					SecretStoreRef: esv1.SecretStoreRef{Name: "test-store"},
+					Target:         esv1.ExternalSecretTarget{Name: "test-secret"},
+					Data: []esv1.ExternalSecretData{{
+						SecretKey: "test-secret-key",
+						RemoteRef: esv1.ExternalSecretDataRemoteRef{Key: "test-remote-key"},
+					}},
+				},
+			},
+		}
+	}
+
+	It("is removed on deletion when the external secret could not be created", func() {
+		ctx := context.Background()
+		name := randomNamespaceName()
+		ns := v1.Namespace{Name: name, Labels: map[string]string{noLongerMatchLabelKey: name}}
+		Expect(k8sClient.Create(ctx, &ns)).To(Succeed())
+
+		ces := newClusterExternalSecret(ns.Name)
+		// The API server accepts this label value in the ClusterExternalSecret spec
+		// and rejects it in the metadata of the ExternalSecret.
+		ces.Spec.ExternalSecretMetadata.Labels = map[string]string{"invalid": "not a label value"}
+		Expect(k8sClient.Create(ctx, ces)).To(Succeed())
+
+		Eventually(func(g Gomega) {
+			var got esv1.ClusterExternalSecret
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: ces.Name}, &got)).To(Succeed())
+			g.Expect(got.Status.FailedNamespaces).To(HaveLen(1))
+			g.Expect(got.Status.ProvisionedNamespaces).To(BeEmpty())
+		}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+		Expect(hasFinalizer(ctx, ns.Name, ces.Name)()).To(BeTrue())
+
+		Expect(k8sClient.Delete(ctx, ces)).To(Succeed())
+		Eventually(hasFinalizer(ctx, ns.Name, ces.Name)).WithTimeout(timeout).WithPolling(interval).Should(BeFalse())
+	})
+
+	It("is removed when the namespace no longer matches", func() {
+		ctx := context.Background()
+		name := randomNamespaceName()
+		ns := v1.Namespace{Name: name, Labels: map[string]string{noLongerMatchLabelKey: name}}
+		Expect(k8sClient.Create(ctx, &ns)).To(Succeed())
+
+		ces := newClusterExternalSecret(ns.Name)
+		Expect(k8sClient.Create(ctx, ces)).To(Succeed())
+		Eventually(hasFinalizer(ctx, ns.Name, ces.Name)).WithTimeout(timeout).WithPolling(interval).Should(BeTrue())
+
+		// Retry on conflict since controller may be updating namespace with finalizers
+		Eventually(func() error {
+			if err := k8sClient.Get(ctx, types.NamespacedName{Name: ns.Name}, &ns); err != nil {
+				return err
+			}
+			ns.Labels = map[string]string{}
+			return k8sClient.Update(ctx, &ns)
+		}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+
+		Eventually(hasFinalizer(ctx, ns.Name, ces.Name)).WithTimeout(timeout).WithPolling(interval).Should(BeFalse())
+	})
+})
 
 func randString(n int) string {
 	b := make([]rune, n)

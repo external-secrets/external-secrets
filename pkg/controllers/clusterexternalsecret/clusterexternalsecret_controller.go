@@ -158,6 +158,10 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, clusterExte
 	selectors = append(selectors, clusterExternalSecret.Spec.NamespaceSelectors...)
 
 	namespaces, err := esutils.GetTargetNamespaces(ctx, r.Client, clusterExternalSecret.Spec.Namespaces, selectors)
+	var managedNamespaces []string
+	if err == nil {
+		managedNamespaces, err = r.managedNamespaces(ctx, clusterExternalSecret)
+	}
 	if err != nil {
 		log.Error(err, "failed to get target Namespaces")
 		failedNamespaces := map[string]error{
@@ -171,7 +175,7 @@ func (r *Reconciler) reconcile(ctx context.Context, log logr.Logger, clusterExte
 		return ctrl.Result{}, err
 	}
 
-	failedNamespaces := r.deleteOutdatedExternalSecrets(ctx, namespaces, esName, clusterExternalSecret.Name, clusterExternalSecret.Status.ProvisionedNamespaces)
+	failedNamespaces := r.deleteOutdatedExternalSecrets(ctx, log, clusterExternalSecret, namespaces, esName, managedNamespaces)
 
 	provisionedNamespaces := r.gatherProvisionedNamespaces(ctx, log, clusterExternalSecret, namespaces, esName, failedNamespaces)
 
@@ -276,14 +280,39 @@ func (r *Reconciler) removeOldSecrets(ctx context.Context, log logr.Logger, clus
 func (r *Reconciler) cleanupExternalSecrets(ctx context.Context, log logr.Logger, clusterExternalSecret *esv1.ClusterExternalSecret) error {
 	esName := r.getExternalSecretName(clusterExternalSecret)
 
-	var err error
-	for _, ns := range clusterExternalSecret.Status.ProvisionedNamespaces {
+	namespaces, err := r.managedNamespaces(ctx, clusterExternalSecret)
+	if err != nil {
+		return err
+	}
+	for _, ns := range namespaces {
 		if cleanupErr := r.cleanupNamespaceResources(ctx, log, clusterExternalSecret, ns, esName); cleanupErr != nil {
 			err = errors.Join(err, cleanupErr)
 		}
 	}
 
 	return err
+}
+
+// managedNamespaces returns the namespaces this ClusterExternalSecret may have left something in.
+// the ones in its status + the ones carrying its finalizer.
+// As of today, neither is enough alone:
+// Finalizer is not enough (race where we delete the finalizedr before deleting the ES)
+// Status is not enough (it only lists where the ES has been created. Finalizer is added regardless of ES creation success).
+func (r *Reconciler) managedNamespaces(ctx context.Context, clusterExternalSecret *esv1.ClusterExternalSecret) ([]string, error) {
+	var all v1.NamespaceList
+	if err := r.List(ctx, &all); err != nil {
+		return nil, fmt.Errorf("failed to list namespaces: %w", err)
+	}
+
+	finalizer := r.buildCESFinalizer(clusterExternalSecret.Name)
+	names := slices.Clone(clusterExternalSecret.Status.ProvisionedNamespaces)
+	for i := range all.Items {
+		if controllerutil.ContainsFinalizer(&all.Items[i], finalizer) && !slices.Contains(names, all.Items[i].Name) {
+			names = append(names, all.Items[i].Name)
+		}
+	}
+
+	return names, nil
 }
 
 // getExternalSecretName returns the name to use for ExternalSecrets.
@@ -496,11 +525,18 @@ func (r *Reconciler) deferPatch(ctx context.Context, log logr.Logger, clusterExt
 	}
 }
 
-func (r *Reconciler) deleteOutdatedExternalSecrets(ctx context.Context, namespaces []v1.Namespace, esName, cesName string, provisionedNamespaces []string) map[string]error {
+func (r *Reconciler) deleteOutdatedExternalSecrets(
+	ctx context.Context,
+	log logr.Logger,
+	clusterExternalSecret *esv1.ClusterExternalSecret,
+	namespaces []v1.Namespace,
+	esName string,
+	managedNamespaces []string,
+) map[string]error {
 	failedNamespaces := map[string]error{}
 	// Loop through existing namespaces first to make sure they still have our labels
-	for _, namespace := range getRemovedNamespaces(namespaces, provisionedNamespaces) {
-		err := r.deleteExternalSecret(ctx, esName, cesName, namespace)
+	for _, namespace := range getRemovedNamespaces(namespaces, managedNamespaces) {
+		err := r.cleanupNamespaceResources(ctx, log, clusterExternalSecret, namespace, esName)
 		if err != nil {
 			r.Log.Error(err, "unable to delete external secret")
 			failedNamespaces[namespace] = err
