@@ -17,6 +17,7 @@ limitations under the License.
 package esutils
 
 import (
+	"crypto/tls"
 	"errors"
 	"net/http"
 )
@@ -26,8 +27,10 @@ var ErrUnexpectedDefaultTransport = errors.New("unexpected default http transpor
 
 // CloneDefaultHTTPTransport returns a copy of http.DefaultTransport for outbound HTTP clients.
 // It preserves default settings such as ProxyFromEnvironment and connection pooling.
-// ForceAttemptHTTP2 is disabled to match &http.Transport{}, which providers used before cloning
-// the default transport.
+// ForceAttemptHTTP2 is set to false, to match the bare http.Transport behavior. And TLSClientConfig
+// is set to an empty &tls.Config{} so Go's default TLS settings are kept and HTTP/2 stays disabled.
+// TLSClientConfig can be overwritten to customize as required and HTTP/2 can be enabled by setting
+// ForceAttemptHTTP2=true.
 // Returns ErrUnexpectedDefaultTransport if the global default transport is not an *http.Transport.
 func CloneDefaultHTTPTransport() (*http.Transport, error) {
 	t, ok := http.DefaultTransport.(*http.Transport)
@@ -36,5 +39,7 @@ func CloneDefaultHTTPTransport() (*http.Transport, error) {
 	}
 	transport := t.Clone()
 	transport.ForceAttemptHTTP2 = false
+	transport.TLSClientConfig = &tls.Config{}
+
 	return transport, nil
 }

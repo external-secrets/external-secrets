@@ -19,7 +19,6 @@ package dsm
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"io"
@@ -179,7 +178,7 @@ func (dsm *DSM) FetchSecrets() (respObj IsoDappResponse, err error) {
 		return respObj, err
 	}
 	//nolint
-	tr.TLSClientConfig = &tls.Config{InsecureSkipVerify: dsm.isoSession.IgnoreSslCertificate}
+	tr.TLSClientConfig.InsecureSkipVerify = dsm.isoSession.IgnoreSslCertificate
 
 	client := &http.Client{Transport: tr}
 

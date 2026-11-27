@@ -19,7 +19,6 @@ package client
 
 import (
 	"bytes"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -323,20 +322,14 @@ func (c *DopplerClient) performRequest(path, method string, headers headers, par
 
 	httpClient := &http.Client{Timeout: 10 * time.Second}
 
-	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-	}
-
-	if !c.VerifyTLS {
-		tlsConfig.InsecureSkipVerify = true
-	}
-
 	transport, err := esutils.CloneDefaultHTTPTransport()
 	if err != nil {
 		return nil, newErr(0, err, "unable to configure http transport")
 	}
 	transport.DisableKeepAlives = true
-	transport.TLSClientConfig = tlsConfig
+	if !c.VerifyTLS {
+		transport.TLSClientConfig.InsecureSkipVerify = true
+	}
 	httpClient.Transport = transport
 
 	r, err := httpClient.Do(req)

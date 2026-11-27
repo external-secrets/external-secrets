@@ -19,7 +19,6 @@ package passworddepot
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -140,7 +139,6 @@ func NewAPI(ctx context.Context, baseURL, username, password, hostPort string) (
 	if err != nil {
 		return nil, err
 	}
-	tr.TLSClientConfig = &tls.Config{MinVersion: tls.VersionTLS12}
 
 	api.client = &http.Client{Transport: tr}
 	if err := api.login(ctx); err != nil {

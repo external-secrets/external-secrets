@@ -19,7 +19,6 @@ package gitlab
 
 import (
 	"context"
-	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
@@ -113,11 +112,7 @@ func (g *gitlabBase) getClient(ctx context.Context, provider *esv1.GitlabProvide
 		if err != nil {
 			return nil, err
 		}
-		transport.TLSClientConfig = &tls.Config{
-			RootCAs:    caCertPool,
-			MinVersion: tls.VersionTLS12,
-		}
-
+		transport.TLSClientConfig.RootCAs = caCertPool
 		httpClient := &http.Client{Transport: transport}
 		opts = append(opts, gitlab.WithHTTPClient(httpClient))
 	}

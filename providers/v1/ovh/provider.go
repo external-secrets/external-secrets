@@ -216,10 +216,9 @@ func newHTTPClientWithMTLS(ctx context.Context, p *Provider, cl *ovhClient, clie
 		return nil, fmt.Errorf("failed to build x509 certificate: %w", err)
 	}
 
-	// Create an HTTP transport for mTLS, enforcing TLS 1.2+ and using the client certificate.
+	// Create an HTTP transport for mTLS using the client certificate.
 	transport := http.DefaultTransport.(*http.Transport).Clone()
 	transport.TLSClientConfig = &tls.Config{
-		MinVersion:   tls.VersionTLS12,
 		Certificates: []tls.Certificate{cert},
 	}
 	// Configure custom CA for the TLS client if provided via CAProvider or CABundle.
