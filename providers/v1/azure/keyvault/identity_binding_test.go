@@ -57,8 +57,10 @@ func TestValidateIdentityBindingStore(t *testing.T) {
 			wantErr: "IdentityBinding requires useAzureSDK: true",
 		},
 		{
-			name:    "rejects serviceAccountRef",
-			change:  func(p *esv1.AzureKVProvider) { p.ServiceAccountRef = &esmeta.ServiceAccountSelector{Name: "eso-keyvault"} },
+			name: "rejects serviceAccountRef",
+			change: func(p *esv1.AzureKVProvider) {
+				p.ServiceAccountRef = &esmeta.ServiceAccountSelector{Name: "eso-keyvault"}
+			},
 			wantErr: "IdentityBinding does not support serviceAccountRef",
 		},
 		{
