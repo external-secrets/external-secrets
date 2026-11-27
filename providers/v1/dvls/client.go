@@ -70,6 +70,8 @@ type Client struct {
 	nameCache   map[string]string
 	indexMu     sync.Mutex
 	vaultIndex  map[string]string
+	// checkSession is set on a cached client, which may reach Validate without any request to DVLS.
+	checkSession func(context.Context) error
 }
 
 type credentialClient interface {
@@ -86,23 +88,35 @@ type vaultGetter interface {
 }
 
 type realCredentialClient struct {
-	cred *dvls.EntryCredentialService
+	cred   *dvls.EntryCredentialService
+	cached bool
 }
 
 func (r *realCredentialClient) GetByID(ctx context.Context, vaultID, entryID string) (dvls.Entry, error) {
-	return r.cred.GetByIdWithContext(ctx, vaultID, entryID)
+	return run(ctx, r.cached, func(callCtx context.Context) (dvls.Entry, error) {
+		return r.cred.GetByIdWithContext(callCtx, vaultID, entryID)
+	})
 }
 
 func (r *realCredentialClient) GetEntries(ctx context.Context, vaultID string, opts dvls.GetEntriesOptions) ([]dvls.Entry, error) {
-	return r.cred.GetEntriesWithContext(ctx, vaultID, opts)
+	return run(ctx, r.cached, func(callCtx context.Context) ([]dvls.Entry, error) {
+		return r.cred.GetEntriesWithContext(callCtx, vaultID, opts)
+	})
 }
 
+// Update is never retried: go-dvls reads the entry back after writing it, so a retry could repeat a write that succeeded.
 func (r *realCredentialClient) Update(ctx context.Context, entry dvls.Entry) (dvls.Entry, error) {
-	return r.cred.UpdateWithContext(ctx, entry)
+	return run(ctx, r.cached, func(callCtx context.Context) (dvls.Entry, error) {
+		return r.cred.UpdateWithContext(callCtx, entry)
+	})
 }
 
+// DeleteByID is never retried, like Update: only reads are sent again.
 func (r *realCredentialClient) DeleteByID(ctx context.Context, vaultID, entryID string) error {
-	return r.cred.DeleteByIdWithContext(ctx, vaultID, entryID)
+	_, err := run(ctx, r.cached, func(callCtx context.Context) (struct{}, error) {
+		return struct{}{}, r.cred.DeleteByIdWithContext(callCtx, vaultID, entryID)
+	})
+	return err
 }
 
 // NewClient creates a new DVLS secrets client. When pinnedVault is true the store
@@ -280,7 +294,8 @@ func (c *Client) SecretExists(ctx context.Context, ref esv1.PushSecretRemoteRef)
 	return true, nil
 }
 
-// Validate checks if the client is properly configured.
+// Validate checks if the client is properly configured. A cached client also checks its
+// session, so the store stops being ready when DVLS does not answer.
 func (c *Client) Validate() (esv1.ValidationResult, error) {
 	if c.cred == nil {
 		return esv1.ValidationResultError, errors.New("DVLS client is not initialized")
@@ -288,6 +303,14 @@ func (c *Client) Validate() (esv1.ValidationResult, error) {
 	// Without a pinned vault, keys name their own vault and need a vault client to resolve it.
 	if !c.pinnedVault && c.vaults == nil {
 		return esv1.ValidationResultError, errors.New("DVLS vault client is not initialized")
+	}
+	if c.checkSession == nil {
+		return esv1.ValidationResultReady, nil
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), callTimeout)
+	defer cancel()
+	if err := c.checkSession(ctx); err != nil {
+		return esv1.ValidationResultError, fmt.Errorf("failed to check the DVLS session: %w", err)
 	}
 	return esv1.ValidationResultReady, nil
 }
