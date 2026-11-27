@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"os"
 	"regexp"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
@@ -526,11 +527,16 @@ func buildWorkloadIdentityCredential(ctx context.Context, az *Azure, cloudConfig
 	clientOpts := azcore.ClientOptions{
 		Cloud: cloudConfig,
 	}
+	enableAzureProxy := az.provider.WorkloadIdentityMethod == esv1.AzureWorkloadIdentityMethodIdentityBinding
 
 	// If no serviceAccountRef is provided, use environment variables (webhook mode)
 	if az.provider.ServiceAccountRef == nil {
+		if enableAzureProxy && os.Getenv(azureKubernetesTokenProxy) == "" {
+			return nil, fmt.Errorf("IdentityBinding requires %s in the controller pod, check AKS workload identity webhook configuration", azureKubernetesTokenProxy)
+		}
 		opts := &azidentity.WorkloadIdentityCredentialOptions{
-			ClientOptions: clientOpts,
+			ClientOptions:    clientOpts,
+			EnableAzureProxy: enableAzureProxy,
 		}
 		return azidentity.NewWorkloadIdentityCredential(opts)
 	}
@@ -539,6 +545,9 @@ func buildWorkloadIdentityCredential(ctx context.Context, az *Azure, cloudConfig
 	ns := az.namespace
 	if az.store.GetKind() == esv1.ClusterSecretStoreKind && az.provider.ServiceAccountRef.Namespace != nil {
 		ns = *az.provider.ServiceAccountRef.Namespace
+	}
+	if enableAzureProxy && az.store.GetKind() == esv1.SecretStoreKind {
+		ns = az.store.GetNamespace()
 	}
 
 	var sa corev1.ServiceAccount
@@ -568,14 +577,20 @@ func buildWorkloadIdentityCredential(ctx context.Context, az *Azure, cloudConfig
 		return nil, errors.New(errMissingTenant)
 	}
 
-	// Use ClientAssertionCredential to avoid filesystem access in read-only environments
-	// This provides a callback function that fetches tokens dynamically
-	getAssertion := func(ctx context.Context) (string, error) {
-		audiences := []string{AzureDefaultAudience}
-		if len(az.provider.ServiceAccountRef.Audiences) > 0 {
-			audiences = append(audiences, az.provider.ServiceAccountRef.Audiences...)
+	audiences := []string{AzureDefaultAudience}
+	if enableAzureProxy {
+		audiences = []string{azureIdentityBindingAudience}
+		proxy, err := newIdentityBindingProxy()
+		if err != nil {
+			return nil, fmt.Errorf("failed to configure AKS identity binding proxy: %w", err)
 		}
+		clientOpts.Transport = proxy
+	} else {
+		audiences = append(audiences, az.provider.ServiceAccountRef.Audiences...)
+	}
 
+	// Fetch tokens dynamically without writing assertions to disk.
+	getAssertion := func(ctx context.Context) (string, error) {
 		token, err := FetchSAToken(ctx, ns, az.provider.ServiceAccountRef.Name, audiences, az.kubeClient)
 		if err != nil {
 			return "", fmt.Errorf("failed to fetch service account token: %w", err)

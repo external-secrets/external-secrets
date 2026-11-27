@@ -1144,6 +1144,22 @@ Valid values are:
 </tr>
 <tr>
 <td>
+<code>workloadIdentityMethod</code></br>
+<em>
+<a href="#external-secrets.io/v1.AzureWorkloadIdentityMethod">
+AzureWorkloadIdentityMethod
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>WorkloadIdentityMethod selects a standard Workload Identity or Identity Binding.
+Identity Binding requires useAzureSDK. It uses serviceAccountRef when set, otherwise it uses
+the controller pod&rsquo;s service account.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>vaultUrl</code></br>
 <em>
 string
@@ -1257,6 +1273,28 @@ configuration is not supported with the legacy go-autorest SDK.</p>
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.AzureWorkloadIdentityMethod">AzureWorkloadIdentityMethod
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.AzureKVProvider">AzureKVProvider</a>)
+</p>
+<p>
+<p>AzureWorkloadIdentityMethod selects how a aworkload deintity token is exchanged.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;WorkloadIdentity&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;IdentityBinding&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.BarbicanAuth">BarbicanAuth
 </h3>
@@ -1807,7 +1845,8 @@ string
 </em>
 </td>
 <td>
-<p>The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.</p>
+<p>The secret retrieval type. SECRET = Secrets Safe (credential, text, file). MANAGED_ACCOUNT = Password Safe account associated with a system.
+ALL = each remoteRef.key selects its type with a &ldquo;managed:&rdquo; or &ldquo;secret:&rdquo; prefix. Required; any other value is rejected.</p>
 </td>
 </tr>
 <tr>
@@ -8391,6 +8430,21 @@ External Secrets meta/v1.SecretKeySelector
 </td>
 <td>
 <em>(Optional)</em>
+</td>
+</tr>
+<tr>
+<td>
+<code>serviceAccountRef</code></br>
+<em>
+<a href="https://pkg.go.dev/github.com/external-secrets/external-secrets/apis/meta/v1#ServiceAccountSelector">
+External Secrets meta/v1.ServiceAccountSelector
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>ServiceAccountRef authenticates as this ServiceAccount, using a token from the TokenRequest API.
+Takes precedence over serviceAccountTokenPath.</p>
 </td>
 </tr>
 </tbody>

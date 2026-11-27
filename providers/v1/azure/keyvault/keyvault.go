@@ -179,6 +179,9 @@ func newClient(ctx context.Context, store esv1.GenericStore, kube client.Client,
 	if err != nil {
 		return nil, err
 	}
+	if err := validateWorkloadIdentityMethod(provider); err != nil {
+		return nil, err
+	}
 	cfg, err := ctrlcfg.GetConfig()
 	if err != nil {
 		return nil, err
@@ -310,6 +313,26 @@ func getProvider(store esv1.GenericStore) (*esv1.AzureKVProvider, error) {
 	return spc.Provider.AzureKV, nil
 }
 
+func validateWorkloadIdentityMethod(p *esv1.AzureKVProvider) error {
+	switch p.WorkloadIdentityMethod {
+	case "", esv1.AzureWorkloadIdentityMethodDefault:
+		return nil
+	case esv1.AzureWorkloadIdentityMethodIdentityBinding:
+		if !ptr.ToBool(p.UseAzureSDK) {
+			return errors.New("IdentityBinding requires useAzureSDK: true")
+		}
+		if p.AuthType == nil || *p.AuthType != esv1.AzureWorkloadIdentity {
+			return errors.New("IdentityBinding requires authType: WorkloadIdentity")
+		}
+		if p.ServiceAccountRef != nil && len(p.ServiceAccountRef.Audiences) != 0 {
+			return errors.New("IdentityBinding does not support custom serviceAccountRef audiences")
+		}
+		return nil
+	default:
+		return fmt.Errorf("invalid WorkloadIdentityMethod: %s", p.WorkloadIdentityMethod)
+	}
+}
+
 // ValidateStore validates the Azure Key Vault provider configuration.
 func (a *Azure) ValidateStore(store esv1.GenericStore) (admission.Warnings, error) {
 	if store == nil {
@@ -325,6 +348,9 @@ func (a *Azure) ValidateStore(store esv1.GenericStore) (admission.Warnings, erro
 	p := spc.Provider.AzureKV
 	if p == nil {
 		return nil, errors.New(errInvalidAzureProv)
+	}
+	if err := validateWorkloadIdentityMethod(p); err != nil {
+		return nil, err
 	}
 	if p.AuthSecretRef != nil {
 		if p.AuthSecretRef.ClientID != nil {
