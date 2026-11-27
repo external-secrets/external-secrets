@@ -94,13 +94,13 @@ type realCredentialClient struct {
 }
 
 func (r *realCredentialClient) GetByID(ctx context.Context, vaultID, entryID string) (dvls.Entry, error) {
-	return runRead(ctx, r.lock, r.cached, func(callCtx context.Context) (dvls.Entry, error) {
+	return run(ctx, r.lock, r.cached, func(callCtx context.Context) (dvls.Entry, error) {
 		return r.cred.GetByIdWithContext(callCtx, vaultID, entryID)
 	})
 }
 
 func (r *realCredentialClient) GetEntries(ctx context.Context, vaultID string, opts dvls.GetEntriesOptions) ([]dvls.Entry, error) {
-	return runRead(ctx, r.lock, r.cached, func(callCtx context.Context) ([]dvls.Entry, error) {
+	return run(ctx, r.lock, r.cached, func(callCtx context.Context) ([]dvls.Entry, error) {
 		return r.cred.GetEntriesWithContext(callCtx, vaultID, opts)
 	})
 }

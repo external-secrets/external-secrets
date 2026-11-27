@@ -22,9 +22,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
-	"net/http"
 	"time"
 
 	"github.com/Devolutions/go-dvls"
@@ -83,8 +81,7 @@ type sharedClient struct {
 	cached bool
 }
 
-// checkSession reports whether DVLS answers and the session is valid or can be renewed:
-// go-dvls checks the session, and logs in again if it expired, before any request.
+// checkSession reports whether DVLS answers. An expired session is renewed by the next request.
 func (s *sharedClient) checkSession(ctx context.Context) error {
 	_, err := run(ctx, s.lock, s.cached, func(callCtx context.Context) (dvls.Server, error) {
 		return s.client.GetPublicServerInfoWithContext(callCtx)
@@ -106,31 +103,6 @@ func run[T any](ctx context.Context, lock callLock, cached bool, call func(conte
 	callCtx, cancel := context.WithTimeout(ctx, callTimeout)
 	defer cancel()
 	return call(callCtx)
-}
-
-// runRead is run for reads: on a cached client, a read rejected with 401 runs once more.
-func runRead[T any](ctx context.Context, lock callLock, cached bool, call func(context.Context) (T, error)) (T, error) {
-	return run(ctx, lock, cached, func(callCtx context.Context) (T, error) {
-		return retryUnauthorized(cached, func() (T, error) {
-			return call(callCtx)
-		})
-	})
-}
-
-// retryUnauthorized runs call a second time when DVLS answers 401. go-dvls checks the
-// session before each request, so a cached session can expire between the check and
-// the request. The second attempt checks the session again and logs in if it is gone.
-func retryUnauthorized[T any](enabled bool, call func() (T, error)) (T, error) {
-	v, err := call()
-	if !enabled || !isUnauthorized(err) {
-		return v, err
-	}
-	return call()
-}
-
-func isUnauthorized(err error) bool {
-	var reqErr *dvls.RequestError
-	return errors.As(err, &reqErr) && reqErr.StatusCode == http.StatusUnauthorized
 }
 
 // credentialsKey identifies a DVLS session. Stores that use the same server and

@@ -3,7 +3,7 @@ module github.com/external-secrets/external-secrets/providers/v1/dvls
 go 1.27.0
 
 require (
-	github.com/Devolutions/go-dvls v0.22.1
+	github.com/Devolutions/go-dvls v0.22.2
 	github.com/external-secrets/external-secrets/apis v0.0.0
 	github.com/external-secrets/external-secrets/runtime v0.0.0
 	github.com/google/uuid v1.6.0

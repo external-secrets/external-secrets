@@ -19,7 +19,6 @@ package dvls
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -75,25 +74,24 @@ type fakeDVLS struct {
 	t   *testing.T
 	srv *httptest.Server
 
-	mu               sync.Mutex
-	logins           int
-	loginAttempts    int
-	failNextLogins   int
-	staleTokenLogin  int
-	lastAppSecret    string
-	nextToken        int
-	validTokens      map[string]bool
-	expireAfterCheck bool
-	rejectVault      bool
-	vaultRequests    int
-	rejectEntry      map[string]bool
-	entryRequests    map[string]int
-	loginRequests    int
-	unavailable      bool
-	held             map[requestKind]int
-	requestHeld      chan struct{}
-	release          chan struct{}
-	releaseOnce      sync.Once
+	mu              sync.Mutex
+	logins          int
+	loginAttempts   int
+	failNextLogins  int
+	staleTokenLogin int
+	lastAppSecret   string
+	nextToken       int
+	validTokens     map[string]bool
+	rejectVault     bool
+	vaultRequests   int
+	rejectEntry     map[string]bool
+	entryRequests   map[string]int
+	loginRequests   int
+	unavailable     bool
+	held            map[requestKind]int
+	requestHeld     chan struct{}
+	release         chan struct{}
+	releaseOnce     sync.Once
 }
 
 func newFakeDVLS(t *testing.T) *fakeDVLS {
@@ -169,10 +167,6 @@ func (f *fakeDVLS) handleSessionCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	_, _ = w.Write([]byte("true"))
-	if f.expireAfterCheck {
-		f.expireAfterCheck = false
-		f.validTokens = map[string]bool{}
-	}
 }
 
 func (f *fakeDVLS) handleVaultList(w http.ResponseWriter, r *http.Request) {
@@ -206,14 +200,6 @@ func (f *fakeDVLS) expireSessions() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.validTokens = map[string]bool{}
-}
-
-// expireSessionsAfterNextCheck lets the next session check succeed and then invalidates
-// every token, so the request that follows the check is rejected.
-func (f *fakeDVLS) expireSessionsAfterNextCheck() {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.expireAfterCheck = true
 }
 
 // setUnavailable makes every request fail with 503, as when DVLS is down.
@@ -576,22 +562,7 @@ func TestClientCache_ExpiredSessionIsRenewedOnce(t *testing.T) {
 	assert.Zero(t, f.staleTokenLogin, "a renewal login must not send the expired token")
 }
 
-func TestClientCache_SessionExpiringAfterCheckIsRetried(t *testing.T) {
-	withCache(t, true, defaultCacheSize)
-	f := newFakeDVLS(t)
-	kube := newKube(t, credentialSecret(testNamespace, testAppSecret))
-	store := clusterStore(f.srv.URL, "store", "1", new(testNamespace))
-
-	reconcile(t, store, kube, testNamespace)
-	f.expireSessionsAfterNextCheck()
-
-	reconcile(t, store, kube, testNamespace)
-
-	assert.Equal(t, 2, f.loginCount())
-	assert.Equal(t, 3, f.vaultRequestCount(), "the rejected request must be sent again exactly once")
-}
-
-func TestClientCache_PersistentUnauthorizedIsRetriedOnce(t *testing.T) {
+func TestClientCache_UnauthorizedOnAValidSessionIsNotRetried(t *testing.T) {
 	withCache(t, true, defaultCacheSize)
 	f := newFakeDVLS(t)
 	kube := newKube(t, credentialSecret(testNamespace, testAppSecret))
@@ -603,24 +574,11 @@ func TestClientCache_PersistentUnauthorizedIsRetriedOnce(t *testing.T) {
 	_, err := (&Provider{}).NewClient(context.Background(), store, kube, testNamespace)
 
 	require.Error(t, err)
-	assert.Equal(t, 3, f.vaultRequestCount(), "a request that stays unauthorized must not be retried more than once")
+	assert.Equal(t, 2, f.vaultRequestCount())
 	assert.Equal(t, 1, f.loginCount())
 }
 
-func TestClientCache_DisabledDoesNotRetryUnauthorized(t *testing.T) {
-	withCache(t, false, defaultCacheSize)
-	f := newFakeDVLS(t)
-	kube := newKube(t, credentialSecret(testNamespace, testAppSecret))
-	store := clusterStore(f.srv.URL, "store", "1", new(testNamespace))
-	f.rejectVaultRequests()
-
-	_, err := (&Provider{}).NewClient(context.Background(), store, kube, testNamespace)
-
-	require.Error(t, err)
-	assert.Equal(t, 1, f.vaultRequestCount())
-}
-
-func TestClientCache_ClientsRetryOnlyWhenCached(t *testing.T) {
+func TestClientCache_ClientsKnowWhenTheyAreCached(t *testing.T) {
 	for _, cached := range []bool{true, false} {
 		t.Run(fmt.Sprintf("cache enabled %t", cached), func(t *testing.T) {
 			withCache(t, cached, defaultCacheSize)
@@ -637,14 +595,14 @@ func TestClientCache_ClientsRetryOnlyWhenCached(t *testing.T) {
 			require.True(t, ok)
 			assert.Equal(t, cached, cred.cached)
 			assert.Equal(t, cached, vaults.cached)
-			assert.Equal(t, cached, clients.checkSession != nil, "only a cached client checks its session on validation")
+			assert.Equal(t, cached, clients.checkSession != nil, "only a cached client checks DVLS on validation")
 			require.NotNil(t, cred.lock)
 			assert.Equal(t, cred.lock, vaults.lock, "both services of a client must share its lock")
 		})
 	}
 }
 
-func TestClientCache_OnlyReadsAreRetried(t *testing.T) {
+func TestClientCache_RejectedCallsAreSentOnce(t *testing.T) {
 	entry := dvls.Entry{
 		Id:      cacheTestEntryID,
 		VaultId: cacheTestVaultID,
@@ -657,23 +615,23 @@ func TestClientCache_OnlyReadsAreRetried(t *testing.T) {
 		call   func(cred credentialClient) error
 		want   map[string]int
 	}{
-		"GetByID is sent again once": {
+		"GetByID": {
 			reject: http.MethodGet,
 			call: func(cred credentialClient) error {
 				_, err := cred.GetByID(context.Background(), cacheTestVaultID, cacheTestEntryID)
 				return err
 			},
-			want: map[string]int{http.MethodGet: 2},
+			want: map[string]int{http.MethodGet: 1},
 		},
-		"GetEntries is sent again once": {
+		"GetEntries": {
 			reject: http.MethodGet,
 			call: func(cred credentialClient) error {
 				_, err := cred.GetEntries(context.Background(), cacheTestVaultID, dvls.GetEntriesOptions{})
 				return err
 			},
-			want: map[string]int{http.MethodGet: 2},
+			want: map[string]int{http.MethodGet: 1},
 		},
-		"Update does not repeat a write whose read back is rejected": {
+		"Update whose read back is rejected": {
 			reject: http.MethodGet,
 			call: func(cred credentialClient) error {
 				_, err := cred.Update(context.Background(), entry)
@@ -681,7 +639,7 @@ func TestClientCache_OnlyReadsAreRetried(t *testing.T) {
 			},
 			want: map[string]int{http.MethodPut: 1, http.MethodGet: 1},
 		},
-		"Update is sent once": {
+		"Update": {
 			reject: http.MethodPut,
 			call: func(cred credentialClient) error {
 				_, err := cred.Update(context.Background(), entry)
@@ -689,7 +647,7 @@ func TestClientCache_OnlyReadsAreRetried(t *testing.T) {
 			},
 			want: map[string]int{http.MethodPut: 1},
 		},
-		"DeleteByID is sent once": {
+		"DeleteByID": {
 			reject: http.MethodDelete,
 			call: func(cred credentialClient) error {
 				return cred.DeleteByID(context.Background(), cacheTestVaultID, cacheTestEntryID)
@@ -711,62 +669,13 @@ func TestClientCache_OnlyReadsAreRetried(t *testing.T) {
 			err = tc.call(clients.cred)
 
 			require.Error(t, err)
-			assert.True(t, isUnauthorized(err))
+			var reqErr *dvls.RequestError
+			require.ErrorAs(t, err, &reqErr)
+			assert.Equal(t, http.StatusUnauthorized, reqErr.StatusCode)
 			for method, want := range tc.want {
 				assert.Equal(t, want, f.entryRequestCount(method), method)
 			}
 			assert.Equal(t, 1, f.loginCount())
-		})
-	}
-}
-
-func TestClientCache_DisabledDoesNotRetryEntryReads(t *testing.T) {
-	withCache(t, false, defaultCacheSize)
-	f := newFakeDVLS(t)
-	kube := newKube(t, credentialSecret(testNamespace, testAppSecret))
-	store := clusterStore(f.srv.URL, "store", "1", new(testNamespace))
-	clients, err := newStoreClients(context.Background(), kube, store.GetKind(), testNamespace, store.Spec.Provider.DVLS)
-	require.NoError(t, err)
-	f.rejectEntryRequests(http.MethodGet)
-
-	_, err = clients.cred.GetByID(context.Background(), cacheTestVaultID, cacheTestEntryID)
-
-	require.Error(t, err)
-	assert.Equal(t, 1, f.entryRequestCount(http.MethodGet))
-}
-
-func TestRetryUnauthorized(t *testing.T) {
-	// go-dvls returns *RequestError and wraps it, so the helper must see through both.
-	var rejected error = &dvls.RequestError{StatusCode: http.StatusUnauthorized, Err: errors.New("unauthorized")}
-	unauthorized := fmt.Errorf("wrapped: %w", rejected)
-	unauthorizedAgain := fmt.Errorf("wrapped again: %w", rejected)
-	var notFound error = &dvls.RequestError{StatusCode: http.StatusNotFound, Err: errors.New("not found")}
-
-	tests := []struct {
-		name      string
-		enabled   bool
-		errs      []error
-		wantCalls int
-		wantErr   error
-	}{
-		{name: "success is not retried", enabled: true, errs: []error{nil}, wantCalls: 1},
-		{name: "unauthorized then success", enabled: true, errs: []error{unauthorized, nil}, wantCalls: 2},
-		{name: "unauthorized twice returns the second error", enabled: true, errs: []error{unauthorized, unauthorizedAgain}, wantCalls: 2, wantErr: unauthorizedAgain},
-		{name: "other errors are not retried", enabled: true, errs: []error{notFound, nil}, wantCalls: 1, wantErr: notFound},
-		{name: "disabled does not retry", enabled: false, errs: []error{unauthorized, nil}, wantCalls: 1, wantErr: unauthorized},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			calls := 0
-			got, err := retryUnauthorized(tt.enabled, func() (int, error) {
-				calls++
-				return calls, tt.errs[calls-1]
-			})
-
-			assert.Equal(t, tt.wantCalls, calls)
-			assert.Equal(t, tt.wantCalls, got, "the value of the last attempt must be returned")
-			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
 }
@@ -1000,40 +909,7 @@ func TestClientCache_ValidationReportsAnUnavailableServer(t *testing.T) {
 	}
 }
 
-func TestClientCache_ValidationRenewsAnExpiredSession(t *testing.T) {
-	tests := map[string]struct {
-		refuseLogin bool
-		wantResult  esv1.ValidationResult
-		wantLogins  int
-	}{
-		"renewed":         {wantResult: esv1.ValidationResultReady, wantLogins: 2},
-		"renewal refused": {refuseLogin: true, wantResult: esv1.ValidationResultError, wantLogins: 1},
-	}
-
-	for name, tc := range tests {
-		t.Run(name, func(t *testing.T) {
-			withCache(t, true, defaultCacheSize)
-			f := newFakeDVLS(t)
-			kube := newKube(t, credentialSecret(testNamespace, testAppSecret))
-			store := clusterStore(f.srv.URL, "store", "1", new(testNamespace))
-			client, err := (&Provider{}).NewClient(context.Background(), store, kube, testNamespace)
-			require.NoError(t, err)
-			f.expireSessions()
-			if tc.refuseLogin {
-				f.mu.Lock()
-				f.failNextLogins = 1
-				f.mu.Unlock()
-			}
-
-			result, err := client.Validate()
-			assert.Equal(t, tc.wantResult, result)
-			assert.Equal(t, tc.refuseLogin, err != nil)
-			assert.Equal(t, tc.wantLogins, f.loginCount())
-		})
-	}
-}
-
-func TestClientCache_ValidationAndRequestsShareTheSession(t *testing.T) {
+func TestClientCache_ExpiredSessionIsRenewedByTheNextRequestAfterValidation(t *testing.T) {
 	withCache(t, true, defaultCacheSize)
 	f := newFakeDVLS(t)
 	kube := newKube(t, credentialSecret(testNamespace, testAppSecret))
@@ -1042,11 +918,13 @@ func TestClientCache_ValidationAndRequestsShareTheSession(t *testing.T) {
 	require.NoError(t, err)
 	f.expireSessions()
 
-	_, err = client.Validate()
+	result, err := client.Validate()
 	require.NoError(t, err)
-	reconcile(t, store, kube, testNamespace)
+	assert.Equal(t, esv1.ValidationResultReady, result)
+	assert.Equal(t, 1, f.loginCount())
 
-	assert.Equal(t, 2, f.loginCount(), "the session renewed by the validation must be the one requests use")
+	reconcile(t, store, kube, testNamespace)
+	assert.Equal(t, 2, f.loginCount())
 }
 
 func TestClientCache_DisabledValidationSendsNoRequest(t *testing.T) {
@@ -1066,7 +944,7 @@ func TestClientCache_DisabledValidationSendsNoRequest(t *testing.T) {
 func TestClientCache_ValidationGivesUpOnItsDeadline(t *testing.T) {
 	tests := map[string]func(t *testing.T, f *fakeDVLS, shared *sharedClient){
 		"DVLS does not answer": func(_ *testing.T, f *fakeDVLS, _ *sharedClient) {
-			f.holdNext(sessionCheck, 1)
+			f.holdNext(apiRequest, 1)
 		},
 		"the shared client stays busy": func(t *testing.T, _ *fakeDVLS, shared *sharedClient) {
 			unlock, err := shared.lock.acquire(context.Background())

@@ -35,19 +35,19 @@ type realVaultClient struct {
 }
 
 func (r *realVaultClient) GetByName(ctx context.Context, name string) (dvls.Vault, error) {
-	return runRead(ctx, r.lock, r.cached, func(callCtx context.Context) (dvls.Vault, error) {
+	return run(ctx, r.lock, r.cached, func(callCtx context.Context) (dvls.Vault, error) {
 		return r.vaults.GetByNameWithContext(callCtx, name)
 	})
 }
 
 func (r *realVaultClient) Get(ctx context.Context, id string) (dvls.Vault, error) {
-	return runRead(ctx, r.lock, r.cached, func(callCtx context.Context) (dvls.Vault, error) {
+	return run(ctx, r.lock, r.cached, func(callCtx context.Context) (dvls.Vault, error) {
 		return r.vaults.GetWithContext(callCtx, id)
 	})
 }
 
 func (r *realVaultClient) List(ctx context.Context) ([]dvls.Vault, error) {
-	return runRead(ctx, r.lock, r.cached, func(callCtx context.Context) ([]dvls.Vault, error) {
+	return run(ctx, r.lock, r.cached, func(callCtx context.Context) ([]dvls.Vault, error) {
 		return r.vaults.ListWithContext(callCtx)
 	})
 }
