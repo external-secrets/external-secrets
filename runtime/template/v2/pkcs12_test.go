@@ -85,6 +85,62 @@ func TestPemTruststoreToPKCS12(t *testing.T) {
 	assertCertificate(t, certs[1], otherCert)
 }
 
+func TestPKCS12InvalidPEM(t *testing.T) {
+	tests := []struct {
+		name string
+		call func() (string, error)
+	}{
+		{
+			name: "certificate",
+			call: func() (string, error) {
+				return pemToPkcs12Pass("", keyData, "password")
+			},
+		},
+		{
+			name: "private key",
+			call: func() (string, error) {
+				return pemToPkcs12Pass(certData, "not PEM", "password")
+			},
+		},
+		{
+			name: "certificate chain",
+			call: func() (string, error) {
+				return fullPemToPkcs12Pass("not PEM", keyData, "password")
+			},
+		},
+		{
+			name: "CA certificate in chain",
+			call: func() (string, error) {
+				return fullPemToPkcs12Pass(certData+"\nnot PEM", keyData, "password")
+			},
+		},
+		{
+			name: "trust store",
+			call: func() (string, error) {
+				return pemTruststoreToPKCS12Pass("not PEM", "password")
+			},
+		},
+		{
+			name: "CA certificate in trust store",
+			call: func() (string, error) {
+				return pemTruststoreToPKCS12Pass(certData+"\nnot PEM", "password")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			out, err := tt.call()
+			if err == nil || err.Error() != errDecodePEM {
+				t.Fatalf("got error %v, expected %q", err, errDecodePEM)
+			}
+			if out != "" {
+				t.Fatalf("got non-empty output %q", out)
+			}
+		})
+	}
+}
+
 // Compare decoded contents rather than serialized bytes: go-pkcs12 v0.7.4
 // adds the RFC 8018-required NULL PRF parameter, changing the PFX encoding.
 func decodePFX(encoded string) (any, *x509.Certificate, []*x509.Certificate, error) {
