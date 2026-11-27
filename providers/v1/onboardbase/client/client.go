@@ -23,6 +23,7 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -146,9 +147,13 @@ type SecretsResponse struct {
 	Body    []byte
 }
 
+// DefaultAPIHost is the public Onboardbase API, used when the store does not set apiHost.
+const DefaultAPIHost = "https://public.onboardbase.com/api/v1/"
+
 // NewOnboardbaseClient creates a new client for interacting with Onboardbase API.
-// It requires an API key and passcode for authentication.
-func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*OnboardbaseClient, error) {
+// It requires an API key and passcode for authentication. apiHost is the API base URL and
+// must use https, DefaultAPIHost is used when it is empty.
+func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode, apiHost string) (*OnboardbaseClient, error) {
 	tlsConfig := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 	}
@@ -164,16 +169,37 @@ func NewOnboardbaseClient(onboardbaseAPIKey, onboardbasePasscode string) (*Onboa
 		VerifyTLS:           true,
 		UserAgent:           "onboardbase-external-secrets",
 		httpClient: &http.Client{
-			Timeout:   HTTPTimeoutDuration,
-			Transport: httpTransport,
+			Timeout:       HTTPTimeoutDuration,
+			Transport:     httpTransport,
+			CheckRedirect: sameHostHTTPSRedirect,
 		},
 	}
 
-	if err := client.SetBaseURL("https://public.onboardbase.com/api/v1/"); err != nil {
+	if apiHost == "" {
+		apiHost = DefaultAPIHost
+	}
+	if err := client.SetBaseURL(apiHost); err != nil {
 		return nil, &APIError{Err: err, Message: "setting base URL failed"}
+	}
+	// the API key is sent in a header, so never send it over cleartext
+	if client.baseURL.Scheme != "https" {
+		return nil, &APIError{Message: fmt.Sprintf("apiHost must use https, got %q", apiHost)}
 	}
 
 	return client, nil
+}
+
+// sameHostHTTPSRedirect only follows redirects that stay on https and on the same host.
+// net/http copies custom headers to the redirect target, so following any other redirect
+// would send the API key to another host or over cleartext.
+func sameHostHTTPSRedirect(req *http.Request, via []*http.Request) error {
+	if len(via) >= 10 {
+		return errors.New("stopped after 10 redirects")
+	}
+	if req.URL.Scheme != "https" || req.URL.Host != via[0].URL.Host {
+		return fmt.Errorf("refusing redirect to %s, only same host https redirects are followed", req.URL.Redacted())
+	}
+	return nil
 }
 
 // BaseURL returns the base URL of the Onboardbase API.
