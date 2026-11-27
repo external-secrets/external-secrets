@@ -1201,6 +1201,27 @@
                 "imagePullSecrets": {
                     "type": "array"
                 },
+                "lifecycle": {
+                    "type": [
+                        "object",
+                        "null"
+                    ],
+                    "properties": {
+                        "preStop": {
+                            "type": "object",
+                            "properties": {
+                                "sleep": {
+                                    "type": "object",
+                                    "properties": {
+                                        "seconds": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
                 "livenessProbe": {
                     "type": "object",
                     "properties": {
@@ -1520,6 +1541,12 @@
                 },
                 "strategy": {
                     "type": "object"
+                },
+                "terminationGracePeriodSeconds": {
+                    "type": [
+                        "integer",
+                        "null"
+                    ]
                 },
                 "tls": {
                     "type": "object",

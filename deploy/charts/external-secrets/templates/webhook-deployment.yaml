@@ -52,6 +52,9 @@ spec:
       hostUsers: {{ .Values.webhook.hostUsers }}
       {{- end }}
       {{- end }}
+      {{- if not (kindIs "invalid" .Values.webhook.terminationGracePeriodSeconds) }}
+      terminationGracePeriodSeconds: {{ .Values.webhook.terminationGracePeriodSeconds }}
+      {{- end }}
       {{- with .Values.webhook.podSecurityContext }}
       {{- if and (.enabled) (gt (keys . | len) 1) }}
       securityContext:
@@ -149,6 +152,10 @@ spec:
             initialDelaySeconds: {{ .Values.webhook.startupProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.webhook.startupProbe.periodSeconds }}
             failureThreshold: {{ .Values.webhook.startupProbe.failureThreshold }}
+          {{- end }}
+          {{- with .Values.webhook.lifecycle }}
+          lifecycle:
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- with .Values.webhook.extraEnv }}
           env:
