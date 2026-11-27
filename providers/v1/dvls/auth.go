@@ -30,24 +30,23 @@ import (
 
 type realVaultClient struct {
 	vaults *dvls.Vaults
-	lock   callLock
 	cached bool
 }
 
 func (r *realVaultClient) GetByName(ctx context.Context, name string) (dvls.Vault, error) {
-	return run(ctx, r.lock, r.cached, func(callCtx context.Context) (dvls.Vault, error) {
+	return run(ctx, r.cached, func(callCtx context.Context) (dvls.Vault, error) {
 		return r.vaults.GetByNameWithContext(callCtx, name)
 	})
 }
 
 func (r *realVaultClient) Get(ctx context.Context, id string) (dvls.Vault, error) {
-	return run(ctx, r.lock, r.cached, func(callCtx context.Context) (dvls.Vault, error) {
+	return run(ctx, r.cached, func(callCtx context.Context) (dvls.Vault, error) {
 		return r.vaults.GetWithContext(callCtx, id)
 	})
 }
 
 func (r *realVaultClient) List(ctx context.Context) ([]dvls.Vault, error) {
-	return run(ctx, r.lock, r.cached, func(callCtx context.Context) ([]dvls.Vault, error) {
+	return run(ctx, r.cached, func(callCtx context.Context) ([]dvls.Vault, error) {
 		return r.vaults.ListWithContext(callCtx)
 	})
 }
@@ -84,8 +83,8 @@ func newStoreClients(ctx context.Context, kube kclient.Client, storeKind, namesp
 	}
 
 	clients := &storeClients{
-		cred:   &realCredentialClient{cred: shared.client.Entries.Credential, lock: shared.lock, cached: shared.cached},
-		vaults: &realVaultClient{vaults: shared.client.Vaults, lock: shared.lock, cached: shared.cached},
+		cred:   &realCredentialClient{cred: shared.client.Entries.Credential, cached: shared.cached},
+		vaults: &realVaultClient{vaults: shared.client.Vaults, cached: shared.cached},
 	}
 	if shared.cached {
 		clients.checkSession = shared.checkSession

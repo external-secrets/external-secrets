@@ -596,8 +596,6 @@ func TestClientCache_ClientsKnowWhenTheyAreCached(t *testing.T) {
 			assert.Equal(t, cached, cred.cached)
 			assert.Equal(t, cached, vaults.cached)
 			assert.Equal(t, cached, clients.checkSession != nil, "only a cached client checks DVLS on validation")
-			require.NotNil(t, cred.lock)
-			assert.Equal(t, cred.lock, vaults.lock, "both services of a client must share its lock")
 		})
 	}
 }
@@ -819,7 +817,7 @@ func TestClientCache_CanceledCallerDoesNotCancelTheSharedLogin(t *testing.T) {
 	assert.Equal(t, 1, f.loginCount())
 }
 
-func TestClientCache_UnansweredCallReleasesTheSharedClient(t *testing.T) {
+func TestClientCache_UnansweredCallGivesUpOnItsDeadline(t *testing.T) {
 	entry := dvls.Entry{
 		Id:      cacheTestEntryID,
 		VaultId: cacheTestVaultID,
@@ -876,7 +874,7 @@ func TestClientCache_UnansweredCallReleasesTheSharedClient(t *testing.T) {
 			require.NoError(t, ctx.Err(), "the call must give up on its own deadline, not the caller's")
 
 			_, err = clients.vaults.List(ctx)
-			require.NoError(t, err, "the shared client must be free again once the call gave up")
+			require.NoError(t, err, "the client must still work once the call gave up")
 			assert.Equal(t, 1, f.loginCount())
 		})
 	}
@@ -942,118 +940,34 @@ func TestClientCache_DisabledValidationSendsNoRequest(t *testing.T) {
 }
 
 func TestClientCache_ValidationGivesUpOnItsDeadline(t *testing.T) {
-	tests := map[string]func(t *testing.T, f *fakeDVLS, shared *sharedClient){
-		"DVLS does not answer": func(_ *testing.T, f *fakeDVLS, _ *sharedClient) {
-			f.holdNext(apiRequest, 1)
-		},
-		"the shared client stays busy": func(t *testing.T, _ *fakeDVLS, shared *sharedClient) {
-			unlock, err := shared.lock.acquire(context.Background())
-			require.NoError(t, err)
-			t.Cleanup(unlock)
-		},
-	}
-
-	for name, setup := range tests {
-		t.Run(name, func(t *testing.T) {
-			withCache(t, true, defaultCacheSize)
-			withCallTimeout(t, 100*time.Millisecond)
-			f := newFakeDVLS(t)
-			kube := newKube(t, credentialSecret(testNamespace, testAppSecret))
-			store := clusterStore(f.srv.URL, "store", "1", new(testNamespace))
-			client, err := (&Provider{}).NewClient(context.Background(), store, kube, testNamespace)
-			require.NoError(t, err)
-			shared, ok := clientCache.Get("", credentialsKey(f.srv.URL, testAppID, testAppSecret))
-			require.True(t, ok)
-			setup(t, f, shared)
-
-			var result esv1.ValidationResult
-			done := make(chan struct{})
-			go func() {
-				defer close(done)
-				result, err = client.Validate()
-			}()
-			select {
-			case <-done:
-			case <-time.After(5 * time.Second):
-				t.Fatal("the validation never gave up")
-			}
-			require.ErrorContains(t, err, context.DeadlineExceeded.Error())
-			assert.Equal(t, esv1.ValidationResultError, result)
-		})
-	}
-}
-
-func TestCallLock(t *testing.T) {
-	t.Run("waiting stops when the context is done", func(t *testing.T) {
-		lock := newCallLock()
-		unlock, err := lock.acquire(context.Background())
-		require.NoError(t, err)
-
-		ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-		defer cancel()
-		_, err = lock.acquire(ctx)
-		require.ErrorIs(t, err, context.DeadlineExceeded)
-
-		unlock()
-		unlock, err = lock.acquire(context.Background())
-		require.NoError(t, err, "the lock must be free again once released")
-		unlock()
-	})
-
-	t.Run("a done context never gets a free lock", func(t *testing.T) {
-		lock := newCallLock()
-		ctx, cancel := context.WithCancel(context.Background())
-		cancel()
-
-		for range 100 {
-			_, err := lock.acquire(ctx)
-			require.ErrorIs(t, err, context.Canceled)
-		}
-	})
-
-	t.Run("a nil lock does not block", func(t *testing.T) {
-		var lock callLock
-		unlock, err := lock.acquire(context.Background())
-		require.NoError(t, err)
-		unlock()
-	})
-}
-
-func TestRun_SkipsTheCallWhenTheLockIsNotAcquired(t *testing.T) {
-	lock := newCallLock()
-	unlock, err := lock.acquire(context.Background())
+	withCache(t, true, defaultCacheSize)
+	withCallTimeout(t, 100*time.Millisecond)
+	f := newFakeDVLS(t)
+	kube := newKube(t, credentialSecret(testNamespace, testAppSecret))
+	store := clusterStore(f.srv.URL, "store", "1", new(testNamespace))
+	client, err := (&Provider{}).NewClient(context.Background(), store, kube, testNamespace)
 	require.NoError(t, err)
-	defer unlock()
+	f.holdNext(apiRequest, 1)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
-	defer cancel()
-	calls := 0
-	got, err := run(ctx, lock, true, func(context.Context) (int, error) {
-		calls++
-		return 1, nil
-	})
-
-	require.ErrorIs(t, err, context.DeadlineExceeded)
-	assert.Zero(t, calls)
-	assert.Zero(t, got)
-}
-
-func TestRun_HoldsTheLockDuringTheCall(t *testing.T) {
-	lock := newCallLock()
-
-	_, err := run(context.Background(), lock, false, func(context.Context) (int, error) {
-		assert.Len(t, lock, 1, "the lock must be held while the call runs")
-		return 0, nil
-	})
-
-	require.NoError(t, err)
-	assert.Empty(t, lock, "the lock must be released after the call")
+	var result esv1.ValidationResult
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		result, err = client.Validate()
+	}()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		t.Fatal("the validation never gave up")
+	}
+	require.ErrorContains(t, err, context.DeadlineExceeded.Error())
+	assert.Equal(t, esv1.ValidationResultError, result)
 }
 
 func TestRun_OnlyCachedCallsGetADeadline(t *testing.T) {
 	for _, cached := range []bool{true, false} {
 		t.Run(fmt.Sprintf("cached %t", cached), func(t *testing.T) {
-			_, err := run(context.Background(), newCallLock(), cached, func(callCtx context.Context) (int, error) {
+			_, err := run(context.Background(), cached, func(callCtx context.Context) (int, error) {
 				_, hasDeadline := callCtx.Deadline()
 				assert.Equal(t, cached, hasDeadline)
 				return 0, nil

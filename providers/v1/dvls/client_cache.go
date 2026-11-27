@@ -42,40 +42,14 @@ var (
 	logins singleflight.Group
 	// loginTimeout bounds a shared login, so a server that never answers does not hold every store waiting on it.
 	loginTimeout = 30 * time.Second
-	// callTimeout bounds each call on a cached client, so a request that never gets an answer releases the lock.
+	// callTimeout bounds each call on a cached client, so a DVLS that never answers does not hold the reconciliation.
 	callTimeout = time.Minute
 	// keySecret changes with each process, so a cache key cannot confirm a guessed secret.
 	keySecret = []byte(rand.Text())
 )
 
-// callLock serializes calls on a go-dvls client. Unlike a mutex, waiting for it stops when the context is done.
-type callLock chan struct{}
-
-func newCallLock() callLock {
-	return make(callLock, 1)
-}
-
-func (l callLock) acquire(ctx context.Context) (func(), error) {
-	if l == nil {
-		return func() {
-			// A nil lock has nothing to release.
-		}, nil
-	}
-	if err := ctx.Err(); err != nil {
-		return nil, fmt.Errorf("waiting for the DVLS client: %w", err)
-	}
-	select {
-	case l <- struct{}{}:
-		return func() { <-l }, nil
-	case <-ctx.Done():
-		return nil, fmt.Errorf("waiting for the DVLS client: %w", ctx.Err())
-	}
-}
-
 // sharedClient is a go-dvls client that may serve several stores and reconciliations.
-// go-dvls renews its token on demand without guarding it, so calls are serialized.
 type sharedClient struct {
-	lock   callLock
 	client *dvls.Client
 	// cached is true when the client outlives a reconciliation, so its session can expire mid-use.
 	cached bool
@@ -83,20 +57,14 @@ type sharedClient struct {
 
 // checkSession reports whether DVLS answers. An expired session is renewed by the next request.
 func (s *sharedClient) checkSession(ctx context.Context) error {
-	_, err := run(ctx, s.lock, s.cached, func(callCtx context.Context) (dvls.Server, error) {
+	_, err := run(ctx, s.cached, func(callCtx context.Context) (dvls.Server, error) {
 		return s.client.GetPublicServerInfoWithContext(callCtx)
 	})
 	return err
 }
 
-// run serializes call on a shared client. On a cached client, the call runs under callTimeout.
-func run[T any](ctx context.Context, lock callLock, cached bool, call func(context.Context) (T, error)) (T, error) {
-	unlock, err := lock.acquire(ctx)
-	if err != nil {
-		var zero T
-		return zero, err
-	}
-	defer unlock()
+// run runs call, under callTimeout on a cached client.
+func run[T any](ctx context.Context, cached bool, call func(context.Context) (T, error)) (T, error) {
 	if !cached {
 		return call(ctx)
 	}
@@ -160,7 +128,7 @@ func newSharedClient(ctx context.Context, serverURL, appID, appSecret string, ca
 	if err != nil {
 		return nil, err
 	}
-	return &sharedClient{lock: newCallLock(), client: &client, cached: cached}, nil
+	return &sharedClient{client: &client, cached: cached}, nil
 }
 
 func initCache(size int) {
