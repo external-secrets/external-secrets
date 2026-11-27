@@ -199,13 +199,15 @@ An unset `spec.target.manifest` produces a Kubernetes Secret. Manifest values pr
     admission webhook and by the controller. A Secret is the default target and that path
     carries Secret-specific protections the generic path does not, so the same resource must
     not be reachable both ways.
+    A `kind: Secret` in a custom API group is a different resource and stays supported.
 
-    To migrate, remove `spec.target.manifest` entirely: the ExternalSecret then produces the
-    same Secret through the default path. Review your templating while you do, because the
-    Secret path restricts `templateFrom` to `Data`, `Labels` and `Annotations` and applies the
-    Secret type rules listed below; a nested `templateFrom` target that a manifest accepted is
-    not valid for a Secret. A `kind: Secret` in a custom API group is a different resource and
-    stays supported.
+    To migrate, remove `spec.target.manifest`, then:
+
+    * Remove `b64enc` (or any manual base64) from `template.data`.
+    * If `template.type` is set and differs from the live Secret's type, delete the Secret first. A Secret's type cannot change, so the update would be refused.
+    * Expect `target.immutable`, `template.metadata.finalizers` and `mergePolicy` to take effect.
+    * `templateFrom` may only target `Data`, `Labels` and `Annotations`; a nested `templateFrom` target `metadata.x` that a manifest accepted is not valid for a Secret.
+
 
 ### Admission
 

@@ -679,10 +679,10 @@ func (r *Reconciler) reconcileGenericTarget(
 		switch {
 		case errors.Is(err, ErrSecretIsOwned):
 			r.markAsFailed(msgErrorIsOwned, ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonSecretOwnedByOther)
-			return ctrl.Result{}, nil
+			return r.getRequeueResult(externalSecret), nil
 		case errors.Is(err, ErrSecretSetCtrlRef):
 			r.markAsFailed(msgErrorBecomeOwner, ctrlutil.Safe(err), externalSecret, syncCallsError.With(resourceLabels), esv1.ConditionReasonResourceSyncedError)
-			return ctrl.Result{}, nil
+			return r.getRequeueResult(externalSecret), nil
 		}
 
 		// template errors stay generic: rendering can echo secret values.
@@ -761,8 +761,7 @@ func (r *Reconciler) getRequeueResult(externalSecret *esv1.ExternalSecret) ctrl.
 	}
 
 	// Failed syncs wait a full interval without advancing the last successful refresh time.
-	ready := esv1.GetExternalSecretCondition(externalSecret.Status, esv1.ExternalSecretReady)
-	if externalSecret.Status.RefreshTime.IsZero() || (ready != nil && ready.Status == v1.ConditionFalse) {
+	if externalSecret.Status.RefreshTime.IsZero() {
 		return ctrl.Result{RequeueAfter: refreshInterval}
 	}
 
