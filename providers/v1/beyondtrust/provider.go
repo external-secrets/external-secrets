@@ -54,6 +54,14 @@ const (
 	errNoSuchKeyFmt         = "no such key in secret: %q"
 	errInvalidRetrievalPath = "invalid retrieval path. Provide one path, separator and name"
 	errNotImplemented       = "not implemented"
+	errMissingKeyPrefix     = "retrievalType ALL requires remoteRef.key to start with %q or %q: %q"
+	errKeyPrefixMismatch    = "remoteRef.key prefix %q does not match store retrievalType %s; use retrievalType ALL to mix both: %q"
+	errInvalidRetrievalType = "invalid retrievalType %q: must be one of MANAGED_ACCOUNT, SECRET, ALL"
+
+	retrievalTypeManagedAccount = "MANAGED_ACCOUNT"
+	retrievalTypeAll            = "ALL"
+	managedKeyPrefix            = "managed:"
+	secretKeyPrefix             = "secret:"
 
 	usernameFieldName    = "username"
 	folderNameFieldName  = "folder_name"
@@ -83,8 +91,27 @@ type Provider struct {
 	retrievaltype string
 	decrypt       bool
 	authenticate  auth.AuthenticationObj
+	authenticated bool
 	log           logging.LogrLogger
 	separator     string
+}
+
+const signOutMaxElapsedTime = 30 * time.Second
+
+// getAuthentication signs into Password Safe and records success so Close
+// only attempts SignOut when a session was actually established.
+func (p *Provider) getAuthentication() (entities.SignAppinResponse, error) {
+	resp, err := p.authenticate.GetPasswordSafeAuthentication()
+	if err == nil {
+		p.authenticated = true
+	}
+	return resp, err
+}
+
+func (p *Provider) closeIdleConnections() {
+	if p.authenticate.HttpClient.HttpClient != nil {
+		p.authenticate.HttpClient.HttpClient.CloseIdleConnections()
+	}
 }
 
 // AuthenticatorInput is used to pass parameters to the getAuthenticator function.
@@ -107,8 +134,47 @@ func (*Provider) Capabilities() esv1.SecretStoreCapabilities {
 }
 
 // Close implements v1beta1.SecretsClient.
-func (*Provider) Close(_ context.Context) error {
-	return nil
+// Signs out of the Password Safe session (when authenticated) and always
+// closes idle HTTP connections so each reconcile does not leave ESTABLISHED
+// sockets behind — including when SignOut fails.
+func (p *Provider) Close(_ context.Context) error {
+	if !p.authenticated {
+		p.closeIdleConnections()
+		return nil
+	}
+
+	// Bound SignOut retries so a failing Auth/Signout cannot block the
+	// reconcile for the full provider retry window (default 15 minutes).
+	if p.authenticate.ExponentialBackOff != nil {
+		p.authenticate.ExponentialBackOff.MaxElapsedTime = signOutMaxElapsedTime
+	}
+
+	// Also bound the in-flight HTTP call: MaxElapsedTime only limits retry
+	// scheduling, while the client timeout may be 45s+ via clientTimeOutSeconds.
+	httpClient := p.authenticate.HttpClient.HttpClient
+	prevCtx := p.authenticate.HttpClient.Context
+	var prevTimeout time.Duration
+	signOutCtx, cancel := context.WithTimeout(context.Background(), signOutMaxElapsedTime)
+	defer cancel()
+	p.authenticate.HttpClient.Context = signOutCtx
+	if httpClient != nil {
+		prevTimeout = httpClient.Timeout
+		if prevTimeout == 0 || prevTimeout > signOutMaxElapsedTime {
+			httpClient.Timeout = signOutMaxElapsedTime
+		}
+	}
+	defer func() {
+		p.authenticate.HttpClient.Context = prevCtx
+		if httpClient != nil {
+			httpClient.Timeout = prevTimeout
+		}
+	}()
+
+	err := p.authenticate.SignOut()
+	// SDK only closes idle connections after a successful SignOut; always
+	// close them here so failed sign-out cannot leak sockets.
+	p.closeIdleConnections()
+	return err
 }
 
 // DeleteSecret implements v1beta1.SecretsClient.
@@ -156,6 +222,11 @@ func (p *Provider) SecretExists(_ context.Context, pushSecretRef esv1.PushSecret
 func (p *Provider) NewClient(ctx context.Context, store esv1.GenericStore, kube client.Client, namespace string) (esv1.SecretsClient, error) {
 	config := store.GetSpec().Provider.Beyondtrust
 	logger := logging.NewLogrLogger(&ESOLogger)
+
+	// ValidateStore also checks this, but stores admitted before it, or without the webhook, reach NewClient directly.
+	if err := validateRetrievalType(config.Server.RetrievalType); err != nil {
+		return nil, err
+	}
 
 	storeKind := store.GetKind()
 	clientID, clientSecret, apiKey, err := loadCredentialsFromConfig(ctx, config, kube, namespace, storeKind)
@@ -343,9 +414,12 @@ func (p *Provider) GetAllSecrets(_ context.Context, _ esv1.ExternalSecretFind) (
 // GetSecret reads the secret from the Password Safe server and returns it. The controller uses the value here to
 // create the Kubernetes secret.
 func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemoteRef) ([]byte, error) {
-	managedAccountType := !strings.EqualFold(p.retrievaltype, secretTypeSecret)
+	managedAccountType, key, err := resolveRetrievalKey(p.retrievaltype, ref.Key)
+	if err != nil {
+		return nil, err
+	}
 
-	retrievalPaths := utils.ValidatePaths([]string{ref.Key}, managedAccountType, p.separator, &p.log)
+	retrievalPaths := utils.ValidatePaths([]string{key}, managedAccountType, p.separator, &p.log)
 
 	if len(retrievalPaths) != 1 {
 		return nil, errors.New(errInvalidRetrievalPath)
@@ -353,7 +427,7 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 
 	retrievalPath := retrievalPaths[0]
 
-	_, err := p.authenticate.GetPasswordSafeAuthentication()
+	_, err = p.getAuthentication()
 	if err != nil {
 		return nil, fmt.Errorf("error getting authentication: %w", err)
 	}
@@ -368,18 +442,96 @@ func (p *Provider) GetSecret(_ context.Context, ref esv1.ExternalSecretDataRemot
 		secretObj, _ := secrets.NewSecretObj(p.authenticate, &p.log, maxFileSecretSizeBytes, p.decrypt)
 		return secretObj.GetSecret(retrievalPath, p.separator)
 	}
-	fetch := unmanagedFetch
+	// The lookups repeat only the first request of each fetch: finding the account or the secret.
+	managedLookup := func() error {
+		names := strings.Split(retrievalPath, p.separator)
+		query := url.Values{}
+		query.Add("systemName", names[0])
+		query.Add("accountName", names[1])
+		lookupURL := p.authenticate.ApiUrl.JoinPath("ManagedAccounts").String() + "?" + query.Encode()
+		manageAccountObj, _ := managedaccount.NewManagedAccountObj(p.authenticate, &p.log)
+		_, err := manageAccountObj.ManagedAccountGet(names[0], names[1], lookupURL)
+		return err
+	}
+	unmanagedLookup := func() error {
+		secretObj, _ := secrets.NewSecretObj(p.authenticate, &p.log, maxFileSecretSizeBytes, p.decrypt)
+		secretPath, secretTitle := secretObj.SplitGetSecretPathAndSecretTitle(retrievalPath, p.separator)
+		_, err := secretObj.GetGeneralSecret(secretPath, secretTitle, p.separator)
+		return err
+	}
+	fetch, lookup := unmanagedFetch, unmanagedLookup
 	if managedAccountType {
-		fetch = managedFetch
+		fetch, lookup = managedFetch, managedLookup
 	}
 	returnSecret, err := fetch()
 	if err != nil {
-		if serr := p.authenticate.SignOut(); serr != nil {
-			return nil, errors.Join(err, serr)
+		// Wrap NoSecretErr so the reconciler can apply deletionPolicy. A fetch makes several requests and the
+		// SDK errors don't say which one failed, so only a failed lookup counts: a 404 from a later step, such
+		// as the managed account check-in or a file download, is not a missing secret. The lookup runs only
+		// after a not-found: the SDK has already retried technical errors such as a 5xx for up to
+		// retryMaxElapsedTimeMinutes, and a lookup would retry them again.
+		// Session cleanup happens in Close(), which the client manager always calls.
+		if isNotFound(err) && isNotFound(lookup()) {
+			return nil, fmt.Errorf("%w: %w", esv1.NoSecretErr, err)
 		}
 		return nil, fmt.Errorf("error getting secret/managed account: %w", err)
 	}
 	return []byte(returnSecret), nil
+}
+
+// resolveRetrievalKey reports whether key is a managed account lookup and returns the path to retrieve.
+// ALL requires a managed:/secret: prefix. MANAGED_ACCOUNT and SECRET accept their own prefix and reject the other one.
+func resolveRetrievalKey(retrievalType, key string) (bool, string, error) {
+	prefix, path := splitKeyPrefix(key)
+	switch strings.ToUpper(retrievalType) {
+	case retrievalTypeAll:
+		if prefix == "" {
+			return false, "", fmt.Errorf(errMissingKeyPrefix, managedKeyPrefix, secretKeyPrefix, key)
+		}
+		return prefix == managedKeyPrefix, path, nil
+	case retrievalTypeManagedAccount:
+		if prefix == secretKeyPrefix {
+			return false, "", fmt.Errorf(errKeyPrefixMismatch, prefix, retrievalTypeManagedAccount, key)
+		}
+		return true, path, nil
+	case secretTypeSecret:
+		if prefix == managedKeyPrefix {
+			return false, "", fmt.Errorf(errKeyPrefixMismatch, prefix, secretTypeSecret, key)
+		}
+		return false, path, nil
+	default:
+		return false, "", fmt.Errorf(errInvalidRetrievalType, retrievalType)
+	}
+}
+
+// splitKeyPrefix returns the managed:/secret: prefix of key, if any, and the key without it.
+func splitKeyPrefix(key string) (string, string) {
+	for _, prefix := range []string{managedKeyPrefix, secretKeyPrefix} {
+		if path, ok := strings.CutPrefix(key, prefix); ok {
+			return prefix, path
+		}
+	}
+	return "", key
+}
+
+// validateRetrievalType rejects an empty or unknown retrievalType.
+func validateRetrievalType(retrievalType string) error {
+	switch strings.ToUpper(retrievalType) {
+	case retrievalTypeManagedAccount, secretTypeSecret, retrievalTypeAll:
+		return nil
+	default:
+		return fmt.Errorf(errInvalidRetrievalType, retrievalType)
+	}
+}
+
+// isNotFound reports whether err is a Password Safe "not found" response. It is false for a nil error.
+// The SDK does not expose typed errors, so this matches its error messages.
+func isNotFound(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := err.Error()
+	return strings.Contains(msg, "status code: 404") || strings.Contains(msg, "Secret was not found")
 }
 
 // ValidateStore validates the store configuration to prevent unexpected errors.
@@ -410,6 +562,10 @@ func (p *Provider) ValidateStore(store esv1.GenericStore) (admission.Warnings, e
 	apiURL, err := url.Parse(provider.Server.APIURL)
 	if err != nil || apiURL.Host == "" {
 		return nil, errors.New(errInvalidHostURL)
+	}
+
+	if err := validateRetrievalType(provider.Server.RetrievalType); err != nil {
+		return nil, err
 	}
 
 	if provider.Auth == nil {
@@ -513,7 +669,7 @@ func (p *Provider) PushSecret(_ context.Context, secret *v1.Secret, psd esv1.Pus
 		return fmt.Errorf("Error in parameters: %w", err)
 	}
 
-	signAppinResponse, err := p.authenticate.GetPasswordSafeAuthentication()
+	signAppinResponse, err := p.getAuthentication()
 	if err != nil {
 		return fmt.Errorf("Error in authentication: %w", err)
 	}

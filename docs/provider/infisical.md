@@ -142,6 +142,35 @@ spec:
         environmentSlug: dev
 ```
 
+### Authenticating as a ServiceAccount
+
+By default, the operator authenticates with its own service account token. Set `serviceAccountRef` to authenticate as a different ServiceAccount instead. The operator requests a short-lived token for it through the Kubernetes TokenRequest API, so one operator can serve many machine identities. `serviceAccountRef` takes precedence over `serviceAccountTokenPath`.
+
+```yaml
+apiVersion: external-secrets.io/v1
+kind: SecretStore
+metadata:
+  name: infisical
+spec:
+  provider:
+    infisical:
+      auth:
+        kubernetesAuthCredentials:
+          identityId:
+            name: kubernetes-auth-credentials
+            key: identityId
+          serviceAccountRef:
+            name: my-app
+            # Optional: audiences to request for the token
+            # audiences:
+            #   - infisical
+      secretsScope:
+        projectSlug: my-project
+        environmentSlug: dev
+```
+
+For a `SecretStore`, the ServiceAccount must be in the same namespace as the `ExternalSecret`. For a `ClusterSecretStore`, `serviceAccountRef.namespace` is required.
+
 ---
 
 ## AWS IAM Auth
@@ -642,7 +671,7 @@ To sync all secrets from an Infisical project, use the following YAML:
 
 ### Filtering Secrets
 
-Use `dataFrom.find` to filter secrets by name regex and/or folder path:
+Use `dataFrom.find` to filter secrets by name regex, folder path, tags and/or metadata:
 
 ``` yaml
 {% include 'infisical-filtered-secrets.yaml' %}
@@ -652,7 +681,7 @@ The following restrictions apply:
 
 - `find.name.regexp` matches against the secret name. It filters what came back and does not change what was asked for.
 - `find.path` is the folder the search starts from. The value must be an absolute path starting with `/` (e.g. `/my-app`). It is sent to Infisical as the path of the list request. Whether sub-folders are read is the store's `recursive` setting, which a find path says nothing about. For that `find` entry it takes precedence over `secretsScope.secretsPath`, and it may point outside it, as an absolute `remoteRef.key` already can. A path naming a folder that does not exist fails the sync rather than returning nothing.
-- `find.tags` is **not supported** and returns an error if set.
+- `find.tags` filters by Infisical tags and secret metadata. The reserved key `infisical.com/tags` takes a comma-separated list of tag slugs. Every other key matches a metadata entry with the same key and value. A secret is returned only if it has all of the listed tags and metadata. An `infisical.com/tags` value that lists no slugs is an error. With a `recursive` store, the filter checks every copy of a key in every sub-folder. If copies in different folders match with different values, the sync fails; narrow the search with `find.path` or `find.name`.
 
 ---
 
@@ -793,6 +822,6 @@ The `secretsScope` configuration controls which secrets are accessible:
 
 ## Validation and Auth Method Precedence
 
-`ValidateStore` only performs field-level validation for the `universalAuthCredentials` block. All other authentication methods (Kubernetes, AWS, Azure, GCP, JWT, LDAP, OCI, Token) are not statically validated -- missing required fields are caught at runtime when the provider first attempts to authenticate.
+`ValidateStore` only performs field-level validation for the `universalAuthCredentials` block and the `kubernetesAuthCredentials.serviceAccountRef` namespace. All other authentication methods (Kubernetes, AWS, Azure, GCP, JWT, LDAP, OCI, Token) are not statically validated -- missing required fields are caught at runtime when the provider first attempts to authenticate.
 
 If multiple authentication blocks are set simultaneously, the provider selects the first one it finds in this order: `universalAuthCredentials` > `azureAuthCredentials` > `gcpIdTokenAuthCredentials` > `gcpIamAuthCredentials` > `jwtAuthCredentials` > `ldapAuthCredentials` > `ociAuthCredentials` > `kubernetesAuthCredentials` > `awsAuthCredentials` > `tokenAuthCredentials`. Only one auth block should be set per store.

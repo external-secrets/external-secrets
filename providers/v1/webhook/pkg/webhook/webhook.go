@@ -451,6 +451,8 @@ func ExecuteTemplateString(tmpl string, data map[string]map[string]string) (stri
 }
 
 // ExecuteTemplate executes a template and returns the result as a bytes.Buffer.
+// Rendering goes through the shared bounded executor so a tenant-supplied
+// template cannot grow the output without limit.
 func ExecuteTemplate(tmpl string, data map[string]map[string]string) (bytes.Buffer, error) {
 	var result bytes.Buffer
 	if tmpl == "" {
@@ -460,8 +462,10 @@ func ExecuteTemplate(tmpl string, data map[string]map[string]string) (bytes.Buff
 	if err != nil {
 		return result, err
 	}
-	if err := urlt.Execute(&result, data); err != nil {
+	out, err := template.ExecuteTemplate(urlt, data)
+	if err != nil {
 		return result, err
 	}
+	result.Write(out)
 	return result, nil
 }
