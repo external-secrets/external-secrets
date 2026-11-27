@@ -24,6 +24,7 @@ import (
 	"encoding/base64"
 	"encoding/pem"
 	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"testing"
@@ -41,6 +42,7 @@ import (
 	esv1alpha1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1alpha1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
 	fakeoracle "github.com/external-secrets/external-secrets/providers/v1/oracle/fake"
+	"github.com/external-secrets/external-secrets/runtime/cache"
 	"github.com/external-secrets/external-secrets/runtime/esutils"
 	testingfake "github.com/external-secrets/external-secrets/runtime/testing/fake"
 )
@@ -847,5 +849,32 @@ func makeSecretSummary(id string, deleting bool) vault.SecretSummary {
 		Id:             &id,
 		SecretName:     &id,
 		TimeOfDeletion: deletionTime,
+	}
+}
+
+func TestAuthCacheSize(t *testing.T) {
+	tests := map[string]struct {
+		size    int
+		keys    int
+		evicted bool
+	}{
+		"evicts once the configured size is exceeded":  {size: 2, keys: 3, evicted: true},
+		"keeps every store within the configured size": {size: 60, keys: 51, evicted: false},
+		"falls back to the default for invalid sizes":  {size: 0, keys: defaultAuthConfigurationsCacheSize, evicted: false},
+	}
+	for name, tc := range tests {
+		t.Run(name, func(t *testing.T) {
+			orig := authConfigurationsCacheSize
+			t.Cleanup(func() { authConfigurationsCacheSize = orig })
+			authConfigurationsCacheSize = tc.size
+
+			vms, ok := NewProvider().(*VaultManagementService)
+			assert.True(t, ok)
+			for i := range tc.keys {
+				vms.authCache().Add("1", cache.Key{Name: fmt.Sprintf("store-%d", i), Namespace: "ns", Kind: esv1.SecretStoreKind}, nil)
+			}
+			first := cache.Key{Name: "store-0", Namespace: "ns", Kind: esv1.SecretStoreKind}
+			assert.Equal(t, !tc.evicted, vms.authCache().Contains(first))
+		})
 	}
 }
