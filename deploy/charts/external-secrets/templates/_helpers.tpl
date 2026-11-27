@@ -166,7 +166,7 @@ Create the name of the service account to use
 */}}
 {{- define "external-secrets-webhook.serviceAccountName" -}}
 {{- if .Values.webhook.serviceAccount.create }}
-{{- default "external-secrets-webhook" .Values.webhook.serviceAccount.name }}
+{{- default (include "external-secrets.componentName" (list . "-webhook")) .Values.webhook.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.webhook.serviceAccount.name }}
 {{- end }}
@@ -177,7 +177,7 @@ Create the name of the service account to use
 */}}
 {{- define "external-secrets-cert-controller.serviceAccountName" -}}
 {{- if .Values.certController.serviceAccount.create }}
-{{- default "external-secrets-cert-controller" .Values.certController.serviceAccount.name }}
+{{- default (include "external-secrets.componentName" (list . "-cert-controller")) .Values.certController.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.certController.serviceAccount.name }}
 {{- end }}
