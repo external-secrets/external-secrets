@@ -27,3 +27,8 @@ variable "eso_e2e_sp_object_id" {
   type        = string
   description = "The object ID of the ESO e2e service account"
 }
+
+variable "eso_identity_binding_object_id" {
+  type        = string
+  description = "The object ID of the user-assigned managed identity used for AKS identity binding"
+}

@@ -84,4 +84,35 @@ resource "azurerm_key_vault" "current" {
       "Purge",
     ]
   }
+
+  access_policy {
+    tenant_id = var.tenant_id
+    object_id = var.eso_identity_binding_object_id
+
+    secret_permissions = [
+      "Get",
+      "Set",
+      "Delete",
+      "Purge",
+      "Recover",
+    ]
+
+    key_permissions = [
+      "Get",
+      "List",
+      "Create",
+      "Delete",
+      "Purge",
+      "Decrypt",
+      "Encrypt",
+    ]
+
+    certificate_permissions = [
+      "Get",
+      "List",
+      "Create",
+      "Delete",
+      "Purge",
+    ]
+  }
 }
