@@ -43,7 +43,7 @@ bitwarden-sdk-server:
 revisionHistoryLimit: 10
 
 image:
-  repository: ghcr.io/external-secrets/external-secrets
+  repository: ghcr.io/dmpe/external-secrets
   pullPolicy: IfNotPresent
   # -- The image tag to use. The default is the chart appVersion.
   tag: ""
@@ -211,7 +211,7 @@ vault:
 concurrent: 1
 # -- Specifies Log Params to the External Secrets Operator
 log:
-  level: info
+  level: debug
   timeEncoding: epoch
 service:
   # -- Set the ip family policy to configure dual-stack see [Configure dual-stack](https://kubernetes.io/docs/concepts/services-networking/dual-stack/#services)
@@ -225,7 +225,9 @@ serviceAccount:
   # -- Automounts the service account token in all containers of the pod
   automount: true
   # -- Annotations to add to the service account.
-  annotations: {}
+  annotations: 
+    azure.workload.identity/client-id: "3a1fe6f7-a671-49b8-aa31-38af34031064"
+    azure.workload.identity/tenant-id: "0f510a1b-c5e3-4209-8b58-1312c3193849"
   # -- Extra Labels to add to the service account.
   extraLabels: {}
   # -- The name of the service account to use.
@@ -288,9 +290,11 @@ deploymentAnnotations: {}
 strategy: {}
 
 # -- Annotations to add to Pod
-podAnnotations: {}
+podAnnotations:
+  azure.workload.identity/use-identity-binding: "true"
 
-podLabels: {}
+podLabels: 
+  azure.workload.identity/use: "true"
 
 podSecurityContext:
   enabled: true
@@ -584,7 +588,7 @@ webhook:
     egress: []
 
   image:
-    repository: ghcr.io/external-secrets/external-secrets
+    repository: ghcr.io/dmpe/external-secrets
     pullPolicy: IfNotPresent
     # -- The image tag to use. The default is the chart appVersion.
     tag: ""
@@ -838,7 +842,7 @@ certController:
     curvePreferences: []
 
   image:
-    repository: ghcr.io/external-secrets/external-secrets
+    repository: ghcr.io/dmpe/external-secrets
     pullPolicy: IfNotPresent
     tag: ""
     flavour: ""

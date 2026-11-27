@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	"github.com/external-secrets/external-secrets/runtime/esutils/resolvers"
@@ -49,14 +50,19 @@ const (
 )
 
 func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
+	token, _, err := a.tokenWithExpiry(ctx)
+	return token, err
+}
+
+func (a *akeylessBase) tokenWithExpiry(ctx context.Context) (string, time.Time, error) {
 	prov, err := GetAKeylessProvider(a.store)
 	if err != nil {
-		return "", err
+		return "", time.Time{}, err
 	}
 
 	if prov.Auth.KubernetesAuth != nil {
 		auth := prov.Auth.KubernetesAuth
-		return a.GetToken(ctx, auth.AccessID, "k8s", auth.K8sConfName, prov.Auth)
+		return a.authenticate(ctx, auth.AccessID, "k8s", auth.K8sConfName, prov.Auth)
 	}
 
 	if prov.Auth.JWTAuth != nil {
@@ -71,7 +77,7 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 		&prov.Auth.SecretRef.AccessID,
 	)
 	if err != nil {
-		return "", fmt.Errorf(errFetchAccessIDSecret, err)
+		return "", time.Time{}, fmt.Errorf(errFetchAccessIDSecret, err)
 	}
 	accessType, err := resolvers.SecretKeyRef(
 		ctx,
@@ -81,7 +87,7 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 		&prov.Auth.SecretRef.AccessType,
 	)
 	if err != nil {
-		return "", fmt.Errorf(errFetchAccessTypeSecret, err)
+		return "", time.Time{}, fmt.Errorf(errFetchAccessTypeSecret, err)
 	}
 
 	var accessTypeParam string
@@ -94,35 +100,35 @@ func (a *akeylessBase) TokenFromSecretRef(ctx context.Context) (string, error) {
 			&prov.Auth.SecretRef.AccessTypeParam,
 		)
 		if err != nil {
-			return "", fmt.Errorf(errFetchAccessTypeParamSecret, err)
+			return "", time.Time{}, fmt.Errorf(errFetchAccessTypeParamSecret, err)
 		}
 	}
 
 	if accessID == "" {
-		return "", errors.New(errMissingSAK)
+		return "", time.Time{}, errors.New(errMissingSAK)
 	}
 	if accessType == "" {
-		return "", errors.New(errMissingAKID)
+		return "", time.Time{}, errors.New(errMissingAKID)
 	}
 	if (accessType == "api_key" || accessType == "access_key") && accessTypeParam == "" {
-		return "", errors.New(errMissingAccessTypeParam)
+		return "", time.Time{}, errors.New(errMissingAccessTypeParam)
 	}
 	if accessType == akeylessJWTAccessType && accessTypeParam == "" {
-		return "", errors.New(errMissingJWT)
+		return "", time.Time{}, errors.New(errMissingJWT)
 	}
 
-	return a.GetToken(ctx, accessID, accessType, accessTypeParam, prov.Auth)
+	return a.authenticate(ctx, accessID, accessType, accessTypeParam, prov.Auth)
 }
 
-func (a *akeylessBase) tokenFromJWTAuth(ctx context.Context, jwtAuth *esv1.AkeylessJWTAuth) (string, error) {
+func (a *akeylessBase) tokenFromJWTAuth(ctx context.Context, jwtAuth *esv1.AkeylessJWTAuth) (string, time.Time, error) {
 	if jwtAuth.AccessID == "" {
-		return "", errors.New(errMissingJWTAccessID)
+		return "", time.Time{}, errors.New(errMissingJWTAccessID)
 	}
 	jwtToken, err := a.resolveJWTAuthToken(ctx, jwtAuth)
 	if err != nil {
-		return "", err
+		return "", time.Time{}, err
 	}
-	return a.GetToken(ctx, jwtAuth.AccessID, akeylessJWTAccessType, jwtToken, nil)
+	return a.authenticate(ctx, jwtAuth.AccessID, akeylessJWTAccessType, jwtToken, nil)
 }
 
 func (a *akeylessBase) resolveJWTAuthToken(ctx context.Context, jwtAuth *esv1.AkeylessJWTAuth) (string, error) {
