@@ -3241,9 +3241,28 @@ spec:
                         vaultUrl:
                           description: Vault Url from which the secrets to be fetched from.
                           type: string
+                        workloadIdentityMethod:
+                          default: WorkloadIdentity
+                          description: |-
+                            WorkloadIdentityMethod selects how a workload identity token is exchanged.
+                            Supported values are "WorkloadIdentity" (default) and "IdentityBinding".
+                            IdentityBinding requires authType: WorkloadIdentity and useAzureSDK: true,
+                            and cannot be combined with serviceAccountRef. It relies on the
+                            AKS identity binding configuration being injected into the controller pod.
+                          enum:
+                            - WorkloadIdentity
+                            - IdentityBinding
+                          type: string
                       required:
                         - vaultUrl
                       type: object
+                      x-kubernetes-validations:
+                        - message: 'IdentityBinding requires useAzureSDK: true'
+                          rule: '!has(self.workloadIdentityMethod) || self.workloadIdentityMethod != ''IdentityBinding'' || (has(self.useAzureSDK) && self.useAzureSDK)'
+                        - message: 'IdentityBinding requires authType: WorkloadIdentity'
+                          rule: '!has(self.workloadIdentityMethod) || self.workloadIdentityMethod != ''IdentityBinding'' || (has(self.authType) && self.authType == ''WorkloadIdentity'')'
+                        - message: IdentityBinding does not support serviceAccountRef
+                          rule: '!has(self.workloadIdentityMethod) || self.workloadIdentityMethod != ''IdentityBinding'' || !has(self.serviceAccountRef)'
                     barbican:
                       description: Barbican configures this store to sync secrets using the OpenStack Barbican provider
                       properties:
@@ -17045,9 +17064,28 @@ spec:
                         vaultUrl:
                           description: Vault Url from which the secrets to be fetched from.
                           type: string
+                        workloadIdentityMethod:
+                          default: WorkloadIdentity
+                          description: |-
+                            WorkloadIdentityMethod selects how a workload identity token is exchanged.
+                            Supported values are "WorkloadIdentity" (default) and "IdentityBinding".
+                            IdentityBinding requires authType: WorkloadIdentity and useAzureSDK: true,
+                            and cannot be combined with serviceAccountRef. It relies on the
+                            AKS identity binding configuration being injected into the controller pod.
+                          enum:
+                            - WorkloadIdentity
+                            - IdentityBinding
+                          type: string
                       required:
                         - vaultUrl
                       type: object
+                      x-kubernetes-validations:
+                        - message: 'IdentityBinding requires useAzureSDK: true'
+                          rule: '!has(self.workloadIdentityMethod) || self.workloadIdentityMethod != ''IdentityBinding'' || (has(self.useAzureSDK) && self.useAzureSDK)'
+                        - message: 'IdentityBinding requires authType: WorkloadIdentity'
+                          rule: '!has(self.workloadIdentityMethod) || self.workloadIdentityMethod != ''IdentityBinding'' || (has(self.authType) && self.authType == ''WorkloadIdentity'')'
+                        - message: IdentityBinding does not support serviceAccountRef
+                          rule: '!has(self.workloadIdentityMethod) || self.workloadIdentityMethod != ''IdentityBinding'' || !has(self.serviceAccountRef)'
                     barbican:
                       description: Barbican configures this store to sync secrets using the OpenStack Barbican provider
                       properties:

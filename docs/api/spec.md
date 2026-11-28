@@ -1144,6 +1144,24 @@ Valid values are:
 </tr>
 <tr>
 <td>
+<code>workloadIdentityMethod</code></br>
+<em>
+<a href="#external-secrets.io/v1.AzureWorkloadIdentityMethod">
+AzureWorkloadIdentityMethod
+</a>
+</em>
+</td>
+<td>
+<em>(Optional)</em>
+<p>WorkloadIdentityMethod selects how a workload identity token is exchanged.
+Supported values are &ldquo;WorkloadIdentity&rdquo; (default) and &ldquo;IdentityBinding&rdquo;.
+IdentityBinding requires authType: WorkloadIdentity and useAzureSDK: true,
+and cannot be combined with serviceAccountRef. It relies on the
+AKS identity binding configuration being injected into the controller pod.</p>
+</td>
+</tr>
+<tr>
+<td>
 <code>vaultUrl</code></br>
 <em>
 string
@@ -1257,6 +1275,28 @@ configuration is not supported with the legacy go-autorest SDK.</p>
 </td>
 </tr>
 </tbody>
+</table>
+<h3 id="external-secrets.io/v1.AzureWorkloadIdentityMethod">AzureWorkloadIdentityMethod
+(<code>string</code> alias)</p></h3>
+<p>
+(<em>Appears on:</em>
+<a href="#external-secrets.io/v1.AzureKVProvider">AzureKVProvider</a>)
+</p>
+<p>
+<p>AzureWorkloadIdentityMethod selects how a workload identity token is exchanged.</p>
+</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody><tr><td><p>&#34;WorkloadIdentity&#34;</p></td>
+<td></td>
+</tr><tr><td><p>&#34;IdentityBinding&#34;</p></td>
+<td></td>
+</tr></tbody>
 </table>
 <h3 id="external-secrets.io/v1.BarbicanAuth">BarbicanAuth
 </h3>

@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"os"
 	"regexp"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore"
@@ -526,11 +527,16 @@ func buildWorkloadIdentityCredential(ctx context.Context, az *Azure, cloudConfig
 	clientOpts := azcore.ClientOptions{
 		Cloud: cloudConfig,
 	}
+	enableAzureProxy := az.provider.WorkloadIdentityMethod == esv1.AzureWorkloadIdentityMethodIdentityBinding
 
 	// If no serviceAccountRef is provided, use environment variables (webhook mode)
 	if az.provider.ServiceAccountRef == nil {
+		if enableAzureProxy && os.Getenv(azureKubernetesTokenProxyEnv) == "" {
+			return nil, fmt.Errorf("IdentityBinding requires %s to be set in the controller pod; ensure the AKS identity binding is configured for the deployment", azureKubernetesTokenProxyEnv)
+		}
 		opts := &azidentity.WorkloadIdentityCredentialOptions{
-			ClientOptions: clientOpts,
+			ClientOptions:    clientOpts,
+			EnableAzureProxy: enableAzureProxy,
 		}
 		return azidentity.NewWorkloadIdentityCredential(opts)
 	}

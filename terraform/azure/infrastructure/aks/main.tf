@@ -6,6 +6,7 @@ resource "azurerm_kubernetes_cluster" "current" {
   dns_prefix          = var.dns_prefix
 
   oidc_issuer_enabled               = var.oidc_issuer_enabled
+  workload_identity_enabled         = var.workload_identity_enabled
   role_based_access_control_enabled = true
 
   default_node_pool {

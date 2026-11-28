@@ -36,13 +36,14 @@ module "e2e_sp" {
 module "test_key_vault" {
   source = "./key-vault"
 
-  key_vault_display_name  = var.key_vault_display_name
-  resource_group_location = var.resource_group_location
-  resource_group_name     = local.resource_group_name
-  tenant_id               = data.azurerm_client_config.current.tenant_id
-  client_object_id        = data.azurerm_client_config.current.object_id
-  eso_sp_object_id        = module.test_sp.sp_object_id
-  eso_e2e_sp_object_id    = module.e2e_sp.sp_object_id
+  key_vault_display_name         = var.key_vault_display_name
+  resource_group_location        = var.resource_group_location
+  resource_group_name            = local.resource_group_name
+  tenant_id                      = data.azurerm_client_config.current.tenant_id
+  client_object_id               = data.azurerm_client_config.current.object_id
+  eso_sp_object_id               = module.test_sp.sp_object_id
+  eso_e2e_sp_object_id           = module.e2e_sp.sp_object_id
+  eso_identity_binding_object_id = module.test_identity_binding.principal_id
 
   depends_on = [
     azurerm_resource_group.current
@@ -59,6 +60,20 @@ module "test_aks" {
   default_node_pool_node_count = var.default_node_pool_node_count
   default_node_pool_vm_size    = var.default_node_pool_vm_size
   cluster_tags                 = var.cluster_tags
+
+  depends_on = [
+    azurerm_resource_group.current
+  ]
+}
+
+module "test_identity_binding" {
+  source = "./identity-binding"
+
+  identity_name           = "managed-e2e-suite-external-secrets-operator"
+  identity_binding_name   = "esoidentitybinding"
+  cluster_id              = module.test_aks.cluster_id
+  resource_group_name     = local.resource_group_name
+  resource_group_location = var.resource_group_location
 
   depends_on = [
     azurerm_resource_group.current

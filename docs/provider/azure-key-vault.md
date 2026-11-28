@@ -44,6 +44,7 @@ ESO supports multiple authentication methods to connect to Azure Key Vault:
 - Service Principal
 - Managed Identity (AAD Pod Identity)
 - Workload Identity
+  - Identity Binding
 
 Regardless of which authentication method is used to authenticate to Azure Key Vault, the identity which is assigned to External Secrets Operator needs to have proper permissions to access the Key Vault. Both [RBAC](https://learn.microsoft.com/en-us/azure/key-vault/general/rbac-guide) and legacy [Access Policy](https://learn.microsoft.com/en-us/azure/key-vault/general/assign-access-policy) based Key Vaults are supported.
 
@@ -127,6 +128,23 @@ The following example demonstrates using the secretRef field to directly deliver
 
 ```yaml
 {% include 'azkv-workload-identity-secretref.yaml' %}
+```
+
+##### Identity Binding
+
+[Identity binding](https://learn.microsoft.com/en-us/azure/aks/identity-bindings) is an AKS alternative to the standard Workload Identity federation that addresses the [limit of 20 federated identity credentials](https://learn.microsoft.com/en-us/azure/aks/identity-bindings-concepts) per user-assigned managed identity. Instead of creating a federated identity credential for every `<namespace, service-account>` pair, you bind the managed identity to the controller's service account at the cluster level. The controller pod then exchanges tokens through an AKS-managed proxy.
+
+To use identity binding, set `workloadIdentityMethod: IdentityBinding`. This requires:
+
+- `authType: WorkloadIdentity`
+- `useAzureSDK: true`
+
+`useAzureSDK: true` is mandatory because identity binding authenticates through the AKS-managed Kubernetes token proxy (`AZURE_KUBERNETES_TOKEN_PROXY`), which is only implemented in the modern Azure SDK. The legacy SDK does not support the token proxy, so it cannot exchange tokens through the cluster-level identity binding.
+
+Identity binding cannot be combined with `serviceAccountRef`; the operator authenticates with the identity bound to its own pod, so every `SecretStore` and `ClusterSecretStore` using identity binding resolves to that same identity. Multi-tenancy across namespaces is therefore not supported with identity binding. You must also configure identity binding for the External Secrets Operator deployment in AKS and ensure the required environment variables (for example `AZURE_KUBERNETES_TOKEN_PROXY`) are injected into the controller pod.
+
+```yaml
+{% include 'azkv-workload-identity-identity-binding.yaml' %}
 ```
 
 ### Custom Cloud Configuration

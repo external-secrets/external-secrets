@@ -6,6 +6,10 @@ terraform {
     key                  = "infrastructure/terraform.tfstate"
   }
   required_providers {
+    azapi = {
+      source  = "azure/azapi"
+      version = "~> 2.0"
+    }
     azuread = {
       source  = "hashicorp/azuread"
       version = "~> 2.0"
@@ -30,3 +34,5 @@ provider "azurerm" {
   # set this to false when running locally
   use_oidc = false
 }
+
+provider "azapi" {}
