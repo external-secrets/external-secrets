@@ -19,6 +19,12 @@ release itself does not touch. Depending on your policies, the Kubernetes
 If losing the CRDs and their resources on uninstall is not acceptable for
 your environment, you have two options.
 
+If you want the CRDs to have a lifecycle that is fully independent of the
+chart, install the chart without them and manage the CRDs with your own
+tooling (for example, by applying the CRD manifests from the release assets,
+or through your GitOps setup). This is Option 2 below; Option 1 keeps the
+CRDs under chart management and annotates them instead.
+
 ## Option 1: Keep the CRDs on uninstall
 
 Helm skips resources annotated with `helm.sh/resource-policy: keep` when a
@@ -56,15 +62,13 @@ Check that each CRD in the output carries
 `helm.sh/resource-policy: keep`.
 
 With the annotation in place, `helm uninstall` removes the operator but
-leaves the CRDs, their custom resources, and the synced `Secret` objects in
+does not delete the CRDs. Consequently, external secret operator custom
+resources are preserved, as well as the related synced `Secret` objects in
 the cluster.
 
 ## Option 2: Manage the CRDs separately
 
-If you want the CRDs to have a lifecycle that is fully independent of the
-chart, install the chart without them and manage the CRDs with your own
-tooling (for example, by applying the CRD manifests from the release assets,
-or through your GitOps setup):
+Install the chart without the CRDs and manage them with your own tooling:
 
 ```console
 helm install external-secrets external-secrets/external-secrets \
