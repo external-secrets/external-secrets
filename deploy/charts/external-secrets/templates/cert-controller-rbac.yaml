@@ -46,14 +46,6 @@ rules:
     - "update"
     - "patch"
   - apiGroups:
-    - ""
-    resources:
-    - "endpoints"
-    verbs:
-    - "list"
-    - "get"
-    - "watch"
-  - apiGroups:
     - "discovery.k8s.io"
     resources:
     - "endpointslices"
@@ -67,32 +59,6 @@ rules:
     - "events"
     verbs:
     - "create"
-    - "patch"
-  - apiGroups:
-    - ""
-    resources:
-    - "secrets"
-    verbs:
-    - "get"
-    - "list"
-    - "watch"
-  - apiGroups:
-    - ""
-    resources:
-    - "secrets"
-    resourceNames:
-    - {{ printf "%s-webhook" (include "external-secrets.fullname" .) | quote }}
-    verbs:
-    - "update"
-    - "patch"
-  - apiGroups:
-    - "coordination.k8s.io"
-    resources:
-    - "leases"
-    verbs:
-    - "get"
-    - "create"
-    - "update"
     - "patch"
   {{- if .Values.certController.metrics.listen.auth.enabled }}
   - apiGroups:
@@ -118,6 +84,60 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
+  name: {{ include "external-secrets.fullname" . }}-cert-controller
+subjects:
+  - name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}
+    namespace: {{ template "external-secrets.namespace" . }}
+    kind: ServiceAccount
+---
+# The cert-controller only reads and updates the webhook Secret (passed with --secret-namespace) and
+# holds its leader election lease in its own namespace, so these rules are namespaced.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-cert-controller
+  namespace: {{ template "external-secrets.namespace" . }}
+  labels:
+    {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+    - ""
+    resources:
+    - "secrets"
+    resourceNames:
+    - {{ printf "%s-webhook" (include "external-secrets.fullname" .) | quote }}
+    verbs:
+    - "get"
+    - "update"
+    - "patch"
+  # create can't be restricted by resourceNames.
+  - apiGroups:
+    - "coordination.k8s.io"
+    resources:
+    - "leases"
+    verbs:
+    - "create"
+  - apiGroups:
+    - "coordination.k8s.io"
+    resources:
+    - "leases"
+    resourceNames:
+    - "crd-certs-controller"
+    verbs:
+    - "get"
+    - "update"
+    - "patch"
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "external-secrets.fullname" . }}-cert-controller
+  namespace: {{ template "external-secrets.namespace" . }}
+  labels:
+    {{- include "external-secrets-cert-controller.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
   name: {{ include "external-secrets.fullname" . }}-cert-controller
 subjects:
   - name: {{ include "external-secrets-cert-controller.serviceAccountName" . }}
