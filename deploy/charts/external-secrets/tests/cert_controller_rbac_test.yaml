@@ -65,45 +65,134 @@ tests:
             verbs:
               - "update"
               - "patch"
-  - it: should keep get/list/watch on secrets cluster-wide
+  - it: should not grant any access to secrets cluster-wide
     documentIndex: 0
     asserts:
-      - contains:
-          path: rules
-          content:
-            apiGroups:
-              - ""
-            resources:
-              - "secrets"
-            verbs:
-              - "get"
-              - "list"
-              - "watch"
-  - it: should scope secret update/patch to the webhook secret by resourceNames
-    documentIndex: 0
-    asserts:
-      - contains:
-          path: rules
-          content:
-            apiGroups:
-              - ""
-            resources:
-              - "secrets"
-            resourceNames:
-              - "RELEASE-NAME-external-secrets-webhook"
-            verbs:
-              - "update"
-              - "patch"
       - notContains:
           path: rules
           content:
-            apiGroups:
-              - ""
             resources:
               - "secrets"
+          any: true
+  - it: should not grant leases or endpoints cluster-wide
+    documentIndex: 0
+    asserts:
+      - notContains:
+          path: rules
+          content:
+            resources:
+              - "leases"
+          any: true
+      - notContains:
+          path: rules
+          content:
+            resources:
+              - "endpoints"
+          any: true
+  - it: should keep get/list/watch on endpointslices cluster-wide
+    documentIndex: 0
+    asserts:
+      - contains:
+          path: rules
+          content:
+            apiGroups:
+              - "discovery.k8s.io"
+            resources:
+              - "endpointslices"
             verbs:
-              - "get"
               - "list"
+              - "get"
               - "watch"
-              - "update"
-              - "patch"
+  - it: should create a Role and RoleBinding in the release namespace
+    release:
+      namespace: eso
+    asserts:
+      - hasDocuments:
+          count: 4
+      - documentSelector:
+          path: kind
+          value: Role
+        equal:
+          path: metadata.namespace
+          value: eso
+      - documentSelector:
+          path: kind
+          value: RoleBinding
+        equal:
+          path: metadata.namespace
+          value: eso
+      - documentSelector:
+          path: kind
+          value: RoleBinding
+        equal:
+          path: roleRef
+          value:
+            apiGroup: rbac.authorization.k8s.io
+            kind: Role
+            name: RELEASE-NAME-external-secrets-cert-controller
+      - documentSelector:
+          path: kind
+          value: RoleBinding
+        equal:
+          path: subjects[0].namespace
+          value: eso
+  - it: should use namespaceOverride for the Role and RoleBinding
+    set:
+      namespaceOverride: other
+    asserts:
+      - documentSelector:
+          path: kind
+          value: Role
+        equal:
+          path: metadata.namespace
+          value: other
+      - documentSelector:
+          path: kind
+          value: RoleBinding
+        equal:
+          path: metadata.namespace
+          value: other
+  - it: should scope secret access to the webhook secret by resourceNames in the Role
+    documentSelector:
+      path: kind
+      value: Role
+    asserts:
+      - equal:
+          path: rules
+          value:
+            - apiGroups:
+                - ""
+              resources:
+                - "secrets"
+              resourceNames:
+                - "RELEASE-NAME-external-secrets-webhook"
+              verbs:
+                - "get"
+                - "update"
+                - "patch"
+            - apiGroups:
+                - "coordination.k8s.io"
+              resources:
+                - "leases"
+              verbs:
+                - "create"
+            - apiGroups:
+                - "coordination.k8s.io"
+              resources:
+                - "leases"
+              resourceNames:
+                - "crd-certs-controller"
+              verbs:
+                - "get"
+                - "update"
+                - "patch"
+  - it: should not render RBAC when cert-manager is used for the webhook
+    set:
+      webhook:
+        certManager:
+          enabled: true
+          cert:
+            create: true
+    asserts:
+      - hasDocuments:
+          count: 0
