@@ -41,7 +41,10 @@ const (
 type AzureWorkloadIdentityMethod string
 
 const (
-	AzureWorkloadIdentityMethodDefault         AzureWorkloadIdentityMethod = "WorkloadIdentity"
+	// AzureWorkloadIdentityMethodDefault uses the default workload identity token exchange method.
+	AzureWorkloadIdentityMethodDefault AzureWorkloadIdentityMethod = "WorkloadIdentity"
+
+	// AzureWorkloadIdentityMethodIdentityBinding uses identity binding for the workload identity token exchange.
 	AzureWorkloadIdentityMethodIdentityBinding AzureWorkloadIdentityMethod = "IdentityBinding"
 )
 
