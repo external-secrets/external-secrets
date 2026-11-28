@@ -118,6 +118,7 @@ nav:
           - Upgrading to v1beta1: guides/v1beta1.md
           - Using Latest Image: guides/using-latest-image.md
           - Disable Cluster Features: guides/disable-cluster-features.md
+          - Preserving CRDs on Helm Uninstall: guides/preserve-crds-on-helm-uninstall.md
       - Tooling:
           - Using the esoctl tool: guides/using-esoctl-tool.md
   - Provider:

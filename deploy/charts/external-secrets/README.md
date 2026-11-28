@@ -122,7 +122,7 @@ The command removes all the Kubernetes components associated with the chart and 
 | commonLabels | object | `{}` | Additional labels added to all helm chart resources. |
 | concurrent | int | `1` | Specifies the number of concurrent ExternalSecret Reconciles external-secret executes at a time. |
 | controllerClass | string | `""` | If set external secrets will filter matching Secret Stores with the appropriate controller values. |
-| crds.annotations | object | `{}` |  |
+| crds.annotations | object | `{}` | Annotations to add to the CRDs. Set `helm.sh/resource-policy: keep` to preserve the CRDs (and the custom resources they hold) when the release is uninstalled — see the [Preserving CRDs on Helm Uninstall](https://external-secrets.io/latest/guides/preserve-crds-on-helm-uninstall/) guide. |
 | crds.conversion.enabled | bool | `false` | Conversion is disabled by default as we stopped supporting v1alpha1. |
 | crds.createClusterExternalSecret | bool | `true` | If true, create CRDs for Cluster External Secret. If set to false you must also set processClusterExternalSecret: false. |
 | crds.createClusterGenerator | bool | `true` | If true, create CRDs for Cluster Generator. If set to false you must also set processClusterGenerator: false. |
