@@ -139,6 +139,8 @@ To use identity binding, set `workloadIdentityMethod: IdentityBinding`. This req
 - `authType: WorkloadIdentity`
 - `useAzureSDK: true`
 
+`useAzureSDK: true` is mandatory because identity binding authenticates through the AKS-managed Kubernetes token proxy (`AZURE_KUBERNETES_TOKEN_PROXY`), which is only implemented in the modern Azure SDK. The legacy SDK does not support the token proxy, so it cannot exchange tokens through the cluster-level identity binding.
+
 Identity binding cannot be combined with `serviceAccountRef`; the operator authenticates with the identity bound to its own pod, so every `SecretStore` and `ClusterSecretStore` using identity binding resolves to that same identity. Multi-tenancy across namespaces is therefore not supported with identity binding. You must also configure identity binding for the External Secrets Operator deployment in AKS and ensure the required environment variables (for example `AZURE_KUBERNETES_TOKEN_PROXY`) are injected into the controller pod.
 
 ```yaml
