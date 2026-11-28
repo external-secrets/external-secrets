@@ -24,6 +24,6 @@ variable "resource_group_location" {
 }
 
 variable "az_ib_type" {
-  type = string
+  type    = string
   default = "Microsoft.ContainerService/managedClusters/identityBindings@2026-08-02-preview"
 }

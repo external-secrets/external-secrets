@@ -91,6 +91,7 @@ resource "azurerm_key_vault" "current" {
 
     secret_permissions = [
       "Get",
+      "List",
       "Set",
       "Delete",
       "Purge",
@@ -101,6 +102,7 @@ resource "azurerm_key_vault" "current" {
       "Get",
       "List",
       "Create",
+      "Import",
       "Delete",
       "Purge",
       "Decrypt",
@@ -111,6 +113,7 @@ resource "azurerm_key_vault" "current" {
       "Get",
       "List",
       "Create",
+      "Import",
       "Delete",
       "Purge",
     ]

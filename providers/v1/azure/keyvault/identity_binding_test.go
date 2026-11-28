@@ -23,6 +23,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/cloud"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	esv1 "github.com/external-secrets/external-secrets/apis/externalsecrets/v1"
 	esmeta "github.com/external-secrets/external-secrets/apis/meta/v1"
@@ -76,8 +77,8 @@ func TestValidateIdentityBindingStore(t *testing.T) {
 				WorkloadIdentityMethod: esv1.AzureWorkloadIdentityMethodIdentityBinding,
 			}
 			store := &esv1.SecretStore{
-				Namespace: "team-a",
-				Spec:      esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{AzureKV: provider}},
+				ObjectMeta: metav1.ObjectMeta{Namespace: "team-a"},
+				Spec:       esv1.SecretStoreSpec{Provider: &esv1.SecretStoreProvider{AzureKV: provider}},
 			}
 			if tc.change != nil {
 				tc.change(provider)

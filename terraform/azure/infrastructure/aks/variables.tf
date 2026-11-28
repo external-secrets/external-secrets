@@ -25,6 +25,12 @@ variable "oidc_issuer_enabled" {
   default     = true
 }
 
+variable "workload_identity_enabled" {
+  type        = bool
+  description = "Enable or Disable Workload Identity"
+  default     = true
+}
+
 variable "default_node_pool_name" {
   type        = string
   description = " The name of the Default Node Pool which should be created within the Kubernetes Cluster"

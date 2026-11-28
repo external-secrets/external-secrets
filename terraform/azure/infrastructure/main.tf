@@ -70,7 +70,7 @@ module "test_identity_binding" {
   source = "./identity-binding"
 
   identity_name           = "managed-e2e-suite-external-secrets-operator"
-  identity_binding_name   = "managed-e2e-suite-external-secrets-operator"
+  identity_binding_name   = "esoidentitybinding"
   cluster_id              = module.test_aks.cluster_id
   resource_group_name     = local.resource_group_name
   resource_group_location = var.resource_group_location
